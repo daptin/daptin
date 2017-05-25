@@ -1,4 +1,4 @@
-package dbapi
+package server
 
 import "github.com/artpar/api2go"
 

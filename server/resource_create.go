@@ -1,22 +1,23 @@
-package dbapi
+package server
 
 import (
   "github.com/artpar/api2go"
   log "github.com/Sirupsen/logrus"
-  "reflect"
   "gopkg.in/Masterminds/squirrel.v1"
+  "reflect"
+  "github.com/satori/go.uuid"
 )
 
-// Update an object
+// Create a new object. Newly created object/struct must be in Responder.
 // Possible Responder status codes are:
-// - 200 OK: Update successful, however some field(s) were changed, returns updates source
+// - 201 Created: Resource was created and needs to be returned
 // - 202 Accepted: Processing is delayed, return nothing
-// - 204 No Content: Update was successful, no fields were changed by the server, return nothing
-func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {
+// - 204 No Content: Resource created with a client generated ID, and no fields were modified by
+//   the server
 
+func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
   data := obj.(*api2go.Api2GoModel)
-  log.Infof("Update object request: %v", data)
-  id := data.GetID()
+  log.Infof("Create object request: %v", data)
 
   attrs := data.GetAttributes()
 
@@ -48,6 +49,9 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
     if col.ColumnName == "updated_at" {
       continue
     }
+    if col.ColumnName == "permission" {
+      continue
+    }
 
     //log.Infof("Check column: %v", col.ColumnName)
 
@@ -61,26 +65,28 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
   }
 
-  builder := squirrel.Update(dr.model.GetName())
+  newUuid := uuid.NewV4().String()
 
-  for i, _ := range colsList {
-    builder.Set(colsList[i], valsList[i])
-  }
+  colsList = append(colsList, "reference_id")
+  valsList = append(valsList, newUuid)
 
-  query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).ToSql()
+  colsList = append(colsList, "permission")
+  valsList = append(valsList, dr.model.GetDefaultPermission())
+
+  query, vals, err := squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
   if err != nil {
-    log.Errorf("Failed to create update query: %v", err)
+    log.Errorf("Failed to create insert query: %v", err)
     return NewResponse(nil, nil, 500), err
   }
 
-  log.Infof("Update query: %v", query)
+  log.Infof("Insert query: %v", query)
   _, err = dr.db.Exec(query, vals...)
   if err != nil {
-    log.Errorf("Failed to execute update query: %v", err)
+    log.Errorf("Failed to execute insert query: %v", err)
     return NewResponse(nil, nil, 500), err
   }
 
-  query, vals, err = squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": id}).ToSql()
+  query, vals, err = squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": newUuid}).ToSql()
   if err != nil {
     log.Errorf("Failed to create select query: %v", err)
     return nil, err
@@ -101,6 +107,5 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
   return NewResponse(nil, api2go.NewApi2GoModelWithData(dr.model.GetName(), dr.model.GetColumns(), dr.model.GetDefaultPermission(), m), 201), nil
 
-  return NewResponse(nil, StatusResponse{"ok"}, 200), nil
 }
 

@@ -4,7 +4,6 @@ import (
   "gopkg.in/gin-gonic/gin.v1"
   "github.com/artpar/api2go"
   "github.com/artpar/api2go-adapter/gingonic"
-  "github.com/artpar/gocms/dbapi"
   log "github.com/Sirupsen/logrus"
   _ "github.com/go-sql-driver/mysql"
   //"github.com/itsjamie/gin-cors"
@@ -93,11 +92,22 @@ func Main() {
   CreateIndexes(&initConfig, db)
 
   UpdateWorldTable(&initConfig, db)
+  //log.Infof("Tables: %v", tables)
   UpdateWorldColumnTable(&initConfig, db)
 
-  log.Infof("content: %v", initConfig)
+  //log.Infof("content: %v", initConfig)
 
-  AddAllTablesToApi2Go(api, tables, db)
+  var ms MiddlewareSet
+
+  tpc := &TableAccessPermissionChecker{}
+  ms.BeforeFindAll = []DatabaseRequestInterceptor{
+    tpc,
+  }
+  ms.AfterFindAll = []DatabaseRequestInterceptor{
+    tpc,
+  }
+
+  AddAllTablesToApi2Go(api, tables, db, &ms)
 
   r.GET("/ping", func(c *gin.Context) {
     c.String(200, "pong")
@@ -124,7 +134,14 @@ func Main() {
     res := map[string]interface{}{}
 
     for _, col := range cols {
-      res[col.ColumnName] = ""
+      if col.ColumnType == "deleted_at" {
+        continue
+      }
+      if col.ColumnType == "id" {
+        continue
+      }
+
+      res[col.ColumnName] = col.ColumnType
     }
     c.JSON(200, res)
     if true {
@@ -148,11 +165,60 @@ func CorsMiddlewareFunc(c *gin.Context) {
   c.Header("Access-Control-Allow-Headers", "Content-Type,Authorization")
 }
 
-func AddAllTablesToApi2Go(api *api2go.API, tables []datastore.TableInfo, db *sqlx.DB) map[string]*dbapi.DbResource {
-  m := make(map[string]*dbapi.DbResource)
+type DatabaseRequestInterceptor interface {
+  InterceptBefore(*DbResource, *api2go.Request) (api2go.Responder, error)
+  InterceptAfter(*DbResource, *api2go.Request, []map[string]interface{}) ([]map[string]interface{}, error)
+}
+
+type MiddlewareSet struct {
+  BeforeCreate  []DatabaseRequestInterceptor
+  BeforeFindAll []DatabaseRequestInterceptor
+  BeforeFindOne []DatabaseRequestInterceptor
+  BeforeUpdate  []DatabaseRequestInterceptor
+  BeforeDelete  []DatabaseRequestInterceptor
+
+  AfterCreate   []DatabaseRequestInterceptor
+  AfterFindAll  []DatabaseRequestInterceptor
+  AfterFindOne  []DatabaseRequestInterceptor
+  AfterUpdate   []DatabaseRequestInterceptor
+  AfterDelete   []DatabaseRequestInterceptor
+}
+
+type DbResource struct {
+  model        *api2go.Api2GoModel
+  db           *sqlx.DB
+  ms           *MiddlewareSet
+  contextCache map[string]interface{}
+}
+
+func NewDbResource(model *api2go.Api2GoModel, db *sqlx.DB, ms *MiddlewareSet) *DbResource {
+  cols := model.GetColumns()
+  model.SetColumns(&cols)
+  log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
+  return &DbResource{
+    model: model,
+    db: db,
+    ms: ms,
+    contextCache: make(map[string]interface{}),
+  }
+}
+
+func (dr *DbResource) PutContext(key string, val interface{}) {
+  dr.contextCache[key] = val
+}
+
+func (dr *DbResource) GetContext(key string) interface{} {
+  return dr.contextCache[key]
+}
+
+func AddAllTablesToApi2Go(api *api2go.API, tables []datastore.TableInfo, db *sqlx.DB, ms *MiddlewareSet) map[string]*DbResource {
+  m := make(map[string]*DbResource)
   for _, table := range tables {
+    //log.Infof("Table [%v] DF: %v", table.TableName, table.DefaultPermission)
     model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission)
-    res := dbapi.NewDbResource(model, db)
+
+    res := NewDbResource(model, db, ms)
+
     m[table.TableName] = res
     api.AddResource(model, res)
   }

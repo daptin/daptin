@@ -18,7 +18,7 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
 
     var worldid int
 
-    db.QueryRowx("select id from world where table_name = ?", table.TableName).Scan(&worldid);
+    db.QueryRowx("select id from world where table_name = ? and deleted_at is null", table.TableName).Scan(&worldid);
 
     for _, col := range table.Columns {
 
@@ -38,7 +38,7 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
        */
       //var colInfo api2go.ColumnInfo
       var count int
-      err := db.QueryRowx("select count(*) from world_column where world_id = ? and column_name = ?", worldid, col.ColumnName).Scan(&count)
+      err := db.QueryRowx("select count(*) from world_column where world_id = ? and column_name = ? and deleted_at is null", worldid, col.ColumnName).Scan(&count)
       if err != nil || count < 1 {
         log.Infof("No existing row for TableColumn[%v][%v]: %v", table.TableName, col.ColumnName, err)
 
@@ -92,9 +92,9 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
   var userId int
   var userGroupId int
   var c int
-  err = tx.QueryRowx("select count(*) from user").Scan(&c)
+  err = tx.QueryRowx("select count(*) from user where deleted_at is null").Scan(&c)
   CheckErr(err, "Failed to get user count")
-
+  //log.Infof("Current user grou")
   if c < 1 {
     u1 := uuid.NewV4().String()
     _, err = tx.Exec("insert into usergroup (name, user_id, usergroup_id, reference_id, permission) value ('guest group', null, null, ?, 755);", u1)
@@ -112,27 +112,42 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
     tx.Exec("update usergroup set user_id = ?, usergroup_id = ?", userId, userGroupId)
   } else {
 
-    err = tx.QueryRowx("select id from user where status != 'deleted' limit 1").Scan(&userId)
+    err = tx.QueryRowx("select id from user where deleted_at is null limit 1").Scan(&userId)
     CheckErr(err, "Failed to select user")
-    err = tx.QueryRowx("select id from usergroup where status != 'deleted' limit 1").Scan(&userGroupId)
+    err = tx.QueryRowx("select id from usergroup where  deleted_at is null limit 1").Scan(&userGroupId)
     CheckErr(err, "Failed to user group")
-
   }
 
-  for _, table := range initConfig.Tables {
+  for i, table := range initConfig.Tables {
     refId := uuid.NewV4().String()
     schema, err := json.Marshal(table)
-    _, err = tx.Exec("insert into world (table_name, schema_json, permission, reference_id, user_id, usergroup_id) value (?,?,755, ?, ?, ?)", table.TableName, string(schema), refId, userId, userGroupId)
+
+    var cou int
+    tx.QueryRowx("select count(*) from world where table_name = ?", table.TableName).Scan(&cou)
+    if cou > 0 {
+
+      var defaultPermission int
+
+      err = tx.QueryRowx("select default_permission from world where table_name = ?  and deleted_at is null", table.TableName).Scan(&defaultPermission)
+      if err != nil {
+        log.Errorf("Failed to scan default permission for table [%v]: %v", table.TableName, err)
+      } else {
+        log.Infof("Default permission for [%v]: %v", table.TableName, defaultPermission)
+      }
+
+      table.DefaultPermission = defaultPermission
+      initConfig.Tables[i] = table
+
+
+      continue
+    }
+
+    _, err = tx.Exec("insert into world (table_name, schema_json, permission, reference_id, user_id, usergroup_id, default_permission) value (?,?,755, ?, ?, ?, 755)", table.TableName, string(schema), refId, userId, userGroupId)
     CheckErr(err, "Failed to insert into world table about " + table.TableName)
-
-    var defaultPermission int
-
-    tx.QueryRowx("select default_permission from world where table_name = ?", table.TableName).Scan(&defaultPermission)
-
-    table.DefaultPermission = defaultPermission
 
   }
 
+  //log.Infof("Completed update world table: %v", initConfig)
   CheckErr(err, "Failed to commit")
 
 }
@@ -153,12 +168,13 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.DB) {
         log.Infof("Create unique index sql: %v", alterTable)
         _, err := db.Exec(alterTable)
         if err != nil {
-          log.Infof("Failed to create unique index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
+          log.Infof("Table[%v] Column[%v]: Failed to create unique index: %v", table.TableName, column.ColumnName, err)
         }
       }
     }
   }
 }
+
 func CreateIndexes(initConfig *CmsConfig, db *sqlx.DB) {
   for _, table := range initConfig.Tables {
     for _, column := range table.Columns {
@@ -185,7 +201,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
 
         _, err := db.Exec(alterSql)
         if err != nil {
-          log.Info("Failed to create foreign key [%v], probably it exists: %v", keyName, err)
+          log.Infof("Failed to create foreign key [%v], probably it exists: %v", err, keyName)
         } else {
           log.Infof("Key created [%v][%v]", table.TableName, keyName)
         }
@@ -207,6 +223,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
         Name: targetTable + "_id",
         ColumnName: targetTable + "_id",
         IsForeignKey: true,
+        ColumnType: "alias",
         ForeignKeyData: api2go.ForeignKeyData{
           TableName: targetTable,
           ColumnName: "id",
@@ -235,6 +252,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       col1 := api2go.ColumnInfo{
         Name: fromTable + "_id",
         ColumnName: fromTable + "_id",
+        ColumnType: "alias",
         IsForeignKey: true,
         ForeignKeyData: api2go.ForeignKeyData{
           TableName: fromTable,
@@ -248,6 +266,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       col2 := api2go.ColumnInfo{
         Name: targetTable + "_id",
         ColumnName: targetTable + "_id",
+        ColumnType: "alias",
         IsForeignKey: true,
         ForeignKeyData: api2go.ForeignKeyData{
           TableName: targetTable,
@@ -277,6 +296,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
         Name: fromTable + "_id",
         ColumnName: fromTable + "_id",
         IsForeignKey: true,
+        ColumnType: "alias",
         ForeignKeyData: api2go.ForeignKeyData{
           TableName: fromTable,
           ColumnName: "id",
@@ -289,6 +309,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       col2 := api2go.ColumnInfo{
         Name: targetTable + "_id",
         ColumnName: targetTable + "_id",
+        ColumnType: "alias",
         IsForeignKey: true,
         ForeignKeyData: api2go.ForeignKeyData{
           TableName: targetTable,
