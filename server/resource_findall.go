@@ -1,4 +1,4 @@
-package dbapi
+package server
 
 import (
   "github.com/artpar/api2go"
@@ -7,6 +7,24 @@ import (
 )
 
 func (dr *DbResource) FindAll(req api2go.Request) (api2go.Responder, error) {
+
+  for _, bf := range dr.ms.BeforeFindAll {
+    r, err := bf.InterceptBefore(dr, &req)
+    if err != nil {
+      log.Errorf("Error from before create middleware: %v", err)
+      return nil, err
+    }
+    if r != nil {
+      return r, err
+    }
+  }
+
+
+  /// start auth check
+
+
+  /// end auth check
+
   m := dr.model
   log.Infof("Get all resource type: %v\n", m)
 
@@ -35,6 +53,13 @@ func (dr *DbResource) FindAll(req api2go.Request) (api2go.Responder, error) {
   }
 
   infos := dr.model.GetColumns()
+
+  for _, bf := range dr.ms.AfterFindAll {
+    results, err = bf.InterceptAfter(dr, &req, results)
+    if err != nil {
+      log.Errorf("Error from after create middleware: %v", err)
+    }
+  }
 
   for _, res := range results {
     var a = api2go.NewApi2GoModel(dr.model.GetTableName(), infos, dr.model.GetDefaultPermission())

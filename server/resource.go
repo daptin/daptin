@@ -1,10 +1,9 @@
-package dbapi
+package server
 
 import (
   "fmt"
   //sq  "gopkg.in/Masterminds/squirrel.v1"
-  "github.com/artpar/api2go"
-  "github.com/jmoiron/sqlx"
+  //"github.com/jmoiron/sqlx"
   log "github.com/Sirupsen/logrus"
   "database/sql"
   //"reflect"
@@ -13,15 +12,6 @@ import (
   //"time"
 )
 
-func NewDbResource(model *api2go.Api2GoModel, db *sqlx.DB) *DbResource {
-  cols := model.GetColumns()
-  model.SetColumns(&cols)
-  log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
-  return &DbResource{
-    model: model,
-    db: db,
-  }
-}
 
 
 
