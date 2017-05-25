@@ -1,4 +1,4 @@
 static/node_modules
 gocms.iml
 .idea/
-temp.*
+temp.*gocms.json

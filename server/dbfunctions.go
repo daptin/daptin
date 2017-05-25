@@ -9,7 +9,78 @@ import (
   "github.com/satori/go.uuid"
   "encoding/json"
   "github.com/artpar/gocms/datastore"
+  "gopkg.in/Masterminds/squirrel.v1"
 )
+
+func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
+
+  for _, table := range initConfig.Tables {
+
+    var worldid int
+
+    db.QueryRowx("select id from world where table_name = ?", table.TableName).Scan(&worldid);
+
+    for _, col := range table.Columns {
+
+      /**
+      Name            string
+  ColumnName      string
+  ColumnType      string
+  IsPrimaryKey    bool
+  IsAutoIncrement bool
+  IsIndexed       bool
+  IsUnique        bool
+  IsNullable      bool
+  IsForeignKey    bool
+  ForeignKeyData  ForeignKeyData
+  DataType        string
+  DefaultValue    string
+       */
+      //var colInfo api2go.ColumnInfo
+      var count int
+      err := db.QueryRowx("select count(*) from world_column where world_id = ? and column_name = ?", worldid, col.ColumnName).Scan(&count)
+      if err != nil || count < 1 {
+        log.Infof("No existing row for TableColumn[%v][%v]: %v", table.TableName, col.ColumnName, err)
+
+        mapData := make(map[string]interface{})
+
+        mapData["world_id"] = worldid;
+        mapData["reference_id"] = uuid.NewV4().String();
+        mapData["permission"] = 0;
+        mapData["name"] = col.Name;
+
+        mapData["column_name"] = col.ColumnName;
+
+        mapData["column_type"] = col.ColumnType;
+        mapData["is_primary_key"] = col.IsPrimaryKey;
+        mapData["is_auto_increment"] = col.IsAutoIncrement;
+        mapData["is_indexed"] = col.IsIndexed;
+        mapData["is_unique"] = col.IsUnique;
+        mapData["is_nullable"] = col.IsNullable;
+        mapData["is_foreign_key"] = col.IsForeignKey;
+        mapData["include_in_api"] = col.IncludeInApi;
+        mapData["foreign_key_data"] = col.ForeignKeyData.String();
+        mapData["data_type"] = col.DataType;
+        mapData["default_value"] = col.DefaultValue;
+
+        query, args, err := squirrel.Insert("world_column").SetMap(mapData).ToSql()
+        if err != nil {
+          log.Errorf("Failed to create insert query: %v", err)
+        }
+
+        log.Infof("Query for insert: %v", query)
+
+        _, err = db.Exec(query, args...)
+        if err != nil {
+          log.Errorf("Failed to insert new row in world_column: %v", err)
+        }
+
+      }
+
+    }
+  }
+
+}
 
 func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
@@ -114,7 +185,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
 
         _, err := db.Exec(alterSql)
         if err != nil {
-          log.Errorf("Failed to create foreign key [%v], probably it exists: %v", keyName, err)
+          log.Info("Failed to create foreign key [%v], probably it exists: %v", keyName, err)
         } else {
           log.Infof("Key created [%v][%v]", table.TableName, keyName)
         }
@@ -142,9 +213,11 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
         },
         DataType: "int(11)",
       }
-      for _, t := range config.Tables {
+      for i, t := range config.Tables {
         if t.TableName == fromTable {
-          t.Columns = append(t.Columns, col)
+          c := t.Columns
+          c = append(c, col)
+          config.Tables[i].Columns = c
         }
       }
       break

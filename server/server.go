@@ -12,11 +12,45 @@ import (
   "encoding/json"
   "github.com/jmoiron/sqlx"
   "github.com/artpar/gocms/datastore"
+  "github.com/pkg/errors"
+  "strings"
 )
 
 type CmsConfig struct {
   Tables    []datastore.TableInfo
   Relations []datastore.TableRelation
+}
+
+var ColumnTypes = []string{
+  "Id",
+  "Alias",
+  "Date",
+  "Time",
+  "Day",
+  "Month",
+  "Year",
+  "Minute",
+  "Hour",
+  "Email",
+  "Name",
+  "Value",
+  "TrueFalse",
+  "DateTime",
+  "Location (lat/long)",
+  "Color",
+  "Measurement",
+  "Label",
+  "Content",
+  "File",
+  "Url",
+  "Image",
+}
+
+var CollectionTypes = []string{
+  "Pair",
+  "Triplet",
+  "Set",
+  "OrderedSet",
 }
 
 func Main() {
@@ -49,14 +83,19 @@ func Main() {
   }
 
   initConfig.Tables = append(initConfig.Tables, datastore.StandardTables...)
+  initConfig.Relations = append(initConfig.Relations, datastore.StandardRelations...)
   CheckRelations(&initConfig, db)
   tables := CheckAllTableStatus(&initConfig, db)
+  initConfig.Tables = tables
   CreateRelations(&initConfig, db)
 
   CreateUniqueConstraints(&initConfig, db)
   CreateIndexes(&initConfig, db)
 
   UpdateWorldTable(&initConfig, db)
+  UpdateWorldColumnTable(&initConfig, db)
+
+  log.Infof("content: %v", initConfig)
 
   AddAllTablesToApi2Go(api, tables, db)
 
@@ -64,6 +103,39 @@ func Main() {
     c.String(200, "pong")
   })
 
+  r.GET("/jsmodel/:typename", func(c *gin.Context) {
+    typeName := strings.Split(c.Param("typename"), ".")[0]
+    //resource := resources[typeName]
+    var selectedTable *datastore.TableInfo
+    for _, t := range initConfig.Tables {
+      if t.TableName == typeName {
+        selectedTable = &t
+        break
+      }
+    }
+    log.Infof("data: %v", selectedTable)
+
+    if selectedTable == nil {
+      c.AbortWithError(404, errors.New("Invalid type"))
+      return
+    }
+    cols := selectedTable.Columns
+
+    res := map[string]interface{}{}
+
+    for _, col := range cols {
+      res[col.ColumnName] = ""
+    }
+    c.JSON(200, res)
+    if true {
+      return
+    }
+
+    //j, _ := json.Marshal(res)
+
+    //c.String(200, "jsonApi.define('%v', %v)", typeName, string(j))
+
+  })
 
   r.Run(":6336")
 
@@ -72,13 +144,18 @@ func Main() {
 func CorsMiddlewareFunc(c *gin.Context) {
   log.Infof("middleware ")
   c.Header("Access-Control-Allow-Origin", "*")
-
+  c.Header("Access-Control-Allow-Methods", "POST,GET,DELETE,PUT,OPTIONS")
+  c.Header("Access-Control-Allow-Headers", "Content-Type,Authorization")
 }
 
-func AddAllTablesToApi2Go(api *api2go.API, tables []datastore.TableInfo, db *sqlx.DB) {
+func AddAllTablesToApi2Go(api *api2go.API, tables []datastore.TableInfo, db *sqlx.DB) map[string]*dbapi.DbResource {
+  m := make(map[string]*dbapi.DbResource)
   for _, table := range tables {
     model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission)
-    api.AddResource(model, dbapi.NewDbResource(model, db))
+    res := dbapi.NewDbResource(model, db)
+    m[table.TableName] = res
+    api.AddResource(model, res)
   }
+  return m
 }
 
