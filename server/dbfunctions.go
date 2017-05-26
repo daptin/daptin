@@ -96,17 +96,27 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
   CheckErr(err, "Failed to get user count")
   //log.Infof("Current user grou")
   if c < 1 {
-    u1 := uuid.NewV4().String()
-    _, err = tx.Exec("insert into usergroup (name, reference_id, permission) value ('guest group', ?, 755);", u1)
-    CheckErr(err, "Failed to insert usergroup")
+
     u2 := uuid.NewV4().String()
     _, err = tx.Exec("insert into user (name, email, reference_id, permission) value ('guest', 'guest@cms.go', ?, 755)", u2)
     CheckErr(err, "Failed to insert user")
 
     err = tx.QueryRowx("select id from user where reference_id = ?", u2).Scan(&userId)
     CheckErr(err, "Failed to select user")
+
+    u1 := uuid.NewV4().String()
+    _, err = tx.Exec("insert into usergroup (name, reference_id, permission) value ('guest group', ?, 755);", u1)
+    CheckErr(err, "Failed to insert usergroup")
+
     err = tx.QueryRowx("select id from usergroup where reference_id = ?", u1).Scan(&userGroupId)
     CheckErr(err, "Failed to user group")
+
+    refIf := uuid.NewV4().String()
+    _, err := tx.Exec("insert into user_has_usergroup (user_id, usergroup_id, permission, reference_id) value (?,?,755, ?)", userId, userGroupId, refIf)
+    CheckErr(err, "Failed to insert user has usergroup")
+
+
+
 
     //tx.Exec("update user set user_id = ?, usergroup_id = ?", userId, userGroupId)
     //tx.Exec("update usergroup set user_id = ?, usergroup_id = ?", userId, userGroupId)
@@ -141,7 +151,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
       continue
     }
 
-    _, err = tx.Exec("insert into world (table_name, schema_json, permission, reference_id, default_permission, user_id, usergroup_id) value (?,?,755, ?, 755, ?, ?)", table.TableName, string(schema), refId, userId, userGroupId)
+    _, err = tx.Exec("insert into world (table_name, schema_json, permission, reference_id, default_permission, user_id) value (?,?,755, ?, 755, ?)", table.TableName, string(schema), refId, userId)
     CheckErr(err, "Failed to insert into world table about " + table.TableName)
     initConfig.Tables[i].DefaultPermission = 755
 
@@ -154,7 +164,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
 func CheckErr(err error, message string) {
   if err != nil {
-    log.Infof("%v: %v", message, err)
+    log.Errorf("%v: %v", message, err)
   }
 }
 
@@ -225,17 +235,52 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
 func CheckRelations(config *CmsConfig, db *sqlx.DB) {
   relations := config.Relations
 
+  for _, table := range config.Tables {
+
+    if table.TableName == "usergroup" {
+      continue
+    }
+
+    relation := api2go.TableRelation{
+      Subject: table.TableName,
+      Relation: "belongs_to",
+      Object: "user",
+    }
+    relations = append(relations, relation)
+
+    if table.TableName == "world_column" {
+      continue
+    }
+
+    relationGroup := api2go.TableRelation{
+      Subject: table.TableName,
+      Relation: "has_many",
+      Object: "usergroup",
+    }
+
+    relations = append(relations, relationGroup)
+
+  }
+  config.Relations = relations
+
   for _, relation := range relations {
     log.Infof("[%v] [%v] [%v]", relation.Subject, relation.Relation, relation.Object)
     switch relation.Relation {
     case "belongs_to":
       fromTable := relation.Subject
       targetTable := relation.Object
+
+      isNullable := false
+      if targetTable == "user" || targetTable == "usergroup" {
+        isNullable = true
+      }
+
       col := api2go.ColumnInfo{
         Name: targetTable + "_id",
         ColumnName: targetTable + "_id",
         IsForeignKey: true,
         ColumnType: "alias",
+        IsNullable: isNullable,
         ForeignKeyData: api2go.ForeignKeyData{
           TableName: targetTable,
           ColumnName: "id",

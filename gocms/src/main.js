@@ -5,20 +5,23 @@ import App from './App'
 import router from './router'
 import ElementUI from 'element-ui'
 import Vuetable from './components/vuetable'
+import VuetablePagination from './components/vuetable/components/VuetablePagination.vue'
+global.jQuery = require('jquery');
 
 Vue.config.productionTip = false;
 
 Vue.use(ElementUI);
 Vue.use(Vuetable);
+Vue.use(VuetablePagination);
 
 import 'element-ui/lib/theme-default/index.css'
 import './components/vuetable/vuetable.css'
 
 
 Vue.component("vuetable", Vuetable);
-Vue.component("vuetable-pagination", Vuetable.VuetablePagination);
-Vue.component("vuetable-pagination-dropdown", Vuetable.VueTablePaginationDropDown);
-Vue.component("vuetable-pagination-info", Vuetable.VueTablePaginationInfo);
+Vue.component("vuetable-pagination", VuetablePagination);
+// Vue.component("vuetable-pagination-dropdown", Vuetable.VueTablePaginationDropDown);
+// Vue.component("vuetable-pagination-info", Vuetable.VueTablePaginationInfo);
 
 // Utility to check auth status
 

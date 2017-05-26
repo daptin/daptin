@@ -258,7 +258,7 @@
         created () {
             this.normalizeFields()
             this.$nextTick(function () {
-                this.fireEvent('initialized', this.tableFields)
+                this.emit1('initialized', this.tableFields)
             })
 
             if (this.apiMode && this.loadOnStart) {
@@ -311,29 +311,49 @@
                 let obj
                 this.fields.forEach(function (field, i) {
                     var fieldType = that.fieldsData[field];
-                    console.log("field type", field, fieldType);
+                    console.log("field type", field, fieldType, that.fieldsData);
+                    field = {
+                        name: field,
+                        title: self.setTitle(field),
+                        callback: undefined,
+                    };
 
-                    if (typeof (field) === 'string') {
-                        obj = {
-                            name: field,
-                            title: self.setTitle(field),
-                            titleClass: '',
-                            sortField: field,
-                            dataClass: '',
-                            callback: null,
-                            visible: true,
-                        }
-                    } else {
-                        obj = {
-                            name: field.name,
-                            title: (field.title === undefined) ? self.setTitle(field.name) : field.title,
-                            sortField: field.sortField,
-                            titleClass: (field.titleClass === undefined) ? '' : field.titleClass,
-                            dataClass: (field.dataClass === undefined) ? '' : field.dataClass,
-                            callback: (field.callback === undefined) ? '' : field.callback,
-                            visible: (field.visible === undefined) ? true : field.visible,
-                        }
+                    if (typeof fieldType == "object") {
+                        field.visible = false;
                     }
+
+                    if (fieldType === "truefalse") {
+                        field.callback = 'trueFalseView';
+                    }
+
+                    if (field.name == "updated_at") {
+                        field.visible = false;
+                    }
+
+                    if (field.name == "reference_id") {
+                        field.visible = false;
+                    }
+
+                    if (field.name == "permission") {
+                        field.visible = false;
+                    }
+                    if (fieldType == "alias") {
+                        field.visible = false;
+                    }
+
+//                    console.log("field", field);
+
+
+                    obj = {
+                        name: field.name,
+                        title: (field.title === undefined) ? self.setTitle(field.name) : field.title,
+                        sortField: field.sortField,
+                        titleClass: (field.titleClass === undefined) ? '' : field.titleClass,
+                        dataClass: (field.dataClass === undefined) ? '' : field.dataClass,
+                        callback: (field.callback === undefined) ? '' : field.callback,
+                        visible: (field.visible === undefined) ? true : field.visible,
+                    }
+
                     self.tableFields.push(obj)
                 })
             },
@@ -378,19 +398,24 @@
             loadData (success = this.loadSuccess, failed = this.loadFailed) {
                 if (!this.apiMode) return;
 
-                this.fireEvent('loading')
+                this.emit1('loading')
 
                 this.httpOptions['params'] = this.getAllQueryParams()
 
                 console.log("load by jsonapi")
-                this.jsonApi.findAll(this.jsonApiModelName, {page: {offset: 0, limit: 50}}).then(
+                this.jsonApi.findAll(this.jsonApiModelName, {
+                    page: {
+                        number: this.currentPage,
+                        size: this.perPage
+                    }
+                }).then(
                     success,
                     failed
                 )
             },
             loadSuccess (response) {
                 console.log("load success", response)
-                this.fireEvent('load-success', response)
+                this.emit1('load-success', response)
 
                 let body = this.transform(response)
 
@@ -405,15 +430,16 @@
                     )
                 }
 
+                var that = this;
                 this.$nextTick(function () {
-                    this.fireEvent('pagination-data', this.tablePagination)
-                    this.fireEvent('loaded')
+                    that.emit1('pagination-data', this.tablePagination)
+                    that.emit1('loaded')
                 })
             },
             loadFailed (response) {
                 console.error('load-error', response)
-                this.fireEvent('load-error', response)
-                this.fireEvent('loaded')
+                this.emit1('load-error', response)
+                this.emit1('loaded')
             },
             transform (data) {
                 let func = 'transform'
@@ -434,8 +460,8 @@
 
                 return defaultValue
             },
-            fireEvent (eventName, args) {
-                this.$emit(this.eventPrefix + eventName, args)
+            emit1 (eventName, args) {
+                this.$emit(eventName, args)
             },
             warn (msg) {
                 if (!this.silent) {
@@ -655,7 +681,7 @@
                 } else {
                     this.unselectId(key)
                 }
-                this.$emit('vuetable:checkbox-toggled', isChecked, dataItem)
+                this.emit1('vuetable:checkbox-toggled', isChecked, dataItem)
             },
             selectId (key) {
                 if (!this.isSelectedRow(key)) {
@@ -731,7 +757,7 @@
                         self.unselectId(dataItem[idColumn])
                     })
                 }
-                this.$emit('vuetable:checkbox-toggled-all', isChecked)
+                this.emit1('vuetable:checkbox-toggled-all', isChecked)
             },
             gotoPreviousPage () {
                 if (this.currentPage > 1) {
@@ -807,29 +833,30 @@
                 return this.rowClass
             },
             onRowChanged (dataItem) {
-                this.fireEvent('row-changed', dataItem)
+                this.emit1('row-changed', dataItem)
                 return true
             },
             onRowClicked (dataItem, event) {
-                this.$emit(this.eventPrefix + 'row-clicked', dataItem, event)
+                this.emit1(this.eventPrefix + 'row-clicked', dataItem, event)
                 return true
             },
             onRowDoubleClicked (dataItem, event) {
-                this.$emit(this.eventPrefix + 'row-dblclicked', dataItem, event)
+                this.emit1(this.eventPrefix + 'row-dblclicked', dataItem, event)
             },
             onDetailRowClick (dataItem, event) {
-                this.$emit(this.eventPrefix + 'detail-row-clicked', dataItem, event)
+                this.emit1(this.eventPrefix + 'detail-row-clicked', dataItem, event)
             },
             onCellClicked (dataItem, field, event) {
-                this.$emit(this.eventPrefix + 'cell-clicked', dataItem, field, event)
+                this.emit1(this.eventPrefix + 'cell-clicked', dataItem, field, event)
             },
             onCellDoubleClicked (dataItem, field, event) {
-                this.$emit(this.eventPrefix + 'cell-dblclicked', dataItem, field, event)
+                this.emit1(this.eventPrefix + 'cell-dblclicked', dataItem, field, event)
             },
           /*
            * API for externals
            */
             changePage (page) {
+                console.log("set page", page)
                 if (page === 'prev') {
                     this.gotoPreviousPage()
                 } else if (page === 'next') {
@@ -848,8 +875,21 @@
             resetData () {
                 this.tableData = null
                 this.tablePagination = null
-                this.fireEvent('data-reset')
-            }
+                this.emit1('data-reset')
+            },
+            reinit () {
+                this.normalizeFields()
+                this.$nextTick(function () {
+                    this.emit1('initialized', this.tableFields)
+                });
+
+                if (this.apiMode && this.loadOnStart) {
+                    this.loadData()
+                }
+                if (this.apiMode == false && this.data.length > 0) {
+                    this.setData(this.data)
+                }
+            },
         }, // end: methods
         watch: {
             'multiSort' (newVal, oldVal) {

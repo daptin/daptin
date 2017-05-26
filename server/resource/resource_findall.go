@@ -8,13 +8,13 @@ package resource
 //  "fmt"
 //)
 //
-//func (dr *DbResource) FindAll(req api2go.Request) (api2go.Responder, error) {
+//// PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
+//func (dr *DbResource) FindAll(req api2go.Request) (response api2go.Responder, err error) {
 //
-//  var err error
 //  for _, bf := range dr.ms.BeforeFindAll {
 //    r, err := bf.InterceptBefore(dr, &req)
 //    if err != nil {
-//      log.Errorf("Error from before findall middleware: %v", err)
+//      log.Errorf("Error from before findall paginated middleware: %v", err)
 //      return nil, err
 //    }
 //    if r != nil {
@@ -22,34 +22,32 @@ package resource
 //    }
 //  }
 //
-//
-//  /// start auth check
-//
-//
-//  /// end auth check
-//
-//  offset := uint64(0)
-//  if len(req.QueryParams["offset"]) > 0 {
-//    offset, err = strconv.ParseUint(req.QueryParams["offset"][0], 10, 32)
+//  pageNumber := uint64(0)
+//  if len(req.QueryParams["page[number]"]) > 0 {
+//    pageNumber, err = strconv.ParseUint(req.QueryParams["page[number]"][0], 10, 32)
 //    if err != nil {
-//      log.Errorf("Invalid parameter value: %v", req.QueryParams["offset"])
+//      log.Errorf("Invalid parameter value: %v", req.QueryParams["page[number]"])
+//    }
+//    pageNumber -= 1
+//  }
+//
+//  pageSize := uint64(10)
+//  if len(req.QueryParams["page[size]"]) > 0 {
+//    pageSize, err = strconv.ParseUint(req.QueryParams["page[size]"][0], 10, 32)
+//    if err != nil {
+//      log.Errorf("Invalid parameter value: %v", req.QueryParams["page[size]"])
 //    }
 //  }
 //
-//  limit := uint64(50)
-//  if len(req.QueryParams["limit"]) > 0 {
-//    limit, err = strconv.ParseUint(req.QueryParams["limit"][0], 10, 32)
-//    if err != nil {
-//      log.Errorf("Invalid parameter value: %v", req.QueryParams["limit"])
-//    }
+//  if (pageNumber > 0) {
+//    pageNumber = pageNumber * pageSize
 //  }
 //
 //  m := dr.model
 //  //log.Infof("Get all resource type: %v\n", m)
 //
 //  cols := m.GetColumnNames()
-//  queryBuilder := squirrel.Select(cols...).From(m.GetTableName()).Where(squirrel.Eq{"deleted_at": nil}).Offset(offset).Limit(limit)
-//
+//  queryBuilder := squirrel.Select(cols...).From(m.GetTableName()).Where(squirrel.Eq{"deleted_at": nil}).Offset(pageNumber).Limit(pageSize)
 //  sql1, args, err := queryBuilder.ToSql()
 //  if err != nil {
 //    log.Infof("Error: %v", err)
@@ -59,6 +57,7 @@ package resource
 //  log.Infof("Sql: %v\n", sql1)
 //
 //  rows, err := dr.db.Query(sql1, args...)
+//  defer rows.Close()
 //
 //  if err != nil {
 //    log.Infof("Error: %v", err)
@@ -68,6 +67,7 @@ package resource
 //  result := make([]*api2go.Api2GoModel, 0)
 //
 //  results, err := dr.ResultToArrayOfMap(rows)
+//
 //  if err != nil {
 //    return nil, err
 //  }
@@ -77,7 +77,7 @@ package resource
 //  for _, bf := range dr.ms.AfterFindAll {
 //    results, err = bf.InterceptAfter(dr, &req, results)
 //    if err != nil {
-//      log.Errorf("Error from after create middleware: %v", err)
+//      log.Errorf("Error from findall paginated create middleware: %v", err)
 //    }
 //  }
 //
@@ -86,20 +86,28 @@ package resource
 //    a.Data = res
 //    result = append(result, a)
 //  }
-//  total := dr.GetTotalCount()
-//  if total < limit {
-//    total = limit
+//
+//  total1 := dr.GetTotalCount()
+//  total := total1
+//  if total < pageSize {
+//    total = pageSize
 //  }
-//  if offset < limit {
-//    offset = limit
+//  if pageNumber < pageSize {
+//    pageNumber = pageSize
 //  }
-//  log.Infof("Offset, limit: %v, %v", offset, limit)
+//  log.Infof("Offset, limit: %v, %v", pageNumber, pageSize)
 //
 //  return NewResponse(nil, result, 200, &api2go.Pagination{
-//    Next:  map[string]string{"limit": fmt.Sprintf("%v", limit), "offset":  fmt.Sprintf("%v", limit + offset)},
-//    Prev:  map[string]string{"limit":  fmt.Sprintf("%v", limit), "offset":  fmt.Sprintf("%v", offset - limit)},
+//    Next:  map[string]string{"limit": fmt.Sprintf("%v", pageSize), "offset":  fmt.Sprintf("%v", pageSize + pageNumber)},
+//    Prev:  map[string]string{"limit":  fmt.Sprintf("%v", pageSize), "offset":  fmt.Sprintf("%v", pageNumber - pageSize)},
 //    First: map[string]string{},
-//    Last:  map[string]string{"limit":  fmt.Sprintf("%v", limit), "offset":  fmt.Sprintf("%v", total - limit)},
+//    Last:  map[string]string{"limit":  fmt.Sprintf("%v", pageSize), "offset":  fmt.Sprintf("%v", total - pageSize)},
+//    Total: total1,
+//    PerPage: pageSize,
+//    CurrentPage: 1 + (pageNumber / pageSize),
+//    LastPage: 1 + (total1 / pageSize),
+//    From: pageNumber + 1,
+//    To: pageSize,
 //  }), nil
 //
 //}
