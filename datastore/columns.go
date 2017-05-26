@@ -60,37 +60,37 @@ var StandardColumns = []api2go.ColumnInfo{
     IsIndexed: true,
     ColumnType: "label",
   },
-  api2go.ColumnInfo{
-    Name: "user_id",
-    ColumnName: "user_id",
-    DataType: "int(11)",
-    IsIndexed: false,
-    IsForeignKey: true,
-    IsNullable: true,
-    ForeignKeyData: api2go.ForeignKeyData{
-      TableName: "user",
-      ColumnName: "id",
-    },
-    ColumnType: "alias",
-  },
-  api2go.ColumnInfo{
-    Name: "usergroup_id",
-    ColumnName: "usergroup_id",
-    DataType: "int(11)",
-    IsIndexed: false,
-    IsForeignKey: true,
-    IsNullable: true,
-    ForeignKeyData: api2go.ForeignKeyData{
-      TableName: "usergroup",
-      ColumnName: "id",
-    },
-    ColumnType: "alias",
-  },
+  //api2go.ColumnInfo{
+  //  Name: "user_id",
+  //  ColumnName: "user_id",
+  //  DataType: "int(11)",
+  //  IsIndexed: false,
+  //  //IsForeignKey: true,
+  //  IsNullable: true,
+  //  //ForeignKeyData: api2go.ForeignKeyData{
+  //  //  TableName: "user",
+  //  //  ColumnName: "id",
+  //  //},
+  //  ColumnType: "alias",
+  //},
+  //api2go.ColumnInfo{
+  //  Name: "usergroup_id",
+  //  ColumnName: "usergroup_id",
+  //  DataType: "int(11)",
+  //  IsIndexed: false,
+  //  //IsForeignKey: true,
+  //  IsNullable: true,
+  //  //ForeignKeyData: api2go.ForeignKeyData{
+  //  //  TableName: "usergroup",
+  //  //  ColumnName: "id",
+  //  //},
+  //  ColumnType: "alias",
+  //},
 
 }
 
-var StandardRelations = []TableRelation{
-  TableRelation{
+var StandardRelations = []api2go.TableRelation{
+  api2go.TableRelation{
     Subject: "world_column",
     Relation: "belongs_to",
     Object: "world",
@@ -251,6 +251,7 @@ var StandardTables = []TableInfo{
         ColumnName: "password",
         DataType: "varchar(100)",
         ColumnType: "password",
+        IsNullable: true,
       },
     },
   },
@@ -272,10 +273,6 @@ type TableInfo struct {
   TableId           int
   DefaultPermission int
   Columns           []api2go.ColumnInfo
+  Relations         []api2go.TableRelation
 }
 
-type TableRelation struct {
-  Subject  string
-  Object   string
-  Relation string
-}

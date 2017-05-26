@@ -46,7 +46,7 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
 
         mapData["world_id"] = worldid;
         mapData["reference_id"] = uuid.NewV4().String();
-        mapData["permission"] = 0;
+        mapData["permission"] = 755;
         mapData["name"] = col.Name;
 
         mapData["column_name"] = col.ColumnName;
@@ -97,7 +97,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
   //log.Infof("Current user grou")
   if c < 1 {
     u1 := uuid.NewV4().String()
-    _, err = tx.Exec("insert into usergroup (name, user_id, usergroup_id, reference_id, permission) value ('guest group', null, null, ?, 755);", u1)
+    _, err = tx.Exec("insert into usergroup (name, reference_id, permission) value ('guest group', ?, 755);", u1)
     CheckErr(err, "Failed to insert usergroup")
     u2 := uuid.NewV4().String()
     _, err = tx.Exec("insert into user (name, email, reference_id, permission) value ('guest', 'guest@cms.go', ?, 755)", u2)
@@ -108,8 +108,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
     err = tx.QueryRowx("select id from usergroup where reference_id = ?", u1).Scan(&userGroupId)
     CheckErr(err, "Failed to user group")
 
-    tx.Exec("update user set user_id = ?, usergroup_id = ?", userId, userGroupId)
-    tx.Exec("update usergroup set user_id = ?, usergroup_id = ?", userId, userGroupId)
+    //tx.Exec("update user set user_id = ?, usergroup_id = ?", userId, userGroupId)
+    //tx.Exec("update usergroup set user_id = ?, usergroup_id = ?", userId, userGroupId)
   } else {
 
     err = tx.QueryRowx("select id from user where deleted_at is null limit 1").Scan(&userId)
@@ -138,12 +138,12 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
       table.DefaultPermission = defaultPermission
       initConfig.Tables[i] = table
 
-
       continue
     }
 
-    _, err = tx.Exec("insert into world (table_name, schema_json, permission, reference_id, user_id, usergroup_id, default_permission) value (?,?,755, ?, ?, ?, 755)", table.TableName, string(schema), refId, userId, userGroupId)
+    _, err = tx.Exec("insert into world (table_name, schema_json, permission, reference_id, default_permission, user_id, usergroup_id) value (?,?,755, ?, 755, ?, ?)", table.TableName, string(schema), refId, userId, userGroupId)
     CheckErr(err, "Failed to insert into world table about " + table.TableName)
+    initConfig.Tables[i].DefaultPermission = 755
 
   }
 
@@ -193,7 +193,9 @@ func CreateIndexes(initConfig *CmsConfig, db *sqlx.DB) {
 }
 
 func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
-  for _, table := range initConfig.Tables {
+
+  for i, table := range initConfig.Tables {
+
     for _, column := range table.Columns {
       if column.IsForeignKey {
         keyName := table.TableName + "_" + column.ForeignKeyData.TableName + "_" + column.ForeignKeyData.ColumnName + "_fk"
@@ -207,6 +209,16 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
         }
       }
     }
+
+    relations := make([]api2go.TableRelation, 0)
+
+    for _, rel := range initConfig.Relations {
+      if rel.Subject == table.TableName || rel.Object == table.TableName {
+        relations = append(relations, rel)
+      }
+    }
+
+    initConfig.Tables[i].Relations = relations
   }
 }
 
@@ -334,13 +346,14 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
 }
 
-func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB) []datastore.TableInfo {
+func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB) {
   tables := []datastore.TableInfo{}
   for _, table := range initConfig.Tables {
     CheckTable(&table, db, initConfig)
     tables = append(tables, table)
   }
-  return tables
+  initConfig.Tables = tables
+  return
 }
 
 func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *datastore.TableInfo) (map[string]bool, map[string]api2go.ColumnInfo) {
@@ -368,17 +381,17 @@ func CheckTable(tableInfo *datastore.TableInfo, db *sqlx.DB, initConfig *CmsConf
 
   columnsWeWant, colInfoMap := CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo)
 
-  initConfig.Relations = append(initConfig.Relations, datastore.TableRelation{
-    Subject: tableInfo.TableName,
-    Relation: "belongs_to",
-    Object: "user",
-  })
-
-  initConfig.Relations = append(initConfig.Relations, datastore.TableRelation{
-    Subject: tableInfo.TableName,
-    Relation: "belongs_to",
-    Object: "usergroup",
-  })
+  //initConfig.Relations = append(initConfig.Relations, api2go.TableRelation{
+  //  Subject: tableInfo.TableName,
+  //  Relation: "belongs_to",
+  //  Object: "user",
+  //})
+  //
+  //initConfig.Relations = append(initConfig.Relations, api2go.TableRelation{
+  //  Subject: tableInfo.TableName,
+  //  Relation: "belongs_to",
+  //  Object: "usergroup",
+  //})
 
   s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
   //log.Infof("Sql: %v", s)

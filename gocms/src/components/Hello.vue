@@ -1,13 +1,24 @@
 <template>
 
+
   <div class="container-fluid">
+
+    <div class="row">
+      <div class="col-md-12">
+
+      </div>
+
+    </div>
+
     <div class="row">
 
       <div class="col-md-2">
         <h2>Tables</h2>
         <div class="row" v-for="w in world">
-          <a style="font-size: 20px; text-transform: capitalize; padding: 10px;"
-             @click.prevent="setTable(w.table_name)">{{w.table_name | titleCase}}</a>
+          <div class="col-md-12">
+            <a style="font-size: 20px; text-transform: capitalize; padding: 10px;"
+               @click.prevent="setTable(w.table_name)">{{w.table_name | titleCase}}</a>
+          </div>
         </div>
 
       </div>
@@ -21,79 +32,71 @@
               <el-button @click="newRow()"><span class="fa fa-plus"></span></el-button>
             </h3>
           </div>
-          <div class="col-md-4">
-            <el-input :model="filterText"></el-input>
-          </div>
 
           <div class="col-md-12 pull-left">
 
             <div class="row" v-if="showAddEdit && selectedRow != null">
               <div class="col-md-12">
-
-                <form class="form">
-                  <div class="row">
-                    <div class="form-group col-md-3" v-for="col in selectedWorldColumns">
-                      <label :for="col">{{col}}
-                        <input class="form-control" :id="col" :value="selectedRow[col]" v-model="selectedRow[col]">
-                      </label>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <div class="col-md-12">
-                      <div class="form-group">
-                        <el-button @click="saveRow(selectedRow)">
-                          Save
-                        </el-button>
-                        <el-button @click="showAddEdit = false">Cancel</el-button>
-                      </div>
-                    </div>
-                  </div>
-
-
-                </form>
-
+                <model-form @save="saveRow(selectedRow)" @cancel="showAddEdit = false" v-bind:model="selectedRow"
+                            v-bind:meta="selectedWorldColumns"></model-form>
               </div>
             </div>
-
 
           </div>
         </div>
         <div class="row">
-
           <div class="col-md-12">
-            <table class="table">
-              <thead>
-              <tr>
-                <th></th>
-                <th v-for="col in selectedWorldColumns">
-                  {{col}}
-                </th>
-              </tr>
-              </thead>
+            <vuetable ref="vuetable"
+                      :json-api="jsonApi"
+                      :json-api-model-name="selectedWorld"
+                      :api-mode="true"
+                      :load-on-start="true"
+                      pagination-path="">
+              <template slot="actions" scope="props">
+                <div class="table-button-container">
+                  <button class="ui button" @click="editRow(props.rowData)"><i class="fa fa-edit"></i> Edit</button>&nbsp;&nbsp;
+                  <button class="ui basic red button" @click="deleteRow(props.rowData)"><i class="fa fa-remove"></i>
+                    Delete
+                  </button>&nbsp;&nbsp;
+                </div>
+              </template>
+            </vuetable>
 
-              <tbody>
-              <tr v-for="row in tableData">
-                <td>
-                  <el-button @click="edit(row)"><span class="fa fa-pencil"></span></el-button>
-                  <el-button @click="deleteRow(row)"><span class="fa fa-times"></span></el-button>
-                </td>
-                <td v-for="col in selectedWorldColumns">
-                  {{row[col]}}
-                </td>
-              </tr>
-              </tbody>
-
-              <tfoot>
-              <tr>
-                <th></th>
-                <th v-for="col in selectedWorldColumns">
-                  {{col}}
-                </th>
-              </tr>
-              </tfoot>
-            </table>
           </div>
 
+          <!--<div class="col-md-12">-->
+          <!--<table class="table">-->
+          <!--<thead>-->
+          <!--<tr>-->
+          <!--<th></th>-->
+          <!--<th v-for="col in selectedWorldColumns">-->
+          <!--{{col | titleCase}}-->
+          <!--</th>-->
+          <!--</tr>-->
+          <!--</thead>-->
+
+          <!--<tbody>-->
+          <!--<tr v-for="row in tableData">-->
+          <!--<td>-->
+          <!--<el-button @click="edit(row)"><span class="fa fa-pencil"></span></el-button>-->
+          <!--<el-button @click="deleteRow(row)"><span class="fa fa-times"></span></el-button>-->
+          <!--</td>-->
+          <!--<td v-for="col in selectedWorldColumns">-->
+          <!--{{row[col]}}-->
+          <!--</td>-->
+          <!--</tr>-->
+          <!--</tbody>-->
+
+          <!--<tfoot>-->
+          <!--<tr>-->
+          <!--<th></th>-->
+          <!--<th v-for="col in selectedWorldColumns">-->
+          <!--{{col | titleCase}}-->
+          <!--</th>-->
+          <!--</tr>-->
+          <!--</tfoot>-->
+          <!--</table>-->
+          <!--</div>-->
         </div>
       </div>
     </div>
@@ -108,6 +111,8 @@
         apiUrl: 'http://localhost:6336/api',
         pluralize: false,
     });
+    window.jsonApi.headers['Authorization'] = 'Bearer ' + localStorage.getItem('id_token');
+
 
     var types = {
         "alias": {
@@ -167,6 +172,9 @@
     function getColumnKeys(typeName, callback) {
         $.ajax({
             url: 'http://localhost:6336/jsmodel/' + typeName + ".js",
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem("id_token")
+            },
             success: function (r) {
                 callback(r);
             }
@@ -187,7 +195,71 @@
         name: 'hello',
         filters: {
             titleCase: function (str) {
-                return str.replace(/_/g, " ")
+                let replace = str.replace(/_/g, " ");
+                replace = replace[0].toUpperCase() + replace.substring(1)
+                return replace
+            }
+        },
+        components: {
+            "model-form": {
+                props: [
+                    "model",
+                    "meta"
+                ],
+                template: `
+
+                <form class="form">
+                  <div class="row">
+                    <div class="form-group col-md-3" v-for="col in meta">
+                      <label :for="col">{{col}}
+                        <input class="form-control" :id="col" :value="model[col]" v-model="model[col]">
+                      </label>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-12">
+                      <div class="form-group">
+                        <el-button @click="saveRow(model)">
+                          Save
+                        </el-button>
+                        <el-button @click="cancel()">Cancel</el-button>
+                      </div>
+                    </div>
+                  </div>
+
+
+                </form>
+
+    `,
+                methods: {
+                    saveRow: function () {
+                        console.log("save row");
+                        this.$emit('save', this.model)
+
+                    },
+                    cancel: function () {
+                        console.log("canel row");
+                        this.$emit('cancel')
+                    },
+                },
+                data: function () {
+                    console.log("this data", this);
+                    console.log(arguments);
+                    console.log(this.model);
+                    return {
+                        currentElement: "el-input",
+                    }
+                },
+                beforeCreate: function () {
+                    console.log("model", this, arguments)
+                },
+                mounted: function () {
+                    var that = this;
+//                    setTimeout(function () {
+//                        console.log("change type");
+//                        that.currentElement = "textarea";
+//                    }, 2000)
+                }
             }
         },
         data () {
@@ -199,6 +271,7 @@
                 selectedWorldColumns: [],
                 showAddEdit: false,
                 tableData: [],
+                jsonApi: jsonApi,
                 selectedRow: {},
                 tableMap: {
                     world: jsonApi.define('world', {
@@ -214,6 +287,12 @@
                         "table_name": "",
                         "schema_json": "",
                         "default_permission": "",
+                        "world_column": {
+                            "jsonApi": "hasMany",
+                            "type": "world_column"
+                        },
+                        "user": [],
+                        "usergroup": []
                     })
                 },
             }
@@ -256,8 +335,6 @@
                 var that = this;
 
                 console.log("choose table", tableName, that.tableMap);
-                that.selectedWorld = tableName;
-
                 that.selectedWorldColumns = [];
                 that.tableData = [];
 
@@ -267,15 +344,18 @@
                     getColumnKeys(tableName, function (columnKeys) {
                         jsonApi.define(tableName, columnKeys);
                         console.log("mo model", jsonApi.modelFor(tableName), columnKeys);
+                        that.selectedWorld = tableName;
                         that.reloadData(tableName)
                     });
                     return;
                 }
+                that.selectedWorld = tableName;
                 this.reloadData(tableName)
             },
             reloadData(tableName) {
+                return;
                 var that = this;
-                jsonApi.findAll(tableName).then(function (res) {
+                jsonApi.findAll(tableName, {page: {offset: 0, limit: 50}}).then(function (res) {
                     console.log("set columns", jsonApi.models[that.selectedWorld])
                     var keys = Object.keys(jsonApi.models[that.selectedWorld].attributes);
                     that.selectedWorldColumns = keys.filter(function (e) {
@@ -287,9 +367,9 @@
         },
         mounted() {
             var that = this;
-            jsonApi.findAll('world').then(function (res) {
+            jsonApi.findAll('world', {page: {offset: 0, limit: 50}, include: ['world_column']}).then(function (res) {
                 that.world = res.sort(function (a, b) {
-                    console.log("argumen", arguments)
+//                    console.log("argumen", arguments)
                     if (a.table_name < b.table_name) {
                         return -1;
                     } else if (a.table_name > b.table_name) {

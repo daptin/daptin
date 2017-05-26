@@ -1,4 +1,4 @@
-package server
+package resource
 
 import (
   "github.com/artpar/api2go"
@@ -16,6 +16,18 @@ import (
 //   the server
 
 func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
+
+  for _, bf := range dr.ms.BeforeCreate {
+    r, err := bf.InterceptBefore(dr, &req)
+    if err != nil {
+      log.Errorf("Error from before create middleware: %v", err)
+      return nil, err
+    }
+    if r != nil {
+      return r, err
+    }
+  }
+
   data := obj.(*api2go.Api2GoModel)
   log.Infof("Create object request: %v", data)
 
@@ -57,11 +69,22 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
     val, ok := attrs[col.ColumnName]
 
-    if ok {
-      dataToInsert[col.ColumnName] = val
-      colsList = append(colsList, col.ColumnName)
-      valsList = append(valsList, val)
+    if !ok {
+      continue
     }
+
+    if col.IsForeignKey {
+      log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.TableName, val)
+      uId, err := dr.GetReferenceIdToId(col.ForeignKeyData.TableName, val.(string))
+      if err != nil {
+        return nil, err
+      }
+      val = uId
+    }
+
+    dataToInsert[col.ColumnName] = val
+    colsList = append(colsList, col.ColumnName)
+    valsList = append(valsList, val)
 
   }
 
@@ -76,14 +99,14 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
   query, vals, err := squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
   if err != nil {
     log.Errorf("Failed to create insert query: %v", err)
-    return NewResponse(nil, nil, 500), err
+    return NewResponse(nil, nil, 500, nil), err
   }
 
   log.Infof("Insert query: %v", query)
   _, err = dr.db.Exec(query, vals...)
   if err != nil {
     log.Errorf("Failed to execute insert query: %v", err)
-    return NewResponse(nil, nil, 500), err
+    return NewResponse(nil, nil, 500, nil), err
   }
 
   query, vals, err = squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": newUuid}).ToSql()
@@ -95,6 +118,18 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
   m := make(map[string]interface{})
   dr.db.QueryRowx(query, vals...).MapScan(m)
 
+  for _, bf := range dr.ms.AfterCreate {
+    results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{m})
+    if err != nil {
+      log.Errorf("Error from after create middleware: %v", err)
+    }
+    if len(results) < 1 {
+      m = nil
+    } else {
+      m = results[0]
+    }
+  }
+
   for k, v := range m {
     k1 := reflect.TypeOf(v)
     //log.Infof("K: %v", k1)
@@ -103,9 +138,21 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     }
   }
 
-  //log.Infof("Create response: %v", m)
+  log.Infof("Create response: %v", dr.model)
 
-  return NewResponse(nil, api2go.NewApi2GoModelWithData(dr.model.GetName(), dr.model.GetColumns(), dr.model.GetDefaultPermission(), m), 201), nil
+  n1 := dr.model.GetName()
+  c1 := dr.model.GetColumns()
+  p1 := dr.model.GetDefaultPermission()
+  r1 := dr.model.GetRelations()
+  return NewResponse(nil,
+    api2go.NewApi2GoModelWithData(
+      n1,
+      c1,
+      p1,
+      r1, m,
+    ),
+    201, nil,
+  ), nil
 
 }
 

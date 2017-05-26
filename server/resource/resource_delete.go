@@ -1,4 +1,4 @@
-package server
+package resource
 
 import (
   "github.com/artpar/api2go"
@@ -19,25 +19,44 @@ import (
 
 func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, error) {
 
-  m := dr.model
-  log.Infof("Get all resource type: %v\n", m)
+  for _, bf := range dr.ms.BeforeDelete {
+    r, err := bf.InterceptBefore(dr, &req)
+    if err != nil {
+      log.Errorf("Error from before delete middleware: %v", err)
+      return nil, err
+    }
+    if r != nil {
+      return r, err
+    }
+  }
 
-  queryBuilder := squirrel.Update(m.GetTableName()).Set("deleted_at", time.Now()).Where(squirrel.Eq{"reference_id": id})
+  m := dr.model
+  //log.Infof("Get all resource type: %v\n", m)
+
+  queryBuilder := squirrel.Update(m.GetTableName()).Set("deleted_at", time.Now()).Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil})
+
   sql1, args, err := queryBuilder.ToSql()
   if err != nil {
     log.Infof("Error: %v", err)
     return nil, err
   }
 
-  log.Infof("Sql: %v\n", sql1)
+  //log.Infof("Sql: %v\n", sql1)
 
   _, err = dr.db.Exec(sql1, args...)
 
-  if err != nil {
-    log.Infof("Error: %v", err)
-    return NewResponse(nil, ErrorResponse{"Failed"}, 500), err
+  for _, bf := range dr.ms.AfterDelete {
+    _, err = bf.InterceptAfter(dr, &req, nil)
+    if err != nil {
+      log.Errorf("Error from after create middleware: %v", err)
+    }
   }
 
-  return NewResponse(nil, nil, 200), nil
+  if err != nil {
+    log.Infof("Error: %v", err)
+    return nil, err
+  }
+
+  return NewResponse(nil, nil, 200, nil), nil
 }
 
