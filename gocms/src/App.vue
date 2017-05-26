@@ -1,22 +1,22 @@
 <template>
-  <div id="app">
-    <div class="row">
+  <div id="app" class="ui container wide">
+    <div class="grid ui wide">
 
-      <div class="col-md-12">
-        <el-button @click="login()" v-show="!authenticated">Login</el-button>
-        <el-button @click="logout()" v-show="authenticated">Logout</el-button>
+      <div class="row">
+        <div class="two wide">
+          <el-button @click="login()" v-show="!authenticated">Login</el-button>
+          <el-button @click="logout()" v-show="authenticated">Logout</el-button>
+        </div>
       </div>
+      <router-view></router-view>
+
+
     </div>
-    <router-view></router-view>
-
-    <link href="./static/bower_components/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="./static/bower_components/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
     <link href="./static/bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet">
-    <!--<link href="./static/bower_components/elementui/element.css" rel="stylesheet">-->
+    <link href="./static/bower_components/semantic/dist/semantic.css" rel="stylesheet">
 
-    <script src="./static/bower_components/jquery/jquery-2.1.4.min.js" type="application/javascript"></script>
-    <!--<script src="./static/bower_components/elementui/element.js" type="application/javascript"></script>-->
-    <script src="./static/bower_components/bootstrap/js/bootstrap.min.js" type="application/javascript"></script>
+    <script src="./static/bower_components/semantic/dist/semantic.js" type="application/javascript"></script>
+    <script src="./static/bower_components/jquery/dist/jquery.js" type="application/javascript"></script>
 
   </div>
 </template>
@@ -25,10 +25,17 @@
     export default {
         name: 'app',
         data: function () {
-            return {
-                authenticated: false,
-                secretThing: '',
-                lock: new Auth0Lock('edsjFX3nR9fqqpUi4kRXkaKJefzfRaf_', 'gocms.auth0.com', {
+
+
+            var lock = {};
+
+            let v1 = typeof Auth0Lock;
+            let v2 = typeof v1;
+            console.log("type of", v1, v2);
+
+            if (v1 != "undefined") {
+                console.log("it is not undefined");
+                lock = new Auth0Lock('edsjFX3nR9fqqpUi4kRXkaKJefzfRaf_', 'gocms.auth0.com', {
                     auth: {
                         redirectUrl: 'http://localhost:8080/#/',
                         responseType: 'token',
@@ -36,12 +43,27 @@
                             scope: 'openid email' // Learn about scopes: https://auth0.com/docs/scopes
                         }
                     }
-                }),
+                });
+            } else {
+                lock = {
+                    checkAuth: function () {
+                        return !localStorage.getItem("id_token");
+                    },
+                    on: function(vev){
+                        console.log("nobody is listening to ", vev);
+                    }
+                }
+            }
+
+            return {
+                authenticated: false,
+                secretThing: '',
+                lock: lock,
             }
         },
         mounted() {
             var self = this;
-
+//            console.log("Auth0Lock 11", Auth0Lock)
             this.authenticated = this.checkAuth();
 
             this.lock.on('authenticated', (authResult) => {

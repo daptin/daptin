@@ -116,7 +116,8 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
   }
 
   m := make(map[string]interface{})
-  dr.db.QueryRowx(query, vals...).MapScan(m)
+  row := dr.db.QueryRowx(query, vals...)
+  row.MapScan(m)
 
   for _, bf := range dr.ms.AfterCreate {
     results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{m})

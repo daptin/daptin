@@ -7,8 +7,31 @@ import (
   "database/sql"
   "strconv"
   "github.com/pkg/errors"
-  "fmt"
+  //"github.com/artpar/api2go/jsonapi"
+  //"github.com/jmoiron/sqlx"
 )
+
+func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]interface{}, error) {
+  s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  if err != nil {
+    return nil, err
+  }
+
+  row, err := dr.db.Query(s, q...)
+
+  if err != nil {
+    return nil, err
+  }
+
+  cols, err := row.Columns()
+  if err != nil {
+    return nil, err
+  }
+
+  m, err := dr.RowsToMap(row, cols)
+
+  return m[0], err
+}
 
 func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, error) {
 
@@ -36,13 +59,12 @@ func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (u
 
 }
 
-func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface{}, error) {
+func (dr *DbResource) RowsToMap(rows *sql.Rows, columns []string) ([]map[string]interface{}, error) {
 
   responseArray := make([]map[string]interface{}, 0)
 
-  columns, _ := rows.Columns()
-
   for ; rows.Next(); {
+
     rc := NewMapStringScan(columns)
     err := rc.Update(rows)
     if err != nil {
@@ -54,7 +76,28 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface
     delete(dbRow, "id")
     delete(dbRow, "deleted_at")
 
-    for key, val := range dbRow {
+    responseArray = append(responseArray, dbRow)
+  }
+
+  return responseArray, nil
+
+}
+
+func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface{}, [][]map[string]interface{}, error) {
+
+  columns, _ := rows.Columns()
+
+  responseArray, err := dr.RowsToMap(rows, columns)
+  if err != nil {
+    return responseArray, nil, err
+  }
+
+  includes := make([][]map[string]interface{}, 0)
+
+  for _, row := range responseArray {
+    localInclude := make([]map[string]interface{}, 0)
+
+    for key, val := range row {
       //log.Infof("Key: [%v] == %v", key, val)
 
       if key == "reference_id" {
@@ -70,27 +113,38 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface
         i, err := strconv.ParseInt(val.(string), 10, 32)
         if err != nil {
           log.Errorf("Id should have been integer [%v]: %v", val, err)
-          return responseArray, err
+          return responseArray, includes, err
         }
 
         refId, err := dr.GetIdToReferenceId(typeName, i)
-        dbRow[key] = refId
+
+        row[key] = refId
         if err != nil {
           log.Errorf("Failed to get ref id for [%v][%v]", typeName, val)
-          return responseArray, err
+          return responseArray, includes, err
         }
+        obj, err := dr.GetIdToObject(typeName, i)
+        obj["__type"] = typeName
+
+        if err != nil {
+          log.Errorf("Failed to get ref object for [%v][%v]: %v", typeName, val, err)
+        } else {
+          localInclude = append(localInclude, obj)
+        }
+
       }
     }
 
-    responseArray = append(responseArray, dbRow)
+    includes = append(includes, localInclude)
+
   }
 
-  return responseArray, nil
+  return responseArray, includes, nil
 }
 
 type Permission struct {
   UserId      string `json:"user_id"`
-  UserGroupId string `json:"usergroup_id"`
+  UserGroupId []string `json:"usergroup_id"`
   Permission  int64 `json:"permission"`
 }
 
@@ -113,31 +167,34 @@ func (p Permission) CanView(userId string, usergroupId []string) bool {
 func (p1 Permission) CheckBit(userId string, usergroupId []string, bit int64) bool {
   if userId == p1.UserId {
     p := p1.Permission / 100
-    //log.Infof("Check against user: %v", p)
+    log.Infof("Check against user: %v", p)
     return (p & bit) == bit
   }
 
   for _, uid := range usergroupId {
-    if uid == p1.UserGroupId {
-      p := p1.Permission / 10
-      p = p % 10
-      //log.Infof("Check against group: %v", p)
-      return (p & bit) == bit
+
+    for _, gid := range p1.UserGroupId {
+      if uid == gid {
+        p := p1.Permission / 10
+        p = p % 10
+        log.Infof("Check against group: %v", p)
+        return (p & bit) == bit
+      }
     }
   }
 
   p := p1.Permission % 10
-  //log.Infof("Check against world: %v", p)
+  log.Infof("Check against world: %v == %v", p, (p & bit) == bit)
   return (p & bit) == bit
 }
 
 func (dr *DbResource) GetTablePermission(typeName string) (Permission) {
 
-  s, q, err := squirrel.Select("user_id", "usergroup_id", "permission").From("world").Where(squirrel.Eq{"table_name": typeName}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  s, q, err := squirrel.Select("user_id", "permission").From("world").Where(squirrel.Eq{"table_name": typeName}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
   if err != nil {
     log.Errorf("Failed to create sql: %v", err)
     return Permission{
-      "-1", "-1", 0,
+      "", []string{}, 0,
     }
   }
 
@@ -146,8 +203,17 @@ func (dr *DbResource) GetTablePermission(typeName string) (Permission) {
   err = dr.db.QueryRowx(s, q...).MapScan(m)
   //log.Infof("permi map: %v", m)
   var perm Permission
-  perm.UserId = fmt.Sprintf("%v", m["user_id"].(int64))
-  perm.UserGroupId = fmt.Sprintf("%v", m["usergroup_id"].(int64))
+  if m["user_id"] != nil {
+
+    user, err := dr.GetIdToReferenceId("user", m["user_id"].(int64))
+    if err == nil {
+      perm.UserId = user
+    }
+
+  }
+
+  perm.UserGroupId = dr.GetUserGroups(perm.UserId)
+
   perm.Permission = m["permission"].(int64)
   if err != nil {
     log.Errorf("Failed to scan permission: %v", err)
@@ -157,6 +223,24 @@ func (dr *DbResource) GetTablePermission(typeName string) (Permission) {
   return perm
 }
 
+func (dr *DbResource) GetUserGroups(userRefId string) ([]string) {
+
+  s := make([]string, 0)
+
+  res, err := dr.db.Queryx("select ug.reference_id from usergroup ug join user_has_usergroup uug on uug.usergroup_id = ug.id join user u on uug.user_id = u.id where u.reference_id = ?", userRefId)
+  if err != nil {
+    return s
+  }
+
+  for ; res.Next(); {
+    var t string
+    res.Scan(&t)
+    s = append(s, t)
+  }
+  return s
+
+}
+
 func (dr *DbResource) GetRowPermission(row map[string]interface{}) (Permission) {
   var perm Permission
 
@@ -164,51 +248,66 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) (Permission) 
     perm.UserId = row["user_id"].(string)
   }
   if row["usergroup_id"] != nil {
-    perm.UserGroupId = row["usergroup_id"].(string)
+    perm.UserGroupId = dr.GetUserGroups(perm.UserId)
   }
   if row["permission"] != nil {
-    p, _ := strconv.ParseInt(row["permission"].(string), 10, 64)
-    perm.Permission = p
+
+    var err error
+    i64, ok := row["permission"].(int64)
+    if !ok {
+      i64, err = strconv.ParseInt(row["permission"].(string), 10, 64)
+      //p, err := int64(row["permission"].(int))
+      if err != nil {
+        log.Errorf("Invalid cast :%v", err)
+      }
+
+    }
+
+    perm.Permission = i64
   }
+  log.Infof("Row permission: %v  ---------------- %v", perm, row)
   return perm
 }
 
-func (dr *DbResource) GetRowsByWhereClause(typeName string, where squirrel.Eq) ([]map[string]interface{}, error) {
+func (dr *DbResource) GetRowsByWhereClause(typeName string, where squirrel.Eq) ([]map[string]interface{}, [][]map[string]interface{}, error) {
 
   s, q, err := squirrel.Select("*").From(typeName).Where(where).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
 
   //log.Infof("Select query: %v == [%v]", s, q)
   rows, err := dr.db.Query(s, q...)
-  m1, err := dr.ResultToArrayOfMap(rows)
+  defer rows.Close()
+  m1, include, err := dr.ResultToArrayOfMap(rows)
   if err != nil {
-    return nil, err
+    return nil, nil, err
   }
 
-  return m1, nil
+  return m1, include, nil
 
 }
 
-func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId string) (map[string]interface{}, error) {
+func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId string) (map[string]interface{}, []map[string]interface{}, error) {
 
   s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
   if err != nil {
     log.Errorf("Failed to create select query by ref id: %v", referenceId)
-    return nil, err
+    return nil, nil, err
   }
 
   rows, err := dr.db.Query(s, q...)
-  m1, err := dr.ResultToArrayOfMap(rows)
+  defer rows.Close()
+  m1, includes, err := dr.ResultToArrayOfMap(rows)
   if err != nil {
-    return nil, err
+    return nil, nil, err
   }
 
   if len(m1) < 1 {
-    return nil, errors.New("No such entity")
+    return nil, nil, errors.New("No such entity")
   }
 
   m := m1[0]
+  n := includes[0]
 
-  return m, err
+  return m, n, err
 
 }
 
@@ -230,7 +329,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
     }
   }
 
-  data, err := dr.GetSingleRowByReferenceId(dr.model.GetName(), referenceId)
+  data, include, err := dr.GetSingleRowByReferenceId(dr.model.GetName(), referenceId)
 
   for _, bf := range dr.ms.AfterFindOne {
     results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{data})
@@ -239,6 +338,10 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
     } else {
       data = nil
     }
+    if err != nil {
+      log.Errorf("Error from after create middleware: %v", err)
+    }
+    include, err = bf.InterceptAfter(dr, &req, include)
 
     if err != nil {
       log.Errorf("Error from after create middleware: %v", err)
@@ -248,6 +351,10 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
   infos := dr.model.GetColumns()
   var a = api2go.NewApi2GoModel(dr.model.GetTableName(), infos, dr.model.GetDefaultPermission(), dr.model.GetRelations())
   a.Data = data
+
+  for _, inc := range include {
+    a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(inc["__type"].(string), nil, inc["permission"].(int), nil, inc))
+  }
 
   return NewResponse(nil, a, 200, nil), err
 }

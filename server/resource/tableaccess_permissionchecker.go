@@ -25,11 +25,13 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
   currentUserGroupId := context.Get(req.PlainRequest, "usergroup_id").([]string)
 
   for _, result := range results {
-    //log.Infof("Result: %v", result)
+    log.Infof("Result: %v", result)
     permission := dr.GetRowPermission(result)
-    //log.Infof("Row Permission for [%v] for [%v]", permission, result)
+    log.Infof("Row Permission for [%v] for [%v]", permission, result)
     if permission.CanRead(currentUserId, currentUserGroupId) {
       returnMap = append(returnMap, result)
+    } else {
+      log.Errorf("Result not to be included: %v", result)
     }
   }
 
