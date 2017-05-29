@@ -82,7 +82,7 @@ var jwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
   ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
     return []byte("nXhlfq1Q6llIOJgUBwGjx2knwRzJQVpSOYbnUmoZNwqBwAtH9IXfKmfbeEYcwFSc"), nil
   },
-  Debug: true,
+  //Debug: true,
   // When set, the middleware verifies that tokens are signed with the specific signing algorithm
   // If the signing method is not constant the ValidationKeyGetter callback can be used to implement additional checks
   // Important to avoid security issues described here: https://auth0.com/blog/2015/03/31/critical-vulnerabilities-in-json-web-token-libraries/
@@ -94,7 +94,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 
 
   err := jwtMiddleware.CheckJWT(c.Writer, c.Request)
-  log.Infof("Session user: %v", err)
+  //log.Infof("Session user: %v", err)
 
   if err != nil {
     c.AbortWithError(401, err)
@@ -102,16 +102,16 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
   } else {
 
     user := context.Get(c.Request, "user")
-    log.Infof("Set user: %v", user)
+    //log.Infof("Set user: %v", user)
     if (user == nil) {
       context.Set(c.Request, "user_id", "")
       context.Set(c.Request, "usergroup_id", []string{})
       c.Next()
     } else {
 
-      log.Infof("User is not nil")
       userToken := user.(*jwt.Token)
       email := userToken.Claims.(jwt.MapClaims)["email"].(string)
+      //log.Infof("User is not nil: %v", email  )
 
       var referenceId string
       var userId int64
@@ -168,6 +168,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
       }
 
       context.Set(c.Request, "user_id", referenceId)
+      context.Set(c.Request, "user_id_integer", userId)
       context.Set(c.Request, "usergroup_id", userGroups)
 
       c.Next()

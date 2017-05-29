@@ -6,6 +6,7 @@ import (
   "gopkg.in/Masterminds/squirrel.v1"
   "strconv"
   "fmt"
+  "strings"
 )
 
 func (dr *DbResource) GetTotalCount() uint64 {
@@ -34,6 +35,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
       return 0, r, err
     }
   }
+  log.Infof("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
 
   pageNumber := uint64(0)
   if len(req.QueryParams["page[number]"]) > 0 {
@@ -52,6 +54,15 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
     }
   }
 
+  if pageSize == 0 {
+    return uint(dr.GetTotalCount()), nil, nil
+  }
+
+  sortOrder := []string{}
+  if len(req.QueryParams["sort"]) > 0 {
+    sortOrder = strings.Split(req.QueryParams["sort"][0], ",")
+  }
+
   if (pageNumber > 0) {
     pageNumber = pageNumber * pageSize
   }
@@ -60,14 +71,33 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   //log.Infof("Get all resource type: %v\n", m)
 
   cols := m.GetColumnNames()
+  //log.Infof("Cols: %v", cols)
   queryBuilder := squirrel.Select(cols...).From(m.GetTableName()).Where(squirrel.Eq{"deleted_at": nil}).Offset(pageNumber).Limit(pageSize)
+
+  for key, values := range req.QueryParams {
+    log.Infof("Query [%v] == %v", key, values)
+  }
+
+  for _, so := range sortOrder {
+
+    if len(so) < 1 {
+      continue
+    }
+    //log.Infof("Sort order: %v", so)
+    if so[0] == '-' {
+      queryBuilder = queryBuilder.OrderBy(so[1:] + " desc")
+    } else {
+      queryBuilder = queryBuilder.OrderBy(so + " asc")
+    }
+  }
+
   sql1, args, err := queryBuilder.ToSql()
   if err != nil {
     log.Infof("Error: %v", err)
     return 0, nil, err
   }
 
-  log.Infof("Sql: %v\n", sql1)
+  //log.Infof("Sql: %v\n", sql1)
 
   rows, err := dr.db.Query(sql1, args...)
   defer rows.Close()
@@ -78,7 +108,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   }
 
   results, includes, err := dr.ResultToArrayOfMap(rows)
-  log.Infof("Results: %v", results)
+  //log.Infof("Results: %v", results)
 
   if err != nil {
     return 0, nil, err
@@ -119,6 +149,9 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
         log.Errorf("Failed to parse permission, skipping record: %v", err)
         continue
       }
+
+      delete(include, "id")
+      delete(include, "deleted_at")
       model := api2go.NewApi2GoModelWithData(include["__type"].(string), nil, int(perm), nil, include)
 
       a.Includes = append(a.Includes, model)
@@ -135,7 +168,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   if pageNumber < pageSize {
     pageNumber = pageSize
   }
-  log.Infof("Offset, limit: %v, %v", pageNumber, pageSize)
+  //log.Infof("Offset, limit: %v, %v", pageNumber, pageSize)
 
   return uint(dr.GetTotalCount()), NewResponse(nil, result, 200, &api2go.Pagination{
     Next:  map[string]string{"limit": fmt.Sprintf("%v", pageSize), "offset":  fmt.Sprintf("%v", pageSize + pageNumber)},
