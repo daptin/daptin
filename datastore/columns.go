@@ -3,7 +3,7 @@ package datastore
 import "github.com/artpar/api2go"
 
 var StandardColumns = []api2go.ColumnInfo{
-  api2go.ColumnInfo{
+  {
     Name: "id",
     ColumnName: "id",
     DataType: "int(11)",
@@ -12,14 +12,14 @@ var StandardColumns = []api2go.ColumnInfo{
     IncludeInApi: false,
     ColumnType: "id",
   },
-  api2go.ColumnInfo{
+  {
     Name: "created_at",
     ColumnName: "created_at",
     DataType: "timestamp",
     DefaultValue: "current_timestamp",
     ColumnType: "datetime",
   },
-  api2go.ColumnInfo{
+  {
     Name: "updated_at",
     ColumnName: "updated_at",
     DataType: "timestamp",
@@ -27,7 +27,7 @@ var StandardColumns = []api2go.ColumnInfo{
     IsNullable: true,
     ColumnType: "datetime",
   },
-  api2go.ColumnInfo{
+  {
     Name: "deleted_at",
     ColumnName: "deleted_at",
     DataType: "timestamp",
@@ -36,14 +36,14 @@ var StandardColumns = []api2go.ColumnInfo{
     IsNullable: true,
     ColumnType: "datetime",
   },
-  api2go.ColumnInfo{
+  {
     Name: "reference_id",
     ColumnName: "reference_id",
     DataType: "varchar(40)",
     IsIndexed: true,
     ColumnType: "alias",
   },
-  api2go.ColumnInfo{
+  {
     Name: "permission",
     ColumnName: "permission",
     IncludeInApi: false,
@@ -52,7 +52,7 @@ var StandardColumns = []api2go.ColumnInfo{
     ColumnType: "value",
 
   },
-  api2go.ColumnInfo{
+  {
     Name: "status",
     ColumnName: "status",
     DataType: "varchar(20)",
@@ -60,37 +60,10 @@ var StandardColumns = []api2go.ColumnInfo{
     IsIndexed: true,
     ColumnType: "label",
   },
-  //api2go.ColumnInfo{
-  //  Name: "user_id",
-  //  ColumnName: "user_id",
-  //  DataType: "int(11)",
-  //  IsIndexed: false,
-  //  //IsForeignKey: true,
-  //  IsNullable: true,
-  //  //ForeignKeyData: api2go.ForeignKeyData{
-  //  //  TableName: "user",
-  //  //  ColumnName: "id",
-  //  //},
-  //  ColumnType: "alias",
-  //},
-  //api2go.ColumnInfo{
-  //  Name: "usergroup_id",
-  //  ColumnName: "usergroup_id",
-  //  DataType: "int(11)",
-  //  IsIndexed: false,
-  //  //IsForeignKey: true,
-  //  IsNullable: true,
-  //  //ForeignKeyData: api2go.ForeignKeyData{
-  //  //  TableName: "usergroup",
-  //  //  ColumnName: "id",
-  //  //},
-  //  ColumnType: "alias",
-  //},
-
 }
 
 var StandardRelations = []api2go.TableRelation{
-  api2go.TableRelation{
+  {
     Subject: "world_column",
     Relation: "belongs_to",
     Object: "world",
@@ -98,10 +71,11 @@ var StandardRelations = []api2go.TableRelation{
 }
 
 var StandardTables = []TableInfo{
-  TableInfo{
+  {
     TableName: "world",
+    IsHidden: true,
     Columns: []api2go.ColumnInfo{
-      api2go.ColumnInfo{
+      {
         Name: "table_name",
         ColumnName: "table_name",
         IsNullable:false,
@@ -109,14 +83,14 @@ var StandardTables = []TableInfo{
         DataType: "varchar(30)",
         ColumnType: "name",
       },
-      api2go.ColumnInfo{
+      {
         Name: "schema_json",
         ColumnName: "schema_json",
         DataType: "text",
         IsNullable: false,
-        ColumnType: "content",
+        ColumnType: "json",
       },
-      api2go.ColumnInfo{
+      {
         Name: "default_permission",
         ColumnName: "default_permission",
         DataType: "int(4)",
@@ -125,33 +99,51 @@ var StandardTables = []TableInfo{
         ColumnType: "value",
       },
 
+      {
+        Name: "is_top_level",
+        ColumnName: "is_top_level",
+        DataType: "bool",
+        IsNullable: false,
+        DefaultValue: "true",
+        ColumnType: "truefalse",
+      },
+      {
+        Name: "is_hidden",
+        ColumnName: "is_hidden",
+        DataType: "bool",
+        IsNullable: false,
+        DefaultValue: "false",
+        ColumnType: "truefalse",
+      },
+
     },
   },
-  TableInfo{
+  {
     TableName: "world_column",
+    IsHidden: true,
     Columns: []api2go.ColumnInfo{
-      api2go.ColumnInfo{
+      {
         Name: "name",
         ColumnName: "name",
         DataType: "varchar(100)",
         IsNullable: false,
         ColumnType: "name",
       },
-      api2go.ColumnInfo{
+      {
         Name: "column_name",
         ColumnName: "column_name",
         DataType: "varchar(100)",
         IsNullable: false,
         ColumnType: "name",
       },
-      api2go.ColumnInfo{
+      {
         Name: "column_type",
         ColumnName: "column_type",
         DataType: "varchar(100)",
         IsNullable: false,
         ColumnType: "label",
       },
-      api2go.ColumnInfo{
+      {
         Name: "is_primary_key",
         ColumnName: "is_primary_key",
         DataType: "bool",
@@ -159,7 +151,7 @@ var StandardTables = []TableInfo{
         DefaultValue: "false",
         ColumnType: "truefalse",
       },
-      api2go.ColumnInfo{
+      {
         Name: "is_auto_increment",
         ColumnName: "is_auto_increment",
         DataType: "bool",
@@ -167,7 +159,7 @@ var StandardTables = []TableInfo{
         DefaultValue: "false",
         ColumnType: "truefalse",
       },
-      api2go.ColumnInfo{
+      {
         Name: "is_indexed",
         ColumnName: "is_indexed",
         DataType: "bool",
@@ -175,7 +167,7 @@ var StandardTables = []TableInfo{
         DefaultValue: "false",
         ColumnType: "truefalse",
       },
-      api2go.ColumnInfo{
+      {
         Name: "is_unique",
         ColumnName: "is_unique",
         DataType: "bool",
@@ -183,7 +175,7 @@ var StandardTables = []TableInfo{
         DefaultValue: "false",
         ColumnType: "truefalse",
       },
-      api2go.ColumnInfo{
+      {
         Name: "is_nullable",
         ColumnName: "is_nullable",
         DataType: "bool",
@@ -191,7 +183,7 @@ var StandardTables = []TableInfo{
         DefaultValue: "false",
         ColumnType: "truefalse",
       },
-      api2go.ColumnInfo{
+      {
         Name: "is_foreign_key",
         ColumnName: "is_foreign_key",
         DataType: "bool",
@@ -199,7 +191,7 @@ var StandardTables = []TableInfo{
         DefaultValue: "false",
         ColumnType: "truefalse",
       },
-      api2go.ColumnInfo{
+      {
         Name: "include_in_api",
         ColumnName: "include_in_api",
         DataType: "bool",
@@ -207,21 +199,21 @@ var StandardTables = []TableInfo{
         DefaultValue: "true",
         ColumnType: "truefalse",
       },
-      api2go.ColumnInfo{
+      {
         Name: "foreign_key_data",
         ColumnName: "foreign_key_data",
         DataType: "varchar(100)",
         IsNullable: true,
         ColumnType: "content",
       },
-      api2go.ColumnInfo{
+      {
         Name: "default_value",
         ColumnName: "default_value",
         DataType: "varchar(100)",
         IsNullable: true,
         ColumnType: "content",
       },
-      api2go.ColumnInfo{
+      {
         Name: "data_type",
         ColumnName: "data_type",
         DataType: "varchar(50)",
@@ -230,23 +222,25 @@ var StandardTables = []TableInfo{
       },
     },
   },
-  TableInfo{
+  {
     TableName: "user",
     Columns: []api2go.ColumnInfo{
-      api2go.ColumnInfo{
+      {
         Name: "name",
         ColumnName: "name",
         DataType: "varchar(80)",
         ColumnType: "name",
       },
-      api2go.ColumnInfo{
+      {
         Name: "email",
         ColumnName: "email",
         DataType: "varchar(80)",
         IsIndexed: true,
+        IsUnique: true,
         ColumnType: "email",
       },
-      api2go.ColumnInfo{
+
+      {
         Name: "password",
         ColumnName: "password",
         DataType: "varchar(100)",
@@ -255,10 +249,10 @@ var StandardTables = []TableInfo{
       },
     },
   },
-  TableInfo{
+  {
     TableName: "usergroup",
     Columns: []api2go.ColumnInfo{
-      api2go.ColumnInfo{
+      {
         Name: "name",
         ColumnName: "name",
         DataType: "varchar(80)",
@@ -274,5 +268,7 @@ type TableInfo struct {
   DefaultPermission int
   Columns           []api2go.ColumnInfo
   Relations         []api2go.TableRelation
+  IsTopLevel        bool
+  IsHidden          bool
 }
 

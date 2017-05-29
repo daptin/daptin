@@ -105,12 +105,18 @@ func Main() {
 
 
   initConfig.Tables = append(initConfig.Tables, datastore.StandardTables...)
+
+  for _, table := range initConfig.Tables {
+    log.Infof("Table: %v: %v", table.TableName, table.Columns)
+  }
+
   initConfig.Relations = append(initConfig.Relations, datastore.StandardRelations...)
+
   CheckRelations(&initConfig, db)
   CheckAllTableStatus(&initConfig, db)
   CreateRelations(&initConfig, db)
 
-  log.Infof("table relations: %v", initConfig.Tables[0])
+  log.Infof("table relations: %v", initConfig.Tables)
 
   CreateUniqueConstraints(&initConfig, db)
   CreateIndexes(&initConfig, db)
@@ -163,7 +169,12 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
       }
     }
 
-    //log.Infof("data: %v", selectedTable)
+    if selectedTable == nil {
+      c.AbortWithStatus(404)
+      return
+    }
+
+    log.Infof("data: %v", selectedTable.Relations)
 
     if selectedTable == nil {
       c.AbortWithError(404, errors.New("Invalid type"))
@@ -181,10 +192,12 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
         continue
       }
 
-      suffix, ok := api2go.EndsWith(col.ColumnName, "_id")
+      typeOfOtherEntity, ok := api2go.EndsWith(col.ColumnName, "_id")
       if ok && col.ColumnName != "reference_id" {
-        res[col.ColumnName] = NewJsonApiRelation(suffix, "belongs_to")
+        log.Infof("Column [%v] is relation ", col.ColumnName)
+        res[typeOfOtherEntity] = NewJsonApiRelation(typeOfOtherEntity, "hasOne", "entity")
       } else {
+        //res[col.ColumnName] = NewJsonApiRelation("", "", col.ColumnType)
         res[col.ColumnName] = col.ColumnType
       }
 
@@ -193,17 +206,21 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
     for _, rel := range selectedTable.Relations {
 
       if rel.Subject == selectedTable.TableName {
-        res[rel.Object] = NewJsonApiRelation(rel.Object, rel.Relation)
+        r := "hasMany"
+        if rel.Relation == "belongs_to" {
+          r = "hasOne"
+        }
+        res[rel.Object] = NewJsonApiRelation(rel.Object, r, "entity")
       } else {
         if (rel.Relation == "belongs_to") {
-          res[rel.Subject] = NewJsonApiRelation(rel.Object, "has_many")
+          res[rel.Subject] = NewJsonApiRelation(rel.Object, "hasMany", "entity")
         } else {
 
         }
       }
-
     }
 
+    //res["__type"] = "string"
     c.JSON(200, res)
     if true {
       return
@@ -216,30 +233,20 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
   }
 }
 
-func NewJsonApiRelation(name string, relationType string) JsonApiRelation {
+func NewJsonApiRelation(name string, relationType string, columnType string) JsonApiRelation {
 
-  if relationType == "belongs_to" {
-    return JsonApiRelation{
-      JsonApi: "hasOne",
-      Type: name,
-    }
-  } else if relationType == "has_many" {
-    return JsonApiRelation{
-      Type: name,
-      JsonApi: "hasMany",
-    }
-  } else {
-    return JsonApiRelation{
-      Type: name,
-      JsonApi: "hasMany",
-    }
+  return JsonApiRelation{
+    Type: name,
+    JsonApi: relationType,
+    ColumnType: columnType,
   }
 
 }
 
 type JsonApiRelation struct {
-  JsonApi string `json:"jsonApi"`
-  Type    string `json:"type"`
+  JsonApi    string `json:"jsonApi,omitempty"`
+  ColumnType string `json:"columnType"`
+  Type       string `json:"type,omitempty"`
 }
 
 func AuthenticationFilter(c *gin.Context) {
@@ -252,7 +259,12 @@ func CorsMiddlewareFunc(c *gin.Context) {
   c.Header("Access-Control-Allow-Origin", "*")
   c.Header("Access-Control-Allow-Methods", "POST,GET,DELETE,PUT,OPTIONS,PATCH")
   c.Header("Access-Control-Allow-Headers", "Content-Type,Authorization")
-  c.Next()
+
+  if c.Request.Method == "OPTIONS" {
+    c.AbortWithStatus(200)
+  }
+
+  return
 }
 
 func AddAllTablesToApi2Go(api *api2go.API, tables []datastore.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet) map[string]*resource.DbResource {

@@ -33,6 +33,28 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
   return m[0], err
 }
 
+func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string) (map[string]interface{}, error) {
+  s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  if err != nil {
+    return nil, err
+  }
+
+  row, err := dr.db.Query(s, q...)
+
+  if err != nil {
+    return nil, err
+  }
+
+  cols, err := row.Columns()
+  if err != nil {
+    return nil, err
+  }
+
+  m, err := dr.RowsToMap(row, cols)
+
+  return m[0], err
+}
+
 func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, error) {
 
   s, q, err := squirrel.Select("reference_id").From(typeName).Where(squirrel.Eq{"id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
@@ -73,8 +95,11 @@ func (dr *DbResource) RowsToMap(rows *sql.Rows, columns []string) ([]map[string]
 
     dbRow := rc.Get()
 
-    delete(dbRow, "id")
-    delete(dbRow, "deleted_at")
+    //id := dbRow["id"]
+    //deletedAt := dbRow["deleted_at"]
+
+    //delete(dbRow, "id")
+    //delete(dbRow, "deleted_at")
 
     responseArray = append(responseArray, dbRow)
   }
@@ -94,7 +119,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface
 
   includes := make([][]map[string]interface{}, 0)
 
-  for _, row := range responseArray {
+  for i, row := range responseArray {
     localInclude := make([]map[string]interface{}, 0)
 
     for key, val := range row {
@@ -108,8 +133,8 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface
         continue
       }
 
-      if len(key) > 3 && key[len(key) - 3:] == "_id" {
-        typeName := key[:len(key) - 3]
+      typeName, ok := api2go.EndsWith(key, "_id")
+      if ok {
         i, err := strconv.ParseInt(val.(string), 10, 32)
         if err != nil {
           log.Errorf("Id should have been integer [%v]: %v", val, err)
@@ -133,6 +158,9 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface
         }
 
       }
+      delete(responseArray[i], "id")
+      delete(responseArray[i], "deleted_at")
+
     }
 
     includes = append(includes, localInclude)
@@ -184,7 +212,7 @@ func (p1 Permission) CheckBit(userId string, usergroupId []string, bit int64) bo
   }
 
   p := p1.Permission % 10
-  log.Infof("Check against world: %v == %v", p, (p & bit) == bit)
+  //log.Infof("Check against world: %v == %v", p, (p & bit) == bit)
   return (p & bit) == bit
 }
 
@@ -199,7 +227,6 @@ func (dr *DbResource) GetTablePermission(typeName string) (Permission) {
   }
 
   m := make(map[string]interface{})
-  //log.Infof("Permission sql: %v", s)
   err = dr.db.QueryRowx(s, q...).MapScan(m)
   //log.Infof("permi map: %v", m)
   var perm Permission
@@ -265,7 +292,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) (Permission) 
 
     perm.Permission = i64
   }
-  log.Infof("Row permission: %v  ---------------- %v", perm, row)
+  //log.Infof("Row permission: %v  ---------------- %v", perm, row)
   return perm
 }
 
@@ -282,6 +309,25 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where squirrel.Eq) (
   }
 
   return m1, include, nil
+
+}
+
+func (dr *DbResource) GetUserGroupIdByUserId(userId uint64) (uint64) {
+
+  s, q, err := squirrel.Select("usergroup_id").From("user_has_usergroup").Where(squirrel.Eq{"deleted_at": nil}).Where(squirrel.Eq{"user_id": userId}).OrderBy("created_at").Limit(1).ToSql()
+  if err != nil {
+    log.Errorf("Failed to create sql query: ", err)
+    return 0
+  }
+
+  var refId uint64
+
+  err = dr.db.QueryRowx(s, q...).Scan(&refId)
+  if err != nil {
+    log.Errorf("Failed to scan user group id from the result: %v", err)
+  }
+
+  return refId
 
 }
 
@@ -328,6 +374,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
       return r, err
     }
   }
+  log.Infof("Find [%d] by id [%s]", dr.model.GetName(), referenceId)
 
   data, include, err := dr.GetSingleRowByReferenceId(dr.model.GetName(), referenceId)
 
@@ -353,7 +400,12 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
   a.Data = data
 
   for _, inc := range include {
-    a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(inc["__type"].(string), nil, inc["permission"].(int), nil, inc))
+    p, err := strconv.ParseInt(inc["permission"].(string), 10, 32)
+    if err != nil {
+      log.Errorf("Failed to convert [%v] to permission: %v", err)
+      continue
+    }
+    a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(inc["__type"].(string), nil, int(p), nil, inc))
   }
 
   return NewResponse(nil, a, 200, nil), err

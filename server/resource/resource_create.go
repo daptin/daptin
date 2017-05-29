@@ -4,8 +4,10 @@ import (
   "github.com/artpar/api2go"
   log "github.com/Sirupsen/logrus"
   "gopkg.in/Masterminds/squirrel.v1"
-  "reflect"
+  //"reflect"
   "github.com/satori/go.uuid"
+  "github.com/gorilla/context"
+  //"strconv"
 )
 
 // Create a new object. Newly created object/struct must be in Responder.
@@ -61,7 +63,12 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     if col.ColumnName == "updated_at" {
       continue
     }
+
     if col.ColumnName == "permission" {
+      continue
+    }
+
+    if col.ColumnName == "user_id" && dr.model.GetName() != "user_has_usergroup" {
       continue
     }
 
@@ -85,8 +92,21 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     dataToInsert[col.ColumnName] = val
     colsList = append(colsList, col.ColumnName)
     valsList = append(valsList, val)
-
   }
+
+  //
+  //for _, rel := range dr.model.GetRelations() {
+  //  if rel.Relation == "belongs_to" && rel.Object != "user" {
+  //
+  //    log.Infof("Relations : %v", rel.Object, attrs)
+  //    val, ok := attrs[rel.Object + "_id"]
+  //    if ok {
+  //      colsList = append(colsList, rel.Object + "_id")
+  //      valsList = append(valsList, val)
+  //    }
+  //
+  //  }
+  //}
 
   newUuid := uuid.NewV4().String()
 
@@ -95,6 +115,18 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
   colsList = append(colsList, "permission")
   valsList = append(valsList, dr.model.GetDefaultPermission())
+
+  var userId int64
+  userIdInt := context.Get(req.PlainRequest, "user_id_integer")
+  if userIdInt != nil {
+    userId = userIdInt.(int64)
+  }
+
+  if userId != 0 && dr.model.GetName() != "user_has_usergroup" && dr.model.HasColumn("user_id") {
+
+    colsList = append(colsList, "user_id")
+    valsList = append(valsList, userId)
+  }
 
   query, vals, err := squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
   if err != nil {
@@ -109,37 +141,91 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     return NewResponse(nil, nil, 500, nil), err
   }
 
-  query, vals, err = squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": newUuid}).ToSql()
+  createdResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), newUuid)
   if err != nil {
-    log.Errorf("Failed to create select query: %v", err)
+    log.Errorf("Failed to select the newly created entry: %v", err)
     return nil, err
   }
+  //
 
-  m := make(map[string]interface{})
-  row := dr.db.QueryRowx(query, vals...)
-  row.MapScan(m)
+
+  log.Infof("Crated entry: %v", createdResource)
+
+  //if userIdInt == nil && dr.model.GetName() == "user" {
+  //  userId, err = strconv.ParseInt(createdResource["id"].(string), 10, 64)
+  //  if err != nil {
+  //    log.Errorf("Failed to set user id for the new user: %v", err)
+  //  }
+  //  _, err = dr.db.Exec("update user set user_id = ? where id = ?", userId, userId)
+  //  if err != nil {
+  //    log.Errorf("Failed to set user id for the new user: %v", err)
+  //  }
+  //}
+  userGroupId := dr.GetUserGroupIdByUserId(uint64(userId))
+
+  //if userGroupId == 0 {
+  //
+  //  userGroupUuid := uuid.NewV4().String()
+  //  _, err = dr.db.Exec("insert into usergroup (name, reference_id, permission, status) values (?, ?, 644, 'pending')", "home group", userGroupUuid)
+  //  if err != nil {
+  //    log.Errorf("Failed to insert usergroup for user with no groups: %v", err)
+  //  }
+  //
+  //  userGroupId, err = dr.GetReferenceIdToId("usergroup", userGroupUuid)
+  //  if err != nil {
+  //    log.Errorf("Failed to get usergroup by reference id: %v', err")
+  //  }
+  //
+  //  _, err = dr.db.Exec("insert into user_has_usergroup (user_id, usergroup_id, reference_id, permission, status) values (?,?, ?, 644, 'pending')", userId, userGroupId, uuid.NewV4().String())
+  //  if err != nil {
+  //    log.Errorf("Failed to insert user usergroup association: %v", err)
+  //  }
+  //
+  //}
+
+  if userGroupId != 0 && dr.model.HasMany("usergroup") {
+    log.Infof("Associate new entity with usergroup: %v", userGroupId)
+    nuuid := uuid.NewV4().String()
+
+    belogsToUserGroupSql, q, err := squirrel.
+    Insert(dr.model.GetName() + "_has_usergroup").
+      Columns(dr.model.GetName() + "_id", "usergroup_id", "reference_id", "permission").
+      Values(createdResource["id"], userGroupId, nuuid, "755").ToSql()
+
+    log.Infof("Query: %v", belogsToUserGroupSql)
+    _, err = dr.db.Exec(belogsToUserGroupSql, q...)
+
+    if err != nil {
+      log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
+    }
+  }
 
   for _, bf := range dr.ms.AfterCreate {
-    results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{m})
+    results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource})
     if err != nil {
       log.Errorf("Error from after create middleware: %v", err)
     }
     if len(results) < 1 {
-      m = nil
+      createdResource = nil
     } else {
-      m = results[0]
+      createdResource = results[0]
     }
+
+    bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource})
+
   }
 
-  for k, v := range m {
-    k1 := reflect.TypeOf(v)
-    //log.Infof("K: %v", k1)
-    if v != nil && k1.Kind() == reflect.Slice {
-      m[k] = string(v.([]uint8))
-    }
-  }
+  //for k, v := range createdResource {
+  //  k1 := reflect.TypeOf(v)
+  //  //log.Infof("K: %v", k1)
+  //  if v != nil && k1.Kind() == reflect.Slice {
+  //    createdResource[k] = string(v.([]uint8))
+  //  }
+  //}
 
   log.Infof("Create response: %v", dr.model)
+  delete(createdResource, "id")
+  delete(createdResource, "deleted_at")
 
   n1 := dr.model.GetName()
   c1 := dr.model.GetColumns()
@@ -150,7 +236,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
       n1,
       c1,
       p1,
-      r1, m,
+      r1, createdResource,
     ),
     201, nil,
   ), nil

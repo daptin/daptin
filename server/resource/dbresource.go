@@ -15,7 +15,7 @@ type DbResource struct {
 
 func NewDbResource(model *api2go.Api2GoModel, db *sqlx.DB, ms *MiddlewareSet) *DbResource {
   cols := model.GetColumns()
-  model.SetColumns(&cols)
+  model.SetColumns(cols)
   log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
   return &DbResource{
     model: model,

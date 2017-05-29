@@ -25,9 +25,9 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
   currentUserGroupId := context.Get(req.PlainRequest, "usergroup_id").([]string)
 
   for _, result := range results {
-    log.Infof("Result: %v", result)
+    //log.Infof("Result: %v", result)
     permission := dr.GetRowPermission(result)
-    log.Infof("Row Permission for [%v] for [%v]", permission, result)
+    //log.Infof("Row Permission for [%v] for [%v]", permission, result)
     if permission.CanRead(currentUserId, currentUserGroupId) {
       returnMap = append(returnMap, result)
     } else {
@@ -42,7 +42,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request) (api2go.Responder, error) {
 
   //var err error
-  log.Infof("context: %v", context.GetAll(req.PlainRequest))
+  //log.Infof("context: %v", context.GetAll(req.PlainRequest))
   currentUserId := context.Get(req.PlainRequest, "user_id").(string)
   currentUserGroupId := context.Get(req.PlainRequest, "usergroup_id").([]string)
 

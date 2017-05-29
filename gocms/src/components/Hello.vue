@@ -1,70 +1,52 @@
 <template>
 
 
-  <div class="row grid ui">
+  <div class="ui two column grid" style="overflow-y:auto;white-space:nowrap;">
 
 
-    <div class="five wide column">
-      <div class="row">
+    <div class="four wide column">
+      <div class="ui segment top attached">
         <h2>Tables</h2>
       </div>
 
-      <div class="row">
-        <ul class="list ui">
-          <li class="item" v-for="w in world">
-            <a href="#" style="font-size: 20px; text-transform: capitalize; padding: 10px;"
-               @click.prevent="setTable(w.table_name)">
-              <span>{{w.table_name | titleCase}}</span>
-            </a>
-          </li>
+      <div class="ui segment attached">
+        <ul class="ui relaxed list">
+          <div class="item" v-for="w in world" v-if="w.is_top_level == '1' && w.is_hidden == '0'">
+            <div class="content">
+              <a class="header" href="#" style="text-transform: capitalize;"
+                 @click.prevent="setTable(w.table_name)">
+                {{w.table_name | titleCase}}
+              </a>
+            </div>
+          </div>
         </ul>
       </div>
-
     </div>
 
 
-    <div class="eleven wide column" v-if="selectedWorld != null">
-      <div class="row">
-        <div class="sixteen column">
-          <h3>
-            {{selectedWorld | titleCase}}
-            <el-button @click="newRow()"><span class="fa fa-plus"></span></el-button>
-          </h3>
-        </div>
+    <div class="twelve column wide" v-if="selectedWorld != null">
+      <div class="ui segment top attached">
+        <h3>
+          {{selectedWorld | titleCase}}
+          <el-button @click="newRow()"><span class="fa fa-plus"></span></el-button>
+        </h3>
+      </div>
 
-        <div class="ten column">
+      <div class="ui segment column attached" v-if="showAddEdit && selectedRow != null">
 
-          <div class="row" v-if="showAddEdit && selectedRow != null">
-            <div class="sixteen column">
-              <model-form @save="saveRow(selectedRow)" @cancel="showAddEdit = false" v-bind:model="selectedRow"
-                          v-bind:meta="selectedWorldColumns"></model-form>
-            </div>
+        <div class="row">
+          <div class="sixteen column">
+            <!--{{selectedWorldColumns}}-->
+            <model-form @save="saveRow(selectedRow)" @cancel="showAddEdit = false" v-bind:model="selectedRow"
+                        v-bind:meta="selectedWorldColumns" ref="modelform"></model-form>
           </div>
-
         </div>
-      </div>
-      <div class="sixteen column pull-left">
-        <vuetable-pagination ref="pagination" @change-page="onChangePage"></vuetable-pagination>
+
       </div>
 
-      <div class="sixteen column">
-        <vuetable ref="vuetable"
-                  :json-api="jsonApi"
-                  pagination-path="links"
-                  :json-api-model-name="selectedWorld"
-                  @pagination-data="onPaginationData"
-                  :api-mode="true"
-                  :load-on-start="true">
-          <template slot="actions" scope="props">
-            <div class="table-button-container">
-              <button class="ui button" @click="editRow(props.rowData)"><i class="fa fa-edit"></i> Edit</button>&nbsp;&nbsp;
-              <button class="ui basic red button" @click="deleteRow(props.rowData)"><i class="fa fa-remove"></i>
-                Delete
-              </button>&nbsp;&nbsp;
-            </div>
-          </template>
-        </vuetable>
-
+      <div class="ui segment column attached bottom">
+        <table-view :finder="finder" ref="tableview" :json-api="jsonApi"
+                    :json-api-model-name="selectedWorld"></table-view>
       </div>
 
     </div>
@@ -74,324 +56,215 @@
 </template>
 
 <script>
-    import JsonApi from 'devour-client'
-    window.jsonApi = new JsonApi({
-        apiUrl: 'http://localhost:6336/api',
-        pluralize: false,
-    });
-    window.jsonApi.headers['Authorization'] = 'Bearer ' + localStorage.getItem('id_token');
+  import JsonApi from 'devour-client'
+  import {Notification} from 'element-ui';
 
-
-    var types = {
-        "alias": {
-            "group": "relations"
-        },
-        "color": {
-            "group": "properties"
-        },
-        "content": {
-            "group": "main",
-            "inputType": "textarea"
-        },
-        "date": {
-            "group": "time",
-            "inputType": "datePicker"
-        },
-        "datetime": {
-            "group": "time",
-            "inputType": "dateTimePicker"
-        },
-        "day": {
-            "group": "time"
-        },
-        "email": {
-            "group": "main",
-            "inputType": "email"
-        },
-        "file": {
-            "inputType": "file"
-        },
-        "hour": {},
-        "id": {},
-        "image": {
-            "inputType": "file"
-        },
-        "label": {},
-        "location.latitude": {},
-        "location.longitude": {},
-        "measurement": {},
-        "minute": {},
-        "month": {},
-        "name": {},
-        "time": {},
-        "truefalse": {},
-        "url": {},
-        "value": {},
-        "year": {}
-    };
-
-    var columnProperties = {
-        "id": {
-            "hidden": true,
-            "readonly": true,
-        },
-    };
-
-    function getColumnKeys(typeName, callback) {
-        jQuery.ajax({
-            url: 'http://localhost:6336/jsmodel/' + typeName + ".js",
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem("id_token")
-            },
-            success: function (r) {
-                callback(r);
-            }
+  window.jsonApi = new JsonApi({
+    apiUrl: 'http://localhost:6336/api',
+    pluralize: false,
+  });
+  jsonApi.replaceMiddleware('errors', {
+    name: 'nothing-to-see-here',
+    error: function (payload) {
+      console.log("errors", payload);
+      for (var i = 0; i < payload.data.errors.length; i++) {
+        Notification.error({
+          "title": "Failed",
+          "message": payload.data.errors[i].title
         })
+      }
+      return {errors: []}
     }
+  });
 
-    function loadModel(typeName, callback) {
-        var t = document.createElement("script");
-        t.onloaddata = function () {
-            console.log("load complete");
-        };
-        t.src = "http://localhost:6336/jsmodel/" + typeName + ".js";
-        jQuery("body").append(t);
+
+  var requests = {};
+
+  jsonApi.insertMiddlewareBefore('response', {
+    name: 'track-request',
+    req: function (payload) {
+      console.log("request initiate", payload);
+      if (payload.config.method === 'POST') {
+        console.log("Create request complete: ", payload, payload.status / 100);
+        if (parseInt(payload.status / 100) == 2) {
+          Notification.success({
+            title: "Created " + payload.config.model
+          })
+        } else {
+          Notification.warn({
+            "title": "Unidentified status"
+          })
+        }
+      }
+      return payload
     }
+  });
 
 
-    export default {
-        name: 'hello',
-        filters: {
-            titleCase: function (str) {
-                let replace = str.replace(/_/g, " ");
-                replace = replace[0].toUpperCase() + replace.substring(1)
-                return replace
-            }
-        },
-        components: {
-            "model-form": {
-                props: [
-                    "model",
-                    "meta"
-                ],
-                template: `
-
-                <form class="form">
-                  <div class="row">
-                    <div class="form-group three column" v-for="col in meta">
-                      <label :for="col">{{col}}
-                        <input class="form-control" :id="col" :value="model[col]" v-model="model[col]">
-                      </label>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <div class="sixteen column">
-                      <div class="form-group">
-                        <el-button @click="saveRow(model)">
-                          Save
-                        </el-button>
-                        <el-button @click="cancel()">Cancel</el-button>
-                      </div>
-                    </div>
-                  </div>
+  jsonApi.insertMiddlewareAfter('response', {
+    name: 'success-notification',
+    res: function (payload) {
+      console.log("request complete", arguments);
+      return payload
+    }
+  });
 
 
-                </form>
+  window.jsonApi.headers['Authorization'] = 'Bearer ' + localStorage.getItem('id_token');
 
-    `,
-                methods: {
-                    saveRow: function () {
-                        console.log("save row");
-                        this.$emit('save', this.model)
 
-                    },
-                    cancel: function () {
-                        console.log("canel row");
-                        this.$emit('cancel')
-                    },
-                },
-                data: function () {
-                    console.log("this data", this);
-                    console.log(arguments);
-                    console.log(this.model);
-                    return {
-                        currentElement: "el-input",
-                    }
-                },
-                beforeCreate: function () {
+  function getColumnKeys(typeName, callback) {
+    jQuery.ajax({
+      url: 'http://localhost:6336/jsmodel/' + typeName + ".js",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("id_token")
+      },
+      success: function (r, e, s) {
+//        console.log("in success", arguments)
+        callback(r, e, s);
+      },
+      error: function (r, e, s) {
+        callback(r, e, s)
+      },
+    })
+  }
 
-                    console.log("model", this, arguments)
-                },
-                mounted: function () {
-                    var that = this;
+  function getColumnKeysWithErrorHandleWithThisBuilder(that) {
+//    console.log("builder column model getter")
+    return function (typeName, callback) {
+      return getColumnKeys(typeName, function (a, e, s) {
+//        console.log("get column kets respone: ", arguments)
+        if (e == "error" && s == "Unauthorized") {
+          that.logout();
+        } else {
+          callback(a, e, s)
+        }
+      })
+    }
+  }
 
-//                    setTimeout(function () {
-//                        console.log("change type");
-//                        that.currentElement = "textarea";
-//                    }, 2000)
+  export default {
+    name: 'hello',
+    filters: {
+      titleCase: function (str) {
+        return str.replace(/[-_]/g, " ").split(' ')
+            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
+            .join(' ')
+      }
+    },
+    data () {
+      return {
+        world: [],
+        msg: "message",
+        selectedWorld: null,
+        filterText: "",
+        selectedWorldColumns: [],
+        showAddEdit: false,
+        tableData: [],
+        jsonApi: jsonApi,
+        selectedRow: {},
+        tableMap: {},
+        modelLoader: null,
+      }
+    },
+    methods: {
+      deleteRow(row) {
+        var that = this;
+        console.log("delete row", this.selectedWorld);
+        jsonApi.destroy(this.selectedWorld, row["reference_id"]).then(function () {
+          that.setTable(that.selectedWorld);
+        })
+      },
+      saveRow(row) {
+        console.log("save row", row);
+        if (row["reference_id"]) {
+          var that = this;
+          jsonApi.update(this.selectedWorld, row).then(function () {
+            that.setTable(that.selectedWorld);
+            that.showAddEdit = false;
+          });
+        } else {
+          var that = this;
+          jsonApi.create(this.selectedWorld, row).then(function () {
+            that.setTable(that.selectedWorld);
+            that.showAddEdit = false;
+            that.$refs.tableview.reloadData(that.selectedWorld)
+          });
+        }
+      },
+      newRow() {
+        console.log("new row", this.selectedWorld);
+        this.selectedRow = {};
+        this.showAddEdit = true;
+      },
+      edit(row) {
+        console.log("new row", this.selectedWorld);
+        this.selectedRow = row;
+        this.showAddEdit = true;
+      },
+      setTable(tableName) {
+        var that = this;
+        that.selectedWorld = tableName;
+        var all = jsonApi.all(tableName);
+        that.finder = all.builderStack;
+        that.selectedWorldColumns = jsonApi.modelFor(tableName)["attributes"];
+        all.builderStack = [];
+        if (that.$refs.tableview) {
+          that.$refs.tableview.reloadData(tableName)
+        }
+
+      },
+      logout: function () {
+        this.$parent.logout();
+      }
+    },
+    mounted() {
+      var that = this;
+
+      that.modelLoader = getColumnKeysWithErrorHandleWithThisBuilder(that);
+
+      that.modelLoader("user", function (columnKeys) {
+        jsonApi.define("user", columnKeys);
+        that.modelLoader("usergroup", function (columnKeys) {
+          jsonApi.define("usergroup", columnKeys);
+
+          that.modelLoader("world", function (columnKeys) {
+            jsonApi.define("world", columnKeys);
+
+            jsonApi.findAll('world', {
+              page: {number: 1, size: 50},
+              include: ['world_column']
+            }).then(function (res) {
+              for (var t = 0; t < res.length; t++) {
+
+
+                (function (typeName) {
+                  that.modelLoader(typeName, function (model) {
+                    console.log("Loaded model", typeName, model);
+                    jsonApi.define(typeName, model);
+                  })
+                })(res[t].table_name)
+
+              }
+              that.world = res.sort(function (a, b) {
+                if (a.table_name < b.table_name) {
+                  return -1;
+                } else if (a.table_name > b.table_name) {
+                  return 1;
                 }
-            }
-        },
-        data () {
-            return {
-                world: [],
-                msg: "message",
-                selectedWorld: null,
-                filterText: "",
-                selectedWorldColumns: [],
-                showAddEdit: false,
-                tableData: [],
-                jsonApi: jsonApi,
-                selectedRow: {},
-                tableMap: {},
-            }
-        },
-        methods: {
-            trueFalseView (value) {
-                console.log("Redner", value)
-                return value === "1" ? '<span class="fa fa-check"></span>' : '<span class="fa fa-times"></span>'
-            },
-            onPaginationData (paginationData) {
-                console.log("set pagifnation method", paginationData, this.$refs.pagination)
-                this.$refs.pagination.setPaginationData(paginationData)
-            },
-            onChangePage (page) {
-                console.log("cnage pge", page)
-                this.$refs.vuetable.changePage(page)
-            },
-            deleteRow(row) {
-                var that = this;
-                console.log("delete row", this.selectedWorld);
-                jsonApi.destroy(this.selectedWorld, row["reference_id"]).then(function () {
-                    that.setTable(that.selectedWorld);
-                })
-            },
-            saveRow(row) {
-                console.log("save row", row);
-                if (row["reference_id"]) {
-                    var that = this;
-                    jsonApi.update(this.selectedWorld, row).then(function () {
-                        that.setTable(that.selectedWorld);
-                        that.showAddEdit = false;
-                    });
-                } else {
-                    var that = this;
-                    jsonApi.create(this.selectedWorld, row).then(function () {
-                        that.setTable(that.selectedWorld);
-                        that.showAddEdit = false;
-                    });
-                }
-            },
-            newRow() {
-                console.log("new row", this.selectedWorld);
-                this.selectedRow = {};
-                this.showAddEdit = true;
-            },
-            edit(row) {
-                console.log("new row", this.selectedWorld);
-                this.selectedRow = row;
-                this.showAddEdit = true;
-            },
-            setTable(tableName) {
-                var that = this;
-
-                console.log("choose table", tableName, that.tableMap);
-                that.selectedWorldColumns = [];
-                that.tableData = [];
-
-
-                var model = jsonApi.modelFor(tableName);
-                if (!model) {
-                    getColumnKeys(tableName, function (columnKeys) {
-                        jsonApi.define(tableName, columnKeys);
-                        console.log("mo model", jsonApi.modelFor(tableName), columnKeys);
-                        that.selectedWorld = tableName;
-                        that.reloadData(tableName)
-                    });
-                    return;
-                }
-                that.selectedWorld = tableName;
-                this.reloadData(tableName)
-            },
-            reloadData(tableName) {
-//                console.log("this refs", this.$refs)
-                var that = this
-                if (!that.$refs.vuetable) {
-                    return;
-                }
-                setTimeout(function () {
-//                    console.log("reload")
-                    that.$refs.vuetable.reinit();
-                }, 400)
-                return;
-//                var that = this;
-//                jsonApi.findAll(tableName, {page: {offset: 0, limit: 50}}).then(function (res) {
-//                    console.log("set columns", jsonApi.models[that.selectedWorld])
-//                    var keys = Object.keys(jsonApi.models[that.selectedWorld].attributes);
-//                    that.selectedWorldColumns = keys.filter(function (e) {
-//                        return e != "type";
-//                    }).sort();
-//                    that.tableData = res;
-//                })
-            }
-        },
-        mounted() {
-            var that = this;
-
-
-            getColumnKeys("user", function (columnKeys) {
-                jsonApi.define("user", columnKeys);
-                getColumnKeys("usergroup", function (columnKeys) {
-                    jsonApi.define("usergroup", columnKeys);
-
-                    getColumnKeys("world", function (columnKeys) {
-                        jsonApi.define("world", columnKeys);
-
-                        jsonApi.findAll('world', {
-                            page: {number: 1, size: 50},
-                            include: ['world_column']
-                        }).then(function (res) {
-                            that.world = res.sort(function (a, b) {
-//                    console.log("argumen", arguments)
-                                if (a.table_name < b.table_name) {
-                                    return -1;
-                                } else if (a.table_name > b.table_name) {
-                                    return 1;
-                                }
-                                return 0;
-                            });
-                            console.log("got world", res)
-                        });
-
-                    })
-
-
-                });
-
+                return 0;
+              });
+              console.log("got world", res)
             });
 
+          })
 
-        }
+
+        });
+
+      });
+
+
     }
+  }
 </script>
-
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-  h1, h2 {
-    font-weight: normal;
-  }
-
-  ul {
-    list-style-type: none;
-    padding: 0;
-  }
-
-  li {
-    display: inline-block;
-    margin: 0 10px;
-  }
-
-  a {
-    color: #42b983;
-  }
-</style>
