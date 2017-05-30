@@ -6,18 +6,18 @@
       <el-button @click="login()" v-show="!authenticated">Login</el-button>
       <el-button @click="logout()" v-show="authenticated">Logout</el-button>
     </div>
-    <div class="ui column">
+    <div class="ui column" v-if="authenticated">
       <router-view></router-view>
     </div>
 
     <link href="./static/bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet">
-    <link href="./static/bower_components/semantic/dist/semantic.css" rel="stylesheet">
+    <link href="./static/bower_components/semantic/dist/semantic.min.css" rel="stylesheet">
     <link href="./static/bower_components/jsoneditor/dist/jsoneditor.min.css" rel="stylesheet">
 
-    <script src="./static/bower_components/semantic/dist/semantic.js" type="application/javascript"></script>
-    <script src="./static/bower_components/semantic/dist/components/dropdown.min.js"
-            type="application/javascript"></script>
-    <script src="./static/bower_components/jquery/dist/jquery.js" type="application/javascript"></script>
+    <script src="./static/bower_components/semantic/dist/semantic.min.js" type="application/javascript"></script>
+    <!--<script src="./static/bower_components/semantic/dist/components/dropdown.min.js" type="application/javascript"></script>-->
+
+    <script src="./static/bower_components/jquery/dist/jquery.min.js" type="application/javascript"></script>
     <script src="./static/bower_components/jsoneditor/dist/jsoneditor.min.js" type="application/javascript"></script>
 
   </div>
@@ -29,7 +29,7 @@
     data: function () {
 
       return {
-        authenticated: true,
+        authenticated: !!localStorage.getItem("id_token"),
         secretThing: '',
         lock: lock,
       }
@@ -41,7 +41,9 @@
     },
     methods: {
       init() {
-
+        if (!this.authenticated) {
+          this.login();
+        }
       },
       login() {
         window.lock.show();

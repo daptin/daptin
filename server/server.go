@@ -16,6 +16,7 @@ import (
   "github.com/artpar/gocms/server/resource"
   "time"
   "github.com/artpar/gocms/server/auth"
+  "net/http"
 )
 
 type CmsConfig struct {
@@ -77,6 +78,11 @@ func Main(configFile string) {
   }
 
   r := gin.Default()
+
+  //r.StaticFile("/static", "/opt/gocms")
+  r.StaticFS("/static", http.Dir("/opt/gocms/static"))
+  r.StaticFile("", "/opt/gocms/index.html")
+
   r.Use(CorsMiddlewareFunc)
 
   authMiddleware := auth.NewAuthMiddlewareBuilder(db)
@@ -168,7 +174,6 @@ func Main(configFile string) {
   r.Run(":6336")
 
 }
-
 
 func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
 
