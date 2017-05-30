@@ -1,0 +1,140 @@
+{
+	"ImportPath": "github.com/artpar/gocms",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v79",
+	"Deps": [
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.11.5-46-g5e5dc89",
+			"Rev": "5e5dc898656f695e2a086b8e12559febbfc01562"
+		},
+		{
+			"ImportPath": "github.com/ahl5esoft/golang-underscore",
+			"Rev": "4c4738d8de61796a6f759d2813f4ec3ae97baf89"
+		},
+		{
+			"ImportPath": "github.com/artpar/api2go",
+			"Comment": "1.0-RC1-73-gf38ae97",
+			"Rev": "f38ae978e574f70ce6be54c3dd763e1d583c3c89"
+		},
+		{
+			"ImportPath": "github.com/artpar/api2go-adapter/gingonic",
+			"Rev": "4515b68a9d1972b2246048facb0dfdd8878dda36"
+		},
+		{
+			"ImportPath": "github.com/artpar/api2go/jsonapi",
+			"Comment": "1.0-RC1-73-gf38ae97",
+			"Rev": "f38ae978e574f70ce6be54c3dd763e1d583c3c89"
+		},
+		{
+			"ImportPath": "github.com/artpar/api2go/routing",
+			"Comment": "1.0-RC1-73-gf38ae97",
+			"Rev": "f38ae978e574f70ce6be54c3dd763e1d583c3c89"
+		},
+		{
+			"ImportPath": "github.com/auth0/go-jwt-middleware",
+			"Rev": "f3f7de3b9e394e3af3b88e1b9457f6f71d1ae0ac"
+		},
+		{
+			"ImportPath": "github.com/dgrijalva/jwt-go",
+			"Comment": "v3.0.0-6-g63734ea",
+			"Rev": "63734eae1ef55eaac06fdc0f312615f2e321e273"
+		},
+		{
+			"ImportPath": "github.com/gedex/inflector",
+			"Rev": "16278e9db8130ac7ec405dc174cfb94344f16325"
+		},
+		{
+			"ImportPath": "github.com/gin-gonic/gin/binding",
+			"Comment": "v1.1.4-1-gd5b353c",
+			"Rev": "d5b353c5d5a560322e6d96121c814115562501f7"
+		},
+		{
+			"ImportPath": "github.com/gin-gonic/gin/render",
+			"Comment": "v1.1.4-1-gd5b353c",
+			"Rev": "d5b353c5d5a560322e6d96121c814115562501f7"
+		},
+		{
+			"ImportPath": "github.com/go-sql-driver/mysql",
+			"Comment": "v1.2-198-g0b58b37",
+			"Rev": "0b58b37b664c21f3010e836f1b931e1d0b0b0685"
+		},
+		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "fec3b39b059c0f88fa6b20f5ed012b1aa203a8b4"
+		},
+		{
+			"ImportPath": "github.com/gorilla/context",
+			"Comment": "v1.1-7-g08b5f42",
+			"Rev": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
+		},
+		{
+			"ImportPath": "github.com/jmoiron/sqlx",
+			"Comment": "sqlx-v1.1-123-gd9bd385",
+			"Rev": "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f"
+		},
+		{
+			"ImportPath": "github.com/jmoiron/sqlx/reflectx",
+			"Comment": "sqlx-v1.1-123-gd9bd385",
+			"Rev": "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f"
+		},
+		{
+			"ImportPath": "github.com/julienschmidt/httprouter",
+			"Comment": "v1.1-41-g8a45e95",
+			"Rev": "8a45e95fc75cb77048068a62daed98cc22fdac7c"
+		},
+		{
+			"ImportPath": "github.com/lann/builder",
+			"Rev": "f22ce00fd9394014049dad11c244859432bd6820"
+		},
+		{
+			"ImportPath": "github.com/lann/ps",
+			"Rev": "62de8c46ede02a7675c4c79c84883eb164cb71e3"
+		},
+		{
+			"ImportPath": "github.com/manucorporat/sse",
+			"Rev": "ee05b128a739a0fb76c7ebd3ae4810c1de808d6d"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-isatty",
+			"Comment": "v0.0.2",
+			"Rev": "fc9e8d8ef48496124e79ae0df75490096eccf6fe"
+		},
+		{
+			"ImportPath": "github.com/pkg/errors",
+			"Comment": "v0.8.0-5-gc605e28",
+			"Rev": "c605e284fe17294bda444b34710735b29d1a9d90"
+		},
+		{
+			"ImportPath": "github.com/satori/go.uuid",
+			"Comment": "v1.1.0-8-g5bf94b6",
+			"Rev": "5bf94b69c6b68ee1b541973bb8e1144db23a194b"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "84f0e6f92b10139f986b1756e149a7d9de270cdc"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "dbc2be9168a660ef302e04b6ff6406de6f967473"
+		},
+		{
+			"ImportPath": "gopkg.in/Masterminds/squirrel.v1",
+			"Rev": "20f192218cf52a73397fa2df45bdda720f3e47c8"
+		},
+		{
+			"ImportPath": "gopkg.in/gin-gonic/gin.v1",
+			"Comment": "v1.1.4",
+			"Rev": "e2212d40c62a98b388a5eb48ecbdcf88534688ba"
+		},
+		{
+			"ImportPath": "gopkg.in/go-playground/validator.v8",
+			"Comment": "v8.18.1",
+			"Rev": "5f57d2222ad794d0dffb07e664ea05e2ee07d60c"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "a5b47d31c556af34a302ce5d659e6fea44d90de0"
+		}
+	]
+}
