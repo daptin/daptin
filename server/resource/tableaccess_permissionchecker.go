@@ -20,9 +20,19 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 
   returnMap := make([]map[string]interface{}, 0)
 
-  //var err error
-  currentUserId := context.Get(req.PlainRequest, "user_id").(string)
-  currentUserGroupId := context.Get(req.PlainRequest, "usergroup_id").([]string)
+  userIdString := context.Get(req.PlainRequest, "user_id")
+  userGroupId := context.Get(req.PlainRequest, "usergroup_id")
+
+  currentUserId := ""
+  if userIdString != nil {
+    currentUserId = userIdString.(string)
+
+  }
+
+  currentUserGroupId := []string{}
+  if userGroupId != nil {
+    currentUserGroupId = userGroupId.([]string)
+  }
 
   for _, result := range results {
     //log.Infof("Result: %v", result)
@@ -43,11 +53,23 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 
   //var err error
   //log.Infof("context: %v", context.GetAll(req.PlainRequest))
-  currentUserId := context.Get(req.PlainRequest, "user_id").(string)
-  currentUserGroupId := context.Get(req.PlainRequest, "usergroup_id").([]string)
+  userIdString := context.Get(req.PlainRequest, "user_id")
+  userGroupId := context.Get(req.PlainRequest, "usergroup_id")
+
+  currentUserId := ""
+  if userIdString != nil {
+    currentUserId = userIdString.(string)
+
+  }
+
+  currentUserGroupId := []string{}
+  if userGroupId != nil {
+    currentUserGroupId = userGroupId.([]string)
+  }
 
   tableOwnership := dr.GetTablePermission(dr.model.GetName())
 
+  log.Infof("Request method: %v", req.PlainRequest)
   if req.PlainRequest.Method == "GET" {
     if !tableOwnership.CanRead(currentUserId, currentUserGroupId) {
       return api2go.Response{

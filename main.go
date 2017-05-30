@@ -1,7 +1,10 @@
 package main
 
-import "github.com/artpar/gocms/server"
+import (
+  "github.com/artpar/gocms/server"
+  "os"
+)
 
 func main() {
-  server.Main()
+  server.Main(os.Args[1])
 }

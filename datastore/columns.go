@@ -63,11 +63,7 @@ var StandardColumns = []api2go.ColumnInfo{
 }
 
 var StandardRelations = []api2go.TableRelation{
-  {
-    Subject: "world_column",
-    Relation: "belongs_to",
-    Object: "world",
-  },
+  api2go.NewTableRelation("world_column", "belongs_to", "world"),
 }
 
 var StandardTables = []TableInfo{

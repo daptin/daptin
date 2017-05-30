@@ -378,7 +378,8 @@
         });
         self.tableFields.push({
           name: '__slot:actions',
-          title: '<el-button class="ui button"><i class="fa fa-plus"></i> Add '+ this.jsonApiModelName +'</el-button>',
+//          title: '<button class="ui button" @click="newRow()"><i class="fa fa-plus"></i> Add '+ this.jsonApiModelName +'</button>',
+          title: '',
           visible: true,
           titleClass: 'center aligned',
           dataClass: 'center aligned',

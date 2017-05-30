@@ -99,21 +99,40 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   }
 
   for _, rel := range dr.model.GetRelations() {
-    //log.Infof("Relation %v", rel)
-    if rel.Relation == "belongs_to" {
-      queries, ok := req.QueryParams[rel.Object + "_id"]
-      if ok {
-        ids := make([]uint64, 0)
-        for _, refId := range queries {
-          id, err := dr.GetReferenceIdToId(rel.Object, refId)
-          if err != nil {
-            log.Errorf("Failed to get id from ref id for [%v][%v]", rel.Object, refId)
+    log.Infof("Relation %v", rel)
+    if rel.GetRelation() == "belongs_to" {
+
+      if rel.GetSubject() == dr.model.GetName() {
+        queries, ok := req.QueryParams[rel.GetObjectName()]
+        if ok {
+          ids := make([]uint64, 0)
+          for _, refId := range queries {
+            id, err := dr.GetReferenceIdToId(rel.GetObject(), refId)
+            if err != nil {
+              log.Errorf("Failed to get id from ref id for [%v][%v]", rel.GetObject(), refId)
+            }
+            ids = append(ids, id)
           }
-          ids = append(ids, id)
+          queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName():   ids})
         }
-        queryBuilder = queryBuilder.Where(squirrel.Eq{rel.Object + "_id":   ids})
+      } else if rel.GetObject() == dr.model.GetName() {
+
+        queries, ok := req.QueryParams[rel.GetSubjectName()]
+        log.Infof("Convert ref ids to ids: %v", queries)
+        if ok {
+
+          ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), "id", "reference_id", queries)
+          if err != nil {
+            log.Errorf("Failed to convert refids to ids: %v", err)
+            continue
+          }
+
+          queryBuilder = queryBuilder.Where(squirrel.Eq{"id": ids})
+        }
       }
+
     }
+
   }
 
   for _, so := range sortOrder {

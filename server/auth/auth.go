@@ -94,7 +94,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 
 
   err := jwtMiddleware.CheckJWT(c.Writer, c.Request)
-  //log.Infof("Session user: %v", err)
+  log.Infof("Session user: %v", err)
 
   if err != nil {
     c.AbortWithError(401, err)
@@ -102,7 +102,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
   } else {
 
     user := context.Get(c.Request, "user")
-    //log.Infof("Set user: %v", user)
+    log.Infof("Set user: %v", user)
     if (user == nil) {
       context.Set(c.Request, "user_id", "")
       context.Set(c.Request, "usergroup_id", []string{})
@@ -128,7 +128,9 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
         newUser := api2go.NewApi2GoModelWithData("user", nil, 644, nil, mapData)
 
         req := api2go.Request{
-
+          PlainRequest: &http.Request{
+            Method: "POST",
+          },
         }
 
         resp, err := a.userCrud.Create(newUser, req)

@@ -78,6 +78,16 @@ func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (u
 
 }
 
+func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectColumn, matchColumn string, values []string) ([]interface{}, error) {
+
+  s, q, err := squirrel.Select(selectColumn).From(typeName).Where(squirrel.Eq{matchColumn: values}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  if err != nil {
+    return nil, err
+  }
+
+  return dr.db.QueryRowx(s, q...).SliceScan()
+}
+
 func (dr *DbResource) RowsToMap(rows *sql.Rows, columns []string) ([]map[string]interface{}, error) {
 
   responseArray := make([]map[string]interface{}, 0)
