@@ -1,10 +1,10 @@
 <template>
 
 
-  <div class="ui two column grid" style="overflow-y:auto;white-space:nowrap;">
+  <div class="ui two column grid">
 
 
-    <div class="four wide column">
+    <div class="ui two wide column">
       <div class="ui segment top attached">
         <h2>Tables</h2>
       </div>
@@ -24,15 +24,25 @@
     </div>
 
 
-    <div class="twelve column wide" v-if="selectedWorld != null">
-      <div class="ui segment top attached">
-        <h3>
-          {{selectedWorld | titleCase}}
-          <el-button @click="newRow()"><span class="fa fa-plus"></span></el-button>
-        </h3>
+    <div class="ui twelve column wide" v-if="selectedWorld != null">
+      <div class="ui column segment attached top grid two">
+
+        <div class="ui column four wide">
+          <h2>
+            {{selectedWorld | titleCase}}
+            <!--<el-button @click="newRow()"><span class="fa fa-plus"></span></el-button>-->
+          </h2>
+
+        </div>
+        <div class="ui column four wide right floated" style="text-align: right;">
+          <div class="ui icon buttons">
+            <el-button class="ui button" @click.prevent="viewMode = 'table'"><i class="fa fa-table"></i></el-button>
+            <el-button class="ui button" @click.prevent="viewMode = 'items'"><i class="fa fa-th-large"></i></el-button>
+          </div>
+        </div>
       </div>
 
-      <div class="ui segment column attached" v-if="showAddEdit && selectedRow != null">
+      <div class="ui column segment attached bottom" v-if="showAddEdit && selectedRow != null">
 
         <div class="row">
           <div class="sixteen column">
@@ -43,11 +53,9 @@
         </div>
 
       </div>
+      <table-view v-if="viewMode == 'table'" :finder="finder" ref="tableview" :json-api="jsonApi"
+                  :json-api-model-name="selectedWorld"></table-view>
 
-      <div class="ui segment column attached bottom">
-        <table-view :finder="finder" ref="tableview" :json-api="jsonApi"
-                    :json-api-model-name="selectedWorld"></table-view>
-      </div>
 
     </div>
 
@@ -155,6 +163,7 @@
     data () {
       return {
         world: [],
+        viewMode: 'table',
         msg: "message",
         selectedWorld: null,
         filterText: "",

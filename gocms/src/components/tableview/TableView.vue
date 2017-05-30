@@ -1,8 +1,7 @@
 <template>
 
-  <div class="ui column " style="overflow-y:auto;white-space:nowrap;">
 
-
+  <div class="ui segment attached ">
     <vuetable-pagination ref="pagination" @change-page="onChangePage"></vuetable-pagination>
 
     <vuetable ref="vuetable"
@@ -10,6 +9,7 @@
               :finder="finder"
               track-by="id"
               detail-row-component="detailed-table-row"
+              edit-row-component="model-form"
               @vuetable:cell-clicked="onCellClicked"
               pagination-path="links"
               :json-api-model-name="jsonApiModelName"
@@ -34,9 +34,8 @@
         </div>
       </template>
     </vuetable>
-
-
   </div>
+
 </template>
 
 <script>
@@ -68,6 +67,15 @@
       }
     },
     methods: {
+      onAction (action, data){
+        console.log("on action", action, data)
+
+        if (action == "view-item") {
+          this.$refs.vuetable.toggleDetailRow(data.id)
+        } else if (action == "edit-item") {
+          this.selectedRow = data;
+        }
+      },
       titleCase: function (str) {
         return str.replace(/[-_]/g, " ").split(' ')
             .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())

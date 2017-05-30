@@ -376,7 +376,13 @@
 
           self.tableFields.push(obj)
         });
-        self.tableFields.push('__actions');
+        self.tableFields.push({
+          name: '__slot:actions',
+          title: '<el-button class="ui button"><i class="fa fa-plus"></i> Add '+ this.jsonApiModelName +'</el-button>',
+          visible: true,
+          titleClass: 'center aligned',
+          dataClass: 'center aligned',
+        });
       },
       setData (data) {
         this.apiMode = false;
