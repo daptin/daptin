@@ -7,8 +7,12 @@
     <div class="four wide column">
       <div class="ui segment top attached">
         <h2 v-if="!selectedInstanceReferenceId">Tables</h2>
-        <h2 v-if="!selectedSubTable && selectedInstanceReferenceId">{{selectedWorld | titleCase}}</h2>
-        <h2 v-if="selectedSubTable">{{selectedWorld | titleCase}}</h2>
+        <h2 v-if="!selectedSubTable && selectedInstanceReferenceId">
+          <router-link :to="{ name: 'Home', params: { tablename: selectedWorld }}">{{selectedWorld | titleCase}}</router-link>
+        </h2>
+        <h2 v-if="selectedSubTable">
+          <router-link :to="{ name: 'Home', params: { tablename: selectedWorld }}">{{selectedWorld | titleCase}}</router-link>
+        </h2>
       </div>
 
       <div class="ui segment attached">
