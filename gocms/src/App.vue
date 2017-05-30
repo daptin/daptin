@@ -2,11 +2,11 @@
   <div id="app" class="ui wide">
 
 
-    <div class="ui segment top attached">
+    <div class="ui segment">
       <el-button @click="login()" v-show="!authenticated">Login</el-button>
       <el-button @click="logout()" v-show="authenticated">Logout</el-button>
     </div>
-    <div class="ui segment attached">
+    <div class="ui column">
       <router-view></router-view>
     </div>
 

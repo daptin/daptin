@@ -46,6 +46,14 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
     pageNumber -= 1
   }
 
+  reqFieldMap := make(map[string]bool)
+  requestedFields, hasRequestedFields := req.QueryParams["fields"]
+  if hasRequestedFields {
+    for _, f := range requestedFields {
+      reqFieldMap[f] = true
+    }
+  }
+
   pageSize := uint64(10)
   if len(req.QueryParams["page[size]"]) > 0 {
     pageSize, err = strconv.ParseUint(req.QueryParams["page[size]"][0], 10, 32)
@@ -72,10 +80,40 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
   cols := m.GetColumnNames()
   //log.Infof("Cols: %v", cols)
+
+  if hasRequestedFields {
+    finalCols := []string{}
+
+    for _, col := range cols {
+      if reqFieldMap[col] {
+        finalCols = append(finalCols, col)
+      }
+    }
+    cols = finalCols
+  }
+
   queryBuilder := squirrel.Select(cols...).From(m.GetTableName()).Where(squirrel.Eq{"deleted_at": nil}).Offset(pageNumber).Limit(pageSize)
 
   for key, values := range req.QueryParams {
     log.Infof("Query [%v] == %v", key, values)
+  }
+
+  for _, rel := range dr.model.GetRelations() {
+    //log.Infof("Relation %v", rel)
+    if rel.Relation == "belongs_to" {
+      queries, ok := req.QueryParams[rel.Object + "_id"]
+      if ok {
+        ids := make([]uint64, 0)
+        for _, refId := range queries {
+          id, err := dr.GetReferenceIdToId(rel.Object, refId)
+          if err != nil {
+            log.Errorf("Failed to get id from ref id for [%v][%v]", rel.Object, refId)
+          }
+          ids = append(ids, id)
+        }
+        queryBuilder = queryBuilder.Where(squirrel.Eq{rel.Object + "_id":   ids})
+      }
+    }
   }
 
   for _, so := range sortOrder {
@@ -97,7 +135,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
     return 0, nil, err
   }
 
-  //log.Infof("Sql: %v\n", sql1)
+  log.Infof("Sql: %v\n", sql1)
 
   rows, err := dr.db.Query(sql1, args...)
   defer rows.Close()

@@ -129,14 +129,27 @@ func Main() {
 
   var ms resource.MiddlewareSet
 
-  tpc := &resource.TableAccessPermissionChecker{}
+  permissionChecker := &resource.TableAccessPermissionChecker{}
 
-  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
-    tpc,
-  }
-  ms.AfterFindAll = []resource.DatabaseRequestInterceptor{
-    tpc,
-  }
+  findOneHandler := resource.NewFindOneEventHandler()
+  createHandler := resource.NewCreateEventHandler()
+  updateHandler := resource.NewUpdateEventHandler()
+  deleteHandler := resource.NewDeleteEventHandler()
+
+  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, }
+  ms.AfterFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, }
+
+  ms.BeforeCreate = []resource.DatabaseRequestInterceptor{permissionChecker, createHandler, }
+  ms.AfterCreate = []resource.DatabaseRequestInterceptor{permissionChecker, createHandler, }
+
+  ms.BeforeDelete = []resource.DatabaseRequestInterceptor{permissionChecker, deleteHandler, }
+  ms.AfterDelete = []resource.DatabaseRequestInterceptor{permissionChecker, deleteHandler, }
+
+  ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{permissionChecker, updateHandler, }
+  ms.AfterUpdate = []resource.DatabaseRequestInterceptor{permissionChecker, updateHandler, }
+
+  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, findOneHandler, }
+  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, findOneHandler, }
 
   cruds = AddAllTablesToApi2Go(api, initConfig.Tables, db, &ms)
 
@@ -150,6 +163,7 @@ func Main() {
 
   r.GET("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
   r.OPTIONS("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
+  r.GET("/downloadSchema", CreateJsModelHandler(&initConfig))
 
   r.Run(":6336")
 

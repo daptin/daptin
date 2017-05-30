@@ -147,7 +147,7 @@
 
             console.log("relation", item, that.jsonApiModelName, that.rowData);
 
-            var builderStack = that.jsonApi.one(that.jsonApiModelName, that.rowData["reference_id"]).all(item.name);
+            var builderStack = that.jsonApi.one(that.jsonApiModelName, that.rowData["id"]).all(item.name);
             var finder = builderStack.builderStack;
             builderStack.builderStack = [];
             console.log("finder: ", finder)
