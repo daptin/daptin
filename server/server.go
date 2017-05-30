@@ -162,11 +162,13 @@ func Main(configFile string) {
 
   r.GET("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
   r.OPTIONS("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
+
   r.GET("/downloadSchema", CreateJsModelHandler(&initConfig))
 
   r.Run(":6336")
 
 }
+
 
 func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
 
@@ -205,10 +207,10 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
         continue
       }
 
-      typeOfOtherEntity, ok := api2go.EndsWith(col.ColumnName, "_id")
+      _, ok := api2go.EndsWith(col.ColumnName, "_id")
       if ok && col.ColumnName != "reference_id" {
         log.Infof("Column [%v] is relation ", col.ColumnName)
-        res[typeOfOtherEntity] = NewJsonApiRelation(typeOfOtherEntity, "hasOne", "entity")
+        //res[typeOfOtherEntity] = NewJsonApiRelation(typeOfOtherEntity, "hasOne", "entity")
       } else {
         //res[col.ColumnName] = NewJsonApiRelation("", "", col.ColumnType)
         res[col.ColumnName] = col.ColumnType

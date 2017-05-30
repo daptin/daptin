@@ -6,28 +6,22 @@
 
     <div class="four wide column">
       <div class="ui segment top attached">
-        <h2 v-if="!selectedInstanceReferenceId">Tables</h2>
-        <h2 v-if="selectedInstanceReferenceId">{{selectedWorld | titleCase}}</h2>
+        <h2>Tables</h2>
       </div>
 
       <div class="ui segment attached">
         <ul class="ui relaxed list">
-          <div class="item" v-for="w in visibleWorlds">
+          <div class="item" v-for="w in world" v-if="w.is_top_level == '0' && w.is_visible">
             <div class="content">
-
-
-              <router-link v-if="!selectedInstanceReferenceId" v-bind:to="w.table_name">{{w.table_name | titleCase}}</router-link>
-
-              <router-link v-if="selectedInstanceReferenceId" :to="{ Home: 'Instance', params: { tablename: w.table_name }}">{{w.table_name | titleCase}}</router-link>
-
-
               <!--<a class="header" href="#" style="text-transform: capitalize;" @click.prevent="setTable(w.table_name)">-->
-              <!--{{w.table_name}}</a>-->
+                <router-link v-bind:to="w.table_name + '/all'">{{w.table_name | titleCase}}</router-link>
+              <!--</a>-->
             </div>
           </div>
         </ul>
       </div>
     </div>
+
 
     <div class="eight wide column" v-if="selectedWorld != null">
       <div class="ui segment attached top">
@@ -60,9 +54,8 @@
         </div>
 
       </div>
-      <table-view @newRow="newRow()" @editRow="editRow"
-                  v-if="viewMode == 'table'" :finder="finder"
-                  ref="tableview" :json-api="jsonApi"
+      <table-view @newRow="newRow()" @editRow="editRow" v-if="viewMode == 'table'" :finder="finder" ref="tableview"
+                  :json-api="jsonApi"
                   :json-api-model-name="selectedWorld"></table-view>
 
 
@@ -87,12 +80,6 @@
             .join(' ')
       }
     },
-    props: {
-      tablename: {
-        type: String,
-        default: 'world'
-      }
-    },
     data () {
       return {
         world: [],
@@ -105,8 +92,6 @@
         tableData: [],
         jsonApi: jsonApi,
         selectedRow: {},
-        selectedInstanceReferenceId: null,
-        selectedInstanceType: null,
         tableMap: {},
         modelLoader: null,
       }
@@ -148,7 +133,6 @@
       },
       setTable(tableName) {
         var that = this;
-        console.log("Set table selected world", tableName)
         that.selectedWorld = tableName;
         var all = jsonApi.all(tableName);
         that.finder = all.builderStack;
@@ -163,52 +147,9 @@
         this.$parent.logout();
       }
     },
-    computed: {
-      visibleWorlds: function () {
-
-        var that = this;
-
-        return this.world.filter(function (w, r) {
-          if (!that.selectedInstanceReferenceId) {
-            return w.is_top_level == '1' && w.is_hidden == '0';
-          } else {
-            console.log("check visibility of ", w);
-            var model = that.jsonApi.modelFor(w.table_name);
-            console.log("model  ", model);
-            var attrs = model["attributes"];
-            var keys = Object.keys(attrs);
-            console.log("keys ", attrs, keys, that.selectedWorld + "_id");
-            if (keys.indexOf(that.selectedWorld + "_id") > -1) {
-              return w.is_top_level == '0' && w.is_hidden == '0';
-            }
-            return false;
-
-
-          }
-        });
-
-
-      }
-    },
     mounted() {
       var that = this;
-      console.log("Set table", that.$route.params.tablename)
-
-
-      if (that.$route.params.tablename) {
-        var tableName = this.$route.params.tablename;
-
-        that.selectedWorld = tableName;
-        var all = jsonApi.all(tableName);
-        that.finder = all.builderStack;
-        all.builderStack = [];
-        that.selectedWorldColumns = jsonApi.modelFor(tableName)["attributes"];
-      }
-
-      if (that.$route.params.refId) {
-        that.selectedInstanceReferenceId = that.$route.params.refId;
-      }
-
+//      console.log("path ", this.$route)
 
       that.modelLoader = getColumnKeysWithErrorHandleWithThisBuilder(that);
 
@@ -216,8 +157,17 @@
         page: {number: 1, size: 50},
         include: ['world_column']
       }).then(function (res) {
+        for (var t = 0; t < res.length; t++) {
 
-        console.log("worlds ", res)
+
+          (function (typeName) {
+            that.modelLoader(typeName, function (model) {
+              console.log("Loaded model", typeName, model);
+              jsonApi.define(typeName, model);
+            })
+          })(res[t].table_name)
+
+        }
         that.world = res.sort(function (a, b) {
           if (a.table_name < b.table_name) {
             return -1;
@@ -226,28 +176,9 @@
           }
           return 0;
         });
-        console.log("got world", res);
-
-
+        console.log("got world", res)
       });
 
-
-    },
-    watch: {
-      '$route.params.tablename': function (to, from) {
-        console.log("path changed", arguments);
-        this.setTable(to);
-      },
-      '$route.params.refId': function (to, from) {
-        var that = this;
-        console.log("refId changed", arguments);
-        this.selectedInstanceReferenceId = to;
-      },
-      '$route.params.subTable': function (to, from) {
-        var that = this;
-        console.log("subTable  changed", arguments);
-        this.subTable = to;
-      },
 
     }
   }

@@ -33,7 +33,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
   data := obj.(*api2go.Api2GoModel)
   log.Infof("Create object request: %v", data)
 
-  attrs := data.GetAttributes()
+  attrs := data.GetAllAsAttributes()
 
   allColumns := dr.model.GetColumns()
 
@@ -94,19 +94,18 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     valsList = append(valsList, val)
   }
 
-  //
-  //for _, rel := range dr.model.GetRelations() {
-  //  if rel.Relation == "belongs_to" && rel.Object != "user" {
-  //
-  //    log.Infof("Relations : %v", rel.Object, attrs)
-  //    val, ok := attrs[rel.Object + "_id"]
-  //    if ok {
-  //      colsList = append(colsList, rel.Object + "_id")
-  //      valsList = append(valsList, val)
-  //    }
-  //
-  //  }
-  //}
+  for _, rel := range dr.model.GetRelations() {
+    if rel.Relation == "belongs_to" || rel.Relation == "has_one" {
+
+      log.Infof("Relations : %v", rel.Object, attrs)
+      val, ok := attrs[rel.Object + "_id"]
+      if ok {
+        colsList = append(colsList, rel.Object + "_id")
+        valsList = append(valsList, val)
+      }
+
+    }
+  }
 
   newUuid := uuid.NewV4().String()
 
@@ -211,8 +210,6 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
       createdResource = results[0]
     }
 
-    bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource})
-
   }
 
   //for k, v := range createdResource {
@@ -223,9 +220,9 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
   //  }
   //}
 
-  log.Infof("Create response: %v", dr.model)
   delete(createdResource, "id")
   delete(createdResource, "deleted_at")
+  log.Infof("Create response: %v", createdResource)
 
   n1 := dr.model.GetName()
   c1 := dr.model.GetColumns()

@@ -83,7 +83,14 @@
       },
       onCellClicked (data, field, event){
         console.log('cellClicked 1: ', data)
-        this.$refs.vuetable.toggleDetailRow(data.id)
+//        this.$refs.vuetable.toggleDetailRow(data.id);
+        this.$router.push({
+          name: 'Instance',
+          params: {
+            tablename: this.selectedWorld,
+            refId: data.id,
+          }
+        })
       },
       trueFalseView (value) {
         console.log("Render", value)
@@ -142,7 +149,7 @@
           that.$refs.vuetable.changePage(1);
           that.$refs.vuetable.reinit();
         }, 100);
-      },
+      }
     },
     reloadData(tableName) {
       var that = this;

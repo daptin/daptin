@@ -30,7 +30,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
   log.Infof("Update object request: %v", data)
   id := data.GetID()
 
-  attrs := data.GetAttributes()
+  attrs := data.GetAllAsAttributes()
 
   allColumns := dr.model.GetColumns()
 
