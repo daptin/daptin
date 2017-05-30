@@ -90,8 +90,25 @@ var jwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
   UserProperty: "user",
 })
 
+func StartsWith(bigStr string, smallString string) bool {
+  if len(bigStr) < len(smallString) {
+    return false
+  }
+
+  if bigStr[0:len(smallString)] == smallString {
+    return true
+  }
+
+  return false
+
+}
+
 func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 
+  if StartsWith(c.Request.RequestURI, "/static") || StartsWith(c.Request.RequestURI, "/favicon.ico") {
+    c.Next()
+    return
+  }
 
   err := jwtMiddleware.CheckJWT(c.Writer, c.Request)
   log.Infof("Session user: %v", err)

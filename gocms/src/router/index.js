@@ -19,6 +19,12 @@ export default new Router({
       component: Home,
     },
     {
+      path: '/:tablename/:refId/:subTable',
+      props: true,
+      name: 'SubTables',
+      component: Home,
+    },
+    {
       path: '',
       name: 'Table view', props: true,
       component: Home,

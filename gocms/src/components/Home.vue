@@ -7,7 +7,8 @@
     <div class="four wide column">
       <div class="ui segment top attached">
         <h2 v-if="!selectedInstanceReferenceId">Tables</h2>
-        <h2 v-if="selectedInstanceReferenceId">{{selectedWorld | titleCase}}</h2>
+        <h2 v-if="!selectedSubTable && selectedInstanceReferenceId">{{selectedWorld | titleCase}}</h2>
+        <h2 v-if="selectedSubTable">{{selectedWorld | titleCase}}</h2>
       </div>
 
       <div class="ui segment attached">
@@ -16,9 +17,13 @@
             <div class="content">
 
 
-              <router-link v-if="!selectedInstanceReferenceId" v-bind:to="w.table_name">{{w.table_name | titleCase}}</router-link>
+              <router-link v-if="!selectedInstanceReferenceId" v-bind:to="w.table_name">{{w.table_name | titleCase}}
+              </router-link>
 
-              <router-link v-if="selectedInstanceReferenceId" :to="{ Home: 'Instance', params: { tablename: w.table_name }}">{{w.table_name | titleCase}}</router-link>
+              <router-link v-if="selectedInstanceReferenceId"
+                           :to="{ name: 'SubTables', params: { tablename: selectedWorld, refId:selectedInstanceReferenceId, subTable: w.table_name  }}">
+                {{w.table_name | titleCase}}
+              </router-link>
 
 
               <!--<a class="header" href="#" style="text-transform: capitalize;" @click.prevent="setTable(w.table_name)">-->
@@ -30,16 +35,20 @@
     </div>
 
     <div class="eight wide column" v-if="selectedWorld != null">
-      <div class="ui segment attached top">
+      <div class="ui segment attached top grid">
 
         <div class="four wide column">
           <h2>
+            {{selectedSubTable | titleCase}}
+            <!--<el-button @click="newRow()"><span class="fa fa-plus"></span></el-button>-->
+          </h2>
+          <h2 v-if="!selectedSubTable">
             {{selectedWorld | titleCase}}
             <!--<el-button @click="newRow()"><span class="fa fa-plus"></span></el-button>-->
           </h2>
 
         </div>
-        <div class="ui four wide column right floated" style="text-align: right;">
+        <div class="four wide column right floated" style="text-align: right;">
           <div class="ui icon buttons">
             <el-button class="ui button" @click.prevent="viewMode = 'table'"><i class="fa fa-table"></i></el-button>
             <el-button class="ui button" @click.prevent="viewMode = 'items'"><i class="fa fa-th-large"></i></el-button>
@@ -53,22 +62,34 @@
         <div class="row">
           <div class="sixteen column">
             <!--{{selectedWorldColumns}}-->
-            <model-form @save="saveRow(selectedRow)" @cancel="showAddEdit = false" v-bind:model="selectedRow"
+
+            <model-form @save="saveRow(selectedRow)" v-if="!selectedSubTable" @cancel="showAddEdit = false"
+                        v-bind:model="selectedRow"
                         v-bind:meta="selectedWorldColumns" ref="modelform"></model-form>
+
+            <model-form @save="saveRow(selectedRow)" v-if="selectedSubTable" @cancel="showAddEdit = false"
+                        v-bind:model="selectedRow"
+                        v-bind:meta="subTableColumns" ref="modelform"></model-form>
+
           </div>
+
 
         </div>
 
       </div>
       <table-view @newRow="newRow()" @editRow="editRow"
-                  v-if="viewMode == 'table'" :finder="finder"
+                  v-if="viewMode == 'table' && !selectedSubTable" :finder="finder"
                   ref="tableview" :json-api="jsonApi"
                   :json-api-model-name="selectedWorld"></table-view>
+      <table-view @newRow="newRow()" @editRow="editRow"
+                  v-if="viewMode == 'table' && selectedSubTable" :finder="finder"
+                  ref="tableview" :json-api="jsonApi"
+                  :json-api-model-name="selectedSubTable"></table-view>
 
 
     </div>
     <div class="four wide column" v-if="showAddEdit && selectedRow != null">
-      content here
+      {{selectedRow}}
     </div>
 
 
@@ -82,6 +103,9 @@
     name: 'Home',
     filters: {
       titleCase: function (str) {
+        if (!str) {
+          return str;
+        }
         return str.replace(/[-_]/g, " ").split(' ')
             .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
             .join(' ')
@@ -91,7 +115,16 @@
       tablename: {
         type: String,
         default: 'world'
-      }
+      },
+      refId: {
+        type: String,
+        default: null
+      },
+      subTable: {
+        type: String,
+        default: null
+      },
+
     },
     data () {
       return {
@@ -106,6 +139,8 @@
         jsonApi: jsonApi,
         selectedRow: {},
         selectedInstanceReferenceId: null,
+        subTableColumns: null,
+        selectedSubTable: null,
         selectedInstanceType: null,
         tableMap: {},
         modelLoader: null,
@@ -120,21 +155,53 @@
         })
       },
       saveRow(row) {
-        console.log("save row", row);
-        if (row["reference_id"]) {
-          var that = this;
-          jsonApi.update(this.selectedWorld, row).then(function () {
-            that.setTable(that.selectedWorld);
-            that.showAddEdit = false;
-          });
+
+        var that = this;
+
+        if (!that.selectedSubTable || !that.selectedInstanceReferenceId) {
+
+
+          console.log("save row", row);
+          if (row["reference_id"]) {
+            var that = this;
+            jsonApi.update(this.selectedWorld, row).then(function () {
+              that.setTable(that.selectedWorld);
+              that.showAddEdit = false;
+            });
+          } else {
+            var that = this;
+            jsonApi.create(this.selectedWorld, row).then(function () {
+              that.setTable(that.selectedWorld);
+              that.showAddEdit = false;
+              that.$refs.tableview.reloadData(that.selectedWorld)
+            });
+          }
+
         } else {
-          var that = this;
-          jsonApi.create(this.selectedWorld, row).then(function () {
-            that.setTable(that.selectedWorld);
-            that.showAddEdit = false;
-            that.$refs.tableview.reloadData(that.selectedWorld)
-          });
+
+          row[that.selectedWorld + "_id"] = {
+            "id": that.selectedInstanceReferenceId,
+          };
+
+          console.log("save row", row);
+          if (row["reference_id"]) {
+            var that = this;
+            jsonApi.update(that.selectedSubTable, row).then(function () {
+              that.setTable(that.selectedWorld);
+              that.showAddEdit = false;
+            });
+          } else {
+            var that = this;
+            jsonApi.create(that.selectedSubTable, row).then(function () {
+              that.showAddEdit = false;
+              that.$refs.tableview.reloadData(that.selectedSubTable)
+            });
+          }
+
+
         }
+
+
       },
       newRow() {
         console.log("new row", this.selectedWorld);
@@ -147,12 +214,30 @@
         this.showAddEdit = true;
       },
       setTable(tableName) {
+
+        if (!tableName) {
+          tableName = this.selectedWorld;
+        }
         var that = this;
         console.log("Set table selected world", tableName)
+
+
         that.selectedWorld = tableName;
-        var all = jsonApi.all(tableName);
+
+        var all = {};
+        if (!that.selectedSubTable) {
+          var all = jsonApi.all(tableName);
+        } else {
+          var all = jsonApi.one(that.selectedWorld, that.selectedInstanceReferenceId).all(that.selectedSubTable + "_id");
+          that.subTableColumns = jsonApi.modelFor(that.selectedSubTable)["attributes"];
+          console.log("Set subtable columns: ", that.subTableColumns)
+        }
+
+
         that.finder = all.builderStack;
+        console.log("finder stack for this view table", that.selectedSubTable, that.selectedWorld, that.finder);
         that.selectedWorldColumns = jsonApi.modelFor(tableName)["attributes"];
+
         all.builderStack = [];
         if (that.$refs.tableview) {
           that.$refs.tableview.reloadData(tableName)
@@ -242,12 +327,14 @@
         var that = this;
         console.log("refId changed", arguments);
         this.selectedInstanceReferenceId = to;
+        this.setTable();
       },
       '$route.params.subTable': function (to, from) {
         var that = this;
         console.log("subTable  changed", arguments);
-        this.subTable = to;
-      },
+        this.selectedSubTable = to;
+        this.setTable();
+      }
 
     }
   }

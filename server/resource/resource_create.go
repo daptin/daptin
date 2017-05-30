@@ -94,18 +94,18 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     valsList = append(valsList, val)
   }
 
-  for _, rel := range dr.model.GetRelations() {
-    if rel.Relation == "belongs_to" || rel.Relation == "has_one" {
-
-      log.Infof("Relations : %v", rel.Object, attrs)
-      val, ok := attrs[rel.Object + "_id"]
-      if ok {
-        colsList = append(colsList, rel.Object + "_id")
-        valsList = append(valsList, val)
-      }
-
-    }
-  }
+  //for _, rel := range dr.model.GetRelations() {
+  //  if rel.Relation == "belongs_to" || rel.Relation == "has_one" {
+  //
+  //    log.Infof("Relations : %v == %v", rel.Object, attrs)
+  //    val, ok := attrs[rel.Object + "_id"]
+  //    if ok {
+  //      colsList = append(colsList, rel.Object + "_id")
+  //      valsList = append(valsList, val)
+  //    }
+  //
+  //  }
+  //}
 
   newUuid := uuid.NewV4().String()
 

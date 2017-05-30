@@ -27,10 +27,24 @@
                   @click="onAction('edit-item', props.rowData, props.rowIndex)">
             <i class="edit icon"></i>
           </button>
-          <button class="ui basic button"
-                  @click="onAction('delete-item', props.rowData, props.rowIndex)">
-            <i class="delete icon"></i>
-          </button>
+
+          <el-popover
+              placement="top"
+              trigger="click"
+              width="160">
+            <p>Are you sure to delete this?</p>
+            <div style="text-align: right; margin: 0">
+              <el-button type="primary" size="mini" @click="onAction('delete-item', props.rowData, props.rowIndex)">
+                confirm
+              </el-button>
+            </div>
+            <button class="ui basic button" slot="reference">
+              <i class="delete icon"></i>
+            </button>
+
+          </el-popover>
+
+
         </div>
       </template>
     </vuetable>
@@ -40,6 +54,7 @@
 
 <script>
   import {Notification} from 'element-ui';
+  import ElementUI from 'element-ui'
 
   export default {
     name: 'table-view',
@@ -69,11 +84,15 @@
     methods: {
       onAction (action, data){
         console.log("on action", action, data)
-
+        var that = this;
         if (action == "view-item") {
           this.$refs.vuetable.toggleDetailRow(data.id)
         } else if (action == "edit-item") {
           this.selectedRow = data;
+        } else if (action == "delete-item") {
+          this.jsonApi.destroy(this.selectedWorld, data.id).then(function(){
+            that.setTable(that.selectedWorld);
+          });
         }
       },
       titleCase: function (str) {
@@ -104,13 +123,6 @@
         console.log("cnage pge", page)
         this.$refs.vuetable.changePage(page)
       },
-      deleteRow(row) {
-        var that = this;
-        console.log("delete row", this.selectedWorld);
-        jsonApi.destroy(this.selectedWorld, data.id).then(function () {
-          that.setTable(that.selectedWorld);
-        })
-      },
       saveRow(row) {
         console.log("save row", row);
         if (data.id) {
@@ -140,6 +152,11 @@
       },
       reloadData(tableName) {
         var that = this;
+
+        if (!tableName) {
+          tableName = that.selectedWorld;
+        }
+
         that.selectedWorld = tableName;
         that.selectedWorldColumns = jsonApi.modelFor(tableName)["attributes"];
         if (!that.$refs.vuetable) {

@@ -25,6 +25,7 @@ import 'element-ui/lib/theme-default/index.css'
 import './components/vuetable/vuetable.css'
 import JsonApi from 'devour-client'
 
+
 Vue.component('custom-actions', CustomActions);
 Vue.component('table-view', TableView);
 Vue.component('model-form', ModelForm);
@@ -61,11 +62,21 @@ jsonApi.insertMiddlewareBefore('response', {
   name: 'track-request',
   req: function (payload) {
     console.log("request initiate", payload);
-    if (payload.config.method === 'POST') {
+    if (payload.config.method !== 'GET' && payload.config.method !== 'OPTIONS') {
+
+
       console.log("Create request complete: ", payload, payload.status / 100);
       if (parseInt(payload.status / 100) == 2) {
+        var action = "Created ";
+
+        if (payload.config.method == "DELETE") {
+          action = "Deleted "
+        } else if (payload.config.method == "PUT" || payload.config.method == "PATCH") {
+          action = "Updated "
+        }
+
         Notification.success({
-          title: "Created " + payload.config.model
+          title: action + payload.config.model
         })
       } else {
         Notification.warn({
@@ -176,9 +187,8 @@ lock.on('authenticated', (authResult) => {
     localStorage.setItem('profile', JSON.stringify(profile));
 
     this.authenticated = true;
-    window.location.hash = "/"
-  })
-  ;
+    window.location = window.location;
+  });
 })
 ;
 
@@ -187,53 +197,63 @@ lock.on('authorization_error', (error) => {
     }
 );
 
+
+function startApp() {
+  console.log("Start app")
+
+  /* eslint-disable no-new */
+  new Vue({
+    el: '#app',
+    router,
+    template: '<App/>',
+    components: {App},
+  });
+
+}
+
+
 var modelLoader = getColumnKeysWithErrorHandleWithThisBuilder(logoutHandler);
 
-modelLoader("user", function (columnKeys) {
-  jsonApi.define("user", columnKeys);
-  modelLoader("usergroup", function (columnKeys) {
-    jsonApi.define("usergroup", columnKeys);
-
-    modelLoader("world", function (columnKeys) {
-      jsonApi.define("world", columnKeys);
-
-      jsonApi.findAll('world', {
-        page: {number: 1, size: 50},
-        include: ['world_column']
-      }).then(function (res) {
-        var total = res.length;
+if (authenticated) {
 
 
-        for (var t = 0; t < res.length; t++) {
+  modelLoader("user", function (columnKeys) {
+    jsonApi.define("user", columnKeys);
+    modelLoader("usergroup", function (columnKeys) {
+      jsonApi.define("usergroup", columnKeys);
+
+      modelLoader("world", function (columnKeys) {
+        jsonApi.define("world", columnKeys);
+
+        jsonApi.findAll('world', {
+          page: {number: 1, size: 50},
+          include: ['world_column']
+        }).then(function (res) {
+          var total = res.length;
 
 
-          (function (typeName) {
-            modelLoader(typeName, function (model) {
-              console.log("Loaded model", typeName, model);
+          for (var t = 0; t < res.length; t++) {
 
-              total -= 1;
-              if (total < 1) {
-                startApp();
-              }
-              jsonApi.define(typeName, model);
-            })
-          })(res[t].table_name)
 
-        }
-      });
+            (function (typeName) {
+              modelLoader(typeName, function (model) {
+                console.log("Loaded model", typeName, model);
 
-      function startApp() {
+                total -= 1;
+                if (total < 1) {
+                  startApp();
+                }
+                jsonApi.define(typeName, model);
+              })
+            })(res[t].table_name)
 
-        /* eslint-disable no-new */
-        new Vue({
-          el: '#app',
-          router,
-          template: '<App/>',
-          components: {App},
+          }
         });
 
-      }
-    })
+      })
+    });
   });
-});
 
+} else {
+  startApp()
+}
