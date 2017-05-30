@@ -62,7 +62,8 @@
       "subject": "blog",
       "relation": "has_one",
       "object": "post",
-      "objectName": "current_post"
+      "objectName": "current_post",
+      "subjectName": "current_post_of"
     }
   ]
 }

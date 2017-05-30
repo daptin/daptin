@@ -30,7 +30,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
     log.Errorf("Invalid method: %v", req.PlainRequest.Method)
   }
 
-  return nil, nil
+  return results, nil
 
 }
 

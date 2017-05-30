@@ -136,6 +136,8 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
         resp, err := a.userCrud.Create(newUser, req)
         if err != nil {
           log.Errorf("Failed to create new user: %v", err)
+          c.AbortWithStatus(403)
+          return
         }
         referenceId = resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
 

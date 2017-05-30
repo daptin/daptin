@@ -307,6 +307,7 @@
     methods: {
       normalizeFields () {
         var that = this;
+        console.log("vuetable for ", this.jsonApiModelName)
         this.fieldsData = this.jsonApi.modelFor(this.jsonApiModelName)["attributes"];
         this.fields = Object.keys(this.fieldsData);
         console.log("this fields", this.fields);
@@ -361,8 +362,16 @@
             field.visible = false;
           }
 
-//          console.log("field", field);
+          if (fieldType == "content") {
+            field.visible = false;
+          }
 
+          if (fieldType == "label") {
+            field.callback = function (val, row) {
+              console.log("callback for label field", val, arguments);
+              return val
+            }
+          }
 
           obj = {
             name: field.name,

@@ -258,16 +258,15 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
   config.Relations = relations
 
   for _, relation := range relations {
+    relation2 := relation.GetRelation()
     log.Infof("Relation to table [%v]", relation)
-    log.Infof("Relation to table [%v] [%v] [%v]", relation.GetSubject(), relation.GetRelation(), relation.GetObject())
-    switch relation.GetRelation() {
-    case "belongs_to":
-    case "has_one":
+    log.Infof("Relation to table [%v] [%v] [%v]", relation.GetSubject(), relation2, relation.GetObject())
+    if relation2 == "belongs_to" || relation2 == "has_one" {
       fromTable := relation.GetSubject()
       targetTable := relation.GetObject()
 
       isNullable := false
-      if targetTable == "user" || targetTable == "usergroup" {
+      if targetTable == "user" || targetTable == "usergroup" || relation2 == "has_one" {
         isNullable = true
       }
 
@@ -291,7 +290,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
           c = append(c, col)
           log.Infof("Add column [%v] to table [%v]", col.ColumnName, t.TableName)
           config.Tables[i].Columns = c
-          if targetTable != "user" {
+          if targetTable != "user" && relation.GetRelation() == "belongs_to" {
             config.Tables[i].IsTopLevel = false
             log.Infof("Table [%v] is not top level == %v", t.TableName, targetTable)
           }
@@ -300,9 +299,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       if noMatch {
         log.Infof("No matching table found: %v", relation)
       }
-      break
-
-    case "has_many":
+    } else if relation2 == "has_many" {
 
       fromTable := relation.GetSubject()
       targetTable := relation.GetObject()
@@ -345,11 +342,8 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
       config.Tables = append(config.Tables, newTable)
 
-      break
+    } else if relation2 == "has_many_and_belongs_to_many" {
 
-
-
-    case "has_many_and_belongs_to_many":
       fromTable := relation.GetSubject()
       targetTable := relation.GetObject()
 
@@ -391,16 +385,11 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
       config.Tables = append(config.Tables, newTable)
 
-      break
-
-
-
-    default:
+    } else {
       log.Errorf("Failed to identify relation type: %v", relation)
-
     }
-  }
 
+  }
 }
 
 func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB) {

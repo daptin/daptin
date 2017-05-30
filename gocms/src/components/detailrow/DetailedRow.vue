@@ -31,7 +31,7 @@
         <div class="column six wide">
 
           <table-view :json-api="jsonApi"
-                      :json-api-model-name="relation.name" :finder="relation.finder"></table-view>
+                      :json-api-model-name="relation.type" :finder="relation.finder"></table-view>
 
           <!--<detailed-table-row v-if="renderNextLevel" :render-next-level="false" :rowData="relation.data"-->
           <!--:jsonApi="jsonApi"-->
@@ -114,7 +114,7 @@
       var normalFields = [];
 
       var columnKeys = Object.keys(attributes);
-      console.log("keys ", columnKeys);
+      console.log("keys ", columnKeys, attributes);
       for (var i = 0; i < columnKeys.length; i++) {
         var colName = columnKeys[i];
 
@@ -127,17 +127,18 @@
         var type = attributes[colName];
         if (typeof type == "string") {
           type = {
-            columnType: type
+            type: type
           }
         }
 
-        item.type = type.columnType;
+        item.type = type.type;
+        item.valueType = type.columnType;
         var columnNameTitleCase = this.titleCase(item.name)
         item.label = columnNameTitleCase;
         item.title = columnNameTitleCase;
         item.style = "";
 
-        if (item.type == "entity") {
+        if (item.valueType == "entity") {
 
 
           (function (item) {
@@ -156,6 +157,7 @@
               title: item.title,
               finder: finder,
               label: item.label,
+              type: item.type,
               jsonModelAttrs: that.jsonApi.modelFor(columnName),
             });
 

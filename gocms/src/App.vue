@@ -15,7 +15,8 @@
     <link href="./static/bower_components/jsoneditor/dist/jsoneditor.min.css" rel="stylesheet">
 
     <script src="./static/bower_components/semantic/dist/semantic.js" type="application/javascript"></script>
-    <script src="./static/bower_components/semantic/dist/components/dropdown.min.js" type="application/javascript"></script>
+    <script src="./static/bower_components/semantic/dist/components/dropdown.min.js"
+            type="application/javascript"></script>
     <script src="./static/bower_components/jquery/dist/jquery.js" type="application/javascript"></script>
     <script src="./static/bower_components/jsoneditor/dist/jsoneditor.min.js" type="application/javascript"></script>
 
@@ -27,37 +28,8 @@
     name: 'app',
     data: function () {
 
-
-      var lock = {};
-
-      let v1 = typeof Auth0Lock;
-      let v2 = typeof v1;
-      console.log("type of", v1, v2);
-
-      if (v1 != "undefined") {
-        console.log("it is not undefined");
-        lock = new Auth0Lock('edsjFX3nR9fqqpUi4kRXkaKJefzfRaf_', 'gocms.auth0.com', {
-          auth: {
-            redirectUrl: 'http://localhost:8080/#/',
-            responseType: 'token',
-            params: {
-              scope: 'openid email' // Learn about scopes: https://auth0.com/docs/scopes
-            }
-          }
-        });
-      } else {
-        lock = {
-          checkAuth: function () {
-            return !localStorage.getItem("id_token");
-          },
-          on: function (vev) {
-            console.log("nobody is listening to ", vev);
-          }
-        }
-      }
-
       return {
-        authenticated: false,
+        authenticated: true,
         secretThing: '',
         lock: lock,
       }
@@ -65,39 +37,14 @@
     mounted() {
       var self = this;
 //            console.log("Auth0Lock 11", Auth0Lock)
-      this.authenticated = this.checkAuth();
 
-      this.lock.on('authenticated', (authResult) => {
-        console.log('authenticated');
-        localStorage.setItem('id_token', authResult.idToken);
-        window.jsonApi.headers['Authorization'] = 'Bearer ' + authResult.idToken;
-        this.lock.getProfile(authResult.idToken, (error, profile) => {
-          if (error) {
-            // Handle error
-            return;
-          }
-          // Set the token and user profile in local storage
-          localStorage.setItem('profile', JSON.stringify(profile));
-
-          this.authenticated = true;
-          this.$router.push("/")
-        })
-        ;
-      })
-      ;
-
-      this.lock.on('authorization_error', (error) => {
-            // handle error when authorizaton fails
-          }
-      )
-      ;
     },
     methods: {
-      checkAuth() {
-        return !!localStorage.getItem('id_token');
+      init() {
+
       },
       login() {
-        this.lock.show();
+        window.lock.show();
       },
       logout() {
         console.log("logout called")
