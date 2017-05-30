@@ -120,15 +120,8 @@
           });
         }
       },
-      newRow() {
-        console.log("new row", this.selectedWorld);
-        this.selectedRow = {};
-        this.showAddEdit = true;
-      },
       edit(row) {
-        console.log("new row", this.selectedWorld);
-        this.selectedRow = row;
-        this.showAddEdit = true;
+        this.$parent.emit("editRow", row)
       },
       setTable(tableName) {
         var that = this;

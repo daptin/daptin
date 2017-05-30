@@ -69,7 +69,7 @@ type User struct {
 
 var cruds = make(map[string]*resource.DbResource)
 
-func Main() {
+func Main(configFile string) {
 
   db, err := sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
   if err != nil {
@@ -92,7 +92,6 @@ func Main() {
   //r.Use(cors.Default())
   //r.Use()
 
-  configFile := "gocms.json"
   contents, err := ioutil.ReadFile(configFile)
   if err != nil {
     log.Errorf("Failed to read config file: %v", err)
@@ -107,7 +106,7 @@ func Main() {
   initConfig.Tables = append(initConfig.Tables, datastore.StandardTables...)
 
   for _, table := range initConfig.Tables {
-    log.Infof("Table: %v: %v", table.TableName, table.Columns)
+    log.Infof("Table: %v: %v", table.TableName, table.Relations)
   }
 
   initConfig.Relations = append(initConfig.Relations, datastore.StandardRelations...)
@@ -219,15 +218,15 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
 
     for _, rel := range selectedTable.Relations {
 
-      if rel.Subject == selectedTable.TableName {
+      if rel.GetSubject() == selectedTable.TableName {
         r := "hasMany"
-        if rel.Relation == "belongs_to" {
+        if rel.GetRelation() == "belongs_to" {
           r = "hasOne"
         }
-        res[rel.Object] = NewJsonApiRelation(rel.Object, r, "entity")
+        res[rel.GetObjectName()] = NewJsonApiRelation(rel.GetObject(), r, "entity")
       } else {
-        if (rel.Relation == "belongs_to") {
-          res[rel.Subject] = NewJsonApiRelation(rel.Object, "hasMany", "entity")
+        if (rel.GetRelation() == "belongs_to") {
+          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetObject(), "hasMany", "entity")
         } else {
 
         }

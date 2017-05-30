@@ -223,7 +223,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
     relations := make([]api2go.TableRelation, 0)
 
     for _, rel := range initConfig.Relations {
-      if rel.Subject == table.TableName || rel.Object == table.TableName {
+      if rel.GetSubject() == table.TableName || rel.GetObject() == table.TableName {
         relations = append(relations, rel)
       }
     }
@@ -234,6 +234,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
 
 func CheckRelations(config *CmsConfig, db *sqlx.DB) {
   relations := config.Relations
+  log.Infof("All relations: %v", relations)
 
   for i, table := range config.Tables {
     config.Tables[i].IsTopLevel = true
@@ -242,22 +243,14 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       continue
     }
 
-    relation := api2go.TableRelation{
-      Subject: table.TableName,
-      Relation: "belongs_to",
-      Object: "user",
-    }
+    relation := api2go.NewTableRelation(table.TableName, "belongs_to", "user")
     relations = append(relations, relation)
 
     if table.TableName == "world_column" {
       continue
     }
 
-    relationGroup := api2go.TableRelation{
-      Subject: table.TableName,
-      Relation: "has_many",
-      Object: "usergroup",
-    }
+    relationGroup := api2go.NewTableRelation(table.TableName, "has_many", "usergroup")
 
     relations = append(relations, relationGroup)
 
@@ -265,11 +258,13 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
   config.Relations = relations
 
   for _, relation := range relations {
-    log.Infof("Relation to table [%v] [%v] [%v]", relation.Subject, relation.Relation, relation.Object)
-    switch relation.Relation {
+    log.Infof("Relation to table [%v]", relation)
+    log.Infof("Relation to table [%v] [%v] [%v]", relation.GetSubject(), relation.GetRelation(), relation.GetObject())
+    switch relation.GetRelation() {
     case "belongs_to":
-      fromTable := relation.Subject
-      targetTable := relation.Object
+    case "has_one":
+      fromTable := relation.GetSubject()
+      targetTable := relation.GetObject()
 
       isNullable := false
       if targetTable == "user" || targetTable == "usergroup" {
@@ -277,8 +272,8 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       }
 
       col := api2go.ColumnInfo{
-        Name: targetTable + "_id",
-        ColumnName: targetTable + "_id",
+        Name: relation.GetObject(),
+        ColumnName: relation.GetObjectName(),
         IsForeignKey: true,
         ColumnType: "alias",
         IsNullable: isNullable,
@@ -288,10 +283,13 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
         },
         DataType: "int(11)",
       }
+      noMatch := true
       for i, t := range config.Tables {
         if t.TableName == fromTable {
+          noMatch = false
           c := t.Columns
           c = append(c, col)
+          log.Infof("Add column [%v] to table [%v]", col.ColumnName, t.TableName)
           config.Tables[i].Columns = c
           if targetTable != "user" {
             config.Tables[i].IsTopLevel = false
@@ -299,12 +297,15 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
           }
         }
       }
+      if noMatch {
+        log.Infof("No matching table found: %v", relation)
+      }
       break
 
     case "has_many":
 
-      fromTable := relation.Subject
-      targetTable := relation.Object
+      fromTable := relation.GetSubject()
+      targetTable := relation.GetObject()
 
       newTable := datastore.TableInfo{
         TableName: fromTable + "_has_" + targetTable,
@@ -313,7 +314,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
       col1 := api2go.ColumnInfo{
         Name: fromTable + "_id",
-        ColumnName: fromTable + "_id",
+        ColumnName: relation.GetSubjectName(),
         ColumnType: "alias",
         IsForeignKey: true,
         ForeignKeyData: api2go.ForeignKeyData{
@@ -327,7 +328,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
       col2 := api2go.ColumnInfo{
         Name: targetTable + "_id",
-        ColumnName: targetTable + "_id",
+        ColumnName: relation.GetObjectName(),
         ColumnType: "alias",
         IsForeignKey: true,
         ForeignKeyData: api2go.ForeignKeyData{
@@ -339,6 +340,8 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
       newTable.Columns = append(newTable.Columns, col2)
       newTable.Relations = append(newTable.Relations, relation)
+      log.Infof("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
+      log.Infof("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
 
       config.Tables = append(config.Tables, newTable)
 
@@ -347,8 +350,8 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
 
     case "has_many_and_belongs_to_many":
-      fromTable := relation.Subject
-      targetTable := relation.Object
+      fromTable := relation.GetSubject()
+      targetTable := relation.GetObject()
 
       newTable := datastore.TableInfo{
         TableName: fromTable + "_" + targetTable,
@@ -356,8 +359,8 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       }
 
       col1 := api2go.ColumnInfo{
-        Name: fromTable + "_id",
-        ColumnName: fromTable + "_id",
+        Name: relation.GetSubjectName(),
+        ColumnName: relation.GetSubjectName(),
         IsForeignKey: true,
         ColumnType: "alias",
         ForeignKeyData: api2go.ForeignKeyData{
@@ -370,8 +373,8 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       newTable.Columns = append(newTable.Columns, col1)
 
       col2 := api2go.ColumnInfo{
-        Name: targetTable + "_id",
-        ColumnName: targetTable + "_id",
+        Name: relation.GetObject(),
+        ColumnName: relation.GetObjectName(),
         ColumnType: "alias",
         IsForeignKey: true,
         ForeignKeyData: api2go.ForeignKeyData{
@@ -383,6 +386,8 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
       newTable.Columns = append(newTable.Columns, col2)
       newTable.Relations = append(newTable.Relations, relation)
+      log.Infof("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
+      log.Infof("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
 
       config.Tables = append(config.Tables, newTable)
 

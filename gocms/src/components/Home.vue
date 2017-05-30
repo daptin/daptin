@@ -24,7 +24,7 @@
     </div>
 
 
-    <div class="ui twelve column wide" v-if="selectedWorld != null">
+    <div class="ui eight column wide" v-if="selectedWorld != null">
       <div class="ui column segment attached top grid two">
 
         <div class="ui column four wide">
@@ -38,6 +38,7 @@
           <div class="ui icon buttons">
             <el-button class="ui button" @click.prevent="viewMode = 'table'"><i class="fa fa-table"></i></el-button>
             <el-button class="ui button" @click.prevent="viewMode = 'items'"><i class="fa fa-th-large"></i></el-button>
+            <el-button class="ui button" @click.prevent="showAddEdit = true"><i class="fa fa-plus"></i></el-button>
           </div>
         </div>
       </div>
@@ -53,10 +54,14 @@
         </div>
 
       </div>
-      <table-view v-if="viewMode == 'table'" :finder="finder" ref="tableview" :json-api="jsonApi"
+      <table-view @newRow="newRow()" @editRow="editRow" v-if="viewMode == 'table'" :finder="finder" ref="tableview"
+                  :json-api="jsonApi"
                   :json-api-model-name="selectedWorld"></table-view>
 
 
+    </div>
+    <div class="ui column four column wide" v-if="showAddEdit && selectedRow != null">
+      content here
     </div>
 
 
@@ -152,7 +157,7 @@
   }
 
   export default {
-    name: 'hello',
+    name: 'Home',
     filters: {
       titleCase: function (str) {
         return str.replace(/[-_]/g, " ").split(' ')
@@ -206,7 +211,7 @@
         this.selectedRow = {};
         this.showAddEdit = true;
       },
-      edit(row) {
+      editRow(row) {
         console.log("new row", this.selectedWorld);
         this.selectedRow = row;
         this.showAddEdit = true;

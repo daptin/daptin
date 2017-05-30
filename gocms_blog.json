@@ -1,0 +1,68 @@
+{
+  "tables": [
+    {
+      "tableName": "blog",
+      "columns": [
+        {
+          "name": "title",
+          "dataType": "varchar(500)",
+          "columnType": "label"
+        },
+        {
+          "name": "view_count",
+          "dataType": "int(11)",
+          "columnType": "measurement"
+        }
+      ]
+    },
+    {
+      "tableName": "post",
+      "columns": [
+        {
+          "name": "title",
+          "dataType": "varchar(200)",
+          "columnType": "label"
+        },
+        {
+          "name": "body",
+          "dataType": "text",
+          "columnType": "content"
+        }
+      ]
+    },
+    {
+      "tableName": "comment",
+      "columns": [
+        {
+          "name": "body",
+          "dataType": "text",
+          "columnType": "content"
+        },
+        {
+          "name": "likes_count",
+          "columnName": "likes_count",
+          "dataType": "int(11)",
+          "columnType": "measurement"
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "subject": "comment",
+      "relation": "belongs_to",
+      "object": "post"
+    },
+    {
+      "subject": "post",
+      "relation": "belongs_to",
+      "object": "blog"
+    },
+    {
+      "subject": "blog",
+      "relation": "has_one",
+      "object": "post",
+      "objectName": "current_post"
+    }
+  ]
+}
