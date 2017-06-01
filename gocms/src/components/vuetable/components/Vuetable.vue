@@ -92,7 +92,7 @@
         >
           <transition :name="detailRowTransition">
             <td :colspan="countVisibleFields">
-              <component :is="detailRowComponent" :row-data="item" :json-api="jsonApi"
+              <component :is="detailRowComponent" :model="item" :json-api="jsonApi"
                          :json-api-model-name="jsonApiModelName" :row-index="index"></component>
             </td>
           </transition>

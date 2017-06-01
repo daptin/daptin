@@ -10,6 +10,7 @@ import ModelForm from './components/modelform/ModelForm.vue'
 import VuetablePagination from './components/vuetable/components/VuetablePagination.vue'
 import CustomActions from './components/detailrow/CustomActions.vue'
 import TableView from './components/tableview/TableView.vue'
+import ListView from './components/listview/ListView.vue'
 import EventView from './components/eventview/EventView.vue'
 import {Notification} from 'element-ui';
 
@@ -30,6 +31,7 @@ import axios from 'axios'
 Vue.component('custom-actions', CustomActions);
 Vue.component('table-view', TableView);
 Vue.component('event-view', EventView);
+Vue.component('list-view', ListView);
 Vue.component('model-form', ModelForm);
 Vue.component("vuetable", Vuetable);
 Vue.component("detailed-table-row", DetailedRow);
@@ -57,7 +59,7 @@ var ActionManager = function () {
     actionMap[typeName] = actions;
   };
 
-  this.doAction = function (type, actionName, data, callback) {
+  this.doAction = function (type, actionName, data) {
     console.log("invoke action", type, actionName, data);
     return axios({
       url: window.actionRoot + "/" + actionName,

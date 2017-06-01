@@ -45,8 +45,12 @@
 
     <div class="six wide column" v-if="selectedRow != null && selectedRow['id']">
 
-      <div class="ui segment attached" v-if="selectedAction != null">
+      <div class="ui segment attached top" v-if="selectedAction != null">
         <event-view @cancel="selectedAction = null" :action-manager="actionManager" :action="selectedAction" :json-api="jsonApi" :model="selectedRow"></event-view>
+      </div>
+
+      <div class="ui segment attached top" v-if="selectedRow != null">
+        <h2>{{selectedRow.title}}</h2>
       </div>
 
       <div class="ui segment attached" v-if="actions != null">
@@ -58,13 +62,8 @@
       </div>
 
 
-      <div class="ui segment attached" v-if="actions != null">
-        <ul class="ui relaxed list">
-          <div class="item" v-for="a, k in selectedRow">
-
-            {{k}}: {{a}}
-          </div>
-        </ul>
+      <div class="ui segment attached">
+        <detailed-table-row :model="selectedRow" :json-api="jsonApi" :json-api-model-name="selectedWorld"></detailed-table-row>
       </div>
 
 
@@ -382,7 +381,7 @@
           this.selectedRow = null;
         } else {
           this.jsonApi.one(this.selectedWorld, to).get().then(function (r) {
-            console.log("selected world instance", r)
+            console.log("selected world instance", r);
             that.selectedRow = r;
           });
         }

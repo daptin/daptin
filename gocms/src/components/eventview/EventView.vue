@@ -45,10 +45,12 @@
     computed: {},
     methods: {
       doAction(actionData){
-
+        var that = this;
         console.log("perform action", actionData, this.model["id"], this.model)
         actionData[this.action.onType + "_id"] = this.model["id"]
-        this.actionManager.doAction(this.action.onType, this.action.name, actionData);
+        this.actionManager.doAction(this.action.onType, this.action.name, actionData).then(function(){
+          that.$emit("cancel");
+        });
       },
       cancel() {
         this.$emit("cancel");

@@ -3,9 +3,28 @@
 
   <div class="ui column">
 
+    <div class="column" v-if="!showAll">
+      <div class="ui three column grid" v-if="truefalse.length > 0">
+        <div class="column" v-for="tf in truefalse">
+          <div class="ui checkbox">
+            <input type="checkbox" :checked="tf.value" name="tf.name">
+            <label>{{tf.label}}</label>
+          </div>
+        </div>
+      </div>
 
-    <el-tabs v-model="activeTabName">
+
+      <div class="ui two column grid" v-for="col in normalFields" :id="col.name">
+        <div class="ui column"><h5>{{col.label}}</h5></div>
+        <div :style="col.style" class="ui column description">{{col.value}}</div>
+      </div>
+
+
+    </div>
+
+    <el-tabs v-model="activeTabName" v-if="showAll">
       <el-tab-pane :label="jsonApiModelName" name="first">
+
 
         <div class="column ten wide">
           <div class="ui three column grid" v-if="truefalse.length > 0">
@@ -16,28 +35,29 @@
               </div>
             </div>
           </div>
-          <div class="ui column relaxed divided list">
-            <div class="item" v-for="col in normalFields" :id="col.name">
-              <!--<i class="large middle aligned icon"></i>-->
-              <div class="content">
-                <div class="header">{{col.label}}</div>
-                <div :style="col.style" class="description">{{col.value}}</div>
-              </div>
-            </div>
+
+
+          <div class="ui two column grid" v-for="col in normalFields" :id="col.name">
+            <div class="ui column"><h5>{{col.label}}</h5></div>
+            <div :style="col.style" class="ui column description">{{col.value}}</div>
           </div>
+
+
         </div>
+
       </el-tab-pane>
+
+
       <el-tab-pane :label="relation.name" :name="relation.name" v-for="relation in relations">
         <div class="column six wide">
 
-          <table-view :json-api="jsonApi"
-                      :json-api-model-name="relation.type" :finder="relation.finder"></table-view>
+          <!--<table-view :json-api="jsonApi"-->
+          <!--:json-api-model-name="relation.type" :autoload="false" :finder="relation.finder"></table-view>-->
 
-          <!--<detailed-table-row v-if="renderNextLevel" :render-next-level="false" :rowData="relation.data"-->
-          <!--:jsonApi="jsonApi"-->
-          <!--:jsonApiModelName="relation.name"></detailed-table-row>-->
+          <list-view :json-api="jsonApi"
+                     :json-api-model-name="relation.type" :autoload="false" :finder="relation.finder"></list-view>
 
-          <h4 v-if="!relation.data || relation.data.length == 0"> No {{relation.title}} </h4>
+
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -47,11 +67,20 @@
 </template>
 
 <script>
+
+
+  import "json-editor"
+
   export default {
     props: {
-      rowData: {
+      model: {
         type: Object,
         required: true
+      },
+      showAll: {
+        type: Boolean,
+        required: false,
+        default: true
       },
       jsonApi: {
         type: Object,
@@ -91,7 +120,7 @@
       saveRow: function (newRow) {
         newRow.data[this.jsonApiModelName + "_id"] = {
           type: this.jsonApiModelName,
-          id: this.rowData["reference_id"]
+          id: this.model["reference_id"]
         };
         console.log("save row", newRow.name, newRow.data)
         this.jsonApi.create(newRow.name, newRow.data)
@@ -100,12 +129,16 @@
         return str.replace(/[-_]/g, " ").split(' ')
             .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
             .join(' ')
-      }
+      },
+      reloadData: function (relation) {
+
+      },
     }, // end: methods
     created () {
+//      JSONEditor.defaults.options.theme = 'html';
 
       var that = this;
-      console.log("data for detailed row ", this.rowData)
+      console.log("data for detailed row ", this.model)
       this.meta = this.jsonApi.modelFor(this.jsonApiModelName);
       this.attributes = this.meta["attributes"];
 
@@ -121,7 +154,7 @@
 
         var item = {
           name: colName,
-          value: this.rowData[colName]
+          value: this.model[colName]
         };
 
         var type = attributes[colName];
@@ -146,9 +179,9 @@
             var columnName = item.name;
             columnNameTitleCase = item.name
 
-            console.log("relation", item, that.jsonApiModelName, that.rowData);
+            console.log("relation", item, that.jsonApiModelName, that.model);
 
-            var builderStack = that.jsonApi.one(that.jsonApiModelName, that.rowData["id"]).all(item.name);
+            var builderStack = that.jsonApi.one(that.jsonApiModelName, that.model["id"]).all(item.name);
             var finder = builderStack.builderStack;
             builderStack.builderStack = [];
             console.log("finder: ", finder)
@@ -178,36 +211,61 @@
         if (item.type == "json") {
           item.originalValue = item.value;
           item.value = "";
-          item.style = "width: 500px; height: 300px;"
+          item.style = "width: 500px; min-height: 300px;"
+        }
+
+        if (item.name == "permission") {
+          continue
+        }
+
+        if (item.name == "reference_id") {
+          continue
+        }
+
+        if (item.name == "password") {
+          continue
+        }
+
+        if (item.name == "status") {
+          continue
         }
 
 
         console.log("row ", item);
 
-        normalFields.push(item);
+        if (item.type == "label") {
+          normalFields.unshift(item)
+        } else {
+          normalFields.push(item);
+        }
+
       }
 
 
       this.normalFields = normalFields;
 
 
-      console.log("Created detailed row", this.jsonApiModelName, this.rowData, this.meta)
+      console.log("Created detailed row", this.jsonApiModelName, this.model, this.meta)
       setTimeout(function () {
 //        $(".dropdown").dropdown();
       }, 100);
 
-//
-//      var that = this;
-//      setTimeout(function () {
-//        for (var i = 0; i < that.normalFields.length; i++) {
-//          var field = that.normalFields[i];
-//          if (field.type == "json") {
-//            var editor = new JSONEditor($("#" + field.name).find(".description")[0], {});
-//            console.log("Set value", field)
-//            editor.set(JSON.parse(field.originalValue));
-//          }
-//        }
-//      }, 200)
+
+      var that = this;
+      setTimeout(function () {
+        for (var i = 0; i < that.normalFields.length; i++) {
+          var field = that.normalFields[i];
+          if (field.type == "json") {
+            var element = jQuery("#" + field.name).find(".description")[0];
+            console.log("element", element)
+            var editor = new JSONEditor(element, {
+              schema: {}
+            });
+            console.log("Set value", field)
+            editor.setValue(JSON.parse(field.originalValue));
+          }
+        }
+      }, 200)
 
     },
     watch: {},
