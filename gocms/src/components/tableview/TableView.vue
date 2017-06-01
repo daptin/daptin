@@ -17,7 +17,7 @@
               @pagination-data="onPaginationData"
               :api-mode="true"
               :query-params="{ sort: 'sort', page: 'page[number]', perPage: 'page[size]' }"
-              :load-on-start="true">
+              :load-on-start="autoload">
       <template slot="actions" scope="props">
         <div class="custom-actions">
           <button class="ui basic button"
@@ -63,6 +63,11 @@
       jsonApi: {
         type: Object,
         required: true
+      },
+      autoload: {
+        type: Boolean,
+        rquired: false,
+        default: true
       },
       jsonApiModelName: {
         type: String,

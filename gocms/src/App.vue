@@ -12,13 +12,11 @@
 
     <link href="./static/bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet">
     <link href="./static/bower_components/semantic/dist/semantic.min.css" rel="stylesheet">
-    <link href="./static/bower_components/jsoneditor/dist/jsoneditor.min.css" rel="stylesheet">
 
     <script src="./static/bower_components/semantic/dist/semantic.min.js" type="application/javascript"></script>
     <!--<script src="./static/bower_components/semantic/dist/components/dropdown.min.js" type="application/javascript"></script>-->
 
     <script src="./static/bower_components/jquery/dist/jquery.min.js" type="application/javascript"></script>
-    <script src="./static/bower_components/jsoneditor/dist/jsoneditor.min.js" type="application/javascript"></script>
 
   </div>
 </template>
