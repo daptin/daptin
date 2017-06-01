@@ -118,8 +118,8 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
       } else if rel.GetObject() == dr.model.GetName() {
 
         queries, ok := req.QueryParams[rel.GetSubjectName()]
-        log.Infof("Convert ref ids to ids: %v", queries)
-        if ok {
+        log.Infof("Convert ref ids to ids: %v == %v", queries , len(queries))
+        if ok && len(queries) > 0 {
 
           ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), "id", "reference_id", queries)
           if err != nil {

@@ -25,7 +25,7 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
     return nil, err
   }
 
-  m, err := dr.RowsToMap(row, cols)
+  m, err := dr.RowsToMap(row, cols, typeName)
 
   return m[0], err
 }
@@ -47,9 +47,70 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
     return nil, err
   }
 
-  m, err := dr.RowsToMap(row, cols)
-
+  m, err := dr.RowsToMap(row, cols, typeName)
   return m[0], err
+}
+
+func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...squirrel.Eq) ([]string, error) {
+  builder := squirrel.Select("reference_id").From(typeName).Where(squirrel.Eq{"deleted_at": nil})
+
+  for _, qu := range queries {
+    builder = builder.Where(qu)
+  }
+
+  s, q, err := builder.ToSql()
+  log.Debugf("reference id by where query: %v", s)
+
+  if err != nil {
+    return nil, err
+  }
+
+  res, err := dr.db.Queryx(s, q...)
+
+  if err != nil {
+    return nil, err
+  }
+
+  ret := make([]string, 0)
+  for ; res.Next(); {
+    var s string
+    res.Scan(&s)
+    ret = append(ret, s)
+  }
+
+  return ret, err
+
+}
+
+func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...squirrel.Eq) ([]int64, error) {
+  builder := squirrel.Select("id").From(typeName).Where(squirrel.Eq{"deleted_at": nil})
+
+  for _, qu := range queries {
+    builder = builder.Where(qu)
+  }
+
+  s, q, err := builder.ToSql()
+  log.Debugf("reference id by where query: %v", s)
+
+  if err != nil {
+    return nil, err
+  }
+
+  res, err := dr.db.Queryx(s, q...)
+
+  if err != nil {
+    return nil, err
+  }
+
+  ret := make([]int64, 0)
+  for ; res.Next(); {
+    var s int64
+    res.Scan(&s)
+    ret = append(ret, s)
+  }
+
+  return ret, err
+
 }
 
 func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, error) {
@@ -88,7 +149,7 @@ func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectC
   return dr.db.QueryRowx(s, q...).SliceScan()
 }
 
-func (dr *DbResource) RowsToMap(rows *sql.Rows, columns []string) ([]map[string]interface{}, error) {
+func (dr *DbResource) RowsToMap(rows *sql.Rows, columns []string, typeName string) ([]map[string]interface{}, error) {
 
   responseArray := make([]map[string]interface{}, 0)
 
@@ -101,6 +162,7 @@ func (dr *DbResource) RowsToMap(rows *sql.Rows, columns []string) ([]map[string]
     }
 
     dbRow := rc.Get()
+    dbRow["__type"] = typeName
 
     //id := dbRow["id"]
     //deletedAt := dbRow["deleted_at"]
@@ -119,7 +181,9 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface
 
   columns, _ := rows.Columns()
 
-  responseArray, err := dr.RowsToMap(rows, columns)
+  //finalArray := make([]map[string]interface{}, 0)
+
+  responseArray, err := dr.RowsToMap(rows, columns, dr.model.GetName())
   if err != nil {
     return responseArray, nil, err
   }
@@ -145,15 +209,15 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface
         i, err := strconv.ParseInt(val.(string), 10, 32)
         if err != nil {
           log.Errorf("Id should have been integer [%v]: %v", val, err)
-          return responseArray, includes, err
+          continue
         }
 
         refId, err := dr.GetIdToReferenceId(typeName, i)
 
         row[key] = refId
         if err != nil {
-          log.Errorf("Failed to get ref id for [%v][%v]", typeName, val)
-          return responseArray, includes, err
+          log.Errorf("Failed to get ref id for [%v][%v]: %v", typeName, val, err)
+          continue
         }
         obj, err := dr.GetIdToObject(typeName, i)
         obj["__type"] = typeName
@@ -171,6 +235,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface
     }
 
     includes = append(includes, localInclude)
+    //finalArray = append(finalArray, row)
 
   }
 

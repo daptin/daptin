@@ -150,37 +150,10 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
   log.Infof("Crated entry: %v", createdResource)
 
-  //if userIdInt == nil && dr.model.GetName() == "user" {
-  //  userId, err = strconv.ParseInt(createdResource["id"].(string), 10, 64)
-  //  if err != nil {
-  //    log.Errorf("Failed to set user id for the new user: %v", err)
-  //  }
-  //  _, err = dr.db.Exec("update user set user_id = ? where id = ?", userId, userId)
-  //  if err != nil {
-  //    log.Errorf("Failed to set user id for the new user: %v", err)
-  //  }
-  //}
+
   userGroupId := dr.GetUserGroupIdByUserId(uint64(userId))
 
-  //if userGroupId == 0 {
-  //
-  //  userGroupUuid := uuid.NewV4().String()
-  //  _, err = dr.db.Exec("insert into usergroup (name, reference_id, permission, status) values (?, ?, 644, 'pending')", "home group", userGroupUuid)
-  //  if err != nil {
-  //    log.Errorf("Failed to insert usergroup for user with no groups: %v", err)
-  //  }
-  //
-  //  userGroupId, err = dr.GetReferenceIdToId("usergroup", userGroupUuid)
-  //  if err != nil {
-  //    log.Errorf("Failed to get usergroup by reference id: %v', err")
-  //  }
-  //
-  //  _, err = dr.db.Exec("insert into user_has_usergroup (user_id, usergroup_id, reference_id, permission, status) values (?,?, ?, 644, 'pending')", userId, userGroupId, uuid.NewV4().String())
-  //  if err != nil {
-  //    log.Errorf("Failed to insert user usergroup association: %v", err)
-  //  }
-  //
-  //}
+
 
   if userGroupId != 0 && dr.model.HasMany("usergroup") {
     log.Infof("Associate new entity with usergroup: %v", userGroupId)

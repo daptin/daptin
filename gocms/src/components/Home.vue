@@ -8,10 +8,13 @@
       <div class="ui segment top attached">
         <h2 v-if="!selectedInstanceReferenceId">Tables</h2>
         <h2 v-if="!selectedSubTable && selectedInstanceReferenceId">
-          <router-link :to="{ name: 'Home', params: { tablename: selectedWorld }}">{{selectedWorld | titleCase}}</router-link>
+          <router-link :to="{ name: 'Home', params: { tablename: selectedWorld }}">{{selectedWorld | titleCase}}
+          </router-link>
         </h2>
         <h2 v-if="selectedSubTable">
-          <router-link :to="{ name: 'Home', params: { tablename: selectedWorld }}">{{selectedWorld | titleCase}}</router-link>
+          <router-link :to="{ name: 'Home', params: { tablename: selectedWorld }}">{{selectedWorld | titleCase}}
+          </router-link>
+          {{selectedInstanceTitle}}
         </h2>
       </div>
 
@@ -36,9 +39,38 @@
           </div>
         </ul>
       </div>
+
+
     </div>
 
-    <div class="eight wide column" v-if="selectedWorld != null">
+    <div class="six wide column" v-if="selectedRow != null && selectedRow['id']">
+
+      <div class="ui segment attached" v-if="selectedAction != null">
+        <event-view @cancel="selectedAction = null" :action-manager="actionManager" :action="selectedAction" :json-api="jsonApi" :model="selectedRow"></event-view>
+      </div>
+
+      <div class="ui segment attached" v-if="actions != null">
+        <ul class="ui relaxed list">
+          <div class="item" v-for="a, k in actions">
+            <el-button @click="selectedAction = a">{{a.label}}</el-button>
+          </div>
+        </ul>
+      </div>
+
+
+      <div class="ui segment attached" v-if="actions != null">
+        <ul class="ui relaxed list">
+          <div class="item" v-for="a, k in selectedRow">
+
+            {{k}}: {{a}}
+          </div>
+        </ul>
+      </div>
+
+
+    </div>
+
+    <div class="six wide column" v-if="selectedWorld != null">
       <div class="ui segment attached top grid">
 
         <div class="four wide column">
@@ -56,7 +88,7 @@
           <div class="ui icon buttons">
             <el-button class="ui button" @click.prevent="viewMode = 'table'"><i class="fa fa-table"></i></el-button>
             <el-button class="ui button" @click.prevent="viewMode = 'items'"><i class="fa fa-th-large"></i></el-button>
-            <el-button class="ui button" @click.prevent="showAddEdit = true"><i class="fa fa-plus"></i></el-button>
+            <el-button class="ui button" @click.prevent="newRow()"><i class="fa fa-plus"></i></el-button>
           </div>
         </div>
       </div>
@@ -83,17 +115,15 @@
       </div>
       <table-view @newRow="newRow()" @editRow="editRow"
                   v-if="viewMode == 'table' && !selectedSubTable" :finder="finder"
-                  ref="tableview" :json-api="jsonApi"
+                  ref="tableview1" :json-api="jsonApi"
                   :json-api-model-name="selectedWorld"></table-view>
+
       <table-view @newRow="newRow()" @editRow="editRow"
                   v-if="viewMode == 'table' && selectedSubTable" :finder="finder"
-                  ref="tableview" :json-api="jsonApi"
+                  ref="tableview2" :json-api="jsonApi"
                   :json-api-model-name="selectedSubTable"></table-view>
 
 
-    </div>
-    <div class="four wide column" v-if="showAddEdit && selectedRow != null">
-      {{selectedRow}}
     </div>
 
 
@@ -111,8 +141,7 @@
           return str;
         }
         return str.replace(/[-_]/g, " ").split(' ')
-            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
-            .join(' ')
+            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
       }
     },
     props: {
@@ -136,14 +165,18 @@
         viewMode: 'table',
         msg: "message",
         selectedWorld: null,
+        selectedAction: null,
         filterText: "",
         selectedWorldColumns: [],
         showAddEdit: false,
         tableData: [],
         jsonApi: jsonApi,
-        selectedRow: {},
+        selectedRow: null,
+        actionManager: actionManager,
         selectedInstanceReferenceId: null,
+        selectedInstanceTitle: null,
         subTableColumns: null,
+        actions: null,
         selectedSubTable: null,
         selectedInstanceType: null,
         tableMap: {},
@@ -151,58 +184,51 @@
       }
     },
     methods: {
+      getCurrentTableType() {
+        var that = this;
+        if (!that.selectedSubTable || !that.selectedInstanceReferenceId) {
+          return that.selectedWorld;
+        }
+
+        return that.selectedSubTable;
+
+      },
       deleteRow(row) {
         var that = this;
-        console.log("delete row", this.selectedWorld);
-        jsonApi.destroy(this.selectedWorld, row["reference_id"]).then(function () {
-          that.setTable(that.selectedWorld);
+        console.log("delete row", this.getCurrentTableType());
+
+        jsonApi.destroy(this.getCurrentTableType(), row["reference_id"]).then(function () {
+          that.setTable();
         })
       },
       saveRow(row) {
 
         var that = this;
 
-        if (!that.selectedSubTable || !that.selectedInstanceReferenceId) {
+        var currentTableType = this.getCurrentTableType();
 
-
-          console.log("save row", row);
-          if (row["reference_id"]) {
-            var that = this;
-            jsonApi.update(this.selectedWorld, row).then(function () {
-              that.setTable(that.selectedWorld);
-              that.showAddEdit = false;
-            });
-          } else {
-            var that = this;
-            jsonApi.create(this.selectedWorld, row).then(function () {
-              that.setTable(that.selectedWorld);
-              that.showAddEdit = false;
-              that.$refs.tableview.reloadData(that.selectedWorld)
-            });
-          }
-
-        } else {
-
+        if (that.selectedSubTable && that.selectedInstanceReferenceId) {
           row[that.selectedWorld + "_id"] = {
             "id": that.selectedInstanceReferenceId,
           };
-
-          console.log("save row", row);
-          if (row["reference_id"]) {
-            var that = this;
-            jsonApi.update(that.selectedSubTable, row).then(function () {
-              that.setTable(that.selectedWorld);
-              that.showAddEdit = false;
-            });
-          } else {
-            var that = this;
-            jsonApi.create(that.selectedSubTable, row).then(function () {
-              that.showAddEdit = false;
-              that.$refs.tableview.reloadData(that.selectedSubTable)
-            });
-          }
+        }
 
 
+        console.log("save row", row);
+        if (row["reference_id"]) {
+          var that = this;
+          jsonApi.update(currentTableType, row).then(function () {
+            that.setTable();
+            that.showAddEdit = false;
+          });
+        } else {
+          var that = this;
+          jsonApi.create(currentTableType, row).then(function () {
+            that.setTable();
+            that.showAddEdit = false;
+            that.$refs.tableview1.reloadData(currentTableType)
+            that.$refs.tableview2.reloadData(currentTableType)
+          });
         }
 
 
@@ -220,13 +246,10 @@
       setTable(tableName) {
 
         if (!tableName) {
-          tableName = this.selectedWorld;
+          tableName = this.getCurrentTableType();
         }
         var that = this;
         console.log("Set table selected world", tableName)
-
-
-        that.selectedWorld = tableName;
 
         var all = {};
         if (!that.selectedSubTable) {
@@ -242,9 +265,16 @@
         console.log("finder stack for this view table", that.selectedSubTable, that.selectedWorld, that.finder);
         that.selectedWorldColumns = jsonApi.modelFor(tableName)["attributes"];
 
+
+        that.actions = that.actionManager.getActions(that.selectedWorld);
+
         all.builderStack = [];
-        if (that.$refs.tableview) {
-          that.$refs.tableview.reloadData(tableName)
+        if (that.$refs.tableview1) {
+          console.log("reload data for ", tableName)
+          that.$refs.tableview1.reloadData(tableName)
+        }
+        if (that.$refs.tableview2) {
+          that.$refs.tableview2.reloadData(tableName)
         }
 
       },
@@ -298,6 +328,21 @@
         that.selectedInstanceReferenceId = that.$route.params.refId;
       }
 
+      function getTitleForObject(type, obj) {
+        var model = jsonApi.modelFor(type)["attributes"];
+        var cols = Object.keys(model);
+        for (var i = 0; i < cols.length; i++) {
+          var colName = cols[i];
+          var colType = model[colName];
+          console.log("col info", colName, colType)
+          if (colType == "label" && obj[colName].length > 0) {
+            console.log("retur ", colName, obj)
+            return obj[colName];
+          }
+        }
+        return obj["id"];
+      }
+
 
       that.modelLoader = getColumnKeysWithErrorHandleWithThisBuilder(that);
 
@@ -325,12 +370,22 @@
     watch: {
       '$route.params.tablename': function (to, from) {
         console.log("path changed", arguments);
+        this.selectedWorld = to;
         this.setTable(to);
       },
       '$route.params.refId': function (to, from) {
         var that = this;
         console.log("refId changed", arguments);
         this.selectedInstanceReferenceId = to;
+        var that = this;
+        if (!to) {
+          this.selectedRow = null;
+        } else {
+          this.jsonApi.one(this.selectedWorld, to).get().then(function (r) {
+            console.log("selected world instance", r)
+            that.selectedRow = r;
+          });
+        }
         this.setTable();
       },
       '$route.params.subTable': function (to, from) {
@@ -339,7 +394,6 @@
         this.selectedSubTable = to;
         this.setTable();
       }
-
     }
   }
 </script>

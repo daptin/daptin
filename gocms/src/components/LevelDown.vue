@@ -163,7 +163,7 @@
           (function (typeName) {
             that.modelLoader(typeName, function (model) {
               console.log("Loaded model", typeName, model);
-              jsonApi.define(typeName, model);
+              jsonApi.define(typeName, model.ColumnModel);
             })
           })(res[t].table_name)
 

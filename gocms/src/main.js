@@ -10,6 +10,7 @@ import ModelForm from './components/modelform/ModelForm.vue'
 import VuetablePagination from './components/vuetable/components/VuetablePagination.vue'
 import CustomActions from './components/detailrow/CustomActions.vue'
 import TableView from './components/tableview/TableView.vue'
+import EventView from './components/eventview/EventView.vue'
 import {Notification} from 'element-ui';
 
 global.jQuery = require('jquery');
@@ -24,10 +25,11 @@ Vue.use(DetailedRow);
 import 'element-ui/lib/theme-default/index.css'
 import './components/vuetable/vuetable.css'
 import JsonApi from 'devour-client'
-
+import axios from 'axios'
 
 Vue.component('custom-actions', CustomActions);
 Vue.component('table-view', TableView);
+Vue.component('event-view', EventView);
 Vue.component('model-form', ModelForm);
 Vue.component("vuetable", Vuetable);
 Vue.component("detailed-table-row", DetailedRow);
@@ -37,14 +39,87 @@ Vue.component("vuetable-pagination", VuetablePagination);
 // Vue.component("vuetable-pagination-info", Vuetable.VueTablePaginationInfo);
 
 
+window.apiRoot = "http://localhost:6336/api";
+window.actionRoot = "http://localhost:6336/action";
+
 window.jsonApi = new JsonApi({
-  apiUrl: 'http://localhost:6336/api',
+  apiUrl: window.apiRoot,
   pluralize: false,
 });
+
+
+var ActionManager = function () {
+
+  var that = this;
+  that.actionMap = {};
+
+  this.setActions = function (typeName, actions) {
+    actionMap[typeName] = actions;
+  };
+
+  this.doAction = function (type, actionName, data, callback) {
+    console.log("invoke action", type, actionName, data);
+    return axios({
+      url: window.actionRoot + "/" + actionName,
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + localStorage.getItem("id_token")
+      },
+      data: {
+        type: type,
+        action: actionName,
+        attributes: data
+      }
+    })
+
+
+  };
+
+  this.addAllActions = function (actions) {
+
+    for (var i = 0; i < actions.length; i++) {
+      var action = actions[i];
+      var onType = action["onType"];
+
+      if (!that.actionMap[onType]) {
+        that.actionMap[onType] = {};
+      }
+
+      that.actionMap[onType][action["name"]] = action;
+    }
+  };
+
+  this.getActions = function (typeName) {
+    console.log("actions for ", typeName, that.actionMap[typeName])
+    return that.actionMap[typeName];
+  };
+
+  this.getActionModel = function (typeName, actionName) {
+    return that.actionMap[typeName].filter(function (i, r) {
+      return r.ActionName == actionName;
+    })[0];
+  };
+
+  return this;
+};
+
+window.actionManager = new ActionManager();
+
 jsonApi.replaceMiddleware('errors', {
   name: 'nothing-to-see-here',
   error: function (payload) {
     console.log("errors", payload);
+
+    if (payload.status == 401) {
+      Notification.error({
+        "title": "Failed",
+        "message": payload.data
+      });
+      window.location = window.location;
+      return;
+    }
+
+
     for (var i = 0; i < payload.data.errors.length; i++) {
       Notification.error({
         "title": "Failed",
@@ -108,7 +183,10 @@ window.getColumnKeys = function (typeName, callback) {
       "Authorization": "Bearer " + localStorage.getItem("id_token")
     },
     success: function (r, e, s) {
-//        console.log("in success", arguments)
+      if (r.Actions.length > 0) {
+        console.log("register actions", r.Actions)
+        actionManager.addAllActions(r.Actions);
+      }
       callback(r, e, s);
     },
     error: function (r, e, s) {
@@ -134,7 +212,9 @@ window.getColumnKeysWithErrorHandleWithThisBuilder = function (that) {
 
 var logoutHandler = {
   logout: function () {
-    console.log("logout")
+    localStorage.clear("id_token");
+    console.log("logout");
+    startApp();
   }
 };
 
@@ -178,6 +258,8 @@ lock.on('authenticated', (authResult) => {
   console.log('authenticated');
   localStorage.setItem('id_token', authResult.idToken);
   window.jsonApi.headers['Authorization'] = 'Bearer ' + authResult.idToken;
+
+  loadModels();
   lock.getProfile(authResult.idToken, (error, profile) => {
     if (error) {
       // Handle error
@@ -187,7 +269,7 @@ lock.on('authenticated', (authResult) => {
     localStorage.setItem('profile', JSON.stringify(profile));
 
     this.authenticated = true;
-    window.location = window.location;
+    // window.location = window.location;
   });
 })
 ;
@@ -211,19 +293,40 @@ function startApp() {
 
 }
 
+window.GetJsonApiModel = function (columnModel) {
+
+  var model = {};
+
+  var keys = Object.keys(columnModel);
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+
+    var data = columnModel[key];
+
+    if (data["jsonApi"]) {
+      model[key] = data;
+    } else {
+      model[key] = data.ColumnType;
+    }
+  }
+
+  // console.log("returning model", model)
+  return model;
+
+}
+
 
 var modelLoader = getColumnKeysWithErrorHandleWithThisBuilder(logoutHandler);
 
-if (authenticated) {
 
-
+function loadModels() {
   modelLoader("user", function (columnKeys) {
-    jsonApi.define("user", columnKeys);
+    jsonApi.define("user", GetJsonApiModel(columnKeys.ColumnModel));
     modelLoader("usergroup", function (columnKeys) {
-      jsonApi.define("usergroup", columnKeys);
+      jsonApi.define("usergroup", GetJsonApiModel(columnKeys.ColumnModel));
 
       modelLoader("world", function (columnKeys) {
-        jsonApi.define("world", columnKeys);
+        jsonApi.define("world", GetJsonApiModel(columnKeys.ColumnModel));
 
         jsonApi.findAll('world', {
           page: {number: 1, size: 50},
@@ -243,7 +346,7 @@ if (authenticated) {
                 if (total < 1) {
                   startApp();
                 }
-                jsonApi.define(typeName, model);
+                jsonApi.define(typeName, GetJsonApiModel(model.ColumnModel));
               })
             })(res[t].table_name)
 
@@ -252,8 +355,17 @@ if (authenticated) {
 
       })
     });
-  });
+  })
+}
+
+if (authenticated) {
+
+  loadModels();
 
 } else {
-  startApp()
+  setTimeout(function () {
+    if (!lock.checkAuth()) {
+      startApp()
+    }
+  }, 1000);
 }

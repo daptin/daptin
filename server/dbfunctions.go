@@ -10,6 +10,7 @@ import (
   "encoding/json"
   "github.com/artpar/gocms/datastore"
   "gopkg.in/Masterminds/squirrel.v1"
+  //"errors"
 )
 
 func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
@@ -79,7 +80,124 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
 
     }
   }
+}
 
+func GetObjectByWhereClause(objType string, db *sqlx.DB, queries ...squirrel.Eq) ([]map[string]interface{}, error) {
+  result := make([]map[string]interface{}, 0)
+
+  builder := squirrel.Select("*").From(objType).Where(squirrel.Eq{"deleted_at": nil})
+
+  for _, q := range queries {
+    builder = builder.Where(q)
+  }
+  q, v, err := builder.ToSql()
+
+  if err != nil {
+    return result, err
+  }
+
+  rows, err := db.Queryx(q, v...)
+
+  if err != nil {
+    return result, err
+  }
+
+  for ; rows.Next(); {
+    res := make(map[string]interface{})
+    rows.MapScan(res)
+    result = append(result, res)
+  }
+
+  return result, err
+}
+
+func GetActionMapByTypeName(db *sqlx.DB) (map[string]map[string]interface{}, error) {
+
+  allActions, err := GetObjectByWhereClause("action", db)
+  if err != nil {
+    return nil, err
+  }
+
+  typeActionMap := make(map[string]map[string]interface{})
+
+  for _, action := range allActions {
+    actioName := string(action["action_name"].([]uint8))
+    typeName := string(action["world_id"].([]uint8))
+
+    _, ok := typeActionMap[typeName]
+    if !ok {
+      typeActionMap[typeName] = make(map[string]interface{})
+    }
+
+    _, ok = typeActionMap[typeName][actioName]
+    if ok {
+      log.Infof("Action already exisys")
+    }
+    typeActionMap[typeName][actioName] = action
+  }
+
+  return typeActionMap, err
+
+}
+
+func GetWorldTableMapBy(col string, db *sqlx.DB) (map[string]map[string]interface{}, error) {
+
+  allWorlds, err := GetObjectByWhereClause("world", db)
+  if err != nil {
+    return nil, err
+  }
+
+  resMap := make(map[string]map[string]interface{})
+
+  for _, world := range allWorlds {
+    resMap[string(world[col].([]uint8))] = world
+  }
+  return resMap, err
+
+}
+
+func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
+
+  var err error
+
+  currentActions, err := GetActionMapByTypeName(db)
+  if err != nil {
+    return err
+  }
+
+  worldTableMap, err := GetWorldTableMapBy("table_name", db)
+  if err != nil {
+    return err
+  }
+
+  for _, action := range initConfig.Actions {
+
+    world, ok := worldTableMap[action.OnType]
+    if !ok {
+      log.Errorf("Action [%v] defined on unknown type [%v]", action.Name, action.OnType)
+      continue
+    }
+
+    _, ok = currentActions[string(world["id"].([]uint8))][action.Name]
+    if ok {
+      log.Infof("Action [%v] on [%v] already present in database", action.Name, action.OnType)
+      continue
+    } else {
+
+      ifj, _ := json.Marshal(action.InFields)
+      ofj, _ := json.Marshal(action.OutFields)
+
+      _, err = db.Exec("insert into action (action_name, label, world_id, in_fields, out_fields, reference_id, permission) value (?,?,?,?,?,?,'755')",
+        action.Name, action.Label, world["id"], ifj, ofj, uuid.NewV4().String())
+      if err != nil {
+        log.Errorf("Failed to insert action [%v]: %v", action.Name, err)
+      }
+
+    }
+
+  }
+
+  return nil
 }
 
 func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
@@ -91,11 +209,11 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
   var userId int
   var userGroupId int
-  var c int
-  err = tx.QueryRowx("select count(*) from user where deleted_at is null").Scan(&c)
+  var userCount int
+  err = tx.QueryRowx("select count(*) from user where deleted_at is null").Scan(&userCount)
   CheckErr(err, "Failed to get user count")
   //log.Infof("Current user grou")
-  if c < 1 {
+  if userCount < 1 {
 
     u2 := uuid.NewV4().String()
     _, err = tx.Exec("insert into user (name, email, reference_id, permission) value ('guest', 'guest@cms.go', ?, 755)", u2)

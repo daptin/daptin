@@ -122,7 +122,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
     log.Infof("Set user: %v", user)
     if (user == nil) {
       context.Set(c.Request, "user_id", "")
-      context.Set(c.Request, "usergroup_id", []string{})
+      context.Set(c.Request, "usergroup_id", []GroupPermission{})
       c.Next()
     } else {
 
@@ -132,7 +132,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 
       var referenceId string
       var userId int64
-      var userGroups []string
+      var userGroups []GroupPermission
       err := a.db.QueryRowx("select u.id, u.reference_id from user u where email = ?", email).Scan(&userId, &referenceId)
 
       if err != nil {
@@ -168,25 +168,38 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
           log.Errorf("Failed to create new user group: %v", err)
         }
         userGroupId := resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
-        userGroups = []string{userGroupId}
 
+        userGroups = make([]GroupPermission, 0)
         mapData = make(map[string]interface{})
         mapData["user_id"] = referenceId
         mapData["usergroup_id"] = userGroupId
+
         newUserUserGroup := api2go.NewApi2GoModelWithData("user_has_usergroup", nil, 644, nil, mapData)
 
         uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req)
         log.Infof("Userug: %v", uug)
 
       } else {
-        rows, err := a.db.Queryx("select ug.reference_id from usergroup ug join user_has_usergroup uug on uug.usergroup_id = ug.id where uug.user_id = ?", userId)
+        rows, err := a.db.Queryx("select ug.reference_id as referenceid, uug.permission from usergroup ug join user_has_usergroup uug on uug.usergroup_id = ug.id where uug.user_id = ?", userId)
         if err != nil {
-
+          log.Errorf("Failed to get user group permissions: %v", err)
         } else {
-          rows.Scan(userGroups)
+          //cols, _ := rows.Columns()
+          //log.Infof("Columns: %v", cols)
+          for ; rows.Next(); {
+            var p GroupPermission
+            err = rows.StructScan(&p)
+            if err != nil {
+              log.Errorf("failed to scan group permission struct: %v", err)
+              continue
+            }
+            userGroups = append(userGroups, p)
+          }
           rows.Close()
         }
       }
+
+      //log.Infof("Group permissions :%v", userGroups)
 
       context.Set(c.Request, "user_id", referenceId)
       context.Set(c.Request, "user_id_integer", userId)
@@ -197,4 +210,9 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
     }
   }
 
+}
+
+type GroupPermission struct {
+  ReferenceId string `json:"reference_id"`
+  Permission  int64 `json:"permission"`
 }
