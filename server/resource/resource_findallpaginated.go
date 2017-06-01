@@ -136,6 +136,9 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
       }
       switch rel.Relation {
       case "has_one":
+        if len(ids) < 1 {
+          continue
+        }
         queryBuilder = queryBuilder.Where(squirrel.Eq{prefix + "id":   ids})
         break;
 
@@ -147,8 +150,6 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
       }
 
     } else if rel.GetObject() == dr.model.GetName() {
-
-
 
       subjectNameList, ok := req.QueryParams[rel.GetSubject() + "Name"]
       log.Infof("Reverse Relation %v", rel)
@@ -171,22 +172,26 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
       case "has_one":
 
         subjectId := req.QueryParams[rel.GetSubject() + "_id"]
+        if len(subjectId) < 1 {
+          continue
+        }
         queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId })
         break;
 
       case "belongs_to":
-        queries, ok := req.QueryParams[rel.GetObjectName()]
 
+        queries, ok := req.QueryParams[rel.GetSubjectName()]
+        log.Infof("Convert ref ids to ids: %v == %v", queries, len(queries))
         if !ok || len(queries) < 1 {
           continue
         }
-
         ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), "id", "reference_id", queries)
         if err != nil {
-          log.Errorf("Failed to convert refids to ids 1: %v", err)
+          log.Errorf("Failed to convert refids to ids: %v", err)
           continue
         }
-        queryBuilder = queryBuilder.Where(squirrel.Eq{prefix + "id": ids})
+
+        queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubject() + ".id": ids})
         break
       case "has_many":
         subjectId := req.QueryParams[rel.GetSubject() + "_id"]

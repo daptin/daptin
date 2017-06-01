@@ -133,123 +133,124 @@
       reloadData: function (relation) {
 
       },
-    }, // end: methods
-    created () {
-//      JSONEditor.defaults.options.theme = 'html';
+      init: function() {
+        var that = this;
+        console.log("data for detailed row ", this.model)
+        this.meta = this.jsonApi.modelFor(this.jsonApiModelName);
+        this.attributes = this.meta["attributes"];
 
-      var that = this;
-      console.log("data for detailed row ", this.model)
-      this.meta = this.jsonApi.modelFor(this.jsonApiModelName);
-      this.attributes = this.meta["attributes"];
+        var attributes = this.meta["attributes"];
 
-      var attributes = this.meta["attributes"];
+        var normalFields = [];
+        that.relations = [];
 
-      var normalFields = [];
-
-      var columnKeys = Object.keys(attributes);
-      console.log("keys ", columnKeys, attributes);
-      for (var i = 0; i < columnKeys.length; i++) {
-        var colName = columnKeys[i];
+        var columnKeys = Object.keys(attributes);
+        console.log("keys ", columnKeys, attributes);
+        for (var i = 0; i < columnKeys.length; i++) {
+          var colName = columnKeys[i];
 
 
-        var item = {
-          name: colName,
-          value: this.model[colName]
-        };
+          var item = {
+            name: colName,
+            value: this.model[colName]
+          };
 
-        var type = attributes[colName];
-        if (typeof type == "string") {
-          type = {
-            type: type
+          var type = attributes[colName];
+          if (typeof type == "string") {
+            type = {
+              type: type
+            }
           }
+
+          item.type = type.type;
+          item.valueType = type.columnType;
+          var columnNameTitleCase = this.titleCase(item.name)
+          item.label = columnNameTitleCase;
+          item.title = columnNameTitleCase;
+          item.style = "";
+
+          if (item.valueType == "entity") {
+
+
+            (function (item) {
+
+              var columnName = item.name;
+              columnNameTitleCase = item.name
+
+              console.log("relation", item, that.jsonApiModelName, that.model);
+
+              var builderStack = that.jsonApi.one(that.jsonApiModelName, that.model["id"]).all(item.name);
+              var finder = builderStack.builderStack;
+              builderStack.builderStack = [];
+              console.log("finder: ", finder)
+              that.relations.push({
+                name: columnName,
+                title: item.title,
+                finder: finder,
+                label: item.label,
+                type: item.type,
+                jsonModelAttrs: that.jsonApi.modelFor(columnName),
+              });
+
+
+            })(item);
+
+            continue;
+          } else if (item.type == "truefalse") {
+            this.truefalse.push(item);
+            continue;
+          }
+
+
+          if (item.type == "datetime") {
+            continue;
+          }
+
+          if (item.type == "json") {
+            item.originalValue = item.value;
+            item.value = "";
+            item.style = "width: 500px; min-height: 300px;"
+          }
+
+          if (item.name == "permission") {
+            continue
+          }
+
+          if (item.name == "reference_id") {
+            continue
+          }
+
+          if (item.name == "password") {
+            continue
+          }
+
+          if (item.name == "status") {
+            continue
+          }
+
+
+          console.log("row ", item);
+
+          if (item.type == "label") {
+            normalFields.unshift(item)
+          } else {
+            normalFields.push(item);
+          }
+
         }
 
-        item.type = type.type;
-        item.valueType = type.columnType;
-        var columnNameTitleCase = this.titleCase(item.name)
-        item.label = columnNameTitleCase;
-        item.title = columnNameTitleCase;
-        item.style = "";
 
-        if (item.valueType == "entity") {
+        this.normalFields = normalFields;
 
 
-          (function (item) {
-
-            var columnName = item.name;
-            columnNameTitleCase = item.name
-
-            console.log("relation", item, that.jsonApiModelName, that.model);
-
-            var builderStack = that.jsonApi.one(that.jsonApiModelName, that.model["id"]).all(item.name);
-            var finder = builderStack.builderStack;
-            builderStack.builderStack = [];
-            console.log("finder: ", finder)
-            that.relations.push({
-              name: columnName,
-              title: item.title,
-              finder: finder,
-              label: item.label,
-              type: item.type,
-              jsonModelAttrs: that.jsonApi.modelFor(columnName),
-            });
-
-
-          })(item);
-
-          continue;
-        } else if (item.type == "truefalse") {
-          this.truefalse.push(item);
-          continue;
-        }
-
-
-        if (item.type == "datetime") {
-          continue;
-        }
-
-        if (item.type == "json") {
-          item.originalValue = item.value;
-          item.value = "";
-          item.style = "width: 500px; min-height: 300px;"
-        }
-
-        if (item.name == "permission") {
-          continue
-        }
-
-        if (item.name == "reference_id") {
-          continue
-        }
-
-        if (item.name == "password") {
-          continue
-        }
-
-        if (item.name == "status") {
-          continue
-        }
-
-
-        console.log("row ", item);
-
-        if (item.type == "label") {
-          normalFields.unshift(item)
-        } else {
-          normalFields.push(item);
-        }
+        console.log("Created detailed row", this.jsonApiModelName, this.model, this.meta)
 
       }
+    }, // end: methods
+    created () {
+      JSONEditor.defaults.options.theme = 'html';
 
-
-      this.normalFields = normalFields;
-
-
-      console.log("Created detailed row", this.jsonApiModelName, this.model, this.meta)
-      setTimeout(function () {
-//        $(".dropdown").dropdown();
-      }, 100);
-
+      this.init()
 
       var that = this;
       setTimeout(function () {
@@ -268,6 +269,11 @@
       }, 200)
 
     },
-    watch: {},
+    watch: {
+      "model": function() {
+        console.log("model changed, rerender detailed view  ")
+        this.init();
+      }
+    },
   }
 </script>s
