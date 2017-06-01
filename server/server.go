@@ -11,17 +11,16 @@ import (
   "encoding/json"
   "github.com/jmoiron/sqlx"
   "github.com/artpar/gocms/datastore"
-  "github.com/pkg/errors"
-  "strings"
-  "github.com/artpar/gocms/server/resource"
   "time"
   "github.com/artpar/gocms/server/auth"
   "net/http"
+  "github.com/artpar/gocms/server/resource"
 )
 
 type CmsConfig struct {
   Tables    []datastore.TableInfo
   Relations []api2go.TableRelation
+  Actions   []resource.Action `json:"actions"`
 }
 
 var ColumnTypes = []string{
@@ -127,10 +126,9 @@ func Main(configFile string) {
   CreateIndexes(&initConfig, db)
 
   UpdateWorldTable(&initConfig, db)
-  //log.Infof("Tables: %v", tables)
   UpdateWorldColumnTable(&initConfig, db)
-
-  //log.Infof("content: %v", initConfig)
+  err = UpdateActionTable(&initConfig, db)
+  CheckErr(err, "Failed to update action table")
 
   var ms resource.MiddlewareSet
 
@@ -170,88 +168,36 @@ func Main(configFile string) {
   r.OPTIONS("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
 
   r.GET("/downloadSchema", CreateJsModelHandler(&initConfig))
+  //r.GET("/actions/:typename", CreateActionListHandler(&initConfig))
+
+  r.POST("/action/:actionName", CreateActionEventHandler(&initConfig, cruds))
 
   r.Run(":6336")
 
 }
 
-func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
-
-  return func(c *gin.Context) {
-    typeName := strings.Split(c.Param("typename"), ".")[0]
-    //resource := resources[typeName]
-    var selectedTable *datastore.TableInfo
-
-    for _, t := range initConfig.Tables {
-      if t.TableName == typeName {
-        selectedTable = &t
-        break
-      }
-    }
-
-    if selectedTable == nil {
-      c.AbortWithStatus(404)
-      return
-    }
-
-    log.Infof("data: %v", selectedTable.Relations)
-
-    if selectedTable == nil {
-      c.AbortWithError(404, errors.New("Invalid type"))
-      return
-    }
-    cols := selectedTable.Columns
-
-    res := map[string]interface{}{}
-
-    for _, col := range cols {
-      if col.ColumnName == "deleted_at" {
-        continue
-      }
-      if col.ColumnName == "id" {
-        continue
-      }
-
-      _, ok := api2go.EndsWith(col.ColumnName, "_id")
-      if ok && col.ColumnName != "reference_id" {
-        log.Infof("Column [%v] is relation ", col.ColumnName)
-        //res[typeOfOtherEntity] = NewJsonApiRelation(typeOfOtherEntity, "hasOne", "entity")
-      } else {
-        //res[col.ColumnName] = NewJsonApiRelation("", "", col.ColumnType)
-        res[col.ColumnName] = col.ColumnType
-      }
-
-    }
-
-    for _, rel := range selectedTable.Relations {
-
-      if rel.GetSubject() == selectedTable.TableName {
-        r := "hasMany"
-        if rel.GetRelation() == "belongs_to" {
-          r = "hasOne"
-        }
-        res[rel.GetObjectName()] = NewJsonApiRelation(rel.GetObject(), r, "entity")
-      } else {
-        if (rel.GetRelation() == "belongs_to") {
-          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetObject(), "hasMany", "entity")
-        } else {
-
-        }
-      }
-    }
-
-    //res["__type"] = "string"
-    c.JSON(200, res)
-    if true {
-      return
-    }
-
-    //j, _ := json.Marshal(res)
-
-    //c.String(200, "jsonApi.define('%v', %v)", typeName, string(j))
-
-  }
+type ManualResponse struct {
+  Data interface{}
 }
+
+func GetActionList(typename string, initConfig *CmsConfig) []resource.Action {
+
+  actions := make([]resource.Action, 0)
+
+  for _, a := range initConfig.Actions {
+    if a.OnType == typename {
+      actions = append(actions, a)
+    }
+  }
+  return actions
+}
+
+
+type JsModel struct {
+  ColumnModel map[string]interface{}
+  Actions     []resource.Action
+}
+
 
 func NewJsonApiRelation(name string, relationType string, columnType string) JsonApiRelation {
 

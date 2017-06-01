@@ -6,15 +6,113 @@ import (
   "strconv"
   "errors"
   "github.com/artpar/api2go"
+  "github.com/artpar/gocms/server/auth"
+  "fmt"
+  "encoding/json"
 )
 
-func (dr *DbResource) GetTablePermission(typeName string) (Permission) {
+func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []auth.GroupPermission, typeName string, actionName string) bool {
 
-  s, q, err := squirrel.Select("user_id", "permission").From("world").Where(squirrel.Eq{"table_name": typeName}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  worldId, err := dr.GetIdByWhereClause("world", squirrel.Eq{"table_name": typeName})
+  if err != nil {
+    return false
+  }
+  permission, err := dr.GetActionPermissionByName(worldId[0], actionName)
+  if err != nil {
+    log.Errorf("Failed to get action permission [%v][%]: %v", typeName, actionName, err)
+    return false
+  }
+
+  return permission.CanExecute(userReferenceId, userGroups)
+
+}
+
+func (dr *DbResource) GetActionByName(typeName string, actionName string) (Action) {
+  var a ActionRow
+
+  err := dr.db.QueryRowx("select a.action_name as name, w.table_name as ontype, a.label, in_fields as infields, out_fields as outfields, a.reference_id as referenceid from action a join world w on w.id = a.world_id where w.table_name = ? and a.action_name = ?", typeName, actionName).StructScan(&a)
+  if err != nil {
+    log.Errorf("Failed to scan action: %", err)
+  }
+
+  var action Action
+  {}
+  action.Name = a.Name
+  action.Label = a.Name
+  action.ReferenceId = a.ReferenceId
+  action.OnType = a.OnType
+
+  err = json.Unmarshal([]byte(a.InFields), &action.InFields)
+  CheckError(err, "failed to unmarshal infields")
+  err = json.Unmarshal([]byte(a.OutFields), &action.OutFields)
+  CheckError(err, "failed to unmarshal outfields")
+
+  return action
+}
+
+func CheckError(err error, msg string) {
+  if err != nil {
+    log.Errorf(msg + " : %v", err)
+  }
+}
+
+func (dr *DbResource) GetActionPermissionByName(worldId int64, actionName string) (Permission, error) {
+
+  refId, err := dr.GetReferenceIdByWhereClause("action", squirrel.Eq{"action_name": actionName}, squirrel.Eq{"world_id": worldId})
+  if err != nil {
+    return Permission{}, err
+  }
+
+  if refId == nil || len(refId) < 1 {
+    return Permission{}, errors.New(fmt.Sprintf("Failed to find action [%v] on [%v]", actionName, worldId))
+  }
+  permissions := dr.GetObjectPermission("action", refId[0])
+
+  return permissions, nil
+}
+
+func (dr *DbResource) GetObjectPermission(objectType string, referenceId string) (Permission) {
+  s, q, err := squirrel.Select("user_id", "permission", "id").From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
   if err != nil {
     log.Errorf("Failed to create sql: %v", err)
     return Permission{
-      "", []string{}, 0,
+      "", []auth.GroupPermission{}, 0,
+    }
+  }
+
+  m := make(map[string]interface{})
+  err = dr.db.QueryRowx(s, q...).MapScan(m)
+  if err != nil {
+    log.Errorf("Failed to can permisison: %v", err)
+  }
+  //log.Infof("permi map: %v", m)
+  var perm Permission
+  if m["user_id"] != nil {
+
+    user, err := dr.GetIdToReferenceId("user", m["user_id"].(int64))
+    if err == nil {
+      perm.UserId = user
+    }
+
+  }
+
+  perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, m["id"].(int64))
+
+  perm.Permission = m["permission"].(int64)
+  if err != nil {
+    log.Errorf("Failed to scan permission: %v", err)
+  }
+
+  //log.Infof("Permission for [%v]: %v", typeName, perm)
+  return perm
+}
+
+func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colName string, colValue string) (Permission) {
+  s, q, err := squirrel.Select("user_id", "permission", "id").From(objectType).Where(squirrel.Eq{colName: colValue}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  if err != nil {
+    log.Errorf("Failed to create sql: %v", err)
+    return Permission{
+      "", []auth.GroupPermission{}, 0,
     }
   }
 
@@ -31,7 +129,7 @@ func (dr *DbResource) GetTablePermission(typeName string) (Permission) {
 
   }
 
-  perm.UserGroupId = dr.GetUserGroups(perm.UserId)
+  perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, m["id"].(int64))
 
   perm.Permission = m["permission"].(int64)
   if err != nil {
@@ -42,19 +140,76 @@ func (dr *DbResource) GetTablePermission(typeName string) (Permission) {
   return perm
 }
 
-func (dr *DbResource) GetUserGroups(userRefId string) ([]string) {
+//func (dr *DbResource) GetTablePermission(typeName string) (Permission) {
+//
+//  s, q, err := squirrel.Select("user_id", "permission", "id").From("world").Where(squirrel.Eq{"table_name": typeName}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+//  if err != nil {
+//    log.Errorf("Failed to create sql: %v", err)
+//    return Permission{
+//      "", []auth.GroupPermission{}, 0,
+//    }
+//  }
+//
+//  m := make(map[string]interface{})
+//  err = dr.db.QueryRowx(s, q...).MapScan(m)
+//  //log.Infof("permi map: %v", m)
+//  var perm Permission
+//  if m["user_id"] != nil {
+//
+//    user, err := dr.GetIdToReferenceId("user", m["user_id"].(int64))
+//    if err == nil {
+//      perm.UserId = user
+//    }
+//
+//  }
+//
+//  perm.UserGroupId = dr.GetObjectGroups("world", m["id"])
+//
+//  perm.Permission = m["permission"].(int64)
+//  if err != nil {
+//    log.Errorf("Failed to scan permission: %v", err)
+//  }
+//
+//  //log.Infof("Permission for [%v]: %v", typeName, perm)
+//  return perm
+//}
 
-  s := make([]string, 0)
+func (dr *DbResource) GetObjectGroupsByWhere(objType string, colName string, colvalue string) ([]auth.GroupPermission) {
 
-  res, err := dr.db.Queryx("select ug.reference_id from usergroup ug join user_has_usergroup uug on uug.usergroup_id = ug.id join user u on uug.user_id = u.id where u.reference_id = ?", userRefId)
+  s := make([]auth.GroupPermission, 0)
+
+  res, err := dr.db.Queryx(fmt.Sprintf("select ug.reference_id as referenceid, uug.permission from usergroup ug join %s_has_usergroup uug on uug.usergroup_id = ug.id join %s u on uug.%s_id = u.id where %s = ?", objType, objType, objType, colName), colvalue)
   if err != nil {
     return s
   }
 
   for ; res.Next(); {
-    var t string
-    res.Scan(&t)
-    s = append(s, t)
+    var g auth.GroupPermission
+    err = res.StructScan(&g)
+    if err != nil {
+      log.Errorf("Failed to scan group permisison : %v", err)
+    }
+    s = append(s, g)
+  }
+  return s
+
+}
+func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) ([]auth.GroupPermission) {
+
+  s := make([]auth.GroupPermission, 0)
+
+  res, err := dr.db.Queryx(fmt.Sprintf("select ug.reference_id as referenceid, uug.permission from usergroup ug join %s_has_usergroup uug on uug.usergroup_id = ug.id and uug.%s_id = ?", objType, objType), objectId)
+  if err != nil {
+    return s
+  }
+
+  for ; res.Next(); {
+    var g auth.GroupPermission
+    err = res.StructScan(&g)
+    if err != nil {
+      log.Errorf("Failed to scan group permisison : %v", err)
+    }
+    s = append(s, g)
   }
   return s
 
@@ -67,7 +222,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) (Permission) 
     perm.UserId = row["user_id"].(string)
   }
   if row["usergroup_id"] != nil {
-    perm.UserGroupId = dr.GetUserGroups(perm.UserId)
+    perm.UserGroupId = dr.GetObjectGroupsByWhere(row["__type"].(string), "reference_id", row["id"].(string))
   }
   if row["permission"] != nil {
 
@@ -133,17 +288,17 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 
   rows, err := dr.db.Query(s, q...)
   defer rows.Close()
-  m1, includes, err := dr.ResultToArrayOfMap(rows)
+  resultRows, includeRows, err := dr.ResultToArrayOfMap(rows)
   if err != nil {
     return nil, nil, err
   }
 
-  if len(m1) < 1 {
+  if len(resultRows) < 1 {
     return nil, nil, errors.New("No such entity")
   }
 
-  m := m1[0]
-  n := includes[0]
+  m := resultRows[0]
+  n := includeRows[0]
 
   return m, n, err
 
@@ -166,7 +321,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
       return r, err
     }
   }
-  log.Infof("Find [%d] by id [%s]", dr.model.GetName(), referenceId)
+  log.Infof("Find [%s] by id [%s]", dr.model.GetName(), referenceId)
 
   data, include, err := dr.GetSingleRowByReferenceId(dr.model.GetName(), referenceId)
 

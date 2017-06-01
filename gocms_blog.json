@@ -65,5 +65,68 @@
       "objectName": "current_post",
       "subjectName": "current_post_of"
     }
+  ],
+  "actions": [
+    {
+      "name": "comment",
+      "label": "Leave a comment",
+      "onType": "post",
+      "fields": [
+        {
+          "columnName": "name",
+          "name": "Author name",
+          "columnType": "label"
+        },
+        {
+          "columnName": "comment",
+          "name": "Your comment",
+          "columnType": "content"
+        },
+        {
+          "columnName": "like",
+          "name": "Rating",
+          "columnType": "rating"
+        }
+      ],
+      "outcomes": [
+        {
+          "method": "POST",
+          "type": "comment",
+          "attributes": {
+            "body": "comment",
+            "post_id": ".post.id",
+            "likes_count": "like"
+          }
+        }
+      ]
+    },
+    {
+      "name": "post",
+      "label": "Create a new post",
+      "onType": "blog",
+      "fields": [
+        {
+          "columnName": "title",
+          "name": "Post title",
+          "columnType": "label"
+        },
+        {
+          "columnName": "body",
+          "name": "Blog",
+          "columnType": "content"
+        }
+      ],
+      "outcomes": [
+        {
+          "type": "post",
+          "method": "POST",
+          "attributes": {
+            "title": "title",
+            "body": "body",
+            "blog_id": "blog_id"
+          }
+        }
+      ]
+    }
   ]
 }

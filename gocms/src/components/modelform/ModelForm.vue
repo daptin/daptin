@@ -1,25 +1,31 @@
 <template>
 
-  <div class="ui column">
-    <div class="ui segment top">
-      <form class="form ui" @submit.prevent="saveRow(model)">
+  <div class="ui one column grid">
+    <!--<div class="ui segment top">-->
+    <!--<form class="form ui" @submit.prevent="saveRow(model)">-->
 
-        <div class="field" v-for="col in formBuildData">
+    <!--<div class="field" v-for="col in formBuildData">-->
 
-          <label :for="col"> {{col.label}} </label>
-          <input class="form-control" :id="col" :value="model[col.name]" v-model="model[col.name]">
+    <!--<label :for="col"> {{col.label}} </label>-->
+    <!--<input class="form-control" :id="col" :value="model[col.name]" v-model="model[col.name]">-->
 
-        </div>
-        <el-button @click.prevent="saveRow(model)">
-          Save
-        </el-button>
-        <el-button @click="cancel()">Cancel</el-button>
-      </form>
+    <!--</div>-->
+    <!--<el-button @click.prevent="saveRow(model)">-->
+    <!--Save-->
+    <!--</el-button>-->
+    <!--<el-button @click="cancel()">Cancel</el-button>-->
+    <!--</form>-->
+    <!--</div>-->
+    <div class="ui column">
+      <vue-form-generator :schema="formModel" :model.sync="localModel"></vue-form-generator>
     </div>
-    <div class="ui segment bottom">
-      <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
-    </div>
+    <div class="ui column">
+      <el-button @click.prevent="saveRow(localModel)">
+        Save
+      </el-button>
+      <el-button @click="cancel()">Cancel</el-button>
 
+    </div>
   </div>
 
 </template>
@@ -33,7 +39,7 @@
       "model",
       "meta"
     ],
-    components:{
+    components: {
       "vue-form-generator": VueFormGenerator.component
     },
     data: function () {
@@ -43,10 +49,13 @@
       return {
         currentElement: "el-input",
         formBuildData: [],
+        previousSubmit: null,
         formModel: null,
+        localModel: null,
       }
     },
     created () {
+      this.localModel = this.model;
     },
     computed: {},
     methods: {
@@ -58,6 +67,8 @@
       saveRow: function () {
         console.log("save row");
         this.$emit('save', this.model)
+        this.previousSubmit = this.model;
+        this.localModel = {};
       },
       cancel: function () {
         console.log("canel row");
@@ -84,13 +95,19 @@
 
           var column = colKeys[i];
           var colMeta = this.meta[column];
+          var label = this.titleCase(column);
+          var formField = {
+            type: "input",
+            inputType: "text",
+            label: label,
+            model: column
+          };
+
 
           if (!that.model[column]) {
             that.model[column] = "";
           }
 
-//          console.log("title case")
-          var label = this.titleCase(column);
           if (typeof colMeta == "string") {
             colMeta = {
               name: column,
@@ -99,9 +116,6 @@
           } else {
             colMeta.name = column
           }
-          colMeta.label = label;
-
-//          console.log("col meta", colMeta);
 
           if (colMeta.columnType == "datetime") {
             continue;
@@ -110,30 +124,30 @@
           if (colMeta.columnType == "entity") {
             continue;
           }
-          if (colMeta.columnType == "content") {
-            colMeta.type = "textarea"
-          }
 
           if (colMeta.name == "status" || colMeta.name == "pending" || colMeta.name == "permission" || colMeta.name == "reference_id") {
             continue
           }
 
-          formModel.fields.push({
-            type: "input",
-            inputType: "text",
+          if (colMeta.columnType == "content") {
+            formField.type = "textArea"
+            formField.rows = "5"
+          } else {
+            formField.type = "input"
+          }
 
-            label: label,
-            model: colKeys[i]
-          });
+          if (colMeta.columnType == "label") {
+            formModel.fields.unshift(formField);
+          } else {
 
-          this.formBuildData.push({
-            name: colKeys[i],
-            type: colMeta.type,
-            label: label,
-          });
+            formModel.fields.push(formField);
+          }
+
+
+
           console.log("that model", that.model)
-          that.formModel = formModel;
         }
+        that.formModel = formModel;
       }
     },
     mounted: function () {

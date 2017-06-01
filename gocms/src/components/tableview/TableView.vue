@@ -2,6 +2,7 @@
 
 
   <div class="ui segment attached ">
+
     <vuetable-pagination ref="pagination" @change-page="onChangePage"></vuetable-pagination>
 
     <vuetable ref="vuetable"
@@ -101,7 +102,7 @@
             .join(' ')
       },
       onCellClicked (data, field, event){
-        console.log('cellClicked 1: ', data)
+        console.log('cellClicked 1: ', data, this.selectedWorld)
 //        this.$refs.vuetable.toggleDetailRow(data.id);
         this.$router.push({
           name: 'Instance',
@@ -150,6 +151,8 @@
         that.showAddEdit = false;
         that.reloadData(tableName)
       },
+
+
       reloadData(tableName) {
         var that = this;
 

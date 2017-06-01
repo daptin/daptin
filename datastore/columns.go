@@ -64,6 +64,7 @@ var StandardColumns = []api2go.ColumnInfo{
 
 var StandardRelations = []api2go.TableRelation{
   api2go.NewTableRelation("world_column", "belongs_to", "world"),
+  api2go.NewTableRelation("action", "belongs_to", "world"),
 }
 
 var StandardTables = []TableInfo{
@@ -253,6 +254,35 @@ var StandardTables = []TableInfo{
         ColumnName: "name",
         DataType: "varchar(80)",
         ColumnType: "name",
+      },
+    },
+  },
+  {
+    TableName: "action",
+    Columns: []api2go.ColumnInfo{
+      {
+        Name: "action_name",
+        ColumnName: "action_name",
+        DataType: "varchar(100)",
+        ColumnType: "name",
+      },
+      {
+        Name: "label",
+        ColumnName: "label",
+        DataType: "varchar(100)",
+        ColumnType: "label",
+      },
+      {
+        Name: "in_fields",
+        ColumnName: "in_fields",
+        DataType: "text",
+        ColumnType: "json",
+      },
+      {
+        Name: "out_fields",
+        ColumnName: "out_fields",
+        DataType: "text",
+        ColumnType: "json",
       },
     },
   },

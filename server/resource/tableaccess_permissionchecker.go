@@ -7,6 +7,7 @@ import (
   "errors"
 
   "github.com/gorilla/context"
+  "github.com/artpar/gocms/server/auth"
 )
 
 type TableAccessPermissionChecker struct {
@@ -29,9 +30,9 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 
   }
 
-  currentUserGroupId := []string{}
+  currentUserGroupId := []auth.GroupPermission{}
   if userGroupId != nil {
-    currentUserGroupId = userGroupId.([]string)
+    currentUserGroupId = userGroupId.([]auth.GroupPermission)
   }
 
   for _, result := range results {
@@ -62,12 +63,12 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 
   }
 
-  currentUserGroupId := []string{}
+  currentUserGroupId := []auth.GroupPermission{}
   if userGroupId != nil {
-    currentUserGroupId = userGroupId.([]string)
+    currentUserGroupId = userGroupId.([]auth.GroupPermission)
   }
 
-  tableOwnership := dr.GetTablePermission(dr.model.GetName())
+  tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
 
   log.Infof("Request method: %v", req.PlainRequest)
   if req.PlainRequest.Method == "GET" {
