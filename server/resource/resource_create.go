@@ -162,7 +162,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     belogsToUserGroupSql, q, err := squirrel.
     Insert(dr.model.GetName() + "_has_usergroup").
       Columns(dr.model.GetName() + "_id", "usergroup_id", "reference_id", "permission").
-      Values(createdResource["id"], userGroupId, nuuid, "755").ToSql()
+      Values(createdResource["id"], userGroupId, nuuid, "644").ToSql()
 
     log.Infof("Query: %v", belogsToUserGroupSql)
     _, err = dr.db.Exec(belogsToUserGroupSql, q...)

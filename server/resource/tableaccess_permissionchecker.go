@@ -77,7 +77,7 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
         Code: 403,
       }, errors.New("unauthorized")
     }
-  } else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "POST" || req.PlainRequest.Method == "DELETE" {
+  } else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" || req.PlainRequest.Method == "POST" || req.PlainRequest.Method == "DELETE" {
     if !tableOwnership.CanWrite(currentUserId, currentUserGroupId) {
       return api2go.Response{
         Code: 403,

@@ -3,8 +3,7 @@
 
   <div class="ui three column grid">
 
-
-    <div class="four wide column">
+    <div class="two wide column">
       <div class="ui segment top attached">
         <h2 v-if="!selectedInstanceReferenceId">Tables</h2>
         <h2 v-if="!selectedSubTable && selectedInstanceReferenceId">
@@ -18,7 +17,7 @@
         </h2>
       </div>
 
-      <div class="ui segment attached">
+      <div class="ui segment bottom attached" v-if="visibleWorlds.length > 0">
         <ul class="ui relaxed list">
           <div class="item" v-for="w in visibleWorlds">
             <div class="content">
@@ -45,15 +44,16 @@
 
     <div class="six wide column" v-if="selectedRow != null && selectedRow['id']">
 
-      <div class="ui segment attached top" v-if="selectedAction != null">
-        <event-view @cancel="selectedAction = null" :action-manager="actionManager" :action="selectedAction" :json-api="jsonApi" :model="selectedRow"></event-view>
+      <div class="ui segment" v-if="selectedAction != null">
+        <event-view @cancel="selectedAction = null" :action-manager="actionManager" :action="selectedAction"
+                    :json-api="jsonApi" :model="selectedRow"></event-view>
       </div>
 
-      <div class="ui segment attached top" v-if="selectedRow != null">
-        <h2>{{selectedRow.title}}</h2>
+      <div class="ui segment" v-if="selectedRow != null">
+        <h2>{{selectedRow | labelForObject}}</h2>
       </div>
 
-      <div class="ui segment attached" v-if="actions != null">
+      <div class="ui segment" v-if="actions != null">
         <ul class="ui relaxed list">
           <div class="item" v-for="a, k in actions">
             <el-button @click="selectedAction = a">{{a.label}}</el-button>
@@ -62,14 +62,14 @@
       </div>
 
 
-      <div class="ui segment attached">
-        <detailed-table-row :model="selectedRow" :json-api="jsonApi" :json-api-model-name="selectedWorld"></detailed-table-row>
+      <div class="ui segment">
+        <detailed-table-row :model="selectedRow" :json-api="jsonApi"
+                            :json-api-model-name="selectedWorld"></detailed-table-row>
       </div>
 
 
     </div>
-
-    <div class="six wide column" v-if="selectedWorld != null">
+    <div class="fourteen wide column right floated" v-if="selectedWorld != null">
       <div class="ui segment attached top grid">
 
         <div class="four wide column">
@@ -125,7 +125,6 @@
 
     </div>
 
-
   </div>
 </template>
 
@@ -141,6 +140,10 @@
         }
         return str.replace(/[-_]/g, " ").split(' ')
             .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
+      },
+      labelForObject: function (obj) {
+        console.log("label for ", obj);
+        return obj.name;
       }
     },
     props: {
@@ -214,7 +217,7 @@
 
 
         console.log("save row", row);
-        if (row["reference_id"]) {
+        if (row["id"]) {
           var that = this;
           jsonApi.update(currentTableType, row).then(function () {
             that.setTable();
