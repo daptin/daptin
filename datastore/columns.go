@@ -92,7 +92,7 @@ var StandardTables = []TableInfo{
         ColumnName: "default_permission",
         DataType: "int(4)",
         IsNullable: false,
-        DefaultValue: "'755'",
+        DefaultValue: "644",
         ColumnType: "value",
       },
 
@@ -296,5 +296,10 @@ type TableInfo struct {
   Relations         []api2go.TableRelation
   IsTopLevel        bool
   IsHidden          bool
+}
+
+
+func (t TableInfo) GetName() string {
+  return t.TableName
 }
 

@@ -64,8 +64,19 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
     //log.Infof("Check column: %v", col.ColumnName)
 
     val, ok := attrs[col.ColumnName]
+    if !ok {
+      continue
+    }
+    if col.IsForeignKey {
+      log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.TableName, val)
+      uId, err := dr.GetReferenceIdToId(col.ForeignKeyData.TableName, val.(string))
+      if err != nil {
+        return nil, err
+      }
+      val = uId
+    }
 
-    if ok && val != nil && len(val.(string)) > 0 {
+    if ok  {
       dataToInsert[col.ColumnName] = val
       colsList = append(colsList, col.ColumnName)
       valsList = append(valsList, val)
@@ -102,15 +113,19 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
     return nil, err
   }
 
-  m := make(map[string]interface{})
-  dr.db.QueryRowx(query, vals...).MapScan(m)
+  updatedResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), id)
+  if err != nil {
+    log.Errorf("Failed to select the newly created entry: %v", err)
+    return nil, err
+  }
+  //
 
   for _, bf := range dr.ms.AfterUpdate {
-    results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{m})
+    results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{updatedResource})
     if len(results) != 0 {
-      m = results[0]
+      updatedResource = results[0]
     } else {
-      m = nil
+      updatedResource = nil
     }
 
     if err != nil {
@@ -118,17 +133,17 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
     }
   }
 
-  for k, v := range m {
+  for k, v := range updatedResource {
     k1 := reflect.TypeOf(v)
     //log.Infof("K: %v", k1)
     if v != nil && k1.Kind() == reflect.Slice {
-      m[k] = string(v.([]uint8))
+      updatedResource[k] = string(v.([]uint8))
     }
   }
 
   //log.Infof("Create response: %v", m)
 
-  return NewResponse(nil, api2go.NewApi2GoModelWithData(dr.model.GetName(), dr.model.GetColumns(), dr.model.GetDefaultPermission(), dr.model.GetRelations(), m), 200, nil), nil
+  return NewResponse(nil, api2go.NewApi2GoModelWithData(dr.model.GetName(), dr.model.GetColumns(), dr.model.GetDefaultPermission(), dr.model.GetRelations(), updatedResource), 200, nil), nil
 
 }
 

@@ -47,7 +47,7 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
 
         mapData["world_id"] = worldid;
         mapData["reference_id"] = uuid.NewV4().String();
-        mapData["permission"] = 755;
+        mapData["permission"] = 777;
         mapData["name"] = col.Name;
 
         mapData["column_name"] = col.ColumnName;
@@ -270,9 +270,9 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
       continue
     }
 
-    _, err = tx.Exec("insert into world (table_name, schema_json, permission, reference_id, default_permission, user_id, is_top_level, is_hidden) value (?,?,755, ?, 755, ?, ?, ?)", table.TableName, string(schema), refId, userId, table.IsTopLevel, table.IsHidden)
+    _, err = tx.Exec("insert into world (table_name, schema_json, permission, reference_id, default_permission, user_id, is_top_level, is_hidden) value (?,?,777, ?, 644, ?, ?, ?)", table.TableName, string(schema), refId, userId, table.IsTopLevel, table.IsHidden)
     CheckErr(err, "Failed to insert into world table about " + table.TableName)
-    initConfig.Tables[i].DefaultPermission = 755
+    initConfig.Tables[i].DefaultPermission = 644
 
   }
 

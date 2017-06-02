@@ -7,6 +7,32 @@
           "name": "name",
           "dataType": "varchar(500)",
           "columnType": "label"
+        },
+        {
+          "name": "code",
+          "dataType": "varchar(100)",
+          "columnType": "label",
+          "isUnique": true
+        }
+      ]
+    },
+    {
+      "tableName": "orders",
+      "columns": [
+        {
+          "name": "quantity",
+          "dataType": "int(11)",
+          "columnType": "measurement"
+        }
+      ]
+    },
+    {
+      "tableName": "vendor",
+      "columns": [
+        {
+          "name": "name",
+          "columnType": "label",
+          "dataType": "varchar(100)"
         }
       ]
     },
@@ -34,23 +60,33 @@
       "tableName": "style_file",
       "columns": [
         {
-          "name": "spec_name_1",
+          "name": "color",
           "dataType": "varchar(100)",
-          "columnType": "content"
+          "columnType": "color"
         }
       ]
     }
   ],
   "relations": [
     {
-      "subject": "cost",
-      "relation": "belongs_to",
-      "object": "style"
+      "subject": "style",
+      "relation": "has_one",
+      "object": "cost"
     },
     {
-      "subject": "style_file",
-      "relation": "belongs_to",
-      "object": "style"
+      "subject": "style",
+      "relation": "has_one",
+      "object": "style_file"
+    },
+    {
+      "subject": "style",
+      "relation": "has_many",
+      "object": "orders"
+    },
+    {
+      "subject": "orders",
+      "relation": "has_one",
+      "object": "vendor"
     }
   ]
 }

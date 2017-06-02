@@ -1,5 +1,5 @@
 <template>
-  <table :class="['vuetable', css.tableClass]">
+  <table :class="['vuetable', css.tableClass]" style="width: 100%">
     <thead>
     <tr>
       <template v-for="field in tableFields">

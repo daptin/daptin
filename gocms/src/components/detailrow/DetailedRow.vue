@@ -15,7 +15,7 @@
 
 
       <div class="ui two column grid" v-for="col in normalFields" :id="col.name">
-        <div class="ui column"><h5>{{col.label}}</h5></div>
+        <div class="uki column"><h5>{{col.label}}</h5></div>
         <div :style="col.style" class="ui column description">{{col.value}}</div>
       </div>
 
@@ -133,7 +133,7 @@
       reloadData: function (relation) {
 
       },
-      init: function() {
+      init: function () {
         var that = this;
         console.log("data for detailed row ", this.model)
         this.meta = this.jsonApi.modelFor(this.jsonApiModelName);
@@ -250,7 +250,7 @@
     created () {
       JSONEditor.defaults.options.theme = 'html';
 
-      this.init()
+      this.init();
 
       var that = this;
       setTimeout(function () {
@@ -258,11 +258,11 @@
           var field = that.normalFields[i];
           if (field.type == "json") {
             var element = jQuery("#" + field.name).find(".description")[0];
-            console.log("element", element)
+            console.log("element", element);
             var editor = new JSONEditor(element, {
               schema: {}
             });
-            console.log("Set value", field)
+            console.log("Set value", field);
             editor.setValue(JSON.parse(field.originalValue));
           }
         }
@@ -270,8 +270,8 @@
 
     },
     watch: {
-      "model": function() {
-        console.log("model changed, rerender detailed view  ")
+      "model": function () {
+        console.log("model changed, rerender detailed view  ");
         this.init();
       }
     },

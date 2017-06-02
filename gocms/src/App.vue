@@ -1,22 +1,18 @@
 <template>
-  <div id="app" class="ui wide">
+  <div id="app" class="ui">
 
 
-    <div class="ui segment">
-      <el-button @click="login()" v-show="!authenticated">Login</el-button>
-      <el-button @click="logout()" v-show="authenticated">Logout</el-button>
+    <div class="ui inverted fixed menu navbar page grid">
+      <div class="four wide column right floated">
+        <el-button class="right" @click="login()" v-show="!authenticated">Login</el-button>
+        <el-button class="right" @click="logout()" v-show="authenticated">Logout</el-button>
+      </div>
     </div>
-    <div class="ui column" v-if="authenticated">
-      <router-view></router-view>
-    </div>
+    <router-view v-if="authenticated"></router-view>
 
     <link href="./static/bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet">
     <link href="./static/bower_components/semantic/dist/semantic.min.css" rel="stylesheet">
-
     <script src="./static/bower_components/semantic/dist/semantic.min.js" type="application/javascript"></script>
-    <!--<script src="./static/bower_components/semantic/dist/components/dropdown.min.js" type="application/javascript"></script>-->
-
-    <script src="./static/bower_components/jquery/dist/jquery.min.js" type="application/javascript"></script>
 
   </div>
 </template>

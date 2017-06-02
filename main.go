@@ -4,7 +4,7 @@ import (
   "github.com/artpar/gocms/server"
   "github.com/rcrowley/goagain"
   "log"
-  "os"
+  //"os"
   "fmt"
   "syscall"
   "sync"
@@ -35,14 +35,14 @@ func main() {
     log.Println("listening on", l.Addr())
 
     // Accept connections in a new goroutine.
-    go server.Main(os.Args[1])
+    go server.Main()
     go serve(l, ch, wg)
 
   } else {
 
     // Resume listening and accepting connections in a new goroutine.
     log.Println("resuming listening on", l.Addr())
-    go server.Main(os.Args[1])
+    go server.Main()
     go serve(l, ch, wg)
 
     // If this is the child, send the parent SIGUSR2.  If this is the

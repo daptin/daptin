@@ -6,7 +6,6 @@ import (
   "github.com/artpar/api2go-adapter/gingonic"
   log "github.com/Sirupsen/logrus"
   _ "github.com/go-sql-driver/mysql"
-  //"github.com/itsjamie/gin-cors"
   "io/ioutil"
   "encoding/json"
   "github.com/jmoiron/sqlx"
@@ -59,8 +58,8 @@ type User struct {
   Name       string
   Email      string
   Password   string
-  Id         uint64 `gorm:"PRIMARY KEY"`
-  CreatedAt  time.Time `gorm:"not null"`
+  Id         uint64
+  CreatedAt  time.Time
   UpdatedAt  time.Time
   Permission int
   Status     string
@@ -69,7 +68,8 @@ type User struct {
 
 var cruds = make(map[string]*resource.DbResource)
 
-func Main(configFile string) {
+func Main() {
+  configFile := "gocms_style.json"
 
   db, err := sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
   if err != nil {
@@ -130,29 +130,7 @@ func Main(configFile string) {
   err = UpdateActionTable(&initConfig, db)
   CheckErr(err, "Failed to update action table")
 
-  var ms resource.MiddlewareSet
-
-  permissionChecker := &resource.TableAccessPermissionChecker{}
-
-  findOneHandler := resource.NewFindOneEventHandler()
-  createHandler := resource.NewCreateEventHandler()
-  updateHandler := resource.NewUpdateEventHandler()
-  deleteHandler := resource.NewDeleteEventHandler()
-
-  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, }
-  ms.AfterFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, }
-
-  ms.BeforeCreate = []resource.DatabaseRequestInterceptor{permissionChecker, createHandler, }
-  ms.AfterCreate = []resource.DatabaseRequestInterceptor{permissionChecker, createHandler, }
-
-  ms.BeforeDelete = []resource.DatabaseRequestInterceptor{permissionChecker, deleteHandler, }
-  ms.AfterDelete = []resource.DatabaseRequestInterceptor{permissionChecker, deleteHandler, }
-
-  ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{permissionChecker, updateHandler, }
-  ms.AfterUpdate = []resource.DatabaseRequestInterceptor{permissionChecker, updateHandler, }
-
-  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, findOneHandler, }
-  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, findOneHandler, }
+  ms := GetMiddlewareSet()
 
   cruds = AddAllTablesToApi2Go(api, initConfig.Tables, db, &ms)
 
@@ -176,6 +154,34 @@ func Main(configFile string) {
 
 }
 
+func GetMiddlewareSet() resource.MiddlewareSet {
+
+  var ms resource.MiddlewareSet
+
+  permissionChecker := &resource.TableAccessPermissionChecker{}
+
+  findOneHandler := resource.NewFindOneEventHandler()
+  createHandler := resource.NewCreateEventHandler()
+  updateHandler := resource.NewUpdateEventHandler()
+  deleteHandler := resource.NewDeleteEventHandler()
+
+  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, }
+  ms.AfterFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, }
+
+  ms.BeforeCreate = []resource.DatabaseRequestInterceptor{permissionChecker, createHandler, }
+  ms.AfterCreate = []resource.DatabaseRequestInterceptor{permissionChecker, createHandler, }
+
+  ms.BeforeDelete = []resource.DatabaseRequestInterceptor{permissionChecker, deleteHandler, }
+  ms.AfterDelete = []resource.DatabaseRequestInterceptor{permissionChecker, deleteHandler, }
+
+  ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{permissionChecker, updateHandler, }
+  ms.AfterUpdate = []resource.DatabaseRequestInterceptor{permissionChecker, updateHandler, }
+
+  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, findOneHandler, }
+  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, findOneHandler, }
+  return ms
+}
+
 type ManualResponse struct {
   Data interface{}
 }
@@ -192,12 +198,10 @@ func GetActionList(typename string, initConfig *CmsConfig) []resource.Action {
   return actions
 }
 
-
 type JsModel struct {
   ColumnModel map[string]interface{}
   Actions     []resource.Action
 }
-
 
 func NewJsonApiRelation(name string, relationType string, columnType string) JsonApiRelation {
 
