@@ -47,7 +47,7 @@
         <div class="row">
           <div class="sixteen column">
             <!--{{selectedWorldColumns}}-->
-            <model-form @save="saveRow(selectedRow)" @cancel="showAddEdit = false" v-bind:model="selectedRow"
+            <model-form  :json-api="jsonApi"  @save="saveRow(selectedRow)" @cancel="showAddEdit = false" v-bind:model="selectedRow"
                         v-bind:meta="selectedWorldColumns" ref="modelform"></model-form>
           </div>
 

@@ -104,7 +104,11 @@ func Main() {
   }
 
   var initConfig CmsConfig
-  json.Unmarshal([]byte(contents), &initConfig)
+  err = json.Unmarshal([]byte(contents), &initConfig)
+  if err != nil {
+    log.Errorf("Failed to unmarshal json: %v", err)
+    return
+  }
   //log.Infof("Config: %v", initConfig)
 
 
@@ -127,6 +131,13 @@ func Main() {
 
   UpdateWorldTable(&initConfig, db)
   UpdateWorldColumnTable(&initConfig, db)
+
+  for _, t := range initConfig.Tables {
+    for _, c := range t.Columns {
+      log.Infof("Default values [%v][%v] : [%v]", t.TableName, c.ColumnName, c.DefaultValue)
+    }
+  }
+
   err = UpdateActionTable(&initConfig, db)
   CheckErr(err, "Failed to update action table")
 
@@ -203,21 +214,6 @@ type JsModel struct {
   Actions     []resource.Action
 }
 
-func NewJsonApiRelation(name string, relationType string, columnType string) JsonApiRelation {
-
-  return JsonApiRelation{
-    Type: name,
-    JsonApi: relationType,
-    ColumnType: columnType,
-  }
-
-}
-
-type JsonApiRelation struct {
-  JsonApi    string `json:"jsonApi,omitempty"`
-  ColumnType string `json:"columnType"`
-  Type       string `json:"type,omitempty"`
-}
 
 func AuthenticationFilter(c *gin.Context) {
 

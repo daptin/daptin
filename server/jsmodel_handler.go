@@ -5,41 +5,37 @@ import (
   "strings"
   log "github.com/Sirupsen/logrus"
   "github.com/artpar/gocms/datastore"
-  "errors"
-  "github.com/artpar/api2go"
 )
 
+var tableMap map[string]datastore.TableInfo
+
 func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
+  tableMap := make(map[string]datastore.TableInfo)
+  for _, table := range initConfig.Tables {
+
+    log.Infof("Default permission for [%v]: [%v]", table.TableName, table.Columns)
+
+    tableMap[table.TableName] = table
+  }
 
   return func(c *gin.Context) {
     typeName := strings.Split(c.Param("typename"), ".")[0]
-    //resource := resources[typeName]
-    var selectedTable *datastore.TableInfo
+    selectedTable, ok := tableMap[typeName]
 
-    for _, t := range initConfig.Tables {
-      if t.TableName == typeName {
-        selectedTable = &t
-        break
-      }
-    }
-
-    if selectedTable == nil {
+    if !ok {
       c.AbortWithStatus(404)
       return
     }
 
     log.Infof("data: %v", selectedTable.Relations)
 
-    if selectedTable == nil {
-      c.AbortWithError(404, errors.New("Invalid type"))
-      return
-    }
     cols := selectedTable.Columns
     actions := GetActionList(selectedTable.TableName, initConfig)
 
     res := map[string]interface{}{}
 
     for _, col := range cols {
+      log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue)
       if col.ColumnName == "deleted_at" {
         continue
       }
@@ -47,15 +43,11 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
         continue
       }
 
-      _, ok := api2go.EndsWith(col.ColumnName, "_id")
-      if ok && col.ColumnName != "reference_id" {
-        log.Infof("Column [%v] is relation ", col.ColumnName)
-        //res[typeOfOtherEntity] = NewJsonApiRelation(typeOfOtherEntity, "hasOne", "entity")
-      } else {
-        //res[col.ColumnName] = NewJsonApiRelation("", "", col.ColumnType)
-        res[col.ColumnName] = col
+      if col.IsForeignKey {
+        continue
       }
 
+      res[col.ColumnName] = col
     }
 
     for _, rel := range selectedTable.Relations {
@@ -93,3 +85,18 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
   }
 }
 
+func NewJsonApiRelation(name string, relationType string, columnType string) JsonApiRelation {
+
+  return JsonApiRelation{
+    Type: name,
+    JsonApi: relationType,
+    ColumnType: columnType,
+  }
+
+}
+
+type JsonApiRelation struct {
+  JsonApi    string `json:"jsonApi,omitempty"`
+  ColumnType string `json:"columnType"`
+  Type       string `json:"type,omitempty"`
+}

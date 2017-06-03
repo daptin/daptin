@@ -2,20 +2,62 @@
 
 
   <div class="ui">
+    <!-- ListView -->
 
-    <div v-if="!tableData || tableData.length == 0" class="ui column segment">
-      <h4> No {{jsonApiModelName}} </h4>
-      <el-button @click="reloadData()">Reload</el-button>
+    <div class="ui two column grid segment attached ">
+      <div class="one column wide left floated"><h4> {{jsonApiModelName | titleCase}} </h4></div>
+      <div class="one column wide right floated">
+
+        <div class="ui icon buttons">
+
+          <button type="button" class="right floated el-button ui button el-button--default" @click="reloadData()">
+            <span>
+              <i class="fa fa-refresh"></i>
+            </span>
+          </button>
+
+          <button type="button" class="right floated el-button ui button el-button--default"
+                  @click="showAddEdit = true">
+            <span>
+              <i class="fa fa-plus"></i>
+            </span>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div class="ui column" ng-if="tableData && tableData.length > 0">
+    <div class="ui column segment attached " v-if="showAddEdit">
 
-      <detailed-table-row :show-all="false" class="ui segment" :model="item" :json-api="jsonApi" :json-api-model-name="jsonApiModelName"
-                          v-for="item in tableData">
-      </detailed-table-row>
+      <select-one-or-more
+          :json-api="jsonApi" v-if="showSelect"
+          @save="saveRow"
+          :json-api-model-name="jsonApiModelName"
+          :model="model">
+      </select-one-or-more>
+
+      <model-form
+          :json-api="jsonApi"
+          @save="saveRow"
+          @cancel="cancel()"
+          :meta="meta" v-if="!showSelect"
+          :model="{}">
+      </model-form>
 
 
     </div>
+    <div class="ui column segment attached bottom" v-if="showAddEdit">
+      <button class="el-button ui button el-button--default orange" v-if="showSelect" @click="showSelect = false">
+        Create new {{jsonApiModelName | titleCase}}
+      </button>
+      <button class="el-button ui button el-button--default orange" v-if="!showSelect" @click="showSelect = true">
+        Search and add {{jsonApiModelName | titleCase}}
+      </button>
+
+    </div>
+
+    <detailed-table-row :show-all="false" :model="item" :json-api="jsonApi" :json-api-model-name="jsonApiModelName"
+                        v-for="item in tableData">
+    </detailed-table-row>
 
   </div>
 
@@ -27,6 +69,13 @@
 
   export default {
     name: 'table-view',
+    filters: {
+      titleCase: function (str) {
+        return str.replace(/[-_]/g, " ").split(' ')
+            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
+            .join(' ')
+      },
+    },
     props: {
       jsonApi: {
         type: Object,
@@ -56,11 +105,13 @@
         selectedWorldColumns: [],
         tableData: [],
         meta: null,
+        showSelect: true,
         selectedRow: {},
         displayData: [],
+        showAddEdit: false,
       }
     },
-    methods: {
+    filters: {
       chooseTitle: function (obj) {
 
         console.log("this, meta ", this.meta);
@@ -71,6 +122,27 @@
         return str.replace(/[-_]/g, " ").split(' ')
             .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
             .join(' ')
+      },
+    },
+    methods: {
+
+      saveRow(obj) {
+        var that = this;
+        if (obj["type"] && obj["id"]) {
+          console.log("add a to many relation", obj, this.model)
+          that.jsonApi.builderStack = this.finder;
+          that.jsonApi.patch(obj).then(function(){
+            console.log("success response", arguments)
+          }, function(){
+            console.log('error response', arguments)
+          });
+        } else {
+          console.log("add a new row")
+        }
+      },
+
+      cancel() {
+        this.showAddEdit = false;
       },
       onPaginationData (paginationData) {
         console.log("set pagifnation method", paginationData, this.$refs.pagination)
@@ -105,9 +177,6 @@
         console.log("data load failed", arguments)
       }
     },
-    reloadData() {
-      var that = this;
-    },
     mounted() {
       var that = this;
       that.meta = that.jsonApi.modelFor(that.jsonApiModelName)["attributes"];
@@ -117,6 +186,11 @@
 
       that.selectedWorld = that.jsonApiModelName;
       that.selectedWorldColumns = Object.keys(that.jsonApi.modelFor(that.jsonApiModelName)["attributes"])
+
+      if (this.autoload) {
+        that.reloadData()
+      }
+
     }
   }
 </script>

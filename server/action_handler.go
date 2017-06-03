@@ -52,15 +52,22 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
 
     if !permission.CanExecute(userReferenceId, userGroupReferenceIds) {
       c.AbortWithError(403, errors.New("Forbidden"))
+      return
     }
 
     if !cruds["world"].IsUserActionAllowed(userReferenceId, userGroupReferenceIds, actionRequest.Type, actionRequest.Action) {
       c.AbortWithError(403, errors.New("Forbidden"))
+      return
     }
 
     log.Infof("Handle event for [%v]", onEntity)
 
-    action := cruds["action"].GetActionByName(actionRequest.Type, actionRequest.Action)
+    action, err := cruds["action"].GetActionByName(actionRequest.Type, actionRequest.Action)
+
+    if err != nil {
+      c.AbortWithError(400, err)
+      return
+    }
 
     inFieldMap, err := GetValidatedInFields(actionRequest, action, obj)
 
@@ -78,15 +85,21 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
       context.Set(model.PlainRequest, "user_id_integer", context.Get(c.Request, "user_id_integer"))
       context.Set(model.PlainRequest, "usergroup_id", context.Get(c.Request, "usergroup_id"))
 
+      dbResource, ok := cruds[outcome.Type]
+      if !ok {
+        log.Errorf("No DbResource for type [%v]", outcome.Type)
+        continue
+      }
+
       switch outcome.Method {
       case "POST":
-        res, err = cruds[outcome.Type].Create(req, model)
+        res, err = dbResource.Create(req, model)
         break
       case "UPDATE":
-        res, err = cruds[outcome.Type].Update(req, model)
+        res, err = dbResource.Update(req, model)
         break
       case "DELETE":
-        res, err = cruds[outcome.Type].Delete(req.Data["reference_id"].(string), model)
+        res, err = dbResource.Delete(req.Data["reference_id"].(string), model)
         break
       case "EXECUTE":
         //res, err = cruds[outcome.Type].Create(req, model)
@@ -97,11 +110,10 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
         c.AbortWithError(500, errors.New("Invalid outcome"))
         return
       }
-
     }
 
     if err != nil {
-      c.AbortWithError(400, err)
+      c.AbortWithError(500, err)
       return
     }
 

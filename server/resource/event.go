@@ -39,20 +39,21 @@ func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Re
   var err error = nil
   log.Infof("context: %v", context.GetAll(req.PlainRequest))
 
-  log.Infof("Request to intercept: %v", req)
-  switch strings.ToLower(req.PlainRequest.Method) {
-  case "get":
+  reqmethod := req.PlainRequest.Method
+  log.Infof("Request to intercept: %v", reqmethod)
+  switch reqmethod  {
+  case "GET":
     break
-  case "post":
+  case "POST":
     break
-  case "update":
+  case "UPDATE":
     break
-  case "delete":
+  case "DELETE":
     break
-  case "patch":
+  case "PATCH":
     break
   default:
-    log.Errorf("Invalid method: %v", req.PlainRequest.Method)
+    log.Errorf("Invalid method: %v", reqmethod)
   }
 
   //currentUserId := context.Get(req.PlainRequest, "user_id").(string)

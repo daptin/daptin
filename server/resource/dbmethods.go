@@ -27,16 +27,16 @@ func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []a
 
 }
 
-func (dr *DbResource) GetActionByName(typeName string, actionName string) (Action) {
+func (dr *DbResource) GetActionByName(typeName string, actionName string) (Action, error) {
   var a ActionRow
 
-  err := dr.db.QueryRowx("select a.action_name as name, w.table_name as ontype, a.label, in_fields as infields, out_fields as outfields, a.reference_id as referenceid from action a join world w on w.id = a.world_id where w.table_name = ? and a.action_name = ?", typeName, actionName).StructScan(&a)
+  err := dr.db.QueryRowx("select a.action_name as name, w.table_name as ontype, a.label, in_fields as infields, out_fields as outfields, a.reference_id as referenceid from action a join world w on w.id = a.world_id where w.table_name = ? and a.action_name = ? and a.deleted_at is null limit 1", typeName, actionName).StructScan(&a)
+  var action Action
   if err != nil {
     log.Errorf("Failed to scan action: %", err)
+    return action, err
   }
 
-  var action Action
-  {}
   action.Name = a.Name
   action.Label = a.Name
   action.ReferenceId = a.ReferenceId
@@ -47,7 +47,7 @@ func (dr *DbResource) GetActionByName(typeName string, actionName string) (Actio
   err = json.Unmarshal([]byte(a.OutFields), &action.OutFields)
   CheckError(err, "failed to unmarshal outfields")
 
-  return action
+  return action, nil
 }
 
 func CheckError(err error, msg string) {

@@ -1,12 +1,13 @@
 <template>
 
   <div class="ui one column grid">
+    <!-- EventView -->
 
     <div class="ui column">
       <h3>{{action.label}}</h3>
     </div>
     <div class="ui column">
-      <model-form @save="doAction(data)" @cancel="cancel()" :meta="meta" :model.sync="data"
+      <model-form @save="doAction(data)" :json-api="jsonApi" @cancel="cancel()" :meta="meta" :model.sync="data"
                   v-if="data != null && meta != null"></model-form>
     </div>
 
@@ -48,8 +49,10 @@
         var that = this;
         console.log("perform action", actionData, this.model["id"], this.model)
         actionData[this.action.onType + "_id"] = this.model["id"]
-        this.actionManager.doAction(this.action.onType, this.action.name, actionData).then(function(){
+        this.actionManager.doAction(this.action.onType, this.action.name, actionData).then(function () {
           that.$emit("cancel");
+        }, function () {
+          console.log("not clearing out the form")
         });
       },
       cancel() {
@@ -60,24 +63,13 @@
       var modelName = "_actionmodel_" + this.action.name;
       console.log("render action ", this.action, " on ", this.model);
 
+      var meta = {};
 
-      var jsonApiModel = this.jsonApi.modelFor(modelName);
-      if (!jsonApiModel) {
-
-        var fieldMap = {};
-        for (var i = 0; i < this.action.fields.length; i++) {
-          fieldMap[this.action.fields[i].ColumnName] = this.action.fields[i];
-        }
-
-        jsonApiModel = GetJsonApiModel(fieldMap);
-        console.log("new json model defiintion ", jsonApiModel)
-        this.jsonApi.define(modelName, jsonApiModel);
-      } else {
-        jsonApiModel = jsonApiModel["attributes"];
+      for(var i=0;i<this.action.fields.length;i++) {
+        meta[this.action.fields[i].ColumnName] = this.action.fields[i]
       }
 
-      console.log("build meta", modelName, jsonApiModel)
-      this.meta = this.jsonApi.modelFor(modelName)["attributes"];
+      this.meta = meta;
     },
     watch: {},
   }

@@ -10,6 +10,7 @@ import ModelForm from './components/modelform/ModelForm.vue'
 import VuetablePagination from './components/vuetable/components/VuetablePagination.vue'
 import CustomActions from './components/detailrow/CustomActions.vue'
 import TableView from './components/tableview/TableView.vue'
+import SelectOneOrMore from './components/selectoneormore/SelectOneOrMore.vue'
 import ListView from './components/listview/ListView.vue'
 import EventView from './components/eventview/EventView.vue'
 import {Notification} from 'element-ui';
@@ -34,6 +35,7 @@ Vue.component('event-view', EventView);
 Vue.component('list-view', ListView);
 Vue.component('model-form', ModelForm);
 Vue.component("vuetable", Vuetable);
+Vue.component("select-one-or-more", SelectOneOrMore);
 Vue.component("detailed-table-row", DetailedRow);
 Vue.component("vuetable-pagination", VuetablePagination);
 
@@ -49,6 +51,22 @@ window.jsonApi = new JsonApi({
   pluralize: false,
 });
 
+
+// Add a response interceptor
+axios.interceptors.response.use(function (response) {
+  // Do something with response data
+  return response;
+}, function (error) {
+  // Do something with response error
+  if (error.response && error.response.status == 403) {
+    Notification.error({
+      "title": "Unauthorized",
+      "message": error.message
+    })
+  }
+  console.log("error", error)
+  return Promise.reject(error);
+});
 
 var ActionManager = function () {
 
@@ -178,7 +196,16 @@ jsonApi.insertMiddlewareAfter('response', {
 window.jsonApi.headers['Authorization'] = 'Bearer ' + localStorage.getItem('id_token');
 
 
+window.columnKeysCache = {};
+
 window.getColumnKeys = function (typeName, callback) {
+
+  if (window.columnKeysCache[typeName]) {
+    callback(window.columnKeysCache[typeName])
+    return
+  }
+
+
   jQuery.ajax({
     url: 'http://localhost:6336/jsmodel/' + typeName + ".js",
     headers: {
@@ -189,6 +216,7 @@ window.getColumnKeys = function (typeName, callback) {
         console.log("register actions", r.Actions)
         actionManager.addAllActions(r.Actions);
       }
+      window.columnKeysCache[typeName] = r;
       callback(r, e, s);
     },
     error: function (r, e, s) {
