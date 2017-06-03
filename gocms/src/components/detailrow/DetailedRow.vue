@@ -1,9 +1,9 @@
 <template>
 
 
-  <div class="ui column">
-
-    <div class="column" v-if="!showAll">
+  <div>
+  <!-- DetailRow -->
+    <div class="ui segment" v-if="!showAll">
       <div class="ui three column grid" v-if="truefalse.length > 0">
         <div class="column" v-for="tf in truefalse">
           <div class="ui checkbox">
@@ -16,51 +16,40 @@
 
       <div class="ui two column grid" v-for="col in normalFields" :id="col.name">
         <div class="uki column"><h5>{{col.label}}</h5></div>
-        <div :style="col.style" class="ui column description">{{col.value}}</div>
+
+        <div v-if="col.type != 'json'" :style="col.style" class="ui column description">{{col.value}}</div>
+        <pre v-if="col.type == 'json'" :style="col.style" class="ui column description">{{col.value}}</pre>
       </div>
 
 
     </div>
 
-    <el-tabs v-model="activeTabName" v-if="showAll">
-      <el-tab-pane :label="jsonApiModelName" name="first">
 
-
-        <div class="column ten wide">
-          <div class="ui three column grid" v-if="truefalse.length > 0">
-            <div class="column" v-for="tf in truefalse">
-              <div class="ui checkbox">
-                <input type="checkbox" :checked="tf.value" name="tf.name">
-                <label>{{tf.label}}</label>
-              </div>
-            </div>
-          </div>
-
-
+    <div class="ui sixteen wide column grid" v-if="showAll">
+      <div class="eight wide column">
+        <div class="ui segment">
           <div class="ui two column grid" v-for="col in normalFields" :id="col.name">
             <div class="ui column"><h5>{{col.label}}</h5></div>
-            <div :style="col.style" class="ui column description">{{col.value}}</div>
+
+            <div v-if="col.type != 'json'" :style="col.style" class="ui column description">{{col.value}}</div>
+            <pre v-if="col.type == 'json'" :style="col.style" class="ui column description"></pre>
           </div>
-
-
         </div>
-
-      </el-tab-pane>
-
-
-      <el-tab-pane :label="relation.name" :name="relation.name" v-for="relation in relations">
-        <div class="column six wide">
-
-          <!--<table-view :json-api="jsonApi"-->
-          <!--:json-api-model-name="relation.type" :autoload="false" :finder="relation.finder"></table-view>-->
-
-          <list-view :json-api="jsonApi"
-                     :json-api-model-name="relation.type" :autoload="false" :finder="relation.finder"></list-view>
+      </div>
 
 
-        </div>
-      </el-tab-pane>
-    </el-tabs>
+      <div class="eight wide column segment" v-for="relation in relations">
+
+        <!--<table-view :json-api="jsonApi"-->
+        <!--:json-api-model-name="relation.type" :autoload="false" :finder="relation.finder"></table-view>-->
+
+        <list-view :json-api="jsonApi"
+                   :json-api-model-name="relation.type" @addRow="addRow(row)" :autoload="true"
+                   :finder="relation.finder"></list-view>
+
+
+      </div>
+    </div>
 
 
   </div>
@@ -98,6 +87,20 @@
         }
       }
     },
+    filters: {
+      chooseTitle: function (obj) {
+        var keys = Object.keys(obj);
+        for (var i = 0; i < keys.length; i++) {
+          console.log("check key", keys[i],)
+          if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
+            console.log("title value", keys[i], obj[keys[i]], typeof obj[keys[i]])
+            return obj[keys[i]];
+          }
+        }
+        return obj["reference_id"];
+
+      }
+    },
     data () {
       return {
         meta: {},
@@ -122,8 +125,10 @@
           type: this.jsonApiModelName,
           id: this.model["reference_id"]
         };
-        console.log("save row", newRow.name, newRow.data)
         this.jsonApi.create(newRow.name, newRow.data)
+      },
+      addData: function (row) {
+        console.log("add row to parent", row)
       },
       titleCase: function (str) {
         return str.replace(/[-_]/g, " ").split(' ')
@@ -209,7 +214,7 @@
           if (item.type == "json") {
             item.originalValue = item.value;
             item.value = "";
-            item.style = "width: 500px; min-height: 300px;"
+            item.style = "width: 100%; min-height: 300px;"
           }
 
           if (item.name == "permission") {
@@ -248,7 +253,7 @@
       }
     }, // end: methods
     created () {
-      JSONEditor.defaults.options.theme = 'html';
+      JSONEditor.defaults.options.theme = 'bootstrap';
 
       this.init();
 
@@ -258,15 +263,10 @@
           var field = that.normalFields[i];
           if (field.type == "json") {
             var element = jQuery("#" + field.name).find(".description")[0];
-            console.log("element", element);
-            var editor = new JSONEditor(element, {
-              schema: {}
-            });
-            console.log("Set value", field);
-            editor.setValue(JSON.parse(field.originalValue));
+            element.innerText = JSON.stringify(JSON.parse(field.originalValue), null, 4);
           }
         }
-      }, 200)
+      }, 400)
 
     },
     watch: {

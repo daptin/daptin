@@ -2,6 +2,7 @@
 
 
   <div class="ui segment attached ">
+    <!-- TableView -->
 
     <vuetable-pagination ref="pagination" @change-page="onChangePage"></vuetable-pagination>
 

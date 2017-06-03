@@ -2,6 +2,7 @@
 
 
   <div class="ui three column grid">
+    <!-- Home -->
 
     <div class="two wide column">
       <div class="ui segment top attached">
@@ -42,7 +43,7 @@
 
     </div>
 
-    <div class="six wide column" v-if="selectedRow != null && selectedRow['id']">
+    <div class="fourteen wide column" v-if="selectedRow != null && selectedRow['id']">
 
       <div class="ui segment" v-if="selectedAction != null">
         <event-view @cancel="selectedAction = null" :action-manager="actionManager" :action="selectedAction"
@@ -50,7 +51,7 @@
       </div>
 
       <div class="ui segment" v-if="selectedRow != null">
-        <h2>{{selectedRow | labelForObject}}</h2>
+        <h2>{{selectedRow | chooseTitle | titleCase}}</h2>
       </div>
 
       <div class="ui segment" v-if="actions != null">
@@ -62,18 +63,16 @@
       </div>
 
 
-      <div class="ui segment">
-        <detailed-table-row :model="selectedRow" :json-api="jsonApi"
-                            :json-api-model-name="selectedWorld"></detailed-table-row>
-      </div>
+      <detailed-table-row :model="selectedRow" :json-api="jsonApi"
+                          :json-api-model-name="selectedWorld"></detailed-table-row>
 
 
     </div>
     <div class="fourteen wide column right floated" v-if="selectedWorld != null">
       <div class="ui segment attached top grid">
 
-        <div class="four wide column">
-          <h2>
+        <div class="four wide column left floated">
+          <h2 v-if="selectedSubTable">
             {{selectedSubTable | titleCase}}
             <!--<el-button @click="newRow()"><span class="fa fa-plus"></span></el-button>-->
           </h2>
@@ -98,11 +97,13 @@
           <div class="sixteen column">
             <!--{{selectedWorldColumns}}-->
 
-            <model-form @save="saveRow(selectedRow)" v-if="!selectedSubTable" @cancel="showAddEdit = false"
+            <model-form @save="saveRow(selectedRow)" :json-api="jsonApi" v-if="!selectedSubTable"
+                        @cancel="showAddEdit = false"
                         v-bind:model="selectedRow"
                         v-bind:meta="selectedWorldColumns" ref="modelform"></model-form>
 
-            <model-form @save="saveRow(selectedRow)" v-if="selectedSubTable" @cancel="showAddEdit = false"
+            <model-form @save="saveRow(selectedRow)" :json-api="jsonApi" v-if="selectedSubTable"
+                        @cancel="showAddEdit = false"
                         v-bind:model="selectedRow"
                         v-bind:meta="subTableColumns" ref="modelform"></model-form>
 
@@ -138,12 +139,21 @@
         if (!str) {
           return str;
         }
-        return str.replace(/[-_]/g, " ").split(' ')
+        return str.replace(/[-_]+/g, " ").split(' ')
             .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
       },
-      labelForObject: function (obj) {
-        console.log("label for ", obj);
-        return obj.name;
+      chooseTitle: function (obj) {
+        var keys = Object.keys(obj);
+        for (var i = 0; i < keys.length; i++) {
+          console.log("check key", keys[i],)
+          if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
+            console.log("title value", keys[i], obj[keys[i]], typeof obj[keys[i]])
+            return obj[keys[i]];
+          }
+        }
+        console.log("title value", "Reference id", obj)
+        return obj["type"] + " #" + obj["id"];
+
       }
     },
     props: {
@@ -258,14 +268,20 @@
           var all = jsonApi.all(tableName);
         } else {
           var all = jsonApi.one(that.selectedWorld, that.selectedInstanceReferenceId).all(that.selectedSubTable + "_id");
-          that.subTableColumns = jsonApi.modelFor(that.selectedSubTable)["attributes"];
+          window.getColumns(that.selectedSubTable, function (r) {
+            console.log("Set selected sub table columns", r.ColumnModel)
+            that.subTableColumns = r.ColumnModel;
+          });
           console.log("Set subtable columns: ", that.subTableColumns)
         }
 
 
         that.finder = all.builderStack;
         console.log("finder stack for this view table", that.selectedSubTable, that.selectedWorld, that.finder);
-        that.selectedWorldColumns = jsonApi.modelFor(tableName)["attributes"];
+        window.getColumnKeys(tableName, function (model) {
+          console.log("Set selected world columns", model.ColumnModel)
+          that.selectedWorldColumns = model.ColumnModel
+        });
 
 
         that.actions = that.actionManager.getActions(that.selectedWorld);
@@ -323,26 +339,14 @@
         var all = jsonApi.all(tableName);
         that.finder = all.builderStack;
         all.builderStack = [];
-        that.selectedWorldColumns = jsonApi.modelFor(tableName)["attributes"];
+        window.getColumnKeys(tableName, function (model) {
+          console.log("Set selected world columns", model.ColumnModel)
+          that.selectedWorldColumns = model.ColumnModel
+        });
       }
 
       if (that.$route.params.refId) {
         that.selectedInstanceReferenceId = that.$route.params.refId;
-      }
-
-      function getTitleForObject(type, obj) {
-        var model = jsonApi.modelFor(type)["attributes"];
-        var cols = Object.keys(model);
-        for (var i = 0; i < cols.length; i++) {
-          var colName = cols[i];
-          var colType = model[colName];
-          console.log("col info", colName, colType)
-          if (colType == "label" && obj[colName].length > 0) {
-            console.log("retur ", colName, obj)
-            return obj[colName];
-          }
-        }
-        return obj["id"];
       }
 
 
@@ -373,6 +377,8 @@
       '$route.params.tablename': function (to, from) {
         console.log("path changed", arguments);
         this.selectedWorld = to;
+        this.selectedRow = null;
+        this.showAddEdit = false;
         this.setTable(to);
       },
       '$route.params.refId': function (to, from) {

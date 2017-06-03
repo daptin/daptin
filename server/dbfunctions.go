@@ -15,54 +15,38 @@ import (
 
 func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
 
-  for _, table := range initConfig.Tables {
+  for i, table := range initConfig.Tables {
 
     var worldid int
 
     db.QueryRowx("select id from world where table_name = ? and deleted_at is null", table.TableName).Scan(&worldid);
 
-    for _, col := range table.Columns {
+    for j, col := range table.Columns {
 
-      /**
-      Name            string
-  ColumnName      string
-  ColumnType      string
-  IsPrimaryKey    bool
-  IsAutoIncrement bool
-  IsIndexed       bool
-  IsUnique        bool
-  IsNullable      bool
-  IsForeignKey    bool
-  ForeignKeyData  ForeignKeyData
-  DataType        string
-  DefaultValue    string
-       */
-      //var colInfo api2go.ColumnInfo
-      var count int
-      err := db.QueryRowx("select count(*) from world_column where world_id = ? and column_name = ? and deleted_at is null", worldid, col.ColumnName).Scan(&count)
-      if err != nil || count < 1 {
+      var colInfo api2go.ColumnInfo
+      err := db.QueryRowx("select name, is_unique, data_type, is_indexed, permission, column_type, column_name, is_nullable, default_value, is_primary_key, is_foreign_key, include_in_api, foreign_key_data, is_auto_increment from world_column where world_id = ? and column_name = ? and deleted_at is null", worldid, col.ColumnName).StructScan(&colInfo)
+      if err != nil {
+        log.Infof("Failed to scan world column: ", err)
         log.Infof("No existing row for TableColumn[%v][%v]: %v", table.TableName, col.ColumnName, err)
 
         mapData := make(map[string]interface{})
 
-        mapData["world_id"] = worldid;
-        mapData["reference_id"] = uuid.NewV4().String();
-        mapData["permission"] = 777;
         mapData["name"] = col.Name;
-
-        mapData["column_name"] = col.ColumnName;
-
-        mapData["column_type"] = col.ColumnType;
-        mapData["is_primary_key"] = col.IsPrimaryKey;
-        mapData["is_auto_increment"] = col.IsAutoIncrement;
-        mapData["is_indexed"] = col.IsIndexed;
+        mapData["world_id"] = worldid;
         mapData["is_unique"] = col.IsUnique;
+        mapData["data_type"] = col.DataType;
+        mapData["is_indexed"] = col.IsIndexed;
+        mapData["permission"] = 777;
+        mapData["column_type"] = col.ColumnType;
+        mapData["column_name"] = col.ColumnName;
         mapData["is_nullable"] = col.IsNullable;
+        mapData["reference_id"] = uuid.NewV4().String();
+        mapData["default_value"] = col.DefaultValue;
+        mapData["is_primary_key"] = col.IsPrimaryKey;
         mapData["is_foreign_key"] = col.IsForeignKey;
         mapData["include_in_api"] = col.IncludeInApi;
         mapData["foreign_key_data"] = col.ForeignKeyData.String();
-        mapData["data_type"] = col.DataType;
-        mapData["default_value"] = col.DefaultValue;
+        mapData["is_auto_increment"] = col.IsAutoIncrement;
 
         query, args, err := squirrel.Insert("world_column").SetMap(mapData).ToSql()
         if err != nil {
@@ -76,6 +60,9 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
           log.Errorf("Failed to insert new row in world_column: %v", err)
         }
 
+      } else {
+        log.Infof("Picked for from db [%v][%v] :  [%v]", table.TableName, colInfo.ColumnName, colInfo.DefaultValue)
+        initConfig.Tables[i].Columns[j] = colInfo
       }
 
     }
@@ -309,6 +296,14 @@ func CreateIndexes(initConfig *CmsConfig, db *sqlx.DB) {
     for _, column := range table.Columns {
 
       if column.IsUnique {
+        indexName := "index_" + table.TableName + "_" + column.ColumnName + "_index"
+        alterTable := "create unique index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
+        log.Infof("Create index sql: %v", alterTable)
+        _, err := db.Exec(alterTable)
+        if err != nil {
+          log.Infof("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
+        }
+      } else if column.IsIndexed {
         indexName := "index_" + table.TableName + "_" + column.ColumnName + "_index"
         alterTable := "create index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
         log.Infof("Create index sql: %v", alterTable)

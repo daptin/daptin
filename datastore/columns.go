@@ -297,9 +297,3 @@ type TableInfo struct {
   IsTopLevel        bool
   IsHidden          bool
 }
-
-
-func (t TableInfo) GetName() string {
-  return t.TableName
-}
-

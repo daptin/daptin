@@ -1,26 +1,15 @@
 <template>
 
   <div class="ui one column grid">
-    <!--<div class="ui segment top">-->
-    <!--<form class="form ui" @submit.prevent="saveRow(model)">-->
+    <div class="ui column" v-if="title">
+      {{title}}
+    </div>
 
-    <!--<div class="field" v-for="col in formBuildData">-->
-
-    <!--<label :for="col"> {{col.label}} </label>-->
-    <!--<input class="form-control" :id="col" :value="model[col.name]" v-model="model[col.name]">-->
-
-    <!--</div>-->
-    <!--<el-button @click.prevent="saveRow(model)">-->
-    <!--Save-->
-    <!--</el-button>-->
-    <!--<el-button @click="cancel()">Cancel</el-button>-->
-    <!--</form>-->
-    <!--</div>-->
     <div class="ui column">
-      <vue-form-generator :schema="formModel" :model.sync="localModel"></vue-form-generator>
+      <vue-form-generator :schema="formModel" :model.sync="model"></vue-form-generator>
     </div>
     <div class="ui column">
-      <el-button @click.prevent="saveRow(localModel)">
+      <el-button @click.prevent="saveRow()">
         Save
       </el-button>
       <el-button @click="cancel()">Cancel</el-button>
@@ -35,29 +24,32 @@
   import 'vue-form-generator/dist/vfg.css'
 
   export default {
-    props: [
-      "model",
-      "meta"
-    ],
+    props: {
+      jsonApi: {
+        type: Object,
+        required: true
+      },
+      model: {
+        type: Object,
+        required: false,
+      },
+      meta: {
+        type: Object,
+        required: false,
+      },
+      title: {
+        type: String,
+        required: false,
+      }
+    },
     components: {
       "vue-form-generator": VueFormGenerator.component
     },
     data: function () {
-//      console.log("this data", this);
-//      console.log(arguments);
-//      console.log(this.model);
       return {
-        currentElement: "el-input",
-        formBuildData: [],
-        previousSubmit: null,
         formModel: null,
-        localModel: null,
       }
     },
-    created () {
-      this.localModel = this.model;
-    },
-    computed: {},
     methods: {
       titleCase: function (str) {
         return str.replace(/[-_]/g, " ").split(' ')
@@ -67,91 +59,100 @@
       saveRow: function () {
         console.log("save row");
         this.$emit('save', this.model)
-        this.previousSubmit = this.model;
-        this.localModel = {};
+//        this.model = {};
       },
       cancel: function () {
         console.log("canel row");
         this.$emit('cancel')
       },
-      endsWith: function (str1, str2) {
-        if (str1.length < str2.length) {
-          return false;
+      titleCase: function (str) {
+        if (!str) {
+          return str;
         }
-        if (str1.substring(str1.length - str2.length) == str2) {
-          return true;
-        }
-        return false;
-      },
-      reinit: function () {
-        var that = this;
+        return str.replace(/[-_]/g, " ").split(' ')
+            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
 
-        var colKeys = Object.keys(this.meta);
-        var formModel = {fields: []};
-
-        console.log("model form", this.meta, that.model, that.model["arguments"]);
-
-        for (var i = 0; i < colKeys.length; i++) {
-
-          var column = colKeys[i];
-          var colMeta = this.meta[column];
-          var label = this.titleCase(column);
-          var formField = {
-            type: "input",
-            inputType: "text",
-            label: label,
-            model: column
-          };
-
-
-          if (!that.model[column]) {
-            that.model[column] = "";
-          }
-
-          if (typeof colMeta == "string") {
-            colMeta = {
-              name: column,
-              columnType: colMeta,
-            }
-          } else {
-            colMeta.name = column
-          }
-
-          if (colMeta.columnType == "datetime") {
-            continue;
-          }
-
-          if (colMeta.columnType == "entity") {
-            continue;
-          }
-
-          if (colMeta.name == "status" || colMeta.name == "pending" || colMeta.name == "permission" || colMeta.name == "reference_id") {
-            continue
-          }
-
-          if (colMeta.columnType == "content") {
-            formField.type = "textArea"
-            formField.rows = "5"
-          } else {
-            formField.type = "input"
-          }
-
-          if (colMeta.columnType == "label") {
-            formModel.fields.unshift(formField);
-          } else {
-
-            formModel.fields.push(formField);
-          }
-
-
-
-          console.log("that model", that.model)
-        }
-        that.formModel = formModel;
       }
     },
     mounted: function () {
-      this.reinit()
+      var that = this;
+      var formFields = [];
+      console.log("model form for ", this.meta);
+      var columns = Object.keys(this.meta);
+      that.formModel = {};
+
+
+      var skipColumns = [
+        "reference_id",
+        "id",
+        "updated_at",
+        "created_at",
+        "deleted_at",
+        "status",
+        "permission",
+        "user_id",
+        "usergroup_id"
+      ];
+
+      for (var i = 0; i < columns.length; i++) {
+
+        var columnName = columns[i];
+
+
+        var columnMeta = that.meta[columnName];
+
+        var columnLabel = that.titleCase(columns[i]);
+
+
+        if (columnMeta.columnType && columnMeta.columnType == "entity") {
+          console.log("Skip relation", columnName);
+          continue;
+        }
+
+
+        var hint = "";
+        skipColumns.indexOf(columnLabel.ColumnName)
+
+        if (columnMeta.DefaultValue) {
+          continue;
+        }
+
+        if (columnMeta.IsForeignKey) {
+          continue;
+        }
+
+        if (skipColumns.indexOf(columnName) > -1) {
+          continue
+        }
+
+        console.log("Add column model ", columnName, columnMeta);
+
+        var field = {
+          type: "input",
+          inputType: "text",
+          label: columnLabel,
+          model: columnMeta.ColumnName,
+          id: "id",
+          readonly: false,
+          value: columnName.DefaultValue,
+          featured: true,
+          disabled: false,
+          required: !columnName.IsNullable,
+          "default": columnName.DefaultValue,
+          validator: null,
+          onChanged: function (model, newVal, oldVal, field) {
+            console.log(`Model's name changed from ${oldVal} to ${newVal}. Model:`, model);
+          },
+          onValidated: function (model, errors, field) {
+            if (errors.length > 0)
+              console.warn("Validation error in Name field! Errors:", errors);
+          }
+        }
+        formFields.push(field)
+      }
+      console.log("all form fields", formFields)
+      that.formModel.fields = formFields;
+
     },
     watch: {},
   }
