@@ -54,22 +54,22 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
 
       if rel.GetSubject() == selectedTable.TableName {
         r := "hasMany"
-        if rel.GetRelation() == "belongs_to" {
+        if rel.GetRelation() == "belongs_to" || rel.GetRelation() == "has_one" {
           r = "hasOne"
         }
         res[rel.GetObjectName()] = NewJsonApiRelation(rel.GetObject(), r, "entity")
       } else {
-        if (rel.GetRelation() == "belongs_to") {
-          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetObject(), "hasMany", "entity")
+        if (rel.GetRelation() == "belongs_to" || rel.GetRelation() == "has_one") {
+          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasMany", "entity")
         } else {
-
+          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasMany", "entity")
         }
       }
     }
 
     jsModel := JsModel{
       ColumnModel: res,
-      Actions: actions,
+      Actions:     actions,
     }
 
     //res["__type"] = "string"
@@ -88,8 +88,8 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
 func NewJsonApiRelation(name string, relationType string, columnType string) JsonApiRelation {
 
   return JsonApiRelation{
-    Type: name,
-    JsonApi: relationType,
+    Type:       name,
+    JsonApi:    relationType,
     ColumnType: columnType,
   }
 
