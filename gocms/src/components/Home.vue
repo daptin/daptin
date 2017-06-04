@@ -184,6 +184,7 @@
         tableData: [],
         jsonApi: jsonApi,
         selectedRow: null,
+        finder: [],
         actionManager: actionManager,
         selectedInstanceReferenceId: null,
         selectedInstanceTitle: null,
@@ -236,10 +237,13 @@
         } else {
           var that = this;
           jsonApi.create(currentTableType, row).then(function () {
+            console.log("create complete", arguments)
             that.setTable();
             that.showAddEdit = false;
             that.$refs.tableview1.reloadData(currentTableType)
             that.$refs.tableview2.reloadData(currentTableType)
+          }, function (r) {
+            console.error(r)
           });
         }
 
@@ -358,7 +362,9 @@
       }).then(function (res) {
 
         console.log("worlds ", res)
-        that.world = res.sort(function (a, b) {
+        that.world = res.map(function (r) {
+          return r.toJSON();
+        }).sort(function (a, b) {
           if (a.table_name < b.table_name) {
             return -1;
           } else if (a.table_name > b.table_name) {
