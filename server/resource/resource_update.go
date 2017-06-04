@@ -6,6 +6,7 @@ import (
   "reflect"
   "gopkg.in/Masterminds/squirrel.v1"
   "time"
+  "errors"
 )
 
 // Update an object
@@ -26,8 +27,12 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
     }
   }
 
-  data := obj.(*api2go.Api2GoModel)
-  log.Infof("Update object request: %v", data)
+  data, ok := obj.(*api2go.Api2GoModel)
+  if !ok {
+    log.Errorf("Request data is not api2go model: %v", data)
+    return nil, errors.New("Invalid request");
+  }
+  log.Infof("Update object request: %v", data.Data)
   id := data.GetID()
 
   attrs := data.GetAllAsAttributes()
@@ -76,7 +81,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
       val = uId
     }
 
-    if ok  {
+    if ok {
       dataToInsert[col.ColumnName] = val
       colsList = append(colsList, col.ColumnName)
       valsList = append(valsList, val)
