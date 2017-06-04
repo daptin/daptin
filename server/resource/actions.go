@@ -7,6 +7,7 @@ import (
 type Outcome struct {
   Type       string `json:"type"`
   Method     string `json:"method"`
+  Reference  string
   Attributes map[string]string `json:"attributes"`
 }
 
@@ -33,4 +34,3 @@ type ActionRequest struct {
   Action     string
   Attributes map[string]interface{}
 }
-

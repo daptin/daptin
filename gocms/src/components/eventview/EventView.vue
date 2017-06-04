@@ -65,7 +65,7 @@
 
       var meta = {};
 
-      for(var i=0;i<this.action.fields.length;i++) {
+      for (var i = 0; i < this.action.fields.length; i++) {
         meta[this.action.fields[i].ColumnName] = this.action.fields[i]
       }
 

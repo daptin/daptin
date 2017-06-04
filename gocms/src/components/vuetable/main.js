@@ -1,17 +1,17 @@
-import Vue from 'vue'
-import Vuetable from './components/Vuetable.vue'
-import VuetablePagination from './components/VuetablePagination.vue'
-import VuetablePaginationDropdown from './components/VuetablePaginationDropdown.vue'
-import VuetablePaginationInfo from './components/VuetablePaginationInfo.vue'
+import Vue from "vue";
+import Vuetable from "./components/Vuetable.vue";
+import VuetablePagination from "./components/VuetablePagination.vue";
+import VuetablePaginationDropdown from "./components/VuetablePaginationDropdown.vue";
+import VuetablePaginationInfo from "./components/VuetablePaginationInfo.vue";
 
 let E_SERVER_ERROR = 'Error communicating with the server'
 
 Vue.component('custom-actions', {
   template: [
     '<div>',
-      '<button class="ui red button" @click="onClick(\'view-item\', rowData)"><i class="zoom icon"></i></button>',
-      '<button class="ui blue button" @click="onClick(\'edit-item\', rowData)"><i class="edit icon"></i></button>',
-      '<button class="ui green button" @click="onClick(\'delete-item\', rowData)"><i class="delete icon"></i></button>',
+    '<button class="ui red button" @click="onClick(\'view-item\', rowData)"><i class="zoom icon"></i></button>',
+    '<button class="ui blue button" @click="onClick(\'edit-item\', rowData)"><i class="edit icon"></i></button>',
+    '<button class="ui green button" @click="onClick(\'delete-item\', rowData)"><i class="delete icon"></i></button>',
     '</div>'
   ].join(''),
   props: {
@@ -115,8 +115,7 @@ Vue.component('settings-modal', {
   `,
   props: ['vuetableFields'],
   data () {
-    return {
-    }
+    return {}
   },
   methods: {
     getFieldTitle (field) {
@@ -125,14 +124,14 @@ Vue.component('settings-modal', {
       let title = ''
       if (field.name.slice(0, 2) === '__') {
         title = field.name.indexOf(':') >= 0
-          ? field.name.split(':')[1]
-          : field.name.replace('__', '')
+            ? field.name.split(':')[1]
+            : field.name.replace('__', '')
       }
 
       return title
     },
     stripHTML (str) {
-      return str ? str.replace(/(<([^>]+)>)/ig,"") : ''
+      return str ? str.replace(/(<([^>]+)>)/ig, "") : ''
     },
     toggleField (index, event) {
       console.log('toggleField: ', index, event.target.checked)
@@ -215,8 +214,8 @@ let vm = new Vue({
     fields: tableColumns,
     vuetableFields: false,
     sortOrder: [{
-        field: 'name',
-        direction: 'asc',
+      field: 'name',
+      direction: 'asc',
     }],
     multiSort: true,
     paginationComponent: 'vuetable-pagination',
@@ -225,12 +224,12 @@ let vm = new Vue({
   },
   watch: {
     'perPage' (val, oldVal) {
-      this.$nextTick(function() {
+      this.$nextTick(function () {
         this.$refs.vuetable.refresh()
       })
     },
     'paginationComponent' (val, oldVal) {
-      this.$nextTick(function() {
+      this.$nextTick(function () {
         this.$refs.pagination.setPaginationData(this.$refs.vuetable.tablePagination)
       })
     }
@@ -291,14 +290,14 @@ let vm = new Vue({
     },
     gender (value) {
       return value === 'M'
-        ? '<span class="ui teal label"><i class="male icon"></i>Male</span>'
-        : '<span class="ui pink label"><i class="female icon"></i>Female</span>'
+          ? '<span class="ui teal label"><i class="male icon"></i>Male</span>'
+          : '<span class="ui pink label"><i class="female icon"></i>Female</span>'
     },
     showDetailRow (value) {
       let icon = this.$refs.vuetable.isVisibleDetailRow(value) ? 'down' : 'right'
       return [
         '<a class="show-detail-row">',
-            '<i class="chevron circle ' + icon + ' icon"></i>',
+        '<i class="chevron circle ' + icon + ' icon"></i>',
         '</a>'
       ].join('')
     },
@@ -306,7 +305,7 @@ let vm = new Vue({
       this.moreParams = {
         'filter': this.searchFor
       }
-      this.$nextTick(function() {
+      this.$nextTick(function () {
         this.$refs.vuetable.refresh()
       })
     },
@@ -314,7 +313,7 @@ let vm = new Vue({
       this.searchFor = ''
       this.setFilter()
     },
-    preg_quote ( str ) {
+    preg_quote (str) {
       // http://kevin.vanzonneveld.net
       // +   original by: booeyOH
       // +   improved by: Ates Goral (http://magnetiq.com)
@@ -327,12 +326,12 @@ let vm = new Vue({
       // *     example 3: preg_quote("\\.+*?[^]$(){}=!<>|:");
       // *     returns 3: '\\\.\+\*\?\[\^\]\$\(\)\{\}\=\!\<\>\|\:'
 
-      return (str+'').replace(/([\\\.\+\*\?\[\^\]\$\(\)\{\}\=\!\<\>\|\:])/g, "\\$1");
+      return (str + '').replace(/([\\\.\+\*\?\[\^\]\$\(\)\{\}\=\!\<\>\|\:])/g, "\\$1");
     },
     highlight (needle, haystack) {
       return haystack.replace(
-        new RegExp('(' + this.preg_quote(needle) + ')', 'ig'),
-        '<span class="highlight">$1</span>'
+          new RegExp('(' + this.preg_quote(needle) + ')', 'ig'),
+          '<span class="highlight">$1</span>'
       )
     },
     rowClassCB (data, index) {

@@ -4,7 +4,8 @@
        :class="[css.linkClass, {[css.disabledClass] : isOnFirstPage}]">
       <i :class="css.icons.prev"></i>
     </a>
-    <select :class="['vuetable-pagination-dropdown', css.dropdownClass]" @change="loadPage($event.target.selectedIndex+1)">
+    <select :class="['vuetable-pagination-dropdown', css.dropdownClass]"
+            @change="loadPage($event.target.selectedIndex+1)">
       <option v-for="n in totalPage" :class="[css.pageClass]" :value="n" :selected="isCurrentPage(n)">
         {{pageText}} {{n}}
       </option>
@@ -17,29 +18,29 @@
 </template>
 
 <script>
-import PaginationMixin from './VuetablePaginationMixin.vue'
+  import PaginationMixin from './VuetablePaginationMixin.vue'
 
-export default {
-  mixins: [PaginationMixin],
-  props: {
-    pageText: {
-      type: String,
-      default () {
-        return 'Page'
+  export default {
+    mixins: [PaginationMixin],
+    props: {
+      pageText: {
+        type: String,
+        default () {
+          return 'Page'
+        }
       }
-    }
-  },
-  methods: {
-    registerEvents () {
-      let self = this
+    },
+    methods: {
+      registerEvents () {
+        let self = this
 
-      this.$on('vuetable:pagination-data', (tablePagination) => {
-        self.setPaginationData(tablePagination)
-      })
+        this.$on('vuetable:pagination-data', (tablePagination) => {
+          self.setPaginationData(tablePagination)
+        })
+      }
+    },
+    created () {
+      this.registerEvents()
     }
-  },
-  created () {
-    this.registerEvents()
   }
-}
 </script>

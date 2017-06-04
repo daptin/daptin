@@ -77,7 +77,7 @@ var StandardTables = []TableInfo{
         ColumnName: "table_name",
         IsNullable:false,
         IsUnique: true,
-        DataType: "varchar(30)",
+        DataType: "varchar(200)",
         ColumnType: "name",
       },
       {

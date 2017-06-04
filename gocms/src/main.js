@@ -186,6 +186,9 @@ jsonApi.insertMiddlewareBefore('response', {
             }
         }
         return payload
+    },
+    res: function(r){
+        return r
     }
 });
 
@@ -303,7 +306,7 @@ window.jsonDefine = {};
 window.columnKeysCache = {};
 
 window.getColumnKeys = function (typeName, callback) {
-
+    console.log("get column keys for ", typeName)
     if (window.columnKeysCache[typeName]) {
         callback(window.columnKeysCache[typeName]);
         return
@@ -360,26 +363,18 @@ let v2 = typeof v1;
 
 if (v1 != "undefined") {
     // console.log("it is not undefined");
+    lock = new Auth0Lock('edsjFX3nR9fqqpUi4kRXkaKJefzfRaf_', 'gocms.auth0.com', {
+        auth: {
+            redirectUrl: 'http://localhost:8080/#/',
+            responseType: 'token',
+            params: {
+                scope: 'openid email' // Learn about scopes: https://auth0.com/docs/scopes
+            }
+        }
+    });
 
 } else {
 
-    var auth0 = jQuery("<script></script>");
-    auth0.attr("src", "https://cdn.auth0.com/js/lock/10.15/lock.min.js");
-    auth0.ready = function () {
-        console.log("script load complete");
-
-        lock = new Auth0Lock('edsjFX3nR9fqqpUi4kRXkaKJefzfRaf_', 'gocms.auth0.com', {
-            auth: {
-                redirectUrl: 'http://localhost:8080/#/',
-                responseType: 'token',
-                params: {
-                    scope: 'openid email' // Learn about scopes: https://auth0.com/docs/scopes
-                }
-            }
-        });
-
-    };
-    jQuery.find("body")[0].append(auth0);
 
 
     lock = {
@@ -428,7 +423,7 @@ lock.on('authorization_error', (error) => {
 function startApp() {
     // console.log("Start app")
 
-  /* eslint-disable no-new */
+    /* eslint-disable no-new */
     new Vue({
         el: '#app',
         router,

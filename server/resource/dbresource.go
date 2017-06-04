@@ -9,18 +9,20 @@ import (
 type DbResource struct {
   model        *api2go.Api2GoModel
   db           *sqlx.DB
+  cruds        map[string]*DbResource
   ms           *MiddlewareSet
   contextCache map[string]interface{}
 }
 
-func NewDbResource(model *api2go.Api2GoModel, db *sqlx.DB, ms *MiddlewareSet) *DbResource {
+func NewDbResource(model *api2go.Api2GoModel, db *sqlx.DB, ms *MiddlewareSet, cruds map[string]*DbResource) *DbResource {
   cols := model.GetColumns()
   model.SetColumns(cols)
   log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
   return &DbResource{
-    model: model,
-    db: db,
-    ms: ms,
+    model:        model,
+    db:           db,
+    ms:           ms,
+    cruds:        cruds,
     contextCache: make(map[string]interface{}),
   }
 }

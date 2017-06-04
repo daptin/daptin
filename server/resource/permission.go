@@ -40,7 +40,7 @@ func (p1 Permission) CheckBit(userId string, usergroupId []auth.GroupPermission,
       if uid.ReferenceId == gid.ReferenceId {
         p := (gid.Permission % 100) / 10
         p = p % 10
-        log.Infof("Check against group: %v", p)
+        log.Infof("Check against group [%v]: %v", gid.ReferenceId, p)
         return (p & bit) == bit
       }
     }

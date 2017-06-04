@@ -4,9 +4,8 @@
     <div class="ui column" v-if="title">
       {{title}}
     </div>
-
     <div class="ui column">
-      <vue-form-generator :schema="formModel" :model.sync="model"></vue-form-generator>
+      <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
     </div>
     <div class="ui column">
       <el-button @click.prevent="saveRow()">
@@ -25,17 +24,20 @@
 
   export default {
     props: {
+      model: {
+        type: Object,
+        required: false,
+        default: function () {
+          return {}
+        }
+      },
       jsonApi: {
         type: Object,
         required: true
       },
-      model: {
-        type: Object,
-        required: false,
-      },
       meta: {
         type: Object,
-        required: false,
+        required: true,
       },
       title: {
         type: String,
@@ -48,6 +50,7 @@
     data: function () {
       return {
         formModel: null,
+        formValue: {},
       }
     },
     methods: {
@@ -57,9 +60,8 @@
             ).join(' ')
       },
       saveRow: function () {
-        console.log("save row");
+        console.log("save row", this.model);
         this.$emit('save', this.model)
-//        this.model = {};
       },
       cancel: function () {
         console.log("canel row");
@@ -77,6 +79,9 @@
     mounted: function () {
       var that = this;
       var formFields = [];
+      console.log("that mode", that.model)
+      that.formValue = that.model;
+
       console.log("model form for ", this.meta);
       var columns = Object.keys(this.meta);
       that.formModel = {};
@@ -154,6 +159,12 @@
       that.formModel.fields = formFields;
 
     },
-    watch: {},
+    watch: {
+      "model": function () {
+        var that = this;
+        console.log("moidel changed", that.model)
+        that.formValue = that.model;
+      }
+    },
   }
 </script>s

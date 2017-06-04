@@ -384,6 +384,7 @@
       '$route.params.refId': function (to, from) {
         var that = this;
         console.log("refId changed", arguments);
+        this.showAddEdit = false;
         this.selectedInstanceReferenceId = to;
         var that = this;
         if (!to) {
@@ -398,6 +399,7 @@
       },
       '$route.params.subTable': function (to, from) {
         var that = this;
+        this.showAddEdit = false;
         console.log("subTable  changed", arguments);
         this.selectedSubTable = to;
         this.setTable();
