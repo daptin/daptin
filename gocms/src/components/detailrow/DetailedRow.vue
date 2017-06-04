@@ -27,7 +27,12 @@
 
     <div class="ui sixteen wide column grid" v-if="showAll">
       <div class="eight wide column">
-        <div class="ui segment">
+        <div class="ui two column grid segment attached ">
+          <div class="one column wide left floated"><h4> {{jsonApiModelName | titleCase}} </h4></div>
+        </div>
+
+
+        <div class="ui segment attached bottom">
           <div class="ui two column grid" v-for="col in normalFields" :id="col.name">
             <div class="ui column"><h5>{{col.label}}</h5></div>
 

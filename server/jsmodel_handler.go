@@ -59,8 +59,10 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
         }
         res[rel.GetObjectName()] = NewJsonApiRelation(rel.GetObject(), r, "entity")
       } else {
-        if (rel.GetRelation() == "belongs_to" || rel.GetRelation() == "has_one") {
+        if (rel.GetRelation() == "belongs_to") {
           res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasMany", "entity")
+        } else if rel.GetRelation() == "has_one" {
+          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasOne", "entity")
         } else {
           res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasMany", "entity")
         }

@@ -4,7 +4,7 @@
   <div class="ui">
     <!-- ListView -->
 
-    <div class="ui two column grid segment attached ">
+    <div class="ui two column grid attached top segment">
       <div class="one column wide left floated"><h4> {{jsonApiModelName | titleCase}} </h4></div>
       <div class="one column wide right floated">
 
@@ -26,7 +26,7 @@
       </div>
     </div>
 
-    <div class="ui column segment attached " v-if="showAddEdit && meta">
+    <div class="ui column segment attached" v-if="showAddEdit && meta">
 
       <select-one-or-more
           :json-api="jsonApi" v-if="showSelect"
@@ -43,7 +43,7 @@
 
 
     </div>
-    <div class="ui column segment attached" v-if="showAddEdit">
+    <div class="ui column segment attached bottom" v-if="showAddEdit">
       <button class="el-button ui button el-button--default orange" v-if="showSelect" @click="showSelect = false">
         Create new {{jsonApiModelName | titleCase}}
       </button>
@@ -53,7 +53,7 @@
 
     </div>
 
-    <detailed-table-row :show-all="false" :model="item" :json-api="jsonApi" :json-api-model-name="jsonApiModelName"
+    <detailed-table-row class="ui column segment attached bottom" :show-all="false" :model="item" :json-api="jsonApi" :json-api-model-name="jsonApiModelName"
                         v-for="item in tableData">
     </detailed-table-row>
 

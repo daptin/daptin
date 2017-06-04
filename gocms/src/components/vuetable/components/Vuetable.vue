@@ -453,9 +453,6 @@
         )
       },
       loadSuccess (response) {
-        response = response.map(function (r) {
-          return r.toJSON();
-        })
         console.log("load success", response);
         this.emit1('load-success', response);
 

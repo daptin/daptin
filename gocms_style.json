@@ -94,7 +94,6 @@
       "name": "new_order",
       "label": "Create a new order for the style",
       "onType": "style",
-      "reference": "style1",
       "fields": [
         {
           "columnName": "vendor",
@@ -121,16 +120,16 @@
           "method": "POST",
           "reference": "order1",
           "attributes": {
-            "vendor_id": "$vendor1.id",
+            "vendor_id": "$vendor1.reference_id",
             "quantity": "quantity"
           }
         },
         {
-          "type": "style_has_orders",
+          "type": "style_style_id_has_orders_orders_id",
           "method": "POST",
           "attributes": {
-            "order_id": "$order1.id",
-            "style_id": "$style1.id"
+            "orders_id": "$order1.reference_id",
+            "style_id": "$.reference_id"
           }
         }
       ]
