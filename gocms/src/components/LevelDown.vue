@@ -157,6 +157,12 @@
         page: {number: 1, size: 50},
         include: ['world_column']
       }).then(function (res) {
+
+
+        res = res.map(function(r){
+          return r.toJSON();
+        });
+
         for (var t = 0; t < res.length; t++) {
 
 

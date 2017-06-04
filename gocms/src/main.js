@@ -51,7 +51,7 @@ window.actionRoot = "http://localhost:6336/action";
 //   pluralize: false,
 // });
 
-window.jsonApi = new JsonapiClient(window.apiRoot, {
+window.jsonApiClient = new JsonapiClient(window.apiRoot, {
   header: {
     Authorization: "Bearer " + window.localStorage.getItem("id_token")
   }
@@ -202,11 +202,90 @@ var requests = {};
 // window.jsonApi.headers['Authorization'] = 'Bearer ' + localStorage.getItem('id_token');
 
 
+window.jsonApi = {};
+
 window.jsonDefine = {};
 
 jsonApi.define = function (typeName, attributes) {
   // console.log("catch define call", typeName, attributes);
   window.jsonDefine[typeName] = attributes;
+}
+
+jsonApi.findAll = function (type, opts) {
+  console.log("find all ", arguments)
+  return jsonApiClient.find(type, opts)
+}
+
+jsonApi.find = function (type, opts) {
+  console.log("find all ", arguments)
+  return jsonApiClient.find(type, opts)
+}
+
+jsonApi.builderStack = [];
+jsonApi.all = function (type) {
+  jsonApi.builderStack.push({
+    type: type
+  })
+  console.log("json api all call 1", jsonApi.builderStack)
+  return this
+}
+jsonApi.one = function (type, id) {
+  jsonApi.builderStack.push({
+    type: type,
+    id: id
+  })
+  console.log("json api one call", jsonApi.builderStack)
+  return this
+}
+
+jsonApi.get = function (params) {
+  console.log("jsonapi get call with params: ", jsonApi.builderStack, params)
+  var stack = jsonApi.builderStack
+  jsonApi.builderStack = [];
+  if (stack.length == 0) {
+    console.error("Stack is empty")
+    return null
+  }
+
+  var res = null;
+  if (stack.id) {
+    res = jsonApiClient.find(stack[0].type, stack[0].id);
+  } else {
+    res = jsonApiClient.find(stack[0].type, params);
+  }
+
+  for (var i = 1; i < stack.length; i++) {
+    res = res.fetch(stack[i].type, stack[i].id)
+  }
+
+
+  console.log("json api one call", stack)
+  return res
+}
+
+
+jsonApi.create = function (type, rowData) {
+  console.log("Create object", type, rowData);
+  var newObject = jsonApiClient.create(type);
+
+  var columns = Object.keys(rowData);
+
+  for (var i = 0; i < columns.length; i++) {
+    var column = columns[i];
+    var colValue = rowData[column];
+    var typeOfColumn = typeof colValue;
+    console.log("column ", column, colValue);
+    if (typeOfColumn == "object") {
+      newObject.set(column, colValue)
+    } else if (typeOfColumn == "array") {
+      newObject.relationships(column).add(colValue)
+    } else {
+      newObject.set(column, colValue)
+    }
+  }
+  console.log("sync object", newObject)
+  window.obj = newObject;
+  return newObject.sync();
 }
 
 
