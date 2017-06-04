@@ -77,13 +77,13 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
       return
     }
 
+    inFieldMap[""] = obj
+
     var res api2go.Responder
 
     for _, outcome := range action.OutFields {
 
       req, model := BuildOutcome(action.OnType, inFieldMap, outcome)
-
-      inFieldMap[outcome.Reference] = req.Data
 
       context.Set(model.PlainRequest, "user_id", context.Get(c.Request, "user_id"))
       context.Set(model.PlainRequest, "user_id_integer", context.Get(c.Request, "user_id_integer"))
@@ -114,6 +114,8 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
         c.AbortWithError(500, errors.New("Invalid outcome"))
         return
       }
+      inFieldMap[outcome.Reference] = res.Result().(*api2go.Api2GoModel).Data
+
     }
 
     if err != nil {
@@ -132,26 +134,24 @@ func BuildOutcome(onType string, inFieldMap map[string]interface{}, outcome reso
 
   for key, field := range outcome.Attributes {
 
-    if key[0] == '$' {
+    if field[0] == '$' {
 
-      keyParts := strings.Split(key[1:], ".")
+      fieldParts := strings.Split(field[1:], ".")
 
-      var value interface{}
+      var finalValue interface{}
 
-      value = inFieldMap
-      for i := 0; i < len(keyParts)-1; i++ {
-        key := keyParts[i]
-        value = value.(map[string]interface{})[key]
+      finalValue = inFieldMap
+      for i := 0; i < len(fieldParts)-1; i++ {
+        fieldPart := fieldParts[i]
+        finalValue = finalValue.(map[string]interface{})[fieldPart]
       }
-      value = value.(map[string]interface{})[key]
-      data[key] = value
+      finalValue = finalValue.(map[string]interface{})[fieldParts[len(fieldParts)-1]]
+      data[key] = finalValue
     } else {
       data[key] = inFieldMap[field]
     }
 
   }
-
-  data[onType+"_id"] = inFieldMap[onType+"_id"]
 
   model := api2go.NewApi2GoModelWithData(outcome.Type, nil, 755, nil, data)
 

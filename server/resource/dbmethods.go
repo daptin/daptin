@@ -187,7 +187,7 @@ func (dr *DbResource) GetObjectGroupsByWhere(objType string, colName string, col
 
   log.Infof("Join string: %v: ", rel.GetJoinString())
 
-  sql := fmt.Sprintf("select usergroup.reference_id as referenceid, j1.permission from style join %s  where style.%s = ?", rel.GetJoinString(), colName)
+  sql := fmt.Sprintf("select usergroup.reference_id as referenceid, j1.permission from %s join %s  where %s.%s = ?", rel.Subject, rel.GetJoinString(), rel.Subject, colName)
   log.Infof("Group select sql: %v", sql)
   res, err := dr.db.Queryx(sql, colvalue)
   if err != nil {

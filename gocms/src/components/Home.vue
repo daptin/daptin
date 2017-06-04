@@ -306,7 +306,7 @@
     },
     computed: {
       visibleWorlds: function () {
-
+        console.log("get visible worlds", this.world, "0")
         var that = this;
 
         return this.world.filter(function (w, r) {
@@ -362,9 +362,7 @@
       }).then(function (res) {
 
         console.log("worlds ", res)
-        that.world = res.map(function (r) {
-          return r.toJSON();
-        }).sort(function (a, b) {
+        that.world = res.sort(function (a, b) {
           if (a.table_name < b.table_name) {
             return -1;
           } else if (a.table_name > b.table_name) {
