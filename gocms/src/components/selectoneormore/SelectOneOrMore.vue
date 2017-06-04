@@ -114,6 +114,11 @@
           size: 20,
           query: query
         }).then(function (data) {
+
+          data = data.map(function(r){
+            return r.toJSON();
+          });
+
           for (var i = 0; i < data.length; i++) {
             data[i].label = that.chooseTitle(data[i])
             data[i].value = data[i]["id"]
