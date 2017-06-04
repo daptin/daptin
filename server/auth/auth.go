@@ -142,7 +142,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
         mapData["name"] = email
         mapData["email"] = email
 
-        newUser := api2go.NewApi2GoModelWithData("user", nil, 644, nil, mapData)
+        newUser := api2go.NewApi2GoModelWithData("user", nil, 755, nil, mapData)
 
         req := api2go.Request{
           PlainRequest: &http.Request{
@@ -161,7 +161,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
         mapData = make(map[string]interface{})
         mapData["name"] = "Home group for  user " + email
 
-        newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, 644, nil, mapData)
+        newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, 755, nil, mapData)
 
         resp, err = a.userGroupCrud.Create(newUserGroup, req)
         if err != nil {
@@ -174,13 +174,13 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
         mapData["user_id"] = referenceId
         mapData["usergroup_id"] = userGroupId
 
-        newUserUserGroup := api2go.NewApi2GoModelWithData("user_has_usergroup", nil, 644, nil, mapData)
+        newUserUserGroup := api2go.NewApi2GoModelWithData("user_user_id_has_usergroup_usergroup_id", nil, 755, nil, mapData)
 
         uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req)
         log.Infof("Userug: %v", uug)
 
       } else {
-        rows, err := a.db.Queryx("select ug.reference_id as referenceid, uug.permission from usergroup ug join user_has_usergroup uug on uug.usergroup_id = ug.id where uug.user_id = ?", userId)
+        rows, err := a.db.Queryx("select ug.reference_id as referenceid, uug.permission from usergroup ug join user_user_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id where uug.user_id = ?", userId)
         if err != nil {
           log.Errorf("Failed to get user group permissions: %v", err)
         } else {

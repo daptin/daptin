@@ -12,6 +12,7 @@ import (
   "net/http"
   "errors"
   "fmt"
+  "strings"
 )
 
 func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
@@ -38,7 +39,7 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
       },
     }
 
-    referencedObject, err := cruds[actionRequest.Type].FindOne(actionRequest.Attributes[actionRequest.Type + "_id"].(string), req)
+    referencedObject, err := cruds[actionRequest.Type].FindOne(actionRequest.Attributes[actionRequest.Type+"_id"].(string), req)
 
     if err != nil {
       c.Error(err)
@@ -81,6 +82,9 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
     for _, outcome := range action.OutFields {
 
       req, model := BuildOutcome(action.OnType, inFieldMap, outcome)
+
+      inFieldMap[outcome.Reference] = req.Data
+
       context.Set(model.PlainRequest, "user_id", context.Get(c.Request, "user_id"))
       context.Set(model.PlainRequest, "user_id_integer", context.Get(c.Request, "user_id_integer"))
       context.Set(model.PlainRequest, "usergroup_id", context.Get(c.Request, "usergroup_id"))
@@ -127,12 +131,29 @@ func BuildOutcome(onType string, inFieldMap map[string]interface{}, outcome reso
   data := make(map[string]interface{})
 
   for key, field := range outcome.Attributes {
-    data[key] = inFieldMap[field]
+
+    if key[0] == '$' {
+
+      keyParts := strings.Split(key[1:], ".")
+
+      var value interface{}
+
+      value = inFieldMap
+      for i := 0; i < len(keyParts)-1; i++ {
+        key := keyParts[i]
+        value = value.(map[string]interface{})[key]
+      }
+      value = value.(map[string]interface{})[key]
+      data[key] = value
+    } else {
+      data[key] = inFieldMap[field]
+    }
+
   }
 
-  data[onType + "_id"] = inFieldMap[onType + "_id"]
+  data[onType+"_id"] = inFieldMap[onType+"_id"]
 
-  model := api2go.NewApi2GoModelWithData(outcome.Type, nil, 644, nil, data)
+  model := api2go.NewApi2GoModelWithData(outcome.Type, nil, 755, nil, data)
 
   req := api2go.Request{
     PlainRequest: &http.Request{
@@ -159,6 +180,6 @@ func GetValidatedInFields(actionRequest resource.ActionRequest, action resource.
     }
   }
 
-  finalDataMap[actionRequest.Type + "_id"] = referencedObject["reference_id"]
+  finalDataMap[actionRequest.Type+"_id"] = referencedObject["reference_id"]
   return finalDataMap, nil
 }

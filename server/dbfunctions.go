@@ -20,7 +20,6 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
     var worldid int
 
     db.QueryRowx("select id from world where table_name = ? and deleted_at is null", table.TableName).Scan(&worldid);
-
     for j, col := range table.Columns {
 
       var colInfo api2go.ColumnInfo
@@ -47,7 +46,6 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
         mapData["include_in_api"] = col.IncludeInApi;
         mapData["foreign_key_data"] = col.ForeignKeyData.String();
         mapData["is_auto_increment"] = col.IsAutoIncrement;
-
         query, args, err := squirrel.Insert("world_column").SetMap(mapData).ToSql()
         if err != nil {
           log.Errorf("Failed to create insert query: %v", err)
@@ -217,11 +215,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
     CheckErr(err, "Failed to user group")
 
     refIf := uuid.NewV4().String()
-    _, err := tx.Exec("insert into user_has_usergroup (user_id, usergroup_id, permission, reference_id) value (?,?,755, ?)", userId, userGroupId, refIf)
+    _, err := tx.Exec("insert into user_user_id_has_usergroup_usergroup_id (user_id, usergroup_id, permission, reference_id) value (?,?,755, ?)", userId, userGroupId, refIf)
     CheckErr(err, "Failed to insert user has usergroup")
-
-
-
 
     //tx.Exec("update user set user_id = ?, usergroup_id = ?", userId, userGroupId)
     //tx.Exec("update usergroup set user_id = ?, usergroup_id = ?", userId, userGroupId)
@@ -257,9 +252,9 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
       continue
     }
 
-    _, err = tx.Exec("insert into world (table_name, schema_json, permission, reference_id, default_permission, user_id, is_top_level, is_hidden) value (?,?,777, ?, 644, ?, ?, ?)", table.TableName, string(schema), refId, userId, table.IsTopLevel, table.IsHidden)
-    CheckErr(err, "Failed to insert into world table about " + table.TableName)
-    initConfig.Tables[i].DefaultPermission = 644
+    _, err = tx.Exec("insert into world (table_name, schema_json, permission, reference_id, default_permission, user_id, is_top_level, is_hidden) value (?,?,777, ?, 755, ?, ?, ?)", table.TableName, string(schema), refId, userId, table.IsTopLevel, table.IsHidden)
+    CheckErr(err, "Failed to insert into world table about "+table.TableName)
+    initConfig.Tables[i].DefaultPermission = 755
 
   }
 
@@ -384,13 +379,13 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       }
 
       col := api2go.ColumnInfo{
-        Name: relation.GetObject(),
-        ColumnName: relation.GetObjectName(),
+        Name:         relation.GetObject(),
+        ColumnName:   relation.GetObjectName(),
         IsForeignKey: true,
-        ColumnType: "alias",
-        IsNullable: isNullable,
+        ColumnType:   "alias",
+        IsNullable:   isNullable,
         ForeignKeyData: api2go.ForeignKeyData{
-          TableName: targetTable,
+          TableName:  targetTable,
           ColumnName: "id",
         },
         DataType: "int(11)",
@@ -418,17 +413,17 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       targetTable := relation.GetObject()
 
       newTable := datastore.TableInfo{
-        TableName: fromTable + "_has_" + targetTable,
-        Columns: make([]api2go.ColumnInfo, 0),
+        TableName: relation.GetJoinTableName(),
+        Columns:   make([]api2go.ColumnInfo, 0),
       }
 
       col1 := api2go.ColumnInfo{
-        Name: fromTable + "_id",
-        ColumnName: relation.GetSubjectName(),
-        ColumnType: "alias",
+        Name:         fromTable + "_id",
+        ColumnName:   relation.GetSubjectName(),
+        ColumnType:   "alias",
         IsForeignKey: true,
         ForeignKeyData: api2go.ForeignKeyData{
-          TableName: fromTable,
+          TableName:  fromTable,
           ColumnName: "id",
         },
         DataType: "int(11)",
@@ -437,12 +432,12 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       newTable.Columns = append(newTable.Columns, col1)
 
       col2 := api2go.ColumnInfo{
-        Name: targetTable + "_id",
-        ColumnName: relation.GetObjectName(),
-        ColumnType: "alias",
+        Name:         targetTable + "_id",
+        ColumnName:   relation.GetObjectName(),
+        ColumnType:   "alias",
         IsForeignKey: true,
         ForeignKeyData: api2go.ForeignKeyData{
-          TableName: targetTable,
+          TableName:  targetTable,
           ColumnName: "id",
         },
         DataType: "int(11)",
@@ -461,17 +456,17 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       targetTable := relation.GetObject()
 
       newTable := datastore.TableInfo{
-        TableName: fromTable + "_" + targetTable,
-        Columns: make([]api2go.ColumnInfo, 0),
+        TableName: relation.GetSubjectName() + "_" + relation.GetObjectName(),
+        Columns:   make([]api2go.ColumnInfo, 0),
       }
 
       col1 := api2go.ColumnInfo{
-        Name: relation.GetSubjectName(),
-        ColumnName: relation.GetSubjectName(),
+        Name:         relation.GetSubjectName(),
+        ColumnName:   relation.GetSubjectName(),
         IsForeignKey: true,
-        ColumnType: "alias",
+        ColumnType:   "alias",
         ForeignKeyData: api2go.ForeignKeyData{
-          TableName: fromTable,
+          TableName:  fromTable,
           ColumnName: "id",
         },
         DataType: "int(11)",
@@ -480,12 +475,12 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       newTable.Columns = append(newTable.Columns, col1)
 
       col2 := api2go.ColumnInfo{
-        Name: relation.GetObject(),
-        ColumnName: relation.GetObjectName(),
-        ColumnType: "alias",
+        Name:         relation.GetObject(),
+        ColumnName:   relation.GetObjectName(),
+        ColumnType:   "alias",
         IsForeignKey: true,
         ForeignKeyData: api2go.ForeignKeyData{
-          TableName: targetTable,
+          TableName:  targetTable,
           ColumnName: "id",
         },
         DataType: "int(11)",
@@ -667,10 +662,9 @@ func getColumnLine(c *api2go.ColumnInfo) string {
   }
 
   if c.DefaultValue != "" {
-    columnParams = append(columnParams, "default " + c.DefaultValue)
+    columnParams = append(columnParams, "default "+c.DefaultValue)
   }
 
   columnLine := strings.Join(columnParams, " ")
   return columnLine
 }
-

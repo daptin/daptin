@@ -1,42 +1,49 @@
 {
-  "tables": [{
-    "tableName": "style",
-    "columns": [{
-      "name": "name",
-      "dataType": "varchar(500)",
-      "columnType": "label"
+  "tables": [
+    {
+      "tableName": "style",
+      "columns": [
+        {
+          "name": "name",
+          "dataType": "varchar(500)",
+          "columnType": "label"
+        },
+        {
+          "name": "code",
+          "dataType": "varchar(100)",
+          "columnType": "label",
+          "isUnique": true
+        }
+      ]
     },
-      {
-        "name": "code",
-        "dataType": "varchar(100)",
-        "columnType": "label",
-        "isUnique": true
-      }
-    ]
-  },
     {
       "tableName": "orders",
-      "columns": [{
-        "name": "quantity",
-        "dataType": "int(11)",
-        "columnType": "measurement"
-      }]
+      "columns": [
+        {
+          "name": "quantity",
+          "dataType": "int(11)",
+          "columnType": "measurement"
+        }
+      ]
     },
     {
       "tableName": "vendor",
-      "columns": [{
-        "name": "name",
-        "columnType": "label",
-        "dataType": "varchar(100)"
-      }]
+      "columns": [
+        {
+          "name": "name",
+          "columnType": "label",
+          "dataType": "varchar(100)"
+        }
+      ]
     },
     {
       "tableName": "cost",
-      "columns": [{
-        "name": "pre_road_show_cost",
-        "dataType": "int(11)",
-        "columnType": "measurement"
-      },
+      "columns": [
+        {
+          "name": "pre_road_show_cost",
+          "dataType": "int(11)",
+          "columnType": "measurement"
+        },
         {
           "name": "target_cost",
           "dataType": "int(11)",
@@ -51,18 +58,21 @@
     },
     {
       "tableName": "style_file",
-      "columns": [{
-        "name": "color",
-        "dataType": "varchar(100)",
-        "columnType": "color"
-      }]
+      "columns": [
+        {
+          "name": "color",
+          "dataType": "varchar(100)",
+          "columnType": "color"
+        }
+      ]
     }
   ],
-  "relations": [{
-    "subject": "style",
-    "relation": "has_one",
-    "object": "cost"
-  },
+  "relations": [
+    {
+      "subject": "cost",
+      "relation": "belongs_to",
+      "object": "style"
+    },
     {
       "subject": "style",
       "relation": "has_one",
@@ -79,47 +89,51 @@
       "object": "vendor"
     }
   ],
-  "actions": [{
-    "name": "new_order",
-    "label": "Create a new order for the style",
-    "onType": "style",
-    "reference": "style1",
-    "fields": [{
-      "columnName": "vendor",
-      "name": "Vendor",
-      "columnType": "vendor"
-    },
-      {
-        "columnName": "quantity",
-        "name": "quantity",
-        "columnType": "measurement"
-      }
-    ],
-    "outcomes": [{
-      "type": "vendor",
-      "method": "POST",
-      "reference": "vendor1",
-      "attributes": {
-        "name": "vendor"
-      }
-    },
-      {
-        "type": "orders",
-        "method": "POST",
-        "reference": "order1",
-        "attributes": {
-          "vendor_id": "$vendor1.id",
-          "quantity": "quantity"
+  "actions": [
+    {
+      "name": "new_order",
+      "label": "Create a new order for the style",
+      "onType": "style",
+      "reference": "style1",
+      "fields": [
+        {
+          "columnName": "vendor",
+          "name": "Vendor",
+          "columnType": "vendor"
+        },
+        {
+          "columnName": "quantity",
+          "name": "quantity",
+          "columnType": "measurement"
         }
-      },
-      {
-        "type": "style_has_orders",
-        "method": "POST",
-        "attributes": {
-          "order_id": "$order1.id",
-          "style_id": "$style1.id"
+      ],
+      "outcomes": [
+        {
+          "type": "vendor",
+          "method": "POST",
+          "reference": "vendor1",
+          "attributes": {
+            "name": "vendor"
+          }
+        },
+        {
+          "type": "orders",
+          "method": "POST",
+          "reference": "order1",
+          "attributes": {
+            "vendor_id": "$vendor1.id",
+            "quantity": "quantity"
+          }
+        },
+        {
+          "type": "style_has_orders",
+          "method": "POST",
+          "attributes": {
+            "order_id": "$order1.id",
+            "style_id": "$style1.id"
+          }
         }
-      }
-    ]
-  }]
+      ]
+    }
+  ]
 }

@@ -111,7 +111,6 @@ func Main() {
   }
   //log.Infof("Config: %v", initConfig)
 
-
   initConfig.Tables = append(initConfig.Tables, datastore.StandardTables...)
 
   for _, table := range initConfig.Tables {
@@ -147,7 +146,7 @@ func Main() {
 
   authMiddleware.SetUserCrud(cruds["user"])
   authMiddleware.SetUserGroupCrud(cruds["usergroup"])
-  authMiddleware.SetUserUserGroupCrud(cruds["user_has_usergroup"])
+  authMiddleware.SetUserUserGroupCrud(cruds["user_user_id_has_usergroup_usergroup_id"])
 
   r.GET("/ping", func(c *gin.Context) {
     c.String(200, "pong")
@@ -214,7 +213,6 @@ type JsModel struct {
   Actions     []resource.Action
 }
 
-
 func AuthenticationFilter(c *gin.Context) {
 
 }
@@ -234,16 +232,15 @@ func CorsMiddlewareFunc(c *gin.Context) {
 }
 
 func AddAllTablesToApi2Go(api *api2go.API, tables []datastore.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet) map[string]*resource.DbResource {
-  m := make(map[string]*resource.DbResource)
+  cruds := make(map[string]*resource.DbResource)
   for _, table := range tables {
     log.Infof("Table [%v] Relations: %v", table.TableName, table.Relations)
     model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
 
-    res := resource.NewDbResource(model, db, ms)
+    res := resource.NewDbResource(model, db, ms, cruds)
 
-    m[table.TableName] = res
+    cruds[table.TableName] = res
     api.AddResource(model, res)
   }
-  return m
+  return cruds
 }
-

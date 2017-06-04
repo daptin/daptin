@@ -52,7 +52,7 @@ func (dr *DbResource) GetActionByName(typeName string, actionName string) (Actio
 
 func CheckError(err error, msg string) {
   if err != nil {
-    log.Errorf(msg + " : %v", err)
+    log.Errorf(msg+" : %v", err)
   }
 }
 
@@ -178,8 +178,20 @@ func (dr *DbResource) GetObjectGroupsByWhere(objType string, colName string, col
 
   s := make([]auth.GroupPermission, 0)
 
-  res, err := dr.db.Queryx(fmt.Sprintf("select ug.reference_id as referenceid, uug.permission from usergroup ug join %s_has_usergroup uug on uug.usergroup_id = ug.id join %s u on uug.%s_id = u.id where %s = ?", objType, objType, objType, colName), colvalue)
+  rel := api2go.TableRelation{}
+  rel.Subject = objType
+  rel.SubjectName = objType + "_id"
+  rel.Object = "usergroup"
+  rel.ObjectName = "usergroup_id"
+  rel.Relation = "has_many_and_belongs_to_many"
+
+  log.Infof("Join string: %v: ", rel.GetJoinString())
+
+  sql := fmt.Sprintf("select usergroup.reference_id as referenceid, j1.permission from style join %s  where style.%s = ?", rel.GetJoinString(), colName)
+  log.Infof("Group select sql: %v", sql)
+  res, err := dr.db.Queryx(sql, colvalue)
   if err != nil {
+    log.Errorf("Failed to get object groups by where clause: %v", err)
     return s
   }
 
@@ -221,8 +233,13 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) (Permission) 
   if row["user_id"] != nil {
     perm.UserId = row["user_id"].(string)
   }
-  if row["usergroup_id"] != nil {
-    perm.UserGroupId = dr.GetObjectGroupsByWhere(row["__type"].(string), "reference_id", row["id"].(string))
+
+  if dr.model.HasMany("usergroup") {
+    refId, ok := row["reference_id"]
+    if !ok {
+      refId = row["id"]
+    }
+    perm.UserGroupId = dr.GetObjectGroupsByWhere(row["__type"].(string), "reference_id", refId.(string))
   }
   if row["permission"] != nil {
 
@@ -261,7 +278,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where squirrel.Eq) (
 
 func (dr *DbResource) GetUserGroupIdByUserId(userId uint64) (uint64) {
 
-  s, q, err := squirrel.Select("usergroup_id").From("user_has_usergroup").Where(squirrel.Eq{"deleted_at": nil}).Where(squirrel.Eq{"user_id": userId}).OrderBy("created_at").Limit(1).ToSql()
+  s, q, err := squirrel.Select("usergroup_id").From("user_user_id_has_usergroup_usergroup_id").Where(squirrel.Eq{"deleted_at": nil}).Where(squirrel.Eq{"user_id": userId}).OrderBy("created_at").Limit(1).ToSql()
   if err != nil {
     log.Errorf("Failed to create sql query: ", err)
     return 0
@@ -303,9 +320,6 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
   return m, n, err
 
 }
-
-
-
 
 // FindOne returns an object by its ID
 // Possible Responder success status code 200
@@ -357,5 +371,3 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 
   return NewResponse(nil, a, 200, nil), err
 }
-
-

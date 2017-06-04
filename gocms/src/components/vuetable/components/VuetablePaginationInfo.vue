@@ -1,13 +1,13 @@
 <template>
   <div :class="['vuetable-pagination-info', css.infoClass]"
-    v-html="paginationInfo">
+       v-html="paginationInfo">
   </div>
 </template>
 
 <script>
-import PaginationInfoMixin from './VuetablePaginationInfoMixin.vue'
+  import PaginationInfoMixin from './VuetablePaginationInfoMixin.vue'
 
-export default {
-  mixins: [PaginationInfoMixin],
-}
+  export default {
+    mixins: [PaginationInfoMixin],
+  }
 </script>

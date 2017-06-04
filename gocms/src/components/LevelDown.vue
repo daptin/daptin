@@ -14,7 +14,7 @@
           <div class="item" v-for="w in world" v-if="w.is_top_level == '0' && w.is_visible">
             <div class="content">
               <!--<a class="header" href="#" style="text-transform: capitalize;" @click.prevent="setTable(w.table_name)">-->
-                <router-link v-bind:to="w.table_name + '/all'">{{w.table_name | titleCase}}</router-link>
+              <router-link v-bind:to="w.table_name + '/all'">{{w.table_name | titleCase}}</router-link>
               <!--</a>-->
             </div>
           </div>
@@ -47,7 +47,8 @@
         <div class="row">
           <div class="sixteen column">
             <!--{{selectedWorldColumns}}-->
-            <model-form  :json-api="jsonApi"  @save="saveRow(selectedRow)" @cancel="showAddEdit = false" v-bind:model="selectedRow"
+            <model-form :json-api="jsonApi" @save="saveRow(selectedRow)" @cancel="showAddEdit = false"
+                        v-bind:model="selectedRow"
                         v-bind:meta="selectedWorldColumns" ref="modelform"></model-form>
           </div>
 

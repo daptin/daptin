@@ -97,7 +97,7 @@
         } else if (action == "edit-item") {
           this.$emit("editRow", data)
         } else if (action == "delete-item") {
-          this.jsonApi.destroy(this.selectedWorld, data.id).then(function(){
+          this.jsonApi.destroy(this.selectedWorld, data.id).then(function () {
             that.setTable(that.selectedWorld);
           });
         }

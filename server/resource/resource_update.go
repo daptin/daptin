@@ -7,6 +7,7 @@ import (
   "gopkg.in/Masterminds/squirrel.v1"
   "time"
   "errors"
+  "net/http"
 )
 
 // Update an object
@@ -69,7 +70,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
     //log.Infof("Check column: %v", col.ColumnName)
 
     val, ok := attrs[col.ColumnName]
-    if !ok {
+    if !ok || len(val.(string)) < 1 {
       continue
     }
     if col.IsForeignKey {
@@ -123,6 +124,121 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
     log.Errorf("Failed to select the newly created entry: %v", err)
     return nil, err
   }
+
+  for _, rel := range dr.model.GetRelations() {
+    relationName := rel.GetRelation()
+    if rel.GetSubject() == dr.model.GetName() {
+
+      if relationName == "belongs_to" || relationName == "has_one" {
+        continue
+      }
+
+      val11, ok := attrs[rel.GetObjectName()]
+      if !ok || len(val11.([]map[string]interface{})) < 1 {
+        continue
+      }
+      log.Infof("Update object for relation on [%v] : [%v]", rel.GetObjectName(), val11)
+
+      valueList := val11.([]map[string]interface{})
+      switch relationName {
+      case "has_one":
+      case "belongs_to":
+        //relUpdateQuery, vars, err = squirrel.Update(dr.model.GetName()).
+        //  Set(rel.GetObjectName(), val11).Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+        //if err != nil {
+        //  log.Errorf("Failed to make update query: %v", err)
+        //  continue
+        //}
+
+        break;
+
+      case "has_many_and_belongs_to_many":
+      case "has_many":
+
+        for _, item := range valueList {
+          obj := make(map[string]interface{})
+          obj[rel.GetObjectName()] = item[rel.GetObjectName()]
+          obj[rel.GetSubjectName()] = updatedResource["reference_id"]
+
+          modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, 755, nil, obj)
+          req := api2go.Request{
+            PlainRequest: &http.Request{
+              Method: "POST",
+            },
+          }
+          _, err := dr.cruds[rel.GetJoinTableName()].Create(modl, req)
+          if err != nil {
+            log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
+            continue
+          }
+
+        }
+
+        break;
+
+      default:
+        log.Errorf("Unknown relation: %v", relationName)
+      }
+
+    } else {
+
+      val, ok := attrs[rel.GetSubjectName()]
+      if !ok {
+        continue
+      }
+      log.Infof("Update subject for relation on [%v] : [%v]", rel.GetSubjectName(), val)
+
+      var relUpdateQuery string
+      var vars []interface{}
+      switch relationName {
+      case "has_one":
+      case "belongs_to":
+        relUpdateQuery, vars, err = squirrel.Update(rel.GetSubject()).
+          Set(rel.GetObjectName(), val).Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+        if err != nil {
+          log.Errorf("Failed to make update query: %v", err)
+          continue
+        }
+
+        break;
+
+      case "has_many":
+      case "has_many_and_belongs_to_many":
+
+        obj := make(map[string]interface{})
+        obj[rel.GetSubjectName()] = val
+        obj[rel.GetObjectName()] = updatedResource["id"]
+
+        req := api2go.Request{
+          PlainRequest: &http.Request{
+            Method: "POST",
+          },
+        }
+        _, err := dr.Create(obj, req)
+        if err != nil {
+          log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
+          continue
+        }
+
+        //relUpdateQuery, vars, err = squirrel.Insert(rel.GetJoinTableName()).Columns(rel.GetSubjectName(), rel.GetObjectName(), "reference_id").Values(val, updatedResource["id"], uuid.NewV4().String()).ToSql()
+        //if err != nil {
+        //  log.Errorf("Failed to make update query: %v", err)
+        //  continue
+        //}
+
+        break;
+
+      default:
+        log.Errorf("Unknown relation: %v", relationName)
+      }
+
+      _, err = dr.db.Exec(relUpdateQuery, vars...)
+      if err != nil {
+        log.Errorf("Failed to execute update query for relation: %v", err)
+      }
+
+    }
+  }
   //
 
   for _, bf := range dr.ms.AfterUpdate {
@@ -151,4 +267,3 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
   return NewResponse(nil, api2go.NewApi2GoModelWithData(dr.model.GetName(), dr.model.GetColumns(), dr.model.GetDefaultPermission(), dr.model.GetRelations(), updatedResource), 200, nil), nil
 
 }
-

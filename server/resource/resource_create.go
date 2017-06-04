@@ -68,7 +68,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
       continue
     }
 
-    if col.ColumnName == "user_id" && dr.model.GetName() != "user_has_usergroup" {
+    if col.ColumnName == "user_id" && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" {
       continue
     }
 
@@ -76,7 +76,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
     val, ok := attrs[col.ColumnName]
 
-    if !ok {
+    if !ok || val == nil {
       continue
     }
 
@@ -121,7 +121,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     userId = userIdInt.(int64)
   }
 
-  if userId != 0 && dr.model.GetName() != "user_has_usergroup" && dr.model.HasColumn("user_id") {
+  if userId != 0 && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" && dr.model.HasColumn("user_id") {
 
     colsList = append(colsList, "user_id")
     valsList = append(valsList, userId)
@@ -147,22 +147,18 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
   }
   //
 
-
   log.Infof("Crated entry: %v", createdResource)
 
-
   userGroupId := dr.GetUserGroupIdByUserId(uint64(userId))
-
-
 
   if userGroupId != 0 && dr.model.HasMany("usergroup") {
     log.Infof("Associate new entity with usergroup: %v", userGroupId)
     nuuid := uuid.NewV4().String()
 
     belogsToUserGroupSql, q, err := squirrel.
-    Insert(dr.model.GetName() + "_has_usergroup").
-      Columns(dr.model.GetName() + "_id", "usergroup_id", "reference_id", "permission").
-      Values(createdResource["id"], userGroupId, nuuid, "644").ToSql()
+    Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
+      Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
+      Values(createdResource["id"], userGroupId, nuuid, "755").ToSql()
 
     log.Infof("Query: %v", belogsToUserGroupSql)
     _, err = dr.db.Exec(belogsToUserGroupSql, q...)
@@ -212,4 +208,3 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
   ), nil
 
 }
-
