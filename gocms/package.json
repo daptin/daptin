@@ -16,9 +16,9 @@
   "dependencies": {
     "axios": "^0.16.1",
     "bootstrap": "^3.3.7",
-    "devour-client": "^1.4.3",
     "jquery": "^3.2.1",
     "json-editor": "^0.7.28",
+    "jsonapi-client": "github:holidayextras/jsonapi-client",
     "jsonform": "0.0.1",
     "semantic-ui": "^2.2.10",
     "underscore": "^1.8.3",

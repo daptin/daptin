@@ -26,7 +26,7 @@ Vue.use(DetailedRow);
 
 import 'element-ui/lib/theme-default/index.css'
 import './components/vuetable/vuetable.css'
-import JsonApi from 'devour-client'
+import JsonApi from 'jsonapi-client'
 import axios from 'axios'
 
 Vue.component('custom-actions', CustomActions);
@@ -46,9 +46,15 @@ Vue.component("vuetable-pagination", VuetablePagination);
 window.apiRoot = "http://localhost:6336/api";
 window.actionRoot = "http://localhost:6336/action";
 
-window.jsonApi = new JsonApi({
-  apiUrl: window.apiRoot,
-  pluralize: false,
+// window.jsonApi = new JsonApi({
+//   apiUrl: window.apiRoot,
+//   pluralize: false,
+// });
+
+window.jsonApi = new JsonapiClient(window.apiRoot, {
+  header: {
+    Authorization: "Bearer " + window.localStorage.getItem("id_token")
+  }
 });
 
 
@@ -64,7 +70,7 @@ axios.interceptors.response.use(function (response) {
       "message": error.message
     })
   }
-  console.log("error", error)
+  // console.log("error", error)
   return Promise.reject(error);
 });
 
@@ -78,7 +84,7 @@ var ActionManager = function () {
   };
 
   this.doAction = function (type, actionName, data) {
-    console.log("invoke action", type, actionName, data);
+    // console.log("invoke action", type, actionName, data);
     return axios({
       url: window.actionRoot + "/" + actionName,
       method: "POST",
@@ -110,7 +116,7 @@ var ActionManager = function () {
   };
 
   this.getActions = function (typeName) {
-    console.log("actions for ", typeName, that.actionMap[typeName])
+    // console.log("actions for ", typeName, that.actionMap[typeName])
     return that.actionMap[typeName];
   };
 
@@ -125,76 +131,91 @@ var ActionManager = function () {
 
 window.actionManager = new ActionManager();
 
-jsonApi.replaceMiddleware('errors', {
-  name: 'nothing-to-see-here',
-  error: function (payload) {
-    console.log("errors", payload);
-
-    if (payload.status == 401) {
-      Notification.error({
-        "title": "Failed",
-        "message": payload.data
-      });
-      window.location = window.location;
-      return;
-    }
-
-
-    for (var i = 0; i < payload.data.errors.length; i++) {
-      Notification.error({
-        "title": "Failed",
-        "message": payload.data.errors[i].title
-      })
-    }
-    return {errors: []}
-  }
-});
+// jsonApi.replaceMiddleware('errors', {
+//   name: 'nothing-to-see-here',
+//   error: function (payload) {
+//     // console.log("errors", payload);
+//
+//     if (payload.status == 401) {
+//       Notification.error({
+//         "title": "Failed",
+//         "message": payload.data
+//       });
+//       window.location = window.location;
+//       return;
+//     }
+//
+//
+//     for (var i = 0; i < payload.data.errors.length; i++) {
+//       Notification.error({
+//         "title": "Failed",
+//         "message": payload.data.errors[i].title
+//       })
+//     }
+//     return {errors: []}
+//   }
+// });
 
 
 var requests = {};
 
-jsonApi.insertMiddlewareBefore('response', {
-  name: 'track-request',
-  req: function (payload) {
-    console.log("request initiate", payload);
-    if (payload.config.method !== 'GET' && payload.config.method !== 'OPTIONS') {
+// jsonApi.insertMiddlewareBefore('response', {
+//   name: 'track-request',
+//   req: function (payload) {
+//     // console.log("request initiate", payload);
+//     if (payload.config.method !== 'GET' && payload.config.method !== 'OPTIONS') {
+//
+//
+//       // console.log("Create request complete: ", payload, payload.status / 100);
+//       if (parseInt(payload.status / 100) == 2) {
+//         var action = "Created ";
+//
+//         if (payload.config.method == "DELETE") {
+//           action = "Deleted "
+//         } else if (payload.config.method == "PUT" || payload.config.method == "PATCH") {
+//           action = "Updated "
+//         }
+//
+//         Notification.success({
+//           title: action + payload.config.model
+//         })
+//       } else {
+//         Notification.warn({
+//           "title": "Unidentified status"
+//         })
+//       }
+//     }
+//     return payload
+//   }
+// });
 
 
-      console.log("Create request complete: ", payload, payload.status / 100);
-      if (parseInt(payload.status / 100) == 2) {
-        var action = "Created ";
-
-        if (payload.config.method == "DELETE") {
-          action = "Deleted "
-        } else if (payload.config.method == "PUT" || payload.config.method == "PATCH") {
-          action = "Updated "
-        }
-
-        Notification.success({
-          title: action + payload.config.model
-        })
-      } else {
-        Notification.warn({
-          "title": "Unidentified status"
-        })
-      }
-    }
-    return payload
-  }
-});
+// jsonApi.insertMiddlewareAfter('response', {
+//   name: 'success-notification',
+//   res: function (payload) {
+//     // console.log("request complete", arguments);
+//     return payload
+//   }
+// });
 
 
-jsonApi.insertMiddlewareAfter('response', {
-  name: 'success-notification',
-  res: function (payload) {
-    console.log("request complete", arguments);
-    return payload
-  }
-});
+// window.jsonApi.headers['Authorization'] = 'Bearer ' + localStorage.getItem('id_token');
 
 
-window.jsonApi.headers['Authorization'] = 'Bearer ' + localStorage.getItem('id_token');
+window.jsonDefine = {};
 
+jsonApi.define = function (typeName, attributes) {
+  // console.log("catch define call", typeName, attributes);
+  window.jsonDefine[typeName] = attributes;
+}
+
+
+jsonApi.modelFor = function (typeName) {
+  // console.log("get model for ", typeName, window.jsonDefine[typeName])
+  return {
+    attributes: window.jsonDefine[typeName]
+  };
+}
 
 window.columnKeysCache = {};
 
@@ -205,7 +226,6 @@ window.getColumnKeys = function (typeName, callback) {
     return
   }
 
-
   jQuery.ajax({
     url: 'http://localhost:6336/jsmodel/' + typeName + ".js",
     headers: {
@@ -213,7 +233,7 @@ window.getColumnKeys = function (typeName, callback) {
     },
     success: function (r, e, s) {
       if (r.Actions.length > 0) {
-        console.log("register actions", r.Actions)
+        // console.log("register actions", r.Actions)
         actionManager.addAllActions(r.Actions);
       }
       window.columnKeysCache[typeName] = r;
@@ -226,10 +246,10 @@ window.getColumnKeys = function (typeName, callback) {
 };
 
 window.getColumnKeysWithErrorHandleWithThisBuilder = function (that) {
-//    console.log("builder column model getter")
+  // console.log("builder column model getter", that)
   return function (typeName, callback) {
     return getColumnKeys(typeName, function (a, e, s) {
-//        console.log("get column kets respone: ", arguments)
+      // console.log("get column kets respone: ", arguments)
       if (e == "error" && s == "Unauthorized") {
         that.logout();
       } else {
@@ -253,26 +273,38 @@ window.lock = {};
 
 let v1 = typeof Auth0Lock;
 let v2 = typeof v1;
-console.log("type of", v1, v2);
+// console.log("type of", v1, v2);
 
 if (v1 != "undefined") {
-  console.log("it is not undefined");
-  lock = new Auth0Lock('edsjFX3nR9fqqpUi4kRXkaKJefzfRaf_', 'gocms.auth0.com', {
-    auth: {
-      redirectUrl: 'http://localhost:8080/#/',
-      responseType: 'token',
-      params: {
-        scope: 'openid email' // Learn about scopes: https://auth0.com/docs/scopes
-      }
-    }
-  });
+  // console.log("it is not undefined");
+
 } else {
+
+  var auth0 = jQuery("<script></script>");
+  auth0.attr("src", "https://cdn.auth0.com/js/lock/10.15/lock.min.js")
+  auth0.ready = function () {
+    console.log("script load complete")
+
+    lock = new Auth0Lock('edsjFX3nR9fqqpUi4kRXkaKJefzfRaf_', 'gocms.auth0.com', {
+      auth: {
+        redirectUrl: 'http://localhost:8080/#/',
+        responseType: 'token',
+        params: {
+          scope: 'openid email' // Learn about scopes: https://auth0.com/docs/scopes
+        }
+      }
+    });
+
+  }
+  jQuery.find("body")[0].append(auth0)
+
+
   lock = {
     checkAuth: function () {
       return !!localStorage.getItem("id_token");
     },
     on: function (vev) {
-      console.log("nobody is listening to ", vev);
+      // console.log("nobody is listening to ", vev);
     }
   }
 }
@@ -285,7 +317,7 @@ lock.checkAuth = function () {
 var authenticated = lock.checkAuth();
 
 lock.on('authenticated', (authResult) => {
-  console.log('authenticated');
+  // console.log('authenticated');
   localStorage.setItem('id_token', authResult.idToken);
   window.jsonApi.headers['Authorization'] = 'Bearer ' + authResult.idToken;
 
@@ -311,7 +343,7 @@ lock.on('authorization_error', (error) => {
 
 
 function startApp() {
-  console.log("Start app")
+  // console.log("Start app")
 
   /* eslint-disable no-new */
   new Vue({
@@ -324,7 +356,7 @@ function startApp() {
 }
 
 window.GetJsonApiModel = function (columnModel) {
-
+  console.log('get json api model for ', columnModel)
   var model = {};
 
   var keys = Object.keys(columnModel);
@@ -358,19 +390,22 @@ function loadModels() {
       modelLoader("world", function (columnKeys) {
         jsonApi.define("world", GetJsonApiModel(columnKeys.ColumnModel));
 
-        jsonApi.findAll('world', {
+        jsonApi.find('world', {
           page: {number: 1, size: 50},
           include: ['world_column']
         }).then(function (res) {
           var total = res.length;
 
+          res = res.map(function (r) {
+            return r.toJSON()
+          })
 
           for (var t = 0; t < res.length; t++) {
 
 
             (function (typeName) {
               modelLoader(typeName, function (model) {
-                console.log("Loaded model", typeName, model);
+                // console.log("Loaded model", typeName, model);
 
                 total -= 1;
                 if (total < 1) {
