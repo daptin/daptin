@@ -1,6 +1,8 @@
 
 # Goms
 
+[![Build Status](https://travis-ci.org/artpar/goms.svg?branch=master)](https://travis-ci.org/artpar/goms)
+
 Not related to [GOMS](https://en.wikipedia.org/wiki/GOMS)
 
 Goms is a adaptable management system.
