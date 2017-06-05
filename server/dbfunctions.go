@@ -107,7 +107,7 @@ func GetActionMapByTypeName(db *sqlx.DB) (map[string]map[string]interface{}, err
 
   for _, action := range allActions {
     actioName := string(action["action_name"].([]uint8))
-    typeName := string(action["world_id"].([]uint8))
+    typeName := string(action["world_id"].(int64))
 
     _, ok := typeActionMap[typeName]
     if !ok {

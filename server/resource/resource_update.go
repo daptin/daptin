@@ -3,7 +3,7 @@ package resource
 import (
   "github.com/artpar/api2go"
   log "github.com/Sirupsen/logrus"
-  "reflect"
+  //"reflect"
   "gopkg.in/Masterminds/squirrel.v1"
   "time"
   "errors"
@@ -253,14 +253,15 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
       log.Errorf("Error from after create middleware: %v", err)
     }
   }
+  delete(updatedResource, "id")
 
-  for k, v := range updatedResource {
-    k1 := reflect.TypeOf(v)
-    //log.Infof("K: %v", k1)
-    if v != nil && k1.Kind() == reflect.Slice {
-      updatedResource[k] = string(v.([]uint8))
-    }
-  }
+  //for k, v := range updatedResource {
+  //  k1 := reflect.TypeOf(v)
+  //  //log.Infof("K: %v", k1)
+  //  if v != nil && k1.Kind() == reflect.Slice {
+  //    updatedResource[k] = string(v.([]uint8))
+  //  }
+  //}
 
   //log.Infof("Create response: %v", m)
 

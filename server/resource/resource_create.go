@@ -168,6 +168,8 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     }
   }
 
+  delete(createdResource, "id")
+
   for _, bf := range dr.ms.AfterCreate {
     results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource})
     if err != nil {
