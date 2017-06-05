@@ -4,7 +4,7 @@ import (
   "gopkg.in/gin-gonic/gin.v1"
   "strings"
   log "github.com/Sirupsen/logrus"
-  "github.com/artpar/gocms/datastore"
+  "github.com/artpar/goms/datastore"
 )
 
 var tableMap map[string]datastore.TableInfo

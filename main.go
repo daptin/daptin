@@ -1,7 +1,7 @@
 package main
 
 import (
-  "github.com/artpar/gocms/server"
+  "github.com/artpar/goms/server"
   "github.com/rcrowley/goagain"
   "log"
   //"os"
