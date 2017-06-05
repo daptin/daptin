@@ -5,6 +5,8 @@ import (
   log "github.com/Sirupsen/logrus"
   "gopkg.in/Masterminds/squirrel.v1"
   "database/sql"
+  //"strconv"
+  "reflect"
   "strconv"
 )
 
@@ -42,13 +44,17 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
     return nil, err
   }
 
-  cols, err := row.Columns()
+  //cols, err := row.Columns()
+  //if err != nil {
+  //  return nil, err
+  //}
+
+  results, _, err := dr.ResultToArrayOfMap(row)
   if err != nil {
     return nil, err
   }
 
-  m, err := dr.RowsToMap(row, cols, typeName)
-  return m[0], err
+  return results[0], err
 }
 
 func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...squirrel.Eq) ([]string, error) {
@@ -200,16 +206,26 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface
         continue
       }
 
-      if val == "" {
+      if val == "" || val == nil {
         continue
       }
 
       typeName, ok := api2go.EndsWith(key, "_id")
       if ok {
-        i, err := strconv.ParseInt(val.(string), 10, 32)
-        if err != nil {
-          log.Errorf("Id should have been integer [%v]: %v", val, err)
-          continue
+        i, ok := val.(int64)
+        if !ok {
+
+          si, ok := val.(string)
+          if ok {
+            i, err = strconv.ParseInt(si, 10, 64)
+            if err != nil {
+              log.Errorf("Failed to convert [%v] to int", si)
+              continue
+            }
+          } else {
+            log.Errorf("Id should have been integer [%v]: %v", val, reflect.TypeOf(val))
+            continue
+          }
         }
 
         refId, err := dr.GetIdToReferenceId(typeName, i)

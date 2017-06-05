@@ -231,7 +231,12 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) (Permission) 
   var perm Permission
 
   if row["user_id"] != nil {
-    perm.UserId = row["user_id"].(string)
+    uid, ok := row["user_id"].(string)
+
+    if !ok {
+
+    }
+    perm.UserId = uid
   }
 
   if dr.model.HasMany("usergroup") {
@@ -361,9 +366,9 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
   a.Data = data
 
   for _, inc := range include {
-    p, err := strconv.ParseInt(inc["permission"].(string), 10, 32)
-    if err != nil {
-      log.Errorf("Failed to convert [%v] to permission: %v", err)
+    p, ok := inc["permission"].(int64)
+    if !ok {
+      log.Errorf("Failed to convert [%v] to permission: %v", ok)
       continue
     }
     a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(inc["__type"].(string), nil, int(p), nil, inc))

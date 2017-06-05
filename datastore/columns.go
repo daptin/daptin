@@ -6,7 +6,7 @@ var StandardColumns = []api2go.ColumnInfo{
   {
     Name:            "id",
     ColumnName:      "id",
-    DataType:        "int(11)",
+    DataType:        "INTEGER",
     IsPrimaryKey:    true,
     IsAutoIncrement: true,
     IncludeInApi:    false,

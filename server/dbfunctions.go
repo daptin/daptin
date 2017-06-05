@@ -163,7 +163,15 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
       continue
     }
 
-    _, ok = currentActions[string(world["id"].([]uint8))][action.Name]
+    var worldIdString string
+    worldId := world["id"]
+    worldIdUint8, ok := worldId.([]uint8)
+    if !ok {
+      worldIdString = fmt.Sprintf("%v", worldId.(int64))
+    } else {
+      worldIdString = string(worldIdUint8)
+    }
+    _, ok = currentActions[worldIdString][action.Name]
     if ok {
       log.Infof("Action [%v] on [%v] already present in database", action.Name, action.OnType)
       continue
@@ -172,8 +180,9 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
       ifj, _ := json.Marshal(action.InFields)
       ofj, _ := json.Marshal(action.OutFields)
 
-      _, err = db.Exec("insert into action (action_name, label, world_id, in_fields, out_fields, reference_id, permission) value (?,?,?,?,?,?,'755')",
-        action.Name, action.Label, world["id"], ifj, ofj, uuid.NewV4().String())
+      s, v, err := squirrel.Insert("action").Columns("action_name", "label", "world_id", "in_fields", "out_fields", "reference_id", "permission").Values(action.Name, action.Label, worldId, ifj, ofj, uuid.NewV4().String(), 755).ToSql()
+
+      _, err = db.Exec(s, v...)
       if err != nil {
         log.Errorf("Failed to insert action [%v]: %v", action.Name, err)
       }
@@ -195,36 +204,52 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
   var userId int
   var userGroupId int
   var userCount int
-  err = tx.QueryRowx("select count(*) from user where deleted_at is null").Scan(&userCount)
+  s, v, err := squirrel.Select("count(*)").From("user").Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  err = tx.QueryRowx(s, v...).Scan(&userCount)
   CheckErr(err, "Failed to get user count")
   //log.Infof("Current user grou")
   if userCount < 1 {
 
     u2 := uuid.NewV4().String()
-    _, err = tx.Exec("insert into user (name, email, reference_id, permission) value ('guest', 'guest@cms.go', ?, 755)", u2)
+
+    s, v, err := squirrel.Insert("user").Columns("name", "email", "reference_id", "permission").Values("guest", "guest@cms.go", u2, 755).ToSql()
+    CheckErr(err, "Failed to create insert sql")
+    _, err = tx.Exec(s, v...)
     CheckErr(err, "Failed to insert user")
 
-    err = tx.QueryRowx("select id from user where reference_id = ?", u2).Scan(&userId)
+    s, v, err = squirrel.Select("id").From("user").Where(squirrel.Eq{"reference_id": u2}).ToSql()
+    CheckErr(err, "Failed to create select user sql ")
+    err = tx.QueryRowx(s, v...).Scan(&userId)
     CheckErr(err, "Failed to select user")
 
     u1 := uuid.NewV4().String()
-    _, err = tx.Exec("insert into usergroup (name, reference_id, permission) value ('guest group', ?, 755);", u1)
+    s, v, err = squirrel.Insert("usergroup").Columns("name", "reference_id", "permission").Values("guest group", u1, 755).ToSql()
+    CheckErr(err, "Failed to create insert usergroup sql")
+    _, err = tx.Exec(s, v...)
     CheckErr(err, "Failed to insert usergroup")
 
-    err = tx.QueryRowx("select id from usergroup where reference_id = ?", u1).Scan(&userGroupId)
+    s, v, err = squirrel.Select("id").From("usergroup").Where(squirrel.Eq{"reference_id": u1}).ToSql()
+    CheckErr(err, "Failed to create select usergroup sql")
+    err = tx.QueryRowx(s, v...).Scan(&userGroupId)
     CheckErr(err, "Failed to user group")
 
     refIf := uuid.NewV4().String()
-    _, err := tx.Exec("insert into user_user_id_has_usergroup_usergroup_id (user_id, usergroup_id, permission, reference_id) value (?,?,755, ?)", userId, userGroupId, refIf)
+    s, v, err = squirrel.Insert("user_user_id_has_usergroup_usergroup_id").Columns("user_id", "usergroup_id", "permission", "reference_id").Values(userId, userGroupId, 755, refIf).ToSql()
+    CheckErr(err, "Failed to create insert user has usergroup sql ")
+    _, err = tx.Exec(s, v...)
     CheckErr(err, "Failed to insert user has usergroup")
 
     //tx.Exec("update user set user_id = ?, usergroup_id = ?", userId, userGroupId)
     //tx.Exec("update usergroup set user_id = ?, usergroup_id = ?", userId, userGroupId)
   } else {
 
-    err = tx.QueryRowx("select id from user where deleted_at is null limit 1").Scan(&userId)
+    s, v, err := squirrel.Select("id").From("user").Where(squirrel.Eq{"deleted_at": nil}).Limit(1).ToSql()
+    CheckErr(err, "Failed to create select user sql")
+    err = tx.QueryRowx(s, v...).Scan(&userId)
     CheckErr(err, "Failed to select user")
-    err = tx.QueryRowx("select id from usergroup where  deleted_at is null limit 1").Scan(&userGroupId)
+    s, v, err = squirrel.Select("id").From("usergroup").Where(squirrel.Eq{"deleted_at": nil}).Limit(1).ToSql()
+    CheckErr(err, "Failed to create user group sql")
+    err = tx.QueryRowx(s, v...).Scan(&userGroupId)
     CheckErr(err, "Failed to user group")
   }
 
@@ -233,15 +258,18 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
     schema, err := json.Marshal(table)
 
     var cou int
-    tx.QueryRowx("select count(*) from world where table_name = ?", table.TableName).Scan(&cou)
+    s, v, err := squirrel.Select("count(*)").From("world").Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
+    tx.QueryRowx(s, v...).Scan(&cou)
     if cou > 0 {
 
       var defaultPermission int
 
-      err = tx.QueryRowx("select default_permission from world where table_name = ?  and deleted_at is null", table.TableName).Scan(&defaultPermission)
+      s, v, err = squirrel.Select("default_permission").From("world").Where(squirrel.Eq{"table_name": table.TableName}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+      CheckErr(err, "Failed to create select default permission sql")
+      err = tx.QueryRowx(s, v...).Scan(&defaultPermission)
+      CheckErr(err, fmt.Sprintf("Failed to scan default permission for table [%v]: %v", table.TableName, err))
 
       if err != nil {
-        log.Errorf("Failed to scan default permission for table [%v]: %v", table.TableName, err)
       } else {
         log.Infof("Default permission for [%v]: %v", table.TableName, defaultPermission)
       }
@@ -252,7 +280,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
       continue
     }
 
-    _, err = tx.Exec("insert into world (table_name, schema_json, permission, reference_id, default_permission, user_id, is_top_level, is_hidden) value (?,?,777, ?, 755, ?, ?, ?)", table.TableName, string(schema), refId, userId, table.IsTopLevel, table.IsHidden)
+    s, v, err = squirrel.Insert("world").Columns("table_name", "schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden").Values(table.TableName, string(schema), 777, refId, 755, userId, table.IsTopLevel, table.IsHidden).ToSql()
+    _, err = tx.Exec(s, v...)
     CheckErr(err, "Failed to insert into world table about "+table.TableName)
     initConfig.Tables[i].DefaultPermission = 755
 
@@ -275,7 +304,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.DB) {
 
       if column.IsUnique {
         indexName := "index_" + table.TableName + "_" + column.ColumnName + "_unique"
-        alterTable := "alter table " + table.TableName + " add unique index " + indexName + "(" + column.ColumnName + ")"
+        alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + column.ColumnName + ")"
         log.Infof("Create unique index sql: %v", alterTable)
         _, err := db.Exec(alterTable)
         if err != nil {
@@ -317,8 +346,13 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
     for _, column := range table.Columns {
       if column.IsForeignKey {
         keyName := table.TableName + "_" + column.ForeignKeyData.TableName + "_" + column.ForeignKeyData.ColumnName + "_fk"
-        alterSql := "alter table " + table.TableName + " add constraint " + keyName + " foreign key (" + column.ColumnName + ") references " + column.ForeignKeyData.String()
 
+        if db.DriverName() == "sqlite3" {
+          continue
+        }
+
+        alterSql := "alter table " + table.TableName + " add constraint " + keyName + " foreign key (" + column.ColumnName + ") references " + column.ForeignKeyData.String()
+        log.Infof("Alter table add constraint sql: %v", alterSql)
         _, err := db.Exec(alterSql)
         if err != nil {
           log.Infof("Failed to create foreign key [%v], probably it exists: %v", err, keyName)
@@ -592,7 +626,7 @@ func CheckTable(tableInfo *datastore.TableInfo, db *sqlx.DB, initConfig *CmsConf
         continue
       }
 
-      query := alterTableAddColumn(tableInfo.TableName, &info)
+      query := alterTableAddColumn(tableInfo.TableName, &info, db.DriverName())
       log.Infof("Alter query: %v", query)
       _, err := db.Exec(query)
       if err != nil {
@@ -602,13 +636,13 @@ func CheckTable(tableInfo *datastore.TableInfo, db *sqlx.DB, initConfig *CmsConf
   }
 }
 
-func alterTableAddColumn(tableName string, colInfo *api2go.ColumnInfo) string {
-  return fmt.Sprintf("alter table %v add column %v", tableName, getColumnLine(colInfo))
+func alterTableAddColumn(tableName string, colInfo *api2go.ColumnInfo, sqlDriverName string) string {
+  return fmt.Sprintf("alter table %v add column %v", tableName, getColumnLine(colInfo, sqlDriverName))
 }
 
 func CreateTable(tableInfo *datastore.TableInfo, db *sqlx.DB) {
 
-  createTableQuery := makeCreateTableQuery(tableInfo)
+  createTableQuery := makeCreateTableQuery(tableInfo, db.DriverName())
 
   log.Infof("Create table query\n%v", createTableQuery)
   _, err := db.Exec(createTableQuery)
@@ -617,7 +651,7 @@ func CreateTable(tableInfo *datastore.TableInfo, db *sqlx.DB) {
   }
 }
 
-func makeCreateTableQuery(tableInfo *datastore.TableInfo) string {
+func makeCreateTableQuery(tableInfo *datastore.TableInfo, sqlDriverName string) string {
   createTableQuery := fmt.Sprintf("create table %s (\n", tableInfo.TableName)
 
   columnStrings := []string{}
@@ -636,7 +670,7 @@ func makeCreateTableQuery(tableInfo *datastore.TableInfo) string {
       continue
     }
 
-    columnLine := getColumnLine(&c)
+    columnLine := getColumnLine(&c, sqlDriverName)
 
     colsDone[c.ColumnName] = true
     columnStrings = append(columnStrings, columnLine)
@@ -646,7 +680,7 @@ func makeCreateTableQuery(tableInfo *datastore.TableInfo) string {
   return createTableQuery
 }
 
-func getColumnLine(c *api2go.ColumnInfo) string {
+func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
   columnParams := []string{c.ColumnName, c.DataType}
 
   if !c.IsNullable {
@@ -656,7 +690,11 @@ func getColumnLine(c *api2go.ColumnInfo) string {
   }
 
   if c.IsAutoIncrement {
-    columnParams = append(columnParams, "AUTO_INCREMENT PRIMARY KEY")
+    if sqlDriverName == "sqlite3" {
+      columnParams = append(columnParams, " PRIMARY KEY")
+    } else {
+      columnParams = append(columnParams, "AUTO_INCREMENT PRIMARY KEY")
+    }
   } else if c.IsPrimaryKey {
     columnParams = append(columnParams, "PRIMARY KEY")
   }
