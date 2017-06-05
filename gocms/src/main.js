@@ -41,8 +41,8 @@ Vue.component("vuetable-pagination", VuetablePagination);
 // Vue.component("vuetable-pagination-info", Vuetable.VueTablePaginationInfo);
 
 
-window.apiRoot = "http://localhost:6336/api";
-window.actionRoot = "http://localhost:6336/action";
+window.apiRoot = "http://" + window.location.host + "/api";
+window.actionRoot = "http://" + window.location.host + "/action";
 
 window.jsonApi = new JsonApi({
   apiUrl: window.apiRoot,
@@ -311,7 +311,7 @@ window.getColumnKeys = function (typeName, callback) {
   }
 
   jQuery.ajax({
-    url: 'http://localhost:6336/jsmodel/' + typeName + ".js",
+    url: 'http://' + window.location.host + '/jsmodel/' + typeName + ".js",
     headers: {
       "Authorization": "Bearer " + localStorage.getItem("id_token")
     },
@@ -363,7 +363,7 @@ if (v1 != "undefined") {
   // console.log("it is not undefined");
   lock = new Auth0Lock('edsjFX3nR9fqqpUi4kRXkaKJefzfRaf_', 'gocms.auth0.com', {
     auth: {
-      redirectUrl: 'http://localhost:8080/#/',
+      redirectUrl: 'http://' + window.location.host + "/#/",
       responseType: 'token',
       params: {
         scope: 'openid email' // Learn about scopes: https://auth0.com/docs/scopes
