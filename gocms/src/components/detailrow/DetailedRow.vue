@@ -264,14 +264,30 @@
               var finder = builderStack.builderStack;
               builderStack.builderStack = [];
               console.log("finder: ", finder)
-              that.relations.push({
-                name: columnName,
-                title: item.title,
-                finder: finder,
-                label: item.label,
-                type: item.type,
-                jsonModelAttrs: that.jsonApi.modelFor(columnName),
-              });
+
+
+              if (item.type == "user" || item.type == "usergroup") {
+
+
+                that.relations.push({
+                  name: columnName,
+                  title: item.title,
+                  finder: finder,
+                  label: item.label,
+                  type: item.type,
+                  jsonModelAttrs: that.jsonApi.modelFor(columnName),
+                });
+              } else {
+
+                that.relations.unshift({
+                  name: columnName,
+                  title: item.title,
+                  finder: finder,
+                  label: item.label,
+                  type: item.type,
+                  jsonModelAttrs: that.jsonApi.modelFor(columnName),
+                });
+              }
 
 
             })(item);

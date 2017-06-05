@@ -146,6 +146,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
         }
       }
       ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetObject(), "id", "reference_id", queries)
+      log.Infof("Converted ids: %v", ids)
       if err != nil {
         log.Errorf("Failed to convert refids to ids 2: %v", err)
         continue
@@ -161,6 +162,11 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
       case "belongs_to":
         queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
         break
+
+      case "has_many":
+        wh := squirrel.Eq{}
+        wh[rel.GetObject()+".id"] = ids
+        queryBuilder = queryBuilder.Join(rel.GetJoinString()).Where(wh)
 
       }
 
@@ -243,15 +249,15 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   log.Infof("Sql: %v\n", sql1)
 
   rows, err := dr.db.Query(sql1, args...)
-  defer rows.Close()
 
   if err != nil {
     log.Infof("Error: %v", err)
     return 0, nil, err
   }
+  defer rows.Close()
 
   results, includes, err := dr.ResultToArrayOfMap(rows)
-  //log.Infof("Results: %v", results)
+  log.Infof("Results: %v", results)
 
   if err != nil {
     return 0, nil, err
@@ -280,11 +286,13 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   result := make([]*api2go.Api2GoModel, 0)
 
   for i, res := range results {
+    delete(res, "id")
     includes := includesNew[i]
     var a = api2go.NewApi2GoModel(dr.model.GetTableName(), infos, dr.model.GetDefaultPermission(), dr.model.GetRelations())
     a.Data = res
 
     for _, include := range includes {
+      delete(include, "id")
       perm, ok := include["permission"].(int64)
       if !ok {
         log.Errorf("Failed to parse permission, skipping record: %v", err)

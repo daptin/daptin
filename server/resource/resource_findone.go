@@ -200,7 +200,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface
     localInclude := make([]map[string]interface{}, 0)
 
     for key, val := range row {
-      //log.Infof("Key: [%v] == %v", key, val)
+      log.Infof("Key: [%v] == %v", key, val)
 
       if key == "reference_id" {
         continue
@@ -245,7 +245,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sql.Rows) ([]map[string]interface
         }
 
       }
-      delete(responseArray[i], "id")
+      //delete(responseArray[i], "id")
       delete(responseArray[i], "deleted_at")
 
     }
