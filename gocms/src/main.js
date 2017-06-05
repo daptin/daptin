@@ -41,11 +41,16 @@ Vue.component("vuetable-pagination", VuetablePagination);
 // Vue.component("vuetable-pagination-info", Vuetable.VueTablePaginationInfo);
 
 
-window.apiRoot = "http://" + window.location.host + "/api";
-window.actionRoot = "http://" + window.location.host + "/action";
+window.apiRoot = "http://" + window.location.host;
+
+
+if (window.location.hostname == "site.goms") {
+  window.apiRoot = "http://" + "api.goms:6336";
+}
+
 
 window.jsonApi = new JsonApi({
-  apiUrl: window.apiRoot,
+  apiUrl: window.apiRoot + '/api',
   pluralize: false,
 });
 
@@ -84,7 +89,7 @@ var ActionManager = function () {
   this.doAction = function (type, actionName, data) {
     // console.log("invoke action", type, actionName, data);
     return axios({
-      url: window.actionRoot + "/" + actionName,
+      url: window.apiRoot + "/action/" + actionName,
       method: "POST",
       headers: {
         "Authorization": "Bearer " + localStorage.getItem("id_token")
@@ -311,7 +316,7 @@ window.getColumnKeys = function (typeName, callback) {
   }
 
   jQuery.ajax({
-    url: 'http://' + window.location.host + '/jsmodel/' + typeName + ".js",
+    url: window.apiRoot + '/jsmodel/' + typeName + ".js",
     headers: {
       "Authorization": "Bearer " + localStorage.getItem("id_token")
     },
