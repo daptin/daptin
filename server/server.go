@@ -7,8 +7,8 @@ import (
   log "github.com/Sirupsen/logrus"
   _ "github.com/go-sql-driver/mysql"
   _ "github.com/mattn/go-sqlite3"
-  "io/ioutil"
-  "encoding/json"
+  //"io/ioutil"
+  //"encoding/json"
   "github.com/jmoiron/sqlx"
   "github.com/artpar/gocms/datastore"
   "time"
@@ -70,10 +70,10 @@ type User struct {
 var cruds = make(map[string]*resource.DbResource)
 
 func Main() {
-  configFile := "gocms_style.json"
+  //configFile := "gocms_style.json"
 
-  db, err := sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
-  //db, err := sqlx.Open("sqlite3", ":memory:")
+  //db, err := sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
+  db, err := sqlx.Open("sqlite3", "test.db")
   if err != nil {
     panic(err)
   }
@@ -99,14 +99,19 @@ func Main() {
   //r.Use(cors.Default())
   //r.Use()
 
-  contents, err := ioutil.ReadFile(configFile)
-  if err != nil {
-    log.Errorf("Failed to read config file: %v", err)
-    return
-  }
+  //contents, err := ioutil.ReadFile(configFile)
+  //if err != nil {
+  //  log.Errorf("Failed to read config file: %v", err)
+  //  return
+  //}
 
   var initConfig CmsConfig
-  err = json.Unmarshal([]byte(contents), &initConfig)
+  initConfig = CmsConfig{
+    Tables:    make([]datastore.TableInfo, 0),
+    Relations: make([]api2go.TableRelation, 0),
+    Actions:   make([]resource.Action, 0),
+  }
+  //err = json.Unmarshal([]byte(contents), &initConfig)
   if err != nil {
     log.Errorf("Failed to unmarshal json: %v", err)
     return

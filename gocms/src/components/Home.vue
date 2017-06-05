@@ -132,11 +132,12 @@
     name: 'Home',
     filters: {
       titleCase: function (str) {
-        if (!str) {
+        console.log("ttilec ase", str)
+        if (!str || str.length < 2) {
           return str;
         }
-        return str.replace(/[-_]+/g, " ").split(' ')
-            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
+        return str.replace(/[-_]+/g, " ").trim().split(' ')
+            .map(w => (w[0] ? w[0].toUpperCase() : "") + w.substr(1).toLowerCase()).join(' ')
       },
       chooseTitle: function (obj) {
         var keys = Object.keys(obj);
@@ -268,7 +269,7 @@
           var all = jsonApi.all(tableName);
         } else {
           var all = jsonApi.one(that.selectedWorld, that.selectedInstanceReferenceId).all(that.selectedSubTable + "_id");
-          window.getColumns(that.selectedSubTable, function (r) {
+          window.getColumnKeys(that.selectedSubTable, function (r) {
             console.log("Set selected sub table columns", r.ColumnModel)
             that.subTableColumns = r.ColumnModel;
           });
