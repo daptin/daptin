@@ -21,3 +21,4 @@ temp.*gocms.json
 docker_dir/
 main
 main
+test.db
