@@ -1,5 +1,5 @@
 package server
 
-//import "github.com/artpar/gocms/datastore"
+//import "github.com/artpar/goms/datastore"
 
 

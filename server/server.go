@@ -10,11 +10,11 @@ import (
   //"io/ioutil"
   //"encoding/json"
   "github.com/jmoiron/sqlx"
-  "github.com/artpar/gocms/datastore"
+  "github.com/artpar/goms/datastore"
   "time"
-  "github.com/artpar/gocms/server/auth"
+  "github.com/artpar/goms/server/auth"
   "net/http"
-  "github.com/artpar/gocms/server/resource"
+  "github.com/artpar/goms/server/resource"
 )
 
 type CmsConfig struct {
