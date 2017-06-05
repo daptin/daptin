@@ -2,11 +2,18 @@
   <div id="app" class="ui">
 
 
-    <div class="ui inverted fixed menu navbar page grid">
-      <div class="four wide column right floated">
-        <el-button class="right" @click="login()" v-show="!authenticated">Login</el-button>
-        <el-button class="right" @click="logout()" v-show="authenticated">Logout</el-button>
+    <div class="ui inverted fixed menu navbar">
+      <div class="ui icon buttons">
+        <button class="el-button ui button el-button--default"
+                @click="login()" v-show="!authenticated">
+          Login
+        </button>
+        <button class="el-button ui button el-button--default right floated"
+                @click="logout()" v-show="authenticated">Logout
+        </button>
       </div>
+
+
     </div>
     <router-view v-if="authenticated"></router-view>
 

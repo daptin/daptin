@@ -10,13 +10,13 @@
 
         <div class="ui icon buttons">
 
-          <button type="button" class="right floated el-button ui button el-button--default" @click="reloadData()">
+          <button type="button" class="yellow right floated el-button ui button el-button--default" @click="reloadData()">
             <span>
               <i class="fa fa-refresh"></i>
             </span>
           </button>
 
-          <button type="button" class="right floated el-button ui button el-button--default"
+          <button type="button" class="green right floated el-button ui button el-button--default"
                   @click="showAddEdit = true">
             <span>
               <i class="fa fa-plus"></i>
@@ -53,7 +53,8 @@
 
     </div>
 
-    <detailed-table-row class="ui column segment attached bottom" :show-all="false" :model="item" :json-api="jsonApi" :json-api-model-name="jsonApiModelName"
+    <detailed-table-row class="ui column segment attached bottom" :show-all="false" :model="item" :json-api="jsonApi"
+                        :json-api-model-name="jsonApiModelName"
                         v-for="item in tableData">
     </detailed-table-row>
 

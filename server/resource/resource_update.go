@@ -70,7 +70,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
     //log.Infof("Check column: %v", col.ColumnName)
 
     val, ok := attrs[col.ColumnName]
-    if !ok || len(val.(string)) < 1 {
+    if !ok || val == nil {
       continue
     }
     if col.IsForeignKey {

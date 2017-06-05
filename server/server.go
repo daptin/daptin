@@ -6,6 +6,7 @@ import (
   "github.com/artpar/api2go-adapter/gingonic"
   log "github.com/Sirupsen/logrus"
   _ "github.com/go-sql-driver/mysql"
+  _ "github.com/mattn/go-sqlite3"
   "io/ioutil"
   "encoding/json"
   "github.com/jmoiron/sqlx"
@@ -72,6 +73,7 @@ func Main() {
   configFile := "gocms_style.json"
 
   db, err := sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
+  //db, err := sqlx.Open("sqlite3", ":memory:")
   if err != nil {
     panic(err)
   }

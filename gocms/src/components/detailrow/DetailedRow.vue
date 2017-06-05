@@ -100,8 +100,13 @@
           }
         }
         return obj["reference_id"];
+      },
+      titleCase: function (str) {
+        return str.replace(/[-_]/g, " ").split(' ')
+            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
+            .join(' ')
+      },
 
-      }
     },
     data () {
       return {

@@ -92,14 +92,14 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
     for _, col := range cols {
       if reqFieldMap[col] {
-        finalCols = append(finalCols, prefix + col)
+        finalCols = append(finalCols, prefix+col)
       }
     }
     cols = finalCols
   } else {
     finalCols := []string{}
     for _, col := range cols {
-      finalCols = append(finalCols, prefix + col)
+      finalCols = append(finalCols, prefix+col)
     }
     cols = finalCols
   }
@@ -129,7 +129,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
         continue
       }
 
-      objectNameList, ok := req.QueryParams[rel.GetObject() + "Name"]
+      objectNameList, ok := req.QueryParams[rel.GetObject()+"Name"]
       log.Infof("Forward Relation %v", rel)
 
       var objectName string
@@ -155,19 +155,18 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
         if len(ids) < 1 {
           continue
         }
-        queryBuilder = queryBuilder.Where(squirrel.Eq{prefix + "id":   ids})
+        queryBuilder = queryBuilder.Where(squirrel.Eq{prefix + "id": ids})
         break;
 
       case "belongs_to":
-        queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName():   ids})
+        queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
         break
-
 
       }
 
     } else if rel.GetObject() == dr.model.GetName() {
 
-      subjectNameList, ok := req.QueryParams[rel.GetSubject() + "Name"]
+      subjectNameList, ok := req.QueryParams[rel.GetSubject()+"Name"]
       log.Infof("Reverse Relation %v", rel)
 
       var subjectName string
@@ -187,7 +186,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
       switch rel.Relation {
       case "has_one":
 
-        subjectId := req.QueryParams[rel.GetSubject() + "_id"]
+        subjectId := req.QueryParams[rel.GetSubject()+"_id"]
         if len(subjectId) < 1 {
           continue
         }
@@ -210,7 +209,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
         queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubject() + ".id": ids})
         break
       case "has_many":
-        subjectId := req.QueryParams[rel.GetSubject() + "_id"]
+        subjectId := req.QueryParams[rel.GetSubject()+"_id"]
         if len(subjectId) < 1 {
           continue
         }
@@ -286,8 +285,8 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
     a.Data = res
 
     for _, include := range includes {
-      perm, err := strconv.ParseInt(include["permission"].(string), 10, 64)
-      if err != nil {
+      perm, ok := include["permission"].(int64)
+      if !ok {
         log.Errorf("Failed to parse permission, skipping record: %v", err)
         continue
       }
@@ -313,17 +312,16 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   //log.Infof("Offset, limit: %v, %v", pageNumber, pageSize)
 
   return uint(dr.GetTotalCount()), NewResponse(nil, result, 200, &api2go.Pagination{
-    Next:  map[string]string{"limit": fmt.Sprintf("%v", pageSize), "offset":  fmt.Sprintf("%v", pageSize + pageNumber)},
-    Prev:  map[string]string{"limit":  fmt.Sprintf("%v", pageSize), "offset":  fmt.Sprintf("%v", pageNumber - pageSize)},
-    First: map[string]string{},
-    Last:  map[string]string{"limit":  fmt.Sprintf("%v", pageSize), "offset":  fmt.Sprintf("%v", total - pageSize)},
-    Total: total1,
-    PerPage: pageSize,
+    Next:        map[string]string{"limit": fmt.Sprintf("%v", pageSize), "offset": fmt.Sprintf("%v", pageSize+pageNumber)},
+    Prev:        map[string]string{"limit": fmt.Sprintf("%v", pageSize), "offset": fmt.Sprintf("%v", pageNumber-pageSize)},
+    First:       map[string]string{},
+    Last:        map[string]string{"limit": fmt.Sprintf("%v", pageSize), "offset": fmt.Sprintf("%v", total-pageSize)},
+    Total:       total1,
+    PerPage:     pageSize,
     CurrentPage: 1 + (pageNumber / pageSize),
-    LastPage: 1 + (total1 / pageSize),
-    From: pageNumber + 1,
-    To: pageSize,
+    LastPage:    1 + (total1 / pageSize),
+    From:        pageNumber + 1,
+    To:          pageSize,
   }), nil
 
 }
-

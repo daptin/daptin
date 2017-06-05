@@ -23,9 +23,6 @@ func (p Permission) CanRead(userId string, usergroupId []auth.GroupPermission) b
   return p.CheckBit(userId, usergroupId, 4)
 }
 
-func (p Permission) CanView(userId string, usergroupId []auth.GroupPermission) bool {
-  return p.CheckBit(userId, usergroupId, 1)
-}
 
 func (p1 Permission) CheckBit(userId string, usergroupId []auth.GroupPermission, bit int64) bool {
   if userId == p1.UserId {

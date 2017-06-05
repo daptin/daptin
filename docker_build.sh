@@ -11,9 +11,9 @@ cp -Rf gocms/static docker_dir/static
 cp Dockerfile docker_dir/Dockerfile
 
 cd docker_dir
-docker build -t gocms .
+docker build -t goms .
 
-docker ps | grep gocms
+docker ps | grep goms
 
 cd ..
 rm -rf docker_dir

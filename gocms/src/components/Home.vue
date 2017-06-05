@@ -4,7 +4,7 @@
   <div class="ui three column grid">
     <!-- Home -->
 
-    <div class="two wide column">
+    <div class="three wide column">
       <div class="ui segment top attached">
         <h2 v-if="!selectedInstanceReferenceId">Tables</h2>
         <h2 v-if="!selectedSubTable && selectedInstanceReferenceId">
@@ -19,31 +19,27 @@
       </div>
 
       <div class="ui segment bottom attached" v-if="visibleWorlds.length > 0">
-        <ul class="ui relaxed list">
-          <div class="item" v-for="w in visibleWorlds">
-            <div class="content">
+        <div class="ui secondary vertical pointing menu">
+          <template v-for="w in visibleWorlds">
 
 
-              <router-link v-if="!selectedInstanceReferenceId" v-bind:to="w.table_name">{{w.table_name | titleCase}}
-              </router-link>
+            <router-link v-bind:class="{item: true, active: selectedWorld == w.table_name}" v-if="!selectedInstanceReferenceId" v-bind:to="w.table_name">
+              {{w.table_name | titleCase}}
+            </router-link>
 
-              <router-link v-if="selectedInstanceReferenceId"
-                           :to="{ name: 'SubTables', params: { tablename: selectedWorld, refId:selectedInstanceReferenceId, subTable: w.table_name  }}">
-                {{w.table_name | titleCase}}
-              </router-link>
+            <router-link v-bind:class="{item: true, active: selectedWorld == w.table_name}" v-if="selectedInstanceReferenceId"
+                         :to="{ name: 'SubTables', params: { tablename: selectedWorld, refId:selectedInstanceReferenceId, subTable: w.table_name  }}">
+              {{w.table_name | titleCase}}
+            </router-link>
 
-
-              <!--<a class="header" href="#" style="text-transform: capitalize;" @click.prevent="setTable(w.table_name)">-->
-              <!--{{w.table_name}}</a>-->
-            </div>
-          </div>
-        </ul>
+          </template>
+        </div>
       </div>
 
 
     </div>
 
-    <div class="fourteen wide column" v-if="selectedRow != null && selectedRow['id']">
+    <div class="thirteen wide column" v-if="selectedRow != null && selectedRow['id']">
 
       <div class="ui segment" v-if="selectedAction != null">
         <event-view @cancel="selectedAction = null" :action-manager="actionManager" :action="selectedAction"
@@ -68,7 +64,7 @@
 
 
     </div>
-    <div class="fourteen wide column right floated" v-if="selectedWorld != null">
+    <div class="thirteen wide column right floated" v-if="selectedWorld != null">
       <div class="ui segment attached top grid">
 
         <div class="four wide column left floated">

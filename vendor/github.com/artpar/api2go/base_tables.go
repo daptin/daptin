@@ -35,15 +35,19 @@ func (tr *TableRelation) GetSubject() string {
   return tr.Subject
 }
 
+func (tr *TableRelation) GetJoinTableName() string {
+  return tr.Subject + "_" + tr.GetSubjectName() + "_has_" + tr.Object + "_" + tr.GetObjectName()
+}
+
 func (tr *TableRelation) GetJoinString() string {
 
   if tr.Relation == "has_one" {
     return fmt.Sprintf(" %s on %s.%s = %s.%s ", tr.GetObject(), tr.GetSubject(), tr.GetObjectName(), tr.GetObject(), "id")
   } else if tr.Relation == "belongs_to" {
     return fmt.Sprintf(" %s on %s.%s = %s.%s ", tr.GetObject(), tr.GetSubject(), tr.GetObjectName(), tr.GetObject(), "id")
-  } else if tr.Relation == "has_many" {
-    return fmt.Sprintf(" %s_has_%s j1 on j1.%s = %s.id join %s j1.%s = %s.%s ",
-      tr.GetSubject(), tr.GetObject(), tr.SubjectName, tr.GetSubject(), tr.GetObjectName(), tr.GetObject(), "id")
+  } else if tr.Relation == "has_many" || tr.Relation == "has_many_and_belongs_to_many" {
+    return fmt.Sprintf(" %s j1 on      j1.%s = %s.id             join %s  on  j1.%s = %s.%s ",
+      tr.GetJoinTableName(), tr.SubjectName, tr.GetSubject(), tr.GetObject(), tr.GetObjectName(), tr.GetObject(), "id")
   } else {
     log.Errorf("Not implemented join: %v", tr)
   }
@@ -60,8 +64,8 @@ func (tr *TableRelation) GetReverseJoinString() string {
   } else if tr.Relation == "has_many" {
 
     //select * from user join user_has_usergroup j1 on j1.user_id = user.id  join usergroup on j1.usergroup_id = usergroup.id
-    return fmt.Sprintf(" %s_has_%s j1 on j1.%s = %s.id join %s on j1.%s = %s.%s ",
-      tr.GetSubject(), tr.GetObject(), tr.GetObjectName(), tr.GetObject(), tr.GetSubject(), tr.GetSubjectName(), tr.GetSubject(), "id")
+    return fmt.Sprintf(" %s j1 on j1.%s = %s.id join %s on j1.%s = %s.%s ",
+      tr.GetJoinTableName(), tr.GetObjectName(), tr.GetObject(), tr.GetSubject(), tr.GetSubjectName(), tr.GetSubject(), "id")
   } else {
     log.Errorf("Not implemented join: %v", tr)
   }
@@ -86,21 +90,21 @@ func (tr *TableRelation) GetObject() string {
 
 func NewTableRelation(subject, relation, object string) TableRelation {
   return TableRelation{
-    Subject:subject,
-    Relation:relation,
-    Object:object,
-    SubjectName:subject + "_id",
-    ObjectName:object + "_id",
+    Subject:     subject,
+    Relation:    relation,
+    Object:      object,
+    SubjectName: subject + "_id",
+    ObjectName:  object + "_id",
   }
 }
 
 func NewTableRelationWithNames(subject, subjectName, relation, object, objectName string) *TableRelation {
   return &TableRelation{
-    Subject:subject,
-    Relation:relation,
-    Object:object,
-    SubjectName:subjectName,
-    ObjectName:objectName,
+    Subject:     subject,
+    Relation:    relation,
+    Object:      object,
+    SubjectName: subjectName,
+    ObjectName:  objectName,
   }
 }
 
@@ -176,10 +180,8 @@ func (f *ForeignKeyData) Scan(src interface{}) error {
   tableName := parts[0]
   columnName := strings.Split(parts[1], ")")[0]
 
-  f = &ForeignKeyData{
-    TableName: tableName,
-    ColumnName: columnName,
-  }
+  f.TableName = tableName
+  f.ColumnName = columnName
   return nil
 }
 
@@ -189,20 +191,20 @@ func (f ForeignKeyData) String() string {
 
 func NewApi2GoModelWithData(name string, columns []ColumnInfo, defaultPermission int, relations []TableRelation, m map[string]interface{}) *Api2GoModel {
   return &Api2GoModel{
-    typeName: name,
-    columns: columns,
-    relations: relations,
-    Data: m,
+    typeName:          name,
+    columns:           columns,
+    relations:         relations,
+    Data:              m,
     defaultPermission: defaultPermission,
   }
 }
 func NewApi2GoModel(name string, columns []ColumnInfo, defaultPermission int, relations []TableRelation) *Api2GoModel {
   //fmt.Printf("New columns: %v", columns)
   return &Api2GoModel{
-    typeName: name,
+    typeName:          name,
     defaultPermission: defaultPermission,
-    relations: relations,
-    columns: columns,
+    relations:         relations,
+    columns:           columns,
   }
 }
 
@@ -215,8 +217,8 @@ func EndsWith(str string, endsWith string) (string, bool) {
     return "", false
   }
 
-  suffix := str[len(str) - len(endsWith):]
-  prefix := str[:len(str) - len(endsWith)]
+  suffix := str[len(str)-len(endsWith):]
+  prefix := str[:len(str)-len(endsWith)]
 
   i := suffix == endsWith
   return prefix, i
@@ -232,7 +234,7 @@ func EndsWithCheck(str string, endsWith string) (bool) {
     return false
   }
 
-  suffix := str[len(str) - len(endsWith):]
+  suffix := str[len(str)-len(endsWith):]
   i := suffix == endsWith
   return i
 
@@ -296,15 +298,15 @@ func (m *Api2GoModel) GetReferencedIDs() []jsonapi.ReferenceID {
     if rel.GetRelation() == "belongs_to" {
       if rel.GetSubject() == m.typeName {
 
-        _, ok := m.Data[rel.GetObjectName()]
-        if !ok {
+        val, ok := m.Data[rel.GetObjectName()]
+        if !ok || val == nil {
           continue
         }
 
         ref := jsonapi.ReferenceID{
-          Type: rel.GetObject(),
-          Name: rel.GetObjectName(),
-          ID: m.Data[rel.GetObjectName()].(string),
+          Type:         rel.GetObject(),
+          Name:         rel.GetObjectName(),
+          ID:           m.Data[rel.GetObjectName()].(string),
           Relationship: jsonapi.DefaultRelationship,
         }
         references = append(references, ref)
@@ -340,7 +342,6 @@ func (model *Api2GoModel) GetReferences() []jsonapi.Reference {
 
   references := make([]jsonapi.Reference, 0)
   //
-
 
   log.Infof("Relations: %v", model.relations)
   for _, relation := range model.relations {

@@ -115,10 +115,10 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
   colsList = append(colsList, "permission")
   valsList = append(valsList, dr.model.GetDefaultPermission())
 
-  var userId int64
+  var userId uint64
   userIdInt := context.Get(req.PlainRequest, "user_id_integer")
   if userIdInt != nil {
-    userId = userIdInt.(int64)
+    userId = uint64(userIdInt.(int64))
   }
 
   if userId != 0 && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" && dr.model.HasColumn("user_id") {
@@ -149,7 +149,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
   log.Infof("Crated entry: %v", createdResource)
 
-  userGroupId := dr.GetUserGroupIdByUserId(uint64(userId))
+  userGroupId := dr.GetUserGroupIdByUserId(userId)
 
   if userGroupId != 0 && dr.model.HasMany("usergroup") {
     log.Infof("Associate new entity with usergroup: %v", userGroupId)
@@ -178,7 +178,6 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     } else {
       createdResource = results[0]
     }
-
   }
 
   //for k, v := range createdResource {
