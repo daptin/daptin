@@ -5,8 +5,26 @@
     <!-- Home -->
 
     <div class="three wide column">
-      <div class="ui segment top attached">
-        <h2 v-if="!selectedInstanceReferenceId">Tables</h2>
+      <div class="ui two column grid segment top attached">
+        <div class="four wide column left floated">
+          <h2 v-if="!selectedInstanceReferenceId">Tables</h2>
+        </div>
+
+        <div class="four wide column right floated" style="text-align: right">
+          <el-dropdown>
+            <button class="ui icon button el-dropdown-link">
+              <i class="setting icon"></i>
+            </button>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item command="json">Load features from json</el-dropdown-item>
+              <el-dropdown-item command="sample">Load features from sample</el-dropdown-item>
+              <el-dropdown-item command="restart">Restart</el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
+
+        </div>
+
+
         <h2 v-if="!selectedSubTable && selectedInstanceReferenceId">
           <router-link :to="{ name: 'Home', params: { tablename: selectedWorld }}">{{selectedWorld | titleCase}}
           </router-link>
@@ -23,11 +41,13 @@
           <template v-for="w in visibleWorlds">
 
 
-            <router-link v-bind:class="{item: true, active: selectedWorld == w.table_name}" v-if="!selectedInstanceReferenceId" v-bind:to="w.table_name">
+            <router-link v-bind:class="{item: true, active: selectedWorld == w.table_name}"
+                         v-if="!selectedInstanceReferenceId" v-bind:to="w.table_name">
               {{w.table_name | titleCase}}
             </router-link>
 
-            <router-link v-bind:class="{item: true, active: selectedWorld == w.table_name}" v-if="selectedInstanceReferenceId"
+            <router-link v-bind:class="{item: true, active: selectedWorld == w.table_name}"
+                         v-if="selectedInstanceReferenceId"
                          :to="{ name: 'SubTables', params: { tablename: selectedWorld, refId:selectedInstanceReferenceId, subTable: w.table_name  }}">
               {{w.table_name | titleCase}}
             </router-link>
