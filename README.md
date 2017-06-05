@@ -28,7 +28,7 @@ Goms is targeted for small to medium complexity use cases. You can build blog, a
 
 Incomplete, might be confusing.
 
-Please suggest changes using issues or [email me](artpar@gmail.com)
+Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
 
 
 ## Subsystems 
@@ -37,8 +37,8 @@ Please suggest changes using issues or [email me](artpar@gmail.com)
 
 - Json Api, with CRUD and Relationships
 - OAuth Authentication using auth0, email is required
-- Slightly modified linux FS based authorization
-- Actions on objects
+- Authorization based on a slightly modified linux FS permission
+- Objects and action chains
 
 ### Road Map
 
