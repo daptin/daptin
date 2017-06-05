@@ -3,7 +3,7 @@
 
 Not related to [GOMS](https://en.wikipedia.org/wiki/GOMS)
 
-Goms is a adaptable management system. 
+Goms is a adaptable management system.
 
 ## Use it before reading on
 
@@ -20,7 +20,8 @@ Goms is targeted for small to medium complexity use cases. You can build blog, a
 - Focus on user requirements more then ease of development
 - Completely configurable at runtime
 - Stateless
-- Try to stick to known standards
+- Try to piggyback on used/known standards
+- Runnable on all types on devices
 
 
 ### Documentation state
@@ -28,6 +29,26 @@ Goms is targeted for small to medium complexity use cases. You can build blog, a
 Incomplete, might be confusing.
 
 Please suggest changes using issues or [email me](artpar@gmail.com)
+
+
+## Subsystems 
+
+### Currently present
+
+- Json Api, with CRUD and Relationships
+- OAuth Authentication using auth0, email is required
+- Slightly modified linux FS based authorization
+- Actions on objects
+
+### Road Map
+
+- State based objects -> Objects to have multiple state machines concurrently maintained.
+- Object events -> created/modified/deleted
+- Views -> Composing views on run time
+- Data connectors -> Event/action triggered Input/Output from the environment/services/apis
+- Tags -> Native tagging, user tags, group tags on objects
+- Pages/Sub-sites
+- Plugin system
 
 ## User system
 
@@ -40,7 +61,17 @@ By default a user is ```guest```
 
 - usergroup
 
-User and every other entity in Goms is associated to multiple User groups
+User and every other entity in Goms is associated to multiple user groups
+
+Each user has his own user group
+
+## Ownership
+
+Every object in the system is owned by someone and belongs to multiple Usergroups.
+
+The person who creates the object is the owner by default
+
+Ownership can be changed (by someone who has permission to "write" on that object)
 
 ## Authentication
 
@@ -90,3 +121,11 @@ Each table being used by Goms will have an entry in ```world``` table. It contai
 - world_column
 
 Each column known to Goms will have an entry in world_column table. It also contains the metadata about the column. 
+
+
+## Tech stack
+
+- Golang
+- Semantic UI
+- JSONAPI
+- VueJS
