@@ -6,7 +6,7 @@ import (
   "strconv"
   "errors"
   "github.com/artpar/api2go"
-  "github.com/artpar/gocms/server/auth"
+  "github.com/artpar/goms/server/auth"
   "fmt"
   "encoding/json"
 )

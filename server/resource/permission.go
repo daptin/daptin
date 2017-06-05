@@ -2,7 +2,7 @@ package resource
 
 import (
   log "github.com/Sirupsen/logrus"
-  "github.com/artpar/gocms/server/auth"
+  "github.com/artpar/goms/server/auth"
 )
 
 type Permission struct {
