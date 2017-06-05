@@ -61,7 +61,7 @@ before_install:
 
 install:
 # Install all external dependencies, ensuring they are updated.
-- go get -u -v $(go list -f '{{join .Imports "\n"}}{{"\n"}}{{join .TestImports "\n"}}' ./... | sort | uniq | grep -v golang-samples)
+- go get -u 
 
 
 script:
