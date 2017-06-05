@@ -1,13 +1,13 @@
 {
-  "name": "GoCMS",
-  "description": "Go CMS",
+  "name": "Goms",
+  "description": "Go Management System",
   "keywords": [
-    "gocms",
+    "goms",
     "go",
-    "content management"
+    "process management"
   ],
   "image": "heroku/go:1.6",
-  "mount_dir": "src/github.com/artpar/gocms",
-  "website": "http://github.com/artpar/gocms",
-  "repository": "http://github.com/artpar/gocms"
+  "mount_dir": "src/github.com/artpar/goms",
+  "website": "http://github.com/artpar/goms",
+  "repository": "http://github.com/artpar/goms"
 }
