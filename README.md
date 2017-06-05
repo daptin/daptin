@@ -23,6 +23,7 @@ Goms is targeted for small to medium complexity use cases. You can build blog, a
 - Try to piggyback on used/known standards
 - Runnable on all types on devices
 
+- Cross platform app using [qt](https://github.com/therecipe/qt)
 
 ### Documentation state
 
