@@ -37,16 +37,34 @@ Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
 
 - Json Api, with CRUD and Relationships
 - OAuth Authentication using auth0, email is required
-- Authorization based on a slightly modified linux FS permission
+- Authorization based on a slightly modified linux FS permission model
 - Objects and action chains
 
 ### Road Map
 
-- State based objects -> Objects to have multiple state machines concurrently maintained.
-- Object events -> created/modified/deleted
-- Views -> Composing views on run time
-- Data connectors -> Event/action triggered Input/Output from the environment/services/apis
-- Tags -> Native tagging, user tags, group tags on objects
+- State based objects
+
+  Objects to have multiple state machines concurrently maintained.
+  
+- Object events 
+
+  created/modified/deleted
+  
+- Views 
+ 
+  Composing views on run time
+  
+- Data connectors 
+
+  Event/action triggered Input/Output from the environment/services/apis
+  
+  Consume data from other services and send data to them
+  
+  Handle format exchanges
+  
+- Tags 
+
+  Native tagging, user tags, group tags on objects
 - Pages/Sub-sites
 - Plugin system
 
