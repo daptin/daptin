@@ -8,7 +8,7 @@ import (
   "github.com/artpar/api2go"
   "github.com/satori/go.uuid"
   "encoding/json"
-  "github.com/artpar/gocms/datastore"
+  "github.com/artpar/goms/datastore"
   "gopkg.in/Masterminds/squirrel.v1"
   //"errors"
 )

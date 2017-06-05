@@ -7,7 +7,7 @@ import (
   "errors"
 
   "github.com/gorilla/context"
-  "github.com/artpar/gocms/server/auth"
+  "github.com/artpar/goms/server/auth"
 )
 
 type TableAccessPermissionChecker struct {
