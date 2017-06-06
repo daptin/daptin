@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM golang:alpine
 
 MAINTAINER Parth Mudgal <artpar@gmail.com>
 
