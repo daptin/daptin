@@ -1,1 +1,1 @@
-web: gocms
+web: goms
