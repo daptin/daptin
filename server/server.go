@@ -15,6 +15,9 @@ import (
   "github.com/artpar/goms/server/auth"
   "net/http"
   "github.com/artpar/goms/server/resource"
+  "os"
+  "strings"
+  "fmt"
 )
 
 type CmsConfig struct {
@@ -69,8 +72,24 @@ type User struct {
 
 var cruds = make(map[string]*resource.DbResource)
 
+func getenvironment(data []string, getkeyval func(item string) (key, val string)) map[string]string {
+  items := make(map[string]string)
+  for _, item := range data {
+    key, val := getkeyval(item)
+    items[key] = val
+  }
+  return items
+}
+
 func Main() {
   //configFile := "gocms_style.json"
+
+  environment := getenvironment(os.Environ(), func(item string) (key, val string) {
+    splits := strings.Split(item, "=")
+    key = splits[0]
+    val = splits[1]
+    return
+  })
 
   //db, err := sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
   db, err := sqlx.Open("sqlite3", "test.db")
@@ -167,7 +186,12 @@ func Main() {
 
   r.POST("/action/:actionName", CreateActionEventHandler(&initConfig, cruds))
 
-  r.Run(":6336")
+  port, ok := environment["PORT"]
+  if !ok {
+    port = "6336"
+  }
+
+  r.Run(fmt.Sprintf(":%v", port))
 
 }
 
