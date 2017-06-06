@@ -11,17 +11,6 @@ services:
 
 script: go get github.com/artpar/api2go && go get github.com/artpar/goms && go build -o docker_dir/goms && cd docker_dir && docker build -t goms/goms .
 
-before_install:
-  - "ls"
-  - "pwd"
-  - "cd gocms"
-  - "npm install"
-  - "npm run build"
-  - "cd .."
-  - "rm -rf docker_dir"
-  - "mkdir docker_dir"
-  - "cp -Rf gocms/dist docker_dir/static"
-  - "cp Dockerfile docker_dir/Dockerfile"
 
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
