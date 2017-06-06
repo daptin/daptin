@@ -36,6 +36,25 @@ func Creat(path string, mode uint32) (fd int, err error) {
 	return Open(path, O_CREAT|O_WRONLY|O_TRUNC, mode)
 }
 
+//sys	ioctl(fd int, req uint, arg uintptr) (err error)
+
+// ioctl itself should not be exposed directly, but additional get/set
+// functions for specific types are permissible.
+
+// IoctlSetInt performs an ioctl operation which sets an integer value
+// on fd, using the specified request number.
+func IoctlSetInt(fd int, req uint, value int) (err error) {
+	return ioctl(fd, req, uintptr(value))
+}
+
+// IoctlGetInt performs an ioctl operation which gets an integer value
+// from fd, using the specified request number.
+func IoctlGetInt(fd int, req uint) (int, error) {
+	var value int
+	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
+	return value, err
+}
+
 //sys	Linkat(olddirfd int, oldpath string, newdirfd int, newpath string, flags int) (err error)
 
 func Link(oldpath string, newpath string) (err error) {
@@ -1184,7 +1203,11 @@ func Getpgrp() (pid int) {
 //sysnb	InotifyRmWatch(fd int, watchdesc uint32) (success int, err error)
 //sysnb	Kill(pid int, sig syscall.Signal) (err error)
 //sys	Klogctl(typ int, buf []byte) (n int, err error) = SYS_SYSLOG
+//sys	Lgetxattr(path string, attr string, dest []byte) (sz int, err error)
 //sys	Listxattr(path string, dest []byte) (sz int, err error)
+//sys	Llistxattr(path string, dest []byte) (sz int, err error)
+//sys	Lremovexattr(path string, attr string) (err error)
+//sys	Lsetxattr(path string, attr string, data []byte, flags int) (err error)
 //sys	Mkdirat(dirfd int, path string, mode uint32) (err error)
 //sys	Mknodat(dirfd int, path string, mode uint32, dev int) (err error)
 //sys	Nanosleep(time *Timespec, leftover *Timespec) (err error)
@@ -1312,15 +1335,10 @@ func Vmsplice(fd int, iovs []Iovec, flags int) (int, error) {
 // IoGetevents
 // IoSetup
 // IoSubmit
-// Ioctl
 // IoprioGet
 // IoprioSet
 // KexecLoad
-// Lgetxattr
-// Llistxattr
 // LookupDcookie
-// Lremovexattr
-// Lsetxattr
 // Mbind
 // MigratePages
 // Mincore
