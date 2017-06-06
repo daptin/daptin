@@ -41,17 +41,17 @@ Vue.component("vuetable-pagination", VuetablePagination);
 // Vue.component("vuetable-pagination-info", Vuetable.VueTablePaginationInfo);
 
 
-window.apiRoot = "http://" + window.location.host;
+window.apiRoot = window.location.protocol + "//" + window.location.host;
 
 
 if (window.location.hostname == "site.goms") {
-  window.apiRoot = "http://" + "api.goms:6336";
+  window.apiRoot = window.location.protocol + "//" + "api.goms:6336";
 }
 
 
 window.jsonApi = new JsonApi({
   apiUrl: window.apiRoot + '/api',
-  pluralize: false,
+  pluralize: false
 });
 
 // window.jsonApiClient = new JsonapiClient(window.apiRoot, {
