@@ -16,7 +16,7 @@ import (
   "net/http"
   "github.com/artpar/goms/server/resource"
   "os"
-  "strings"
+  //"strings"
   "fmt"
 )
 
@@ -84,12 +84,12 @@ func getenvironment(data []string, getkeyval func(item string) (key, val string)
 func Main() {
   //configFile := "gocms_style.json"
 
-  environment := getenvironment(os.Environ(), func(item string) (key, val string) {
-    splits := strings.Split(item, "=")
-    key = splits[0]
-    val = splits[1]
-    return
-  })
+  //environment := getenvironment(os.Environ(), func(item string) (key, val string) {
+  //  splits := strings.Split(item, "=")
+  //  key = splits[0]
+  //  val = splits[1]
+  //  return
+  //})
 
   //db, err := sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
   db, err := sqlx.Open("sqlite3", "test.db")
