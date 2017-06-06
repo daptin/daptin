@@ -1,4 +1,9 @@
 language: go
+
 script: go get github.com/artpar/api2go && go get github.com/artpar/goms && go build -o main
+
+before_install:
+  - "ls"
+  - "pwd"
 notifications:
   email: false
