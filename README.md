@@ -11,10 +11,11 @@ Goms is a adaptable management system.
 
 ## Use it before reading on
 
-(doesn't work yet)
 ```
-docker run goms/goms
+docker run -p 8080:6336 goms/goms
 ```
+
+Then open [console](http://localhost:8080)
 
 Goms is targeted for small to medium complexity use cases. You can build blog, a survey management system, a vendor management system, a forum, e-commerce website.
 

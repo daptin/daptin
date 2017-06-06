@@ -1,10 +1,11 @@
-FROM alpine
+FROM busybox
 
 MAINTAINER Parth Mudgal <artpar@gmail.com>
+WORKDIR /opt/goms
 
-ADD goms /bin/goms
-ADD ./static /opt/gocms
+ADD goms /opt/goms/goms
+ADD ./static /opt/goms/gocms
 
 EXPOSE 6336
 RUN export
-ENTRYPOINT ["goms"]
+ENTRYPOINT ["/opt/goms/goms"]
