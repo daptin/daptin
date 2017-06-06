@@ -9,7 +9,7 @@ services:
   - docker
 
 
-script: go get github.com/artpar/api2go && go get github.com/artpar/goms && go build -o docker_dir/goms && cd docker_dir && docker build -t goms/goms .
+script: go get github.com/artpar/api2go && go get github.com/artpar/goms && go build -o docker_dir/goms && cp -Rf gocms/dist docker_dir/static && cp Dockerfile docker_dir/Dockerfile && cd docker_dir && docker build -t goms/goms .
 
 
 after_success:
