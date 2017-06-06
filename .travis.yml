@@ -1,4 +1,4 @@
-language: go, node_js
+language: go
 
 sudo: required
 cache:
