@@ -1,10 +1,11 @@
-FROM golang:alpine
+FROM phusion/baseimage
 
 MAINTAINER Parth Mudgal <artpar@gmail.com>
 
 
-ADD main /
+ADD goms /bin
 ADD ./static /opt/gocms
 
 EXPOSE 6336
-CMD ["/main"]
+RUN export
+ENTRYPOINT ["goms"]
