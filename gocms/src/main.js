@@ -368,7 +368,7 @@ if (v1 != "undefined") {
   // console.log("it is not undefined");
   lock = new Auth0Lock('edsjFX3nR9fqqpUi4kRXkaKJefzfRaf_', 'gocms.auth0.com', {
     auth: {
-      redirectUrl: 'http://' + window.location.host + "/#/",
+      redirectUrl: window.location.protocol + '//' + window.location.host + "/#/",
       responseType: 'token',
       params: {
         scope: 'openid email' // Learn about scopes: https://auth0.com/docs/scopes
@@ -417,8 +417,8 @@ lock.on('authenticated', (authResult) => {
 ;
 
 lock.on('authorization_error', (error) => {
-      // handle error when authorizaton fails
-    }
+    // handle error when authorizaton fails
+  }
 );
 
 
