@@ -1,7 +1,10 @@
 {
 	"ImportPath": "github.com/artpar/goms",
-	"GoVersion": "go1.7",
+	"GoVersion": "go1.8",
 	"GodepVersion": "v79",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
@@ -101,9 +104,18 @@
 			"Rev": "fc9e8d8ef48496124e79ae0df75490096eccf6fe"
 		},
 		{
+			"ImportPath": "github.com/mattn/go-sqlite3",
+			"Comment": "v1.2.0-82-g83772a7",
+			"Rev": "83772a7051f5e30d8e59746a9e43dfa706b72f3b"
+		},
+		{
 			"ImportPath": "github.com/pkg/errors",
 			"Comment": "v0.8.0-5-gc605e28",
 			"Rev": "c605e284fe17294bda444b34710735b29d1a9d90"
+		},
+		{
+			"ImportPath": "github.com/rcrowley/goagain",
+			"Rev": "f2f192b5d1a96e21dd4026ce67cda85e49659a48"
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",
@@ -116,7 +128,7 @@
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "dbc2be9168a660ef302e04b6ff6406de6f967473"
+			"Rev": "b90f89a1e7a9c1f6b918820b3daa7f08488c8594"
 		},
 		{
 			"ImportPath": "gopkg.in/Masterminds/squirrel.v1",
