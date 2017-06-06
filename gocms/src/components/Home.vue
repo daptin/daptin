@@ -15,14 +15,14 @@
             <el-upload
               class="upload-demo"
               drag
+              ref="upload"
+              :auto-upload="false"
               action="https://jsonplaceholder.typicode.com/posts/"
-              :on-preview="handlePreview"
-              :on-remove="handleRemove"
               :file-list="fileList"
               multiple>
               <i class="el-icon-upload"></i>
               <div class="el-upload__text">Drop file here or <em>click to upload</em></div>
-              <div class="el-upload__tip" slot="tip">jpg/png files with a size less than 500kb</div>
+              <div class="el-upload__tip" slot="tip">JSON files with size less the 1 MB</div>
             </el-upload>
           </p>
           <p>Goms will restart after upload</p>
@@ -32,7 +32,7 @@
         <div class="ui black deny button">
           Nope
         </div>
-        <div class="ui positive right labeled icon button">
+        <div class="ui positive right labeled icon button" @click="uploadJsonSchemaFile">
           Yep, that's me
           <i class="checkmark icon"></i>
         </div>
@@ -236,6 +236,7 @@
         selectedWorldColumns: [],
         showAddEdit: false,
         tableData: [],
+        fileList: [],
         jsonApi: jsonApi,
         selectedRow: null,
         finder: [],
@@ -251,6 +252,9 @@
       }
     },
     methods: {
+      uploadJsonSchemaFile(){
+        console.log("this files list", this.fileList)
+      },
       handleCommand(command) {
         console.log(command);
         if (command == "json") {
