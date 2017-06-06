@@ -1,9 +1,33 @@
-language: go
+language: go, node_js
 
-script: go get github.com/artpar/api2go && go get github.com/artpar/goms && go build -o main
+sudo: required
+cache:
+  directories:
+    - "gocms/node_modules"
+
+services:
+  - docker
+
+
+script: go get github.com/artpar/api2go && go get github.com/artpar/goms && go build -o docker_dir/goms && cd docker_dir && docker build -t goms/goms .
 
 before_install:
   - "ls"
   - "pwd"
+  - "cd gocms"
+  - "npm install"
+  - "npm run build"
+  - "cd .."
+  - "rm -rf docker_dir"
+  - "mkdir docker_dir"
+  - "cp -Rf gocms/dist docker_dir/static"
+  - "cp Dockerfile docker_dir/Dockerfile"
+
+after_success:
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+    docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+    docker push goms/goms;
+    fi
+
 notifications:
   email: false
