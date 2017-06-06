@@ -11,9 +11,21 @@
       <div class="image content">
         <div class="description">
           <div class="ui header">Select and upload the JSON file</div>
-          <p>We've grabbed the following image from the <a href="https://www.gravatar.com" target="_blank">gravatar</a>
-            image associated with your registered e-mail address.</p>
-          <p>Goms will do a re init after upload</p>
+          <p>
+            <el-upload
+              class="upload-demo"
+              drag
+              action="https://jsonplaceholder.typicode.com/posts/"
+              :on-preview="handlePreview"
+              :on-remove="handleRemove"
+              :file-list="fileList"
+              multiple>
+              <i class="el-icon-upload"></i>
+              <div class="el-upload__text">Drop file here or <em>click to upload</em></div>
+              <div class="el-upload__tip" slot="tip">jpg/png files with a size less than 500kb</div>
+            </el-upload>
+          </p>
+          <p>Goms will restart after upload</p>
         </div>
       </div>
       <div class="actions">
@@ -182,7 +194,7 @@
           return str;
         }
         return str.replace(/[-_]+/g, " ").trim().split(' ')
-            .map(w => (w[0] ? w[0].toUpperCase() : "") + w.substr(1).toLowerCase()).join(' ')
+          .map(w => (w[0] ? w[0].toUpperCase() : "") + w.substr(1).toLowerCase()).join(' ')
       },
       chooseTitle: function (obj) {
         var keys = Object.keys(obj);
