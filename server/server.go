@@ -186,8 +186,8 @@ func Main() {
 
   r.POST("/action/:actionName", CreateActionEventHandler(&initConfig, cruds))
 
-  port, ok := environment["PORT"]
-  if !ok {
+  port := os.Getenv("PORT")
+  if port == "" {
     port = "6336"
   }
 
