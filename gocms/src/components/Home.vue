@@ -2,6 +2,31 @@
 
 
   <div class="ui three column grid">
+
+    <div class="ui modal" id="uploadJson">
+      <i class="close icon"></i>
+      <div class="header">
+        Add site features from json file
+      </div>
+      <div class="image content">
+        <div class="description">
+          <div class="ui header">Select and upload the JSON file</div>
+          <p>We've grabbed the following image from the <a href="https://www.gravatar.com" target="_blank">gravatar</a>
+            image associated with your registered e-mail address.</p>
+          <p>Goms will do a re init after upload</p>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="ui black deny button">
+          Nope
+        </div>
+        <div class="ui positive right labeled icon button">
+          Yep, that's me
+          <i class="checkmark icon"></i>
+        </div>
+      </div>
+    </div>
+
     <!-- Home -->
 
     <div class="three wide column">
@@ -11,7 +36,7 @@
         </div>
 
         <div class="four wide column right floated" style="text-align: right">
-          <el-dropdown>
+          <el-dropdown @command="handleCommand">
             <button class="ui icon button el-dropdown-link">
               <i class="setting icon"></i>
             </button>
@@ -214,6 +239,12 @@
       }
     },
     methods: {
+      handleCommand(command) {
+        console.log(command);
+        if (command == "json") {
+          jQuery('#uploadJson').modal('show');
+        }
+      },
       getCurrentTableType() {
         var that = this;
         if (!that.selectedSubTable || !that.selectedInstanceReferenceId) {
