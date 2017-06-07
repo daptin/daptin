@@ -24,6 +24,10 @@ type TableRelation struct {
   ObjectName  string
 }
 
+func (tr *TableRelation) String() string {
+  return fmt.Sprintf("[TableRelation] [%v][%v][%v]", tr.SubjectName, tr.Relation, tr.GetObjectName())
+}
+
 func (tr *TableRelation) GetSubjectName() string {
   if tr.SubjectName == "" {
     tr.SubjectName = tr.Subject + "_id"
@@ -137,7 +141,7 @@ func (a *Api2GoModel) HasColumn(colName string) bool {
 func (a *Api2GoModel) HasMany(colName string) bool {
   for _, rel := range a.relations {
     if rel.GetRelation() == "has_many" && rel.GetObject() == colName {
-      log.Infof("Found %v relation: %v", colName, rel)
+      //log.Infof("Found %v relation: %v", colName, rel)
       return true
     }
   }
@@ -251,7 +255,7 @@ func (m *Api2GoModel) SetToOneReferenceID(name, ID string) error {
 func (m *Api2GoModel) SetToManyReferenceIDs(name string, IDs []string) error {
 
   for _, rel := range m.relations {
-    log.Infof("Check relation: %v", rel)
+    log.Infof("Check relation: %v", rel.String())
     if rel.GetRelation() != "belongs_to" {
 
       if rel.GetObjectName() == name || rel.GetSubjectName() == name {
@@ -343,10 +347,10 @@ func (model *Api2GoModel) GetReferences() []jsonapi.Reference {
   references := make([]jsonapi.Reference, 0)
   //
 
-  log.Infof("Relations: %v", model.relations)
+  //log.Infof("Relations: %v", model.relations)
   for _, relation := range model.relations {
 
-    log.Infof("Check relation [%v] with [%v]", model.typeName, relation)
+    //log.Infof("Check relation [%v] On [%v]", model.typeName, relation.String())
     ref := jsonapi.Reference{}
 
     if relation.GetSubject() == model.typeName {
@@ -404,7 +408,7 @@ func (model *Api2GoModel) GetReferences() []jsonapi.Reference {
   return references
 }
 
-func (m *Api2GoModel)  GetAttributes() map[string]interface{} {
+func (m *Api2GoModel) GetAttributes() map[string]interface{} {
   attrs := make(map[string]interface{})
   for k, v := range m.Data {
     if EndsWithCheck(k, "_id") {
@@ -415,7 +419,7 @@ func (m *Api2GoModel)  GetAttributes() map[string]interface{} {
   return attrs
 }
 
-func (m *Api2GoModel)  GetAllAsAttributes() map[string]interface{} {
+func (m *Api2GoModel) GetAllAsAttributes() map[string]interface{} {
   attrs := make(map[string]interface{})
   for k, v := range m.Data {
     attrs[k] = v
@@ -423,7 +427,7 @@ func (m *Api2GoModel)  GetAllAsAttributes() map[string]interface{} {
   return attrs
 }
 
-func (m *Api2GoModel)  InitializeObject(interface{}) {
+func (m *Api2GoModel) InitializeObject(interface{}) {
   log.Infof("initialize object: %v", m)
   m.Data = make(map[string]interface{})
 }

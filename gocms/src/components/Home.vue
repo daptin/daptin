@@ -8,33 +8,10 @@
       <div class="header">
         Add site features from json file
       </div>
-      <div class="image content">
+      <div class="content">
         <div class="description">
-          <div class="ui header">Select and upload the JSON file</div>
-          <p>
-            <el-upload
-              class="upload-demo"
-              drag
-              ref="upload"
-              :auto-upload="false"
-              action="https://jsonplaceholder.typicode.com/posts/"
-              :file-list="fileList"
-              multiple>
-              <i class="el-icon-upload"></i>
-              <div class="el-upload__text">Drop file here or <em>click to upload</em></div>
-              <div class="el-upload__tip" slot="tip">JSON files with size less the 1 MB</div>
-            </el-upload>
-          </p>
-          <p>Goms will restart after upload</p>
-        </div>
-      </div>
-      <div class="actions">
-        <div class="ui black deny button">
-          Nope
-        </div>
-        <div class="ui positive right labeled icon button" @click="uploadJsonSchemaFile">
-          Yep, that's me
-          <i class="checkmark icon"></i>
+          <action-view :action-manager="actionManager" :action="selectedAction"
+                       :json-api="jsonApi" :model="selectedRow"></action-view>
         </div>
       </div>
     </div>
@@ -99,8 +76,8 @@
     <div class="thirteen wide column" v-if="selectedRow != null && selectedRow['id']">
 
       <div class="ui segment" v-if="selectedAction != null">
-        <event-view @cancel="selectedAction = null" :action-manager="actionManager" :action="selectedAction"
-                    :json-api="jsonApi" :model="selectedRow"></event-view>
+        <action-view @cancel="selectedAction = null" :action-manager="actionManager" :action="selectedAction"
+                     :json-api="jsonApi" :model="selectedRow"></action-view>
       </div>
 
       <div class="ui segment" v-if="selectedRow != null">
@@ -232,6 +209,7 @@
         msg: "message",
         selectedWorld: null,
         selectedAction: null,
+        jsonUploadAction: null,
         filterText: "",
         selectedWorldColumns: [],
         showAddEdit: false,
@@ -253,7 +231,7 @@
     },
     methods: {
       uploadJsonSchemaFile(){
-        console.log("this files list", this.fileList)
+        console.log("this files list", this.$refs.upload)
       },
       handleCommand(command) {
         console.log(command);
@@ -399,6 +377,8 @@
       var that = this;
       console.log("Set table", that.$route.params.tablename)
 
+
+      var worldActions = that.actionManager.getActions("world");
 
       if (that.$route.params.tablename) {
         var tableName = this.$route.params.tablename;

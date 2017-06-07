@@ -2,6 +2,7 @@ package resource
 
 import (
   "github.com/artpar/api2go"
+  "fmt"
 )
 
 type MiddlewareSet struct {
@@ -11,14 +12,15 @@ type MiddlewareSet struct {
   BeforeUpdate  []DatabaseRequestInterceptor
   BeforeDelete  []DatabaseRequestInterceptor
 
-  AfterCreate   []DatabaseRequestInterceptor
-  AfterFindAll  []DatabaseRequestInterceptor
-  AfterFindOne  []DatabaseRequestInterceptor
-  AfterUpdate   []DatabaseRequestInterceptor
-  AfterDelete   []DatabaseRequestInterceptor
+  AfterCreate  []DatabaseRequestInterceptor
+  AfterFindAll []DatabaseRequestInterceptor
+  AfterFindOne []DatabaseRequestInterceptor
+  AfterUpdate  []DatabaseRequestInterceptor
+  AfterDelete  []DatabaseRequestInterceptor
 }
 
 type DatabaseRequestInterceptor interface {
   InterceptBefore(*DbResource, *api2go.Request) (api2go.Responder, error)
   InterceptAfter(*DbResource, *api2go.Request, []map[string]interface{}) ([]map[string]interface{}, error)
+  fmt.Stringer
 }

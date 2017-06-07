@@ -18,9 +18,11 @@ import (
 func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 
   for _, bf := range dr.ms.BeforeUpdate {
+    log.Infof("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+
     r, err := bf.InterceptBefore(dr, &req)
     if err != nil {
-      log.Errorf("Error from before update middleware: %v", err)
+      log.Errorf("Error from BeforeUpdate middleware: %v", err)
       return nil, err
     }
     if r != nil {
@@ -96,7 +98,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
   builder := squirrel.Update(dr.model.GetName())
 
   for i, _ := range colsList {
-    log.Infof("cols to set: %v == %v", colsList[i], valsList[i])
+    //log.Infof("cols to set: %v == %v", colsList[i], valsList[i])
     builder = builder.Set(colsList[i], valsList[i])
   }
 
@@ -106,7 +108,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
     return NewResponse(nil, nil, 500, nil), err
   }
 
-  log.Infof("Update query: %v", query)
+  //log.Infof("Update query: %v", query)
   _, err = dr.db.Exec(query, vals...)
   if err != nil {
     log.Errorf("Failed to execute update query: %v", err)
@@ -186,15 +188,23 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
       if !ok {
         continue
       }
-      log.Infof("Update subject for relation on [%v] : [%v]", rel.GetSubjectName(), val)
+      log.Infof("Update %v on: %v", rel.String(), val)
 
       var relUpdateQuery string
       var vars []interface{}
       switch relationName {
       case "has_one":
+        relUpdateQuery, vars, err = squirrel.Update(rel.GetSubject()).
+            Set(rel.GetObjectName(), val).Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+        if err != nil {
+          log.Errorf("Failed to make update query: %v", err)
+          continue
+        }
+
+        break;
       case "belongs_to":
         relUpdateQuery, vars, err = squirrel.Update(rel.GetSubject()).
-          Set(rel.GetObjectName(), val).Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+            Set(rel.GetObjectName(), val).Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
         if err != nil {
           log.Errorf("Failed to make update query: %v", err)
           continue
@@ -203,6 +213,20 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
         break;
 
       case "has_many":
+        obj := make(map[string]interface{})
+        obj[rel.GetSubjectName()] = val
+        obj[rel.GetObjectName()] = updatedResource["id"]
+
+        req := api2go.Request{
+          PlainRequest: &http.Request{
+            Method: "POST",
+          },
+        }
+        _, err := dr.Create(obj, req)
+        if err != nil {
+          log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
+          continue
+        }
       case "has_many_and_belongs_to_many":
 
         obj := make(map[string]interface{})
@@ -242,6 +266,8 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
   //
 
   for _, bf := range dr.ms.AfterUpdate {
+    log.Infof("Invoke AfterUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+
     results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{updatedResource})
     if len(results) != 0 {
       updatedResource = results[0]
@@ -250,7 +276,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
     }
 
     if err != nil {
-      log.Errorf("Error from after create middleware: %v", err)
+      log.Errorf("Error from AfterUpdate middleware: %v", err)
     }
   }
   delete(updatedResource, "id")
