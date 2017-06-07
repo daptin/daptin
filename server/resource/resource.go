@@ -5,12 +5,13 @@ import (
   //sq  "gopkg.in/Masterminds/squirrel.v1"
   //"github.com/jmoiron/sqlx"
   //log "github.com/Sirupsen/logrus"
-  "database/sql"
+  //"database/sql"
   //"reflect"
   //"github.com/satori/go.uuid"
   //"github.com/artpar/reflect"
   //"time"
   "reflect"
+  "github.com/jmoiron/sqlx"
 )
 
 type StatusResponse struct {
@@ -79,7 +80,7 @@ func ValueOf(x interface{}) interface{} {
   return finalValue
 }
 
-func (s *mapStringScan) Update(rows *sql.Rows) error {
+func (s *mapStringScan) Update(rows *sqlx.Rows) error {
 
   if err := rows.Scan(s.cp...); err != nil {
     return err

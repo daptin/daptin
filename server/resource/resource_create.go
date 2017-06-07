@@ -20,6 +20,7 @@ import (
 func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 
   for _, bf := range dr.ms.BeforeCreate {
+    log.Infof("Invoke BeforeCreate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
     r, err := bf.InterceptBefore(dr, &req)
     if err != nil {
       log.Errorf("Error from before create middleware: %v", err)
@@ -171,6 +172,8 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
   delete(createdResource, "id")
 
   for _, bf := range dr.ms.AfterCreate {
+    log.Infof("Invoke AfterCreate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+
     results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource})
     if err != nil {
       log.Errorf("Error from after create middleware: %v", err)

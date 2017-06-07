@@ -1,6 +1,9 @@
 package datastore
 
-import "github.com/artpar/api2go"
+import (
+  "github.com/artpar/api2go"
+  "github.com/artpar/goms/server/resource"
+)
 
 var StandardColumns = []api2go.ColumnInfo{
   {
@@ -65,6 +68,30 @@ var StandardColumns = []api2go.ColumnInfo{
 var StandardRelations = []api2go.TableRelation{
   api2go.NewTableRelation("world_column", "belongs_to", "world"),
   api2go.NewTableRelation("action", "belongs_to", "world"),
+}
+
+var standardActions = []resource.Action{
+  {
+    Name:   "upload_system_schema",
+    Label:  "Upload features",
+    OnType: "world",
+    InFields: []api2go.ColumnInfo{
+      {
+        Name:       "json_file",
+        ColumnType: "file.json",
+        IsNullable: false,
+      },
+    },
+    OutFields: []resource.Outcome{
+      {
+        Type:   "system_json_schema_update",
+        Method: "POST",
+        Attributes: map[string]string{
+          "json_schema": "$file.json",
+        },
+      },
+    },
+  },
 }
 
 var StandardTables = []TableInfo{
@@ -289,11 +316,13 @@ var StandardTables = []TableInfo{
 }
 
 type TableInfo struct {
-  TableName         string
+  TableName         string  `db:"table_name"`
   TableId           int
-  DefaultPermission int
+  DefaultPermission int  `db:"default_permission"`
   Columns           []api2go.ColumnInfo
   Relations         []api2go.TableRelation
-  IsTopLevel        bool
-  IsHidden          bool
+  IsTopLevel        bool `db:"is_top_level"`
+  Permission        int
+  UserId            uint64 `db:"user_id"`
+  IsHidden          bool `db:"is_hidden"`
 }

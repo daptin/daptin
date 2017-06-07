@@ -25,9 +25,10 @@ func (dr *DbResource) GetTotalCount() uint64 {
 func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, response api2go.Responder, err error) {
 
   for _, bf := range dr.ms.BeforeFindAll {
+    log.Infof("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
     r, err := bf.InterceptBefore(dr, &req)
     if err != nil {
-      log.Errorf("Error from before findall paginated middleware: %v", err)
+      log.Errorf("Error from BeforeFindAll middleware [%v]: %v", bf.String(), err)
       return 0, nil, err
     }
     if r != nil {
@@ -202,7 +203,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
       case "belongs_to":
 
         queries, ok := req.QueryParams[rel.GetSubjectName()]
-        log.Infof("Convert ref ids to ids: %v == %v", queries, len(queries))
+        log.Infof("%d Values as RefIds for relation [%v]", len(queries), rel.String())
         if !ok || len(queries) < 1 {
           continue
         }
@@ -248,7 +249,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
   log.Infof("Sql: %v\n", sql1)
 
-  rows, err := dr.db.Query(sql1, args...)
+  rows, err := dr.db.Queryx(sql1, args...)
 
   if err != nil {
     log.Infof("Error: %v", err)
@@ -264,6 +265,8 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   }
 
   for _, bf := range dr.ms.AfterFindAll {
+    log.Infof("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+
     results, err = bf.InterceptAfter(dr, &req, results)
     if err != nil {
       log.Errorf("Error from findall paginated create middleware: %v", err)
@@ -272,11 +275,12 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
   includesNew := make([][]map[string]interface{}, 0)
   for _, bf := range dr.ms.AfterFindAll {
+    log.Infof("Invoke AfterFindAll Includes [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
     for _, include := range includes {
       include, err = bf.InterceptAfter(dr, &req, include)
       if err != nil {
-        log.Errorf("Error from findall paginated create middleware: %v", err)
+        log.Errorf("Error from AfterFindAll middleware: %v", err)
       }
       includesNew = append(includesNew, include)
     }
