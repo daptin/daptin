@@ -275,9 +275,11 @@ let vm = new Vue({
       }).modal('show')
     },
     showLoader () {
+      console.log("Set loading to true")
       this.loading = 'loading'
     },
     hideLoader () {
+      console.log("Set loading to false")
       this.loading = ''
     },
     allCap (value) {

@@ -96,12 +96,13 @@ const WorldManager = function () {
           that.modelLoader("world", function (columnKeys) {
             jsonApi.define("world", that.GetJsonApiModel(columnKeys.ColumnModel));
             // console.log("world column keys", columnKeys, that.GetJsonApiModel(columnKeys.ColumnModel))
-
+            console.log("Defined world", columnKeys.ColumnModel);
             jsonApi.findAll('world', {
               page: {number: 1, size: 50},
               include: ['world_column']
             }).then(function (res) {
               console.log("Get all worlds result", res)
+              // resolve("Stuff worked!");
               var total = res.length;
 
               for (var t = 0; t < res.length; t++) {
@@ -111,9 +112,9 @@ const WorldManager = function () {
 
                     total -= 1;
 
-                    if (total < 3 && promise !== false) {
+                    if (total < 1 && promise !== null) {
                       resolve("Stuff worked!");
-                      promise = false;
+                      promise = null;
                     }
 
                     jsonApi.define(typeName, that.GetJsonApiModel(model.ColumnModel));
