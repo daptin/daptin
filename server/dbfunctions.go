@@ -11,6 +11,7 @@ import (
   "github.com/artpar/goms/datastore"
   "gopkg.in/Masterminds/squirrel.v1"
   //"errors"
+  "github.com/artpar/goms/server/resource"
 )
 
 func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
@@ -62,7 +63,6 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
         log.Infof("Picked for from db [%v][%v] :  [%v]", table.TableName, colInfo.ColumnName, colInfo.DefaultValue)
         initConfig.Tables[i].Columns[j] = colInfo
       }
-
     }
   }
 }
@@ -87,13 +87,7 @@ func GetObjectByWhereClause(objType string, db *sqlx.DB, queries ...squirrel.Eq)
     return result, err
   }
 
-  for ; rows.Next(); {
-    res := make(map[string]interface{})
-    rows.MapScan(res)
-    result = append(result, res)
-  }
-
-  return result, err
+  return resource.RowsToMap(rows, objType)
 }
 
 func GetActionMapByTypeName(db *sqlx.DB) (map[string]map[string]interface{}, error) {
@@ -106,8 +100,8 @@ func GetActionMapByTypeName(db *sqlx.DB) (map[string]map[string]interface{}, err
   typeActionMap := make(map[string]map[string]interface{})
 
   for _, action := range allActions {
-    actioName := string(action["action_name"].([]uint8))
-    typeName := string(action["world_id"].(int64))
+    actioName := action["action_name"].(string)
+    typeName := string(action["world_id"].(string))
 
     _, ok := typeActionMap[typeName]
     if !ok {
@@ -135,7 +129,7 @@ func GetWorldTableMapBy(col string, db *sqlx.DB) (map[string]map[string]interfac
   resMap := make(map[string]map[string]interface{})
 
   for _, world := range allWorlds {
-    resMap[string(world[col].([]uint8))] = world
+    resMap[world[col].(string)] = world
   }
   return resMap, err
 
@@ -260,6 +254,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
     var cou int
     s, v, err := squirrel.Select("count(*)").From("world").Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
     tx.QueryRowx(s, v...).Scan(&cou)
+
     if cou > 0 {
 
       var defaultPermission int
@@ -280,15 +275,40 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
       continue
     }
 
-    s, v, err = squirrel.Insert("world").Columns("table_name", "schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden").Values(table.TableName, string(schema), 777, refId, 755, userId, table.IsTopLevel, table.IsHidden).ToSql()
+    s, v, err = squirrel.Insert("world").
+        Columns("table_name", "schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden").
+        Values(table.TableName, string(schema), 777, refId, 755, userId, table.IsTopLevel, table.IsHidden).ToSql()
     _, err = tx.Exec(s, v...)
     CheckErr(err, "Failed to insert into world table about "+table.TableName)
     initConfig.Tables[i].DefaultPermission = 755
 
   }
 
-  //log.Infof("Completed update world table: %v", initConfig)
-  CheckErr(err, "Failed to commit")
+  s, v, err = squirrel.Select("schema_json", "permission", "default_permission", "is_top_level", "is_hidden").
+      From("world").
+      Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+
+  CheckErr(err, "Failed to scan world table")
+
+  res, err := tx.Queryx(s, v...)
+
+  tables := make([]datastore.TableInfo, 0)
+  for ; res.Next(); {
+    var tabInfo datastore.TableInfo
+    var tableSchema []byte
+    var permission, defaultPermission int
+    var isTopLevel, isHidden bool
+    err = res.Scan(&tableSchema, &permission, &defaultPermission, &isTopLevel, &isHidden)
+    CheckErr(err, "Failed to scan table info")
+    err = json.Unmarshal(tableSchema, &tabInfo)
+    CheckErr(err, "Failed to convert json to table schema")
+    tabInfo.Permission = permission
+    tabInfo.DefaultPermission = defaultPermission
+    tabInfo.IsTopLevel = isTopLevel
+    tabInfo.IsHidden = isHidden
+    tables = append(tables, tabInfo)
+  }
+  initConfig.Tables = tables
 
 }
 
@@ -691,7 +711,7 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 
   if c.IsAutoIncrement {
     if sqlDriverName == "sqlite3" {
-      columnParams = append(columnParams, " PRIMARY KEY")
+      //columnParams = append(columnParams, "")
     } else {
       columnParams = append(columnParams, "AUTO_INCREMENT PRIMARY KEY")
     }

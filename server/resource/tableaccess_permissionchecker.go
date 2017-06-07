@@ -13,6 +13,10 @@ import (
 type TableAccessPermissionChecker struct {
 }
 
+func (pc *TableAccessPermissionChecker) String() string {
+  return "TableAccessPermissionChecker"
+}
+
 func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
 
   if results == nil || len(results) < 1 {
@@ -70,7 +74,7 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 
   tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
 
-  log.Infof("Request method: %v", req.PlainRequest)
+  log.Infof("Permission check for action type: [%v] on [%v]", req.PlainRequest.Method, dr.model.GetName())
   if req.PlainRequest.Method == "GET" {
     if !tableOwnership.CanRead(currentUserId, currentUserGroupId) {
       return api2go.Response{

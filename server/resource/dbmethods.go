@@ -9,6 +9,8 @@ import (
   "github.com/artpar/goms/server/auth"
   "fmt"
   "encoding/json"
+  "github.com/jmoiron/sqlx"
+  "reflect"
 )
 
 func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []auth.GroupPermission, typeName string, actionName string) bool {
@@ -174,7 +176,7 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 //  return perm
 //}
 
-func (dr *DbResource) GetObjectGroupsByWhere(objType string, colName string, colvalue string) ([]auth.GroupPermission) {
+func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string, colvalue string) ([]auth.GroupPermission) {
 
   s := make([]auth.GroupPermission, 0)
 
@@ -185,10 +187,10 @@ func (dr *DbResource) GetObjectGroupsByWhere(objType string, colName string, col
   rel.ObjectName = "usergroup_id"
   rel.Relation = "has_many_and_belongs_to_many"
 
-  log.Infof("Join string: %v: ", rel.GetJoinString())
+  //log.Infof("Join string: %v: ", rel.GetJoinString())
 
   sql := fmt.Sprintf("select usergroup.reference_id as referenceid, j1.permission from %s join %s  where %s.%s = ?", rel.Subject, rel.GetJoinString(), rel.Subject, colName)
-  log.Infof("Group select sql: %v", sql)
+  //log.Infof("Group select sql: %v", sql)
   res, err := dr.db.Queryx(sql, colvalue)
   if err != nil {
     log.Errorf("Failed to get object groups by where clause: %v", err)
@@ -244,7 +246,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) (Permission) 
     if !ok {
       refId = row["id"]
     }
-    perm.UserGroupId = dr.GetObjectGroupsByWhere(row["__type"].(string), "reference_id", refId.(string))
+    perm.UserGroupId = dr.GetObjectUserGroupsByWhere(row["__type"].(string), "reference_id", refId.(string))
   }
   if row["permission"] != nil {
 
@@ -270,7 +272,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where squirrel.Eq) (
   s, q, err := squirrel.Select("*").From(typeName).Where(where).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
 
   //log.Infof("Select query: %v == [%v]", s, q)
-  rows, err := dr.db.Query(s, q...)
+  rows, err := dr.db.Queryx(s, q...)
   defer rows.Close()
   m1, include, err := dr.ResultToArrayOfMap(rows)
   if err != nil {
@@ -308,7 +310,7 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
     return nil, nil, err
   }
 
-  rows, err := dr.db.Query(s, q...)
+  rows, err := dr.db.Queryx(s, q...)
   defer rows.Close()
   resultRows, includeRows, err := dr.ResultToArrayOfMap(rows)
   if err != nil {
@@ -326,53 +328,248 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 
 }
 
-// FindOne returns an object by its ID
-// Possible Responder success status code 200
-func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Responder, error) {
-
-  for _, bf := range dr.ms.BeforeFindOne {
-    r, err := bf.InterceptBefore(dr, &req)
-    if err != nil {
-      log.Errorf("Error from before findone middleware: %v", err)
-      return nil, err
-    }
-    if r != nil {
-      return r, err
-    }
-  }
-  log.Infof("Find [%s] by id [%s]", dr.model.GetName(), referenceId)
-
-  data, include, err := dr.GetSingleRowByReferenceId(dr.model.GetName(), referenceId)
-
-  for _, bf := range dr.ms.AfterFindOne {
-    results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{data})
-    if len(results) != 0 {
-      data = results[0]
-    } else {
-      data = nil
-    }
-    if err != nil {
-      log.Errorf("Error from after create middleware: %v", err)
-    }
-    include, err = bf.InterceptAfter(dr, &req, include)
-
-    if err != nil {
-      log.Errorf("Error from after create middleware: %v", err)
-    }
+func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]interface{}, error) {
+  s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  if err != nil {
+    return nil, err
   }
 
-  infos := dr.model.GetColumns()
-  var a = api2go.NewApi2GoModel(dr.model.GetTableName(), infos, dr.model.GetDefaultPermission(), dr.model.GetRelations())
-  a.Data = data
+  row, err := dr.db.Queryx(s, q...)
 
-  for _, inc := range include {
-    p, ok := inc["permission"].(int64)
-    if !ok {
-      log.Errorf("Failed to convert [%v] to permission: %v", ok)
-      continue
-    }
-    a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(inc["__type"].(string), nil, int(p), nil, inc))
+  if err != nil {
+    return nil, err
   }
 
-  return NewResponse(nil, a, 200, nil), err
+  m, err := RowsToMap(row, typeName)
+
+  return m[0], err
+}
+
+func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string) (map[string]interface{}, error) {
+  s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  if err != nil {
+    return nil, err
+  }
+
+  row, err := dr.db.Queryx(s, q...)
+
+  if err != nil {
+    return nil, err
+  }
+
+  //cols, err := row.Columns()
+  //if err != nil {
+  //  return nil, err
+  //}
+
+  results, _, err := dr.ResultToArrayOfMap(row)
+  if err != nil {
+    return nil, err
+  }
+
+  return results[0], err
+}
+
+func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...squirrel.Eq) ([]string, error) {
+  builder := squirrel.Select("reference_id").From(typeName).Where(squirrel.Eq{"deleted_at": nil})
+
+  for _, qu := range queries {
+    builder = builder.Where(qu)
+  }
+
+  s, q, err := builder.ToSql()
+  log.Debugf("reference id by where query: %v", s)
+
+  if err != nil {
+    return nil, err
+  }
+
+  res, err := dr.db.Queryx(s, q...)
+
+  if err != nil {
+    return nil, err
+  }
+
+  ret := make([]string, 0)
+  for ; res.Next(); {
+    var s string
+    res.Scan(&s)
+    ret = append(ret, s)
+  }
+
+  return ret, err
+
+}
+
+func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...squirrel.Eq) ([]int64, error) {
+  builder := squirrel.Select("id").From(typeName).Where(squirrel.Eq{"deleted_at": nil})
+
+  for _, qu := range queries {
+    builder = builder.Where(qu)
+  }
+
+  s, q, err := builder.ToSql()
+  log.Debugf("reference id by where query: %v", s)
+
+  if err != nil {
+    return nil, err
+  }
+
+  res, err := dr.db.Queryx(s, q...)
+
+  if err != nil {
+    return nil, err
+  }
+
+  ret := make([]int64, 0)
+  for ; res.Next(); {
+    var s int64
+    res.Scan(&s)
+    ret = append(ret, s)
+  }
+
+  return ret, err
+
+}
+
+func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, error) {
+
+  s, q, err := squirrel.Select("reference_id").From(typeName).Where(squirrel.Eq{"id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  if err != nil {
+    return "", err
+  }
+
+  var str string
+  err = dr.db.QueryRowx(s, q...).Scan(&str)
+  return str, err
+
+}
+
+func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (uint64, error) {
+
+  var id uint64
+  s, q, err := squirrel.Select("id").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  if err != nil {
+    return 0, err
+  }
+
+  err = dr.db.QueryRowx(s, q...).Scan(&id)
+  return id, err
+
+}
+
+func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectColumn, matchColumn string, values []string) ([]interface{}, error) {
+
+  s, q, err := squirrel.Select(selectColumn).From(typeName).Where(squirrel.Eq{matchColumn: values}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  if err != nil {
+    return nil, err
+  }
+
+  return dr.db.QueryRowx(s, q...).SliceScan()
+}
+
+func RowsToMap(rows *sqlx.Rows, typeName string) ([]map[string]interface{}, error) {
+
+  columns, err := rows.Columns()
+  if err != nil {
+    return nil, err
+  }
+  responseArray := make([]map[string]interface{}, 0)
+
+  for ; rows.Next(); {
+
+    rc := NewMapStringScan(columns)
+    err := rc.Update(rows)
+    if err != nil {
+      return responseArray, err
+    }
+
+    dbRow := rc.Get()
+    dbRow["__type"] = typeName
+    //log.Infof("Scanned row: %v", dbRow)
+
+    //id := dbRow["id"]
+    //deletedAt := dbRow["deleted_at"]
+
+    //delete(dbRow, "id")
+    //delete(dbRow, "deleted_at")
+
+    responseArray = append(responseArray, dbRow)
+  }
+
+  return responseArray, nil
+
+}
+
+func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows) ([]map[string]interface{}, [][]map[string]interface{}, error) {
+
+  //finalArray := make([]map[string]interface{}, 0)
+
+  responseArray, err := RowsToMap(rows, dr.model.GetName())
+  if err != nil {
+    return responseArray, nil, err
+  }
+
+  includes := make([][]map[string]interface{}, 0)
+
+  for i, row := range responseArray {
+    localInclude := make([]map[string]interface{}, 0)
+
+    for key, val := range row {
+      //log.Infof("Key: [%v] == %v", key, val)
+
+      if key == "reference_id" {
+        continue
+      }
+
+      if val == "" || val == nil {
+        continue
+      }
+
+      typeName, ok := api2go.EndsWith(key, "_id")
+      if ok {
+        i, ok := val.(int64)
+        if !ok {
+
+          si, ok := val.(string)
+          if ok {
+            i, err = strconv.ParseInt(si, 10, 64)
+            if err != nil {
+              log.Errorf("Failed to convert [%v] to int", si)
+              continue
+            }
+          } else {
+            log.Errorf("Id should have been integer [%v]: %v", val, reflect.TypeOf(val))
+            continue
+          }
+        }
+
+        refId, err := dr.GetIdToReferenceId(typeName, i)
+
+        row[key] = refId
+        if err != nil {
+          log.Errorf("Failed to get ref id for [%v][%v]: %v", typeName, val, err)
+          continue
+        }
+        obj, err := dr.GetIdToObject(typeName, i)
+        obj["__type"] = typeName
+
+        if err != nil {
+          log.Errorf("Failed to get ref object for [%v][%v]: %v", typeName, val, err)
+        } else {
+          localInclude = append(localInclude, obj)
+        }
+
+      }
+      //delete(responseArray[i], "id")
+      delete(responseArray[i], "deleted_at")
+
+    }
+
+    includes = append(includes, localInclude)
+    //finalArray = append(finalArray, row)
+
+  }
+
+  return responseArray, includes, nil
 }
