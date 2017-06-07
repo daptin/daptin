@@ -4,7 +4,6 @@
   <div class="ui three column grid">
 
     <div class="hidden" style="display: none">
-      <nuxt-child/>
       <div class="ui modal" id="uploadJson">
         <i class="close icon"></i>
         <div class="header">
@@ -22,6 +21,7 @@
 
     <div class="three wide column">
       {{selectedWorld}} - {{selectedSubTable}} - {{viewMode}}
+      <nuxt-child/>
 
       <div class="ui two column grid segment top attached">
         <div class="four wide column left floated">
@@ -150,7 +150,7 @@
 
       </div>
       <table-view @newRow="newRow()" @editRow="editRow"
-                  v-if="viewMode == 'table' && !selectedSubTable" :finder="finder"
+                  v-if="viewMode == 'table' && !selectedSubTable && selectedWorld" :finder="finder"
                   ref="tableview1" :json-api="jsonApi"
                   :json-api-model-name="selectedWorld"></table-view>
 
@@ -189,13 +189,13 @@
       chooseTitle: function (obj) {
         var keys = Object.keys(obj);
         for (var i = 0; i < keys.length; i++) {
-          console.log("check key", keys[i],);
+//          console.log("check key", keys[i],);
           if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
-            console.log("title value", keys[i], obj[keys[i]], typeof obj[keys[i]]);
+//            console.log("title value", keys[i], obj[keys[i]], typeof obj[keys[i]]);
             return obj[keys[i]];
           }
         }
-        console.log("title value", "Reference id", obj);
+//        console.log("title value", "Reference id", obj);
         return obj["type"] + " #" + obj["id"];
 
       }
@@ -239,15 +239,15 @@
         selectedSubTable: null,
         selectedInstanceType: null,
         tableMap: {},
-        modelLoader: null,
+        ...mapGetters(['worlds'])
       }
     },
     methods: {
       uploadJsonSchemaFile(){
-        console.log("this files list", this.$refs.upload)
+//        console.log("this files list", this.$refs.upload)
       },
       handleCommand(command) {
-        console.log(command);
+//        console.log(command);
         if (command === "json") {
           document.getElementById('uploadJson').modal('show');
         }
@@ -263,7 +263,7 @@
       },
       deleteRow(row) {
         const that = this;
-        console.log("delete row", this.getCurrentTableType());
+//        console.log("delete row", this.getCurrentTableType());
 
         jsonApi.destroy(this.getCurrentTableType(), row["reference_id"]).then(function () {
           that.setTable();
@@ -282,7 +282,7 @@
         }
 
 
-        console.log("save row", row);
+//        console.log("save row", row);
         if (row["id"]) {
           that = this;
           jsonApi.update(currentTableType, row).then(function () {
@@ -292,7 +292,7 @@
         } else {
           that = this;
           jsonApi.create(currentTableType, row).then(function () {
-            console.log("create complete", arguments);
+//            console.log("create complete", arguments);
             that.setTable();
             that.showAddEdit = false;
             that.$refs.tableview1.reloadData(currentTableType);
@@ -305,41 +305,39 @@
 
       },
       newRow() {
-        console.log("new row", this.selectedWorld);
+//        console.log("new row", this.selectedWorld);
         this.selectedRow = {};
         this.showAddEdit = true;
       },
       editRow(row) {
-        console.log("new row", this.selectedWorld);
+//        console.log("new row", this.selectedWorld);
         this.selectedRow = row;
         this.showAddEdit = true;
       },
       setTable(tableName) {
 
         if (!tableName) {
-          console.log("no table name in argument, getting from present")
           tableName = this.getCurrentTableType();
         }
         const that = this;
-        console.log("Set table selected world :: ", tableName);
 
         let all = {};
         if (!that.selectedSubTable) {
           all = jsonApi.all(tableName);
         } else {
           all = jsonApi.one(that.selectedWorld, that.selectedInstanceReferenceId).all(that.selectedSubTable + "_id");
+          console.log("Get column keys for ", that.selectedSubTable)
           worldManager.getColumnKeys(that.selectedSubTable, function (r) {
-            console.log("Set selected sub table columns", r.ColumnModel);
+            console.log("Got column keys for ", r)
             that.subTableColumns = r.ColumnModel;
           });
-          console.log("Set subtable columns: ", that.subTableColumns)
         }
 
 
         that.finder = all.builderStack;
-        console.log("finder stack for this view table", that.selectedSubTable, that.selectedWorld, that.finder);
+        console.log("Get column keys for ", tableName);
         worldManager.getColumnKeys(tableName, function (model) {
-          console.log("Set selected world columns", model.ColumnModel);
+          console.log("Got column keys for ", model)
           that.selectedWorldColumns = model.ColumnModel
         });
 
@@ -348,10 +346,11 @@
 
         all.builderStack = [];
         if (that.$refs.tableview1) {
-          console.log("reload data for ", tableName);
+          console.log("reload data for 1", tableName);
           that.$refs.tableview1.reloadData(tableName)
         }
         if (that.$refs.tableview2) {
+          console.log("reload data for 2", tableName);
           that.$refs.tableview2.reloadData(tableName)
         }
 
@@ -362,19 +361,19 @@
     },
     computed: {
       visibleWorlds: function () {
-        console.log("get visible worlds", this.world, "0");
+//        console.log("get visible worlds", this.world, "0");
         var that = this;
 
         let filtered = this.world.filter(function (w, r) {
           if (!that.selectedInstanceReferenceId) {
             return w.is_top_level === '1' && w.is_hidden == '0';
           } else {
-            console.log("check visibility of ", w);
+//            console.log("check visibility of ", w);
             var model = that.jsonApi.modelFor(w.table_name);
-            console.log("model  ", model);
+//            console.log("model  ", model);
             var attrs = model["attributes"];
             var keys = Object.keys(attrs);
-            console.log("keys ", attrs, keys, that.selectedWorld + "_id");
+//            console.log("keys ", attrs, keys, that.selectedWorld + "_id");
             if (keys.indexOf(that.selectedWorld + "_id") > -1) {
               return w.is_top_level == '0' && w.is_hidden === '0';
             }
@@ -383,7 +382,7 @@
 
           }
         });
-        console.log("Filtered visible worlds", filtered)
+//        console.log("Filtered visible worlds", filtered)
         return filtered;
       },
       ...mapGetters([
@@ -392,16 +391,26 @@
       ]),
     },
     created() {
-      console.log("created ")
+      var that = this;
+      console.log("created ", that.$route.params.tablename);
+//      console.log("Watch $route.params.tablename")
+//      console.log("World Selected change from path param change", to);
+      this.selectedWorld = that.$route.params.tablename;
+      this.selectedSubTable = null;
+      this.selectedRow = null;
+      this.showAddEdit = false;
+      this.setTable();
     },
     mounted() {
       const that = this;
-      console.log("Set table", that.$route.params.tablename);
+      console.log("Mounted _tablename", that.$route.params.tablename);
+      this.selectedWorld = that.$route.params.tablename;
       const worldActions = that.actionManager.getActions("world");
-      console.log("world actions", worldActions);
-      console.log("that is a ", that.$route);
-      console.log("this is a ", this);
+//      console.log("world actions", worldActions);
+//      console.log("that is a ", that.$route);
+//      console.log("this is a ", this);
       if (that.$route.params.tablename) {
+//        console.log("route param table is set", that.$route.params.tablename)
         const tableName = that.$route.params.tablename;
 
 //        console.log("World Selected change", tableName);
@@ -410,7 +419,7 @@
         that.finder = all.builderStack;
         all.builderStack = [];
         worldManager.getColumnKeys(tableName, function (model) {
-          console.log("Set selected world columns", model.ColumnModel);
+//          console.log("Set selected world columns", model.ColumnModel);
           that.selectedWorldColumns = model.ColumnModel
         });
       }
@@ -419,16 +428,13 @@
         that.selectedInstanceReferenceId = that.$route.params.refId;
       }
 
-
-      that.modelLoader = worldManager.getColumnKeysWithErrorHandleWithThisBuilder(that);
-
+      console.log("am i here yet ?")
       jsonApi.findAll('world', {
         page: {number: 1, size: 50},
         include: ['world_column']
       }).then(function (res) {
-
-//          console.log("worlds ", res);
-        that.world = res.sort(function (a, b) {
+//        console.log("Set worlds ", res)
+        let sortedWorlds = res.sort(function (a, b) {
           if (a.table_name < b.table_name) {
             return -1;
           } else if (a.table_name > b.table_name) {
@@ -436,9 +442,8 @@
           }
           return 0;
         });
-//          console.log("got world", res);
-
-
+        console.log("Set worlds ", res)
+        that.world = sortedWorlds;
       });
 
 
@@ -448,13 +453,8 @@
         console.log("World Selected changed", from, " => ", to)
       },
       '$route.params.tablename': function (to, from) {
-        console.log("Watch $route.params.tablename")
-        console.log("World Selected change", to);
+        console.log("World Selected changed", from, " => ", to)
         this.selectedWorld = to;
-        this.selectedSubTable = null;
-        this.selectedRow = null;
-        this.showAddEdit = false;
-        this.setTable(to);
       },
 //      '$route.params.refId': function (to, from) {
 //        console.log("Watch $route.params.refId")
