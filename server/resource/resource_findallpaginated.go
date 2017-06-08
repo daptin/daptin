@@ -174,7 +174,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
     } else if rel.GetObject() == dr.model.GetName() {
 
       subjectNameList, ok := req.QueryParams[rel.GetSubject()+"Name"]
-      log.Infof("Reverse Relation %v", rel)
+      log.Infof("Reverse Relation %v", rel.String())
 
       var subjectName string
       /**
@@ -209,7 +209,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
         }
         ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), "id", "reference_id", queries)
         if err != nil {
-          log.Errorf("Failed to convert refids to ids: %v", err)
+          log.Errorf("Failed to convert refids to ids[%v]: %v", queries, err)
           continue
         }
 

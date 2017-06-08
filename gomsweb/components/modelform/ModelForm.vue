@@ -54,11 +54,6 @@
       }
     },
     methods: {
-      titleCase: function (str) {
-        return str.replace(/[-_]/g, " ").split(' ')
-            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()
-            ).join(' ')
-      },
       saveRow: function () {
         console.log("save row", this.model);
         this.$emit('save', this.model)
@@ -71,9 +66,8 @@
         if (!str) {
           return str;
         }
-        return str.replace(/[-_]/g, " ").split(' ')
-            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
-
+        return str.replace(/[-_]/g, " ").trim().split(' ')
+          .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
       }
     },
     mounted: function () {
@@ -123,6 +117,10 @@
         }
 
         if (columnMeta.IsForeignKey) {
+          continue;
+        }
+
+        if (columnMeta.ColumnType == "hidden") {
           continue;
         }
 
