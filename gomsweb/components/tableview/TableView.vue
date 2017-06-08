@@ -3,7 +3,6 @@
 
   <div class="ui segment attached ">
     <!-- TableView -->
-    <h1>Table</h1>
     <vuetable-pagination ref="pagination" @change-page="onChangePage"></vuetable-pagination>
 
     <vuetable ref="vuetable"
@@ -110,14 +109,22 @@
       onCellClicked (data, field, event){
         console.log('cellClicked 1: ', data, this.selectedWorld);
 //        this.$refs.vuetable.toggleDetailRow(data.id);
-        this.$router.push(this.selectedWorld + "/" + data.id)
+        console.log("this router", data["id"])
+
+        this.$router.push({
+          name: "tablename-refId",
+          params: {
+            tablename: this.$store.getters.selectedTable,
+            refId: data["id"]
+          }
+        })
       },
       trueFalseView (value) {
         console.log("Render", value);
         return value === "1" ? '<span class="fa fa-check"></span>' : '<span class="fa fa-times"></span>'
       },
       onPaginationData (paginationData) {
-        console.log("set pagifnation method", paginationData, this.$refs.pagination);
+//        console.log("set pagifnation method", paginationData, this.$refs.pagination);
         this.$refs.pagination.setPaginationData(paginationData)
       },
       onChangePage (page) {
@@ -148,7 +155,7 @@
       },
       setTable(tableName) {
         const that = this;
-        console.log("choose table", tableName, that.tableMap, that.finder);
+        console.log("Set table in tableview by [setTable] ", tableName, that.finder);
         that.selectedWorldColumns = {};
         that.tableData = [];
         that.showAddEdit = false;
@@ -158,7 +165,7 @@
 
       reloadData(tableName) {
         const that = this;
-        console.log("reload data inside", tableName)
+        console.log("Reload data in tableview by [reloadData]", tableName)
 
         if (!tableName) {
           tableName = that.selectedWorld;
@@ -169,7 +176,12 @@
         }
 
         that.selectedWorld = tableName;
-        that.selectedWorldColumns = that.jsonApi.modelFor(tableName)["attributes"];
+        let jsonModel = that.jsonApi.modelFor(tableName);
+        if (!jsonModel) {
+          console.error("Failed to find json api model for ", tableName);
+        }
+        console.log("selectedWorldColumns", that.selectedWorldColumns)
+        that.selectedWorldColumns = jsonModel["attributes"];
 
         setTimeout(function () {
 
@@ -185,7 +197,13 @@
     mounted() {
       const that = this;
       that.selectedWorld = that.jsonApiModelName;
-      that.selectedWorldColumns = Object.keys(that.jsonApi.modelFor(that.jsonApiModelName)["attributes"])
+      console.log("Mounted TableView for ", that.jsonApiModelName);
+      let jsonModel = that.jsonApi.modelFor(that.jsonApiModelName);
+      if (!jsonModel) {
+        console.error("Failed to find json api model for ", that.jsonApiModelName);
+        return
+      }
+      that.selectedWorldColumns = Object.keys(jsonModel["attributes"])
     }
   }
 </script>

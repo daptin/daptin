@@ -9,7 +9,7 @@
 
 
           <div class="ui icon button">
-            <i class="setting power" @click="login()"  v-show="!authenticated"> Login </i>
+            <i class="setting power" @click="login()" v-show="!authenticated"> Login </i>
             <i class="setting power" @click="logout()" v-show="authenticated">Logout </i>
           </div>
         </div>
@@ -23,7 +23,7 @@
 </template>
 <script>
 
-  import { getToken } from '~/utils/auth'
+  import {getToken} from '~/utils/auth'
   import Notification from 'element-ui'
   import worldManager from "~/plugins/worldmanager"
 
@@ -42,12 +42,10 @@
       var self = this;
       console.log("default layout loaded, waiting for world load")
       var promise = worldManager.loadModels();
-      promise.then(function(){
+      promise.then(function () {
         console.log("World loaded, start view")
         that.loaded = true;
       })
-//            console.log("Auth0Lock 11", Auth0Lock)
-
     },
     methods: {
       init() {
