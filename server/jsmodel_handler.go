@@ -5,6 +5,7 @@ import (
   "strings"
   log "github.com/Sirupsen/logrus"
   "github.com/artpar/goms/datastore"
+  "github.com/artpar/api2go"
 )
 
 var tableMap map[string]datastore.TableInfo
@@ -67,6 +68,12 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
           res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasMany", "entity")
         }
       }
+    }
+    res["__type"] = api2go.ColumnInfo{
+      Name:       "type",
+      ColumnName: "__type",
+      ColumnType: "hidden",
+
     }
 
     jsModel := JsModel{

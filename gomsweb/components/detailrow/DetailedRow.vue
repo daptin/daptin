@@ -47,7 +47,6 @@
         <!--<table-view :json-api="jsonApi"-->
         <!--:json-api-model-name="relation.type" :autoload="false" :finder="relation.finder"></table-view>-->
 
-        {{relation}}
         <list-view :json-api="jsonApi" :ref="relation.name"
                    :json-api-model-name="relation.type" :json-api-relation-name="relation.name" @addRow="addRow"
                    :autoload="true"
@@ -103,7 +102,7 @@
         return obj["reference_id"];
       },
       titleCase: function (str) {
-        return str.replace(/[-_]/g, " ").split(' ')
+        return str.replace(/[-_]/g, " ").trim().split(' ')
           .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
           .join(' ')
       },
@@ -206,7 +205,7 @@
 
       },
       titleCase: function (str) {
-        return str.replace(/[-_]/g, " ").split(' ')
+        return str.replace(/[-_]/g, " ").trim().split(' ')
           .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
           .join(' ')
       },
