@@ -304,16 +304,16 @@
     methods: {
       normalizeFields () {
         var that = this;
-        console.log("vuetable for ", this.jsonApiModelName)
+//        console.log("vuetable for ", this.jsonApiModelName)
         let modelFor = this.jsonApi.modelFor(this.jsonApiModelName);
-        console.log("json model for ", this.jsonApiModelName, " is ", modelFor)
+//        console.log("json model for ", this.jsonApiModelName, " is ", modelFor)
 
         if (!modelFor) {
           return
         }
         this.fieldsData = modelFor["attributes"];
         this.fields = Object.keys(this.fieldsData);
-        console.log("this fields", this.fields);
+//        console.log("VueTable fields for ", this.jsonApiModelName, this.fields);
 
         this.tableFields = [];
         let self = this;
@@ -327,6 +327,10 @@
             callback: undefined,
             sortField: field
           };
+
+          if (fieldType == "hidden") {
+            return;
+          }
 
           if (typeof fieldType == "object") {
             field.visible = false;
@@ -446,7 +450,7 @@
 
         this.httpOptions['params'] = this.getAllQueryParams();
 
-        console.log("load by jsonapi", this.httpOptions["params"], this.finder);
+//        console.log("load by jsonapi", this.httpOptions["params"], this.finder);
 
 
         that.jsonApi.builderStack = this.finder;
@@ -456,7 +460,7 @@
         )
       },
       loadSuccess (response) {
-        console.log("load success", response);
+//        console.log("load success", response);
         this.emit1('load-success', response);
 
         let body = this.transform(response);
@@ -899,7 +903,7 @@
        * API for externals
        */
       changePage (page) {
-        console.log("set page", page);
+//        console.log("set page", page);
         if (page === 'prev') {
           this.gotoPreviousPage()
         } else if (page === 'next') {
