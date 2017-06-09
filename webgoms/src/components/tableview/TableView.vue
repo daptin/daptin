@@ -102,6 +102,8 @@
         } else if (action === "edit-item") {
           this.$emit("editRow", data)
         } else if (action === "go-item") {
+
+
           this.$router.push({
             name: "tablename-refId",
             params: {

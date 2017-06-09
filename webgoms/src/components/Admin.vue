@@ -80,9 +80,9 @@
 
     </div>
 
-    <div class="thirteen wide column" v-if="selectedRow != null && selectedRow['id'] && !selectedSubTable && showAddEdit">
+    <div class="thirteen wide column" v-if="selectedRow != null && selectedRow['id'] && !selectedSubTable">
 
-      <div class="ui segment" v-if="selectedAction != null">
+      <div class="ui segment" v-if="selectedAction != null && showAddEdit">
         <action-view @cancel="showAddEdit = false" :action-manager="actionManager"
                      :action="selectedAction"
                      :json-api="jsonApi" :model="selectedRow"></action-view>
@@ -106,6 +106,9 @@
 
 
     </div>
+
+
+
     <div class="thirteen wide column right floated">
       <div class="ui segment attached top grid">
 
