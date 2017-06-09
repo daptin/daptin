@@ -83,7 +83,14 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
     if col.IsForeignKey {
       log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.TableName, val)
-      uId, err := dr.GetReferenceIdToId(col.ForeignKeyData.TableName, val.(string))
+      valString := val.(string)
+      var uId interface{}
+      var err error
+      if valString == "" {
+        uId = nil
+      } else {
+        uId, err = dr.GetReferenceIdToId(col.ForeignKeyData.TableName, valString)
+      }
       if err != nil {
         return nil, err
       }
@@ -158,8 +165,8 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
     belogsToUserGroupSql, q, err := squirrel.
     Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
-      Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
-      Values(createdResource["id"], userGroupId, nuuid, "755").ToSql()
+        Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
+        Values(createdResource["id"], userGroupId, nuuid, "755").ToSql()
 
     log.Infof("Query: %v", belogsToUserGroupSql)
     _, err = dr.db.Exec(belogsToUserGroupSql, q...)

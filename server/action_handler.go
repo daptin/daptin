@@ -7,15 +7,26 @@ import (
   "github.com/artpar/goms/server/resource"
   "io/ioutil"
   "encoding/json"
-  "github.com/gorilla/context"
   "github.com/artpar/goms/server/auth"
+  "strings"
+  "fmt"
+  "time"
+  "os"
+  "syscall"
+  "github.com/gorilla/context"
   "net/http"
   "errors"
-  "fmt"
-  "strings"
+  "encoding/base64"
 )
 
 func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
+
+  actionMap := make(map[string]resource.Action)
+
+  for _, ac := range initConfig.Actions {
+    actionMap[ac.OnType+":"+ac.Name] = ac
+  }
+
   return func(c *gin.Context) {
 
     onEntity := c.Param("actionName")
@@ -28,6 +39,19 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
 
     actionRequest := resource.ActionRequest{}
     json.Unmarshal(bytes, &actionRequest)
+
+    if isSystemAction(actionRequest.Action) {
+      err = handleSystemAction(actionRequest, cruds)
+      if err != nil {
+        log.Errorf("Failed to complete system action: %v", err)
+        c.AbortWithError(400, err)
+        return
+      }
+      c.AbortWithStatus(200);
+      return
+
+    }
+
     log.Infof("Request body: %v", actionRequest)
 
     userReferenceId := context.Get(c.Request, "user_id").(string)
@@ -126,6 +150,78 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
     c.JSON(200, res)
 
   }
+}
+
+func handleSystemAction(request resource.ActionRequest, cruds map[string]*resource.DbResource) error {
+
+  log.Infof("Handle system action: %v", request.Action)
+
+  action, err := cruds["action"].GetActionByName(request.Type, request.Action)
+  if err != nil {
+    return err
+  }
+
+  attrs := request.Attributes
+
+  switch action.Name {
+  case "upload_system_schema":
+    files1, ok := attrs["schema_json_file"]
+    log.Infof("Files [%v]: %v", attrs, files1)
+    files := files1.([]interface{})
+    if !ok || len(files) < 1 {
+      return errors.New("No files uploaded")
+    }
+    for _, file := range files {
+      f := file.(map[string]interface{})
+      fileName := f["name"].(string)
+      log.Infof("File name: %v", fileName)
+      fileContentsBase64 := f["file"].(string)
+      fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
+      if err != nil {
+        return err
+      }
+
+      err = ioutil.WriteFile(fmt.Sprintf("schema_%v_gocms.json", fileName), fileBytes, 0644)
+      if err != nil {
+        return err
+      }
+
+    }
+
+    log.Infof("Written all json files. Attempting restart")
+
+    go restart()
+    break;
+  }
+
+  return nil
+
+}
+
+func restart() {
+  log.Infof("Sleeping for 3 seconds before restart")
+  time.Sleep(3 * time.Second)
+  log.Infof("Kill")
+  //workingDirectory, err := os.Getwd()
+  //if err != nil {
+  //  log.Errorf("Failed to get working directory: %v", err)
+  //}
+  //attrs := os.ProcAttr{
+  //  Dir: workingDirectory,
+  //
+  //}
+  //os.StartProcess("kill", []string{"-SIGUSR2", fmt.Sprintf("%v", syscall.Getppid())}, &attrs)
+  syscall.Kill(os.Getpid(), syscall.SIGUSR2)
+  //goagain.Kill()
+}
+
+func isSystemAction(actionName string) bool {
+
+  switch actionName {
+  case "upload_system_schema":
+    return true
+  }
+  return false
 }
 
 func BuildOutcome(onType string, inFieldMap map[string]interface{}, outcome resource.Outcome) (*api2go.Api2GoModel, api2go.Request) {

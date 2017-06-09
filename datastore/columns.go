@@ -70,14 +70,15 @@ var StandardRelations = []api2go.TableRelation{
   api2go.NewTableRelation("action", "belongs_to", "world"),
 }
 
-var standardActions = []resource.Action{
+var StandardActions = []resource.Action{
   {
     Name:   "upload_system_schema",
     Label:  "Upload features",
     OnType: "world",
     InFields: []api2go.ColumnInfo{
       {
-        Name:       "json_file",
+        Name:       "Schema JSON file",
+        ColumnName: "schema_json_file",
         ColumnType: "file.json",
         IsNullable: false,
       },

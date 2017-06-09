@@ -1,0 +1,10 @@
+messages:
+  welcome: Bienvenue sur votre application Bourgeon !
+  counter: Vous avez cliqué ce bouton {n} fois
+  hello: Bonjour {name} !
+buttons:
+  home: Accueil
+  hello: Bonjour
+locales:
+  fr: Français
+  en: Anglais
