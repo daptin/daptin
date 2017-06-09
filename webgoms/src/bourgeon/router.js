@@ -7,7 +7,7 @@ export default {
   install (Vue) {
     const router = new VueRouter({
       routes,
-      mode: 'history'
+      mode: 'hash'
     })
 
     Vue.mixin({
