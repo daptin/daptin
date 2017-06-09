@@ -25,7 +25,7 @@ type TableRelation struct {
 }
 
 func (tr *TableRelation) String() string {
-  return fmt.Sprintf("[TableRelation] [%v][%v][%v]", tr.SubjectName, tr.Relation, tr.GetObjectName())
+  return fmt.Sprintf("[TableRelation] [%v][%v][%v]", tr.GetSubjectName(), tr.GetRelation(), tr.GetObjectName())
 }
 
 func (tr *TableRelation) GetSubjectName() string {

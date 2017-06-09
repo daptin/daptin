@@ -131,7 +131,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
       }
 
       objectNameList, ok := req.QueryParams[rel.GetObject()+"Name"]
-      log.Infof("Forward Relation %v", rel)
+      log.Infof("Forward Relation %v", rel.String())
 
       var objectName string
       /**
@@ -157,7 +157,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
         if len(ids) < 1 {
           continue
         }
-        queryBuilder = queryBuilder.Where(squirrel.Eq{prefix + "id": ids})
+        queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
         break;
 
       case "belongs_to":
@@ -193,7 +193,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
       switch rel.Relation {
       case "has_one":
 
-        subjectId := req.QueryParams[rel.GetSubject()+"_id"]
+        subjectId := req.QueryParams[rel.GetSubjectName()]
         if len(subjectId) < 1 {
           continue
         }
