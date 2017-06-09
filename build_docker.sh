@@ -4,9 +4,9 @@
 rm -rf docker_dir
 mkdir docker_dir
 
-#cd webgoms
-#npm run build
-#cd ..
+cd webgoms
+npm run build
+cd ..
 
 go build  -ldflags '-linkmode external -extldflags -static -w' main.go
 
