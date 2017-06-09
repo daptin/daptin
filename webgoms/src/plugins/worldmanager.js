@@ -5,6 +5,7 @@
 
 import axios from "axios"
 import jsonApi from "./jsonapi"
+import actionManager from "./actionmanager"
 import appconfig from "./appconfig"
 import {getToken} from '../utils/auth'
 
@@ -30,8 +31,8 @@ const WorldManager = function () {
         var r = r.data;
         // console.log("Loaded Model :", typeName)
         if (r.Actions.length > 0) {
-          // console.log("register actions", r.Actions)
-          actionmanager.addAllActions(r.Actions);
+          console.log("Register actions", r.Actions)
+          actionManager.addAllActions(r.Actions);
         }
         that.columnKeysCache[typeName] = r;
         callback(r);
@@ -62,6 +63,10 @@ const WorldManager = function () {
   that.GetJsonApiModel = function (columnModel) {
     // console.log('get json api model for ', columnModel);
     var model = {};
+    if (!columnModel) {
+      console.log("Column model is empty", columnModel);
+      return model;
+    }
 
     var keys = Object.keys(columnModel);
     for (var i = 0; i < keys.length; i++) {
@@ -87,7 +92,7 @@ const WorldManager = function () {
 
   that.worlds = [];
 
-  that.getWorlds = function() {
+  that.getWorlds = function () {
     return that.worlds;
   };
 

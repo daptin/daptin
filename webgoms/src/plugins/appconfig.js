@@ -3,12 +3,19 @@ const AppConfig = function () {
   const that = this;
 
 
-  that.apiRoot = "http://localhost:6336";
+  that.apiRoot = window.location.protocol + "//" + window.location.host;
+
   that.location = {
-    protocol: "http:",
-    host: "localhost:8080",
-    hostname: "localhost",
+    protocol: window.location.protocol,
+    host: window.location.host,
+    hostname: window.location.hostname,
   };
+
+  if (that.location.hostname == "site.goms") {
+    that.apiRoot = that.location.protocol + "//api.goms:6336"
+  }
+
+
   const that1 = this;
 
   that1.data = {};

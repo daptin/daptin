@@ -18,6 +18,10 @@ import (
   "os"
   //"strings"
   "fmt"
+  "path/filepath"
+  "io/ioutil"
+  "encoding/json"
+  "github.com/pkg/errors"
 )
 
 type CmsConfig struct {
@@ -81,6 +85,63 @@ func getenvironment(data []string, getkeyval func(item string) (key, val string)
   return items
 }
 
+func loadConfigFiles() (CmsConfig, []error) {
+
+  var err error
+
+  errs := make([]error, 0)
+  var globalInitConfig CmsConfig
+  globalInitConfig = CmsConfig{
+    Tables:    make([]datastore.TableInfo, 0),
+    Relations: make([]api2go.TableRelation, 0),
+    Actions:   make([]resource.Action, 0),
+  }
+
+  globalInitConfig.Tables = append(globalInitConfig.Tables, datastore.StandardTables...)
+  globalInitConfig.Relations = append(globalInitConfig.Relations, datastore.StandardRelations...)
+  globalInitConfig.Actions = append(globalInitConfig.Actions, datastore.StandardActions...)
+
+  files, err := filepath.Glob("schema_*_gocms.json")
+
+  if err != nil {
+    errs = append(errs, err)
+    return globalInitConfig, errs
+  }
+
+  for _, fileName := range files {
+
+    fileContents, err := ioutil.ReadFile(fileName)
+    if err != nil {
+      errs = append(errs, err)
+      continue
+    }
+    var initConfig CmsConfig
+    err = json.Unmarshal(fileContents, &initConfig)
+    if err != nil {
+      errs = append(errs, err)
+      continue
+    }
+
+    globalInitConfig.Tables = append(globalInitConfig.Tables, initConfig.Tables...)
+    globalInitConfig.Relations = append(globalInitConfig.Relations, initConfig.Relations...)
+    globalInitConfig.Actions = append(globalInitConfig.Actions, initConfig.Actions...)
+
+    //for _, table := range initConfig.Tables {
+    //log.Infof("Table: %v: %v", table.TableName, table.Relations)
+    //}
+
+    err = os.Remove(fileName)
+    if err != nil {
+      errs = append(errs, errors.New(fmt.Sprintf("Failed to delete config file: %v", fileName)))
+      errs = append(errs, err)
+    }
+
+  }
+
+  return globalInitConfig, errs
+
+}
+
 func Main() {
   //configFile := "gocms_style.json"
 
@@ -91,8 +152,8 @@ func Main() {
   //  return
   //})
 
-  db, err := sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
-  //db, err := sqlx.Open("sqlite3", "test.db")
+  //db, err := sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
+  db, err := sqlx.Open("sqlite3", "test.db")
   if err != nil {
     panic(err)
   }
@@ -117,38 +178,13 @@ func Main() {
   //r.Use(cors.Default())
   //r.Use()
 
-  //contents, err := ioutil.ReadFile(configFile)
-  //if err != nil {
-  //  log.Errorf("Failed to read config file: %v", err)
-  //  return
-  //}
-
-  var initConfig CmsConfig
-  initConfig = CmsConfig{
-    Tables:    make([]datastore.TableInfo, 0),
-    Relations: make([]api2go.TableRelation, 0),
-    Actions:   make([]resource.Action, 0),
-  }
-  //err = json.Unmarshal([]byte(contents), &initConfig)
-  if err != nil {
-    log.Errorf("Failed to unmarshal json: %v", err)
-    return
-  }
-  //log.Infof("Config: %v", initConfig)
-
-  initConfig.Tables = append(initConfig.Tables, datastore.StandardTables...)
-
-  for _, table := range initConfig.Tables {
-    log.Infof("Table: %v: %v", table.TableName, table.Relations)
-  }
-
-  initConfig.Relations = append(initConfig.Relations, datastore.StandardRelations...)
+  initConfig, _ := loadConfigFiles()
 
   CheckRelations(&initConfig, db)
   CheckAllTableStatus(&initConfig, db)
   CreateRelations(&initConfig, db)
 
-  log.Infof("table relations: %v", initConfig.Tables)
+  //log.Infof("table relations: %v", initConfig.Tables)
 
   CreateUniqueConstraints(&initConfig, db)
   CreateIndexes(&initConfig, db)
@@ -156,11 +192,11 @@ func Main() {
   UpdateWorldTable(&initConfig, db)
   UpdateWorldColumnTable(&initConfig, db)
 
-  for _, t := range initConfig.Tables {
-    for _, c := range t.Columns {
-      log.Infof("Default values [%v][%v] : [%v]", t.TableName, c.ColumnName, c.DefaultValue)
-    }
-  }
+  //for _, t := range initConfig.Tables {
+  //for _, c := range t.Columns {
+  //log.Infof("Default values [%v][%v] : [%v]", t.TableName, c.ColumnName, c.DefaultValue)
+  //}
+  //}
 
   err = UpdateActionTable(&initConfig, db)
   CheckErr(err, "Failed to update action table")

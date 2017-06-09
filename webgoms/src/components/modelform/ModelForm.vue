@@ -1,0 +1,217 @@
+<template>
+
+  <div class="ui one column grid">
+    <div class="ui column" v-if="title">
+      {{title}}
+    </div>
+    <div class="ui column">
+      <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
+    </div>
+    <div class="ui column">
+      <el-button @click.prevent="saveRow()">
+        Save
+      </el-button>
+      <el-button @click="cancel()">Cancel</el-button>
+
+    </div>
+  </div>
+
+</template>
+
+<script>
+  import VueFormGenerator from "vue-form-generator";
+  import 'vue-form-generator/dist/vfg.css'
+
+  export default {
+    props: {
+      model: {
+        type: Object,
+        required: false,
+        default: function () {
+          return {}
+        }
+      },
+      jsonApi: {
+        type: Object,
+        required: true
+      },
+      meta: {
+        type: Object,
+        required: true,
+      },
+      title: {
+        type: String,
+        required: false,
+      }
+    },
+    components: {
+      "vue-form-generator": VueFormGenerator.component
+    },
+    data: function () {
+      return {
+        formModel: null,
+        formValue: {},
+      }
+    },
+    methods: {
+      getTextInputType(columnMeta) {
+        let inputType = columnMeta.ColumnType;
+
+        if (inputType.indexOf(".") > 0) {
+          var inputTypeParts = inputType.split(".")
+          if (inputTypeParts[0] == "file") {
+            return inputTypeParts[1];
+          }
+        }
+
+
+        switch (inputType) {
+          case "hidden":
+            inputType = "hidden";
+            break;
+          case "password":
+            inputType = "password";
+            break;
+          case "content":
+            inputType = "";
+            break;
+          case "json":
+            inputType = "";
+            break;
+          default:
+            inputType = "text";
+            break;
+        }
+        return inputType;
+      },
+      getInputType(columnMeta) {
+        let inputType = columnMeta.ColumnType;
+
+        if (inputType.indexOf(".") > 0) {
+          var inputTypeParts = inputType.split(".")
+          if (inputTypeParts[0] == "file") {
+            return "fileUpload";
+          }
+        }
+
+        switch (inputType) {
+          case "truefalse":
+            inputType = "checkbox";
+            break;
+          case "content":
+            inputType = "textArea";
+            break;
+          case "json":
+            inputType = "textArea";
+            break;
+          default:
+            inputType = "input";
+            break;
+        }
+        return inputType;
+      },
+      saveRow: function () {
+        console.log("save row", this.model);
+        this.$emit('save', this.model)
+      },
+      cancel: function () {
+        this.$emit('cancel')
+      },
+      titleCase: function (str) {
+        if (!str) {
+          return str;
+        }
+        return str.replace(/[-_]/g, " ").trim().split(' ')
+          .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
+      }
+    },
+    mounted: function () {
+      var that = this;
+      var formFields = [];
+      console.log("that mode", that.model);
+      that.formValue = that.model;
+
+      console.log("model form for ", this.meta);
+      var columnsKeys = Object.keys(this.meta);
+      that.formModel = {};
+
+
+      var skipColumns = [
+        "reference_id",
+        "id",
+        "updated_at",
+        "created_at",
+        "deleted_at",
+        "status",
+        "permission",
+        "user_id",
+        "usergroup_id"
+      ];
+
+      formFields = columnsKeys.map(function (columnName) {
+
+
+//        const columnName = columns[i];
+        if (skipColumns.indexOf(columnName) > -1) {
+          return null
+        }
+
+        const columnMeta = that.meta[columnName];
+        const columnLabel = that.titleCase(columnMeta.ColumnName);
+
+        if (columnMeta.columnType && columnMeta.columnType === "entity") {
+          console.log("Skip relation", columnName);
+          return null;
+        }
+
+        if (columnMeta.ColumnType == "hidden") {
+          return null;
+        }
+
+
+        let inputType = that.getInputType(columnMeta);
+        const textInputType = that.getTextInputType(columnMeta);
+
+
+        console.log("Add column model ", columnName, columnMeta);
+
+        return {
+          type: inputType,
+          inputType: textInputType,
+          label: columnLabel,
+          model: columnMeta.ColumnName,
+          name: columnMeta.ColumnName,
+          id: "id",
+          readonly: false,
+          value: columnName.DefaultValue,
+          featured: true,
+          disabled: !!columnName.DefaultValue,
+          required: !columnName.IsNullable,
+          "default": columnName.DefaultValue,
+          validator: null,
+          onChanged: function (model, newVal, oldVal, field) {
+            console.log(`Model's name changed from ${oldVal} to ${newVal}. Model:`, model);
+          },
+          onValidated: function (model, errors, field) {
+            if (errors.length > 0)
+              console.warn("Validation error in Name field! Errors:", errors);
+          }
+        };
+      }).filter(function (e) {
+        return !!e
+      });
+
+
+      console.log("all form fields", formFields);
+      that.formModel.fields = formFields;
+
+    },
+    watch: {
+      "model": function () {
+        var that = this;
+        console.log("moidel changed", that.model);
+        that.formValue = that.model;
+      }
+    },
+  }
+</script>s

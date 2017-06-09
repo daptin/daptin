@@ -1,9 +1,9 @@
 import  JsonApi from "devour-client"
-import Notification from "element-ui"
+import {Notification} from "element-ui"
 import appConfig from "../plugins/appconfig"
 import {getToken} from '../utils/auth'
 
-import { logout } from '../utils/lock'
+import {logout} from '../utils/lock'
 
 const jsonapi = new JsonApi({
   apiUrl: appConfig.apiRoot + '/api',
@@ -26,7 +26,7 @@ jsonapi.replaceMiddleware('errors', {
     }
 
 
-    for (let i = 0; i < payload.data.errors.length; i++) {
+    for (var i = 0; i < payload.data.errors.length; i++) {
       Notification.error({
         "title": "Failed",
         "message": payload.data.errors[i].title
@@ -37,11 +37,12 @@ jsonapi.replaceMiddleware('errors', {
 });
 
 
-jsonapi.insertMiddlewareBefore("request", {
+jsonapi.insertMiddlewareBefore("HEADER", {
   name: "Auth Header middleware",
   req: function (req) {
-    console.log("intercept before request");
+    // console.log("intercept before request");
     jsonapi.headers['Authorization'] = 'Bearer ' + getToken();
+    return req
   }
 });
 
@@ -62,9 +63,9 @@ jsonapi.insertMiddlewareBefore('response', {
           action = "Updated "
         }
 
-        // Notification.success({
-        //   title: action + payload.config.model
-        // })
+        Notification.success({
+          title: action + payload.config.model
+        })
       } else {
         Notification.warn({
           "title": "Unidentified status"

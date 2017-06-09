@@ -4,16 +4,15 @@
   <div class="ui three column grid">
 
     <div class="row">
-      <div class="ui modal" id="uploadJson">
+      <div class="ui modal" id="uploadJson" v-if="selectedWorldAction">
         <i class="close icon"></i>
         <div class="header">
-          Add site features from json file
+          {{selectedWorldAction.label}}
         </div>
         <div class="content">
           <div class="description">
-            Hello
-            <!--<action-view :action-manager="actionManager" :action="selectedAction"-->
-            <!--:json-api="jsonApi" :model="selectedRow"></action-view>-->
+            <action-view :show-title="false" :action-manager="actionManager" :action="selectedWorldAction"
+                         :json-api="jsonApi"></action-view>
           </div>
         </div>
       </div>
@@ -48,9 +47,9 @@
               <i class="setting icon"></i>
             </button>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item command="json">Load features from json</el-dropdown-item>
-              <el-dropdown-item command="sample">Load features from sample</el-dropdown-item>
-              <el-dropdown-item command="restart">Restart</el-dropdown-item>
+              <el-dropdown-item command="upload_system_schema">Load features from json</el-dropdown-item>
+              <el-dropdown-item command="load-sample">Load features from sample</el-dropdown-item>
+              <el-dropdown-item command="load-restart">Restart</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
 
@@ -81,10 +80,10 @@
 
     </div>
 
-    <div class="thirteen wide column" v-if="selectedRow != null && selectedRow['id'] && !selectedSubTable">
+    <div class="thirteen wide column" v-if="selectedRow != null && selectedRow['id'] && !selectedSubTable && showAddEdit">
 
       <div class="ui segment" v-if="selectedAction != null">
-        <action-view @cancel="selectedAction = null" :action-manager="actionManager"
+        <action-view @cancel="showAddEdit = false" :action-manager="actionManager"
                      :action="selectedAction"
                      :json-api="jsonApi" :model="selectedRow"></action-view>
       </div>
@@ -96,7 +95,7 @@
       <div class="ui segment" v-if="actions != null">
         <ul class="ui relaxed list">
           <div class="item" v-for="a, k in actions">
-            <el-button @click="selectedAction = a">{{a.label}}</el-button>
+            <el-button @click="doAction(a)">{{a.label}}</el-button>
           </div>
         </ul>
       </div>
@@ -149,7 +148,7 @@
                         v-if="selectedSubTable"
                         @cancel="showAddEdit = false"
                         v-bind:model="rowBeingEdited"
-                        v-bind:meta="selectedSubTableColumns" ref="modelform"></model-form>
+                        v-bind:meta="subTableColumns" ref="modelform"></model-form>
 
           </div>
 
@@ -159,7 +158,7 @@
       </div>
 
       <table-view @newRow="newRow()" @editRow="editRow"
-                  :finder="finder" v-if="!selectedSubTable"
+                  :finder="finder" v-if="!selectedSubTable && selectedTable"
                   ref="tableview1" :json-api="jsonApi"
                   :json-api-model-name="selectedTable"></table-view>
       <table-view @newRow="newRow()" @editRow="editRow"
@@ -226,18 +225,36 @@
     data () {
       return {
         jsonApi: jsonApi,
+        actionManager: actionManager,
         showAddEdit: false,
+        selectedWorldAction: null,
       }
     },
     methods: {
+      doAction (action) {
+        this.$store.commit("SET_SELECTED_ACTION", action)
+      },
       uploadJsonSchemaFile(){
         console.log("this files list", this.$refs.upload)
       },
       handleCommand(command) {
-        console.log(command);
-        if (command === "json") {
-          jQuery('#uploadJson').modal('show');
+
+        if (command == "load-restart") {
+          window.location.reload()
+          return;
         }
+
+
+        console.log(command);
+        const action = actionManager.getActionModel("world", command);
+        console.log("initiate action", action)
+        this.selectedWorldAction = action;
+
+        setTimeout(function () {
+          $('#uploadJson').modal('show');
+        }, 300);
+//        if (command === "load-json") {
+//        }
       },
       getCurrentTableType() {
         var that = this;
@@ -292,11 +309,13 @@
 
       },
       newRow() {
+        var that = this;
         console.log("new row", that.selectedTable);
         this.rowBeingEdited = {};
         this.showAddEdit = true;
       },
       editRow(row) {
+        var that = this;
         console.log("new row", that.selectedTable);
         this.rowBeingEdited = row;
         this.showAddEdit = true;
@@ -314,12 +333,24 @@
         } else {
           tableName = that.selectedSubTable;
           all = jsonApi.one(that.selectedTable, that.selectedInstanceReferenceId).all(that.selectedSubTable + "_id");
-          worldManager.getColumnKeys(that.selectedSubTable, function (r) {
-            console.log("Set selected sub table columns", r.ColumnModel);
-            that.$store.commit("SET_SUBTABLE_COLUMNS", r.ColumnModel)
-          });
           console.log("Set subtable columns: ", that.subTableColumns)
         }
+
+
+        if (that.selectedTable) {
+          worldManager.getColumnKeys(that.selectedTable, function (model) {
+            console.log("Set selected world columns", model.ColumnModel);
+            that.$store.commit("SET_SELECTED_TABLE_COLUMNS", model.ColumnModel)
+          });
+        }
+
+        if (that.selectedSubTable) {
+          worldManager.getColumnKeys(that.selectedSubTable, function (model) {
+            console.log("Set selected world columns", model.ColumnModel);
+            that.$store.commit("SET_SUBTABLE_COLUMNS", model.ColumnModel)
+          });
+        }
+
 
         that.$store.commit("SET_FINDER", all.builderStack);
         console.log("Finder stack: ", that.finder);
@@ -356,24 +387,26 @@
       const worldActions = actionManager.getActions("world");
 
       let tableName = that.$route.params.tablename;
-      if (!tableName) {
+      let subTableName = that.$route.params.subTable;
+      let selectedInstanceId = that.$route.params.refId;
 
+      if (!tableName) {
         tableName = "user";
       }
       console.log("Set table 1", tableName);
       that.$store.commit("SET_SELECTED_TABLE", tableName);
       that.$store.commit("SET_ACTIONS", worldActions);
 
-      if (tableName) {
-        worldManager.getColumnKeys(tableName, function (model) {
-          console.log("Set selected world columns", model.ColumnModel);
-//          that.selectedTableColumns = model.ColumnModel
-          that.$store.commit("SET_SELECTED_TABLE_COLUMNS", model.ColumnModel)
-        });
+      if (selectedInstanceId) {
+        that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", selectedInstanceId);
+        jsonApi.one(tableName, selectedInstanceId).get(function (res) {
+          console.log("got object", res);
+          that.$store.commit("SET_SELECTED_ROW", res);
+        })
       }
 
-      if (that.$route.params.refId) {
-        that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", that.$route.params.refId)
+      if (selectedInstanceId && subTableName) {
+        that.$store.commit("SET_SELECTED_TABLE", tableName);
       }
 
 
@@ -385,7 +418,7 @@
       ...mapState([
         "selectedSubTable",
         "selectedAction",
-        "selectedSubTableColumns",
+        "subTableColumns",
         "finder",
         "selectedTableColumns",
         "selectedRow",
@@ -394,6 +427,7 @@
       ]),
       ...mapGetters([
         "visibleWorlds",
+        "actions"
       ])
     },
     watch: {

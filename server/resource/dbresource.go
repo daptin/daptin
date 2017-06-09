@@ -3,7 +3,7 @@ package resource
 import (
   "github.com/artpar/api2go"
   "github.com/jmoiron/sqlx"
-  log "github.com/Sirupsen/logrus"
+  //log "github.com/Sirupsen/logrus"
 )
 
 type DbResource struct {
@@ -17,7 +17,7 @@ type DbResource struct {
 func NewDbResource(model *api2go.Api2GoModel, db *sqlx.DB, ms *MiddlewareSet, cruds map[string]*DbResource) *DbResource {
   cols := model.GetColumns()
   model.SetColumns(cols)
-  log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
+  //log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
   return &DbResource{
     model:        model,
     db:           db,
