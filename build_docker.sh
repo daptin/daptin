@@ -4,6 +4,7 @@
 rm -rf docker_dir
 mkdir docker_dir
 cp main docker_dir/goms
+
 #cd gocms
 #npm run build
 #cd ..
