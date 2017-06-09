@@ -1,1 +1,1 @@
-web: goms
+web: export GOMS_PORT=$PORT goms
