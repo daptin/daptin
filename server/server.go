@@ -105,6 +105,7 @@ func loadConfigFiles() (CmsConfig, []error) {
   globalInitConfig.Actions = append(globalInitConfig.Actions, datastore.StandardActions...)
 
   files, err := filepath.Glob("schema_*_gocms.json")
+  log.Infof("Found files to load: %v", files)
 
   if err != nil {
     errs = append(errs, err)
@@ -112,6 +113,7 @@ func loadConfigFiles() (CmsConfig, []error) {
   }
 
   for _, fileName := range files {
+    log.Infof("Process file: %v", fileName)
 
     fileContents, err := ioutil.ReadFile(fileName)
     if err != nil {
@@ -133,6 +135,8 @@ func loadConfigFiles() (CmsConfig, []error) {
     //log.Infof("Table: %v: %v", table.TableName, table.Relations)
     //}
 
+    log.Infof("File added to config, deleting %v", fileName)
+
     err = os.Remove(fileName)
     if err != nil {
       errs = append(errs, errors.New(fmt.Sprintf("Failed to delete config file: %v", fileName)))
@@ -152,8 +156,6 @@ func Main() {
   var connection_string = flag.String("db_connection_string", "test.db", "[test.db] is default for sqlite3. Specify for mysql/postgres\n"+
       "<username>:<password>@tcp(<hostname>:<port>)/<db_name> for mysql\n"+
       "host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
-
-
 
   envy.Parse("GOMS") // looks for GOMS_PORT
   flag.Parse()
@@ -187,7 +189,13 @@ func Main() {
   //r.Use(cors.Default())
   //r.Use()
 
-  initConfig, _ := loadConfigFiles()
+  log.Infof("Load config files")
+  initConfig, errs := loadConfigFiles()
+  if errs != nil {
+    for _, err := range errs {
+      log.Errorf("Failed to load config file: %v", err)
+    }
+  }
 
   CheckRelations(&initConfig, db)
   CheckAllTableStatus(&initConfig, db)
