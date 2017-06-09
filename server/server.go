@@ -169,8 +169,8 @@ func Main() {
 
   r := gin.Default()
 
-  r.StaticFS("/static", http.Dir("./gocms/static"))
-  r.StaticFile("", "./gocms/index.html")
+  r.StaticFS("/static", http.Dir("./webgoms/dist/static"))
+  r.StaticFile("", "./webgoms/dist/index.html")
 
   r.Use(CorsMiddlewareFunc)
 
