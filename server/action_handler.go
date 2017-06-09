@@ -181,8 +181,10 @@ func handleSystemAction(request resource.ActionRequest, cruds map[string]*resour
         return err
       }
 
-      err = ioutil.WriteFile(fmt.Sprintf("schema_%v_gocms.json", fileName), fileBytes, 0644)
+      jsonFileName := fmt.Sprintf("schema_%v_gocms.json", fileName)
+      err = ioutil.WriteFile(jsonFileName, fileBytes, 0644)
       if err != nil {
+        log.Errorf("Failed to write json file: %v", jsonFileName)
         return err
       }
 
