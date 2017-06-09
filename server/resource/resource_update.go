@@ -129,6 +129,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
   for _, rel := range dr.model.GetRelations() {
     relationName := rel.GetRelation()
+    log.Infof("Check relation in Update: %v", rel.String())
     if rel.GetSubject() == dr.model.GetName() {
 
       if relationName == "belongs_to" || relationName == "has_one" {
@@ -145,13 +146,6 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
       switch relationName {
       case "has_one":
       case "belongs_to":
-        //relUpdateQuery, vars, err = squirrel.Update(dr.model.GetName()).
-        //  Set(rel.GetObjectName(), val11).Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
-        //if err != nil {
-        //  log.Errorf("Failed to make update query: %v", err)
-        //  continue
-        //}
-
         break;
 
       case "has_many_and_belongs_to_many":
@@ -194,12 +188,20 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
       var vars []interface{}
       switch relationName {
       case "has_one":
+        intId, err := dr.GetReferenceIdToId(rel.GetObject(),  id)
+        if err != nil {
+          log.Errorf("Subject not found to update: %v", err)
+          continue
+        }
+
+        log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
         relUpdateQuery, vars, err = squirrel.Update(rel.GetSubject()).
-            Set(rel.GetObjectName(), val).Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+            Set(rel.GetObjectName(), intId).Where(squirrel.Eq{"reference_id": val}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
         if err != nil {
           log.Errorf("Failed to make update query: %v", err)
           continue
         }
+        log.Infof("Relation update query params: %v", vars)
 
         break;
       case "belongs_to":
