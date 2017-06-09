@@ -60,7 +60,7 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
         }
 
       } else {
-        log.Infof("Picked for from db [%v][%v] :  [%v]", table.TableName, colInfo.ColumnName, colInfo.DefaultValue)
+        //log.Infof("Picked for from db [%v][%v] :  [%v]", table.TableName, colInfo.ColumnName, colInfo.DefaultValue)
         initConfig.Tables[i].Columns[j] = colInfo
       }
     }
@@ -101,7 +101,7 @@ func GetActionMapByTypeName(db *sqlx.DB) (map[string]map[string]interface{}, err
 
   for _, action := range allActions {
     actioName := action["action_name"].(string)
-    typeName := string(action["world_id"].(string))
+    typeName := string(action["world_id"].(int64))
 
     _, ok := typeActionMap[typeName]
     if !ok {
@@ -110,7 +110,7 @@ func GetActionMapByTypeName(db *sqlx.DB) (map[string]map[string]interface{}, err
 
     _, ok = typeActionMap[typeName][actioName]
     if ok {
-      log.Infof("Action already exisys")
+      log.Infof("Action [%v][%v] already exisys", typeName, actioName)
     }
     typeActionMap[typeName][actioName] = action
   }
@@ -266,7 +266,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
       if err != nil {
       } else {
-        log.Infof("Default permission for [%v]: %v", table.TableName, defaultPermission)
+        //log.Infof("Default permission for [%v]: %v", table.TableName, defaultPermission)
       }
 
       table.DefaultPermission = defaultPermission
@@ -711,7 +711,7 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 
   if c.IsAutoIncrement {
     if sqlDriverName == "sqlite3" {
-      //columnParams = append(columnParams, "")
+      columnParams = append(columnParams, "PRIMARY KEY")
     } else {
       columnParams = append(columnParams, "AUTO_INCREMENT PRIMARY KEY")
     }

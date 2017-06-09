@@ -1,6 +1,7 @@
 import axios from "axios"
 import appConfig from "./appconfig"
-
+import {getToken} from "../utils/auth"
+import {Notification} from "element-ui"
 
 const ActionManager = function () {
 
@@ -17,13 +18,17 @@ const ActionManager = function () {
       url: appConfig.apiRoot + "/action/" + actionName,
       method: "POST",
       headers: {
-        "Authorization": "Bearer " + window.localStorage.getItem("id_token")
+        "Authorization": "Bearer " + getToken()
       },
       data: {
         type: type,
         action: actionName,
         attributes: data
       }
+    }).then(function (res) {
+      Notification.success("Action " + actionName + " finished.")
+    }, function (res) {
+      Notification.error("Action " + actionName + " failed.")
     })
 
 
@@ -49,9 +54,7 @@ const ActionManager = function () {
   };
 
   this.getActionModel = function (typeName, actionName) {
-    return that.actionMap[typeName].filter(function (i, r) {
-      return r.ActionName == actionName;
-    })[0];
+    return that.actionMap[typeName][actionName];
   };
 
   return this;

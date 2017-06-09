@@ -14,7 +14,7 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
   tableMap := make(map[string]datastore.TableInfo)
   for _, table := range initConfig.Tables {
 
-    log.Infof("Default permission for [%v]: [%v]", table.TableName, table.Columns)
+    //log.Infof("Default permission for [%v]: [%v]", table.TableName, table.Columns)
 
     tableMap[table.TableName] = table
   }
