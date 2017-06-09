@@ -6,12 +6,14 @@ import (
   "github.com/artpar/api2go-adapter/gingonic"
   log "github.com/Sirupsen/logrus"
   _ "github.com/go-sql-driver/mysql"
+  _ "github.com/lib/pq"
   _ "github.com/mattn/go-sqlite3"
   //"io/ioutil"
   //"encoding/json"
   "github.com/jmoiron/sqlx"
   "github.com/artpar/goms/datastore"
   "time"
+  "github.com/jamiealquiza/envy"
   "github.com/artpar/goms/server/auth"
   "net/http"
   "github.com/artpar/goms/server/resource"
@@ -22,6 +24,7 @@ import (
   "io/ioutil"
   "encoding/json"
   "github.com/pkg/errors"
+  "flag"
 )
 
 type CmsConfig struct {
@@ -143,17 +146,23 @@ func loadConfigFiles() (CmsConfig, []error) {
 }
 
 func Main() {
+
+  var port = flag.String("port", "6336", "GoMS port")
+  var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
+  var connection_string = flag.String("db_connection_string", "test.db", "[test.db] is default for sqlite3. Specify for mysql/postgres\n"+
+      "<username>:<password>@tcp(<hostname>:<port>)/<db_name> for mysql\n"+
+      "host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
+
+
+
+  envy.Parse("GOMS") // looks for GOMS_PORT
+  flag.Parse()
+
   //configFile := "gocms_style.json"
 
-  //environment := getenvironment(os.Environ(), func(item string) (key, val string) {
-  //  splits := strings.Split(item, "=")
-  //  key = splits[0]
-  //  val = splits[1]
-  //  return
-  //})
-
   //db, err := sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
-  db, err := sqlx.Open("sqlite3", "test.db")
+  //db, err := sqlx.Open("sqlite3", "test.db")
+  db, err := sqlx.Open(*db_type, *connection_string)
   if err != nil {
     panic(err)
   }
@@ -221,12 +230,7 @@ func Main() {
 
   r.POST("/action/:actionName", CreateActionEventHandler(&initConfig, cruds))
 
-  port := os.Getenv("PORT")
-  if port == "" {
-    port = "6336"
-  }
-
-  r.Run(fmt.Sprintf(":%v", port))
+  r.Run(fmt.Sprintf(":%v", *port))
 
 }
 
