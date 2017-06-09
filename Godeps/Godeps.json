@@ -72,6 +72,10 @@
 			"Rev": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
 		},
 		{
+			"ImportPath": "github.com/jamiealquiza/envy",
+			"Rev": "0a24b513a8571c892e8a47c68003a274d16ec462"
+		},
+		{
 			"ImportPath": "github.com/jmoiron/sqlx",
 			"Comment": "sqlx-v1.1-123-gd9bd385",
 			"Rev": "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f"
@@ -93,6 +97,16 @@
 		{
 			"ImportPath": "github.com/lann/ps",
 			"Rev": "62de8c46ede02a7675c4c79c84883eb164cb71e3"
+		},
+		{
+			"ImportPath": "github.com/lib/pq",
+			"Comment": "go1.0-cutoff-171-g8837942",
+			"Rev": "8837942c3e09574accbc5f150e2c5e057189cace"
+		},
+		{
+			"ImportPath": "github.com/lib/pq/oid",
+			"Comment": "go1.0-cutoff-171-g8837942",
+			"Rev": "8837942c3e09574accbc5f150e2c5e057189cace"
 		},
 		{
 			"ImportPath": "github.com/manucorporat/sse",
