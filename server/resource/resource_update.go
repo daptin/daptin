@@ -77,7 +77,15 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
     }
     if col.IsForeignKey {
       log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.TableName, val)
-      uId, err := dr.GetReferenceIdToId(col.ForeignKeyData.TableName, val.(string))
+
+      valString := val.(string)
+      var uId interface{}
+      var err error
+      if valString == "" {
+        uId = nil
+      } else {
+        uId, err = dr.GetReferenceIdToId(col.ForeignKeyData.TableName, valString)
+      }
       if err != nil {
         return nil, err
       }
@@ -188,7 +196,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
       var vars []interface{}
       switch relationName {
       case "has_one":
-        intId, err := dr.GetReferenceIdToId(rel.GetObject(),  id)
+        intId, err := dr.GetReferenceIdToId(rel.GetObject(), id)
         if err != nil {
           log.Errorf("Subject not found to update: %v", err)
           continue

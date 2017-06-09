@@ -4,7 +4,7 @@
 
 
 import axios from "axios"
-import Notification from "element-ui"
+import {Notification} from "element-ui"
 import {unsetToken, extractInfoFromHash} from "../utils/auth"
 import {logout} from '../utils/lock'
 

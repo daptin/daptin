@@ -110,7 +110,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
     return
   }
 
-  if true {
+  if false {
     context.Set(c.Request, "user_id", "da5e15b6-1a12-45f0-882b-ea5cb9b6c46d")
     context.Set(c.Request, "usergroup_id", []GroupPermission{
       GroupPermission{
