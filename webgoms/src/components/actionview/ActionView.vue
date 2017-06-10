@@ -7,8 +7,8 @@
       <h3>{{action.label}}</h3>
     </div>
 
-    <model-form @save="doAction(data)" :json-api="jsonApi" @cancel="cancel()" :meta="meta" :model.sync="data"
-                v-if="data != null && meta != null"></model-form>
+    <model-form v-if="meta != null" @save="doAction(data)" :json-api="jsonApi" @cancel="cancel()" :meta="meta"
+                :model.sync="data"></model-form>
 
 
   </div>
@@ -33,7 +33,10 @@
       },
       model: {
         type: Object,
-        required: false
+        required: false,
+        default: function () {
+          return {}
+        }
       },
       actionManager: {
         type: Object,
@@ -65,19 +68,38 @@
       cancel() {
         this.$emit("cancel");
       },
+      init() {
+        var that = this;
+        var modelName = "_actionmodel_" + that.action.name;
+        console.log("render action ", that.action, " on ", that.model);
+
+        var meta = {};
+
+        for (var i = 0; i < this.action.fields.length; i++) {
+          meta[this.action.fields[i].ColumnName] = that.action.fields[i]
+        }
+
+        if (this.action.fields.length == 0) {
+          this.actionManager.doAction(this.action.onType, this.action.name, {}).then(function () {
+          }, function () {
+
+          });
+          setTimeout(function () {
+            that.$emit("cancel");
+          }, 400);
+        }
+
+        this.meta = meta;
+      },
     },
     mounted: function () {
-      var modelName = "_actionmodel_" + this.action.name;
-      console.log("render action ", this.action, " on ", this.model);
-
-      var meta = {};
-
-      for (var i = 0; i < this.action.fields.length; i++) {
-        meta[this.action.fields[i].ColumnName] = this.action.fields[i]
-      }
-
-      this.meta = meta;
+      this.init();
     },
-    watch: {},
+    watch: {
+      'action': function () {
+        console.log("ActionView: action changed")
+        this.init();
+      },
+    },
   }
 </script>s

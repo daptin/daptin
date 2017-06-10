@@ -34,28 +34,31 @@ type CmsConfig struct {
 }
 
 var ColumnTypes = []string{
-  "Id",
-  "Alias",
-  "Date",
-  "Time",
-  "Day",
-  "Month",
-  "Year",
-  "Minute",
-  "Hour",
-  "Email",
-  "Name",
-  "Value",
-  "TrueFalse",
-  "DateTime",
-  "Location (lat/long)",
-  "Color",
-  "Measurement",
-  "Label",
-  "Content",
-  "File",
-  "Url",
-  "Image",
+  "id",
+  "alias",
+  "date",
+  "time",
+  "day",
+  "month",
+  "year",
+  "minute",
+  "hour",
+  "email",
+  "name",
+  "value",
+  "truefalse",
+  "datetime",
+  "timestamp",
+  "location.latitude",
+  "location.longitude",
+  "location.altitude",
+  "color",
+  "measurement",
+  "label",
+  "content",
+  "file",
+  "url",
+  "image",
 }
 
 var CollectionTypes = []string{
@@ -102,7 +105,7 @@ func loadConfigFiles() (CmsConfig, []error) {
 
   globalInitConfig.Tables = append(globalInitConfig.Tables, datastore.StandardTables...)
   globalInitConfig.Relations = append(globalInitConfig.Relations, datastore.StandardRelations...)
-  globalInitConfig.Actions = append(globalInitConfig.Actions, datastore.StandardActions...)
+  globalInitConfig.Actions = append(globalInitConfig.Actions, datastore.SystemActions...)
 
   files, err := filepath.Glob("schema_*_gocms.json")
   log.Infof("Found files to load: %v", files)
@@ -162,9 +165,10 @@ func Main() {
 
   //configFile := "gocms_style.json"
 
-  //db, err := sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
-  //db, err := sqlx.Open("sqlite3", "test.db")
   db, err := sqlx.Open(*db_type, *connection_string)
+
+  //db, err := sqlx.Open("sqlite3", "test.db")
+  db, err = sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
   if err != nil {
     panic(err)
   }
@@ -224,7 +228,7 @@ func Main() {
 
   r.GET("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
   r.OPTIONS("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
-  
+
   r.POST("/action/:actionName", CreateActionEventHandler(&initConfig, cruds))
 
   r.Run(fmt.Sprintf(":%v", *port))

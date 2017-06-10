@@ -21,12 +21,14 @@ var StandardColumns = []api2go.ColumnInfo{
     DataType:     "timestamp",
     DefaultValue: "current_timestamp",
     ColumnType:   "datetime",
+    IsIndexed:    true,
   },
   {
     Name:         "updated_at",
     ColumnName:   "updated_at",
     DataType:     "timestamp",
     DefaultValue: "null",
+    IsIndexed:    true,
     IsNullable:   true,
     ColumnType:   "datetime",
   },
@@ -53,7 +55,6 @@ var StandardColumns = []api2go.ColumnInfo{
     DataType:     "int(11)",
     IsIndexed:    false,
     ColumnType:   "value",
-
   },
   {
     Name:         "status",
@@ -61,7 +62,7 @@ var StandardColumns = []api2go.ColumnInfo{
     DataType:     "varchar(20)",
     DefaultValue: "'pending'",
     IsIndexed:    true,
-    ColumnType:   "label",
+    ColumnType:   "state",
   },
 }
 
@@ -70,7 +71,7 @@ var StandardRelations = []api2go.TableRelation{
   api2go.NewTableRelation("action", "belongs_to", "world"),
 }
 
-var StandardActions = []resource.Action{
+var SystemActions = []resource.Action{
   {
     Name:   "upload_system_schema",
     Label:  "Upload features",
@@ -86,7 +87,7 @@ var StandardActions = []resource.Action{
     OutFields: []resource.Outcome{
       {
         Type:   "system_json_schema_update",
-        Method: "POST",
+        Method: "EXECUTE",
         Attributes: map[string]string{
           "json_schema": "$file.json",
         },
@@ -94,17 +95,15 @@ var StandardActions = []resource.Action{
     },
   },
   {
-    Name:   "download_system_schema",
-    Label:  "Download system schema",
-    OnType: "world",
+    Name:     "download_system_schema",
+    Label:    "Download system schema",
+    OnType:   "world",
     InFields: []api2go.ColumnInfo{},
     OutFields: []resource.Outcome{
       {
-        Type:   "system_json_schema_update",
-        Method: "POST",
-        Attributes: map[string]string{
-          "json_schema": "$file.json",
-        },
+        Type:       "system_json_schema_download",
+        Method:     "EXECUTE",
+        Attributes: map[string]string{},
       },
     },
   },
@@ -166,6 +165,7 @@ var StandardTables = []TableInfo{
         Name:       "name",
         ColumnName: "name",
         DataType:   "varchar(100)",
+        IsIndexed:  true,
         IsNullable: false,
         ColumnType: "name",
       },
@@ -173,6 +173,7 @@ var StandardTables = []TableInfo{
         Name:       "column_name",
         ColumnName: "column_name",
         DataType:   "varchar(100)",
+        IsIndexed:  true,
         IsNullable: false,
         ColumnType: "name",
       },
@@ -268,6 +269,7 @@ var StandardTables = []TableInfo{
       {
         Name:       "name",
         ColumnName: "name",
+        IsIndexed:  true,
         DataType:   "varchar(80)",
         ColumnType: "name",
       },
@@ -295,6 +297,7 @@ var StandardTables = []TableInfo{
       {
         Name:       "name",
         ColumnName: "name",
+        IsIndexed:  true,
         DataType:   "varchar(80)",
         ColumnType: "name",
       },
@@ -305,6 +308,7 @@ var StandardTables = []TableInfo{
     Columns: []api2go.ColumnInfo{
       {
         Name:       "action_name",
+        IsIndexed:  true,
         ColumnName: "action_name",
         DataType:   "varchar(100)",
         ColumnType: "name",
@@ -312,6 +316,7 @@ var StandardTables = []TableInfo{
       {
         Name:       "label",
         ColumnName: "label",
+        IsIndexed:  true,
         DataType:   "varchar(100)",
         ColumnType: "label",
       },
