@@ -256,7 +256,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome resource.Outcome) (
       },
     }
 
-    files1, ok := attrs["schema_json_file"]
+    files1, ok := attrs["json_schema"]
     log.Infof("Files [%v]: %v", attrs, files1)
     files := files1.([]interface{})
     if !ok || len(files) < 1 {

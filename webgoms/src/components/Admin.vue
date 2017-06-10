@@ -90,8 +90,8 @@
       </div>
 
       <div class="ui segment" v-if="actions != null">
-        <ul class="ui relaxed list">
-          <div class="item" v-for="a, k in actions">
+        <ul class="ui column grid">
+          <div class="ui two wide column" v-for="a, k in actions">
             <el-button @click="doAction(a)">{{a.label}}</el-button>
           </div>
         </ul>
@@ -236,6 +236,7 @@
       },
       doAction (action) {
         this.$store.commit("SET_SELECTED_ACTION", action)
+        this.showAddEdit = true;
       },
       uploadJsonSchemaFile(){
         console.log("this files list", this.$refs.upload)
