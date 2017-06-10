@@ -48,31 +48,14 @@ Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
 
 ### Road Map
 
-- State based objects
-
-  Objects to have multiple state machines concurrently maintained.
-  
-- Object events 
-
-  created/modified/deleted
-  
-- Views 
- 
-  Composing views on run time
-  
-- Data connectors 
-
-  Event/action triggered Input/Output from the environment/services/apis
-  
-  Consume data from other services and send data to them
-  
-  Handle format exchanges
-  
-- Tags 
-
-  Native tagging, user tags, group tags on objects
-- Pages/Sub-sites
-- Plugin system
+| State based objects | Objects to have multiple state machines concurrently maintained.                                                                                            |   |   |   |
+|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|---|---|---|
+| Object events       | created/modified/deleted                                                                                                                                    |   |   |   |
+| Views               | Composing views on run time                                                                                                                                 |   |   |   |
+| Data connectors     | - Event/action triggered Input/Output from the environment/services/apis - Consume data from other services and send data to them - Handle format exchanges |   |   |   |
+| Plugin system       |                                                                                                                                                             |   |   |   |
+| Pages/Sub-sites     |                                                                                                                                                             |   |   |   |
+| Tags                | Native tagging, user tags, group tags on objects                                                                                                            |   |   |   |
 
 ## User system
 
