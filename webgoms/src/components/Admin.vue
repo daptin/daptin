@@ -11,7 +11,8 @@
         </div>
         <div class="content">
           <div class="description">
-            <action-view :show-title="false" :action-manager="actionManager" :action="selectedWorldAction"
+            <action-view :show-title="false" @cancel="hideModel" :action-manager="actionManager"
+                         :action="selectedWorldAction"
                          :json-api="jsonApi"></action-view>
           </div>
         </div>
@@ -47,15 +48,11 @@
               <i class="setting icon"></i>
             </button>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item command="upload_system_schema">Load features from json</el-dropdown-item>
-              <el-dropdown-item command="load-sample">Load features from sample</el-dropdown-item>
-              <el-dropdown-item command="load-restart">Restart</el-dropdown-item>
+              <el-dropdown-item :command="action.name" v-for="action in systemActions">{{action.label}}
+              </el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
-
         </div>
-
-
       </div>
       <div class="ui segment bottom attached"
            v-if="visibleWorlds && visibleWorlds.length > 0">
@@ -106,7 +103,6 @@
 
 
     </div>
-
 
 
     <div class="thirteen wide column right floated">
@@ -234,6 +230,10 @@
       }
     },
     methods: {
+      hideModel () {
+        console.log("Call to hide model")
+        $('#uploadJson').modal('hide all');
+      },
       doAction (action) {
         this.$store.commit("SET_SELECTED_ACTION", action)
       },
@@ -241,16 +241,15 @@
         console.log("this files list", this.$refs.upload)
       },
       handleCommand(command) {
-
         if (command == "load-restart") {
           window.location.reload()
           return;
         }
+        const action = actionManager.getActionModel("world", command);
+        console.log("initiate action", action)
 
 
         console.log(command);
-        const action = actionManager.getActionModel("world", command);
-        console.log("initiate action", action)
         this.selectedWorldAction = action;
 
         setTimeout(function () {
@@ -422,6 +421,7 @@
         "selectedSubTable",
         "selectedAction",
         "subTableColumns",
+        "systemActions",
         "finder",
         "selectedTableColumns",
         "selectedRow",

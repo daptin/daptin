@@ -96,6 +96,13 @@ const WorldManager = function () {
     return that.worlds;
   };
 
+  that.systemActions = [];
+
+
+  that.getSystemActions = function () {
+    return that.systemActions;
+  }
+
   that.loadModels = function () {
     var promise = new Promise(function (resolve, reject) {
       // do a thing, possibly async, then…
@@ -108,6 +115,7 @@ const WorldManager = function () {
             jsonApi.define("world", that.GetJsonApiModel(columnKeys.ColumnModel));
             // console.log("world column keys", columnKeys, that.GetJsonApiModel(columnKeys.ColumnModel))
             console.log("Defined world", columnKeys.ColumnModel);
+            that.systemActions = columnKeys.Actions;
             jsonApi.findAll('world', {
               page: {number: 1, size: 50},
               include: ['world_column']

@@ -6,6 +6,7 @@
     :on-remove="handleRemove"
     :auto-upload="false"
     :on-change="processFile"
+    accept="*.json"
     :before-upload="handlePreview"
     :file-list="fileList">
 
@@ -35,6 +36,11 @@
         console.log("handle remove", file, filelist);
         var fileNameToRemove = file.name;
         var indexToRemove = -1;
+
+        if (!this.value) {
+          this.value = [];
+        }
+
         for (var i = 0; i < this.value.length; i++) {
           if (this.value[i].name == fileNameToRemove) {
             var indexToRemove = i;
@@ -45,6 +51,23 @@
         }
       },
       processFile: function (file, filelist) {
+        console.log("provided schema", this.schema)
+        const isJson = file.raw.type === 'application/json';
+
+        if (!isJson) {
+
+          for (var i=0;i<filelist.length;i++){
+            if (filelist[i].uid == file.uid) {
+              filelist.splice(i, 1);
+              break;
+            }
+          }
+
+
+          this.$message.error('Please select a JSON file');
+          return isJson;
+        }
+
         var that = this;
         console.log("process file arguments", arguments, file, filelist);
         that.value = [];

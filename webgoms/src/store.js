@@ -26,6 +26,7 @@ const state = {
   jsonApi: jsonApi,
   selectedRow: null,
   finder: [],
+  systemActions: [],
   actionManager: null,
   visibleWorlds: [],
   selectedInstanceReferenceId: null,
@@ -40,7 +41,9 @@ const actions = {
   LOAD_WORLDS ({commit}) {
     console.log("LOAD_WORLDS request", state.worlds)
     commit("SET_WORLDS", worldManager.getWorlds())
-  }
+    console.log("SET_WORLD_ACTIONS request", worldManager.getSystemActions())
+    commit("SET_WORLD_ACTIONS", worldManager.getSystemActions())
+  },
 };
 
 
@@ -57,6 +60,9 @@ const mutations = {
   SET_WORLDS (state, worlds) {
     state.worlds = worlds;
     state.visibleWorlds = worlds;
+  },
+  SET_WORLD_ACTIONS (state, actions) {
+    state.systemActions = actions;
   },
   SET_SELECTED_TABLE (state, selectedTable) {
     console.log("SET_SELECTED_TABLE", selectedTable)
@@ -95,8 +101,11 @@ const getters = {
     return state.subTableColumns
   },
   isAuthenticated (state) {
-    // console.log("check is authenticated: ", window.localStorage.getItem("token"))
+    console.log("check is authenticated: ", window.localStorage.getItem("token"))
     return !!window.localStorage.getItem("token")
+  },
+  systemActions(state) {
+    return state.systemActions;
   },
   authToken (state) {
     return window.localStorage.getItem("token")

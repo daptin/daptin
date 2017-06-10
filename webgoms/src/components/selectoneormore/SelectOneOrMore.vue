@@ -8,17 +8,17 @@
     </div>
     <div class="ui column">
       <el-select
-          v-model="value"
-          filterable
-          remote
-          placeholder="Search"
-          :remote-method="remoteMethod"
-          :loading="loading">
+        v-model="value"
+        filterable
+        remote
+        placeholder="Search"
+        :remote-method="remoteMethod"
+        :loading="loading">
         <el-option
-            v-for="item in options"
-            :key="item.value"
-            :label="item.label"
-            :value="item">
+          v-for="item in options"
+          :key="item.value"
+          :label="item.label"
+          :value="item">
         </el-option>
 
       </el-select>
@@ -59,7 +59,7 @@
           return str;
         }
         return str.replace(/[-_]/g, " ").split(' ')
-            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
+          .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
       },
       chooseTitle: function (obj) {
         if (!obj) {
@@ -88,7 +88,7 @@
 
       addObject: function (value) {
         var that = this;
-        console.log("emit add object event", this.value)
+        console.log("emit add object event", this.value);
         this.$emit("save", {
           type: that.jsonApiModelName,
           id: this.value.id
@@ -98,10 +98,16 @@
       chooseTitle: function (obj) {
         var keys = Object.keys(obj);
         for (var i = 0; i < keys.length; i++) {
+          if (keys[i].indexOf("label") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
+            return obj[keys[i]];
+          }
+        }
+        for (var i = 0; i < keys.length; i++) {
           if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
             return obj[keys[i]];
           }
         }
+
         return obj["type"] + " #" + obj["id"];
 
       },

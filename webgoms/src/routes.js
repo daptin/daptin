@@ -38,5 +38,10 @@ export default [
     path: '/in/:tablename/:refId/:subTable',
     name: 'tablename-refId-subTable',
     component: AdminComponent
+  },
+  {
+    path: '*',
+    name: 'error',
+    component: AdminComponent
   }
 ]

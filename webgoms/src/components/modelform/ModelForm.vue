@@ -11,7 +11,7 @@
       <el-button @click.prevent="saveRow()">
         Save
       </el-button>
-      <el-button @click="cancel()">Cancel</el-button>
+      <!--<el-button @click="cancel()">Cancel</el-button>-->
 
     </div>
   </div>
@@ -123,95 +123,104 @@
         }
         return str.replace(/[-_]/g, " ").trim().split(' ')
           .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
-      }
-    },
-    mounted: function () {
-      var that = this;
-      var formFields = [];
-      console.log("that mode", that.model);
-      that.formValue = that.model;
+      },
+      init() {
+        var that = this;
+        var formFields = [];
+        console.log("that mode", that.model);
+        that.formValue = that.model;
 
-      console.log("model form for ", this.meta);
-      var columnsKeys = Object.keys(this.meta);
-      that.formModel = {};
+        console.log("model form for ", this.meta);
+        var columnsKeys = Object.keys(this.meta);
+        that.formModel = {};
 
 
-      var skipColumns = [
-        "reference_id",
-        "id",
-        "updated_at",
-        "created_at",
-        "deleted_at",
-        "status",
-        "permission",
-        "user_id",
-        "usergroup_id"
-      ];
+        var skipColumns = [
+          "reference_id",
+          "id",
+          "updated_at",
+          "created_at",
+          "deleted_at",
+          "status",
+          "permission",
+          "user_id",
+          "usergroup_id"
+        ];
 
-      formFields = columnsKeys.map(function (columnName) {
+        formFields = columnsKeys.map(function (columnName) {
 
 
 //        const columnName = columns[i];
-        if (skipColumns.indexOf(columnName) > -1) {
-          return null
-        }
-
-        const columnMeta = that.meta[columnName];
-        const columnLabel = that.titleCase(columnMeta.ColumnName);
-
-        if (columnMeta.columnType && columnMeta.columnType === "entity") {
-          console.log("Skip relation", columnName);
-          return null;
-        }
-
-        if (columnMeta.ColumnType == "hidden") {
-          return null;
-        }
-
-
-        let inputType = that.getInputType(columnMeta);
-        const textInputType = that.getTextInputType(columnMeta);
-
-
-        console.log("Add column model ", columnName, columnMeta);
-
-        return {
-          type: inputType,
-          inputType: textInputType,
-          label: columnLabel,
-          model: columnMeta.ColumnName,
-          name: columnMeta.ColumnName,
-          id: "id",
-          readonly: false,
-          value: columnName.DefaultValue,
-          featured: true,
-          disabled: !!columnName.DefaultValue,
-          required: !columnName.IsNullable,
-          "default": columnName.DefaultValue,
-          validator: null,
-          onChanged: function (model, newVal, oldVal, field) {
-            console.log(`Model's name changed from ${oldVal} to ${newVal}. Model:`, model);
-          },
-          onValidated: function (model, errors, field) {
-            if (errors.length > 0)
-              console.warn("Validation error in Name field! Errors:", errors);
+          if (skipColumns.indexOf(columnName) > -1) {
+            return null
           }
-        };
-      }).filter(function (e) {
-        return !!e
-      });
+
+          const columnMeta = that.meta[columnName];
+          const columnLabel = that.titleCase(columnMeta.ColumnName);
+
+          if (columnMeta.columnType && columnMeta.columnType === "entity") {
+            console.log("Skip relation", columnName);
+            return null;
+          }
+
+          if (columnMeta.ColumnType == "hidden") {
+            return null;
+          }
 
 
-      console.log("all form fields", formFields);
-      that.formModel.fields = formFields;
+          let inputType = that.getInputType(columnMeta);
+          const textInputType = that.getTextInputType(columnMeta);
+
+
+          console.log("Add column model ", columnName, columnMeta);
+
+          return {
+            type: inputType,
+            inputType: textInputType,
+            label: columnLabel,
+            model: columnMeta.ColumnName,
+            name: columnMeta.ColumnName,
+            id: "id",
+            readonly: false,
+            value: columnName.DefaultValue,
+            featured: true,
+            disabled: !!columnName.DefaultValue,
+            required: !columnName.IsNullable,
+            "default": columnName.DefaultValue,
+            validator: null,
+            onChanged: function (model, newVal, oldVal, field) {
+              console.log(`Model's name changed from ${oldVal} to ${newVal}. Model:`, model);
+            },
+            onValidated: function (model, errors, field) {
+              if (errors.length > 0)
+                console.warn("Validation error in Name field! Errors:", errors);
+            }
+          };
+        }).filter(function (e) {
+          return !!e
+        });
+
+
+        console.log("all form fields", formFields);
+        that.formModel.fields = formFields;
+      }
+    },
+    mounted: function () {
+      this.init();
 
     },
     watch: {
       "model": function () {
         var that = this;
-        console.log("moidel changed", that.model);
-        that.formValue = that.model;
-      }
+        console.log("ModelForm: model changed", that.model);
+        this.init();
+      },
+      "meta": function () {
+        var that = this;
+        console.log("ModelForm: meta changed", that.meta);
+        this.init();
+      },
+
     },
   }
 </script>s

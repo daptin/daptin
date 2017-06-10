@@ -25,35 +25,31 @@
     </div>
 
 
-    <div class="ui sixteen wide column grid" v-if="showAll">
-      <div class="eight wide column">
-        <div class="ui two column grid segment attached ">
-          <div class="one column wide left floated"><h4> {{jsonApiModelName | titleCase}} </h4></div>
-        </div>
+    <div class="ui column" v-if="showAll">
 
 
-        <div class="ui segment attached bottom">
-          <div class="ui two column grid" v-for="col in normalFields" :id="col.name">
-            <div class="ui column"><h5>{{col.label}}</h5></div>
+      <div class="ui top attached tabular menu">
+        <div class="active item">{{jsonApiModelName | titleCase}}</div>
+        <div class="item" v-for="relation in relations">{{relation.name | titleCase}}</div>
+      </div>
+      <div class="ui bottom attached active tab segment">
+        <div class="ui two column grid" v-for="col in normalFields" :id="col.name">
+          <div class="ui column"><h5>{{col.label}}</h5></div>
 
-            <div v-if="col.type != 'json'" :style="col.style" class="ui column description">{{col.value}}</div>
-            <pre v-if="col.type == 'json'" :style="col.style" class="ui column description"></pre>
-          </div>
+          <div v-if="col.type != 'json'" :style="col.style" class="ui column description">{{col.value}}</div>
+          <pre v-if="col.type == 'json'" :style="col.style" class="ui column description"></pre>
         </div>
       </div>
 
 
-      <div class="eight wide column" v-for="relation in relations">
-        <!--<table-view :json-api="jsonApi"-->
-        <!--:json-api-model-name="relation.type" :autoload="false" :finder="relation.finder"></table-view>-->
-
+      <div class="ui bottom attached tab segment" v-for="relation in relations">
         <list-view :json-api="jsonApi" :ref="relation.name"
                    :json-api-model-name="relation.type" :json-api-relation-name="relation.name" @addRow="addRow"
                    :autoload="true"
                    :finder="relation.finder"></list-view>
 
-
       </div>
+
     </div>
 
 
@@ -347,6 +343,10 @@
 
 
         console.log("Created detailed row", this.jsonApiModelName, this.model, this.meta)
+
+        setTimeout(function(){
+          $('.menu .item').tab();
+        }, 600)
 
       }
     }, // end: methods
