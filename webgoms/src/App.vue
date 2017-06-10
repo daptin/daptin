@@ -59,7 +59,8 @@
         } else {
           console.log("got token from url", token)
           setToken(token);
-          this.$router.go("/");
+          window.location.hash = "";
+          window.location.reload();
           return;
         }
       }
