@@ -20,4 +20,3 @@ temp.*gocms.json
 docker_dir/
 main
 test.db
-!/webgoms/dist/
