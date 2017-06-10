@@ -168,7 +168,7 @@ func Main() {
   db, err := sqlx.Open(*db_type, *connection_string)
 
   //db, err := sqlx.Open("sqlite3", "test.db")
-  db, err = sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
+  //db, err = sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
   if err != nil {
     panic(err)
   }
