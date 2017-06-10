@@ -29,10 +29,11 @@
 
 
       <div class="ui top attached tabular menu">
-        <div class="active item">{{jsonApiModelName | titleCase}}</div>
-        <div class="item" v-for="relation in relations">{{relation.name | titleCase}}</div>
+        <div class="active item" :data-tab="jsonApiModelName">{{jsonApiModelName | titleCase}}</div>
+        <div class="item" v-for="relation in relations" :data-tab="relation.name">{{relation.name | titleCase}}</div>
       </div>
-      <div class="ui bottom attached active tab segment">
+
+      <div class="ui bottom attached active tab segment" :data-tab="jsonApiModelName">
         <div class="ui two column grid" v-for="col in normalFields" :id="col.name">
           <div class="ui column"><h5>{{col.label}}</h5></div>
 
@@ -42,13 +43,12 @@
       </div>
 
 
-      <div class="ui bottom attached tab segment" v-for="relation in relations">
-        <list-view :json-api="jsonApi" :ref="relation.name"
-                   :json-api-model-name="relation.type" :json-api-relation-name="relation.name" @addRow="addRow"
-                   :autoload="true"
-                   :finder="relation.finder"></list-view>
+      <list-view :json-api="jsonApi" :ref="relation.name" class="ui tab" v-for="relation in relations"
+                 :data-tab="relation.name"
+                 :json-api-model-name="relation.type" :json-api-relation-name="relation.name" @addRow="addRow"
+                 :autoload="true"
+                 :finder="relation.finder"></list-view>
 
-      </div>
 
     </div>
 
@@ -344,7 +344,7 @@
 
         console.log("Created detailed row", this.jsonApiModelName, this.model, this.meta)
 
-        setTimeout(function(){
+        setTimeout(function () {
           $('.menu .item').tab();
         }, 600)
 
