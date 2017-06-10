@@ -93,6 +93,21 @@ var StandardActions = []resource.Action{
       },
     },
   },
+  {
+    Name:   "download_system_schema",
+    Label:  "Download system schema",
+    OnType: "world",
+    InFields: []api2go.ColumnInfo{},
+    OutFields: []resource.Outcome{
+      {
+        Type:   "system_json_schema_update",
+        Method: "POST",
+        Attributes: map[string]string{
+          "json_schema": "$file.json",
+        },
+      },
+    },
+  },
 }
 
 var StandardTables = []TableInfo{

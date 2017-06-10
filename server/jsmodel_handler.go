@@ -10,6 +10,14 @@ import (
 
 var tableMap map[string]datastore.TableInfo
 
+func CreateJsonSchemaDownloadHandlerModelHandler(initConfig *CmsConfig) func(*gin.Context) {
+  return func(c *gin.Context) {
+
+    c.JSON(200, initConfig)
+
+  }
+
+}
 func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
   tableMap := make(map[string]datastore.TableInfo)
   for _, table := range initConfig.Tables {

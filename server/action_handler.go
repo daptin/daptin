@@ -40,18 +40,6 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
     actionRequest := resource.ActionRequest{}
     json.Unmarshal(bytes, &actionRequest)
 
-    if isSystemAction(actionRequest.Action) {
-      err = handleSystemAction(actionRequest, cruds)
-      if err != nil {
-        log.Errorf("Failed to complete system action: %v", err)
-        c.AbortWithError(400, err)
-        return
-      }
-      c.AbortWithStatus(200);
-      return
-
-    }
-
     log.Infof("Request body: %v", actionRequest)
 
     userReferenceId := context.Get(c.Request, "user_id").(string)
@@ -63,21 +51,26 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
       },
     }
 
-    referencedObject, err := cruds[actionRequest.Type].FindOne(actionRequest.Attributes[actionRequest.Type+"_id"].(string), req)
+    var subjectInstance *api2go.Api2GoModel
+    var subjectInstanceMap map[string]interface{}
 
-    if err != nil {
-      c.Error(err)
-      return
-    }
+    subjectInstanceReferenceId, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
+    if ok {
+      referencedObject, err := cruds[actionRequest.Type].FindOne(subjectInstanceReferenceId.(string), req)
+      if err != nil {
+        c.AbortWithError(400, err)
+        return
+      }
+      subjectInstance = referencedObject.Result().(*api2go.Api2GoModel)
 
-    goModel := referencedObject.Result().(*api2go.Api2GoModel)
-    obj := goModel.Data
-    obj["__type"] = goModel.GetName()
-    permission := cruds[actionRequest.Type].GetRowPermission(obj)
+      subjectInstanceMap = subjectInstance.Data
+      subjectInstanceMap["__type"] = subjectInstance.GetName()
+      permission := cruds[actionRequest.Type].GetRowPermission(subjectInstanceMap)
 
-    if !permission.CanExecute(userReferenceId, userGroupReferenceIds) {
-      c.AbortWithError(403, errors.New("Forbidden"))
-      return
+      if !permission.CanExecute(userReferenceId, userGroupReferenceIds) {
+        c.AbortWithError(403, errors.New("Forbidden"))
+        return
+      }
     }
 
     if !cruds["world"].IsUserActionAllowed(userReferenceId, userGroupReferenceIds, actionRequest.Type, actionRequest.Action) {
@@ -94,20 +87,24 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
       return
     }
 
-    inFieldMap, err := GetValidatedInFields(actionRequest, action, obj)
+    inFieldMap, err := GetValidatedInFields(actionRequest, action, subjectInstanceMap)
 
     if err != nil {
       c.AbortWithError(400, err)
       return
     }
 
-    inFieldMap[""] = obj
+    inFieldMap[""] = subjectInstanceMap
 
     var res api2go.Responder
 
     for _, outcome := range action.OutFields {
 
-      req, model := BuildOutcome(action.OnType, inFieldMap, outcome)
+      req, model, err := BuildOutcome(inFieldMap, outcome)
+      if err != nil {
+        log.Errorf("Failed to build outcome: %v", err)
+        continue
+      }
 
       context.Set(model.PlainRequest, "user_id", context.Get(c.Request, "user_id"))
       context.Set(model.PlainRequest, "user_id_integer", context.Get(c.Request, "user_id_integer"))
@@ -131,6 +128,13 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
         break
       case "EXECUTE":
         //res, err = cruds[outcome.Type].Create(req, model)
+
+        if req.GetName() == "__restart" {
+          go restart()
+        } else if req.GetName() == "__download_init_config" {
+          c.JSON(200, initConfig)
+        }
+
         break
 
       default:
@@ -152,7 +156,7 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
   }
 }
 
-func handleSystemAction(request resource.ActionRequest, cruds map[string]*resource.DbResource) error {
+func handleSystemAction(request resource.ActionRequest, cruds map[string]*resource.DbResource, initConfig *CmsConfig, httpRequestContext *gin.Context) error {
 
   log.Infof("Handle system action: %v", request.Action)
 
@@ -194,6 +198,12 @@ func handleSystemAction(request resource.ActionRequest, cruds map[string]*resour
 
     go restart()
     break;
+
+  case "download_system_schema":
+
+    httpRequestContext.JSON(200, initConfig)
+
+    break
   }
 
   return nil
@@ -204,17 +214,9 @@ func restart() {
   log.Infof("Sleeping for 3 seconds before restart")
   time.Sleep(3 * time.Second)
   log.Infof("Kill")
-  //workingDirectory, err := os.Getwd()
-  //if err != nil {
-  //  log.Errorf("Failed to get working directory: %v", err)
-  //}
-  //attrs := os.ProcAttr{
-  //  Dir: workingDirectory,
-  //
-  //}
-  //os.StartProcess("kill", []string{"-SIGUSR2", fmt.Sprintf("%v", syscall.Getppid())}, &attrs)
+
   syscall.Kill(os.Getpid(), syscall.SIGUSR2)
-  //goagain.Kill()
+
 }
 
 func isSystemAction(actionName string) bool {
@@ -222,14 +224,87 @@ func isSystemAction(actionName string) bool {
   switch actionName {
   case "upload_system_schema":
     return true
+  case "down_system_schema":
+    return true
   }
   return false
 }
 
-func BuildOutcome(onType string, inFieldMap map[string]interface{}, outcome resource.Outcome) (*api2go.Api2GoModel, api2go.Request) {
+func BuildOutcome(inFieldMap map[string]interface{}, outcome resource.Outcome) (*api2go.Api2GoModel, api2go.Request, error) {
+
+  attrs := buildActionContext(outcome, inFieldMap)
+
+  switch outcome.Type {
+  case "upload_system_schema":
+    respopnseModel := api2go.NewApi2GoModel("__restart", nil, 0, nil)
+    returnRequest := api2go.Request{
+      PlainRequest: &http.Request{
+        Method: "EXECUTE",
+      },
+    }
+
+    files1, ok := attrs["schema_json_file"]
+    log.Infof("Files [%v]: %v", attrs, files1)
+    files := files1.([]interface{})
+    if !ok || len(files) < 1 {
+      return nil, returnRequest, errors.New("No files uploaded")
+    }
+    for _, file := range files {
+      f := file.(map[string]interface{})
+      fileName := f["name"].(string)
+      log.Infof("File name: %v", fileName)
+      fileContentsBase64 := f["file"].(string)
+      fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
+      if err != nil {
+        return nil, returnRequest, err
+      }
+
+      jsonFileName := fmt.Sprintf("schema_%v_gocms.json", fileName)
+      err = ioutil.WriteFile(jsonFileName, fileBytes, 0644)
+      if err != nil {
+        log.Errorf("Failed to write json file: %v", jsonFileName)
+        return nil, returnRequest, err
+      }
+
+    }
+
+    log.Infof("Written all json files. Attempting restart")
+
+    return respopnseModel, returnRequest, nil
+    break;
+
+  case "download_system_schema":
+
+    respopnseModel := api2go.NewApi2GoModel("__download_init_config", nil, 0, nil)
+    returnRequest := api2go.Request{
+      PlainRequest: &http.Request{
+        Method: "EXECUTE",
+      },
+    }
+
+    return respopnseModel, returnRequest, nil
+
+    break
+
+  default:
+
+    model := api2go.NewApi2GoModelWithData(outcome.Type, nil, 755, nil, attrs)
+
+    req := api2go.Request{
+      PlainRequest: &http.Request{
+        Method: "POST",
+      },
+    }
+    return model, req, nil
+
+  }
+
+  return nil, api2go.Request{}, errors.New(fmt.Sprintf("Unidentified outcome: %v", outcome.Type))
+
+}
+func buildActionContext(outcome resource.Outcome, inFieldMap map[string]interface{}) (map[string]interface{}) {
 
   data := make(map[string]interface{})
-
   for key, field := range outcome.Attributes {
 
     if field[0] == '$' {
@@ -237,6 +312,9 @@ func BuildOutcome(onType string, inFieldMap map[string]interface{}, outcome reso
       fieldParts := strings.Split(field[1:], ".")
 
       var finalValue interface{}
+
+      // it looks confusing but it does whats its supposed to do
+      // todo: add helpful comment
 
       finalValue = inFieldMap
       for i := 0; i < len(fieldParts)-1; i++ {
@@ -250,17 +328,7 @@ func BuildOutcome(onType string, inFieldMap map[string]interface{}, outcome reso
     }
 
   }
-
-  model := api2go.NewApi2GoModelWithData(outcome.Type, nil, 755, nil, data)
-
-  req := api2go.Request{
-    PlainRequest: &http.Request{
-      Method: "POST",
-    },
-  }
-
-  return model, req
-
+  return data
 }
 
 func GetValidatedInFields(actionRequest resource.ActionRequest, action resource.Action, referencedObject map[string]interface{}) (map[string]interface{}, error) {
