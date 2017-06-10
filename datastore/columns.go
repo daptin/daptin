@@ -89,7 +89,7 @@ var SystemActions = []resource.Action{
         Type:   "system_json_schema_update",
         Method: "EXECUTE",
         Attributes: map[string]string{
-          "json_schema": "$file.json",
+          "json_schema": "$schema_json_file",
         },
       },
     },
