@@ -101,18 +101,18 @@ func GetActionMapByTypeName(db *sqlx.DB) (map[string]map[string]interface{}, err
 
   for _, action := range allActions {
     actioName := action["action_name"].(string)
-    typeName := string(action["world_id"].(int64))
+    worldIdString := action["world_id"].(string)
 
-    _, ok := typeActionMap[typeName]
+    _, ok := typeActionMap[worldIdString]
     if !ok {
-      typeActionMap[typeName] = make(map[string]interface{})
+      typeActionMap[worldIdString] = make(map[string]interface{})
     }
 
-    _, ok = typeActionMap[typeName][actioName]
+    _, ok = typeActionMap[worldIdString][actioName]
     if ok {
-      log.Infof("Action [%v][%v] already exisys", typeName, actioName)
+      log.Infof("Action [%v][%v] already exisys", worldIdString, actioName)
     }
-    typeActionMap[typeName][actioName] = action
+    typeActionMap[worldIdString][actioName] = action
   }
 
   return typeActionMap, err
@@ -161,7 +161,7 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
     worldId := world["id"]
     worldIdUint8, ok := worldId.([]uint8)
     if !ok {
-      worldIdString = fmt.Sprintf("%v", worldId.(int64))
+      worldIdString = fmt.Sprintf("%v", worldId)
     } else {
       worldIdString = string(worldIdUint8)
     }

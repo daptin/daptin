@@ -10,7 +10,9 @@
       console.log("signed in")
       const {token, secret} = extractInfoFromHash()
       if (!checkSecret(secret) || !token) {
+        this.$router.replace('/sign-in')
         console.error('Something happened with the Sign In request')
+        return
       }
       setToken(token)
       this.$router.replace('/')

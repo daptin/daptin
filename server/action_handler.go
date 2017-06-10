@@ -17,6 +17,7 @@ import (
   "net/http"
   "errors"
   "encoding/base64"
+  "io"
 )
 
 func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
@@ -42,14 +43,13 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
 
     log.Infof("Request body: %v", actionRequest)
 
-    userReferenceId := context.Get(c.Request, "user_id").(string)
-    userGroupReferenceIds := context.Get(c.Request, "usergroup_id").([]auth.GroupPermission)
-
     req := api2go.Request{
       PlainRequest: &http.Request{
         Method: "GET",
       },
     }
+    userReferenceId := context.Get(c.Request, "user_id").(string)
+    userGroupReferenceIds := context.Get(c.Request, "usergroup_id").([]auth.GroupPermission)
 
     var subjectInstance *api2go.Api2GoModel
     var subjectInstanceMap map[string]interface{}
@@ -113,7 +113,6 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
       dbResource, ok := cruds[outcome.Type]
       if !ok {
         log.Errorf("No DbResource for type [%v]", outcome.Type)
-        continue
       }
 
       switch outcome.Method {
@@ -132,7 +131,19 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
         if req.GetName() == "__restart" {
           go restart()
         } else if req.GetName() == "__download_init_config" {
-          c.JSON(200, initConfig)
+
+          c.Header("Content-Disposition", "attachment; filename=schema.json")
+          c.Header("Content-Type", "text/json;charset=utf-8")
+
+          js, err := json.Marshal(*initConfig)
+          if err != nil {
+            log.Errorf("Failed to marshal initconfig: %v", err)
+            return
+          }
+          io.Copy(c.Writer, strings.NewReader(string(js)))
+
+          //c.JSON(200, *initConfig)
+          return
         }
 
         break
@@ -142,7 +153,9 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
         c.AbortWithError(500, errors.New("Invalid outcome"))
         return
       }
-      inFieldMap[outcome.Reference] = res.Result().(*api2go.Api2GoModel).Data
+      if res != nil && res.Result() != nil {
+        inFieldMap[outcome.Reference] = res.Result().(*api2go.Api2GoModel).Data
+      }
 
     }
 
@@ -156,59 +169,59 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
   }
 }
 
-func handleSystemAction(request resource.ActionRequest, cruds map[string]*resource.DbResource, initConfig *CmsConfig, httpRequestContext *gin.Context) error {
-
-  log.Infof("Handle system action: %v", request.Action)
-
-  action, err := cruds["action"].GetActionByName(request.Type, request.Action)
-  if err != nil {
-    return err
-  }
-
-  attrs := request.Attributes
-
-  switch action.Name {
-  case "upload_system_schema":
-    files1, ok := attrs["schema_json_file"]
-    log.Infof("Files [%v]: %v", attrs, files1)
-    files := files1.([]interface{})
-    if !ok || len(files) < 1 {
-      return errors.New("No files uploaded")
-    }
-    for _, file := range files {
-      f := file.(map[string]interface{})
-      fileName := f["name"].(string)
-      log.Infof("File name: %v", fileName)
-      fileContentsBase64 := f["file"].(string)
-      fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
-      if err != nil {
-        return err
-      }
-
-      jsonFileName := fmt.Sprintf("schema_%v_gocms.json", fileName)
-      err = ioutil.WriteFile(jsonFileName, fileBytes, 0644)
-      if err != nil {
-        log.Errorf("Failed to write json file: %v", jsonFileName)
-        return err
-      }
-
-    }
-
-    log.Infof("Written all json files. Attempting restart")
-
-    go restart()
-    break;
-
-  case "download_system_schema":
-
-    httpRequestContext.JSON(200, initConfig)
-
-    break
-  }
-
-  return nil
-
-}
+//func handleSystemAction(request resource.ActionRequest, cruds map[string]*resource.DbResource, initConfig *CmsConfig, httpRequestContext *gin.Context) error {
+//
+//  log.Infof("Handle system action: %v", request.Action)
+//
+//  action, err := cruds["action"].GetActionByName(request.Type, request.Action)
+//  if err != nil {
+//    return err
+//  }
+//
+//  attrs := request.Attributes
+//
+//  switch action.Name {
+//  case "upload_system_schema":
+//    files1, ok := attrs["schema_json_file"]
+//    log.Infof("Files [%v]: %v", attrs, files1)
+//    files := files1.([]interface{})
+//    if !ok || len(files) < 1 {
+//      return errors.New("No files uploaded")
+//    }
+//    for _, file := range files {
+//      f := file.(map[string]interface{})
+//      fileName := f["name"].(string)
+//      log.Infof("File name: %v", fileName)
+//      fileContentsBase64 := f["file"].(string)
+//      fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
+//      if err != nil {
+//        return err
+//      }
+//
+//      jsonFileName := fmt.Sprintf("schema_%v_gocms.json", fileName)
+//      err = ioutil.WriteFile(jsonFileName, fileBytes, 0644)
+//      if err != nil {
+//        log.Errorf("Failed to write json file: %v", jsonFileName)
+//        return err
+//      }
+//
+//    }
+//
+//    log.Infof("Written all json files. Attempting restart")
+//
+//    go restart()
+//    break;
+//
+//  case "download_system_schema":
+//
+//    httpRequestContext.JSON(200, initConfig)
+//
+//    break
+//  }
+//
+//  return nil
+//
+//}
 
 func restart() {
   log.Infof("Sleeping for 3 seconds before restart")
@@ -235,8 +248,8 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome resource.Outcome) (
   attrs := buildActionContext(outcome, inFieldMap)
 
   switch outcome.Type {
-  case "upload_system_schema":
-    respopnseModel := api2go.NewApi2GoModel("__restart", nil, 0, nil)
+  case "system_json_schema_update":
+    responseModel := api2go.NewApi2GoModel("__restart", nil, 0, nil)
     returnRequest := api2go.Request{
       PlainRequest: &http.Request{
         Method: "EXECUTE",
@@ -270,10 +283,10 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome resource.Outcome) (
 
     log.Infof("Written all json files. Attempting restart")
 
-    return respopnseModel, returnRequest, nil
+    return responseModel, returnRequest, nil
     break;
 
-  case "download_system_schema":
+  case "system_json_schema_download":
 
     respopnseModel := api2go.NewApi2GoModel("__download_init_config", nil, 0, nil)
     returnRequest := api2go.Request{
