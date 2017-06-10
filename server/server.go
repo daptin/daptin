@@ -201,26 +201,18 @@ func Main() {
   CheckAllTableStatus(&initConfig, db)
   CreateRelations(&initConfig, db)
 
-  //log.Infof("table relations: %v", initConfig.Tables)
-
   CreateUniqueConstraints(&initConfig, db)
   CreateIndexes(&initConfig, db)
 
   UpdateWorldTable(&initConfig, db)
   UpdateWorldColumnTable(&initConfig, db)
 
-  //for _, t := range initConfig.Tables {
-  //for _, c := range t.Columns {
-  //log.Infof("Default values [%v][%v] : [%v]", t.TableName, c.ColumnName, c.DefaultValue)
-  //}
-  //}
-
   err = UpdateActionTable(&initConfig, db)
   CheckErr(err, "Failed to update action table")
 
-  ms := GetMiddlewareSet()
+  ms := BuildMiddlewareSet()
 
-  cruds = AddAllTablesToApi2Go(api, initConfig.Tables, db, &ms)
+  cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms)
 
   authMiddleware.SetUserCrud(cruds["user"])
   authMiddleware.SetUserGroupCrud(cruds["usergroup"])
@@ -232,17 +224,14 @@ func Main() {
 
   r.GET("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
   r.OPTIONS("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
-
-  r.GET("/downloadSchema", CreateJsModelHandler(&initConfig))
-  //r.GET("/actions/:typename", CreateActionListHandler(&initConfig))
-
+  
   r.POST("/action/:actionName", CreateActionEventHandler(&initConfig, cruds))
 
   r.Run(fmt.Sprintf(":%v", *port))
 
 }
 
-func GetMiddlewareSet() resource.MiddlewareSet {
+func BuildMiddlewareSet() resource.MiddlewareSet {
 
   var ms resource.MiddlewareSet
 
@@ -253,20 +242,49 @@ func GetMiddlewareSet() resource.MiddlewareSet {
   updateHandler := resource.NewUpdateEventHandler()
   deleteHandler := resource.NewDeleteEventHandler()
 
-  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, }
-  ms.AfterFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, }
+  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
+    permissionChecker,
+  }
 
-  ms.BeforeCreate = []resource.DatabaseRequestInterceptor{permissionChecker, createHandler, }
-  ms.AfterCreate = []resource.DatabaseRequestInterceptor{permissionChecker, createHandler, }
+  ms.AfterFindAll = []resource.DatabaseRequestInterceptor{
+    permissionChecker,
+  }
 
-  ms.BeforeDelete = []resource.DatabaseRequestInterceptor{permissionChecker, deleteHandler, }
-  ms.AfterDelete = []resource.DatabaseRequestInterceptor{permissionChecker, deleteHandler, }
+  ms.BeforeCreate = []resource.DatabaseRequestInterceptor{
+    permissionChecker,
+    createHandler,
+  }
+  ms.AfterCreate = []resource.DatabaseRequestInterceptor{
+    permissionChecker,
+    createHandler,
+  }
 
-  ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{permissionChecker, updateHandler, }
-  ms.AfterUpdate = []resource.DatabaseRequestInterceptor{permissionChecker, updateHandler, }
+  ms.BeforeDelete = []resource.DatabaseRequestInterceptor{
+    permissionChecker,
+    deleteHandler,
+  }
+  ms.AfterDelete = []resource.DatabaseRequestInterceptor{
+    permissionChecker,
+    deleteHandler,
+  }
 
-  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, findOneHandler, }
-  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{permissionChecker, findOneHandler, }
+  ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
+    permissionChecker,
+    updateHandler,
+  }
+  ms.AfterUpdate = []resource.DatabaseRequestInterceptor{
+    permissionChecker,
+    updateHandler,
+  }
+
+  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
+    permissionChecker,
+    findOneHandler,
+  }
+  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
+    permissionChecker,
+    findOneHandler,
+  }
   return ms
 }
 
@@ -291,10 +309,6 @@ type JsModel struct {
   Actions     []resource.Action
 }
 
-func AuthenticationFilter(c *gin.Context) {
-
-}
-
 func CorsMiddlewareFunc(c *gin.Context) {
   //log.Infof("middleware ")
 
@@ -309,7 +323,7 @@ func CorsMiddlewareFunc(c *gin.Context) {
   return
 }
 
-func AddAllTablesToApi2Go(api *api2go.API, tables []datastore.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet) map[string]*resource.DbResource {
+func AddResourcesToApi2Go(api *api2go.API, tables []datastore.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet) map[string]*resource.DbResource {
   cruds := make(map[string]*resource.DbResource)
   for _, table := range tables {
     log.Infof("Table [%v] Relations: %v", table.TableName, table.Relations)
