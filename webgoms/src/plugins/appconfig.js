@@ -12,7 +12,7 @@ const AppConfig = function () {
   };
 
   if (that.location.hostname == "site.goms") {
-    // that.apiRoot = that.location.protocol + "//api.goms:6336"
+    that.apiRoot = that.location.protocol + "//api.goms:6336"
   }
 
 
