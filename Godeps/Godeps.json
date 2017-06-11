@@ -137,8 +137,24 @@
 			"Rev": "5bf94b69c6b68ee1b541973bb8e1144db23a194b"
 		},
 		{
+			"ImportPath": "golang.org/x/crypto/bcrypt",
+			"Rev": "e7ba82683099cae71475961448ab8f903ea77c26"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/blowfish",
+			"Rev": "e7ba82683099cae71475961448ab8f903ea77c26"
+		},
+		{
 			"ImportPath": "golang.org/x/net/context",
 			"Rev": "84f0e6f92b10139f986b1756e149a7d9de270cdc"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2",
+			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/internal",
+			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
@@ -147,6 +163,11 @@
 		{
 			"ImportPath": "gopkg.in/Masterminds/squirrel.v1",
 			"Rev": "20f192218cf52a73397fa2df45bdda720f3e47c8"
+		},
+		{
+			"ImportPath": "gopkg.in/authboss.v1",
+			"Comment": "v1.1.0",
+			"Rev": "be948e61d1f76faa4f25bd0eb32a4fb6c46659e5"
 		},
 		{
 			"ImportPath": "gopkg.in/gin-gonic/gin.v1",
