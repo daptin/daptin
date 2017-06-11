@@ -2,6 +2,7 @@ import AdminComponent from './components/Admin'
 import SignInComponent from './components/SignIn'
 import SignedInComponent from './components/SignedIn'
 import SignOutComponent from './components/SignOff'
+import ActionComponent from './components/Action'
 
 
 export default [
@@ -28,6 +29,11 @@ export default [
     path: '/in/:tablename',
     name: 'tablename',
     component: AdminComponent
+  },
+  {
+    path: '/act/:tablename/:actionname',
+    name: 'tablename-actionname',
+    component: ActionComponent
   },
   {
     path: '/in/:tablename/:refId',

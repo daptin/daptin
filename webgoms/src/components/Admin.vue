@@ -43,6 +43,7 @@
         </div>
 
         <div class="four wide column right floated" style="text-align: right">
+
           <el-dropdown @command="handleCommand">
             <button class="ui icon button el-dropdown-link">
               <i class="setting icon"></i>
@@ -52,6 +53,8 @@
               </el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
+
+
         </div>
       </div>
       <div class="ui segment bottom attached"
@@ -125,8 +128,8 @@
             </el-button>
             <el-button class="ui button" @click.prevent="viewMode = 'items'"><i class="fa fa-th-large blue"></i>
             </el-button>
-            <el-button class="ui button" @click.prevent="newRow()"><i class="fa fa-plus blue "></i></el-button>
-            <el-button class="ui button" @click.prevent="reloadData()"><i class="fa fa-refresh blue "></i></el-button>
+            <el-button class="ui button" @click.prevent="newRow()"><i class="fa fa-plus green "></i></el-button>
+            <el-button class="ui button" @click.prevent="reloadData()"><i class="fa fa-refresh orange"></i></el-button>
           </div>
         </div>
       </div>
@@ -246,6 +249,16 @@
           window.location.reload()
           return;
         }
+
+        this.$router.push({
+          name: 'tablename-actionname',
+          params: {
+            tablename: "world",
+            actionname: command,
+          }
+        });
+        return;
+
         const action = actionManager.getActionModel("world", command);
         console.log("initiate action", action)
 
