@@ -11,7 +11,7 @@
       <el-button @click.prevent="saveRow()">
         Save
       </el-button>
-      <!--<el-button @click="cancel()">Cancel</el-button>-->
+      <el-button @click="cancel()">Cancel</el-button>
 
     </div>
   </div>
@@ -88,7 +88,7 @@
         let inputType = columnMeta.ColumnType;
 
         if (inputType.indexOf(".") > 0) {
-          var inputTypeParts = inputType.split(".")
+          var inputTypeParts = inputType.split(".");
           if (inputTypeParts[0] == "file") {
             return "fileUpload";
           }
@@ -125,6 +125,10 @@
           .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
       },
       init() {
+
+
+        // todo: convert strings to booleans and numbers
+
         var that = this;
         var formFields = [];
         console.log("that mode", that.model);
@@ -142,7 +146,6 @@
           "created_at",
           "deleted_at",
           "status",
-          "permission",
           "user_id",
           "usergroup_id"
         ];

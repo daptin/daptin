@@ -12,6 +12,7 @@ import (
   "gopkg.in/Masterminds/squirrel.v1"
   //"errors"
   "github.com/artpar/goms/server/resource"
+  "github.com/artpar/goms/server/auth"
 )
 
 func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
@@ -36,7 +37,7 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
         mapData["is_unique"] = col.IsUnique;
         mapData["data_type"] = col.DataType;
         mapData["is_indexed"] = col.IsIndexed;
-        mapData["permission"] = 777;
+        mapData["permission"] = auth.DEFAULT_PERMISSION;
         mapData["column_type"] = col.ColumnType;
         mapData["column_name"] = col.ColumnName;
         mapData["is_nullable"] = col.IsNullable;
@@ -44,7 +45,7 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
         mapData["default_value"] = col.DefaultValue;
         mapData["is_primary_key"] = col.IsPrimaryKey;
         mapData["is_foreign_key"] = col.IsForeignKey;
-        mapData["include_in_api"] = col.IncludeInApi;
+        mapData["include_in_api"] = col.ExcludeFromApi;
         mapData["foreign_key_data"] = col.ForeignKeyData.String();
         mapData["is_auto_increment"] = col.IsAutoIncrement;
         query, args, err := squirrel.Insert("world_column").SetMap(mapData).ToSql()
@@ -101,7 +102,7 @@ func GetActionMapByTypeName(db *sqlx.DB) (map[string]map[string]interface{}, err
 
   for _, action := range allActions {
     actioName := action["action_name"].(string)
-    worldIdString := action["world_id"].(string)
+    worldIdString := fmt.Sprintf("%v", action["world_id"])
 
     _, ok := typeActionMap[worldIdString]
     if !ok {
@@ -174,7 +175,7 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
       ifj, _ := json.Marshal(action.InFields)
       ofj, _ := json.Marshal(action.OutFields)
 
-      s, v, err := squirrel.Insert("action").Columns("action_name", "label", "world_id", "in_fields", "out_fields", "reference_id", "permission").Values(action.Name, action.Label, worldId, ifj, ofj, uuid.NewV4().String(), 755).ToSql()
+      s, v, err := squirrel.Insert("action").Columns("action_name", "label", "world_id", "in_fields", "out_fields", "reference_id", "permission").Values(action.Name, action.Label, worldId, ifj, ofj, uuid.NewV4().String(), 777).ToSql()
 
       _, err = db.Exec(s, v...)
       if err != nil {
@@ -198,15 +199,16 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
   var userId int
   var userGroupId int
   var userCount int
+  var systemHasNoAdmin = false
   s, v, err := squirrel.Select("count(*)").From("user").Where(squirrel.Eq{"deleted_at": nil}).ToSql()
   err = tx.QueryRowx(s, v...).Scan(&userCount)
   CheckErr(err, "Failed to get user count")
   //log.Infof("Current user grou")
   if userCount < 1 {
-
+    systemHasNoAdmin = true
     u2 := uuid.NewV4().String()
 
-    s, v, err := squirrel.Insert("user").Columns("name", "email", "reference_id", "permission").Values("guest", "guest@cms.go", u2, 755).ToSql()
+    s, v, err := squirrel.Insert("user").Columns("name", "email", "reference_id", "permission").Values("guest", "guest@cms.go", u2, auth.DEFAULT_PERMISSION).ToSql()
     CheckErr(err, "Failed to create insert sql")
     _, err = tx.Exec(s, v...)
     CheckErr(err, "Failed to insert user")
@@ -217,7 +219,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
     CheckErr(err, "Failed to select user")
 
     u1 := uuid.NewV4().String()
-    s, v, err = squirrel.Insert("usergroup").Columns("name", "reference_id", "permission").Values("guest group", u1, 755).ToSql()
+    s, v, err = squirrel.Insert("usergroup").Columns("name", "reference_id", "permission").Values("guest group", u1, auth.DEFAULT_PERMISSION).ToSql()
     CheckErr(err, "Failed to create insert usergroup sql")
     _, err = tx.Exec(s, v...)
     CheckErr(err, "Failed to insert usergroup")
@@ -228,7 +230,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
     CheckErr(err, "Failed to user group")
 
     refIf := uuid.NewV4().String()
-    s, v, err = squirrel.Insert("user_user_id_has_usergroup_usergroup_id").Columns("user_id", "usergroup_id", "permission", "reference_id").Values(userId, userGroupId, 755, refIf).ToSql()
+    s, v, err = squirrel.Insert("user_user_id_has_usergroup_usergroup_id").Columns("user_id", "usergroup_id", "permission", "reference_id").Values(userId, userGroupId, auth.DEFAULT_PERMISSION, refIf).ToSql()
     CheckErr(err, "Failed to create insert user has usergroup sql ")
     _, err = tx.Exec(s, v...)
     CheckErr(err, "Failed to insert user has usergroup")
@@ -237,7 +239,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
     //tx.Exec("update usergroup set user_id = ?, usergroup_id = ?", userId, userGroupId)
   } else {
 
-    s, v, err := squirrel.Select("id").From("user").Where(squirrel.Eq{"deleted_at": nil}).Limit(1).ToSql()
+    s, v, err := squirrel.Select("id").From("user").Where(squirrel.Eq{"deleted_at": nil}).Where(squirrel.NotEq{"email": "guest@cms.go"}).OrderBy("id").Limit(1).ToSql()
     CheckErr(err, "Failed to create select user sql")
     err = tx.QueryRowx(s, v...).Scan(&userId)
     CheckErr(err, "Failed to select user")
@@ -245,6 +247,12 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
     CheckErr(err, "Failed to create user group sql")
     err = tx.QueryRowx(s, v...).Scan(&userGroupId)
     CheckErr(err, "Failed to user group")
+  }
+
+  defaultWorldPermission := auth.DEFAULT_PERMISSION
+
+  if systemHasNoAdmin {
+    defaultWorldPermission = 777
   }
 
   for i, table := range initConfig.Tables {
@@ -257,7 +265,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
     if cou > 0 {
 
-      var defaultPermission int
+      var defaultPermission int64
 
       s, v, err = squirrel.Select("default_permission").From("world").Where(squirrel.Eq{"table_name": table.TableName}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
       CheckErr(err, "Failed to create select default permission sql")
@@ -277,10 +285,10 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
     s, v, err = squirrel.Insert("world").
         Columns("table_name", "schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden").
-        Values(table.TableName, string(schema), 777, refId, 755, userId, table.IsTopLevel, table.IsHidden).ToSql()
+        Values(table.TableName, string(schema), defaultWorldPermission, refId, auth.DEFAULT_PERMISSION, userId, table.IsTopLevel, table.IsHidden).ToSql()
     _, err = tx.Exec(s, v...)
     CheckErr(err, "Failed to insert into world table about "+table.TableName)
-    initConfig.Tables[i].DefaultPermission = 755
+    initConfig.Tables[i].DefaultPermission = auth.DEFAULT_PERMISSION
 
   }
 
@@ -296,7 +304,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
   for ; res.Next(); {
     var tabInfo datastore.TableInfo
     var tableSchema []byte
-    var permission, defaultPermission int
+    var permission, defaultPermission int64
     var isTopLevel, isHidden bool
     err = res.Scan(&tableSchema, &permission, &defaultPermission, &isTopLevel, &isHidden)
     CheckErr(err, "Failed to scan table info")

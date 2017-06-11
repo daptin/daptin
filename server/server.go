@@ -33,6 +33,7 @@ type CmsConfig struct {
   Actions   []resource.Action `json:"actions"`
 }
 
+
 var ColumnTypes = []string{
   "id",
   "alias",
@@ -168,7 +169,7 @@ func Main() {
   db, err := sqlx.Open(*db_type, *connection_string)
 
   //db, err := sqlx.Open("sqlite3", "test.db")
-  //db, err = sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
+  db, err = sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
   if err != nil {
     panic(err)
   }
@@ -177,6 +178,7 @@ func Main() {
 
   r.StaticFS("/static", http.Dir("./webgoms/dist/static"))
   r.StaticFile("", "./webgoms/dist/index.html")
+  r.StaticFile("/favicon.ico", "./webgoms/dist/static/favicon.ico")
 
   r.Use(CorsMiddlewareFunc)
 

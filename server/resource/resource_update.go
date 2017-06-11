@@ -8,6 +8,7 @@ import (
   "time"
   "errors"
   "net/http"
+  "github.com/artpar/goms/server/auth"
 )
 
 // Update an object
@@ -164,7 +165,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
           obj[rel.GetObjectName()] = item[rel.GetObjectName()]
           obj[rel.GetSubjectName()] = updatedResource["reference_id"]
 
-          modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, 755, nil, obj)
+          modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, auth.DEFAULT_PERMISSION, nil, obj)
           req := api2go.Request{
             PlainRequest: &http.Request{
               Method: "POST",
