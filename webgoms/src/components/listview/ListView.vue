@@ -10,16 +10,16 @@
 
         <div class="ui icon buttons">
 
-          <button type="button" class="yellow right floated el-button ui button el-button--default" @click="reloadData()">
+          <button type="button" class="right floated el-button ui button el-button--default" @click="reloadData()">
             <span>
-              <i class="fa fa-refresh"></i>
+              <i class="fa fa-refresh orange"></i>
             </span>
           </button>
 
-          <button type="button" class="green right floated el-button ui button el-button--default"
+          <button type="button" class="right floated el-button ui button el-button--default"
                   @click="showAddEdit = true">
             <span>
-              <i class="fa fa-plus"></i>
+              <i class="fa fa-plus green"></i>
             </span>
           </button>
         </div>
