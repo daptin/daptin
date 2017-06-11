@@ -39,12 +39,14 @@
   import worldManager from "./plugins/worldmanager"
   import {mapGetters} from 'vuex'
   import {setToken, checkSecret, extractInfoFromHash} from './utils/auth'
+  import Shepherd from "tether-shepherd"
 
   export default {
     name: 'app',
     data: function () {
       return {
         loaded: false,
+        tour: null,
       }
     },
     computed: mapGetters(["isAuthenticated"]),
@@ -76,6 +78,44 @@
       });
     },
     methods: {
+      showHelpTour() {
+
+        if (Shepherd.activeTour) {
+          console.log("this tour", this.tour)
+          return
+        }
+        if (this.tour) {
+
+          this.tour.show();
+          return
+        }
+        this.tour = new Shepherd.Tour({
+          defaults: {
+            classes: 'shepherd-theme-dark'
+          }
+        });
+
+        this.tour.addStep('Welcome', {
+          title: 'Welcome to GoMS',
+          text: 'Let us start with a quick us',
+        });
+
+        this.tour.addStep('Step1', {
+          title: 'This button gives way to system actions',
+          text: 'You can add features to site, try to become admin...',
+          attachTo: '.setting.icon right',
+          advanceOn: '.setting.icon click'
+        });
+
+        this.tour.addStep('Step2', {
+          title: 'This button gives way to system actions',
+          text: 'You can add features to site, try to become admin...',
+          attachTo: '.ui.secondary.vertical.pointing.menu right',
+          advanceOn: '.setting.icon click'
+        });
+
+        this.tour.start();
+      },
       init() {
         if (!this.authenticated) {
           this.login();
