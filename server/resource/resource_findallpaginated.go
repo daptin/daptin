@@ -28,7 +28,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
     log.Infof("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
     r, err := bf.InterceptBefore(dr, &req)
     if err != nil {
-      log.Errorf("Error from BeforeFindAll middleware [%v]: %v", bf.String(), err)
+      log.Infof("Error from BeforeFindAll middleware [%v]: %v", bf.String(), err)
       return 0, nil, err
     }
     if r != nil {
@@ -123,15 +123,16 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   }
 
   for _, rel := range dr.model.GetRelations() {
+    log.Infof("TableRelation[%v] == [%v]", dr.model.GetName(), rel.String())
     if rel.GetSubject() == dr.model.GetName() {
 
-      queries, ok := req.QueryParams[rel.GetObjectName()]
+      log.Infof("Forward Relation %v", rel.String())
+      queries, ok := req.QueryParams[rel.GetObject() + "_id"]
       if !ok || len(queries) < 1 {
         continue
       }
 
       objectNameList, ok := req.QueryParams[rel.GetObject()+"Name"]
-      log.Infof("Forward Relation %v", rel.String())
 
       var objectName string
       /**
@@ -193,7 +194,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
       switch rel.Relation {
       case "has_one":
 
-        subjectId := req.QueryParams[rel.GetSubjectName()]
+        subjectId := req.QueryParams[rel.GetSubject() + "_id"]
         if len(subjectId) < 1 {
           continue
         }
@@ -202,7 +203,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
       case "belongs_to":
 
-        queries, ok := req.QueryParams[rel.GetSubjectName()]
+        queries, ok := req.QueryParams[rel.GetSubject() + "_id"]
         log.Infof("%d Values as RefIds for relation [%v]", len(queries), rel.String())
         if !ok || len(queries) < 1 {
           continue
@@ -258,12 +259,13 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   defer rows.Close()
 
   results, includes, err := dr.ResultToArrayOfMap(rows)
-  log.Infof("Results: %v", results)
+  //log.Infof("Results: %v", results)
 
   if err != nil {
     return 0, nil, err
   }
 
+  // todo: handle fetching of usergroups, because world permission
   for _, bf := range dr.ms.AfterFindAll {
     log.Infof("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
@@ -305,7 +307,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
       delete(include, "id")
       delete(include, "deleted_at")
-      model := api2go.NewApi2GoModelWithData(include["__type"].(string), nil, int(perm), nil, include)
+      model := api2go.NewApi2GoModelWithData(include["__type"].(string), nil, int64(perm), nil, include)
 
       a.Includes = append(a.Includes, model)
     }

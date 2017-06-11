@@ -45,10 +45,8 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
 
     for _, col := range cols {
       log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue)
-      if col.ColumnName == "deleted_at" {
-        continue
-      }
-      if col.ColumnName == "id" {
+
+      if col.ExcludeFromApi {
         continue
       }
 

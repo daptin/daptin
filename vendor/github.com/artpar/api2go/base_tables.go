@@ -115,10 +115,25 @@ func NewTableRelationWithNames(subject, subjectName, relation, object, objectNam
 type Api2GoModel struct {
   typeName          string
   columns           []ColumnInfo
-  defaultPermission int
+  columnMap         map[string]ColumnInfo
+  defaultPermission int64
   relations         []TableRelation
   Data              map[string]interface{}
   Includes          []jsonapi.MarshalIdentifier
+}
+
+func (a *Api2GoModel) GetColumnMap() map[string]ColumnInfo {
+  if a.columnMap != nil && len(a.columnMap) > 0 {
+    return a.columnMap
+  }
+
+  m := make(map[string]ColumnInfo)
+
+  for _, col := range a.columns {
+    m[col.ColumnName] = col
+  }
+  a.columnMap = m
+  return m
 }
 
 func (a *Api2GoModel) HasColumn(colName string) bool {
@@ -139,6 +154,11 @@ func (a *Api2GoModel) HasColumn(colName string) bool {
 }
 
 func (a *Api2GoModel) HasMany(colName string) bool {
+
+  if a.typeName == "usergroup" {
+    return false
+  }
+
   for _, rel := range a.relations {
     if rel.GetRelation() == "has_many" && rel.GetObject() == colName {
       //log.Infof("Found %v relation: %v", colName, rel)
@@ -163,7 +183,7 @@ type ColumnInfo struct {
   IsNullable      bool   `db:"is_nullable"`
   Permission      uint64   `db:"permission"`
   IsForeignKey    bool   `db:"is_foreign_key"`
-  IncludeInApi    bool   `db:"include_in_api"`
+  ExcludeFromApi  bool   `db:"include_in_api"`
   ForeignKeyData  ForeignKeyData   `db:"foreign_key_data"`
   DataType        string   `db:"data_type"`
   DefaultValue    string   `db:"default_value"`
@@ -193,7 +213,7 @@ func (f ForeignKeyData) String() string {
   return fmt.Sprintf("%s(%s)", f.TableName, f.ColumnName)
 }
 
-func NewApi2GoModelWithData(name string, columns []ColumnInfo, defaultPermission int, relations []TableRelation, m map[string]interface{}) *Api2GoModel {
+func NewApi2GoModelWithData(name string, columns []ColumnInfo, defaultPermission int64, relations []TableRelation, m map[string]interface{}) *Api2GoModel {
   return &Api2GoModel{
     typeName:          name,
     columns:           columns,
@@ -202,7 +222,7 @@ func NewApi2GoModelWithData(name string, columns []ColumnInfo, defaultPermission
     defaultPermission: defaultPermission,
   }
 }
-func NewApi2GoModel(name string, columns []ColumnInfo, defaultPermission int, relations []TableRelation) *Api2GoModel {
+func NewApi2GoModel(name string, columns []ColumnInfo, defaultPermission int64, relations []TableRelation) *Api2GoModel {
   //fmt.Printf("New columns: %v", columns)
   return &Api2GoModel{
     typeName:          name,
@@ -273,17 +293,20 @@ func (m *Api2GoModel) SetToManyReferenceIDs(name string, IDs []string) error {
   }
 
   return nil
-  return errors.New("There is no to-many relationship with the name " + name)
+
 }
 
 func (m *Api2GoModel) AddToManyIDs(name string, IDs []string) error {
 
-  return errors.New("There is no to-manyrelationship with the name " + name)
+  new1 := errors.New("There is no to-manyrelationship with the name " + name)
+  log.Errorf("ERROR: ", new1)
+  return new1
 }
 
 func (m *Api2GoModel) DeleteToManyIDs(name string, IDs []string) error {
-
-  return errors.New("There is no to-manyrelationship with the name " + name)
+  new1 := errors.New("There is no to-manyrelationship with the name " + name)
+  log.Errorf("ERROR: ", new1)
+  return new1
 }
 
 func (m *Api2GoModel) GetReferencedStructs() []jsonapi.MarshalIdentifier {
@@ -410,10 +433,19 @@ func (model *Api2GoModel) GetReferences() []jsonapi.Reference {
 
 func (m *Api2GoModel) GetAttributes() map[string]interface{} {
   attrs := make(map[string]interface{})
+  colMap := m.GetColumnMap()
+
+  //log.Infof("Column Map for [%v]: %v", colMap["reference_id"])
   for k, v := range m.Data {
-    if EndsWithCheck(k, "_id") {
+
+    if colMap[k].IsForeignKey {
       continue
     }
+
+    if colMap[k].ExcludeFromApi {
+      continue
+    }
+
     attrs[k] = v
   }
   return attrs
@@ -452,7 +484,7 @@ func (m *Api2GoModel) GetColumnNames() []string {
   return res
 }
 
-func (g Api2GoModel) GetDefaultPermission() int {
+func (g Api2GoModel) GetDefaultPermission() int64 {
   //log.Infof("default permission for %v is %v", g.typeName, g.defaultPermission)
   return g.defaultPermission
 }

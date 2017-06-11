@@ -11,6 +11,7 @@ import (
   "github.com/artpar/api2go"
 )
 
+const DEFAULT_PERMISSION int64 = 750
 type CmsUser interface {
   GetName() string
   GetEmail() string
@@ -110,21 +111,21 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
     return
   }
 
-  if false {
-    context.Set(c.Request, "user_id", "da5e15b6-1a12-45f0-882b-ea5cb9b6c46d")
-    context.Set(c.Request, "usergroup_id", []GroupPermission{
-      GroupPermission{
-        ReferenceId: "c55279c0-a5b8-4cbc-be67-cc57e487a168",
-        Permission:  777,
-      },
-    })
-    context.Set(c.Request, "user_id_integer", int64(2))
-    c.Next()
-    return
-  }
+  //if false {
+  //  context.Set(c.Request, "user_id", "da5e15b6-1a12-45f0-882b-ea5cb9b6c46d")
+  //  context.Set(c.Request, "usergroup_id", []GroupPermission{
+  //    GroupPermission{
+  //      ReferenceId: "c55279c0-a5b8-4cbc-be67-cc57e487a168",
+  //      Permission:  777,
+  //    },
+  //  })
+  //  context.Set(c.Request, "user_id_integer", int64(2))
+  //  c.Next()
+  //  return
+  //}
 
   err := jwtMiddleware.CheckJWT(c.Writer, c.Request)
-  log.Infof("Session user: %v", err)
+  //log.Infof("Session user: %v", err)
 
   if err != nil {
     c.AbortWithError(401, err)
@@ -132,7 +133,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
   } else {
 
     user := context.Get(c.Request, "user")
-    log.Infof("Set user: %v", user)
+    //log.Infof("Set user: %v", user)
     if (user == nil) {
       context.Set(c.Request, "user_id", "")
       context.Set(c.Request, "usergroup_id", []GroupPermission{})
@@ -155,7 +156,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
         mapData["name"] = email
         mapData["email"] = email
 
-        newUser := api2go.NewApi2GoModelWithData("user", nil, 755, nil, mapData)
+        newUser := api2go.NewApi2GoModelWithData("user", nil, DEFAULT_PERMISSION, nil, mapData)
 
         req := api2go.Request{
           PlainRequest: &http.Request{
@@ -174,7 +175,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
         mapData = make(map[string]interface{})
         mapData["name"] = "Home group for  user " + email
 
-        newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, 755, nil, mapData)
+        newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, DEFAULT_PERMISSION, nil, mapData)
 
         resp, err = a.userGroupCrud.Create(newUserGroup, req)
         if err != nil {
@@ -187,7 +188,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
         mapData["user_id"] = referenceId
         mapData["usergroup_id"] = userGroupId
 
-        newUserUserGroup := api2go.NewApi2GoModelWithData("user_user_id_has_usergroup_usergroup_id", nil, 755, nil, mapData)
+        newUserUserGroup := api2go.NewApi2GoModelWithData("user_user_id_has_usergroup_usergroup_id", nil, DEFAULT_PERMISSION, nil, mapData)
 
         uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req)
         log.Infof("Userug: %v", uug)

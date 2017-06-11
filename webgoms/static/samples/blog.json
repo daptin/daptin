@@ -94,7 +94,7 @@
           "type": "comment",
           "attributes": {
             "body": "comment",
-            "post_id": ".post.id",
+            "post_id": "$.reference_id",
             "likes_count": "like"
           }
         }
@@ -123,7 +123,7 @@
           "attributes": {
             "title": "title",
             "body": "body",
-            "blog_id": "$.id"
+            "blog_id": "$.reference_id"
           }
         }
       ]
