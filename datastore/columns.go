@@ -12,7 +12,7 @@ var StandardColumns = []api2go.ColumnInfo{
     DataType:        "INTEGER",
     IsPrimaryKey:    true,
     IsAutoIncrement: true,
-    IncludeInApi:    false,
+    ExcludeFromApi:  true,
     ColumnType:      "id",
   },
   {
@@ -33,13 +33,13 @@ var StandardColumns = []api2go.ColumnInfo{
     ColumnType:   "datetime",
   },
   {
-    Name:         "deleted_at",
-    ColumnName:   "deleted_at",
-    DataType:     "timestamp",
-    IncludeInApi: false,
-    IsIndexed:    true,
-    IsNullable:   true,
-    ColumnType:   "datetime",
+    Name:           "deleted_at",
+    ColumnName:     "deleted_at",
+    DataType:       "timestamp",
+    ExcludeFromApi: true,
+    IsIndexed:      true,
+    IsNullable:     true,
+    ColumnType:     "datetime",
   },
   {
     Name:       "reference_id",
@@ -49,12 +49,11 @@ var StandardColumns = []api2go.ColumnInfo{
     ColumnType: "alias",
   },
   {
-    Name:         "permission",
-    ColumnName:   "permission",
-    IncludeInApi: false,
-    DataType:     "int(11)",
-    IsIndexed:    false,
-    ColumnType:   "value",
+    Name:           "permission",
+    ColumnName:     "permission",
+    DataType:       "int(11)",
+    IsIndexed:      false,
+    ColumnType:     "value",
   },
   {
     Name:         "status",
@@ -107,6 +106,21 @@ var SystemActions = []resource.Action{
       },
     },
   },
+  {
+    Name:     "invoke_become_admin",
+    Label:    "Become GoMS admin",
+    OnType:   "world",
+    InFields: []api2go.ColumnInfo{},
+    OutFields: []resource.Outcome{
+      {
+        Type:   "become_admin",
+        Method: "EXECUTE",
+        Attributes: map[string]string{
+          "user_id": "$user.id",
+        },
+      },
+    },
+  },
 }
 
 var StandardTables = []TableInfo{
@@ -123,11 +137,12 @@ var StandardTables = []TableInfo{
         ColumnType: "name",
       },
       {
-        Name:       "schema_json",
-        ColumnName: "schema_json",
-        DataType:   "text",
-        IsNullable: false,
-        ColumnType: "json",
+        Name:           "schema_json",
+        ColumnName:     "schema_json",
+        DataType:       "text",
+        IsNullable:     false,
+        ExcludeFromApi: true,
+        ColumnType:     "json",
       },
       {
         Name:         "default_permission",
@@ -286,6 +301,7 @@ var StandardTables = []TableInfo{
         Name:       "password",
         ColumnName: "password",
         DataType:   "varchar(100)",
+        ExcludeFromApi: true,
         ColumnType: "password",
         IsNullable: true,
       },
@@ -339,11 +355,11 @@ var StandardTables = []TableInfo{
 type TableInfo struct {
   TableName         string  `db:"table_name"`
   TableId           int
-  DefaultPermission int  `db:"default_permission"`
+  DefaultPermission int64  `db:"default_permission"`
   Columns           []api2go.ColumnInfo
   Relations         []api2go.TableRelation
   IsTopLevel        bool `db:"is_top_level"`
-  Permission        int
+  Permission        int64
   UserId            uint64 `db:"user_id"`
   IsHidden          bool `db:"is_hidden"`
 }

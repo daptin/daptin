@@ -229,6 +229,52 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 
 }
 
+func (dbResource *DbResource) CanBecomeAdmin() bool {
+
+  var count int
+
+  err := dbResource.db.QueryRow("select count(*) from user where deleted_at is null and email != 'guest@cms.go'").Scan(&count)
+  if err != nil {
+    return false
+  }
+
+  return count < 2
+
+}
+
+func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
+
+  if !dbResource.CanBecomeAdmin() {
+    return false
+  }
+
+  for _, crud := range dbResource.cruds {
+
+    if crud.model.HasColumn("user_id") {
+      q, v, err := squirrel.Update(crud.model.GetName()).Set("user_id", userId).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+      if err != nil {
+        log.Errorf("Failed to create query to update: %v == %v", crud.model.GetName(), err)
+        continue
+      }
+
+      _, err = dbResource.db.Exec(q, v...)
+      if err != nil {
+        log.Errorf("Failed to execute become admin update query: %v", err)
+        continue
+      }
+
+    }
+
+  }
+
+  _, err := dbResource.db.Exec("update world set permission = ? ", auth.DEFAULT_PERMISSION)
+  if err != nil {
+    log.Errorf("Failed to update world permissions: %v", err)
+  }
+
+  return true
+}
+
 func (dr *DbResource) GetRowPermission(row map[string]interface{}) (Permission) {
   var perm Permission
 
@@ -241,12 +287,21 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) (Permission) 
     perm.UserId = uid
   }
 
+  refId, ok := row["reference_id"]
+  if !ok {
+    refId = row["id"]
+  }
+  rowType := row["__type"].(string)
+
   if dr.model.HasMany("usergroup") {
-    refId, ok := row["reference_id"]
-    if !ok {
-      refId = row["id"]
+    perm.UserGroupId = dr.GetObjectUserGroupsByWhere(rowType, "reference_id", refId.(string))
+  } else if rowType == "usergroup" {
+    perm.UserGroupId = []auth.GroupPermission{
+      {
+        ReferenceId: refId.(string),
+        Permission:  auth.DEFAULT_PERMISSION,
+      },
     }
-    perm.UserGroupId = dr.GetObjectUserGroupsByWhere(row["__type"].(string), "reference_id", refId.(string))
   }
   if row["permission"] != nil {
 

@@ -11,7 +11,7 @@
         </div>
         <div class="content">
           <div class="description">
-            <action-view :show-title="false" @cancel="hideModel" :action-manager="actionManager"
+            <action-view ref="systemActionView" :hide-title="true" @cancel="hideModel" :action-manager="actionManager"
                          :action="selectedWorldAction"
                          :json-api="jsonApi"></action-view>
           </div>
@@ -91,7 +91,7 @@
 
       <div class="ui segment" v-if="actions != null">
         <ul class="ui column grid">
-          <div class="ui two wide column" v-for="a, k in actions">
+          <div class="ui three wide column" v-for="a, k in actions">
             <el-button @click="doAction(a)">{{a.label}}</el-button>
           </div>
         </ul>
@@ -121,12 +121,12 @@
         </div>
         <div class="four wide column right floated" style="text-align: right;">
           <div class="ui icon buttons">
-            <el-button class="ui button" @click.prevent="viewMode = 'table'"><i class="fa fa-table"></i>
+            <el-button class="ui button" @click.prevent="viewMode = 'table'"><i class="fa fa-table blue "></i>
             </el-button>
-            <el-button class="ui button" @click.prevent="viewMode = 'items'"><i
-              class="fa fa-th-large"></i>
+            <el-button class="ui button" @click.prevent="viewMode = 'items'"><i class="fa fa-th-large blue"></i>
             </el-button>
-            <el-button class="ui button" @click.prevent="newRow()"><i class="fa fa-plus"></i></el-button>
+            <el-button class="ui button" @click.prevent="newRow()"><i class="fa fa-plus blue "></i></el-button>
+            <el-button class="ui button" @click.prevent="reloadData()"><i class="fa fa-refresh blue "></i></el-button>
           </div>
         </div>
       </div>
@@ -226,7 +226,7 @@
         jsonApi: jsonApi,
         actionManager: actionManager,
         showAddEdit: false,
-        selectedWorldAction: null,
+        selectedWorldAction: {},
       }
     },
     methods: {
@@ -252,6 +252,7 @@
 
         console.log(command);
         this.selectedWorldAction = action;
+        this.$refs.systemActionView.init();
 
         setTimeout(function () {
           $('#uploadJson').modal('show');
@@ -310,6 +311,17 @@
         }
 
 
+      },
+      reloadData: function () {
+        var currentTableType = this.getCurrentTableType();
+        var that = this;
+        if (that.$refs.tableview1) {
+          that.$refs.tableview1.reloadData(currentTableType);
+
+        } else if (that.$refs.tableview2) {
+          that.$refs.tableview2.reloadData(currentTableType)
+
+        }
       },
       newRow() {
         var that = this;
