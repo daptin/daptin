@@ -8,6 +8,7 @@ import (
   "github.com/satori/go.uuid"
   "github.com/gorilla/context"
   //"strconv"
+  "github.com/artpar/goms/server/auth"
 )
 
 // Create a new object. Newly created object/struct must be in Responder.
@@ -166,7 +167,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     belogsToUserGroupSql, q, err := squirrel.
     Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
         Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
-        Values(createdResource["id"], userGroupId, nuuid, "755").ToSql()
+        Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
     log.Infof("Query: %v", belogsToUserGroupSql)
     _, err = dr.db.Exec(belogsToUserGroupSql, q...)
@@ -174,6 +175,39 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     if err != nil {
       log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
     }
+  } else if dr.model.GetName() == "usergroup" {
+
+    log.Infof("Associate new user with usergroup: %v", userId)
+    nuuid := uuid.NewV4().String()
+
+    belogsToUserGroupSql, q, err := squirrel.
+    Insert("user_user_id_has_usergroup_usergroup_id").
+        Columns("user_id", "usergroup_id", "reference_id", "permission").
+        Values(userId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
+
+    log.Infof("Query: %v", belogsToUserGroupSql)
+    _, err = dr.db.Exec(belogsToUserGroupSql, q...)
+
+    if err != nil {
+      log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
+    }
+
+  } else if dr.model.GetName() == "user" {
+
+    log.Infof("Associate new user with user: %v", userId)
+
+    belogsToUserGroupSql, q, err := squirrel.
+    Update("user").
+        Set("user_id", createdResource["id"]).
+        Where(squirrel.Eq{"id": createdResource["id"]}).ToSql()
+
+    log.Infof("Query: %v", belogsToUserGroupSql)
+    _, err = dr.db.Exec(belogsToUserGroupSql, q...)
+
+    if err != nil {
+      log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
+    }
+
   }
 
   delete(createdResource, "id")

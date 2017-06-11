@@ -39,20 +39,40 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
     currentUserGroupId = userGroupId.([]auth.GroupPermission)
   }
 
+  notIncludedMapCache := make(map[string]bool)
+  includedMapCache := make(map[string]bool)
+
   for _, result := range results {
     //log.Infof("Result: %v", result)
+
+    referenceId := result["reference_id"].(string)
+    _, ok := notIncludedMapCache[referenceId]
+    if ok {
+      continue
+    }
+    _, ok = includedMapCache[referenceId]
+    if ok {
+      returnMap = append(returnMap, result)
+      continue
+    }
+
     permission := dr.GetRowPermission(result)
     //log.Infof("Row Permission for [%v] for [%v]", permission, result)
     if permission.CanRead(currentUserId, currentUserGroupId) {
       returnMap = append(returnMap, result)
     } else {
-      log.Errorf("Result not to be included: %v", result)
+      log.Infof("Result not to be included: %v", result["reference_id"])
+      notIncludedMapCache[referenceId] = true
     }
   }
 
   return returnMap, nil
 
 }
+
+var (
+  ERR_UNAUTHORIZED = errors.New("Unauthorized")
+)
 
 func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request) (api2go.Responder, error) {
 
@@ -79,19 +99,19 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
     if !tableOwnership.CanRead(currentUserId, currentUserGroupId) {
       return api2go.Response{
         Code: 403,
-      }, errors.New("unauthorized")
+      }, ERR_UNAUTHORIZED
     }
   } else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" || req.PlainRequest.Method == "POST" || req.PlainRequest.Method == "DELETE" {
     if !tableOwnership.CanWrite(currentUserId, currentUserGroupId) {
       return api2go.Response{
         Code: 403,
-      }, errors.New("unauthorized")
+      }, ERR_UNAUTHORIZED
 
     }
   } else {
     return api2go.Response{
       Code: 403,
-    }, errors.New("unauthorized")
+    }, ERR_UNAUTHORIZED
 
   }
 

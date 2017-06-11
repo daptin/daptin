@@ -3,7 +3,7 @@
   <div class="ui one column grid" v-if="action">
     <!-- EventView -->
 
-    <div class="ui column" v-if="showTitle">
+    <div class="ui column" v-if="!hideTitle">
       <h3>{{action.label}}</h3>
     </div>
 
@@ -18,10 +18,10 @@
 <script>
   export default {
     props: {
-      showTitle: {
+      hideTitle: {
         type: Boolean,
         required: false,
-        default: true,
+        default: false,
       },
       action: {
         type: Object,
@@ -69,17 +69,21 @@
         this.$emit("cancel");
       },
       init() {
+
+        if (!this.action) {
+          return;
+        }
         var that = this;
         var modelName = "_actionmodel_" + that.action.name;
         console.log("render action ", that.action, " on ", that.model);
 
         var meta = {};
 
-        for (var i = 0; i < this.action.fields.length; i++) {
+        for (var i = 0; this.action.fields && i < this.action.fields.length; i++) {
           meta[this.action.fields[i].ColumnName] = that.action.fields[i]
         }
 
-        if (this.action.fields.length == 0) {
+        if (this.action.fields && this.action.fields.length == 0) {
           this.actionManager.doAction(this.action.onType, this.action.name, {}).then(function () {
           }, function () {
 
@@ -93,6 +97,9 @@
       },
     },
     mounted: function () {
+      this.init();
+    },
+    init: function () {
       this.init();
     },
     watch: {

@@ -3,7 +3,7 @@
     <div id="app" class="ui">
 
 
-      <div class="ui two column grid inverted fixed menu navbar">
+      <div class="ui two column grid inverted blue fixed menu navbar">
 
         <div class="ui column right floated" style="text-align: right">
 
@@ -11,7 +11,7 @@
           <div class="ui button" v-show="!isAuthenticated" @click="login()">
             <i class="sign in icon "> </i> Sign In
           </div>
-          <div class="ui button" v-show="isAuthenticated" @click="logout()">
+          <div class="ui button yellow" v-show="isAuthenticated" @click="logout()">
             <i class="sign out icon">  </i> Sign Out
           </div>
 
