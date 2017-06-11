@@ -6,6 +6,7 @@ import (
   "github.com/artpar/api2go-adapter/gingonic"
   log "github.com/Sirupsen/logrus"
   _ "github.com/go-sql-driver/mysql"
+  "gopkg.in/authboss.v1"
   _ "github.com/lib/pq"
   _ "github.com/mattn/go-sqlite3"
   //"io/ioutil"
@@ -32,7 +33,6 @@ type CmsConfig struct {
   Relations []api2go.TableRelation
   Actions   []resource.Action `json:"actions"`
 }
-
 
 var ColumnTypes = []string{
   "id",
@@ -172,6 +172,15 @@ func Main() {
   //db, err = sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
   if err != nil {
     panic(err)
+  }
+
+  ab := authboss.New() // Usually store this globally
+  ab.MountPath = "/authentication"
+  ab.LogWriter = os.Stdout
+
+  if err := ab.Init(); err != nil {
+    // Handle error, don't let program continue to run
+    log.Fatalln(err)
   }
 
   r := gin.Default()
