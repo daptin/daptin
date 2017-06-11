@@ -92,16 +92,13 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   if hasRequestedFields {
 
     for _, col := range cols {
-      if !col.ExcludeFromApi && reqFieldMap[col.Name] {
+      if reqFieldMap[col.Name] {
         finalCols = append(finalCols, prefix+col.ColumnName)
       }
     }
   } else {
     finalCols := []string{}
     for _, col := range cols {
-      if col.ExcludeFromApi {
-        continue
-      }
       finalCols = append(finalCols, prefix+col.ColumnName)
     }
   }
