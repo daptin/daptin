@@ -22,6 +22,7 @@
     "element-ui": "^1.3.5",
     "js-cookie": "^2.1.4",
     "jwt-decode": "^2.2.0",
+    "tether-shepherd": "^1.8.1",
     "uuid": "^3.0.1",
     "vue": "^2.2.4",
     "vue-form-generator": "^2.0.0-beta8",

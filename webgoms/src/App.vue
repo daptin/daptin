@@ -2,23 +2,26 @@
   <div>
     <div id="app" class="ui">
 
-
       <div class="ui two column grid inverted blue fixed menu navbar">
 
         <div class="ui column right floated" style="text-align: right">
 
 
-          <div class="ui button" v-show="!isAuthenticated" @click="login()">
+          <div class="ui button teal" @click="showHelpTour()">
+            <i class="question icon "> </i> Help
+          </div>
+          <div class="ui button green" v-show="!isAuthenticated" @click="login()">
             <i class="sign in icon "> </i> Sign In
           </div>
-          <div class="ui button yellow" v-show="isAuthenticated" @click="logout()">
-            <i class="sign out icon">  </i> Sign Out
+          <div class="ui button orange" v-show="isAuthenticated" @click="logout()">
+            <i class="sign out icon "> </i> Sign Out
           </div>
 
         </div>
 
 
       </div>
+
       <div id="hidden" v-if="!isAuthenticated">
 
       </div>

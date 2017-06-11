@@ -31,7 +31,7 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
 
   return func(c *gin.Context) {
 
-    onEntity := c.Param("actionName")
+    actionName := c.Param("actionName")
 
     bytes, err := ioutil.ReadAll(c.Request.Body)
     if err != nil {
@@ -79,7 +79,7 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
       return
     }
 
-    log.Infof("Handle event for [%v]", onEntity)
+    log.Infof("Handle event for [%v]", actionName)
 
     action, err := cruds["action"].GetActionByName(actionRequest.Type, actionRequest.Action)
 
@@ -124,7 +124,7 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
 
       dbResource, ok := cruds[outcome.Type]
       if !ok {
-        log.Errorf("No DbResource for type [%v]", outcome.Type)
+        //log.Errorf("No DbResource for type [%v]", outcome.Type)
       }
 
       switch outcome.Method {
@@ -165,8 +165,6 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
 
           cruds["world"].BecomeAdmin(user["id"].(int64))
 
-
-
         }
 
         break
@@ -191,7 +189,6 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
 
   }
 }
-
 
 func restart() {
   log.Infof("Sleeping for 3 seconds before restart")
