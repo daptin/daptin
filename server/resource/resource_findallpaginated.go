@@ -84,33 +84,34 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   m := dr.model
   //log.Infof("Get all resource type: %v\n", m)
 
-  cols := m.GetColumnNames()
+  cols := m.GetColumns()
+  finalCols := make([]string, 0)
   //log.Infof("Cols: %v", cols)
 
   prefix := dr.model.GetName() + "."
   if hasRequestedFields {
-    finalCols := []string{}
 
     for _, col := range cols {
-      if reqFieldMap[col] {
-        finalCols = append(finalCols, prefix+col)
+      if !col.ExcludeFromApi && reqFieldMap[col.Name] {
+        finalCols = append(finalCols, prefix+col.ColumnName)
       }
     }
-    cols = finalCols
   } else {
     finalCols := []string{}
     for _, col := range cols {
-      finalCols = append(finalCols, prefix+col)
+      if col.ExcludeFromApi {
+        continue
+      }
+      finalCols = append(finalCols, prefix+col.ColumnName)
     }
-    cols = finalCols
   }
 
-  queryBuilder := squirrel.Select(cols...).From(m.GetTableName()).Where(squirrel.Eq{prefix + "deleted_at": nil}).Offset(pageNumber).Limit(pageSize)
+  queryBuilder := squirrel.Select(finalCols...).From(m.GetTableName()).Where(squirrel.Eq{prefix + "deleted_at": nil}).Offset(pageNumber).Limit(pageSize)
 
   infos := dr.model.GetColumns()
 
+  // todo: fix search in findall operation. currently no way to do an " or " query
   if len(queries) > 0 && false {
-
     for _, col := range infos {
       if col.IsIndexed {
         queryBuilder = queryBuilder.Where(squirrel.Eq{col.ColumnName: queries})
@@ -127,7 +128,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
     if rel.GetSubject() == dr.model.GetName() {
 
       log.Infof("Forward Relation %v", rel.String())
-      queries, ok := req.QueryParams[rel.GetObject() + "_id"]
+      queries, ok := req.QueryParams[rel.GetObject()+"_id"]
       if !ok || len(queries) < 1 {
         continue
       }
@@ -194,7 +195,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
       switch rel.Relation {
       case "has_one":
 
-        subjectId := req.QueryParams[rel.GetSubject() + "_id"]
+        subjectId := req.QueryParams[rel.GetSubject()+"_id"]
         if len(subjectId) < 1 {
           continue
         }
@@ -203,7 +204,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
       case "belongs_to":
 
-        queries, ok := req.QueryParams[rel.GetSubject() + "_id"]
+        queries, ok := req.QueryParams[rel.GetSubject()+"_id"]
         log.Infof("%d Values as RefIds for relation [%v]", len(queries), rel.String())
         if !ok || len(queries) < 1 {
           continue

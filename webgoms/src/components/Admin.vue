@@ -44,7 +44,7 @@
 
         <div class="four wide column right floated" style="text-align: right">
 
-          <el-dropdown @command="handleCommand">
+          <el-dropdown trigger="click" @command="handleCommand">
             <button class="ui icon button el-dropdown-link">
               <i class="setting icon"></i>
             </button>

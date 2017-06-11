@@ -14,6 +14,7 @@ import ListView from "../components/listview/ListView.vue";
 import ActionView from "../components/actionview/ActionView.vue";
 
 import "element-ui/lib/theme-default/index.css";
+import "tether-shepherd/dist/css/shepherd-theme-dark.css";
 import "../components/vuetable/vuetable.css";
 
 
