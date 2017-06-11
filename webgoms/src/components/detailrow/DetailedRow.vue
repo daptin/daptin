@@ -28,7 +28,7 @@
     <div class="ui column" v-if="showAll">
 
 
-      <div class="ui top attached tabular menu">
+      <div class="ui top attached tabulgreen rightar menu">
         <div class="active item" :data-tab="jsonApiModelName">{{jsonApiModelName | titleCase}}</div>
         <div class="item" v-for="relation in relations" :data-tab="relation.name">{{relation.name | titleCase}}</div>
       </div>
@@ -43,7 +43,7 @@
       </div>
 
 
-      <list-view :json-api="jsonApi" :ref="relation.name" class="ui tab" v-for="relation in relations"
+      <list-view :json-api="jsonApi" :ref="relation.name" class="tab" v-for="relation in relations"
                  :data-tab="relation.name"
                  :json-api-model-name="relation.type" :json-api-relation-name="relation.name" @addRow="addRow"
                  :autoload="true"

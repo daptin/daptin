@@ -39,7 +39,13 @@ func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
     log.Infof("data: %v", selectedTable.Relations)
 
     cols := selectedTable.Columns
-    actions := GetActionList(selectedTable.TableName, initConfig)
+
+    //actions := GetActionList(selectedTable.TableName, initConfig)
+    actions, err := cruds["world"].GetActionsByType(selectedTable.TableName)
+
+    if err != nil {
+      log.Errorf("Failed to get actions by type: %v", err)
+    }
 
     res := map[string]interface{}{}
 

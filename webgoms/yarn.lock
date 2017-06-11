@@ -5596,6 +5596,16 @@ tar@^2.2.1:
     fstream "^1.0.2"
     inherits "2"
 
+tether-shepherd@^1.8.1:
+  version "1.8.1"
+  resolved "https://registry.yarnpkg.com/tether-shepherd/-/tether-shepherd-1.8.1.tgz#4fd9b2fdd9059f04b6c4249456d5ae145a3e9223"
+  dependencies:
+    tether "^1.0.1"
+
+tether@^1.0.1:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/tether/-/tether-1.4.0.tgz#0f9fa171f75bf58485d8149e94799d7ae74d1c1a"
+
 text-table@^0.2.0, text-table@~0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/text-table/-/text-table-0.2.0.tgz#7f5ee823ae805207c00af2df4a84ec3fcfa570b4"
