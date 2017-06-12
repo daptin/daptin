@@ -311,7 +311,7 @@ var StandardTables = []TableInfo{
         DataType:     "boolean",
         ColumnType:   "truefalse",
         IsNullable:   false,
-        DefaultValue: "'false'",
+        DefaultValue: "false",
       },
     },
   },

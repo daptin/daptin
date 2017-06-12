@@ -243,12 +243,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
   p1 := dr.model.GetDefaultPermission()
   r1 := dr.model.GetRelations()
   return NewResponse(nil,
-    api2go.NewApi2GoModelWithData(
-      n1,
-      c1,
-      p1,
-      r1, createdResource,
-    ),
+    api2go.NewApi2GoModelWithData(n1, c1, p1, r1, createdResource),
     201, nil,
   ), nil
 
