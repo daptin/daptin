@@ -320,7 +320,7 @@ func (m *Api2GoModel) GetReferencedIDs() []jsonapi.ReferenceID {
 
   for _, rel := range m.relations {
 
-    //log.Infof("Checked relations [%v]: %v", m.typeName, rel)
+    log.Infof("Checked relations [%v]: %v", m.typeName, rel)
 
     if rel.GetRelation() == "belongs_to" {
       if rel.GetSubject() == m.typeName {

@@ -57,7 +57,8 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
       log.Errorf("Failed to convert [%v] to permission: %v", ok)
       continue
     }
-    a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(inc["__type"].(string), nil, int64(p), nil, inc))
+    incType := inc["__type"].(string)
+    a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dr.cruds[incType].model.GetColumns(), int64(p), dr.cruds[incType].model.GetRelations(), inc))
   }
 
   return NewResponse(nil, a, 200, nil), err
