@@ -92,13 +92,15 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   if hasRequestedFields {
 
     for _, col := range cols {
-      if reqFieldMap[col.Name] {
+      if !col.ExcludeFromApi && reqFieldMap[col.Name] {
         finalCols = append(finalCols, prefix+col.ColumnName)
       }
     }
   } else {
-    finalCols := []string{}
     for _, col := range cols {
+      if col.ExcludeFromApi {
+        continue
+      }
       finalCols = append(finalCols, prefix+col.ColumnName)
     }
   }
@@ -256,7 +258,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
   }
   defer rows.Close()
 
-  results, includes, err := dr.ResultToArrayOfMap(rows)
+  results, includes, err := dr.ResultToArrayOfMap(rows, true)
   //log.Infof("Results: %v", results)
 
   if err != nil {
@@ -303,9 +305,8 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
         continue
       }
 
-      delete(include, "id")
-      delete(include, "deleted_at")
-      model := api2go.NewApi2GoModelWithData(include["__type"].(string), nil, int64(perm), nil, include)
+      incType := include["__type"].(string)
+      model := api2go.NewApi2GoModelWithData(incType, dr.cruds[incType].model.GetColumns(), int64(perm), dr.cruds[incType].model.GetRelations(), include)
 
       a.Includes = append(a.Includes, model)
     }

@@ -101,7 +101,7 @@ const getters = {
     return state.subTableColumns
   },
   isAuthenticated (state) {
-    console.log("check is authenticated: ", window.localStorage.getItem("token"))
+    // console.log("check is authenticated: ", window.localStorage.getItem("token"))
     return !!window.localStorage.getItem("token")
   },
   systemActions(state) {
