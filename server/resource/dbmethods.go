@@ -364,7 +364,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where squirrel.Eq) (
   //log.Infof("Select query: %v == [%v]", s, q)
   rows, err := dr.db.Queryx(s, q...)
   defer rows.Close()
-  m1, include, err := dr.ResultToArrayOfMap(rows)
+  m1, include, err := dr.ResultToArrayOfMap(rows, true)
   if err != nil {
     return nil, nil, err
   }
@@ -402,7 +402,7 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 
   rows, err := dr.db.Queryx(s, q...)
   defer rows.Close()
-  resultRows, includeRows, err := dr.ResultToArrayOfMap(rows)
+  resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, true)
   if err != nil {
     return nil, nil, err
   }
@@ -430,7 +430,7 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
     return nil, err
   }
 
-  m, err := RowsToMap(row, typeName)
+  m, _, err := dr.ResultToArrayOfMap(row, false)
 
   return m[0], err
 }
@@ -452,7 +452,7 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
   //  return nil, err
   //}
 
-  results, _, err := dr.ResultToArrayOfMap(row)
+  results, _, err := dr.ResultToArrayOfMap(row, false)
   if err != nil {
     return nil, err
   }
@@ -591,7 +591,7 @@ func RowsToMap(rows *sqlx.Rows, typeName string) ([]map[string]interface{}, erro
 
 }
 
-func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows) ([]map[string]interface{}, [][]map[string]interface{}, error) {
+func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, includeNextLevel bool) ([]map[string]interface{}, [][]map[string]interface{}, error) {
 
   //finalArray := make([]map[string]interface{}, 0)
 
@@ -641,13 +641,16 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows) ([]map[string]interfac
           log.Errorf("Failed to get ref id for [%v][%v]: %v", typeName, val, err)
           continue
         }
-        obj, err := dr.GetIdToObject(typeName, i)
-        obj["__type"] = typeName
 
-        if err != nil {
-          log.Errorf("Failed to get ref object for [%v][%v]: %v", typeName, val, err)
-        } else {
-          localInclude = append(localInclude, obj)
+        if includeNextLevel {
+          obj, err := dr.GetIdToObject(typeName, i)
+          obj["__type"] = typeName
+
+          if err != nil {
+            log.Errorf("Failed to get ref object for [%v][%v]: %v", typeName, val, err)
+          } else {
+            localInclude = append(localInclude, obj)
+          }
         }
 
       }
