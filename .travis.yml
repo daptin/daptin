@@ -8,7 +8,7 @@ cache:
 services:
   - docker
 
-script: go get github.com/artpar/goms && go build -o docker_dir/goms && cp -Rf webgoms/dist docker_dir/static && cp Dockerfile docker_dir/Dockerfile
+script: go get github.com/artpar/goms && go build -o docker_dir/goms && cp -Rf gomsweb/dist docker_dir/static && cp Dockerfile docker_dir/Dockerfile
 
 
 after_success:
