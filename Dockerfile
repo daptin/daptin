@@ -4,7 +4,7 @@ MAINTAINER Parth Mudgal <artpar@gmail.com>
 WORKDIR /opt/goms
 
 ADD main /opt/goms/goms
-ADD webgoms/dist /opt/goms/webgoms/dist
+ADD gomsweb/dist /opt/goms/gomsweb/dist
 
 EXPOSE 6336
 RUN export
