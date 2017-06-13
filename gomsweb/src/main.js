@@ -10,6 +10,7 @@ import jsonApi from "./plugins/jsonapi";
 import actionManager from "./plugins/actionmanager";
 import axios from "./plugins/axios";
 
+import vueFilter from 'vue-filter';
 
 import routes from './routes'
 import store from './store'

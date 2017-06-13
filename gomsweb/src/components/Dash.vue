@@ -113,11 +113,55 @@
             <!--</li>-->
 
             <!-- User Account Menu -->
-            <li class="user user-menu">
-              <router-link :to="{name: 'SignOut'}" class="dropdown-toggle" data-toggle="dropdown">
-                <span class="fa fa-2x fa-sign-out red"></span>
-              </router-link>
+
+            <li class="dropdown user user-menu">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                <img :src="user.picture" class="user-image" alt="User Image">
+                <span class="hidden-xs">{{user.name}}</span>
+              </a>
+              <ul class="dropdown-menu">
+                <!-- User image -->
+                <li class="user-header">
+                  <img :src="user.picture" class="img-circle" alt="User Image">
+
+                  <p>
+                    {{user.name}}
+                    <small></small>
+                  </p>
+                </li>
+                <!-- Menu Body -->
+                <!--<li class="user-body">-->
+                  <!--<div class="row">-->
+                    <!--<div class="col-xs-4 text-center">-->
+                      <!--<a href="#">Followers</a>-->
+                    <!--</div>-->
+                    <!--<div class="col-xs-4 text-center">-->
+                      <!--<a href="#">Sales</a>-->
+                    <!--</div>-->
+                    <!--<div class="col-xs-4 text-center">-->
+                      <!--<a href="#">Friends</a>-->
+                    <!--</div>-->
+                  <!--</div>-->
+                  <!--&lt;!&ndash; /.row &ndash;&gt;-->
+                <!--</li>-->
+                <!-- Menu Footer-->
+                <li class="user-footer">
+                  <div class="pull-left">
+                    <a href="#" class="btn btn-default btn-flat">Profile</a>
+                  </div>
+                  <div class="pull-right">
+                    <router-link :to="{name: 'SignOut'}" class="btn btn-default btn-flat">Sign out</router-link>
+                  </div>
+                </li>
+              </ul>
             </li>
+
+
+            <!--<li class="user user-menu">-->
+              <!--<router-link :to="{name: 'SignOut'}" class="dropdown-toggle" data-toggle="dropdown">-->
+                <!--<span class="fa fa-2x fa-sign-out red"></span>-->
+              <!--</router-link>-->
+            <!--</li>-->
           </ul>
         </div>
       </nav>

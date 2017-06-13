@@ -185,9 +185,9 @@ func Main() {
 
   r := gin.Default()
 
-  r.StaticFS("/static", http.Dir("./webgoms/dist/static"))
-  r.StaticFile("", "./webgoms/dist/index.html")
-  r.StaticFile("/favicon.ico", "./webgoms/dist/static/favicon.ico")
+  r.StaticFS("/static", http.Dir("./gomsweb/dist/static"))
+  r.StaticFile("", "./gomsweb/dist/index.html")
+  r.StaticFile("/favicon.ico", "./gomsweb/dist/static/favicon.ico")
 
   r.Use(CorsMiddlewareFunc)
 

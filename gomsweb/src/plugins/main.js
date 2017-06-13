@@ -16,9 +16,8 @@ import ActionView from "../components/actionview/ActionView.vue";
 import "element-ui/lib/theme-default/index.css";
 import "tether-shepherd/dist/css/shepherd-theme-dark.css";
 import "../components/vuetable/vuetable.css";
-import Vue2Filters from 'vue2-filters'
 
-Vue.use(Vue2Filters)
+
 
 
 // Register my awesome field
