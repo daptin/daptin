@@ -2,7 +2,9 @@ import AdminComponent from './components/Admin'
 import SignInComponent from './components/SignIn'
 import SignedInComponent from './components/SignedIn'
 import SignOutComponent from './components/SignOff'
+import SignUpComponent from './components/SignUp'
 import ActionComponent from './components/Action'
+import HomeComponent from './components/Home'
 
 
 export default [
@@ -14,6 +16,12 @@ export default [
     path: '/auth/signin',
     name: 'signin',
     component: SignInComponent
+
+  },
+  {
+    path: '/auth/signup',
+    name: 'signup',
+    component: SignUpComponent
   },
   {
     path: '/auth/signed-in',
@@ -31,11 +39,6 @@ export default [
     component: AdminComponent
   },
   {
-    path: '/act/:tablename/:actionname',
-    name: 'tablename-actionname',
-    component: ActionComponent
-  },
-  {
     path: '/in/:tablename/:refId',
     name: 'tablename-refId',
     component: AdminComponent
@@ -46,8 +49,13 @@ export default [
     component: AdminComponent
   },
   {
+    path: '/act/:tablename/:actionname',
+    name: 'tablename-actionname',
+    component: ActionComponent
+  },
+  {
     path: '*',
     name: 'error',
-    component: AdminComponent
+    component: HomeComponent
   }
 ]

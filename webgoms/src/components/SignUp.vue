@@ -1,5 +1,7 @@
 <template>
-  <div id="auth0-lock"/>
+  <div>
+    Sign up
+  </div>
 </template>
 
 <script>
@@ -9,7 +11,7 @@
     middleware: 'anonymous',
     mounted () {
       console.log("sign in loaded")
-      show('auth0-lock')
+//      show('auth0-lock')
     }
   }
 </script>

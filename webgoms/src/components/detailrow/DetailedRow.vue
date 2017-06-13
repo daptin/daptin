@@ -217,7 +217,7 @@
         this.meta = this.jsonApi.modelFor(this.jsonApiModelName);
 
         this.attributes = this.meta["attributes"];
-
+        this.truefalse = [];
         var attributes = this.meta["attributes"];
 
         var normalFields = [];
