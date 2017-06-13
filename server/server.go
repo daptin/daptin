@@ -24,7 +24,7 @@ import (
   "path/filepath"
   "io/ioutil"
   "encoding/json"
-  "github.com/pkg/errors"
+  //"github.com/pkg/errors"
   "flag"
 )
 
