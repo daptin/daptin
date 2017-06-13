@@ -6,7 +6,10 @@
   import {show} from '../utils/lock'
 
   export default {
-    middleware: 'anonymous',
+    updated () {
+      console.log("sign in loaded")
+      show('auth0-lock')
+    },
     mounted () {
       console.log("sign in loaded")
       show('auth0-lock')
