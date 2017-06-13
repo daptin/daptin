@@ -21,10 +21,11 @@
       var that = this;
       if (!this.$store.getters.isAuthenticated) {
         console.log(" is not authenticated ");
-        if (this.$route.path == "/auth/signin") {
+        if (this.$route.path == "/auth/signin" || this.$route.path == "/auth/signed") {
           this.loaded = true;
         } else {
-          this.$router.push("/auth/signin")
+          this.$router.push({name: 'SignIn'})
+          this.loaded = true;
         }
       } else {
         var promise = worldManager.loadModels();
