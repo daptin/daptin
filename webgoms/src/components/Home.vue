@@ -8,7 +8,7 @@
   export default {
     middleware: 'anonymous',
     mounted () {
-      console.log("sign in loaded")
+      console.log("sign in loaded");
       show('auth0-lock')
     }
   }

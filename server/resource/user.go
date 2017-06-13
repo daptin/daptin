@@ -45,16 +45,6 @@ type MemStorer struct {
 
 func NewMemStorer(userCrud *DbResource) *MemStorer {
   return &MemStorer{
-    Users: map[string]AuthBossUser{
-      "artpar@gmail.com": AuthBossUser{
-        ID:        1,
-        Name:      "Parth",
-        Password:  "$2a$10$XtW/BrS5HeYIuOCXYe8DFuInetDMdaarMUJEOg/VA/JAIDgw3l4aG", // pass = 1234
-        Email:     "zeratul@heroes.com",
-        Confirmed: true,
-      },
-    },
-    Tokens:   make(map[string][]string),
     userCrud: userCrud,
   }
 }
@@ -64,7 +54,7 @@ func (s MemStorer) Create(key string, attr authboss.Attributes) error {
   if err := attr.Bind(&user, true); err != nil {
     return err
   }
-
+  s.Users[key] = user
   return nil
 }
 

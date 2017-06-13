@@ -3,21 +3,21 @@
 
   <div class="ui three column grid">
 
-    <div class="row">
-      <div class="ui modal" id="uploadJson" v-if="selectedWorldAction">
-        <i class="close icon"></i>
-        <div class="header">
-          {{selectedWorldAction.label}}
-        </div>
-        <div class="content">
-          <div class="description">
-            <action-view ref="systemActionView" :hide-title="true" @cancel="hideModel" :action-manager="actionManager"
-                         :action="selectedWorldAction"
-                         :json-api="jsonApi"></action-view>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!--<div class="row">-->
+      <!--<div class="ui modal" id="uploadJson" v-if="selectedWorldAction">-->
+        <!--<i class="close icon"></i>-->
+        <!--<div class="header">-->
+          <!--{{selectedWorldAction.label}}-->
+        <!--</div>-->
+        <!--<div class="content">-->
+          <!--<div class="description">-->
+            <!--<action-view ref="systemActionView" :hide-title="true" @cancel="hideModel" :action-manager="actionManager"-->
+                         <!--:action="selectedWorldAction"-->
+                         <!--:json-api="jsonApi"></action-view>-->
+          <!--</div>-->
+        <!--</div>-->
+      <!--</div>-->
+    <!--</div>-->
 
     <!-- Home -->
 
@@ -259,17 +259,17 @@
         });
         return;
 
-        const action = actionManager.getActionModel("world", command);
-        console.log("initiate action", action)
-
-
-        console.log(command);
-        this.selectedWorldAction = action;
-        this.$refs.systemActionView.init();
-
-        setTimeout(function () {
-          $('#uploadJson').modal('show');
-        }, 300);
+//        const action = actionManager.getActionModel("world", command);
+//        console.log("initiate action", action)
+//
+//
+//        console.log(command);
+//        this.selectedWorldAction = action;
+//        this.$refs.systemActionView.init();
+//
+//        setTimeout(function () {
+//          $('#uploadJson').modal('show');
+//        }, 300);
 //        if (command === "load-json") {
 //        }
       },

@@ -12,7 +12,7 @@
 
           <button type="button" class="right floated el-button ui button el-button--default" @click="reloadData()">
             <span>
-              <i class="fa fa-refresh orange"></i>
+              <i class="fa fa-refresh yellow"></i>
             </span>
           </button>
 
