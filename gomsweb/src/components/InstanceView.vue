@@ -1,0 +1,256 @@
+<template>
+
+
+  <div class="box">
+
+    <div class="box-header">
+      <div class="box-title">
+        {{selectedRow | chooseTitle | titleCase}}
+      </div>
+    </div>
+
+    <div class="box-body">
+      <div class="col-md-12">
+        <div class="row" v-if="selectedAction != null && showAddEdit">
+          <action-view @cancel="showAddEdit = false" :action-manager="actionManager"
+                       :action="selectedAction"
+                       :json-api="jsonApi" :model="selectedRow"></action-view>
+        </div>
+      </div>
+      <div class="col-md-8">
+
+        <detailed-table-row :model="selectedRow" v-if="selectedRow" :json-api="jsonApi"
+                            :json-api-model-name="selectedTable"></detailed-table-row>
+
+        <div class="row" v-if="showAddEdit && rowBeingEdited != null">
+
+
+          <model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
+                      v-if="selectedSubTable"
+                      @cancel="showAddEdit = false"
+                      v-bind:model="rowBeingEdited"
+                      v-bind:meta="subTableColumns" ref="modelform"></model-form>
+
+
+        </div>
+
+
+      </div>
+      <div class="col-md-4">
+
+
+        <div class="row" v-if="actions != null">
+          <div class="col-md-12">
+            <h2>Actions</h2>
+          </div>
+          <div class="col-md-12" v-for="a, k in actions">
+            <el-button @click="doAction(a)">{{a.label}}</el-button>
+          </div>
+        </div>
+
+        <div class="row" v-if="visibleWorlds.length > 0">
+          <div class="col-md-12">
+            <h2>Related</h2>
+          </div>
+          <div class="col-md-12" v-for="world in visibleWorlds">
+            <router-link class="btn btn-default"
+                         :to="{name: 'Relation', params: {tablename: selectedTable, refId: selectedInstanceReferenceId, subTable: world.table_name}}">
+              {{world.table_name | titleCase}}
+            </router-link>
+          </div>
+        </div>
+
+
+      </div>
+
+    </div>
+
+  </div>
+</template>
+
+<script>
+  import {Notification} from 'element-ui';
+  import worldManager from "../plugins/worldmanager"
+  import jsonApi from "../plugins/jsonapi"
+  import actionManager from "../plugins/actionmanager"
+  import {mapGetters} from 'vuex'
+  import {mapState} from 'vuex'
+
+
+  export default {
+    name: 'InstanceView',
+    data () {
+      return {
+        jsonApi: jsonApi,
+        actionManager: actionManager,
+        showAddEdit: false,
+        selectedWorldAction: {},
+      }
+    },
+    methods: {
+      doAction (action) {
+        this.$store.commit("SET_SELECTED_ACTION", action)
+        this.showAddEdit = true;
+      },
+      saveRow(row) {
+        var that = this;
+
+        var currentTableType = this.selectedTable;
+
+        if (that.selectedSubTable && that.selectedInstanceReferenceId) {
+          row[that.selectedTable + "_id"] = {
+            "id": that.selectedInstanceReferenceId,
+          };
+        }
+
+
+        console.log("save row", row);
+        if (row["id"]) {
+          var that = this;
+          jsonApi.update(currentTableType, row).then(function () {
+            that.setTable();
+            that.showAddEdit = false;
+          });
+        } else {
+          var that = this;
+          jsonApi.create(currentTableType, row).then(function () {
+            console.log("create complete", arguments);
+            that.setTable();
+            that.showAddEdit = false;
+            that.$refs.tableview1.reloadData(currentTableType);
+            that.$refs.tableview2.reloadData(currentTableType)
+          }, function (r) {
+            console.error(r)
+          });
+        }
+
+
+      },
+      setTable() {
+        const that = this;
+        var tableName;
+
+        let all = {};
+
+        console.log("Admin set table -", that.$store, that.selectedTable, that.selectedTable)
+        all = jsonApi.all(that.selectedTable);
+        tableName = that.selectedTable;
+
+
+        if (that.selectedTable) {
+          worldManager.getColumnKeys(that.selectedTable, function (model) {
+            console.log("Set selected world columns", model.ColumnModel);
+            that.$store.commit("SET_SELECTED_TABLE_COLUMNS", model.ColumnModel)
+          });
+        }
+
+
+        that.$store.commit("SET_FINDER", all.builderStack);
+        console.log("Finder stack: ", that.finder);
+
+
+        console.log("Selected sub table: ", that.selectedSubTable);
+        console.log("Selected table: ", that.selectedTable);
+
+        that.$store.commit("SET_ACTIONS", actionManager.getActions(that.selectedTable));
+
+        all.builderStack = [];
+
+        if (that.$refs.tableview1) {
+          console.log("setTable for [tableview1]: ", tableName);
+          that.$refs.tableview1.reloadData(tableName)
+        }
+
+      },
+      logout: function () {
+        this.$parent.logout();
+      }
+    },
+
+    mounted() {
+      var that = this;
+
+      console.log("Enter tablename: ", that);
+
+      that.actionManager = actionManager;
+      const worldActions = actionManager.getActions("world");
+
+      let tableName = that.$route.params.tablename;
+      let selectedInstanceId = that.$route.params.refId;
+
+      if (!tableName) {
+        alert("no table name")
+        return;
+      }
+
+      that.$store.commit("SET_SELECTED_TABLE", tableName);
+      that.$store.commit("SET_ACTIONS", worldActions);
+
+      that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", selectedInstanceId);
+      console.log("Get instance: ", tableName, selectedInstanceId)
+      jsonApi.find(tableName, selectedInstanceId).then(function (res) {
+        console.log("got object", res);
+        that.$store.commit("SET_SELECTED_ROW", res);
+      }, function (err) {
+        console.log("Errors", err)
+      })
+
+      that.$store.commit("SET_SELECTED_TABLE", tableName);
+
+
+      that.setTable();
+
+
+    },
+    computed: {
+      ...mapState([
+        "selectedSubTable",
+        "selectedAction",
+        "subTableColumns",
+        "systemActions",
+        "finder",
+        "selectedTableColumns",
+        "selectedRow",
+        "selectedTable",
+        "selectedInstanceReferenceId",
+      ]),
+      ...mapGetters([
+        "visibleWorlds",
+        "actions"
+      ])
+    },
+    watch: {
+      '$route.params.tablename': function (to, from) {
+        console.log("tablename page, path changed: ", arguments);
+        this.$store.commit("SET_SELECTED_TABLE", to);
+        this.$store.commit("SET_SELECTED_SUB_TABLE", null);
+        this.showAddEdit = false;
+        this.setTable();
+      },
+      '$route.params.refId': function (to, from) {
+        var that = this;
+        console.log("refId changed in tablename path", arguments);
+        this.showAddEdit = false;
+
+
+        if (!to) {
+          this.$store.commit("SET_SELECTED_ROW", null);
+          that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", null)
+        } else {
+          jsonApi.one(that.selectedTable, to).get().then(function (r) {
+            console.log("TableName SET_SELECTED_ROW", r);
+            that.$store.commit("SET_SELECTED_ROW", r);
+            that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", r["id"])
+          });
+        }
+        this.setTable();
+      },
+      '$route.params.subTable': function (to, from) {
+        this.showAddEdit = false;
+        console.log("TableName SubTable changed", arguments);
+        this.$store.commit("SET_SELECTED_SUB_TABLE", to);
+        this.setTable();
+      }
+    }
+  }
+</script>

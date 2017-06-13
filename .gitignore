@@ -1,5 +1,5 @@
-static/node_modules
-gocms.iml
+node_modules
+*.iml
 .idea/
 temp.*gocms.json
 # Binaries for programs and plugins
