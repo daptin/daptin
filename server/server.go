@@ -141,12 +141,6 @@ func loadConfigFiles() (CmsConfig, []error) {
 
     log.Infof("File added to config, deleting %v", fileName)
 
-    err = os.Remove(fileName)
-    if err != nil {
-      errs = append(errs, errors.New(fmt.Sprintf("Failed to delete config file: %v", fileName)))
-      errs = append(errs, err)
-    }
-
   }
 
   return globalInitConfig, errs
@@ -277,6 +271,8 @@ func Main() {
   err = UpdateActionTable(&initConfig, db)
   CheckErr(err, "Failed to update action table")
 
+  CleanUpConfigFiles()
+
   ms := BuildMiddlewareSet()
 
   cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms)
@@ -297,6 +293,18 @@ func Main() {
   r.Run(fmt.Sprintf(":%v", *port))
 
 }
+func CleanUpConfigFiles() {
+
+  files, _ := filepath.Glob("schema_*_gocms.json")
+  log.Infof("Found files to load: %v", files)
+
+  for _, fileName := range files {
+    os.Remove(fileName)
+
+  }
+
+}
+
 func GetTablesFromWorld(db *sqlx.DB) ([]datastore.TableInfo, error) {
 
   ts := make([]datastore.TableInfo, 0)
