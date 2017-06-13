@@ -192,9 +192,8 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
 
 func restart() {
   log.Infof("Sleeping for 3 seconds before restart")
-  time.Sleep(3 * time.Second)
+  time.Sleep(100 * time.Millisecond)
   log.Infof("Kill")
-
   syscall.Kill(os.Getpid(), syscall.SIGUSR2)
 
 }
