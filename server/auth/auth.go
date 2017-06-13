@@ -12,6 +12,7 @@ import (
 )
 
 const DEFAULT_PERMISSION int64 = 750
+
 type CmsUser interface {
   GetName() string
   GetEmail() string
@@ -133,7 +134,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
   } else {
 
     user := context.Get(c.Request, "user")
-    //log.Infof("Set user: %v", user)
+    log.Infof("Set user: %v", user)
     if (user == nil) {
       context.Set(c.Request, "user_id", "")
       context.Set(c.Request, "usergroup_id", []GroupPermission{})
@@ -142,6 +143,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 
       userToken := user.(*jwt.Token)
       email := userToken.Claims.(jwt.MapClaims)["email"].(string)
+      name := userToken.Claims.(jwt.MapClaims)["name"].(string)
       //log.Infof("User is not nil: %v", email  )
 
       var referenceId string
@@ -153,7 +155,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
         log.Errorf("Failed to scan user from db: %v", err)
 
         mapData := make(map[string]interface{})
-        mapData["name"] = email
+        mapData["name"] = name
         mapData["email"] = email
 
         newUser := api2go.NewApi2GoModelWithData("user", nil, DEFAULT_PERMISSION, nil, mapData)
@@ -173,7 +175,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
         referenceId = resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
 
         mapData = make(map[string]interface{})
-        mapData["name"] = "Home group for  user " + email
+        mapData["name"] = "Home group of " + name
 
         newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, DEFAULT_PERMISSION, nil, mapData)
 

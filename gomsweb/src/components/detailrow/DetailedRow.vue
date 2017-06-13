@@ -89,25 +89,6 @@
         default: false
       }
     },
-    filters: {
-      chooseTitle: function (obj) {
-        var keys = Object.keys(obj);
-        for (var i = 0; i < keys.length; i++) {
-          console.log("check key", keys[i],)
-          if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
-            console.log("title value", keys[i], obj[keys[i]], typeof obj[keys[i]])
-            return obj[keys[i]];
-          }
-        }
-        return obj["reference_id"];
-      },
-      titleCase: function (str) {
-        return str.replace(/[-_]/g, " ").trim().split(' ')
-          .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
-          .join(' ')
-      },
-
-    },
     data () {
       return {
         meta: {},

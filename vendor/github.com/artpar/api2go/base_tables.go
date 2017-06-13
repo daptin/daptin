@@ -28,6 +28,10 @@ func (tr *TableRelation) String() string {
   return fmt.Sprintf("[TableRelation] [%v][%v][%v]", tr.GetSubjectName(), tr.GetRelation(), tr.GetObjectName())
 }
 
+func (tr *TableRelation) Hash() string {
+  return fmt.Sprintf("[%v][%v][%v][%v][%v]", tr.GetSubjectName(), tr.GetRelation(), tr.GetObjectName(), tr.GetSubject(), tr.GetObject())
+}
+
 func (tr *TableRelation) GetSubjectName() string {
   if tr.SubjectName == "" {
     tr.SubjectName = tr.Subject + "_id"

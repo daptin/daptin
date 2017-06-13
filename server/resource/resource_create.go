@@ -175,7 +175,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     if err != nil {
       log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
     }
-  } else if dr.model.GetName() == "usergroup" {
+  } else if dr.model.GetName() == "usergroup" && userId != 0 {
 
     log.Infof("Associate new user with usergroup: %v", userId)
     nuuid := uuid.NewV4().String()

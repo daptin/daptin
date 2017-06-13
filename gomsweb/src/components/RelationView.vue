@@ -55,30 +55,6 @@
 
   export default {
     name: 'AdminView',
-    filters: {
-      titleCase: function (str) {
-//        console.log("TitleCase  : ", str)
-        if (!str || str.length < 2) {
-          return str;
-        }
-        return str.replace(/[-_]+/g, " ").trim().split(' ')
-          .map(w => (w[0] ? w[0].toUpperCase() : "") + w.substr(1).toLowerCase()).join(' ')
-      },
-      chooseTitle: function (obj) {
-        var keys = Object.keys(obj);
-        console.log("choose title for ", obj)
-        for (var i = 0; i < keys.length; i++) {
-          console.log("check key", keys[i],);
-          if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
-            console.log("Choosen title", keys[i], obj[keys[i]], typeof obj[keys[i]]);
-            return obj[keys[i]];
-          }
-        }
-        console.log("title value", "Reference id", obj);
-        return obj["type"] + " #" + obj["id"];
-
-      }
-    },
     props: {
       tablename: {
         type: String,
