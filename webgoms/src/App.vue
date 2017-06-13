@@ -10,12 +10,16 @@
           <div class="ui button teal" @click="showHelpTour()">
             <i class="question icon "> </i> Help
           </div>
-          <div class="ui button green" v-show="!isAuthenticated" @click="login()">
+          <router-link to="/auth/signin" class="ui button green" v-show="!isAuthenticated" @click="login()">
             <i class="sign in icon "> </i> Sign In
-          </div>
-          <div class="ui button orange" v-show="isAuthenticated" @click="logout()">
+          </router-link>
+          <router-link to="/auth/signup" class="ui button orange" v-show="!isAuthenticated" @click="signup()">
+            <i class="sign in icon "> </i> Sign up
+          </router-link>
+
+          <router-link to="/auth/signout" class="ui button purple" v-show="isAuthenticated" @click="logout()">
             <i class="sign out icon "> </i> Sign Out
-          </div>
+          </router-link>
 
         </div>
 
@@ -26,7 +30,7 @@
 
       </div>
 
-      <router-view v-if="loaded"/>
+      <router-view/>
     </div>
   </div>
 
@@ -60,6 +64,7 @@
 
         if (!checkSecret(secret) || !token) {
           console.info('Something happened with the Sign In request');
+//          that.$router.go({name: "sigini"})
           return
         } else {
           console.log("got token from url", token)
@@ -122,7 +127,6 @@
         }
       },
       login() {
-        show("hidden");
         console.log("login called")
       },
       logout() {
