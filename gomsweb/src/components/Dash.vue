@@ -146,9 +146,9 @@
                 <!--</li>-->
                 <!-- Menu Footer-->
                 <li class="user-footer">
-                  <div class="pull-left">
-                    <a href="#" class="btn btn-default btn-flat">Profile</a>
-                  </div>
+                  <!--<div class="pull-left">-->
+                    <!--<a href="#" class="btn btn-default btn-flat">Profile</a>-->
+                  <!--</div>-->
                   <div class="pull-right">
                     <router-link :to="{name: 'SignOut'}" class="btn btn-default btn-flat">Sign out</router-link>
                   </div>

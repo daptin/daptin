@@ -16,12 +16,12 @@
         <span class="page">All tables</span>
       </router-link>
     </li>
-    <li class="pageLink" v-on:click="toggleMenu">
-      <router-link to="/setting">
-        <i class="fa fa-cog"></i>
-        <span class="page">Settings</span>
-      </router-link>
-    </li>
+    <!--<li class="pageLink" v-on:click="toggleMenu">-->
+      <!--<router-link to="/setting">-->
+        <!--<i class="fa fa-cog"></i>-->
+        <!--<span class="page">Settings</span>-->
+      <!--</router-link>-->
+    <!--</li>-->
 
   </ul>
 </template>
