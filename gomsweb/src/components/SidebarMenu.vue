@@ -4,7 +4,7 @@
 
     <li class="pageLink" v-on:click="toggleMenu" v-for="w in topWorlds">
       <router-link :to="{name: 'Entity', params: {tablename: w.table_name}}">
-        <span class="page">{{w.table_name  | titleCase}}</span>
+        <span class="page">{{w.table_name | titleCase}}</span>
       </router-link>
     </li>
 
@@ -12,15 +12,44 @@
     <li class="header">System</li>
     <li class="pageLink" v-on:click="toggleMenu">
       <router-link to="/in/world">
-        <i class="fa fa-cog"></i>
+        <i class="fa fa-th"></i>
         <span class="page">All tables</span>
       </router-link>
     </li>
+
+    <li class="treeview">
+      <a href="#">
+        <i class="fa fa-folder-o"></i>
+        <span>System Actions</span>
+        <span class="pull-right-container">
+          <i class="fa fa-angle-left fa-fw pull-right"></i>
+        </span>
+      </a>
+      <ul class="treeview-menu">
+        <li>
+          <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}">
+            <i class="fa fa-cog"></i> Add New Features
+          </router-link>
+        </li>
+        <li>
+          <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}">
+            <i class="fa fa-download"></i> Download System Schema
+          </router-link>
+        </li>
+        <li>
+          <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}">
+            <i class="fa fa-flag"></i> Become Admin
+          </router-link>
+        </li>
+      </ul>
+    </li>
+
+
     <!--<li class="pageLink" v-on:click="toggleMenu">-->
-      <!--<router-link to="/setting">-->
-        <!--<i class="fa fa-cog"></i>-->
-        <!--<span class="page">Settings</span>-->
-      <!--</router-link>-->
+    <!--<router-link to="/setting">-->
+    <!--<i class="fa fa-cog"></i>-->
+    <!--<span class="page">Settings</span>-->
+    <!--</router-link>-->
     <!--</li>-->
 
   </ul>

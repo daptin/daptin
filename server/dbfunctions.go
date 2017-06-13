@@ -136,6 +136,22 @@ func GetWorldTableMapBy(col string, db *sqlx.DB) (map[string]map[string]interfac
 
 }
 
+//func GetWorldTablesList(col string, db *sqlx.DB) ([]datastore.TableInfo, error) {
+//
+//  allWorlds, err := db.Query("select table_name")
+//  if err != nil {
+//    return nil, err
+//  }
+//
+//  resMap := make(map[string]map[string]interface{})
+//
+//  for _, world := range allWorlds {
+//    resMap[world[col].(string)] = world
+//  }
+//  return resMap, err
+//
+//}
+
 func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 
   var err error
@@ -265,20 +281,14 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
     if cou > 0 {
 
-      var defaultPermission int64
+      //s, v, err = squirrel.Select("default_permission").From("world").Where(squirrel.Eq{"table_name": table.TableName}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+      //CheckErr(err, "Failed to create select default permission sql")
 
-      s, v, err = squirrel.Select("default_permission").From("world").Where(squirrel.Eq{"table_name": table.TableName}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
-      CheckErr(err, "Failed to create select default permission sql")
-      err = tx.QueryRowx(s, v...).Scan(&defaultPermission)
-      CheckErr(err, fmt.Sprintf("Failed to scan default permission for table [%v]: %v", table.TableName, err))
+      s, v, err = squirrel.Update("world").Set("schema_json", string(schema)).Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
+      CheckErr(err, "Failed to create update default permission sql")
 
-      if err != nil {
-      } else {
-        //log.Infof("Default permission for [%v]: %v", table.TableName, defaultPermission)
-      }
-
-      table.DefaultPermission = defaultPermission
-      initConfig.Tables[i] = table
+      _, err := tx.Exec(s, v...)
+      CheckErr(err, fmt.Sprintf("Failed to update json schema for table [%v]: %v", table.TableName, err))
 
       continue
     }
@@ -404,33 +414,67 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
 
 func CheckRelations(config *CmsConfig, db *sqlx.DB) {
   relations := config.Relations
-  log.Infof("All relations: %v", relations)
+
+  relationsDone := make(map[string]bool)
+
+  for _, relation := range relations {
+    relationsDone[relation.Hash()] = true
+  }
 
   for i, table := range config.Tables {
     config.Tables[i].IsTopLevel = true
+    existingRelations := config.Tables[i].Relations
+    config.Tables[i].Relations = make([]api2go.TableRelation, 0)
 
-    if table.TableName == "usergroup" {
-      continue
+    if len(existingRelations) > 0 {
+      log.Infof("Found existing %d columns from db", len(existingRelations))
+      for _, rel := range existingRelations {
+
+        //if rel.Object == "user" && rel.Relation == "belongs_to" {
+        //  continue
+        //}
+        //
+        //if rel.Object == "usergroup" && rel.Relation == "has_many" {
+        //  continue
+        //}
+
+        relhash := rel.Hash()
+        _, ok := relationsDone[relhash]
+        if ok {
+          continue
+        } else {
+          relations = append(relations, rel)
+
+          relationsDone[relhash] = true
+        }
+      }
+    } else {
+
+      if table.TableName == "usergroup" {
+        continue
+      }
+
+      relation := api2go.NewTableRelation(table.TableName, "belongs_to", "user")
+      relations = append(relations, relation)
+      relationsDone[relation.Hash()] = true
+
+      if table.TableName == "world_column" {
+        continue
+      }
+
+      relationGroup := api2go.NewTableRelation(table.TableName, "has_many", "usergroup")
+      relationsDone[relationGroup.Hash()] = true
+
+      relations = append(relations, relationGroup)
+
     }
-
-    relation := api2go.NewTableRelation(table.TableName, "belongs_to", "user")
-    relations = append(relations, relation)
-
-    if table.TableName == "world_column" {
-      continue
-    }
-
-    relationGroup := api2go.NewTableRelation(table.TableName, "has_many", "usergroup")
-
-    relations = append(relations, relationGroup)
 
   }
   config.Relations = relations
 
   for _, relation := range relations {
     relation2 := relation.GetRelation()
-    log.Infof("Relation to table [%v]", relation)
-    log.Infof("Relation to table [%v] [%v] [%v]", relation.GetSubject(), relation2, relation.GetObject())
+    log.Infof("Relation to table [%v]", relation.String())
     if relation2 == "belongs_to" || relation2 == "has_one" {
       fromTable := relation.GetSubject()
       targetTable := relation.GetObject()
@@ -457,14 +501,27 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
         if t.TableName == fromTable {
           noMatch = false
           c := t.Columns
-          c = append(c, col)
+
+          exists := false
+          for _, c1 := range c {
+            if c1.ColumnName == col.ColumnName {
+              exists = true
+              break
+            }
+          }
+
+          if !exists {
+            c = append(c, col)
+            config.Tables[i].Columns = c
+          }
+
           log.Infof("Add column [%v] to table [%v]", col.ColumnName, t.TableName)
-          config.Tables[i].Columns = c
           if targetTable != "user" && relation.GetRelation() == "belongs_to" {
             config.Tables[i].IsTopLevel = false
             log.Infof("Table [%v] is not top level == %v", t.TableName, targetTable)
           }
         }
+
       }
       if noMatch {
         log.Infof("No matching table found: %v", relation)
@@ -560,6 +617,10 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
     }
 
   }
+
+  for _, rela := range relations {
+    log.Infof("All relations: %v", rela.String())
+  }
 }
 
 func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB) {
@@ -567,7 +628,7 @@ func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB) {
   tables := []datastore.TableInfo{}
 
   for _, table := range initConfig.Tables {
-    CheckTable(&table, db, initConfig)
+    CheckTable(&table, db)
     tables = append(tables, table)
   }
   initConfig.Tables = tables
@@ -599,7 +660,7 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *datastore.TableInfo) (m
   return columnsWeWant, colInfoMap
 }
 
-func CheckTable(tableInfo *datastore.TableInfo, db *sqlx.DB, initConfig *CmsConfig) {
+func CheckTable(tableInfo *datastore.TableInfo, db *sqlx.DB) {
 
   for i, c := range tableInfo.Columns {
     if c.ColumnName == "" {
@@ -609,18 +670,6 @@ func CheckTable(tableInfo *datastore.TableInfo, db *sqlx.DB, initConfig *CmsConf
   }
   columnsWeWant, colInfoMap := CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo)
   log.Infof("Columns we want: %v", columnsWeWant)
-
-  //initConfig.Relations = append(initConfig.Relations, api2go.TableRelation{
-  //  Subject: tableInfo.TableName,
-  //  Relation: "belongs_to",
-  //  Object: "user",
-  //})
-  //
-  //initConfig.Relations = append(initConfig.Relations, api2go.TableRelation{
-  //  Subject: tableInfo.TableName,
-  //  Relation: "belongs_to",
-  //  Object: "usergroup",
-  //})
 
   s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
   //log.Infof("Sql: %v", s)

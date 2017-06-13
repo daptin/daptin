@@ -124,6 +124,10 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
   for _, rel := range dr.model.GetRelations() {
     log.Infof("TableRelation[%v] == [%v]", dr.model.GetName(), rel.String())
+
+  }
+  for _, rel := range dr.model.GetRelations() {
+
     if rel.GetSubject() == dr.model.GetName() {
 
       log.Infof("Forward Relation %v", rel.String())

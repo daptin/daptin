@@ -1,31 +1,36 @@
 <template>
 
   <div class="row">
-
     <div class="col-md-12">
-      <h3> Search {{jsonApiModelName}}</h3>
-    </div>
-    <div class="col-md-6">
-      <el-select
-        v-model="value"
-        filterable
-        remote
-        placeholder="Search and add"
-        :remote-method="remoteMethod"
-        :loading="loading">
-        <el-option
-          v-for="item in options"
-          :key="item.value"
-          :label="item.label"
-          :value="item">
-        </el-option>
+      <div class="box">
+        <div class="box-header">
+          <div class="box-title">
+            <h4> Search {{jsonApiModelName}}</h4>
+          </div>
+        </div>
+        <div class="box-body">
+          <el-select
+            v-model="value"
+            filterable
+            remote
+            placeholder="Search and add"
+            :remote-method="remoteMethod"
+            :loading="loading">
+            <el-option
+              v-for="item in options"
+              :key="item.value"
+              :label="item.label"
+              :value="item">
+            </el-option>
 
-      </el-select>
-    </div>
-    <div class="col-md-4">
-      <button v-if="value != null" @click.prevent="addObject"
-              class="btn"> Add {{jsonApiModelName | titleCase}}
-      </button>
+          </el-select>
+        </div>
+        <div class="box-footer">
+          <button v-if="value != null" @click.prevent="addObject"
+                  class="btn"> Add {{jsonApiModelName | titleCase}}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -47,29 +52,6 @@
         required: true,
       }
     },
-    filters: {
-      titleCase: function (str) {
-        if (!str) {
-          return str;
-        }
-        return str.replace(/[-_]/g, " ").split(' ')
-          .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
-      },
-      chooseTitle: function (obj) {
-        if (!obj) {
-          return ""
-        }
-        var keys = Object.keys(obj);
-        for (var i = 0; i < keys.length; i++) {
-          if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
-            return obj[keys[i]];
-          }
-        }
-        return obj["type"] + "  #" + obj["id"];
-
-      },
-
-    },
     data: function () {
       return {
         formModel: null,
@@ -88,21 +70,29 @@
           id: this.value.id
         })
       },
-
       chooseTitle: function (obj) {
         var keys = Object.keys(obj);
-        for (var i = 0; i < keys.length; i++) {
-          if (keys[i].indexOf("label") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
-            return obj[keys[i]];
-          }
-        }
+        console.log("choose title for ", obj);
         for (var i = 0; i < keys.length; i++) {
           if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
             return obj[keys[i]];
           }
         }
 
-        return obj["type"] + " #" + obj["id"];
+
+        for (var i = 0; i < keys.length; i++) {
+          if (keys[i].indexOf("title") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
+            return obj[keys[i]];
+          }
+        }
+
+
+        for (var i = 0; i < keys.length; i++) {
+          if (keys[i].indexOf("label") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
+            return obj[keys[i]];
+          }
+        }
+        return obj["id"].toUpperCase();
 
       },
       remoteMethod: function (query) {
@@ -114,7 +104,8 @@
           size: 20,
           query: query
         }).then(function (data) {
-
+          delete data["links"]
+          console.log("remote method response", data)
           for (var i = 0; i < data.length; i++) {
             data[i].label = that.chooseTitle(data[i])
             data[i].value = data[i]["id"]

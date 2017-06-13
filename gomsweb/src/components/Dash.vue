@@ -131,23 +131,23 @@
                 </li>
                 <!-- Menu Body -->
                 <!--<li class="user-body">-->
-                  <!--<div class="row">-->
-                    <!--<div class="col-xs-4 text-center">-->
-                      <!--<a href="#">Followers</a>-->
-                    <!--</div>-->
-                    <!--<div class="col-xs-4 text-center">-->
-                      <!--<a href="#">Sales</a>-->
-                    <!--</div>-->
-                    <!--<div class="col-xs-4 text-center">-->
-                      <!--<a href="#">Friends</a>-->
-                    <!--</div>-->
-                  <!--</div>-->
-                  <!--&lt;!&ndash; /.row &ndash;&gt;-->
+                <!--<div class="row">-->
+                <!--<div class="col-xs-4 text-center">-->
+                <!--<a href="#">Followers</a>-->
+                <!--</div>-->
+                <!--<div class="col-xs-4 text-center">-->
+                <!--<a href="#">Sales</a>-->
+                <!--</div>-->
+                <!--<div class="col-xs-4 text-center">-->
+                <!--<a href="#">Friends</a>-->
+                <!--</div>-->
+                <!--</div>-->
+                <!--&lt;!&ndash; /.row &ndash;&gt;-->
                 <!--</li>-->
                 <!-- Menu Footer-->
                 <li class="user-footer">
                   <!--<div class="pull-left">-->
-                    <!--<a href="#" class="btn btn-default btn-flat">Profile</a>-->
+                  <!--<a href="#" class="btn btn-default btn-flat">Profile</a>-->
                   <!--</div>-->
                   <div class="pull-right">
                     <router-link :to="{name: 'SignOut'}" class="btn btn-default btn-flat">Sign out</router-link>
@@ -158,9 +158,9 @@
 
 
             <!--<li class="user user-menu">-->
-              <!--<router-link :to="{name: 'SignOut'}" class="dropdown-toggle" data-toggle="dropdown">-->
-                <!--<span class="fa fa-2x fa-sign-out red"></span>-->
-              <!--</router-link>-->
+            <!--<router-link :to="{name: 'SignOut'}" class="dropdown-toggle" data-toggle="dropdown">-->
+            <!--<span class="fa fa-2x fa-sign-out red"></span>-->
+            <!--</router-link>-->
             <!--</li>-->
           </ul>
         </div>
@@ -173,19 +173,19 @@
     <div class="content-wrapper">
       <!-- Content Header (Page header) -->
       <section class="content-header">
-        <h1>
+        <!--<h1>-->
 
-          {{$route.name.toUpperCase() }}
+          <!--{{$route.name.toUpperCase() }}-->
 
-          <small>{{ $route.meta.description }}</small>
-        </h1>
-        <ol class="breadcrumb">
-          <li>
-            <a href="javascript:;">
-              <i class="fa fa-home"></i>Home</a>
-          </li>
-          <li class="active">{{$route.name.toUpperCase()}}</li>
-        </ol>
+          <!--<small>{{ $route.meta.description }}</small>-->
+        <!--</h1>-->
+        <!--<ol class="breadcrumb">-->
+          <!--<li>-->
+            <!--<a href="javascript:;">-->
+              <!--<i class="fa fa-home"></i>Home</a>-->
+          <!--</li>-->
+          <!--<li class="active">{{$route.name.toUpperCase()}}</li>-->
+        <!--</ol>-->
       </section>
 
       <router-view></router-view>
@@ -195,7 +195,7 @@
     <!-- Main Footer -->
     <footer class="main-footer">
       <strong>Copyright &copy; {{year}}
-        <a href="javascript:;">CoPilot</a>.</strong> All rights reserved.
+        <a href="javascript:;">GoMS</a>.</strong> All rights reserved.
     </footer>
   </div>
   <!-- ./wrapper -->

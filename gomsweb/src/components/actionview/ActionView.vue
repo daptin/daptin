@@ -1,20 +1,25 @@
 <template>
 
-  <div class="row" v-if="action">
-    <!-- EventView -->
-    <div class="col-md-12">
-      <h3 v-if="!hideTitle">{{action.label}}</h3>
+  <div class="box" v-if="action">
+    <div v-if="!hideTitle" class="box-head">
+      <div class="box-title">
+        <h3> {{action.label}}</h3>
+      </div>
     </div>
-
-    <div class="col-md-12">
-      <model-form v-if="meta != null" @save="doAction(data)" :json-api="jsonApi" @cancel="cancel()" :meta="meta"
-                  :model.sync="data"></model-form>
+    <div class="box-body">
+      <div class="col-md-12">
+        <model-form v-if="meta != null" @save="doAction(data)" :json-api="jsonApi" @cancel="cancel()" :meta="meta"
+                    :model.sync="data"></model-form>
+      </div>
     </div>
   </div>
-
 </template>
 
 <script>
+
+
+  import actionManager from '../../plugins/actionmanager'
+
   export default {
     props: {
       hideTitle: {
@@ -54,7 +59,7 @@
     methods: {
       doAction(actionData){
         var that = this;
-        console.log("perform action", actionData, this.model)
+        console.log("perform action", actionData, this.model);
         if (this.model && Object.keys(this.model).indexOf("id") > -1) {
           actionData[this.action.onType + "_id"] = this.model["id"]
         }
@@ -72,6 +77,8 @@
         if (!this.action) {
           return;
         }
+
+
         var that = this;
         var modelName = "_actionmodel_" + that.action.name;
         console.log("render action ", that.action, " on ", that.model);
@@ -96,14 +103,18 @@
       },
     },
     mounted: function () {
-      this.init();
-    },
-    init: function () {
+      console.log("Mounted action view");
       this.init();
     },
     watch: {
-      'action': function () {
-        console.log("ActionView: action changed")
+      '$route.params.actionname': function (newValue) {
+        console.log("ActionView: action changed");
+        this.action = actionManager.getActionModel(this.$route.params.tablename, newValue);
+        this.init();
+      },
+      '$route.params.tablename': function (newValue) {
+        console.log("ActionView: world changed");
+        this.action = actionManager.getActionModel(newValue, this.$route.params.actionname);
         this.init();
       },
     },

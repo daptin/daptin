@@ -5,7 +5,7 @@
 
     <div class="box-header">
       <div class="box-title">
-        {{selectedRow | chooseTitle | titleCase}}
+        <h2>{{selectedTable | titleCase}} - <b>{{selectedRow | chooseTitle | titleCase}}</b></h2>
       </div>
     </div>
 
