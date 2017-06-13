@@ -19,14 +19,25 @@
     },
     mounted: function () {
       var that = this;
+      console.log("App authentication: ", this.$store.getters.isAuthenticated)
       if (!this.$store.getters.isAuthenticated) {
-        console.log(" is not authenticated ");
-        if (this.$route.path == "/auth/signin" || this.$route.path == "/auth/signed") {
-          this.loaded = true;
+
+        const {token, secret} = extractInfoFromHash();
+        console.log("check token", token);
+        if (token && checkSecret(secret)) {
+          setToken(token);
+          this.$router.go('/');
+          window.location = "/";
+          return;
         } else {
-          this.$router.push({name: 'SignIn'})
-          this.loaded = true;
+          console.log(" is not authenticated ");
+          if (this.$route.path == "/auth/signin" || this.$route.path == "/auth/signed") {
+          } else {
+            this.$router.push({name: 'SignIn'});
+          }
         }
+        that.loaded = true;
+
       } else {
         var promise = worldManager.loadModels();
         promise.then(function () {
