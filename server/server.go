@@ -212,10 +212,62 @@ func Main() {
     }
   }
 
-  CheckRelations(&initConfig, db)
-  CheckAllTableStatus(&initConfig, db)
-  CreateRelations(&initConfig, db)
+  //relations := GetRelations(db)
+  //log.Infof("Loaded %d relations from database", len(relations))
 
+  //initConfig.Relations = append(initConfig.Relations, relations...)
+
+  //existingTableMap, err := GetWorldTableMapBy("table_name", db)
+  //if err != nil {
+  //  log.Infof("No existing tables in the world")
+  //} else {
+  //  for _, table := range existingTableMap {
+  //    initConfig.Tables = append(initConfig.Tables, table...)
+  //
+  //  }
+  //}
+
+  log.Infof("Before existing tables")
+  for _, table := range initConfig.Tables {
+    for _, col := range table.Relations {
+      log.Infof("Table [%v] Column [%v]", table.TableName, col.String())
+    }
+  }
+
+  existingTables, _ := GetTablesFromWorld(db)
+  initConfig.Tables = append(initConfig.Tables, existingTables...)
+
+  log.Infof("before check relations")
+  for _, table := range initConfig.Tables {
+    for _, col := range table.Relations {
+      log.Infof("Table [%v] Column [%v]", table.TableName, col.String())
+    }
+  }
+
+  CheckRelations(&initConfig, db)
+
+  log.Infof("After check relations")
+  for _, table := range initConfig.Tables {
+    for _, col := range table.Relations {
+      log.Infof("Table [%v] Column [%v]", table.TableName, col.String())
+    }
+  }
+
+  CheckAllTableStatus(&initConfig, db)
+  log.Infof("After check all tables")
+  for _, table := range initConfig.Tables {
+    for _, col := range table.Relations {
+      log.Infof("Table [%v] Column [%v]", table.TableName, col.String())
+    }
+  }
+
+  CreateRelations(&initConfig, db)
+  log.Infof("After create relations")
+  for _, table := range initConfig.Tables {
+    for _, col := range table.Relations {
+      log.Infof("Table [%v] Column [%v]", table.TableName, col.String())
+    }
+  }
   CreateUniqueConstraints(&initConfig, db)
   CreateIndexes(&initConfig, db)
 
@@ -243,6 +295,92 @@ func Main() {
   r.POST("/action/:actionName", CreateActionEventHandler(&initConfig, cruds))
 
   r.Run(fmt.Sprintf(":%v", *port))
+
+}
+func GetTablesFromWorld(db *sqlx.DB) ([]datastore.TableInfo, error) {
+
+  ts := make([]datastore.TableInfo, 0)
+
+  res, err := db.Queryx("select table_name, permission, default_permission, schema_json, is_top_level, is_hidden" +
+      " from world where deleted_at is null and table_name not like '%_has_%' and table_name not in ('world', 'world_column', 'action', 'user', 'usergroup')")
+  if err != nil {
+    log.Infof("Failed to select from world table: %v", err)
+    return ts, err
+  }
+
+  for ; res.Next(); {
+    var table_name string
+    var permission int64
+    var default_permission int64
+    var schema_json string
+    var is_top_level bool
+    var is_hidden bool
+
+    err = res.Scan(&table_name, &permission, &default_permission, &schema_json, &is_top_level, &is_hidden)
+    if err != nil {
+      log.Errorf("Failed to scan json schema from world: %v", err)
+      continue
+    }
+
+    var t datastore.TableInfo
+
+    err = json.Unmarshal([]byte(schema_json), &t)
+    if err != nil {
+      log.Errorf("Failed to unmarshal json schema: %v", err)
+      continue
+    }
+
+    t.TableName = table_name
+    t.Permission = permission
+    t.DefaultPermission = default_permission
+    t.IsHidden = is_hidden
+    t.IsTopLevel = is_top_level
+    ts = append(ts, t)
+
+  }
+
+  log.Infof("Loaded %d tables from world table", len(ts))
+
+  return ts, nil
+
+}
+
+func GetRelations(db *sqlx.DB, tableName string) (r []api2go.TableRelation, err error) {
+
+  res, err := db.Queryx("select schema_json from world where deleted_at is null and table_name = ?", tableName)
+  if err != nil {
+    log.Infof("Failed to load existing relations: %v", err)
+    return
+  }
+
+  for ; res.Next(); {
+    var schema string
+    err = res.Scan(&schema)
+    if err != nil {
+      return
+    }
+
+    var t datastore.TableInfo
+
+    json.Unmarshal([]byte(schema), &t)
+
+    for _, rel := range t.Relations {
+
+      if rel.Relation == "has_many" && rel.Object == "usergroup" {
+        continue
+      }
+
+      if rel.Relation == "belongs_to" && rel.Object == "user" {
+        continue
+      }
+      r = t.Relations
+      return
+
+    }
+
+  }
+
+  return
 
 }
 

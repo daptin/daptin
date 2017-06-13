@@ -4,7 +4,7 @@
   <div class="row">
     <!-- ListView -->
 
-    <div class="col-md-3"><h4> {{jsonApiModelName | titleCase}} </h4></div>
+    <div class="col-md-3"><h3> {{jsonApiModelName | titleCase}} </h3></div>
     <div class="col-md-3 pull-right">
 
       <div class="ui icon buttons">
@@ -23,19 +23,23 @@
       </div>
     </div>
 
-    <tempalte class="row" v-if="showAddEdit && meta">
+    <template class="row" v-if="showAddEdit && meta">
 
-      <select-one-or-more :json-api="jsonApi" v-if="showSelect"
-                          @save="saveRow" :json-api-model-name="jsonApiModelName">
-      </select-one-or-more>
+      <div class="col-md-12">
+        <select-one-or-more :json-api="jsonApi" v-if="showSelect"
+                            @save="saveRow" :json-api-model-name="jsonApiModelName">
+        </select-one-or-more>
 
-      <model-form
-        :json-api="jsonApi" @save="saveRow"
-        @cancel="cancel()" :meta="meta" v-if="!showSelect">
-      </model-form>
+      </div>
+      <div class="col-md-12">
+        <model-form
+          :json-api="jsonApi" @save="saveRow"
+          @cancel="cancel()" :meta="meta" v-if="!showSelect">
+        </model-form>
+      </div>
 
 
-    </tempalte>
+    </template>
     <div class="col-md-12" v-if="showAddEdit">
       <button class="el-button ui button el-button--default orange" v-if="showSelect" @click="showSelect = false">
         Create new {{jsonApiModelName | titleCase}}
@@ -108,19 +112,6 @@
         displayData: [],
         showAddEdit: false,
       }
-    },
-    filters: {
-      chooseTitle: function (obj) {
-
-        console.log("this, meta ", this.meta);
-        return obj;
-
-      },
-      titleCase: function (str) {
-        return str.replace(/[-_]/g, " ").split(' ')
-          .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
-          .join(' ')
-      },
     },
     methods: {
 

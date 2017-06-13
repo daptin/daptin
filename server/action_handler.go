@@ -112,15 +112,15 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
 
     for _, outcome := range action.OutFields {
 
-      req, model, err := BuildOutcome(inFieldMap, outcome)
+      model, request, err := BuildOutcome(inFieldMap, outcome)
       if err != nil {
         log.Errorf("Failed to build outcome: %v", err)
         continue
       }
 
-      context.Set(model.PlainRequest, "user_id", context.Get(c.Request, "user_id"))
-      context.Set(model.PlainRequest, "user_id_integer", context.Get(c.Request, "user_id_integer"))
-      context.Set(model.PlainRequest, "usergroup_id", context.Get(c.Request, "usergroup_id"))
+      context.Set(request.PlainRequest, "user_id", context.Get(c.Request, "user_id"))
+      context.Set(request.PlainRequest, "user_id_integer", context.Get(c.Request, "user_id_integer"))
+      context.Set(request.PlainRequest, "usergroup_id", context.Get(c.Request, "usergroup_id"))
 
       dbResource, ok := cruds[outcome.Type]
       if !ok {
@@ -129,20 +129,20 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
 
       switch outcome.Method {
       case "POST":
-        res, err = dbResource.Create(req, model)
+        res, err = dbResource.Create(model, request)
         break
       case "UPDATE":
-        res, err = dbResource.Update(req, model)
+        res, err = dbResource.Update(model, request)
         break
       case "DELETE":
-        res, err = dbResource.Delete(req.Data["reference_id"].(string), model)
+        res, err = dbResource.Delete(model.Data["reference_id"].(string), request)
         break
       case "EXECUTE":
-        //res, err = cruds[outcome.Type].Create(req, model)
+        //res, err = cruds[outcome.Type].Create(model, request)
 
-        if req.GetName() == "__restart" {
+        if model.GetName() == "__restart" {
           go restart()
-        } else if req.GetName() == "__download_init_config" {
+        } else if model.GetName() == "__download_init_config" {
 
           c.Header("Content-Disposition", "attachment; filename=schema.json")
           c.Header("Content-Type", "text/json;charset=utf-8")
@@ -156,7 +156,7 @@ func CreateActionEventHandler(initConfig *CmsConfig, cruds map[string]*resource.
 
           //c.JSON(200, *initConfig)
           return
-        } else if req.GetName() == "__become_admin" {
+        } else if model.GetName() == "__become_admin" {
 
           if !cruds["world"].CanBecomeAdmin() {
             c.AbortWithStatus(400)

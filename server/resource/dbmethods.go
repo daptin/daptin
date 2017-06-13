@@ -375,7 +375,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where squirrel.Eq) (
 
 func (dr *DbResource) GetUserGroupIdByUserId(userId uint64) (uint64) {
 
-  s, q, err := squirrel.Select("usergroup_id").From("user_user_id_has_usergroup_usergroup_id").Where(squirrel.Eq{"deleted_at": nil}).Where(squirrel.Eq{"user_id": userId}).OrderBy("created_at").Limit(1).ToSql()
+  s, q, err := squirrel.Select("usergroup_id").From("user_user_id_has_usergroup_usergroup_id").Where(squirrel.Eq{"deleted_at": nil}).Where(squirrel.NotEq{"usergroup_id": 1}).Where(squirrel.Eq{"user_id": userId}).OrderBy("created_at").Limit(1).ToSql()
   if err != nil {
     log.Errorf("Failed to create sql query: ", err)
     return 0
