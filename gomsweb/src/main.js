@@ -27,17 +27,33 @@ Vue.filter('domain', domain);
 Vue.filter('prettyDate', prettyDate);
 Vue.filter('pluralize', pluralize);
 Vue.filter('chooseTitle', function (obj) {
+
+    if (!obj) {
+      return "_"
+    }
+
     var keys = Object.keys(obj);
     console.log("choose title for ", obj);
     for (var i = 0; i < keys.length; i++) {
-      console.log("check key", keys[i],);
       if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
-        console.log("Choosen title", keys[i], obj[keys[i]], typeof obj[keys[i]]);
         return obj[keys[i]];
       }
     }
-    console.log("title value", "Reference id", obj);
-    return obj["type"] + " #" + obj["id"];
+
+
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i].indexOf("title") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
+        return obj[keys[i]];
+      }
+    }
+
+
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i].indexOf("label") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
+        return obj[keys[i]];
+      }
+    }
+    return obj["id"].toUpperCase();
 
   }
 );
