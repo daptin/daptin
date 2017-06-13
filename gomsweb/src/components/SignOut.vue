@@ -10,9 +10,10 @@
     mounted () {
       unsetToken()
       logout()
-//      this.$route.go({
-//        name: 'SignIn'
-//      })
+      console.log("logged out")
+      this.$router.push({
+        name: 'SignIn'
+      })
     }
   }
 </script>
