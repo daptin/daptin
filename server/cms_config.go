@@ -53,7 +53,7 @@ var ConfigTableStructure = datastore.TableInfo{
       Name:            "id",
       ColumnName:      "id",
       ColumnType:      "id",
-      DataType:        "int",
+      DataType:        "INTEGER",
       IsPrimaryKey:    true,
       IsAutoIncrement: true,
     },
