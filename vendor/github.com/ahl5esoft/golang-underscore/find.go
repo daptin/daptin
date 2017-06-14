@@ -7,7 +7,7 @@ import (
 func Find(source, predicate interface{}) interface{} {
 	var ok bool
 	var matcher interface{}
-	each(source, predicate, func (resRV, valueRV, _ reflect.Value) bool {
+	each(source, predicate, func(resRV, valueRV, _ reflect.Value) bool {
 		ok = resRV.Bool()
 		if ok {
 			matcher = valueRV.Interface()
@@ -18,7 +18,7 @@ func Find(source, predicate interface{}) interface{} {
 }
 
 func FindBy(source interface{}, properties map[string]interface{}) interface{} {
-	return Find(source, func (value, _ interface{}) bool {
+	return Find(source, func(value, _ interface{}) bool {
 		return IsMatch(value, properties)
 	})
 }

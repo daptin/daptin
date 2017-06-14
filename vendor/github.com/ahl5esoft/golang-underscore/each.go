@@ -25,7 +25,7 @@ func each(source interface{}, iterator interface{}, predicate func(reflect.Value
 	}
 
 	if predicate == nil {
-		predicate = func (resRV, _, _ reflect.Value) bool {
+		predicate = func(resRV, _, _ reflect.Value) bool {
 			if resRV.Kind() == reflect.Bool {
 				return resRV.Bool()
 			} else {
@@ -38,7 +38,7 @@ func each(source interface{}, iterator interface{}, predicate func(reflect.Value
 	for i := 0; i < length; i++ {
 		valueRV, keyRV := getKeyValue(i)
 		returnRVs := iteratorRV.Call(
-			[]reflect.Value{ valueRV, keyRV },
+			[]reflect.Value{valueRV, keyRV},
 		)
 		if len(returnRVs) > 0 {
 			resRV := returnRVs[0]
@@ -64,12 +64,12 @@ func eachAsParallel(source interface{}, iterator interface{}) {
 
 	iteratorRV := reflect.ValueOf(iterator)
 	for i := 0; i < length; i++ {
-		go func (index int) {
+		go func(index int) {
 			valueRV, keyRV := getKeyValue(index)
 			iteratorRV.Call(
-				[]reflect.Value{ valueRV, keyRV },
+				[]reflect.Value{valueRV, keyRV},
 			)
-			
+
 			task.Done()
 		}(i)
 	}
@@ -77,20 +77,20 @@ func eachAsParallel(source interface{}, iterator interface{}) {
 	task.Wait()
 }
 
-func parseSource(source interface{}) (int, func (i int) (reflect.Value, reflect.Value)) {
+func parseSource(source interface{}) (int, func(i int) (reflect.Value, reflect.Value)) {
 	if source != nil {
 		sourceRV := reflect.ValueOf(source)
 		switch sourceRV.Kind() {
-			case reflect.Array:
-			case reflect.Slice:
-				return sourceRV.Len(), func (i int) (reflect.Value, reflect.Value) {
-					return sourceRV.Index(i), reflect.ValueOf(i)
-				}
-			case reflect.Map:
-				keyRVs := sourceRV.MapKeys()
-				return len(keyRVs), func (i int) (reflect.Value, reflect.Value) {
-					return sourceRV.MapIndex(keyRVs[i]), keyRVs[i]
-				}
+		case reflect.Array:
+		case reflect.Slice:
+			return sourceRV.Len(), func(i int) (reflect.Value, reflect.Value) {
+				return sourceRV.Index(i), reflect.ValueOf(i)
+			}
+		case reflect.Map:
+			keyRVs := sourceRV.MapKeys()
+			return len(keyRVs), func(i int) (reflect.Value, reflect.Value) {
+				return sourceRV.MapIndex(keyRVs[i]), keyRVs[i]
+			}
 		}
 	}
 	return 0, nil

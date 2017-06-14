@@ -10,7 +10,7 @@ import (
 */
 func All(source, predicate interface{}) bool {
 	var ok bool
-	each(source, predicate, func (resRV, _, _ reflect.Value) bool {
+	each(source, predicate, func(resRV, _, _ reflect.Value) bool {
 		ok = resRV.Bool()
 		return !ok
 	})
@@ -18,7 +18,7 @@ func All(source, predicate interface{}) bool {
 }
 
 func AllBy(source interface{}, properties map[string]interface{}) bool {
-	return All(source, func (value, _ interface{}) bool {
+	return All(source, func(value, _ interface{}) bool {
 		return IsMatch(value, properties)
 	})
 }

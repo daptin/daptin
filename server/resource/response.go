@@ -9,21 +9,21 @@ import "github.com/artpar/api2go"
 //}
 
 func NewResponse(metadata map[string]interface{}, result interface{}, statusCode int, pagination *api2go.Pagination) api2go.Responder {
-  if pagination != nil {
+	if pagination != nil {
 
-    return api2go.Response{
-      Meta:metadata,
-      Res:result,
-      Pagination: *pagination,
-      Code:statusCode,
-    }
-  } else {
-    return api2go.Response{
-      Meta:metadata,
-      Res:result,
-      Code:statusCode,
-    }
-  }
+		return api2go.Response{
+			Meta:       metadata,
+			Res:        result,
+			Pagination: *pagination,
+			Code:       statusCode,
+		}
+	} else {
+		return api2go.Response{
+			Meta: metadata,
+			Res:  result,
+			Code: statusCode,
+		}
+	}
 }
 
 //func (r Response) Metadata() map[string]interface{} {

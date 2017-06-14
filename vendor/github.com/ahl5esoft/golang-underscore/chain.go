@@ -40,7 +40,7 @@ type Queryer interface {
 
 type Query struct {
 	isParallel bool
-	source interface{}
+	source     interface{}
 }
 
 func (this *Query) Value() interface{} {

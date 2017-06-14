@@ -5,7 +5,7 @@ func Select(source, predicate interface{}) interface{} {
 }
 
 func SelectBy(source interface{}, properties map[string]interface{}) interface{} {
-	return Select(source, func (value, _ interface{}) bool {
+	return Select(source, func(value, _ interface{}) bool {
 		return IsMatch(value, properties)
 	})
 }

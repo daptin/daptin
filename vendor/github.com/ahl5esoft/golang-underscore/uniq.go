@@ -6,14 +6,14 @@ import (
 
 func Uniq(source, selector interface{}) interface{} {
 	if selector == nil {
-		selector = func (value, _ interface{}) Facade {
-			return Facade{ reflect.ValueOf(value) }
+		selector = func(value, _ interface{}) Facade {
+			return Facade{reflect.ValueOf(value)}
 		}
 	}
 
 	var mapRV reflect.Value
 	var arrRV reflect.Value
-	each(source, selector, func (resRV, valueRv, _ reflect.Value) bool {
+	each(source, selector, func(resRV, valueRv, _ reflect.Value) bool {
 		if !mapRV.IsValid() {
 			mapRT := reflect.MapOf(resRV.Type(), reflect.TypeOf(false))
 			mapRV = reflect.MakeMap(mapRT)
@@ -38,9 +38,9 @@ func Uniq(source, selector interface{}) interface{} {
 
 func UniqBy(source interface{}, property string) interface{} {
 	getProeprtyRV := PropertyRV(property)
-	return Uniq(source, func (value, _ interface{}) Facade {
+	return Uniq(source, func(value, _ interface{}) Facade {
 		rv, _ := getProeprtyRV(value)
-		return Facade{ rv }
+		return Facade{rv}
 	})
 }
 

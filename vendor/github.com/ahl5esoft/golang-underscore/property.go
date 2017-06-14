@@ -7,7 +7,7 @@ import (
 )
 
 func PropertyRV(name string) func(interface{}) (reflect.Value, error) {
-	return func (item interface{}) (reflect.Value, error) {
+	return func(item interface{}) (reflect.Value, error) {
 		var itemRV reflect.Value
 		if reflect.TypeOf(item) == RV_RT {
 			itemRV = item.(reflect.Value)
@@ -28,7 +28,7 @@ func PropertyRV(name string) func(interface{}) (reflect.Value, error) {
 
 func Property(name string) func(interface{}) (interface{}, error) {
 	fn := PropertyRV(name)
-	return func (item interface{}) (interface{}, error) {
+	return func(item interface{}) (interface{}, error) {
 		rv, err := fn(item)
 		if err != nil {
 			return nil, err
