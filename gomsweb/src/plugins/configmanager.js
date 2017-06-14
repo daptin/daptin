@@ -9,11 +9,19 @@ const ConfigManager = function () {
 
 
   this.getAllConfig = function () {
-    return axios({
-      url: appconfig.apiRoot + "/config",
-      method: "GET",
-    })
-  }
+    var p = new Promise(function (resolve, reject) {
+      axios({
+        url: appconfig.apiRoot + "/config",
+        method: "GET",
+      }).then(function (r) {
+        resolve(r.data)
+      }, function (r) {
+        reject(r);
+      });
+
+    });
+    return p
+  };
 
   return this;
 

@@ -12,8 +12,8 @@
     <div class="box-body">
       <div class="col-md-12">
         <div class="row" v-if="selectedAction != null && showAddEdit">
-          <action-view @cancel="showAddEdit = false" :action-manager="actionManager"
-                       :action="selectedAction"
+          <action-view @cancel="showAddEdit = false" @action-complete="showAddEdit = false"
+                       :action-manager="actionManager" :action="selectedAction"
                        :json-api="jsonApi" :model="selectedRow"></action-view>
         </div>
       </div>

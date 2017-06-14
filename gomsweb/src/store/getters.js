@@ -24,7 +24,9 @@ export default {
     return state.selectedInstanceReferenceId
   },
   user (state) {
-    return JSON.parse(window.localStorage.getItem("user"))
+    var user = JSON.parse(window.localStorage.getItem("user"));
+    user = user || {};
+    return user;
   },
   actions (state) {
     return state.actions;
