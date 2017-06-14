@@ -5,7 +5,7 @@ rm -rf docker_dir
 mkdir docker_dir
 
 cd gomsweb
-npm run build
+# npm run build
 cd ..
 
 go build  -ldflags '-linkmode external -extldflags -static -w' main.go
