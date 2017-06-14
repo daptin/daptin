@@ -7,7 +7,7 @@ func Last(source interface{}) interface{} {
 	}
 
 	valueRV, _ := getKeyValue(length - 1)
-	return valueRV.Interface() 
+	return valueRV.Interface()
 }
 
 //# chain
