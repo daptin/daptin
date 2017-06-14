@@ -1,11 +1,21 @@
 import {setSecret, unsetToken} from './auth'
 
 import uuid from 'uuid'
+import configManager from '../plugins/configmanager'
+
 
 const getLock = (options) => {
-  const config = require('../config.json');
-  const Auth0Lock = require('auth0-lock').default;
-  return new Auth0Lock(config.AUTH0_CLIENT_ID, config.AUTH0_CLIENT_DOMAIN, options)
+
+  configManager.getAllConfig().then(function (configs) {
+    return;
+    const config = configs.auth0;
+    const Auth0Lock = require('auth0-lock').default;
+    return new Auth0Lock(config.AUTH0_CLIENT_ID, config.AUTH0_CLIENT_DOMAIN, options)
+
+  }, function () {
+    Notification.error("Failed to load config")
+  });
+
 };
 
 const getBaseUrl = () => `${window.location.protocol}//${window.location.host}`;
