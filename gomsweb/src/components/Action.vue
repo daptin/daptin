@@ -28,6 +28,7 @@
   import actionManager from "../plugins/actionmanager"
   import jsonApi from "../plugins/jsonapi"
 
+
   export default {
     middleware: 'authenticated',
     data: function () {
@@ -48,18 +49,29 @@
             tablename: this.tablename,
           }
         });
+      },
+      init() {
+        this.action = actionManager.getActionModel(this.tablename, this.actionname);
+
       }
     },
     mounted () {
       console.log("loaded action view", this.$route.params);
       this.tablename = this.$route.params.tablename;
       this.actionname = this.$route.params.actionname;
-
-      var action = actionManager.getActionModel(this.tablename, this.actionname);
-
-
-      this.action = action;
-
+      this.init();
+    },
+    watch: {
+      '$route.params.actionname': function (newActionName) {
+        console.log("New action name", newActionName)
+        this.actionname = newActionName;
+        this.init();
+      },
+      '$route.params.tablename': function (newTableName) {
+        console.log("New action name", newTableName)
+        this.tablename = newTableName;
+        this.init();
+      }
     }
   }
 </script>

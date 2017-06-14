@@ -3,12 +3,12 @@
   <div class="box" v-if="action">
     <div v-if="!hideTitle" class="box-head">
       <div class="box-title">
-        <h3> {{action.label}}</h3>
+        <h3 class="text-center"> {{action.label}}</h3>
       </div>
     </div>
     <div class="box-body">
       <div class="col-md-12">
-        <model-form v-if="meta != null" @save="doAction(data)" :json-api="jsonApi" @cancel="cancel()" :meta="meta"
+        <model-form :hide-cancel="hideCancel" v-if="meta != null" @save="doAction(data)" @cancel="cancel()" :meta="meta"
                     :model.sync="data"></model-form>
       </div>
     </div>
@@ -25,13 +25,14 @@
       hideTitle: {
         type: Boolean,
         required: false,
-        default: false,
+        default: false
+      },
+      hideCancel: {
+        type: Boolean,
+        required: false,
+        default: false
       },
       action: {
-        type: Object,
-        required: true
-      },
-      jsonApi: {
         type: Object,
         required: true
       },
@@ -63,8 +64,8 @@
         if (this.model && Object.keys(this.model).indexOf("id") > -1) {
           actionData[this.action.onType + "_id"] = this.model["id"]
         }
-        this.actionManager.doAction(this.action.onType, this.action.name, actionData).then(function () {
-          that.$emit("cancel");
+        that.actionManager.doAction(that.action.onType, that.action.name, actionData).then(function () {
+          that.$emit("action-complete", that.action);
         }, function () {
           console.log("not clearing out the form")
         });
@@ -106,17 +107,26 @@
       console.log("Mounted action view");
       this.init();
     },
+//    updated: function () {
+//      console.log("Updated action view");
+//      this.init();
+//    },
     watch: {
-      '$route.params.actionname': function (newValue) {
+      'action': function (newValue) {
         console.log("ActionView: action changed");
-        this.action = actionManager.getActionModel(this.$route.params.tablename, newValue);
+//        this.action = actionManager.getActionModel(this.$route.params.tablename, newValue);
         this.init();
       },
-      '$route.params.tablename': function (newValue) {
-        console.log("ActionView: world changed");
-        this.action = actionManager.getActionModel(newValue, this.$route.params.actionname);
-        this.init();
-      },
+//      '$route.params.actionname': function (newValue) {
+//        console.log("ActionView: action changed");
+//        this.action = actionManager.getActionModel(this.$route.params.tablename, newValue);
+//        this.init();
+//      },
+//      '$route.params.tablename': function (newValue) {
+//        console.log("ActionView: world changed");
+//        this.action = actionManager.getActionModel(newValue, this.$route.params.actionname);
+//        this.init();
+//      },
     },
   }
 </script>s

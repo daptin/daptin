@@ -1,18 +1,15 @@
 <template>
 
   <div class="row">
-    <div class="col-md-12" v-if="title">
+    <div class="col-md-12" v-if="!hideTitle">
       {{title}}
     </div>
     <div class="col-md-12">
       <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
     </div>
     <div class="col-md-12">
-      <el-button @click.prevent="saveRow()">
-        Save
-      </el-button>
-      <el-button @click="cancel()">Cancel</el-button>
-
+      <el-button type="submit" :class="loading" @click.prevent="saveRow()"> Submit </el-button>
+      <el-button v-if="!hideCancel" @click="cancel()">Cancel</el-button>
     </div>
   </div>
 
@@ -31,9 +28,15 @@
           return {}
         }
       },
-      jsonApi: {
-        type: Object,
-        required: true
+      hideTitle: {
+        type: Boolean,
+        required: false,
+        default: false
+      },
+      hideCancel: {
+        type: Boolean,
+        required: false,
+        default: false
       },
       meta: {
         type: Object,
@@ -51,6 +54,7 @@
       return {
         formModel: null,
         formValue: {},
+        loading: "",
       }
     },
     methods: {
@@ -112,6 +116,7 @@
       },
       saveRow: function () {
         console.log("save row", this.model);
+        this.loading = "loading";
         this.$emit('save', this.model)
       },
       cancel: function () {
@@ -159,7 +164,7 @@
           }
 
           const columnMeta = that.meta[columnName];
-          const columnLabel = that.titleCase(columnMeta.ColumnName);
+          const columnLabel = that.titleCase(columnMeta.Name);
 
           if (columnMeta.columnType && columnMeta.columnType === "entity") {
             console.log("Skip relation", columnName);
@@ -192,7 +197,7 @@
             "default": columnName.DefaultValue,
             validator: null,
             onChanged: function (model, newVal, oldVal, field) {
-              console.log(`Model's name changed from ${oldVal} to ${newVal}. Model:`, model);
+//              console.log(`Model's name changed from ${oldVal} to ${newVal}. Model:`, model);
             },
             onValidated: function (model, errors, field) {
               if (errors.length > 0)
