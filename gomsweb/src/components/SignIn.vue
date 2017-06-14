@@ -1,28 +1,56 @@
 <template>
-  <div id="auth0-lock"/>
+  <div class="container">
+    <div class="row vertical-10p">
+      <div class="container">
+        <div class="register-logo">
+          <a href="javascript:;"><b class="white">Goms</b></a>
+        </div>
+        <div class="col-md-4 col-sm-offset-4">
+          <!-- login form -->
+          <action-view :hide-cancel="true" v-if="signInAction" :actionManager="actionManager" :action="signInAction"></action-view>
+
+          <!-- errors -->
+          <div v-if=response class="text-red"><p>{{response}}</p></div>
+        </div>
+        <div class="col-md-4 col-sm-offset-4">
+          <div class="box">
+            <div class="box-body">
+              <router-link class="btn btn-primary" :to="{name: 'SignUp'}">Sign Up</router-link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
   import {show} from '../utils/lock'
   import configManager from '../plugins/configmanager'
+  import actionManager from "../plugins/actionmanager"
 
   export default {
 
-
+    data() {
+      return {
+        response: null,
+        signInAction: null,
+        actionManager: actionManager,
+      }
+    },
     methods: {
       init() {
+        var that = this;
         console.log("sign in loaded");
-        show('auth0-lock');
-        configManager.getAllConfig().then(function (configs) {
-          console.log("configs", configs)
-        }, function () {
-          console.log("Failed to get configs", arguments)
+        actionManager.getGuestActions().then(function (guestActions) {
+          console.log("guest actions", guestActions, guestActions["user:signin"]);
+          that.signInAction = guestActions["user:signin"];
         })
       },
     },
-    updated () {
-      this.init();
-    },
+//    updated () {
+//      this.init();
+//    },
     mounted () {
       this.init();
     }

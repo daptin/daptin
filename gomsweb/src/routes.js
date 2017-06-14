@@ -15,7 +15,6 @@ import SignOutComponent from './components/SignOut'
 import SignUpComponent from './components/SignUp'
 import ActionComponent from './components/Action'
 import HomeComponent from './components/Home'
-import RegisterComponent from './components/Register'
 
 
 // Import Views - Dash
@@ -39,9 +38,9 @@ const routes = [
     component: SignedInComponent
   },
   {
-    name: 'Register',
-    path: '/auth/register',
-    component: RegisterComponent
+    name: 'SignUp',
+    path: '/auth/signup',
+    component: SignUpComponent
   },
   {
     name: 'SignOut',
