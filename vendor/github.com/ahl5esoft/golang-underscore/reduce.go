@@ -9,7 +9,7 @@ func Reduce(source, iterator, memo interface{}) interface{} {
 	if length == 0 {
 		return memo
 	}
-	
+
 	origin := Clone(memo)
 	iteratorRV := reflect.ValueOf(iterator)
 	memoRV := reflect.ValueOf(memo)

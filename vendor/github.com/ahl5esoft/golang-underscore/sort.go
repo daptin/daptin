@@ -6,8 +6,8 @@ import (
 )
 
 type sortQuery struct {
-	keysRV reflect.Value
-	valuesRV reflect.Value
+	keysRV    reflect.Value
+	valuesRV  reflect.Value
 	compareRV reflect.Value
 }
 
@@ -16,7 +16,7 @@ func (this sortQuery) Len() int {
 		return this.keysRV.Len()
 	}
 
-	return 0;
+	return 0
 }
 
 func (this sortQuery) Swap(i, j int) {
@@ -41,22 +41,22 @@ func (this sortQuery) Less(i, j int) bool {
 	thisRV := this.keysRV.Index(i)
 	thatRV := this.keysRV.Index(j)
 	switch thisRV.Kind() {
-		case reflect.Float32, reflect.Float64:
-			return thisRV.Float() < thatRV.Float()
-		case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
-			return thisRV.Int() < thatRV.Int()
-		case reflect.String:
-			return thisRV.String() < thatRV.String()
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			return thisRV.Uint() < thatRV.Uint()
-		default:
-			return false
+	case reflect.Float32, reflect.Float64:
+		return thisRV.Float() < thatRV.Float()
+	case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
+		return thisRV.Int() < thatRV.Int()
+	case reflect.String:
+		return thisRV.String() < thatRV.String()
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return thisRV.Uint() < thatRV.Uint()
+	default:
+		return false
 	}
 }
 
 func Sort(source, selector interface{}) interface{} {
 	qs := sortQuery{}
-	each(source, selector, func (sortRV, valueRV, _ reflect.Value) bool {
+	each(source, selector, func(sortRV, valueRV, _ reflect.Value) bool {
 		if qs.Len() == 0 {
 			keysRT := reflect.SliceOf(sortRV.Type())
 			qs.keysRV = reflect.MakeSlice(keysRT, 0, 0)
@@ -79,9 +79,9 @@ func Sort(source, selector interface{}) interface{} {
 
 func SortBy(source interface{}, property string) interface{} {
 	getPropertyRV := PropertyRV(property)
-	return Sort(source, func (value, _ interface{}) Facade {
+	return Sort(source, func(value, _ interface{}) Facade {
 		rv, _ := getPropertyRV(value)
-		return Facade{ rv }
+		return Facade{rv}
 	})
 }
 

@@ -5,7 +5,7 @@ func Reject(source, predicate interface{}) interface{} {
 }
 
 func RejectBy(source interface{}, properties map[string]interface{}) interface{} {
-	return Reject(source, func (value, _ interface{}) bool {
+	return Reject(source, func(value, _ interface{}) bool {
 		return IsMatch(value, properties)
 	})
 }

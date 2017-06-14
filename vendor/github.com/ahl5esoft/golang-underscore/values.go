@@ -10,8 +10,8 @@ func Values(source interface{}) interface{} {
 		return nil
 	}
 
-	return Map(source, func (value, _ interface{}) Facade {
-		return Facade{ reflect.ValueOf(value) }
+	return Map(source, func(value, _ interface{}) Facade {
+		return Facade{reflect.ValueOf(value)}
 	})
 }
 

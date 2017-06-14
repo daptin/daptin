@@ -1,8 +1,5 @@
 package resource
 
 func NewDeleteEventHandler() DatabaseRequestInterceptor {
-  return &eventHandlerMiddleware{
-
-  }
+	return &eventHandlerMiddleware{}
 }
-

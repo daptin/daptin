@@ -6,7 +6,7 @@ import (
 
 func Index(source, indexSelector interface{}) interface{} {
 	var dictRV reflect.Value
-	each(source, indexSelector, func (indexRV, valueRV, _ reflect.Value) bool {
+	each(source, indexSelector, func(indexRV, valueRV, _ reflect.Value) bool {
 		if !dictRV.IsValid() {
 			dictRT := reflect.MapOf(indexRV.Type(), valueRV.Type())
 			dictRV = reflect.MakeMap(dictRT)
@@ -24,9 +24,9 @@ func Index(source, indexSelector interface{}) interface{} {
 
 func IndexBy(source interface{}, property string) interface{} {
 	getPropertyRV := PropertyRV(property)
-	return Index(source, func (value, _ interface{}) Facade {
+	return Index(source, func(value, _ interface{}) Facade {
 		rv, _ := getPropertyRV(value)
-		return Facade{ rv }
+		return Facade{rv}
 	})
 }
 
