@@ -1,7 +1,7 @@
 package server
 
 import (
-  log "github.com/Sirupsen/logrus"
+  log "github.com/sirupsen/logrus"
   "github.com/artpar/api2go"
   "github.com/artpar/api2go-adapter/gingonic"
   _ "github.com/go-sql-driver/mysql"
@@ -89,9 +89,9 @@ func Main() {
 
   var port = flag.String("port", "6336", "GoMS port")
   var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
-  var connection_string = flag.String("db_connection_string", "test.db", "[test.db] is default for sqlite3. Specify for mysql/postgres\n"+
-      "<username>:<password>@tcp(<hostname>:<port>)/<db_name> for mysql\n"+
-      "host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
+  var connection_string = flag.String("db_connection_string", "test.db", "\n\tSQLite: test.db\n"+
+      "\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
+      "\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
   var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
 

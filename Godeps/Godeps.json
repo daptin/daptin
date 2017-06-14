@@ -44,6 +44,36 @@
 			"Rev": "63734eae1ef55eaac06fdc0f312615f2e321e273"
 		},
 		{
+			"ImportPath": "github.com/dlclark/regexp2",
+			"Comment": "v1.1.4",
+			"Rev": "902a5ce7a7812e2ba9f73b9d96c09d5136df39cd"
+		},
+		{
+			"ImportPath": "github.com/dlclark/regexp2/syntax",
+			"Comment": "v1.1.4",
+			"Rev": "902a5ce7a7812e2ba9f73b9d96c09d5136df39cd"
+		},
+		{
+			"ImportPath": "github.com/dop251/goja",
+			"Rev": "d1f41622ac0e71a1a5b5404ad3dbd4cf38c6f3e9"
+		},
+		{
+			"ImportPath": "github.com/dop251/goja/ast",
+			"Rev": "d1f41622ac0e71a1a5b5404ad3dbd4cf38c6f3e9"
+		},
+		{
+			"ImportPath": "github.com/dop251/goja/file",
+			"Rev": "d1f41622ac0e71a1a5b5404ad3dbd4cf38c6f3e9"
+		},
+		{
+			"ImportPath": "github.com/dop251/goja/parser",
+			"Rev": "d1f41622ac0e71a1a5b5404ad3dbd4cf38c6f3e9"
+		},
+		{
+			"ImportPath": "github.com/dop251/goja/token",
+			"Rev": "d1f41622ac0e71a1a5b5404ad3dbd4cf38c6f3e9"
+		},
+		{
 			"ImportPath": "github.com/gedex/inflector",
 			"Rev": "16278e9db8130ac7ec405dc174cfb94344f16325"
 		},
@@ -137,6 +167,11 @@
 			"Rev": "5bf94b69c6b68ee1b541973bb8e1144db23a194b"
 		},
 		{
+			"ImportPath": "github.com/sirupsen/logrus",
+			"Comment": "v0.11.5-46-g5e5dc89",
+			"Rev": "5e5dc898656f695e2a086b8e12559febbfc01562"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/bcrypt",
 			"Rev": "e7ba82683099cae71475961448ab8f903ea77c26"
 		},
@@ -159,6 +194,38 @@
 		{
 			"ImportPath": "golang.org/x/sys/unix",
 			"Rev": "b90f89a1e7a9c1f6b918820b3daa7f08488c8594"
+		},
+		{
+			"ImportPath": "golang.org/x/text/cases",
+			"Rev": "3491b61b9edc56653ad4333e605e2908e46a036b"
+		},
+		{
+			"ImportPath": "golang.org/x/text/collate",
+			"Rev": "3491b61b9edc56653ad4333e605e2908e46a036b"
+		},
+		{
+			"ImportPath": "golang.org/x/text/internal",
+			"Rev": "3491b61b9edc56653ad4333e605e2908e46a036b"
+		},
+		{
+			"ImportPath": "golang.org/x/text/internal/colltab",
+			"Rev": "3491b61b9edc56653ad4333e605e2908e46a036b"
+		},
+		{
+			"ImportPath": "golang.org/x/text/internal/tag",
+			"Rev": "3491b61b9edc56653ad4333e605e2908e46a036b"
+		},
+		{
+			"ImportPath": "golang.org/x/text/language",
+			"Rev": "3491b61b9edc56653ad4333e605e2908e46a036b"
+		},
+		{
+			"ImportPath": "golang.org/x/text/transform",
+			"Rev": "3491b61b9edc56653ad4333e605e2908e46a036b"
+		},
+		{
+			"ImportPath": "golang.org/x/text/unicode/norm",
+			"Rev": "3491b61b9edc56653ad4333e605e2908e46a036b"
 		},
 		{
 			"ImportPath": "gopkg.in/Masterminds/squirrel.v1",
