@@ -14,8 +14,8 @@ type Facade struct {
 }
 
 var (
-	ERROR_RT = reflect.TypeOf(errors.New(""))
+	ERROR_RT  = reflect.TypeOf(errors.New(""))
 	FACADE_RT = reflect.TypeOf(Facade{})
-	NULL_RV = reflect.ValueOf(nil)
-	RV_RT = reflect.TypeOf(NULL_RV)
+	NULL_RV   = reflect.ValueOf(nil)
+	RV_RT     = reflect.TypeOf(NULL_RV)
 )

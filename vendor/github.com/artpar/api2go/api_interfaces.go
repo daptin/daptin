@@ -1,56 +1,56 @@
 package api2go
 
 import (
-  "net/http"
+	"net/http"
 
-  "github.com/artpar/api2go/jsonapi"
+	"github.com/artpar/api2go/jsonapi"
 )
 
 // The CRUD interface MUST be implemented in order to use the api2go api.
 // Use Responder for success status codes and content/meta data. In case of an error,
 // use the error return value preferrably with an instance of our HTTPError struct.
 type CRUD interface {
-  // FindOne returns an object by its ID
-  // Possible Responder success status code 200
-  FindOne(ID string, req Request) (Responder, error)
+	// FindOne returns an object by its ID
+	// Possible Responder success status code 200
+	FindOne(ID string, req Request) (Responder, error)
 
-  // Create a new object. Newly created object/struct must be in Responder.
-  // Possible Responder status codes are:
-  // - 201 Created: Resource was created and needs to be returned
-  // - 202 Accepted: Processing is delayed, return nothing
-  // - 204 No Content: Resource created with a client generated ID, and no fields were modified by
-  //   the server
-  Create(obj interface{}, req Request) (Responder, error)
+	// Create a new object. Newly created object/struct must be in Responder.
+	// Possible Responder status codes are:
+	// - 201 Created: Resource was created and needs to be returned
+	// - 202 Accepted: Processing is delayed, return nothing
+	// - 204 No Content: Resource created with a client generated ID, and no fields were modified by
+	//   the server
+	Create(obj interface{}, req Request) (Responder, error)
 
-  // Delete an object
-  // Possible Responder status codes are:
-  // - 200 OK: Deletion was a success, returns meta information, currently not implemented! Do not use this
-  // - 202 Accepted: Processing is delayed, return nothing
-  // - 204 No Content: Deletion was successful, return nothing
-  Delete(id string, req Request) (Responder, error)
+	// Delete an object
+	// Possible Responder status codes are:
+	// - 200 OK: Deletion was a success, returns meta information, currently not implemented! Do not use this
+	// - 202 Accepted: Processing is delayed, return nothing
+	// - 204 No Content: Deletion was successful, return nothing
+	Delete(id string, req Request) (Responder, error)
 
-  // Update an object
-  // Possible Responder status codes are:
-  // - 200 OK: Update successful, however some field(s) were changed, returns updates source
-  // - 202 Accepted: Processing is delayed, return nothing
-  // - 204 No Content: Update was successful, no fields were changed by the server, return nothing
-  Update(obj interface{}, req Request) (Responder, error)
+	// Update an object
+	// Possible Responder status codes are:
+	// - 200 OK: Update successful, however some field(s) were changed, returns updates source
+	// - 202 Accepted: Processing is delayed, return nothing
+	// - 204 No Content: Update was successful, no fields were changed by the server, return nothing
+	Update(obj interface{}, req Request) (Responder, error)
 }
 
 // Pagination represents information needed to return pagination links
 type Pagination struct {
-  Next        map[string]string
-  Prev        map[string]string
-  First       map[string]string
-  Last        map[string]string
-  Total       uint64
-  PerPage     uint64
-  CurrentPage uint64
-  LastPage    uint64
-  NextPageUrl string
-  PrevPageUrl string
-  From        uint64
-  To          uint64
+	Next        map[string]string
+	Prev        map[string]string
+	First       map[string]string
+	Last        map[string]string
+	Total       uint64
+	PerPage     uint64
+	CurrentPage uint64
+	LastPage    uint64
+	NextPageUrl string
+	PrevPageUrl string
+	From        uint64
+	To          uint64
 }
 
 // The PaginatedFindAll interface can be optionally implemented to fetch a subset of all records.
@@ -59,13 +59,13 @@ type Pagination struct {
 // page[number] AND page[size]
 // OR page[offset] AND page[limit]
 type PaginatedFindAll interface {
-  PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
+	PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
 }
 
 // The FindAll interface can be optionally implemented to fetch all records at once.
 type FindAll interface {
-  // FindAll returns all objects
-  FindAll(req Request) (Responder, error)
+	// FindAll returns all objects
+	FindAll(req Request) (Responder, error)
 }
 
 // The ObjectInitializer interface can be implemented to have the ability to change
@@ -73,14 +73,14 @@ type FindAll interface {
 // Create as the other actions go through FindOne or FindAll which are already
 // controlled by the implementer.
 type ObjectInitializer interface {
-  InitializeObject(interface{})
+	InitializeObject(interface{})
 }
 
 //URLResolver allows you to implement a static
 //way to return a baseURL for all incoming
 //requests for one api2go instance.
 type URLResolver interface {
-  GetBaseURL() string
+	GetBaseURL() string
 }
 
 // RequestAwareURLResolver allows you to dynamically change
@@ -95,8 +95,8 @@ type URLResolver interface {
 // have to change the result value based on the last
 // request.
 type RequestAwareURLResolver interface {
-  URLResolver
-  SetRequest(http.Request)
+	URLResolver
+	SetRequest(http.Request)
 }
 
 // The Responder interface is used by all Resource Methods as a container for the Response.
@@ -104,14 +104,14 @@ type RequestAwareURLResolver interface {
 // Result returns the actual payload. For FindOne, put only one entry in it.
 // StatusCode sets the http status code.
 type Responder interface {
-  Metadata() map[string]interface{}
-  Result() interface{}
-  StatusCode() int
+	Metadata() map[string]interface{}
+	Result() interface{}
+	StatusCode() int
 }
 
 // The LinksResponder interface may be used when the response object is able to return
 // a set of links for the top-level response object.
 type LinksResponder interface {
-  Responder
-  Links(*http.Request, string) jsonapi.Links
+	Responder
+	Links(*http.Request, string) jsonapi.Links
 }

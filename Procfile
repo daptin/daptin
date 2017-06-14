@@ -1,1 +1,1 @@
-web: goms -port $PORT
+web: goms -port $PORT -runtime release

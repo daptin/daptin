@@ -6,7 +6,7 @@ import (
 
 func filter(source, predicate interface{}, compareValue bool) interface{} {
 	var arrRV reflect.Value
-	each(source, predicate, func (okRV, valueRV, _ reflect.Value) bool {
+	each(source, predicate, func(okRV, valueRV, _ reflect.Value) bool {
 		if okRV.Bool() == compareValue {
 			if !arrRV.IsValid() {
 				arrRT := reflect.SliceOf(valueRV.Type())
@@ -21,5 +21,5 @@ func filter(source, predicate interface{}, compareValue bool) interface{} {
 		return arrRV.Interface()
 	}
 
-	return nil	
+	return nil
 }

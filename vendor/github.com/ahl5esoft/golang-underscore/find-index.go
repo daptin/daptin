@@ -11,7 +11,7 @@ func FindIndex(source, predicate interface{}) int {
 		return index
 	}
 
-	each(source, predicate, func (okRV, _, keyRV reflect.Value) bool {
+	each(source, predicate, func(okRV, _, keyRV reflect.Value) bool {
 		ok := okRV.Bool()
 		if ok {
 			index = int(keyRV.Int())
@@ -23,7 +23,7 @@ func FindIndex(source, predicate interface{}) int {
 }
 
 func FindIndexBy(source interface{}, properties map[string]interface{}) int {
-	return FindIndex(source, func (item interface{}, _ int) bool {
+	return FindIndex(source, func(item interface{}, _ int) bool {
 		return IsMatch(item, properties)
 	})
 }

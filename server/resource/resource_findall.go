@@ -1,4 +1,5 @@
 package resource
+
 //
 //import (
 //  "github.com/artpar/api2go"
