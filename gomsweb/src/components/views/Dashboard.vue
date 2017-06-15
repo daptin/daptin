@@ -2,7 +2,7 @@
   <!-- Main content -->
   <section class="content">
     <!-- Info boxes -->
-    <h2>Dashboard is empty for now.</h2>
+    <h3>Dashboard is empty for now. You can take a tour.</h3>
     <!-- Main row -->
     <!-- /.row -->
   </section>
