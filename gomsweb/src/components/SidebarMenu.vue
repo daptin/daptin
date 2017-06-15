@@ -85,6 +85,17 @@
     },
     mounted() {
       console.log("sidebarmenu visible worlds: ", this.topWorlds)
+      setTimeout(function () {
+        $(window).resize()
+      }, 300);
+    },
+    watch: {
+      'topWorlds': function () {
+        console.log("got worlds")
+        setTimeout(function () {
+          $(window).resize()
+        }, 300);
+      }
     }
   }
 </script>
