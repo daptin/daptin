@@ -9,9 +9,10 @@
 
  [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) [![Build Status](https://travis-ci.org/artpar/goms.svg?branch=master)](https://travis-ci.org/artpar/goms)
 
-Not related to [GOMS](https://en.wikipedia.org/wiki/GOMS)
 
-GoMS is a platform build to adapt to your requirements.
+### State: pre-alpha
+
+GoMS is a ready-to-deploy schema driven adaptable platform for quick apps
 
 ## Run it and take the tours before reading on
 
