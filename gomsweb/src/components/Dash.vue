@@ -357,7 +357,7 @@
 
 
           tour.addStep('hello', {
-            text: 'Hi. Let is take a quick view of all the things on this page',
+            text: 'Hi. Let us take a quick view of all the things on this page',
             buttons: [
               {
                 text: 'Next',
@@ -368,7 +368,7 @@
 
 
           tour.addStep('sidebar', {
-            text: 'This sidebar will help us to go to different pages.',
+            text: 'This sidebar will help us to go to different part of the system.',
             attachTo: '.sidebar-menu right',
             buttons: [
               {
