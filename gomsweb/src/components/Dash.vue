@@ -510,8 +510,8 @@
             advanceOn: '.system-action-list click',
             buttons: [
               {
-                text: 'Back',
-                action: tour.back
+                text: 'Next',
+                action: tour.next
               }
             ]
           });
