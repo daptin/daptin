@@ -27,18 +27,21 @@
       </a>
       <ul class="treeview-menu">
         <li>
-          <router-link class="upload-schema" :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}">
-            <i class="fa fa-cog"></i> Add New Features
+          <router-link class="upload-schema"
+                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}">
+            <i class="fa fa-upload"></i> Update Features using JSON
           </router-link>
         </li>
         <li>
-          <router-link class="download-schema" :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}">
+          <router-link class="download-schema"
+                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}">
             <i class="fa fa-download"></i> Download System Schema
           </router-link>
         </li>
         <li>
-          <router-link class="become-admin-button" :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}">
-            <i class="fa fa-flag"></i> Become Admin
+          <router-link class="become-admin-button"
+                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}">
+            <i class="fa fa-graduation-cap"></i> Become Admin
           </router-link>
         </li>
       </ul>

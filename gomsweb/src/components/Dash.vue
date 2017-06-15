@@ -28,17 +28,17 @@
                   <ul class="menu">
                     <li @click="startTour(1)">
                       <router-link :to="{name: 'Dashboard'}">
-                        <i class="fa fa-th-list"></i> #1 Sidebar and actions
+                        <i class="fa fa-th-list grey"></i> #1 Sidebar and actions
                       </router-link>
                     </li>
                     <li @click="startTour(2)">
                       <router-link :to="{name: 'Entity', params: {tablename: 'user'}}">
-                        <i class="ion ion-ios-people info"></i> #2 Users and table view
+                        <i class="fa fa-users blue"></i> #2 Users and table view
                       </router-link>
                     </li>
                     <li @click="startTour(3)">
                       <router-link :to="{name: 'Dashboard'}">
-                        <i class="ion ion-ios-people info"></i> #2 Become admin
+                        <i class="fa fa-graduation-cap green"></i> #3 Become admin
                       </router-link>
                     </li>
                   </ul>
@@ -507,29 +507,22 @@
           tour.addStep('sidebar', {
             text: 'Let us visit the actions again, first we need to take ownership of this GoMS instance by becoming admin. This can only be done when there is exactly one user in the system. Until someone takes ownership of GoMS, GoMS is open to everyone.',
             attachTo: '.system-action-list right',
+            advanceOn: '.system-action-list click',
             buttons: [
               {
                 text: 'Back',
                 action: tour.back
-              },
-              {
-                text: 'Next',
-                action: tour.next
               }
             ]
           });
 
           tour.addStep('sidebar', {
-            text: 'Click "Become Admin" to take ownership. You will see a quick reload of your page. You can then "Add New Features" by uploading the JSON, which will take you through another refresh and you will be able to see your new entities in this Sidebar.',
+            text: 'The first thing you would probably do with any GoMS installation is to Become Administrator.  You will see a quick reload of your page. You can then "Add New Features" by uploading the JSON, which will take you through another refresh and you will be able to see your new entities in this Sidebar.<br><br>Click "Become Admin" to take ownership. ',
             attachTo: '.become-admin-button right',
             buttons: [
               {
                 text: 'Back',
                 action: tour.back
-              },
-              {
-                text: 'Next',
-                action: tour.next
               }
             ]
           });
