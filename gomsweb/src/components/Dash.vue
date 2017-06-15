@@ -331,7 +331,11 @@
           attachTo: '.sidebar-menu right',
           buttons: [
             {
-              text: 'Next',
+              text: '<Back',
+              action: tour.back
+            },
+            {
+              text: 'Next>',
               action: tour.next
             }
           ]
@@ -343,7 +347,11 @@
           attachTo: '.treeview right',
           buttons: [
             {
-              text: 'Next',
+              text: '<Back',
+              action: tour.back
+            },
+            {
+              text: 'Next>',
               action: tour.next
             }
           ]
@@ -363,7 +371,11 @@
           attachTo: '.vuetable top',
           buttons: [
             {
-              text: 'Next',
+              text: '<Back',
+              action: tour.back
+            },
+            {
+              text: 'Next>',
               action: tour.next
             }
           ]
@@ -375,7 +387,11 @@
           attachTo: '.fa-expand top',
           buttons: [
             {
-              text: 'Next',
+              text: '<Back',
+              action: tour.back
+            },
+            {
+              text: 'Next>',
               action: tour.next
             }
           ]
@@ -386,7 +402,11 @@
           attachTo: '.fa-eye top',
           buttons: [
             {
-              text: 'Next',
+              text: '<Back',
+              action: tour.back
+            },
+            {
+              text: 'Next>',
               action: tour.next
             }
           ]
@@ -398,7 +418,11 @@
           attachTo: '.fa-eye top',
           buttons: [
             {
-              text: 'Next',
+              text: '<Back',
+              action: tour.back
+            },
+            {
+              text: 'Next>',
               action: tour.next
             }
           ]
@@ -409,7 +433,11 @@
           attachTo: '.fa-eye top',
           buttons: [
             {
-              text: 'Next',
+              text: '<Back',
+              action: tour.back
+            },
+            {
+              text: 'Next>',
               action: tour.next
             }
           ]
@@ -420,7 +448,11 @@
           attachTo: '.fa-plus bottom',
           buttons: [
             {
-              text: 'Next',
+              text: '<Back',
+              action: tour.back
+            },
+            {
+              text: 'Next>',
               action: tour.next
             }
           ]
@@ -431,7 +463,11 @@
           attachTo: '.fa-table bottom',
           buttons: [
             {
-              text: 'Next',
+              text: '<Back',
+              action: tour.back
+            },
+            {
+              text: 'Next>',
               action: tour.next
             }
           ]
@@ -441,7 +477,11 @@
           text: 'The main purpose of GoMS is to get modified to suit your needs. You can add "New Features" to GoMS using JSON files, which will act like plugins in near future. <br><br>Let us <a href="https://raw.githubusercontent.com/artpar/goms/master/gomsweb/static/samples/blog.json" target="_blank">download a sample JSON file</a> that I have created for playing around, based on what a "basic blogging system" would look like.',
           buttons: [
             {
-              text: 'Next',
+              text: '<Back',
+              action: tour.back
+            },
+            {
+              text: 'Next>',
               action: tour.next
             }
           ]
@@ -452,7 +492,11 @@
           attachTo: '.treeview right',
           buttons: [
             {
-              text: 'Next',
+              text: '<Back',
+              action: tour.back
+            },
+            {
+              text: 'Next>',
               action: tour.next
             }
           ]
@@ -463,7 +507,11 @@
           attachTo: '.treeview right',
           buttons: [
             {
-              text: 'Next',
+              text: '<Back',
+              action: tour.back
+            },
+            {
+              text: 'Next>',
               action: tour.next
             }
           ]
