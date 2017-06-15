@@ -8,14 +8,10 @@
       </div>
       <div class="box-tools pull-right">
         <div class="ui icon buttons">
-          <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'"><i class="fa  fa-2x fa-table blue "></i>
-          </button>
-          <button class="btn btn-box-tool" @click.prevent="viewMode = 'items'"><i
-            class="fa  fa-2x fa-th-large blue"></i>
-          </button>
+          <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'"><i class="fa  fa-2x fa-table grey "></i></button>
+          <button class="btn btn-box-tool" @click.prevent="viewMode = 'items'"><i class="fa  fa-2x fa-th-large grey"></i></button>
           <button class="btn btn-box-tool" @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i></button>
-          <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh orange"></i>
-          </button>
+          <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh orange"></i></button>
         </div>
 
       </div>
