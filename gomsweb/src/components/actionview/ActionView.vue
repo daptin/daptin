@@ -7,7 +7,7 @@
       </div>
     </div>
     <div class="box-body">
-      <div class="col-md-12">
+      <div class="col-md-d12">
         <model-form :hide-cancel="hideCancel" v-if="meta != null" @save="doAction(data)" @cancel="cancel()" :meta="meta"
                     :model.sync="data"></model-form>
       </div>
