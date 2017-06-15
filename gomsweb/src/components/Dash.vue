@@ -18,11 +18,11 @@
             <!-- Notifications: style can be found in dropdown.less -->
             <li class="dropdown notifications-menu">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                <i class="fa fa-bell-o"></i>
-                <span class="label label-success">2</span> Tours
+                <i class="fa fa-film"></i>
+                <span class="label label-warning">3</span> Tours
               </a>
               <ul class="dropdown-menu">
-                <li class="header">You have 2 tours available</li>
+                <li class="header">You have 3 tours available</li>
                 <li>
                   <!-- inner menu: contains the actual data -->
                   <ul class="menu">
@@ -34,6 +34,11 @@
                     <li @click="startTour(2)">
                       <router-link :to="{name: 'Entity', params: {tablename: 'user'}}">
                         <i class="ion ion-ios-people info"></i> #2 Users and table view
+                      </router-link>
+                    </li>
+                    <li @click="startTour(3)">
+                      <router-link :to="{name: 'Dashboard'}">
+                        <i class="ion ion-ios-people info"></i> #2 Become admin
                       </router-link>
                     </li>
                   </ul>
@@ -298,11 +303,10 @@
       }
     },
     methods: {
-      startTour() {
+      startTour(tourId) {
 
         if (Shepherd.activeTour) {
-          Shepherd.activeTour.show();
-          return
+          Shepherd.activeTour.destroy();
         }
 
 
@@ -315,207 +319,242 @@
           }
         });
 
-        tour.addStep('hello', {
-          text: 'Hi. Let is take a quick view of all the things on this page',
-          buttons: [
-            {
-              text: 'Next',
-              action: tour.next
-            }
-          ]
-        });
+
+        if (tourId == 1) {
 
 
-        tour.addStep('sidebar', {
-          text: 'This sidebar will help us to go to different pages.',
-          attachTo: '.sidebar-menu right',
-          buttons: [
-            {
-              text: '<Back',
-              action: tour.back
-            },
-            {
-              text: 'Next>',
-              action: tour.next
-            }
-          ]
-        });
+          tour.addStep('hello', {
+            text: 'Hi. Let is take a quick view of all the things on this page',
+            buttons: [
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
 
 
-        tour.addStep('sidebar', {
-          text: 'This also has links to useful some actions which we are going to use soon. But before that, lets checkout the User and Usergroup links there.',
-          attachTo: '.treeview right',
-          buttons: [
-            {
-              text: '<Back',
-              action: tour.back
-            },
-            {
-              text: 'Next>',
-              action: tour.next
-            }
-          ]
-        });
+          tour.addStep('sidebar', {
+            text: 'This sidebar will help us to go to different pages.',
+            attachTo: '.sidebar-menu right',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
 
 
-        tour.addStep('sidebar', {
-          text: 'Clicking on the "User" link will take us to the users page',
-          attachTo: '.user-link right',
-          advanceOn: '.user-link click',
-          buttons: []
-        });
+          tour.addStep('sidebar', {
+            text: 'This also has links to useful some actions which we are going to use soon. But before that, lets checkout the User and Usergroup links there.',
+            attachTo: '.treeview right',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
 
 
-        tour.addStep('sidebar', {
-          text: 'This is the list of users which you currently have access to. I will explain the concept of authorization much later in the tour.',
-          attachTo: '.vuetable top',
-          buttons: [
-            {
-              text: '<Back',
-              action: tour.back
-            },
-            {
-              text: 'Next>',
-              action: tour.next
-            }
-          ]
-        });
+          tour.addStep('sidebar', {
+            text: 'Clicking on the "User" link will take us to the users page. This is the end of this tour. You can start the next tour.',
+            attachTo: '.user-link right',
+            advanceOn: '.user-link click',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+            ]
+          });
+
+        }
+
+        if (tourId == 2) {
 
 
-        tour.addStep('sidebar', {
-          text: 'The expand button takes us to particular item, which shows all its related actions and items.',
-          attachTo: '.fa-expand top',
-          buttons: [
-            {
-              text: '<Back',
-              action: tour.back
-            },
-            {
-              text: 'Next>',
-              action: tour.next
-            }
-          ]
-        });
-
-        tour.addStep('sidebar', {
-          text: 'The eye button shows details of the item here itself. Go ahead and click it. Click it again to close the detailed view.',
-          attachTo: '.fa-eye top',
-          buttons: [
-            {
-              text: '<Back',
-              action: tour.back
-            },
-            {
-              text: 'Next>',
-              action: tour.next
-            }
-          ]
-        });
+          tour.addStep('sidebar', {
+            text: 'This is the list of users which you currently have access to. I will explain the concept of authorization much later in another tour.',
+            attachTo: '.vuetable top',
+            buttons: [
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
 
 
-        tour.addStep('sidebar', {
-          text: 'You can use the "edit" button to edit the item, but this rarely how you will be interacting with the system. Most of your work flow interactions will happen via "Actions" which we will go through later.',
-          attachTo: '.fa-eye top',
-          buttons: [
-            {
-              text: '<Back',
-              action: tour.back
-            },
-            {
-              text: 'Next>',
-              action: tour.next
-            }
-          ]
-        });
+          tour.addStep('sidebar', {
+            text: 'The expand button takes us to particular item, which shows all its related actions and items.',
+            attachTo: '.fa-expand top',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
 
-        tour.addStep('sidebar', {
-          text: 'The cross of course deletes the item.',
-          attachTo: '.fa-eye top',
-          buttons: [
-            {
-              text: '<Back',
-              action: tour.back
-            },
-            {
-              text: 'Next>',
-              action: tour.next
-            }
-          ]
-        });
+          tour.addStep('sidebar', {
+            text: 'The eye button shows details of the item here itself. Go ahead and click it. Click it again to close the detailed view.',
+            attachTo: '.fa-eye top',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
 
-        tour.addStep('sidebar', {
-          text: 'You can add a new item by clicking here.',
-          attachTo: '.fa-plus bottom',
-          buttons: [
-            {
-              text: '<Back',
-              action: tour.back
-            },
-            {
-              text: 'Next>',
-              action: tour.next
-            }
-          ]
-        });
 
-        tour.addStep('sidebar', {
-          text: 'These two grey buttons don\'t do anything for now, but they will give access to a different kind of view (card layout/other layouts)',
-          attachTo: '.fa-table bottom',
-          buttons: [
-            {
-              text: '<Back',
-              action: tour.back
-            },
-            {
-              text: 'Next>',
-              action: tour.next
-            }
-          ]
-        });
+          tour.addStep('sidebar', {
+            text: 'You can use the "edit" button to edit the item (in this case, user), but this rarely how you will be interacting with the system. Most of your work flow interactions will happen via "Actions" which we will go through later.',
+            attachTo: '.fa-pencil-square top',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
 
-        tour.addStep('sidebar', {
-          text: 'The main purpose of GoMS is to get modified to suit your needs. You can add "New Features" to GoMS using JSON files, which will act like plugins in near future. <br><br>Let us <a href="https://raw.githubusercontent.com/artpar/goms/master/gomsweb/static/samples/blog.json" target="_blank">download a sample JSON file</a> that I have created for playing around, based on what a "basic blogging system" would look like.',
-          buttons: [
-            {
-              text: '<Back',
-              action: tour.back
-            },
-            {
-              text: 'Next>',
-              action: tour.next
-            }
-          ]
-        });
+          tour.addStep('sidebar', {
+            text: 'The cross of course deletes the item.',
+            attachTo: '.fa-times top',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
 
-        tour.addStep('sidebar', {
-          text: 'Let us visit the actions again, first we need to take ownership of this GoMS instance by becoming admin. This can only be done when there is exactly one user in the system. Until someone takes ownership of GoMS, GoMS is open to everyone.',
-          attachTo: '.treeview right',
-          buttons: [
-            {
-              text: '<Back',
-              action: tour.back
-            },
-            {
-              text: 'Next>',
-              action: tour.next
-            }
-          ]
-        });
+          tour.addStep('sidebar', {
+            text: 'You can add a new item by clicking here. The orange button will reload the data from the database.',
+            attachTo: '.fa-plus left',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
 
-        tour.addStep('sidebar', {
-          text: 'Click "Become Admin" to take ownership. You will see a quick reload of your page. You can then "Add New Features" by uploading the JSON, which will take you through another refresh and you will be able to see your new entities in this Sidebar.',
-          attachTo: '.treeview right',
-          buttons: [
-            {
-              text: '<Back',
-              action: tour.back
-            },
-            {
-              text: 'Next>',
-              action: tour.next
-            }
-          ]
-        });
+          tour.addStep('sidebar', {
+            text: 'These two grey buttons don\'t do anything for now, but they will give access to a different kind of view (card layout/other layouts)',
+            attachTo: '.fa-table left',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
+
+          tour.addStep('sidebar', {
+            text: 'That was all about this page. If this is a fresh installation of GoMS, there would probably be only "User" and "Usergroup" available in the sidebar, because these two form the basis for everything else. In another tour we will see how to begin customising GoMS for your needs.',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
+
+
+        }
+        if (tourId == 3) {
+
+          tour.addStep('sidebar', {
+            text: 'Let us visit the actions again, first we need to take ownership of this GoMS instance by becoming admin. This can only be done when there is exactly one user in the system. Until someone takes ownership of GoMS, GoMS is open to everyone.',
+            attachTo: '.system-action-list right',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
+
+          tour.addStep('sidebar', {
+            text: 'Click "Become Admin" to take ownership. You will see a quick reload of your page. You can then "Add New Features" by uploading the JSON, which will take you through another refresh and you will be able to see your new entities in this Sidebar.',
+            attachTo: '.become-admin-button right',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
+
+        }
+
+        if (tourId == 4) {
+
+
+          tour.addStep('sidebar', {
+            text: 'The main purpose of GoMS is to get modified to suit your needs. You can add "New Features" to GoMS using JSON files, which will act like plugins in near future. <br><br>Let us <a class="download-json btn btn-success" href="https://raw.githubusercontent.com/artpar/goms/master/gomsweb/static/samples/blog.json" target="_blank">Download a sample JSON file</a> that I have created for playing around, based on what a "basic blogging system" would look like.',
+            advanceOn: ".download-json click",
+            buttons: []
+          });
+
+
+          tour.addStep('sidebar', {
+            text: 'The main purpose of GoMS is to get modified to suit your needs. You can add "New Features" to GoMS using JSON files, which will act like plugins in near future. <br><br>Let us <a class="download-json btn btn-success" href="https://raw.githubusercontent.com/artpar/goms/master/gomsweb/static/samples/blog.json" target="_blank">Download a sample JSON file</a> that I have created for playing around, based on what a "basic blogging system" would look like.',
+            attachTo: '.upload-schema right',
+            advanceOn: ".download-json click",
+            buttons: []
+          });
+
+
+        }
 
         tour.start();
 
