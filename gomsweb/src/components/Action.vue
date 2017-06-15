@@ -6,9 +6,9 @@
     </div>
 
     <div class="column">
-      <h1 class="header" v-if="action">
+      <b class="header" style="font-size: 36px;" v-if="action">
         {{action.label}}
-      </h1>
+      </b>
 
       <action-view ref="systemActionView" v-if="action" :hide-title="true" @cancel="cancel"
                    :action-manager="actionManager"

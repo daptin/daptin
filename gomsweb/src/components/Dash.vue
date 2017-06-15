@@ -10,8 +10,15 @@
         <a href="javascript:;" class="sidebar-toggle" data-toggle="offcanvas" role="button">
           <span class="sr-only">Toggle navigation</span>
         </a>
+
+
         <div class="navbar-custom-menu">
           <ul class="nav navbar-nav">
+            <li @click="startTour">
+              <a href="javascript:;" class="bg-purple" role="button">
+                <span class="fa fa-question "></span> <b>Take a tour</b>
+              </a>
+            </li>
             <!-- Messages-->
             <!--<li class="dropdown messages-menu">-->
             <!--<a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown">-->
@@ -175,16 +182,16 @@
       <section class="content-header">
         <!--<h1>-->
 
-          <!--{{$route.name.toUpperCase() }}-->
+        <!--{{$route.name.toUpperCase() }}-->
 
-          <!--<small>{{ $route.meta.description }}</small>-->
+        <!--<small>{{ $route.meta.description }}</small>-->
         <!--</h1>-->
         <!--<ol class="breadcrumb">-->
-          <!--<li>-->
-            <!--<a href="javascript:;">-->
-              <!--<i class="fa fa-home"></i>Home</a>-->
-          <!--</li>-->
-          <!--<li class="active">{{$route.name.toUpperCase()}}</li>-->
+        <!--<li>-->
+        <!--<a href="javascript:;">-->
+        <!--<i class="fa fa-home"></i>Home</a>-->
+        <!--</li>-->
+        <!--<li class="active">{{$route.name.toUpperCase()}}</li>-->
         <!--</ol>-->
       </section>
 
@@ -194,8 +201,7 @@
 
     <!-- Main Footer -->
     <footer class="main-footer">
-      <strong>Copyright &copy; {{year}}
-        <a href="javascript:;">GoMS</a>.</strong> All rights reserved.
+      <strong><a href="javascript:;">GoMS</a>.</strong> All rights reserved.
     </footer>
   </div>
   <!-- ./wrapper -->
@@ -215,6 +221,7 @@
   import {mapGetters} from 'vuex'
   import {setToken, checkSecret, extractInfoFromHash} from '../utils/auth'
   import Shepherd from "tether-shepherd"
+
 
   export default {
     name: 'Dash',
@@ -243,6 +250,7 @@
           displayName: faker.name.findName(),
           avatar: faker.image.avatar(),
           email: faker.internet.email(),
+          tour: null,
           randomCard: faker.helpers.createCard()
         }
       }
@@ -267,6 +275,188 @@
       }
     },
     methods: {
+      startTour() {
+
+        if (this.tour) {
+          this.tour.show();
+          return
+        }
+
+
+        var tour;
+
+        tour = new Shepherd.Tour({
+          defaults: {
+            classes: 'shepherd-theme-dark',
+            scrollTo: true
+          }
+        });
+
+        tour.addStep('hello', {
+          text: 'Hi. Let is take a quick view of all the things on this page',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+
+        tour.addStep('sidebar', {
+          text: 'This sidebar will help us to go to different pages.',
+          attachTo: '.sidebar-menu right',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+
+        tour.addStep('sidebar', {
+          text: 'This also has links to useful some actions which we are going to use soon. But before that, lets checkout the User and Usergroup links there.',
+          attachTo: '.treeview right',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+
+        tour.addStep('sidebar', {
+          text: 'Clicking on the "User" link will take us to the users page',
+          attachTo: '.sidebar-menu right',
+          advanceOn: '.pageLink click',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+
+        tour.addStep('sidebar', {
+          text: 'This is the list of users which you currently have access to. I will explain the concept of authorization much later in the tour.',
+          attachTo: '.vuetable top',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+
+        tour.addStep('sidebar', {
+          text: 'The enlarge button takes us to particular item, which shows all its related actions and items.',
+          attachTo: '.fa-enlarge top',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+        tour.addStep('sidebar', {
+          text: 'The eye button shows details of the item here itself. Go ahead and click it. Click it again to close the detailed view.',
+          attachTo: '.fa-eye top',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+
+        tour.addStep('sidebar', {
+          text: 'You can use the "edit" button to edit the item, but this rarely how you will be interacting with the system. Most of your work flow interactions will happen via "Actions" which we will go through later.',
+          attachTo: '.fa-eye top',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+        tour.addStep('sidebar', {
+          text: 'The cross of course deletes the item.',
+          attachTo: '.fa-eye top',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+        tour.addStep('sidebar', {
+          text: 'You can add a new item by clicking here.',
+          attachTo: '.fa-plus bottom',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+        tour.addStep('sidebar', {
+          text: 'These two buttons don\'t do anything for now, but they will give access to a different kind of view (card layout/other layouts)',
+          attachTo: '.fa-table bottom',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+        tour.addStep('sidebar', {
+          text: 'The main purpose of GoMS is to get modified to suit your needs. You can add "New Features" to GoMS using JSON files, which will act like plugins in near future. Let us <a href="https://raw.githubusercontent.com/artpar/goms/master/gomsweb/static/samples/blog.json" target="_blank">download a sample JSON file</a> that I have created for playing around, based on a "blogging system".',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+        tour.addStep('sidebar', {
+          text: 'Let us visit the actions again, first we need to take ownership of this GoMS instance by becoming admin. This can only be done when there is exactly one user in the system. Until someone takes ownership of GoMS, GoMS is open to everyone.',
+          attachTo: '.treeview right',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+        tour.addStep('sidebar', {
+          text: 'Click "Become Admin" to take ownership. You will see a quick reload of your page. You can then "Add New Features" by uploading the JSON, which will take you through another refresh and you will be able to see your new entities in this Sidebar.',
+          attachTo: '.treeview right',
+          buttons: [
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        });
+
+        tour.start();
+
+        this.tour = tour;
+
+
+      },
       changeloading () {
         this.$store.commit('TOGGLE_SEARCHING')
       }
