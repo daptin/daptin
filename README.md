@@ -24,7 +24,7 @@ Then open [console](http://localhost:8080)
 
 ## How can you use GoMS
 
-GoMS is a platform 
+GoMS is a platform which can be customised using Schema files, which describe your requirements and processes.
 
 ## Tech Goals
 
