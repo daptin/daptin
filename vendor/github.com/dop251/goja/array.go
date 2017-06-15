@@ -57,7 +57,7 @@ func (a *arrayObject) _setLengthInt(l int64, throw bool) bool {
 				a.values = ar
 			} else {
 				ar := a.values[l:len(a.values)]
-				for i, _ := range ar {
+				for i := range ar {
 					ar[i] = nil
 				}
 				a.values = a.values[:l]

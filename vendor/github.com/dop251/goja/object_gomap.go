@@ -176,7 +176,7 @@ func (o *objectGoMapSimple) enumerate(all, recursive bool) iterNextFunc {
 func (o *objectGoMapSimple) _enumerate(recursive bool) iterNextFunc {
 	propNames := make([]string, len(o.data))
 	i := 0
-	for key, _ := range o.data {
+	for key := range o.data {
 		propNames[i] = key
 		i++
 	}

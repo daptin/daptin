@@ -1,8 +1,8 @@
 package resource
 
 import (
-	log "github.com/sirupsen/logrus"
 	"github.com/artpar/api2go"
+	log "github.com/sirupsen/logrus"
 	//sq "gopkg.in/Masterminds/squirrel.v1"
 	//"reflect"
 	//"github.com/satori/go.uuid"
