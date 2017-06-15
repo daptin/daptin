@@ -3,7 +3,7 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
-	//log "github.com/Sirupsen/logrus"
+	//log "github.com/sirupsen/logrus"
 )
 
 type DbResource struct {
