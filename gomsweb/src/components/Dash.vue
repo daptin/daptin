@@ -306,7 +306,7 @@
       startTour(tourId) {
 
         if (Shepherd.activeTour) {
-          Shepherd.activeTour.destroy();
+          Shepherd.activeTour.hide();
         }
 
 
@@ -351,7 +351,7 @@
 
 
           tour.addStep('sidebar', {
-            text: 'This also has links to useful some actions which we are going to use soon. But before that, lets checkout the User and Usergroup links there.',
+            text: 'This also has links to some functional actions which we are going to use soon. But before that, lets checkout the User and Usergroup links there.',
             attachTo: '.treeview right',
             buttons: [
               {
