@@ -1,9 +1,9 @@
 <template>
   <ul class="sidebar-menu">
-    <li class="header">Items  {{filter}}</li>
+    <li class="header">Items </li>
 
     <li class="pageLink" v-on:click="toggleMenu" v-for="w in topWorlds">
-      <router-link :to="{name: 'Entity', params: {tablename: w.table_name}}">
+      <router-link :class="w.table_name + '-link'" :to="{name: 'Entity', params: {tablename: w.table_name}}">
         <span class="page">{{w.table_name | titleCase}}</span>
       </router-link>
     </li>
