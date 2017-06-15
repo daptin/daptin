@@ -27,6 +27,11 @@
         fileList: []
       }
     },
+    mounted(){
+      setTimeout(function(){
+        $("input[type=file]").css("display", "none")
+      }, 200)
+    },
     methods: {
       handlePreview: function () {
         console.log("handle preview", arguments)
