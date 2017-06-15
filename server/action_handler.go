@@ -141,7 +141,6 @@ func CreateActionEventHandler(initConfig *CmsConfig, configStore *ConfigStore, c
     responses := make([]ActionResponse, 0)
 
     var res api2go.Responder
-
     for _, outcome := range action.OutFields {
 
       var actionResponse ActionResponse
@@ -165,15 +164,30 @@ func CreateActionEventHandler(initConfig *CmsConfig, configStore *ConfigStore, c
       switch outcome.Method {
       case "POST":
         res, err = dbResource.Create(model, request)
-        actionResponse = NewActionResponse("create.confirmation", res.Result())
+        if err != nil {
+          actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()))
+        } else {
+          actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName()))
+        }
+        responses = append(responses, actionResponse)
         break
       case "UPDATE":
         res, err = dbResource.Update(model, request)
-        actionResponse = NewActionResponse("update.confirmation", res.Result())
+        if err != nil {
+          actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName()))
+        } else {
+          actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName()))
+        }
+        responses = append(responses, actionResponse)
         break
       case "DELETE":
         res, err = dbResource.Delete(model.Data["reference_id"].(string), request)
-        actionResponse = NewActionResponse("delete.confirmation", res.Result())
+        if err != nil {
+          actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to delete "+model.GetName()))
+        } else {
+          actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName()))
+        }
+        responses = append(responses, actionResponse)
         break
       case "EXECUTE":
         //res, err = cruds[outcome.Type].Create(model, request)
@@ -317,16 +331,25 @@ func CreateActionEventHandler(initConfig *CmsConfig, configStore *ConfigStore, c
       if res != nil && res.Result() != nil {
         inFieldMap[outcome.Reference] = res.Result().(*api2go.Api2GoModel).Data
       }
-    }
 
-    if err != nil {
-      ginContext.AbortWithError(500, err)
-      return
+      if err != nil {
+        ginContext.AbortWithError(500, err)
+        return
+      }
     }
 
     ginContext.JSON(200, responses)
 
   }
+}
+func NewClientNotification(notificationType string, message string) map[string]interface{} {
+
+  m := make(map[string]interface{})
+
+  m["type"] = notificationType
+  m["message"] = message
+  return m
+
 }
 
 func GetMD5Hash(text string) string {

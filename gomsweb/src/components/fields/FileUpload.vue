@@ -6,7 +6,6 @@
     :on-remove="handleRemove"
     :auto-upload="false"
     :on-change="processFile"
-    accept="*.json"
     :before-upload="handlePreview"
     :file-list="fileList">
 
