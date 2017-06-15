@@ -1,7 +1,7 @@
 package server
 
 import (
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/artpar/api2go"
 	"github.com/artpar/goms/datastore"
 	"gopkg.in/gin-gonic/gin.v1"

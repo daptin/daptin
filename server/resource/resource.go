@@ -4,7 +4,7 @@ import (
 	"fmt"
 	//sq  "gopkg.in/Masterminds/squirrel.v1"
 	//"github.com/jmoiron/sqlx"
-	//log "github.com/Sirupsen/logrus"
+	//log "github.com/sirupsen/logrus"
 	//"database/sql"
 	//"reflect"
 	//"github.com/satori/go.uuid"

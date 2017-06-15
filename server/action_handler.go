@@ -5,7 +5,7 @@ import (
   "encoding/json"
   "errors"
   "fmt"
-  log "github.com/Sirupsen/logrus"
+  log "github.com/sirupsen/logrus"
   "github.com/artpar/api2go"
   "github.com/artpar/goms/server/auth"
   "github.com/artpar/goms/server/resource"

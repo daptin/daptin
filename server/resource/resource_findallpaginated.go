@@ -2,7 +2,7 @@ package resource
 
 import (
 	"fmt"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/artpar/api2go"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"strconv"
