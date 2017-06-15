@@ -1,8 +1,8 @@
 package resource
 
 import (
-	log "github.com/sirupsen/logrus"
 	"github.com/artpar/api2go"
+	log "github.com/sirupsen/logrus"
 	//"reflect"
 	"errors"
 	"github.com/artpar/goms/server/auth"
@@ -106,7 +106,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 	builder := squirrel.Update(dr.model.GetName())
 
-	for i, _ := range colsList {
+	for i := range colsList {
 		//log.Infof("cols to set: %v == %v", colsList[i], valsList[i])
 		builder = builder.Set(colsList[i], valsList[i])
 	}

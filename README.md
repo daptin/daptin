@@ -1,32 +1,39 @@
 
+<a href="#">
+    <img src="https://github.com/artpar/goms/raw/master/gomsweb/static/img/logo_blk.png" alt="GoMS logo" title="GoMS" align="right" height="50" />
+</a>
+
 # Goms
 
-[![Build Status](https://travis-ci.org/artpar/goms.svg?branch=master)](https://travis-ci.org/artpar/goms) [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+
+
+ [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) [![Build Status](https://travis-ci.org/artpar/goms.svg?branch=master)](https://travis-ci.org/artpar/goms)
 
 Not related to [GOMS](https://en.wikipedia.org/wiki/GOMS)
 
-Goms is a adaptable management system.
+GoMS is a platform build to adapt to your requirements.
 
-## Use it before reading on
+## Run it and take the tours before reading on
 
 ```
-docker run -p 8080:6336 goms/goms
+docker run -d -p 8080:8080 goms/goms
 ```
 
 Then open [console](http://localhost:8080)
 
-Goms is targeted for small to medium complexity use cases. You can build blog, a survey management system, a vendor management system, a forum, e-commerce website.
+## How can you use GoMS
 
-## Goals
+GoMS is a platform 
 
-- Zero config start
-- Focus on user requirements more then ease of development
-- Completely configurable at runtime
+## Tech Goals
+
+- Zero config start (sqlite db for fresh install, data can be later automatically moved to mysql/postgres using goms)
+- A closely knit set of components to work together
+- Completely configurable at runtime, can be run without any dev help
 - Stateless
 - Try to piggyback on used/known standards
 - Runnable on all types on devices
-
-- Cross platform app using [qt](https://github.com/therecipe/qt)
+- Cross platform app using [qt](https://github.com/therecipe/qt) (very long term goal. A responsive website for now.)
 
 ### Documentation state
 
@@ -39,8 +46,9 @@ Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
 
 ### Currently present
 
+- Normalised Db Design from JSON schema upload
 - Json Api, with CRUD and Relationships
-- OAuth Authentication using auth0, email is required
+- OAuth Authentication, inbuilt jwt token generator (setups up secret itself)
 - Authorization based on a slightly modified linux FS permission model
 - Objects and action chains
 
@@ -51,10 +59,12 @@ Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
 | State based objects | Objects to have multiple state machines concurrently maintained.                                                                                            |
 | Object events       | created/modified/deleted                                                                                                                                    |
 | Views               | Composing views on run time                                                                                                                                 |
-| Data connectors     | - Event/action triggered Input/Output from the environment/services/apis - Consume data from other services and send data to them - Handle format exchanges |
-| Plugin system       |                                                                                                                                                             |
-| Pages/Sub-sites     |                                                                                                                                                             |
-| Tags                | Native tagging, user tags, group tags on objects                                                                                                            |
+| Data connectors     | Event/action triggered Input/Output from the environment/services/apis |
+|       | Consume data from other services and send data to them |
+|       | Handle format exchanges |
+| Plugin system       |    Compose your desired modifications using resuable JSON files                                                                                                                                                         |
+| Pages/Sub-sites     |  Frequently there is a need for showing "list of items" to public   |
+| Tags                | Native support object tagging   |
 
 
 ### Target
@@ -64,6 +74,7 @@ Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
 Goms makes two tables for user management
 
 - user
+
 Every user who is interacting with the system will be associated with a user in Goms.
 
 By default a user is ```guest```
@@ -112,7 +123,7 @@ Each table also has these permissions, which are picked up from the ```world``` 
 
 Goms work with relational entities. You can create entities to represent your work and the relations with other entities.
 
-All entities are stored in a relational database. Currently the following database support is targeted
+All entities are stored in a relational database. Currently the following database system support is targeted
 
 - mysql
 - sqlite
@@ -131,6 +142,9 @@ Each table being used by Goms will have an entry in ```world``` table. It contai
 
 Each column known to Goms will have an entry in world_column table. It also contains the metadata about the column. 
 
+- actions
+
+Actions are defined on entities, have a set of Input Fields, and a set of Outcomes.
 
 ## Tech stack
 
@@ -138,3 +152,5 @@ Each column known to Goms will have an entry in world_column table. It also cont
 - Semantic UI
 - JSONAPI
 - VueJS
+- CoPilot theme
+- a lot of libraries...

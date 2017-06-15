@@ -64,7 +64,7 @@ func (a *sparseArrayObject) _setLengthInt(l int64, throw bool) bool {
 		idx := a.findIdx(l)
 
 		aa := a.items[idx:]
-		for i, _ := range aa {
+		for i := range aa {
 			aa[i].value = nil
 		}
 		a.items = a.items[:idx]

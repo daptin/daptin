@@ -1,14 +1,14 @@
 package resource
 
 import (
-  log "github.com/sirupsen/logrus"
-  "github.com/artpar/api2go"
-  "gopkg.in/Masterminds/squirrel.v1"
-  //"reflect"
-  "github.com/gorilla/context"
-  "github.com/satori/go.uuid"
-  //"strconv"
-  "github.com/artpar/goms/server/auth"
+	"github.com/artpar/api2go"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/Masterminds/squirrel.v1"
+	//"reflect"
+	"github.com/gorilla/context"
+	"github.com/satori/go.uuid"
+	//"strconv"
+	"github.com/artpar/goms/server/auth"
 )
 
 // Create a new object. Newly created object/struct must be in Responder.
@@ -19,241 +19,240 @@ import (
 //   the server
 
 func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
-  data := obj.(*api2go.Api2GoModel)
-  log.Infof("Create object request: %v", data)
+	data := obj.(*api2go.Api2GoModel)
+	log.Infof("Create object request: %v", data)
 
-  for _, bf := range dr.ms.BeforeCreate {
-    log.Infof("Invoke BeforeCreate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
-    r, err := bf.InterceptBefore(dr, &req)
-    if err != nil {
-      log.Errorf("Error from before create middleware: %v", err)
-      return nil, err
-    }
-    if r != nil {
-      return r, err
-    }
-  }
+	for _, bf := range dr.ms.BeforeCreate {
+		log.Infof("Invoke BeforeCreate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		r, err := bf.InterceptBefore(dr, &req)
+		if err != nil {
+			log.Errorf("Error from before create middleware: %v", err)
+			return nil, err
+		}
+		if r != nil {
+			return r, err
+		}
+	}
 
+	attrs := data.GetAllAsAttributes()
 
-  attrs := data.GetAllAsAttributes()
+	allColumns := dr.model.GetColumns()
 
-  allColumns := dr.model.GetColumns()
+	dataToInsert := make(map[string]interface{})
 
-  dataToInsert := make(map[string]interface{})
+	colsList := []string{}
+	valsList := []interface{}{}
+	for _, col := range allColumns {
 
-  colsList := []string{}
-  valsList := []interface{}{}
-  for _, col := range allColumns {
+		//log.Infof("Add column: %v", col.ColumnName)
+		if col.IsAutoIncrement {
+			continue
+		}
 
-    //log.Infof("Add column: %v", col.ColumnName)
-    if col.IsAutoIncrement {
-      continue
-    }
+		if col.ColumnName == "created_at" {
+			continue
+		}
 
-    if col.ColumnName == "created_at" {
-      continue
-    }
+		if col.ColumnName == "deleted_at" {
+			continue
+		}
 
-    if col.ColumnName == "deleted_at" {
-      continue
-    }
+		if col.ColumnName == "reference_id" {
+			continue
+		}
 
-    if col.ColumnName == "reference_id" {
-      continue
-    }
+		if col.ColumnName == "updated_at" {
+			continue
+		}
 
-    if col.ColumnName == "updated_at" {
-      continue
-    }
+		if col.ColumnName == "permission" {
+			continue
+		}
 
-    if col.ColumnName == "permission" {
-      continue
-    }
+		if col.ColumnName == "user_id" && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" {
+			continue
+		}
 
-    if col.ColumnName == "user_id" && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" {
-      continue
-    }
+		//log.Infof("Check column: %v", col.ColumnName)
 
-    //log.Infof("Check column: %v", col.ColumnName)
+		val, ok := attrs[col.ColumnName]
 
-    val, ok := attrs[col.ColumnName]
+		if !ok || val == nil {
+			continue
+		}
 
-    if !ok || val == nil {
-      continue
-    }
+		if col.IsForeignKey {
+			log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.TableName, val)
+			valString := val.(string)
+			var uId interface{}
+			var err error
+			if valString == "" {
+				uId = nil
+			} else {
+				uId, err = dr.GetReferenceIdToId(col.ForeignKeyData.TableName, valString)
+			}
+			if err != nil {
+				return nil, err
+			}
+			val = uId
+		}
 
-    if col.IsForeignKey {
-      log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.TableName, val)
-      valString := val.(string)
-      var uId interface{}
-      var err error
-      if valString == "" {
-        uId = nil
-      } else {
-        uId, err = dr.GetReferenceIdToId(col.ForeignKeyData.TableName, valString)
-      }
-      if err != nil {
-        return nil, err
-      }
-      val = uId
-    }
+		if col.ColumnType == "password" {
+			var err error
+			val, err = BcryptHashString(val.(string))
+			if err != nil {
+				log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
+				val = ""
+			}
+		}
 
-    if col.ColumnType == "password" {
-      var err error
-      val, err = BcryptHashString(val.(string))
-      if err != nil {
-        log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
-        val = ""
-      }
-    }
+		dataToInsert[col.ColumnName] = val
+		colsList = append(colsList, col.ColumnName)
+		valsList = append(valsList, val)
+	}
 
-    dataToInsert[col.ColumnName] = val
-    colsList = append(colsList, col.ColumnName)
-    valsList = append(valsList, val)
-  }
+	//for _, rel := range dr.model.GetRelations() {
+	//  if rel.Relation == "belongs_to" || rel.Relation == "has_one" {
+	//
+	//    log.Infof("Relations : %v == %v", rel.Object, attrs)
+	//    val, ok := attrs[rel.Object + "_id"]
+	//    if ok {
+	//      colsList = append(colsList, rel.Object + "_id")
+	//      valsList = append(valsList, val)
+	//    }
+	//
+	//  }
+	//}
 
-  //for _, rel := range dr.model.GetRelations() {
-  //  if rel.Relation == "belongs_to" || rel.Relation == "has_one" {
-  //
-  //    log.Infof("Relations : %v == %v", rel.Object, attrs)
-  //    val, ok := attrs[rel.Object + "_id"]
-  //    if ok {
-  //      colsList = append(colsList, rel.Object + "_id")
-  //      valsList = append(valsList, val)
-  //    }
-  //
-  //  }
-  //}
+	newUuid := uuid.NewV4().String()
 
-  newUuid := uuid.NewV4().String()
+	colsList = append(colsList, "reference_id")
+	valsList = append(valsList, newUuid)
 
-  colsList = append(colsList, "reference_id")
-  valsList = append(valsList, newUuid)
+	colsList = append(colsList, "permission")
+	valsList = append(valsList, dr.model.GetDefaultPermission())
 
-  colsList = append(colsList, "permission")
-  valsList = append(valsList, dr.model.GetDefaultPermission())
+	var userId uint64
+	userIdInt := context.Get(req.PlainRequest, "user_id_integer")
+	if userIdInt != nil {
+		userId = uint64(userIdInt.(int64))
+	}
 
-  var userId uint64
-  userIdInt := context.Get(req.PlainRequest, "user_id_integer")
-  if userIdInt != nil {
-    userId = uint64(userIdInt.(int64))
-  }
+	if userId != 0 && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" && dr.model.HasColumn("user_id") {
 
-  if userId != 0 && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" && dr.model.HasColumn("user_id") {
+		colsList = append(colsList, "user_id")
+		valsList = append(valsList, userId)
+	}
 
-    colsList = append(colsList, "user_id")
-    valsList = append(valsList, userId)
-  }
+	query, vals, err := squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
+	if err != nil {
+		log.Errorf("Failed to create insert query: %v", err)
+		return NewResponse(nil, nil, 500, nil), err
+	}
 
-  query, vals, err := squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
-  if err != nil {
-    log.Errorf("Failed to create insert query: %v", err)
-    return NewResponse(nil, nil, 500, nil), err
-  }
+	log.Infof("Insert query: %v", query)
+	_, err = dr.db.Exec(query, vals...)
+	if err != nil {
+		log.Errorf("Failed to execute insert query: %v", err)
+		return NewResponse(nil, nil, 500, nil), err
+	}
 
-  log.Infof("Insert query: %v", query)
-  _, err = dr.db.Exec(query, vals...)
-  if err != nil {
-    log.Errorf("Failed to execute insert query: %v", err)
-    return NewResponse(nil, nil, 500, nil), err
-  }
+	createdResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), newUuid)
+	if err != nil {
+		log.Errorf("Failed to select the newly created entry: %v", err)
+		return nil, err
+	}
+	//
 
-  createdResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), newUuid)
-  if err != nil {
-    log.Errorf("Failed to select the newly created entry: %v", err)
-    return nil, err
-  }
-  //
+	log.Infof("Crated entry: %v", createdResource)
 
-  log.Infof("Crated entry: %v", createdResource)
+	userGroupId := dr.GetUserGroupIdByUserId(userId)
 
-  userGroupId := dr.GetUserGroupIdByUserId(userId)
+	if userGroupId != 0 && dr.model.HasMany("usergroup") {
+		log.Infof("Associate new entity with usergroup: %v", userGroupId)
+		nuuid := uuid.NewV4().String()
 
-  if userGroupId != 0 && dr.model.HasMany("usergroup") {
-    log.Infof("Associate new entity with usergroup: %v", userGroupId)
-    nuuid := uuid.NewV4().String()
+		belogsToUserGroupSql, q, err := squirrel.
+			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
+			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
+			Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
-    belogsToUserGroupSql, q, err := squirrel.
-    Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
-        Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
-        Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
+		log.Infof("Query: %v", belogsToUserGroupSql)
+		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 
-    log.Infof("Query: %v", belogsToUserGroupSql)
-    _, err = dr.db.Exec(belogsToUserGroupSql, q...)
+		if err != nil {
+			log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
+		}
+	} else if dr.model.GetName() == "usergroup" && userId != 0 {
 
-    if err != nil {
-      log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
-    }
-  } else if dr.model.GetName() == "usergroup" && userId != 0 {
+		log.Infof("Associate new user with usergroup: %v", userId)
+		nuuid := uuid.NewV4().String()
 
-    log.Infof("Associate new user with usergroup: %v", userId)
-    nuuid := uuid.NewV4().String()
+		belogsToUserGroupSql, q, err := squirrel.
+			Insert("user_user_id_has_usergroup_usergroup_id").
+			Columns("user_id", "usergroup_id", "reference_id", "permission").
+			Values(userId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
-    belogsToUserGroupSql, q, err := squirrel.
-    Insert("user_user_id_has_usergroup_usergroup_id").
-        Columns("user_id", "usergroup_id", "reference_id", "permission").
-        Values(userId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
+		log.Infof("Query: %v", belogsToUserGroupSql)
+		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 
-    log.Infof("Query: %v", belogsToUserGroupSql)
-    _, err = dr.db.Exec(belogsToUserGroupSql, q...)
+		if err != nil {
+			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
+		}
 
-    if err != nil {
-      log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
-    }
+	} else if dr.model.GetName() == "user" {
 
-  } else if dr.model.GetName() == "user" {
+		log.Infof("Associate new user with user: %v", userId)
 
-    log.Infof("Associate new user with user: %v", userId)
+		belogsToUserGroupSql, q, err := squirrel.
+			Update("user").
+			Set("user_id", createdResource["id"]).
+			Where(squirrel.Eq{"id": createdResource["id"]}).ToSql()
 
-    belogsToUserGroupSql, q, err := squirrel.
-    Update("user").
-        Set("user_id", createdResource["id"]).
-        Where(squirrel.Eq{"id": createdResource["id"]}).ToSql()
+		log.Infof("Query: %v", belogsToUserGroupSql)
+		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 
-    log.Infof("Query: %v", belogsToUserGroupSql)
-    _, err = dr.db.Exec(belogsToUserGroupSql, q...)
+		if err != nil {
+			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
+		}
 
-    if err != nil {
-      log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
-    }
+	}
 
-  }
+	delete(createdResource, "id")
 
-  delete(createdResource, "id")
+	for _, bf := range dr.ms.AfterCreate {
+		log.Infof("Invoke AfterCreate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
-  for _, bf := range dr.ms.AfterCreate {
-    log.Infof("Invoke AfterCreate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource})
+		if err != nil {
+			log.Errorf("Error from after create middleware: %v", err)
+		}
+		if len(results) < 1 {
+			createdResource = nil
+		} else {
+			createdResource = results[0]
+		}
+	}
 
-    results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource})
-    if err != nil {
-      log.Errorf("Error from after create middleware: %v", err)
-    }
-    if len(results) < 1 {
-      createdResource = nil
-    } else {
-      createdResource = results[0]
-    }
-  }
+	//for k, v := range createdResource {
+	//  k1 := reflect.TypeOf(v)
+	//  //log.Infof("K: %v", k1)
+	//  if v != nil && k1.Kind() == reflect.Slice {
+	//    createdResource[k] = string(v.([]uint8))
+	//  }
+	//}
 
-  //for k, v := range createdResource {
-  //  k1 := reflect.TypeOf(v)
-  //  //log.Infof("K: %v", k1)
-  //  if v != nil && k1.Kind() == reflect.Slice {
-  //    createdResource[k] = string(v.([]uint8))
-  //  }
-  //}
+	delete(createdResource, "id")
+	delete(createdResource, "deleted_at")
+	log.Infof("Create response: %v", createdResource)
 
-  delete(createdResource, "id")
-  delete(createdResource, "deleted_at")
-  log.Infof("Create response: %v", createdResource)
-
-  n1 := dr.model.GetName()
-  c1 := dr.model.GetColumns()
-  p1 := dr.model.GetDefaultPermission()
-  r1 := dr.model.GetRelations()
-  return NewResponse(nil,
-    api2go.NewApi2GoModelWithData(n1, c1, p1, r1, createdResource),
-    201, nil,
-  ), nil
+	n1 := dr.model.GetName()
+	c1 := dr.model.GetColumns()
+	p1 := dr.model.GetDefaultPermission()
+	r1 := dr.model.GetRelations()
+	return NewResponse(nil,
+		api2go.NewApi2GoModelWithData(n1, c1, p1, r1, createdResource),
+		201, nil,
+	), nil
 
 }

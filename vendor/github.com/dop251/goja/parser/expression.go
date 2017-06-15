@@ -1,7 +1,6 @@
 package parser
 
 import (
-
 	"github.com/dop251/goja/ast"
 	"github.com/dop251/goja/file"
 	"github.com/dop251/goja/token"
