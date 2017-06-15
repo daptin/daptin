@@ -3,7 +3,7 @@ package server
 import (
   "encoding/json"
   "fmt"
-  log "github.com/Sirupsen/logrus"
+  log "github.com/sirupsen/logrus"
   "github.com/artpar/api2go"
   "github.com/artpar/goms/datastore"
   "github.com/jmoiron/sqlx"
