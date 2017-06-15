@@ -14,11 +14,34 @@
 
         <div class="navbar-custom-menu">
           <ul class="nav navbar-nav">
-            <li @click="startTour">
-              <a href="javascript:;" class="bg-purple" role="button">
-                <span class="fa fa-question "></span> <b>Take a tour</b>
+
+            <!-- Notifications: style can be found in dropdown.less -->
+            <li class="dropdown notifications-menu">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                <i class="fa fa-bell-o"></i>
+                <span class="label label-success">2</span> Tours
               </a>
+              <ul class="dropdown-menu">
+                <li class="header">You have 2 tours available</li>
+                <li>
+                  <!-- inner menu: contains the actual data -->
+                  <ul class="menu">
+                    <li @click="startTour(1)">
+                      <router-link :to="{name: 'Dashboard'}">
+                        <i class="fa fa-th-list"></i> #1 Sidebar and actions
+                      </router-link>
+                    </li>
+                    <li @click="startTour(2)">
+                      <router-link :to="{name: 'Entity', params: {tablename: 'user'}}">
+                        <i class="ion ion-ios-people info"></i> #2 Users and table view
+                      </router-link>
+                    </li>
+                  </ul>
+                </li>
+                <li class="footer"><a href="#">View all</a></li>
+              </ul>
             </li>
+
             <!-- Messages-->
             <!--<li class="dropdown messages-menu">-->
             <!--<a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown">-->
@@ -277,8 +300,8 @@
     methods: {
       startTour() {
 
-        if (this.tour) {
-          this.tour.show();
+        if (Shepherd.activeTour) {
+          Shepherd.activeTour.show();
           return
         }
 
@@ -329,14 +352,9 @@
 
         tour.addStep('sidebar', {
           text: 'Clicking on the "User" link will take us to the users page',
-          attachTo: '.sidebar-menu right',
-          advanceOn: '.pageLink click',
-          buttons: [
-            {
-              text: 'Next',
-              action: tour.next
-            }
-          ]
+          attachTo: '.user-link right',
+          advanceOn: '.user-link click',
+          buttons: []
         });
 
 
@@ -353,8 +371,8 @@
 
 
         tour.addStep('sidebar', {
-          text: 'The enlarge button takes us to particular item, which shows all its related actions and items.',
-          attachTo: '.fa-enlarge top',
+          text: 'The expand button takes us to particular item, which shows all its related actions and items.',
+          attachTo: '.fa-expand top',
           buttons: [
             {
               text: 'Next',
@@ -409,7 +427,7 @@
         });
 
         tour.addStep('sidebar', {
-          text: 'These two buttons don\'t do anything for now, but they will give access to a different kind of view (card layout/other layouts)',
+          text: 'These two grey buttons don\'t do anything for now, but they will give access to a different kind of view (card layout/other layouts)',
           attachTo: '.fa-table bottom',
           buttons: [
             {
@@ -420,7 +438,7 @@
         });
 
         tour.addStep('sidebar', {
-          text: 'The main purpose of GoMS is to get modified to suit your needs. You can add "New Features" to GoMS using JSON files, which will act like plugins in near future. Let us <a href="https://raw.githubusercontent.com/artpar/goms/master/gomsweb/static/samples/blog.json" target="_blank">download a sample JSON file</a> that I have created for playing around, based on a "blogging system".',
+          text: 'The main purpose of GoMS is to get modified to suit your needs. You can add "New Features" to GoMS using JSON files, which will act like plugins in near future. <br><br>Let us <a href="https://raw.githubusercontent.com/artpar/goms/master/gomsweb/static/samples/blog.json" target="_blank">download a sample JSON file</a> that I have created for playing around, based on what a "basic blogging system" would look like.',
           buttons: [
             {
               text: 'Next',
