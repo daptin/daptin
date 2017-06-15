@@ -17,7 +17,7 @@
       </router-link>
     </li>
 
-    <li class="treeview">
+    <li class="treeview system-action-list">
       <a href="#">
         <i class="fa fa-folder-o"></i>
         <span>System Actions</span>
@@ -27,17 +27,17 @@
       </a>
       <ul class="treeview-menu">
         <li>
-          <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}">
+          <router-link class="upload-schema" :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}">
             <i class="fa fa-cog"></i> Add New Features
           </router-link>
         </li>
         <li>
-          <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}">
+          <router-link class="download-schema" :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}">
             <i class="fa fa-download"></i> Download System Schema
           </router-link>
         </li>
         <li>
-          <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}">
+          <router-link class="become-admin-button" :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}">
             <i class="fa fa-flag"></i> Become Admin
           </router-link>
         </li>
