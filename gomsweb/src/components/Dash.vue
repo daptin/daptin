@@ -32,10 +32,10 @@
             <li class="dropdown notifications-menu">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                 <i class="fa fa-film"></i>
-                <span class="label label-warning">5</span> Tours
+                <span class="label label-warning">7</span> Tours
               </a>
               <ul class="dropdown-menu">
-                <li class="header">You have 5 tours available</li>
+                <li class="header">You have 7 tours available</li>
                 <li>
                   <!-- inner menu: contains the actual data -->
                   <ul class="menu">
