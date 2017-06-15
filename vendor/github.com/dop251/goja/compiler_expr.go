@@ -772,7 +772,7 @@ func (e *compiledFunctionLiteral) emitGetter(putOnStack bool) {
 	}
 	lenBefore := len(e.c.scope.names)
 	namesBefore := make([]string, 0, lenBefore)
-	for key, _ := range e.c.scope.names {
+	for key := range e.c.scope.names {
 		namesBefore = append(namesBefore, key)
 	}
 	maxPreambleLen := 2
@@ -800,7 +800,7 @@ func (e *compiledFunctionLiteral) emitGetter(putOnStack bool) {
 			e.c.p.code = e.c.p.code[maxPreambleLen-1:]
 		}
 		e.c.convertFunctionToStashless(e.c.p.code, paramsCount)
-		for i, _ := range e.c.p.srcMap {
+		for i := range e.c.p.srcMap {
 			e.c.p.srcMap[i].pc -= maxPreambleLen - l
 		}
 	} else {
@@ -841,7 +841,7 @@ func (e *compiledFunctionLiteral) emitGetter(putOnStack bool) {
 
 		copy(code[l:], e.c.p.code[maxPreambleLen:])
 		e.c.p.code = code
-		for i, _ := range e.c.p.srcMap {
+		for i := range e.c.p.srcMap {
 			e.c.p.srcMap[i].pc += l - maxPreambleLen
 		}
 	}

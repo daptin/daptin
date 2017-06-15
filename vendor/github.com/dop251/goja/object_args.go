@@ -140,7 +140,7 @@ func (a *argumentsObject) getOwnProp(name string) Value {
 
 func (a *argumentsObject) export() interface{} {
 	arr := make([]interface{}, a.length)
-	for i, _ := range arr {
+	for i := range arr {
 		v := a.get(intToValue(int64(i)))
 		if v != nil {
 			arr[i] = v.Export()

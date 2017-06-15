@@ -4,6 +4,8 @@
 	<span class="logo-mini">
 		<a href="/"><img src="/static/img/copilot-logo-white.svg" alt="Logo" class="img-responsive center-block logo"></a>
 	</span>
+
+
       <!-- Header Navbar -->
       <nav class="navbar navbar-static-top" role="navigation">
         <!-- Sidebar toggle button-->
@@ -15,20 +17,31 @@
         <div class="navbar-custom-menu">
           <ul class="nav navbar-nav">
 
+            <li><a href="https://github.com/artpar/goms/wiki" target="_blank"><span class="fa fa-files-o"></span>
+              Dev help</a></li>
+
+
+            <li><a href="https://github.com/artpar/goms/issues/new" target="_blank"><span class="fa fa-cogs"></span>
+              File an issue/bug</a></li>
+
+
+            <li><a href="mailto:artpar@gmail.com?subject=GoMS&body=Hi Parth,\n"><span class="fa fa-envelope-o"></span>
+              Email support</a></li>
+
             <!-- Notifications: style can be found in dropdown.less -->
             <li class="dropdown notifications-menu">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                 <i class="fa fa-film"></i>
-                <span class="label label-warning">4</span> Tours
+                <span class="label label-warning">5</span> Tours
               </a>
               <ul class="dropdown-menu">
-                <li class="header">You have 4 tours available</li>
+                <li class="header">You have 5 tours available</li>
                 <li>
                   <!-- inner menu: contains the actual data -->
                   <ul class="menu">
                     <li @click="startTour(1)">
                       <router-link :to="{name: 'Dashboard'}">
-                        <i class="fa fa-th-list grey"></i> #1 Sidebar and actions
+                        <i class="fa fa-th-list teal"></i> #1 Sidebar and actions
                       </router-link>
                     </li>
                     <li @click="startTour(2)">
@@ -43,7 +56,22 @@
                     </li>
                     <li @click="startTour(4)">
                       <router-link :to="{name: 'Dashboard'}">
-                        <i class="fa fa-cubes orange"></i> #3 Add features using JSON
+                        <i class="fa fa-cubes orange"></i> #4 Add features using JSON
+                      </router-link>
+                    </li>
+                    <li @click="startTour(5)">
+                      <router-link :to="{name: 'Dashboard'}">
+                        <i class="fa fa-star fuchsia"></i> #5 What's new after the JSON feature upload ?
+                      </router-link>
+                    </li>
+                    <li @click="startTour(6)">
+                      <router-link :to="{name: 'Dashboard'}">
+                        <i class="fa fa-cubes grey"></i> #6 Actions and chains
+                      </router-link>
+                    </li>
+                    <li @click="startTour(7)">
+                      <router-link :to="{name: 'Dashboard'}">
+                        <i class="fa fa-road maroon"></i> #7 What now ?
                       </router-link>
                     </li>
                   </ul>
@@ -556,6 +584,142 @@
             ]
           });
 
+
+        }
+
+        if (tourId == 5) {
+
+
+          tour.addStep('sidebar', {
+            text: 'Welcome back after uploading the JSON. If you uploaded the [blog.json] from the earlier tour, you will see a new sidebar entry "Blog"',
+            advanceOn: ".download-json click",
+            buttons: [
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
+
+
+          tour.addStep('sidebar', {
+            text: 'Clicking on this will take us to the table view of blogs in the system. This will be the same view we visited in the earlier tour of users.<br> <br>Click on "Blog" to continue',
+            advanceOn: ".blog-link click",
+            attachTo: ".blog-link right",
+            buttons: []
+          });
+
+
+          tour.addStep('sidebar', {
+            text: 'The table is empty, as it should be, because we just added a "Blog" feature to GoMS, but have not used it yet.',
+            attachTo: ".vuetable top",
+            buttons: [
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
+
+          tour.addStep('sidebar', {
+            text: 'The table is empty, as it should be, because we just added a "Blog" feature to GoMS, but have not used it yet.',
+            attachTo: ".vuetable top",
+            buttons: [
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
+
+
+          tour.addStep('sidebar', {
+            text: 'Just to be clear and avoid confusion at a later stage, here is a description of what was in the JSON schema <br><br> <ul><li>Defines "blog" as a collection of "post", a  "viewcount" and a title. </li> <li>Each "post" has a body and a title and may have any number of "comment".</li><li>Comment has a field for "author name" and another for "comment text" itself </li></ul>',
+            buttons: [
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
+
+
+          tour.addStep('sidebar', {
+            text: 'Now lets create a new "blog"',
+            attachTo: ".fa-plus bottom",
+            advanceOn: ".fa-plus click",
+            buttons: []
+          });
+
+          tour.addStep('sidebar', {
+            text: 'You can fill in 755 for the permission field and ignore it for now. We will go over authentication and authorization in another tour.<br><br>Choose a title, and 0 view count to begin with.<br><br>Submit to continue',
+            attachTo: ".vue-form-generator top",
+            advanceOn: ".el-button click",
+            buttons: [
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
+
+
+          tour.addStep('sidebar', {
+            text: 'If everything went well, we will see a new entry in the "blog". Which brings us to the end of this long tour. <br><br>You can go in expanded more for this blog and start the next tour.',
+            attachTo: ".fa-expand left",
+            buttons: [
+              {
+                text: 'End',
+                action: tour.hide
+              }
+            ]
+          });
+        }
+
+        if (tourId == 6) {
+
+          tour.addStep('sidebar', {
+            text: 'This tour is not ready yet. <br><br>Checkout the next one',
+            buttons: [
+              {
+                text: 'End',
+                action: tour.hide
+              }
+            ]
+          });
+
+        }
+
+        if (tourId == 7) {
+
+          tour.addStep('sidebar', {
+            text: 'If you plan to use GoMS at this stage (pre-alpha release), please do drop me a line so we can build better.',
+            buttons: [
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
+
+          tour.addStep('sidebar', {
+            text: 'You can easily deploy GoMS on any hosting service, or using docker <pre>docker run goms/goms</pre> or run locally. It has no dependency on the internet.',
+            buttons: [
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          });
+          tour.addStep('sidebar', {
+            text: 'We are also targeting simple data management services for smaller devices (will begin testing with raspberry pi)',
+            buttons: [
+              {
+                text: 'End',
+                action: tour.hide
+              }
+            ]
+          });
 
         }
 

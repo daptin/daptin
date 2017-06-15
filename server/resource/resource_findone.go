@@ -1,8 +1,8 @@
 package resource
 
 import (
-	log "github.com/sirupsen/logrus"
 	"github.com/artpar/api2go"
+	log "github.com/sirupsen/logrus"
 )
 
 // FindOne returns an object by its ID

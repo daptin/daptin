@@ -336,12 +336,12 @@ func (vm *vm) try(f func()) (ex *Exception) {
 
 				// Restore other stacks
 				iterTail := vm.iterStack[iterLen:]
-				for i, _ := range iterTail {
+				for i := range iterTail {
 					iterTail[i] = iterStackItem{}
 				}
 				vm.iterStack = vm.iterStack[:iterLen]
 				refTail := vm.refStack[refLen:]
-				for i, _ := range refTail {
+				for i := range refTail {
 					refTail[i] = nil
 				}
 				vm.refStack = vm.refStack[:refLen]
@@ -1864,7 +1864,7 @@ func (e enterFunc) exec(vm *vm) {
 	} else {
 		copy(vm.stash.values, vm.stack[vm.sp-vm.args:])
 		vv := vm.stash.values[vm.args:]
-		for i, _ := range vv {
+		for i := range vv {
 			vv[i] = _undefined
 		}
 	}
@@ -1910,7 +1910,7 @@ func (e enterFuncStashless) exec(vm *vm) {
 		vm.sp += int(ss)
 		vm.stack.expand(vm.sp)
 		s := vm.stack[sp:vm.sp]
-		for i, _ := range s {
+		for i := range s {
 			s[i] = _undefined
 		}
 	}
