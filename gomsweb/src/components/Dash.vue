@@ -19,10 +19,10 @@
             <li class="dropdown notifications-menu">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                 <i class="fa fa-film"></i>
-                <span class="label label-warning">3</span> Tours
+                <span class="label label-warning">4</span> Tours
               </a>
               <ul class="dropdown-menu">
-                <li class="header">You have 3 tours available</li>
+                <li class="header">You have 4 tours available</li>
                 <li>
                   <!-- inner menu: contains the actual data -->
                   <ul class="menu">
@@ -39,6 +39,11 @@
                     <li @click="startTour(3)">
                       <router-link :to="{name: 'Dashboard'}">
                         <i class="fa fa-graduation-cap green"></i> #3 Become admin
+                      </router-link>
+                    </li>
+                    <li @click="startTour(4)">
+                      <router-link :to="{name: 'Dashboard'}">
+                        <i class="fa fa-cubes orange"></i> #3 Add features using JSON
                       </router-link>
                     </li>
                   </ul>
@@ -510,14 +515,14 @@
             advanceOn: '.system-action-list click',
             buttons: [
               {
-                text: 'Next',
-                action: tour.next
+                text: 'Close',
+                action: tour.hide
               }
             ]
           });
 
           tour.addStep('sidebar', {
-            text: 'The first thing you would probably do with any GoMS installation is to Become Administrator.  You will see a quick reload of your page. You can then "Add New Features" by uploading the JSON, which will take you through another refresh and you will be able to see your new entities in this Sidebar.<br><br>Click "Become Admin" to take ownership. ',
+            text: 'The first thing you would probably do with any GoMS installation is to Become Administrator.  You will see a quick reload of your page. <br><br>Click "Become Admin" to take ownership. ',
             attachTo: '.become-admin-button right',
             buttons: [
               {
@@ -540,10 +545,15 @@
 
 
           tour.addStep('sidebar', {
-            text: 'The main purpose of GoMS is to get modified to suit your needs. You can add "New Features" to GoMS using JSON files, which will act like plugins in near future. <br><br>Let us <a class="download-json btn btn-success" href="https://raw.githubusercontent.com/artpar/goms/master/gomsweb/static/samples/blog.json" target="_blank">Download a sample JSON file</a> that I have created for playing around, based on what a "basic blogging system" would look like.',
-            attachTo: '.upload-schema right',
-            advanceOn: ".download-json click",
-            buttons: []
+            text: 'We will now "Add New Features" by uploading the JSON, which will take you through another refresh and you will be able to see your new entities in this Sidebar.',
+            attachTo: '.system-action-list right',
+            advanceOn: '.upload-schema click',
+            buttons: [
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
           });
 
 
