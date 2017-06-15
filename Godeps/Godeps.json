@@ -7,11 +7,6 @@
 	],
 	"Deps": [
 		{
-			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.11.5-46-g5e5dc89",
-			"Rev": "5e5dc898656f695e2a086b8e12559febbfc01562"
-		},
-		{
 			"ImportPath": "github.com/ahl5esoft/golang-underscore",
 			"Rev": "4c4738d8de61796a6f759d2813f4ec3ae97baf89"
 		},
