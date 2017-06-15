@@ -8,7 +8,7 @@
       <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
     </div>
     <div class="col-md-12">
-      <el-button type="submit" :class="loading" @click.prevent="saveRow()"> Submit </el-button>
+      <el-button type="submit"  v-loading.body="loading" @click.prevent="saveRow()"> Submit </el-button>
       <el-button v-if="!hideCancel" @click="cancel()">Cancel</el-button>
     </div>
   </div>
@@ -116,7 +116,7 @@
       },
       saveRow: function () {
         console.log("save row", this.model);
-        this.loading = "loading";
+        this.loading = true;
         this.$emit('save', this.model)
       },
       cancel: function () {
