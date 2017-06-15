@@ -54,7 +54,7 @@
       return {
         formModel: null,
         formValue: {},
-        loading: "",
+        loading: false,
       }
     },
     methods: {
@@ -115,8 +115,12 @@
         return inputType;
       },
       saveRow: function () {
+        var that = this;
         console.log("save row", this.model);
         this.loading = true;
+        setTimeout((function(){
+          that.loading = false;
+        }), 3000);
         this.$emit('save', this.model)
       },
       cancel: function () {
