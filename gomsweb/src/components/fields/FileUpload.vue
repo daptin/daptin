@@ -30,7 +30,6 @@
     mounted(){
       setTimeout(function () {
         let $input = $("input[type=file]");
-        alert("Setting file display to none");
         if ($input && $input.length > 0) {
           $input.css("display", "none")
         }
