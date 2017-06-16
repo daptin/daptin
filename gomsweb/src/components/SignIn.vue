@@ -15,7 +15,7 @@
         <div class="col-md-4 col-sm-offset-4">
           <div class="box">
             <div class="box-body">
-              <router-link class="btn btn-primary" :to="{name: 'SignUp'}">Sign Up</router-link>
+              <router-link class="btn bg-blue" :to="{name: 'SignUp'}">Sign Up</router-link>
             </div>
           </div>
         </div>

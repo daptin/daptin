@@ -1,15 +1,17 @@
 <template>
 
-  <div class="row">
-    <div class="col-md-12" v-if="!hideTitle">
-      {{title}}
+  <div class="box">
+    <div class="box-header" v-if="!hideTitle">
+      <div class="box-title">
+        {{title}}
+      </div>
     </div>
-    <div class="col-md-12">
+    <div class="box-body">
       <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
     </div>
-    <div class="col-md-12">
-      <el-button type="submit"  v-loading.body="loading" @click.prevent="saveRow()"> Submit </el-button>
-      <el-button v-if="!hideCancel" @click="cancel()">Cancel</el-button>
+    <div class="box-footer">
+      <el-button class="bg-yellow" type="submit"  v-loading.body="loading" @click.prevent="saveRow()"> Submit </el-button>
+      <el-button class="bg-red" v-if="!hideCancel" @click="cancel()">Cancel</el-button>
     </div>
   </div>
 
@@ -27,6 +29,11 @@
         default: function () {
           return {}
         }
+      },
+      title: {
+        type: String,
+        required: false,
+        default: ""
       },
       hideTitle: {
         type: Boolean,

@@ -19,10 +19,12 @@
     <div class="box-body">
 
       <div class="row" v-if="showAddEdit && rowBeingEdited != null">
-        <model-form class="col-md-12" @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
-                    @cancel="showAddEdit = false"
-                    v-bind:model="rowBeingEdited"
-                    v-bind:meta="selectedTableColumns" ref="modelform"></model-form>
+        <div class="col-md-6">
+          <model-form :title="'New ' + selectedTable" @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
+                      @cancel="showAddEdit = false"
+                      v-bind:model="rowBeingEdited"
+                      v-bind:meta="selectedTableColumns" ref="modelform"></model-form>
+        </div>
       </div>
 
       <table-view @newRow="newRow()" @editRow="editRow" v-if="selectedTable"
