@@ -17,7 +17,7 @@
                        :json-api="jsonApi" :model="selectedRow"></action-view>
         </div>
       </div>
-      <div class="col-md-8">
+      <div class="col-md-9">
 
         <detailed-table-row :model="selectedRow" v-if="selectedRow" :json-api="jsonApi"
                             :json-api-model-name="selectedTable"></detailed-table-row>
@@ -36,7 +36,7 @@
 
 
       </div>
-      <div class="col-md-4">
+      <div class="col-md-3">
 
 
         <div class="row" v-if="actions != null">
@@ -44,7 +44,7 @@
             <h2>Actions</h2>
           </div>
           <div class="col-md-12" v-for="a, k in actions">
-            <el-button @click="doAction(a)">{{a.label}}</el-button>
+            <el-button style="width: 100%" @click="doAction(a)">{{a.label}}</el-button>
           </div>
         </div>
 
@@ -53,7 +53,7 @@
             <h2>Related</h2>
           </div>
           <div class="col-md-12" v-for="world in visibleWorlds">
-            <router-link class="btn btn-default"
+            <router-link style="width: 100%" class="btn btn-default"
                          :to="{name: 'Relation', params: {tablename: selectedTable, refId: selectedInstanceReferenceId, subTable: world.table_name}}">
               {{world.table_name | titleCase}}
             </router-link>

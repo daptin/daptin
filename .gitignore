@@ -18,5 +18,4 @@ temp.*gocms.json
 .glide/
 *.iml
 docker_dir/
-main
 test.db
