@@ -25,19 +25,28 @@ const ActionManager = function () {
     return bytes;
   }
 
-  this.saveByteArray = (function () {
-    var a = document.createElement("a");
-    document.body.appendChild(a);
-    a.style = "display: none";
+  setTimeout(function () {
+    that.a = document.createElement("a");
+    document.body.appendChild(that.a);
+    that.a.style = "display: none";
     return function (downloadData) {
       var blob = new Blob([atob(downloadData.content)], {type: downloadData.contentType}),
         url = window.URL.createObjectURL(blob);
-      a.href = url;
-      a.download = downloadData.name;
-      a.click();
+      that.a.href = url;
+      that.a.download = downloadData.name;
+      that.a.click();
       window.URL.revokeObjectURL(url);
     };
-  }());
+  })
+
+  this.saveByteArray = function (downloadData) {
+    var blob = new Blob([atob(downloadData.content)], {type: downloadData.contentType}),
+      url = window.URL.createObjectURL(blob);
+    that.a.href = url;
+    that.a.download = downloadData.name;
+    that.a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
 
   this.getGuestActions = function () {
