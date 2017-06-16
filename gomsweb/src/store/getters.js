@@ -9,6 +9,12 @@ export default {
   },
   isAuthenticated (state) {
     // console.log("check is authenticated: ", window.localStorage.getItem("token"))
+    var x = JSON.parse(window.localStorage.getItem("user"));
+    console.log("Auth check", x)
+    if (!x || !x.exp || new Date(x.exp * 1000) < new Date()) {
+      window.localStorage.clear();
+      return false;
+    }
     return !!window.localStorage.getItem("token")
   },
   systemActions(state) {

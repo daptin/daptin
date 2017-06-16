@@ -28,9 +28,13 @@
       }
     },
     mounted(){
-      setTimeout(function(){
-        $("input[type=file]").css("display", "none")
-      }, 200)
+      setTimeout(function () {
+        let $input = $("input[type=file]");
+        alert("Setting file display to none");
+        if ($input && $input.length > 0) {
+          $input.css("display", "none")
+        }
+      }, 100)
     },
     methods: {
       handlePreview: function () {
@@ -60,7 +64,7 @@
 
         if (!isJson) {
 
-          for (var i=0;i<filelist.length;i++){
+          for (var i = 0; i < filelist.length; i++) {
             if (filelist[i].uid == file.uid) {
               filelist.splice(i, 1);
               break;
