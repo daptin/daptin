@@ -19,7 +19,6 @@
     },
     mounted: function () {
       var that = this;
-      console.log("App authentication: ", this.$store.getters.isAuthenticated)
       if (!this.$store.getters.isAuthenticated) {
 
         const {token, secret} = extractInfoFromHash();
