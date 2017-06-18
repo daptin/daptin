@@ -3,6 +3,7 @@ package datastore
 import (
   "github.com/artpar/api2go"
   "github.com/artpar/goms/server/resource"
+  "github.com/artpar/goms/server/fsm_manager"
 )
 
 var StandardColumns = []api2go.ColumnInfo{
@@ -24,13 +25,12 @@ var StandardColumns = []api2go.ColumnInfo{
     IsIndexed:    true,
   },
   {
-    Name:         "updated_at",
-    ColumnName:   "updated_at",
-    DataType:     "timestamp",
-    DefaultValue: "null",
-    IsIndexed:    true,
-    IsNullable:   true,
-    ColumnType:   "datetime",
+    Name:       "updated_at",
+    ColumnName: "updated_at",
+    DataType:   "timestamp",
+    IsIndexed:  true,
+    IsNullable: true,
+    ColumnType: "datetime",
   },
   {
     Name:           "deleted_at",
@@ -68,9 +68,12 @@ var StandardColumns = []api2go.ColumnInfo{
 var StandardRelations = []api2go.TableRelation{
   api2go.NewTableRelation("world_column", "belongs_to", "world"),
   api2go.NewTableRelation("action", "belongs_to", "world"),
-  api2go.NewTableRelation("world", "has_many", "state_machine"),
+  api2go.NewTableRelation("world", "has_many", "smd"),
 }
 
+var SystemSmds = []fsm_manager.LoopbookFsmDescription{
+
+}
 var SystemActions = []resource.Action{
   {
     Name:   "upload_system_schema",
@@ -124,7 +127,7 @@ var SystemActions = []resource.Action{
   },
   {
     Name:   "signup",
-    Label:  "Sign up on GoMS",
+    Label:  "Sign up on Goms",
     OnType: "user",
     InFields: []api2go.ColumnInfo{
       {
@@ -448,7 +451,7 @@ var StandardTables = []TableInfo{
     },
   },
   {
-    TableName: "state_machine",
+    TableName: "smd",
     IsHidden:  true,
     Columns: []api2go.ColumnInfo{
       {
@@ -460,11 +463,26 @@ var StandardTables = []TableInfo{
         IsNullable: false,
       },
       {
-        Name:       "state_machine_description",
-        ColumnName: "state_machine_description",
-        DataType:   "text",
-        ColumnType: "json",
+        Name:       "label",
+        ColumnName: "label",
+        DataType:   "varchar(100)",
+        ColumnType: "label",
         IsNullable: false,
+      },
+      {
+        Name:       "initial_state",
+        ColumnName: "initial_state",
+        DataType:   "varchar(100)",
+        ColumnType: "label",
+        IsNullable: false,
+      },
+      {
+        Name:           "events",
+        ColumnName:     "events",
+        DataType:       "text",
+        ExcludeFromApi: true,
+        ColumnType:     "json",
+        IsNullable:     false,
       },
     },
   },
@@ -475,6 +493,7 @@ type TableInfo struct {
   TableId           int
   DefaultPermission int64 `db:"default_permission"`
   Columns           []api2go.ColumnInfo
+  StateMachines     []fsm_manager.LoopbookFsmDescription
   Relations         []api2go.TableRelation
   IsTopLevel        bool `db:"is_top_level"`
   Permission        int64
