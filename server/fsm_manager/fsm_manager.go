@@ -69,10 +69,10 @@ type LoopbookFsmDescription struct {
   InitialState string `json:"initial_state"`
   Name         string
   Label        string
-  Events       []LoopbackEventDesc `json:"-"`
+  Events       []LoopbackEventDesc `json:"events"`
 }
 
-func (fsm *fsmManager) stateMachineRunnerFor(typeName string, machineId int64) (*loopfsm.FSM, error) {
+func (fsm *fsmManager) stateMachineRunnerFor(currentState string, typeName string, machineId int64) (*loopfsm.FSM, error) {
 
   s, v, err := squirrel.Select("initial_state", "events").From("smd").Where(squirrel.Eq{"id": machineId}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
   if err != nil {
@@ -82,8 +82,13 @@ func (fsm *fsmManager) stateMachineRunnerFor(typeName string, machineId int64) (
   var jsonValue string
   var initialState string
   err = fsm.db.QueryRowx(s, v...).Scan(&initialState, &jsonValue)
-  if err != nil {
-    return nil, err
+
+  if (currentState == "") {
+
+    if err != nil {
+      return nil, err
+    }
+    currentState = initialState
   }
 
   var events []LoopbackEventDesc
@@ -102,7 +107,7 @@ func (fsm *fsmManager) stateMachineRunnerFor(typeName string, machineId int64) (
     listOfEvents = append(listOfEvents, e1)
   }
 
-  fsmI := loopfsm.NewFSM(initialState, listOfEvents, map[string]loopfsm.Callback{})
+  fsmI := loopfsm.NewFSM(currentState, listOfEvents, map[string]loopfsm.Callback{})
   return fsmI, nil
 }
 
@@ -122,7 +127,7 @@ func (fsm *fsmManager) ApplyEvent(subject map[string]interface{}, stateMachineEv
     return "", err
   }
 
-  stateMachineRunner, err := fsm.stateMachineRunnerFor(objType, stateMachineInstance.StateMachineId)
+  stateMachineRunner, err := fsm.stateMachineRunnerFor(stateMachineInstance.CurrestState, objType, stateMachineInstance.StateMachineId)
   if err != nil {
     return "", err
   }
