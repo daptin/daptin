@@ -23,7 +23,7 @@ const ActionManager = function () {
       bytes[i] = ascii;
     }
     return bytes;
-  }
+  };
 
   setTimeout(function () {
     that.a = document.createElement("a");
@@ -37,7 +37,7 @@ const ActionManager = function () {
       that.a.click();
       window.URL.revokeObjectURL(url);
     };
-  })
+  });
 
   this.saveByteArray = function (downloadData) {
     var blob = new Blob([atob(downloadData.content)], {type: downloadData.contentType}),
@@ -55,7 +55,7 @@ const ActionManager = function () {
         url: appConfig.apiRoot + "/actions",
         method: "GET"
       }).then(function (respo) {
-        console.log("Guest actions list: ", respo)
+        console.log("Guest actions list: ", respo);
         resolve(respo.data)
       }, function (rs) {
         console.log("get actions list fetch failed", arguments);
@@ -101,17 +101,18 @@ const ActionManager = function () {
                 }
                 break;
               case "client.file.download":
-                that.saveByteArray(data)
+                that.saveByteArray(data);
                 break;
               case "client.redirect":
                 (function (redirectAttrs) {
 
                   Notification.success({
-                    message: "Redirecting in " + (redirectAttrs.delay / 1000) + " seconds",
+                    title: "Redirecting",
+                    message: "In " + (redirectAttrs.delay / 1000) + " seconds",
                   });
                   setTimeout(function () {
 
-                    var target = redirectAttrs["window"]
+                    var target = redirectAttrs["window"];
 
                     if (target == "self") {
                       window.location = redirectAttrs.location;
@@ -121,7 +122,7 @@ const ActionManager = function () {
 
                   }, redirectAttrs.delay)
 
-                })(data)
+                })(data);
                 break;
 
             }
@@ -130,7 +131,7 @@ const ActionManager = function () {
           Notification.success("Action " + actionName + " finished.")
         }
       }, function (res) {
-        reject("Failed")
+        reject("Failed");
         Notification.error("Action " + actionName + " failed.")
       })
 

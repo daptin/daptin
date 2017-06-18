@@ -125,16 +125,16 @@
         this.showAddEdit = false;
       },
       onPaginationData (paginationData) {
-        console.log("set pagifnation method", paginationData, this.$refs.pagination)
+        // console.log("set pagifnation method", paginationData, this.$refs.pagination)
         this.$refs.pagination.setPaginationData(paginationData)
       },
       onChangePage (page) {
-        console.log("cnage pge", page);
+        // console.log("cnage pge", page);
         this.$refs.vuetable.changePage(page)
       },
       reloadData() {
         var that = this;
-        console.log("reload data", that.selectedWorld, that.finder)
+        // console.log("reload data", that.selectedWorld, that.finder)
 
         that.jsonApi.builderStack = that.finder;
         that.jsonApi.get({
@@ -149,19 +149,19 @@
       },
       success(data) {
         var that = this;
-        console.log("data loaded", arguments)
+        // console.log("data loaded", arguments)
         that.tableData = data;
       },
       failed() {
         this.tableData = [];
-        console.log("data load failed", arguments)
+        // console.log("data load failed", arguments)
       }
     },
     mounted() {
       var that = this;
-      console.log("this json api name ", that.jsonApiModelName)
+      // console.log("this json api name ", that.jsonApiModelName)
       worldManager.getColumnKeys(that.jsonApiModelName, function (cols) {
-        console.log("mounted list vuew", cols);
+        // console.log("mounted list vuew", cols);
         that.meta = cols.ColumnModel;
         var cols = Object.keys(that.meta);
 
