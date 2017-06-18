@@ -134,6 +134,10 @@
 			"Rev": "8837942c3e09574accbc5f150e2c5e057189cace"
 		},
 		{
+			"ImportPath": "github.com/looplab/fsm",
+			"Rev": "bcc3636384ce80a109a6039432b30ff5b82476ee"
+		},
+		{
 			"ImportPath": "github.com/manucorporat/sse",
 			"Rev": "ee05b128a739a0fb76c7ebd3ae4810c1de808d6d"
 		},
