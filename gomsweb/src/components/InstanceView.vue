@@ -149,7 +149,8 @@
           Notification.success({
             title: "Done",
             message: "Started tracking status for " + that.selectedTable
-          })
+          });
+          that.updateStates();
         });
       },
       doAction (action) {
@@ -225,6 +226,8 @@
           that.stateMachines = machines;
         });
 
+        that.updateStates();
+
         if (that.$refs.tableview1) {
           console.log("setTable for [tableview1]: ", tableName);
           that.$refs.tableview1.reloadData(tableName)
@@ -240,6 +243,7 @@
         let tableName = that.$route.params.tablename;
         let selectedInstanceId = that.$route.params.refId;
 
+        console.log("Start get states for ", tableName, selectedInstanceId);
 
         jsonApi.one(tableName, selectedInstanceId).all(tableName + "_has_state").get({
           page: {
@@ -297,7 +301,6 @@
       });
 
 
-      that.updateStates();
 
       that.$store.commit("SET_SELECTED_TABLE", tableName);
 
