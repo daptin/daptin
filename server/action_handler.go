@@ -45,7 +45,7 @@ func CreateGuestActionListHandler(initConfig *CmsConfig, cruds map[string]*resou
 	}
 }
 
-func CreateActionEventHandler(initConfig *CmsConfig, configStore *ConfigStore, cruds map[string]*resource.DbResource) func(*gin.Context) {
+func CreateActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cruds map[string]*resource.DbResource) func(*gin.Context) {
 
 	actionMap := make(map[string]resource.Action)
 
@@ -165,27 +165,27 @@ func CreateActionEventHandler(initConfig *CmsConfig, configStore *ConfigStore, c
 			case "POST":
 				res, err = dbResource.Create(model, request)
 				if err != nil {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()))
+					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName(), "Failed"))
 				} else {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName()))
+					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
 				}
 				responses = append(responses, actionResponse)
 				break
 			case "UPDATE":
 				res, err = dbResource.Update(model, request)
 				if err != nil {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName()))
+					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName(), "Failed"))
 				} else {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName()))
+					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
 				}
 				responses = append(responses, actionResponse)
 				break
 			case "DELETE":
 				res, err = dbResource.Delete(model.Data["reference_id"].(string), request)
 				if err != nil {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to delete "+model.GetName()))
+					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to delete "+model.GetName(), "Failed"))
 				} else {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName()))
+					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
 				}
 				responses = append(responses, actionResponse)
 				break
@@ -197,6 +197,7 @@ func CreateActionEventHandler(initConfig *CmsConfig, configStore *ConfigStore, c
 					restartAttrs := make(map[string]interface{})
 					restartAttrs["type"] = "success"
 					restartAttrs["message"] = "Initiating system update."
+					restartAttrs["title"] = "Success"
 					actionResponse = NewActionResponse("client.notify", restartAttrs)
 					responses = append(responses, actionResponse)
 
@@ -258,6 +259,7 @@ func CreateActionEventHandler(initConfig *CmsConfig, configStore *ConfigStore, c
 					if err != nil || len(existingUsers) < 1 {
 						responseAttrs["type"] = "error"
 						responseAttrs["message"] = "Invalid username or password"
+						responseAttrs["title"] = "Failed"
 						actionResponse = NewActionResponse("client.notify", responseAttrs)
 						responses = append(responses, actionResponse)
 					} else {
@@ -299,6 +301,7 @@ func CreateActionEventHandler(initConfig *CmsConfig, configStore *ConfigStore, c
 
 							notificationAttrs := make(map[string]string)
 							notificationAttrs["message"] = "Logged in"
+							notificationAttrs["title"] = "Success"
 							notificationAttrs["type"] = "success"
 							responses = append(responses, NewActionResponse("client.notify", notificationAttrs))
 
@@ -312,6 +315,7 @@ func CreateActionEventHandler(initConfig *CmsConfig, configStore *ConfigStore, c
 						} else {
 							responseAttrs = make(map[string]interface{})
 							responseAttrs["type"] = "error"
+							responseAttrs["title"] = "Failed"
 							responseAttrs["message"] = "Invalid username or password"
 							responses = append(responses, NewActionResponse("client.notify", responseAttrs))
 
@@ -342,12 +346,13 @@ func CreateActionEventHandler(initConfig *CmsConfig, configStore *ConfigStore, c
 
 	}
 }
-func NewClientNotification(notificationType string, message string) map[string]interface{} {
+func NewClientNotification(notificationType string, message string, title string) map[string]interface{} {
 
 	m := make(map[string]interface{})
 
 	m["type"] = notificationType
 	m["message"] = message
+	m["title"] = title
 	return m
 
 }

@@ -1,4 +1,41 @@
 {
+  "state_machine_descriptions": [
+    {
+      "name": "publish_status",
+      "label": "Publish Status",
+      "initial_state": "draft",
+      "events": [
+        {
+          "name": "mark_as_edited",
+          "label": "Mark as edited",
+          "src": [
+            "draft",
+            "ready-to-publish"
+          ],
+          "dst": "ready-to-publish"
+        },
+        {
+          "name": "publish",
+          "label": "Publish",
+          "src": [
+            "draft",
+            "ready-to-publish"
+          ],
+          "dst": "published"
+        },
+        {
+          "name": "delete",
+          "label": "Delete",
+          "src": [
+            "draft",
+            "ready-to-publish",
+            "published"
+          ],
+          "dst": "deleted"
+        }
+      ]
+    }
+  ],
   "tables": [
     {
       "tableName": "blog",

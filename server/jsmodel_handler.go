@@ -1,122 +1,162 @@
 package server
 
 import (
-	"github.com/artpar/api2go"
-	"github.com/artpar/goms/datastore"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/gin-gonic/gin.v1"
-	"strings"
+  "github.com/artpar/api2go"
+  "github.com/artpar/goms/datastore"
+  log "github.com/sirupsen/logrus"
+  "gopkg.in/gin-gonic/gin.v1"
+  "strings"
+  "net/http"
+  "github.com/gorilla/context"
+  "gopkg.in/Masterminds/squirrel.v1"
 )
 
-var tableMap map[string]datastore.TableInfo
-
-func CreateJsonSchemaDownloadHandlerModelHandler(initConfig *CmsConfig) func(*gin.Context) {
-	return func(c *gin.Context) {
-
-		c.JSON(200, initConfig)
-
-	}
-
-}
 func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
-	tableMap := make(map[string]datastore.TableInfo)
-	for _, table := range initConfig.Tables {
+  tableMap := make(map[string]datastore.TableInfo)
+  for _, table := range initConfig.Tables {
 
-		//log.Infof("Default permission for [%v]: [%v]", table.TableName, table.Columns)
+    //log.Infof("Default permission for [%v]: [%v]", table.TableName, table.Columns)
 
-		tableMap[table.TableName] = table
-	}
+    tableMap[table.TableName] = table
+  }
 
-	return func(c *gin.Context) {
-		typeName := strings.Split(c.Param("typename"), ".")[0]
-		selectedTable, ok := tableMap[typeName]
+  worlds, _, err := cruds["world"].GetRowsByWhereClause("world", squirrel.Eq{"deleted_at": nil})
+  if err != nil {
+    log.Errorf("Failed to get worlds list")
+  }
 
-		if !ok {
-			c.AbortWithStatus(404)
-			return
-		}
+  worldToReferenceId := make(map[string]string)
 
-		log.Infof("data: %v", selectedTable.Relations)
+  for _, world := range worlds {
+    worldToReferenceId[world["table_name"].(string)] = world["reference_id"].(string)
+  }
 
-		cols := selectedTable.Columns
+  return func(c *gin.Context) {
+    typeName := strings.Split(c.Param("typename"), ".")[0]
+    selectedTable, ok := tableMap[typeName]
 
-		//actions := GetActionList(selectedTable.TableName, initConfig)
-		actions, err := cruds["world"].GetActionsByType(selectedTable.TableName)
+    if !ok {
+      c.AbortWithStatus(404)
+      return
+    }
 
-		if err != nil {
-			log.Errorf("Failed to get actions by type: %v", err)
-		}
+    log.Infof("data: %v", selectedTable.Relations)
 
-		res := map[string]interface{}{}
+    cols := selectedTable.Columns
 
-		for _, col := range cols {
-			log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue)
+    //actions := GetActionList(selectedTable.TableName, initConfig)
+    actions, err := cruds["world"].GetActionsByType(selectedTable.TableName)
 
-			if col.ExcludeFromApi {
-				continue
-			}
+    if err != nil {
+      log.Errorf("Failed to get actions by type: %v", err)
+    }
 
-			if col.IsForeignKey {
-				continue
-			}
+    pr := &http.Request{
+      Method: "GET",
+    }
 
-			res[col.ColumnName] = col
-		}
+    params := make(map[string][]string)
+    req := api2go.Request{
+      PlainRequest: pr,
+      QueryParams:  params,
+    }
 
-		for _, rel := range selectedTable.Relations {
+    worldRefId := worldToReferenceId[typeName]
 
-			if rel.GetSubject() == selectedTable.TableName {
-				r := "hasMany"
-				if rel.GetRelation() == "belongs_to" || rel.GetRelation() == "has_one" {
-					r = "hasOne"
-				}
-				res[rel.GetObjectName()] = NewJsonApiRelation(rel.GetObject(), r, "entity")
-			} else {
-				if rel.GetRelation() == "belongs_to" {
-					res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasMany", "entity")
-				} else if rel.GetRelation() == "has_one" {
-					res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasOne", "entity")
-				} else {
-					res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasMany", "entity")
-				}
-			}
-		}
-		res["__type"] = api2go.ColumnInfo{
-			Name:       "type",
-			ColumnName: "__type",
-			ColumnType: "hidden",
-		}
+    params["worldName"] = []string{"smd_id"}
+    params["world_id"] = []string{worldRefId}
 
-		jsModel := JsModel{
-			ColumnModel: res,
-			Actions:     actions,
-		}
+    context.Set(pr, "user_id", context.Get(c.Request, "user_id"))
+    context.Set(pr, "usergroup_id", context.Get(c.Request, "usergroup_id"))
 
-		//res["__type"] = "string"
-		c.JSON(200, jsModel)
-		if true {
-			return
-		}
+    smdList := make([]map[string]interface{}, 0)
 
-		//j, _ := json.Marshal(res)
+    _, result, err := cruds["smd"].PaginatedFindAll(req)
 
-		//c.String(200, "jsonApi.define('%v', %v)", typeName, string(j))
+    if err != nil {
+      log.Infof("Failed to get world SMD: %v", err)
+    } else {
+      models := result.Result().([]*api2go.Api2GoModel)
+      for _, m := range models {
+        if m.GetAttributes()["__type"].(string) == "smd" {
+          smdList = append(smdList, m.GetAttributes())
+        }
+      }
 
-	}
+    }
+
+    res := map[string]interface{}{}
+
+    for _, col := range cols {
+      log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue)
+
+      if col.ExcludeFromApi {
+        continue
+      }
+
+      if col.IsForeignKey {
+        continue
+      }
+
+      res[col.ColumnName] = col
+    }
+
+    for _, rel := range selectedTable.Relations {
+
+      if rel.GetSubject() == selectedTable.TableName {
+        r := "hasMany"
+        if rel.GetRelation() == "belongs_to" || rel.GetRelation() == "has_one" {
+          r = "hasOne"
+        }
+        res[rel.GetObjectName()] = NewJsonApiRelation(rel.GetObject(), r, "entity")
+      } else {
+        if rel.GetRelation() == "belongs_to" {
+          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasMany", "entity")
+        } else if rel.GetRelation() == "has_one" {
+          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasOne", "entity")
+        } else {
+          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasMany", "entity")
+        }
+      }
+    }
+    res["__type"] = api2go.ColumnInfo{
+      Name:       "type",
+      ColumnName: "__type",
+      ColumnType: "hidden",
+    }
+
+    jsModel := JsModel{
+      ColumnModel:   res,
+      Actions:       actions,
+      StateMachines: smdList,
+
+    }
+
+    //res["__type"] = "string"
+    c.JSON(200, jsModel)
+    if true {
+      return
+    }
+
+    //j, _ := json.Marshal(res)
+
+    //c.String(200, "jsonApi.define('%v', %v)", typeName, string(j))
+
+  }
 }
 
 func NewJsonApiRelation(name string, relationType string, columnType string) JsonApiRelation {
 
-	return JsonApiRelation{
-		Type:       name,
-		JsonApi:    relationType,
-		ColumnType: columnType,
-	}
+  return JsonApiRelation{
+    Type:       name,
+    JsonApi:    relationType,
+    ColumnType: columnType,
+  }
 
 }
 
 type JsonApiRelation struct {
-	JsonApi    string `json:"jsonApi,omitempty"`
-	ColumnType string `json:"columnType"`
-	Type       string `json:"type,omitempty"`
+  JsonApi    string `json:"jsonApi,omitempty"`
+  ColumnType string `json:"columnType"`
+  Type       string `json:"type,omitempty"`
 }
