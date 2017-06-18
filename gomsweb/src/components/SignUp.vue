@@ -8,7 +8,8 @@
 
         <div class="col-md-4 col-sm-offset-4">
           <!-- login form -->
-          <action-view @action-complete="signupComplete" :hide-cancel="true" v-if="signInAction" :actionManager="actionManager"
+          <action-view @action-complete="signupComplete" :hide-cancel="true" v-if="signInAction"
+                       :actionManager="actionManager"
                        :action="signInAction"></action-view>
 
           <!-- errors -->
@@ -45,7 +46,10 @@
     },
     methods: {
       signupComplete(){
-        Notification.success("Registration successful");
+        Notification.success({
+          title: "Registration successful",
+          message: "redirecting to sign in page",
+        });
         this.$router.push({
           name: "SignIn"
         })

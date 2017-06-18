@@ -15,6 +15,42 @@ const WorldManager = function () {
   that.columnKeysCache = {};
 
 
+  that.stateMachines = {};
+
+
+  that.getStateMachinesForType = function (typeName) {
+    return new Promise(function (resolve, reject) {
+      resolve(that.stateMachines[typeName]);
+    });
+  };
+
+  that.startObjectTrack = function (objType, objRefId, stateMachineRefId) {
+
+    return axios({
+      url: appconfig.apiRoot + "/track/start/" + stateMachineRefId,
+      method: "POST",
+      data: {
+        typeName: objType,
+        referenceId: objRefId
+      },
+      headers: {
+        "Authorization": "Bearer " + getToken()
+      }
+    })
+  };
+
+  that.trackObjectEvent = function (typeName, stateMachineRefId, eventName) {
+
+    return axios({
+      url: appconfig.apiRoot + "/track/event/" + stateMachineRefId + "/" + eventName,
+      url: appconfig.apiRoot + "/track/event/" + typeName + "/" + stateMachineRefId + "/" + eventName,
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + getToken()
+      }
+    })
+  };
+
   that.getColumnKeys = function (typeName, callback) {
     // console.log("get column keys for ", typeName);
     if (that.columnKeysCache[typeName]) {
@@ -33,6 +69,7 @@ const WorldManager = function () {
         if (r.Actions.length > 0) {
           console.log("Register actions", r.Actions)
           actionManager.addAllActions(r.Actions);
+          that.stateMachines[typeName] = r.StateMachines
         }
         that.columnKeysCache[typeName] = r;
         callback(r);
@@ -93,7 +130,7 @@ const WorldManager = function () {
   that.worlds = [];
 
   that.getWorlds = function () {
-    console.log("GET WORLDS",that.worlds)
+    console.log("GET WORLDS", that.worlds)
     return that.worlds;
   };
 

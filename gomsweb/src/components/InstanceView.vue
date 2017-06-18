@@ -17,7 +17,7 @@
                        :json-api="jsonApi" :model="selectedRow"></action-view>
         </div>
       </div>
-      <div class="col-md-9">
+      <div class="col-md-7">
 
         <detailed-table-row :model="selectedRow" v-if="selectedRow" :json-api="jsonApi"
                             :json-api-model-name="selectedTable"></detailed-table-row>
@@ -36,7 +36,40 @@
 
 
       </div>
+      <div class="col-md-2">
+        <div class="row" v-if="objectStates != null && objectStates.length > 0">
+          <div class="col-md-12">
+            <h2>Tracks</h2>
+          </div>
+          <div class="col-md-12" v-for="state, k in objectStates">
+            <div class="row">
+              <div class="col-md-12">
+                <span class="badge" style="width: 100%; text-transform: uppercase">{{state.current_state}}</span>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <button @click="doEvent(state, action)" class="btn btn-primary btn-xs btn-flat" style="width: 100%"
+                        v-for="action in state.possibleActions">{{action.label}}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
       <div class="col-md-3">
+
+
+        <div class="row" v-if="stateMachines != null && stateMachines.length > 0">
+          <div class="col-md-12">
+            <h2>Start Tracking</h2>
+          </div>
+          <div class="col-md-12" v-for="a, k in stateMachines">
+            <el-button style="width: 100%" @click="addStateMachine(a)">{{a.label}}</el-button>
+          </div>
+        </div>
 
 
         <div class="row" v-if="actions != null">
@@ -84,12 +117,43 @@
         jsonApi: jsonApi,
         actionManager: actionManager,
         showAddEdit: false,
+        stateMachines: [],
         selectedWorldAction: {},
+        objectStates: [],
       }
     },
     methods: {
+      doEvent(action, event){
+        var that = this;
+        console.log("do event", action, event);
+        worldManager.trackObjectEvent(this.selectedTable, action.id, event.name).then(function () {
+          Notification.success({
+            title: "Updated",
+            message: that.selectedTable + " status was updated for this track"
+          });
+          that.updateStates();
+        }, function () {
+          Notification.error({
+            title: "Failed",
+            message: "Object status was not updated"
+          })
+        });
+      },
+      addStateMachine (machine) {
+        console.log("Add state machine", machine);
+        console.log("Selected row", this.selectedRow);
+        var that = this;
+        worldManager.startObjectTrack(this.selectedTable,
+          this.selectedRow["id"],
+          machine["reference_id"]).then(function (res) {
+          Notification.success({
+            title: "Done",
+            message: "Started tracking status for " + that.selectedTable
+          })
+        });
+      },
       doAction (action) {
-        this.$store.commit("SET_SELECTED_ACTION", action)
+        this.$store.commit("SET_SELECTED_ACTION", action);
         this.showAddEdit = true;
       },
       saveRow(row) {
@@ -132,7 +196,7 @@
 
         let all = {};
 
-        console.log("Admin set table -", that.$store, that.selectedTable, that.selectedTable)
+        console.log("Admin set table -", that.$store, that.selectedTable, that.selectedTable);
         all = jsonApi.all(that.selectedTable);
         tableName = that.selectedTable;
 
@@ -156,6 +220,11 @@
 
         all.builderStack = [];
 
+
+        worldManager.getStateMachinesForType(that.selectedTable).then(function (machines) {
+          that.stateMachines = machines;
+        });
+
         if (that.$refs.tableview1) {
           console.log("setTable for [tableview1]: ", tableName);
           that.$refs.tableview1.reloadData(tableName)
@@ -164,7 +233,39 @@
       },
       logout: function () {
         this.$parent.logout();
-      }
+      },
+      updateStates: function () {
+        var that = this;
+
+        let tableName = that.$route.params.tablename;
+        let selectedInstanceId = that.$route.params.refId;
+
+
+        jsonApi.one(tableName, selectedInstanceId).all(tableName + "_has_state").get({
+          page: {
+            number: 1,
+            size: 20
+          }
+        }).then(function (states) {
+          console.log("states", states);
+          states.map(function (e) {
+            e.smd = e[tableName + "_smd"];
+            e.smd.events = JSON.parse(e.smd.events);
+            e.possibleActions = e.smd.events.filter(function (t) {
+              return t.Src.indexOf(e.current_state) > -1
+            }).map(function (er) {
+              return {
+                name: er.Name,
+                label: er.Label,
+              }
+            });
+            console.log(e)
+          });
+
+          that.objectStates = states;
+        });
+
+      },
     },
 
     mounted() {
@@ -179,7 +280,7 @@
       let selectedInstanceId = that.$route.params.refId;
 
       if (!tableName) {
-        alert("no table name")
+        alert("no table name");
         return;
       }
 
@@ -187,13 +288,16 @@
       that.$store.commit("SET_ACTIONS", worldActions);
 
       that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", selectedInstanceId);
-      console.log("Get instance: ", tableName, selectedInstanceId)
+      console.log("Get instance: ", tableName, selectedInstanceId);
       jsonApi.find(tableName, selectedInstanceId).then(function (res) {
         console.log("got object", res);
         that.$store.commit("SET_SELECTED_ROW", res);
       }, function (err) {
         console.log("Errors", err)
-      })
+      });
+
+
+      that.updateStates();
 
       that.$store.commit("SET_SELECTED_TABLE", tableName);
 

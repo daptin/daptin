@@ -119,16 +119,16 @@
       addRow: function (colName, newRow) {
         var relation = this.getRelationByName(colName);
         if (relation == null) {
-          console.log("relation not found: ", colName)
+          // console.log("relation not found: ", colName)
           return
         }
 
-        console.log("this meta before save row", colName, newRow, this.meta);
+        // console.log("this meta before save row", colName, newRow, this.meta);
         var that = this;
 
         worldManager.getColumnKeys(newRow.type, function (newRowTypeAttributes) {
 
-          console.log("newRowTypeAttributes for ", newRow.type, newRowTypeAttributes, newRow);
+          // console.log("newRowTypeAttributes for ", newRow.type, newRowTypeAttributes, newRow);
 
           if (newRowTypeAttributes.ColumnModel[that.jsonApiModelName + "_id"]
             && newRowTypeAttributes.ColumnModel[that.jsonApiModelName + "_id"]["jsonApi"] === "hasOne") {
@@ -146,10 +146,10 @@
               patchObject[relation.name] = {"id": newRowResult["id"]};
               patchObject["id"] = that.model["id"];
 
-              console.log("patch object", patchObject);
+              // console.log("patch object", patchObject);
               that.jsonApi.update(that.jsonApiModelName, patchObject).then(function (r) {
 
-                console.log("reference of list : ", that.$refs[relation.name])
+                // console.log("reference of list : ", that.$refs[relation.name])
                 that.$refs[relation.name].reloadData()
 
                 that.$notify.success("Added " + relation.type);
@@ -171,10 +171,10 @@
 
             patchObject["id"] = that.model["id"];
 
-            console.log("patch object", patchObject);
+            // console.log("patch object", patchObject);
             that.jsonApi.update(that.jsonApiModelName, patchObject).then(function (r) {
               that.$notify.success("Added " + relation.type);
-              console.log("reference of list : ", that.$refs[relation.name])
+              // console.log("reference of list : ", that.$refs[relation.name])
               that.$refs[relation.name].reloadData()
             }, function (err) {
               that.$notify.error(err)
@@ -196,7 +196,7 @@
       },
       init: function () {
         var that = this;
-        console.log("data for detailed row ", this.model)
+        // console.log("data for detailed row ", this.model)
 
         this.meta = this.jsonApi.modelFor(this.jsonApiModelName);
 
@@ -208,7 +208,7 @@
         that.relations = [];
 
         var columnKeys = Object.keys(attributes);
-        console.log("keys ", columnKeys, attributes);
+        // console.log("keys ", columnKeys, attributes);
         for (var i = 0; i < columnKeys.length; i++) {
           var colName = columnKeys[i];
 
@@ -240,12 +240,12 @@
               var columnName = item.name;
               columnNameTitleCase = item.name
 
-              console.log("relation", item, that.jsonApiModelName, that.model);
+              // console.log("relation", item, that.jsonApiModelName, that.model);
 
               var builderStack = that.jsonApi.one(that.jsonApiModelName, that.model["id"]).all(item.name);
               var finder = builderStack.builderStack;
               builderStack.builderStack = [];
-              console.log("finder: ", finder)
+              // console.log("finder: ", finder)
 
 
               if (item.type == "user" || item.type == "usergroup") {
@@ -312,7 +312,7 @@
           }
 
 
-          console.log("row ", item);
+          // console.log("row ", item);
 
           if (item.type == "label") {
             normalFields.unshift(item)
@@ -326,7 +326,7 @@
         this.normalFields = normalFields;
 
 
-        console.log("Created detailed row", this.jsonApiModelName, this.model, this.meta)
+        // console.log("Created detailed row", this.jsonApiModelName, this.model, this.meta)
 
         setTimeout(function () {
           $('.menu .item').tab();
@@ -355,7 +355,7 @@
     },
     watch: {
       "model": function () {
-        console.log("model changed, rerender detailed view  ");
+        // console.log("model changed, rerender detailed view  ");
         this.init();
       }
     },
