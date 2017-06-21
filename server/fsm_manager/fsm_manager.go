@@ -55,6 +55,7 @@ type LoopbackEventDesc struct {
   // Name is the event name used when calling for a transition.
   Name  string
   Label string
+  Color string
 
   // Src is a slice of source states that the FSM must be in to perform a
   // state transition.

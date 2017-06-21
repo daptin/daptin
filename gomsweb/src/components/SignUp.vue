@@ -28,7 +28,6 @@
 </template>
 
 <script>
-  import {show} from '../utils/lock'
   import configManager from '../plugins/configmanager'
   import actionManager from "../plugins/actionmanager"
 
