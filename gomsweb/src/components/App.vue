@@ -6,7 +6,6 @@
 </template>
 
 <script>
-  import {show} from '../utils/lock'
   import {setToken, checkSecret, extractInfoFromHash} from '../utils/auth'
   import worldManager from "../plugins/worldmanager"
   export default {

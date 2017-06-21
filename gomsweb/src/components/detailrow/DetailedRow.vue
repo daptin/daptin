@@ -18,7 +18,7 @@
         <table class="table">
           <tbody>
           <tr v-for="col in normalFields" :id="col.name">
-            <td><b> {{col.label}} </b></td>
+            <td style="width: 50%"><b> {{col.label}} </b></td>
             <td :style="col.style"> {{col.value}} </td>
           </tr>
           </tbody>
@@ -28,34 +28,46 @@
     </template>
 
 
-    <div class="col-md-12" v-if="showAll">
-      <el-tabs>
+    <template v-if="showAll">
+      <div class="col-md-10">
+        <el-tabs>
 
 
-        <el-tab-pane label="Overview">
-          <table class="table">
-            <tbody>
-            <tr v-for="col in normalFields" :id="col.name">
-              <td><b> {{col.label}} </b></td>
-              <td :style="col.style"> {{col.value}} </td>
-            </tr>
-            </tbody>
-          </table>
+          <el-tab-pane label="Overview">
+            <table class="table">
+              <tbody>
+              <tr v-for="col in normalFields" :id="col.name">
+                <td><b> {{col.label}} </b></td>
+                <td :style="col.style"> {{col.value}} </td>
+              </tr>
+              </tbody>
+            </table>
 
-        </el-tab-pane>
+          </el-tab-pane>
 
 
-        <el-tab-pane v-for="relation in relations" :label="relation.label">
-          <list-view :json-api="jsonApi" :ref="relation.name" class="tab"
-                     :data-tab="relation.name"
-                     :json-api-model-name="relation.type" :json-api-relation-name="relation.name" @addRow="addRow"
-                     :autoload="true"
-                     :finder="relation.finder"></list-view>
-        </el-tab-pane>
+          <el-tab-pane v-for="relation in relations" :label="relation.label">
+            <list-view :json-api="jsonApi" :ref="relation.name" class="tab"
+                       :data-tab="relation.name"
+                       :json-api-model-name="relation.type" :json-api-relation-name="relation.name" @addRow="addRow"
+                       :autoload="true"
+                       :finder="relation.finder"></list-view>
+          </el-tab-pane>
 
-      </el-tabs>
+        </el-tabs>
 
-    </div>
+      </div>
+
+      <div class="col-md-2" v-if="truefalse != null && truefalse.length > 0">
+        <div class="row">
+          <div class="col-md-12" v-for="tf in truefalse">
+            <input disabled type="checkbox" :checked="tf.value" name="tf.name">
+            <label>{{tf.label}}</label>
+          </div>
+        </div>
+      </div>
+
+    </template>
   </div>
 </template>
 

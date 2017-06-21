@@ -262,6 +262,22 @@ var StandardTables = []TableInfo{
         DefaultValue: "false",
         ColumnType:   "truefalse",
       },
+      {
+        Name:         "is_join_table",
+        ColumnName:   "is_join_table",
+        DataType:     "bool",
+        IsNullable:   false,
+        DefaultValue: "false",
+        ColumnType:   "truefalse",
+      },
+      {
+        Name:         "is_state_tracking_enabled",
+        ColumnName:   "is_state_tracking_enabled",
+        DataType:     "bool",
+        IsNullable:   false,
+        DefaultValue: "false",
+        ColumnType:   "truefalse",
+      },
     },
   },
   {
@@ -488,14 +504,16 @@ var StandardTables = []TableInfo{
 }
 
 type TableInfo struct {
-  TableName         string `db:"table_name"`
-  TableId           int
-  DefaultPermission int64 `db:"default_permission"`
-  Columns           []api2go.ColumnInfo
-  StateMachines     []fsm_manager.LoopbookFsmDescription
-  Relations         []api2go.TableRelation
-  IsTopLevel        bool `db:"is_top_level"`
-  Permission        int64
-  UserId            uint64 `db:"user_id"`
-  IsHidden          bool   `db:"is_hidden"`
+  TableName              string `db:"table_name"`
+  TableId                int
+  DefaultPermission      int64 `db:"default_permission"`
+  Columns                []api2go.ColumnInfo
+  StateMachines          []fsm_manager.LoopbookFsmDescription
+  Relations              []api2go.TableRelation
+  IsTopLevel             bool `db:"is_top_level"`
+  Permission             int64
+  UserId                 uint64 `db:"user_id"`
+  IsHidden               bool   `db:"is_hidden"`
+  IsJoinTable            bool `db:"is_join_table"`
+  IsStateTrackingEnabled bool `db:"is_state_tracking_enabled"`
 }

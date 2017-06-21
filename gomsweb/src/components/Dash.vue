@@ -276,7 +276,7 @@
   import 'hideseek'
 
   import {getToken} from '../utils/auth'
-  import {show, logout} from '../utils/lock'
+  import {logout} from '../utils/lock'
   import {Notification} from 'element-ui';
   import worldManager from "../plugins/worldmanager"
   import {mapGetters} from 'vuex'

@@ -478,6 +478,14 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.DB) {
         }
       }
     }
+
+
+    if strings.Index(table.TableName, "_has_") > -1 {
+
+
+
+    }
+
   }
 }
 

@@ -1,47 +1,94 @@
 <template>
 
+  <div class="row">
 
-  <div class="box">
+    <div class="col-md-12">
+      <div class="box">
 
-    <div class="box-header">
-      <div class="box-title">
-        <h2>{{selectedTable | titleCase}} - <b>{{selectedRow | chooseTitle | titleCase}}</b></h2>
+        <div class="box-header">
+          <div class="box-title">
+            <h2>{{selectedTable | titleCase}} - <b>{{selectedRow | chooseTitle | titleCase}}</b></h2>
+          </div>
+        </div>
+
+        <div class="box-body">
+          <div class="col-md-12">
+            <div class="row" v-if="selectedAction != null && showAddEdit">
+              <action-view @cancel="showAddEdit = false" @action-complete="showAddEdit = false"
+                           :action-manager="actionManager" :action="selectedAction"
+                           :json-api="jsonApi" :model="selectedRow"></action-view>
+            </div>
+          </div>
+          <div class="col-md-9">
+
+            <detailed-table-row :model="selectedRow" v-if="selectedRow" :json-api="jsonApi"
+                                :json-api-model-name="selectedTable"></detailed-table-row>
+
+            <div class="row" v-if="showAddEdit && rowBeingEdited != null">
+
+
+              <model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
+                          v-if="selectedSubTable"
+                          @cancel="showAddEdit = false"
+                          v-bind:model="rowBeingEdited"
+                          v-bind:meta="subTableColumns" ref="modelform"></model-form>
+
+
+            </div>
+
+
+          </div>
+          <div class="col-md-3">
+
+
+            <div class="row" v-if="stateMachines != null && stateMachines.length > 0">
+              <div class="col-md-12">
+                <h2>Start Tracking</h2>
+              </div>
+              <div class="col-md-12" v-for="a, k in stateMachines">
+                <el-button style="width: 100%" @click="addStateMachine(a)">{{a.label}}</el-button>
+              </div>
+            </div>
+
+
+            <div class="row" v-if="actions != null">
+              <div class="col-md-12">
+                <h2>Actions</h2>
+              </div>
+              <div class="col-md-12" v-for="a, k in actions">
+                <el-button style="width: 100%" @click="doAction(a)">{{a.label}}</el-button>
+              </div>
+            </div>
+
+            <div class="row" v-if="visibleWorlds.length > 0">
+              <div class="col-md-12">
+                <h2>Related</h2>
+              </div>
+              <div class="col-md-12" v-for="world in visibleWorlds">
+                <router-link style="width: 100%" class="btn btn-default"
+                             :to="{name: 'Relation', params: {tablename: selectedTable, refId: selectedInstanceReferenceId, subTable: world.table_name}}">
+                  {{world.table_name | titleCase}}
+                </router-link>
+              </div>
+            </div>
+
+
+          </div>
+
+        </div>
+
       </div>
     </div>
 
-    <div class="box-body">
-      <div class="col-md-12">
-        <div class="row" v-if="selectedAction != null && showAddEdit">
-          <action-view @cancel="showAddEdit = false" @action-complete="showAddEdit = false"
-                       :action-manager="actionManager" :action="selectedAction"
-                       :json-api="jsonApi" :model="selectedRow"></action-view>
-        </div>
-      </div>
-      <div class="col-md-7">
-
-        <detailed-table-row :model="selectedRow" v-if="selectedRow" :json-api="jsonApi"
-                            :json-api-model-name="selectedTable"></detailed-table-row>
-
-        <div class="row" v-if="showAddEdit && rowBeingEdited != null">
-
-
-          <model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
-                      v-if="selectedSubTable"
-                      @cancel="showAddEdit = false"
-                      v-bind:model="rowBeingEdited"
-                      v-bind:meta="subTableColumns" ref="modelform"></model-form>
-
-
-        </div>
-
-
-      </div>
-      <div class="col-md-2">
-        <div class="row" v-if="objectStates != null && objectStates.length > 0">
-          <div class="col-md-12">
-            <h2>Tracks</h2>
+    <div class="col-md-12">
+      <div class="box" v-if="objectStates.length > 0">
+        <div class="box-header">
+          <div class="box-title">
+            <h2>Status tracks</h2>
           </div>
-          <div class="col-md-12" v-for="state, k in objectStates">
+        </div>
+        <div class="box-body">
+          <div class="col-md-2" v-for="state, k in objectStates">
             <div class="row">
               <div class="col-md-12">
                 <span class="badge" style="width: 100%; text-transform: uppercase">{{state.current_state}}</span>
@@ -54,51 +101,13 @@
                 </button>
               </div>
             </div>
-
           </div>
         </div>
-
       </div>
-      <div class="col-md-3">
-
-
-        <div class="row" v-if="stateMachines != null && stateMachines.length > 0">
-          <div class="col-md-12">
-            <h2>Start Tracking</h2>
-          </div>
-          <div class="col-md-12" v-for="a, k in stateMachines">
-            <el-button style="width: 100%" @click="addStateMachine(a)">{{a.label}}</el-button>
-          </div>
-        </div>
-
-
-        <div class="row" v-if="actions != null">
-          <div class="col-md-12">
-            <h2>Actions</h2>
-          </div>
-          <div class="col-md-12" v-for="a, k in actions">
-            <el-button style="width: 100%" @click="doAction(a)">{{a.label}}</el-button>
-          </div>
-        </div>
-
-        <div class="row" v-if="visibleWorlds.length > 0">
-          <div class="col-md-12">
-            <h2>Related</h2>
-          </div>
-          <div class="col-md-12" v-for="world in visibleWorlds">
-            <router-link style="width: 100%" class="btn btn-default"
-                         :to="{name: 'Relation', params: {tablename: selectedTable, refId: selectedInstanceReferenceId, subTable: world.table_name}}">
-              {{world.table_name | titleCase}}
-            </router-link>
-          </div>
-        </div>
-
-
-      </div>
-
     </div>
-
   </div>
+
+
 </template>
 
 <script>
@@ -120,6 +129,8 @@
         stateMachines: [],
         selectedWorldAction: {},
         objectStates: [],
+        rowBeingEdited: {},
+        truefalse: [],
       }
     },
     methods: {
@@ -299,7 +310,6 @@
       }, function (err) {
         console.log("Errors", err)
       });
-
 
 
       that.$store.commit("SET_SELECTED_TABLE", tableName);
