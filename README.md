@@ -24,6 +24,15 @@ Then open [console](http://localhost:8080)
 
 ## How can you use GoMS
 
+Goms uses a SQL database and works are a very high level framework/management system. 
+
+Goms asks you to define your domain entities plus along with their relations in the way you want to organise them, and provide you a complete dashboard with following
+
+- a responsive dashboard, tested on desktop browsers and mobile browsers
+- A status tracking system 
+
+
+
 GoMS is a platform which can be customised using Schema files, which describe your requirements and processes.
 
 ## Tech Goals
@@ -66,7 +75,7 @@ Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
 | Plugin system       |    Compose your desired modifications using resuable JSON files                                                                                                                                                         |
 | Pages/Sub-sites     |  Frequently there is a need for showing "list of items" to public   |
 | Tags                | Native support object tagging   |
-
+| Rich fields collection |   The system will understand the data better to provide you a lot more features       |
 
 ### Target
 
