@@ -2,17 +2,17 @@ package server
 
 import (
   "github.com/artpar/api2go"
-  "github.com/artpar/goms/datastore"
   log "github.com/sirupsen/logrus"
   "gopkg.in/gin-gonic/gin.v1"
   "strings"
   "net/http"
   "github.com/gorilla/context"
   "gopkg.in/Masterminds/squirrel.v1"
+  "github.com/artpar/goms/server/resource"
 )
 
-func CreateJsModelHandler(initConfig *CmsConfig) func(*gin.Context) {
-  tableMap := make(map[string]datastore.TableInfo)
+func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
+  tableMap := make(map[string]resource.TableInfo)
   for _, table := range initConfig.Tables {
 
     //log.Infof("Default permission for [%v]: [%v]", table.TableName, table.Columns)
