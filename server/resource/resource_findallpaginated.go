@@ -118,14 +118,14 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		}
 	}
 
-	for key, values := range req.QueryParams {
-		log.Infof("Query [%v] == %v", key, values)
-	}
+	//for key, values := range req.QueryParams {
+	//	log.Infof("Query [%v] == %v", key, values)
+	//}
 
-	for _, rel := range dr.model.GetRelations() {
-		log.Infof("TableRelation[%v] == [%v]", dr.model.GetName(), rel.String())
+	//for _, rel := range dr.model.GetRelations() {
+		//log.Infof("TableRelation[%v] == [%v]", dr.model.GetName(), rel.String())
 
-	}
+	//}
 	for _, rel := range dr.model.GetRelations() {
 
 		if rel.GetSubject() == dr.model.GetName() {
@@ -208,7 +208,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 			case "belongs_to":
 
 				queries, ok := req.QueryParams[rel.GetSubject()+"_id"]
-				log.Infof("%d Values as RefIds for relation [%v]", len(queries), rel.String())
+				//log.Infof("%d Values as RefIds for relation [%v]", len(queries), rel.String())
 				if !ok || len(queries) < 1 {
 					continue
 				}

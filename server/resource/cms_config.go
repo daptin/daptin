@@ -1,21 +1,18 @@
-package server
+package resource
 
 import (
   "github.com/artpar/api2go"
-  "github.com/artpar/goms/datastore"
-  "github.com/artpar/goms/server/resource"
   "github.com/jmoiron/sqlx"
   log "github.com/sirupsen/logrus"
   "gopkg.in/Masterminds/squirrel.v1"
   "time"
-  "github.com/artpar/goms/server/fsm_manager"
 )
 
 type CmsConfig struct {
-  Tables                   []datastore.TableInfo
-  StateMachineDescriptions []fsm_manager.LoopbookFsmDescription `json:"state_machine_descriptions"`
+  Tables                   []TableInfo
+  StateMachineDescriptions []LoopbookFsmDescription `json:"state_machine_descriptions"`
   Relations                []api2go.TableRelation
-  Actions                  []resource.Action `json:"actions"`
+  Actions                  []Action `json:"actions"`
 }
 
 type User struct {
@@ -48,7 +45,7 @@ type ConfigStore struct {
 
 var settingsTableName = "_config"
 
-var ConfigTableStructure = datastore.TableInfo{
+var ConfigTableStructure = TableInfo{
   TableName: settingsTableName,
   Columns: []api2go.ColumnInfo{
     {

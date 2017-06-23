@@ -11,7 +11,6 @@ import (
   _ "github.com/mattn/go-sqlite3"
   //"io/ioutil"
   //"encoding/json"
-  "github.com/artpar/goms/datastore"
   "github.com/artpar/goms/server/auth"
   "github.com/artpar/goms/server/resource"
   "github.com/jamiealquiza/envy"
@@ -26,30 +25,29 @@ import (
   //"github.com/pkg/errors"
   "flag"
   uuid2 "github.com/satori/go.uuid"
-  "github.com/artpar/goms/server/fsm_manager"
   "github.com/gorilla/context"
   "gopkg.in/Masterminds/squirrel.v1"
 )
 
 var cruds = make(map[string]*resource.DbResource)
 
-func loadConfigFiles() (CmsConfig, []error) {
+func loadConfigFiles() (resource.CmsConfig, []error) {
 
   var err error
 
   errs := make([]error, 0)
-  var globalInitConfig CmsConfig
-  globalInitConfig = CmsConfig{
-    Tables:                   make([]datastore.TableInfo, 0),
+  var globalInitConfig resource.CmsConfig
+  globalInitConfig = resource.CmsConfig{
+    Tables:                   make([]resource.TableInfo, 0),
     Relations:                make([]api2go.TableRelation, 0),
     Actions:                  make([]resource.Action, 0),
-    StateMachineDescriptions: make([]fsm_manager.LoopbookFsmDescription, 0),
+    StateMachineDescriptions: make([]resource.LoopbookFsmDescription, 0),
   }
 
-  globalInitConfig.Tables = append(globalInitConfig.Tables, datastore.StandardTables...)
-  globalInitConfig.Relations = append(globalInitConfig.Relations, datastore.StandardRelations...)
-  globalInitConfig.Actions = append(globalInitConfig.Actions, datastore.SystemActions...)
-  globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, datastore.SystemSmds...)
+  globalInitConfig.Tables = append(globalInitConfig.Tables, resource.StandardTables...)
+  globalInitConfig.Relations = append(globalInitConfig.Relations, resource.StandardRelations...)
+  globalInitConfig.Actions = append(globalInitConfig.Actions, resource.SystemActions...)
+  globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
 
   files, err := filepath.Glob("schema_*_gocms.json")
   log.Infof("Found files to load: %v", files)
@@ -67,7 +65,7 @@ func loadConfigFiles() (CmsConfig, []error) {
       errs = append(errs, err)
       continue
     }
-    var initConfig CmsConfig
+    var initConfig resource.CmsConfig
     err = json.Unmarshal(fileContents, &initConfig)
     if err != nil {
       errs = append(errs, err)
@@ -129,25 +127,25 @@ func Main() {
   existingTables, _ := GetTablesFromWorld(db)
   initConfig.Tables = append(initConfig.Tables, existingTables...)
 
-  CheckRelations(&initConfig, db)
+  resource.CheckRelations(&initConfig, db)
 
   //AddStateMachines(&initConfig, db)
 
   log.Infof("After check relations")
 
-  CheckAllTableStatus(&initConfig, db)
+  resource.CheckAllTableStatus(&initConfig, db)
 
-  CreateRelations(&initConfig, db)
+  resource.CreateRelations(&initConfig, db)
 
-  CreateUniqueConstraints(&initConfig, db)
-  CreateIndexes(&initConfig, db)
+  resource.CreateUniqueConstraints(&initConfig, db)
+  resource.CreateIndexes(&initConfig, db)
 
-  UpdateWorldTable(&initConfig, db)
-  UpdateWorldColumnTable(&initConfig, db)
-  UpdateStateMachineDescriptions(&initConfig, db)
+  resource.UpdateWorldTable(&initConfig, db)
+  resource.UpdateWorldColumnTable(&initConfig, db)
+  resource.UpdateStateMachineDescriptions(&initConfig, db)
 
-  err = UpdateActionTable(&initConfig, db)
-  CheckErr(err, "Failed to update action table")
+  err = resource.UpdateActionTable(&initConfig, db)
+  resource.CheckErr(err, "Failed to update action table")
 
   CleanUpConfigFiles()
 
@@ -162,7 +160,7 @@ func Main() {
   r.StaticFile("", "./gomsweb/dist/index.html")
   r.StaticFile("/favicon.ico", "./gomsweb/dist/static/favicon.ico")
 
-  configStore, err := NewConfigStore(db)
+  configStore, err := resource.NewConfigStore(db)
   if err != nil {
     log.Errorf("Failed to create a config store: %v", err)
   }
@@ -173,14 +171,14 @@ func Main() {
   if err != nil {
     jwtSecret = uuid2.NewV4().String()
     err = configStore.SetConfigValueFor("jwt.secret", jwtSecret, "backend")
-    CheckErr(err, "Failed to store jwt secret")
+    resource.CheckErr(err, "Failed to store jwt secret")
   }
 
   authMiddleware := auth.NewAuthMiddlewareBuilder(db)
   auth.InitJwtMiddleware([]byte(jwtSecret))
   r.Use(authMiddleware.AuthCheckMiddleware)
 
-  r.GET("/actions", CreateGuestActionListHandler(&initConfig, cruds))
+  r.GET("/actions", resource.CreateGuestActionListHandler(&initConfig, cruds))
 
   api := api2go.NewAPIWithRouting(
     "api",
@@ -193,7 +191,7 @@ func Main() {
   authMiddleware.SetUserGroupCrud(cruds["usergroup"])
   authMiddleware.SetUserUserGroupCrud(cruds["user_user_id_has_usergroup_usergroup_id"])
 
-  fsmManager := fsm_manager.NewFsmManager(db, cruds)
+  fsmManager := resource.NewFsmManager(db, cruds)
 
   r.GET("/ping", func(c *gin.Context) {
     c.String(200, "pong")
@@ -202,7 +200,10 @@ func Main() {
   r.GET("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
   r.OPTIONS("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
 
-  r.POST("/action/:actionName", CreateActionHandler(&initConfig, configStore, cruds))
+  actionPerformers := GetActionPerformers(&initConfig, configStore)
+
+  r.POST("/action/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
+  r.GET("/action/:actionName", resource.CreateGetActionHandler(&initConfig, configStore, cruds))
 
   r.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
   r.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
@@ -210,7 +211,29 @@ func Main() {
   r.Run(fmt.Sprintf(":%v", *port))
 }
 
-func CreateEventStartHandler(fsmManager fsm_manager.FsmManager, cruds map[string]*resource.DbResource, db *sqlx.DB) func(context *gin.Context) {
+func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore) []resource.ActionPerformerInterface {
+  performers := make([]resource.ActionPerformerInterface, 0)
+
+  becomeAdminPerformer, err := resource.NewBecomeAdminPerformer(initConfig, cruds)
+  resource.CheckErr(err, "Failed to create become admin performer")
+  performers = append(performers, becomeAdminPerformer)
+
+  downloadConfigPerformer, err := resource.NewDownloadCmsConfigPerformer(initConfig)
+  resource.CheckErr(err, "Failed to create download config performer")
+  performers = append(performers, downloadConfigPerformer)
+
+  generateJwtPerformer, err := resource.NewGenerateJwtTokenPerformer(configStore, cruds)
+  resource.CheckErr(err, "Failed to create generate jwt performer")
+  performers = append(performers, generateJwtPerformer)
+
+  restartPerformer, err := resource.NewRestarSystemPerformer(initConfig)
+  resource.CheckErr(err, "Failed to create restart performer")
+  performers = append(performers, restartPerformer)
+
+  return performers
+}
+
+func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*resource.DbResource, db *sqlx.DB) func(context *gin.Context) {
 
   return func(gincontext *gin.Context) {
 
@@ -304,7 +327,7 @@ func CreateEventStartHandler(fsmManager fsm_manager.FsmManager, cruds map[string
 
 }
 
-func CreateEventHandler(initConfig *CmsConfig, fsmManager fsm_manager.FsmManager, cruds map[string]*resource.DbResource, db *sqlx.DB) func(context *gin.Context) {
+func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmManager, cruds map[string]*resource.DbResource, db *sqlx.DB) func(context *gin.Context) {
 
   return func(gincontext *gin.Context) {
 
@@ -387,7 +410,7 @@ type simpleStateMachinEvent struct {
   eventName          string
 }
 
-func NewStateMachineEvent(machineId string, eventName string) fsm_manager.StateMachineEvent {
+func NewStateMachineEvent(machineId string, eventName string) resource.StateMachineEvent {
   return &simpleStateMachinEvent{
     machineReferenceId: machineId,
     eventName:          eventName,
@@ -401,7 +424,7 @@ func (f *simpleStateMachinEvent) GetEventName() string {
   return f.eventName
 }
 
-func CreateConfigHandler(configStore *ConfigStore) func(context *gin.Context) {
+func CreateConfigHandler(configStore *resource.ConfigStore) func(context *gin.Context) {
 
   return func(c *gin.Context) {
     webConfig := configStore.GetWebConfig()
@@ -421,9 +444,9 @@ func CleanUpConfigFiles() {
 
 }
 
-func GetTablesFromWorld(db *sqlx.DB) ([]datastore.TableInfo, error) {
+func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 
-  ts := make([]datastore.TableInfo, 0)
+  ts := make([]resource.TableInfo, 0)
 
   res, err := db.Queryx("select table_name, permission, default_permission, schema_json, is_top_level, is_hidden" +
       " from world where deleted_at is null and table_name not like '%_has_%' and table_name not in ('world', 'world_column', 'action', 'user', 'usergroup')")
@@ -446,7 +469,7 @@ func GetTablesFromWorld(db *sqlx.DB) ([]datastore.TableInfo, error) {
       continue
     }
 
-    var t datastore.TableInfo
+    var t resource.TableInfo
 
     err = json.Unmarshal([]byte(schema_json), &t)
     if err != nil {
@@ -562,7 +585,7 @@ func CorsMiddlewareFunc(c *gin.Context) {
   return
 }
 
-func AddResourcesToApi2Go(api *api2go.API, tables []datastore.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet) map[string]*resource.DbResource {
+func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet) map[string]*resource.DbResource {
   cruds := make(map[string]*resource.DbResource)
   for _, table := range tables {
     log.Infof("Table [%v] Relations: %v", table.TableName)

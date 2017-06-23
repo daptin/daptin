@@ -1,8 +1,7 @@
-package fsm_manager
+package resource
 
 import (
   "github.com/jmoiron/sqlx"
-  "github.com/artpar/goms/server/resource"
   "gopkg.in/Masterminds/squirrel.v1"
   log "github.com/sirupsen/logrus"
   loopfsm "github.com/looplab/fsm"
@@ -13,7 +12,7 @@ import (
 
 type fsmManager struct {
   db    *sqlx.DB
-  cruds map[string]*resource.DbResource
+  cruds map[string]*DbResource
 }
 
 type StateMachineInstance struct {
@@ -159,7 +158,7 @@ func ReferenceIdToIntegerId(typeName string, referenceId string, db *sqlx.DB) (i
 
 }
 
-func NewFsmManager(db *sqlx.DB, cruds map[string]*resource.DbResource) FsmManager {
+func NewFsmManager(db *sqlx.DB, cruds map[string]*DbResource) FsmManager {
 
   fsm := fsmManager{
     db:    db,
