@@ -1,10 +1,9 @@
-package server
+package resource
 
 import (
   "encoding/json"
   "fmt"
   "github.com/artpar/api2go"
-  "github.com/artpar/goms/datastore"
   "github.com/jmoiron/sqlx"
   "github.com/satori/go.uuid"
   log "github.com/sirupsen/logrus"
@@ -12,8 +11,6 @@ import (
   "strings"
   //"errors"
   "github.com/artpar/goms/server/auth"
-  "github.com/artpar/goms/server/resource"
-  "github.com/artpar/goms/server/fsm_manager"
 )
 
 func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.DB) {
@@ -23,7 +20,7 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.DB) {
   adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
 
   for i := range initConfig.Tables {
-    ar := make([]fsm_manager.LoopbookFsmDescription, 0)
+    ar := make([]LoopbookFsmDescription, 0)
     initConfig.Tables[i].StateMachines = ar
   }
 
@@ -173,7 +170,7 @@ func GetObjectByWhereClause(objType string, db *sqlx.DB, queries ...squirrel.Eq)
     return result, err
   }
 
-  return resource.RowsToMap(rows, objType)
+  return RowsToMap(rows, objType)
 }
 
 func GetActionMapByTypeName(db *sqlx.DB) (map[string]map[string]interface{}, error) {
@@ -221,7 +218,7 @@ func GetWorldTableMapBy(col string, db *sqlx.DB) (map[string]map[string]interfac
 
 }
 
-//func GetWorldTablesList(col string, db *sqlx.DB) ([]datastore.TableInfo, error) {
+//func GetWorldTablesList(col string, db *sqlx.DB) ([]TableInfo, error) {
 //
 //  allWorlds, err := db.Query("select table_name")
 //  if err != nil {
@@ -438,9 +435,9 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
   res, err := tx.Queryx(s, v...)
 
-  tables := make([]datastore.TableInfo, 0)
+  tables := make([]TableInfo, 0)
   for res.Next() {
-    var tabInfo datastore.TableInfo
+    var tabInfo TableInfo
     var tableSchema []byte
     var permission, defaultPermission int64
     var isTopLevel, isHidden bool
@@ -479,10 +476,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.DB) {
       }
     }
 
-
     if strings.Index(table.TableName, "_has_") > -1 {
-
-
 
     }
 
@@ -557,7 +551,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
     relationsDone[relation.Hash()] = true
   }
 
-  newTables := make([]datastore.TableInfo, 0)
+  newTables := make([]TableInfo, 0)
 
   for i, table := range config.Tables {
     config.Tables[i].IsTopLevel = true
@@ -588,7 +582,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       }
     } else {
 
-      stateTable := datastore.TableInfo{
+      stateTable := TableInfo{
         TableName: table.TableName + "_state",
         Columns: []api2go.ColumnInfo{
           {
@@ -640,7 +634,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
   }
 
-  //var stateMachineDescriptionTable datastore.TableInfo
+  //var stateMachineDescriptionTable TableInfo
   //var stateMachineDescriptionTableIndex int
 
   //for i, t := range config.Tables {
@@ -716,7 +710,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       fromTable := relation.GetSubject()
       targetTable := relation.GetObject()
 
-      newTable := datastore.TableInfo{
+      newTable := TableInfo{
         TableName: relation.GetJoinTableName(),
         Columns:   make([]api2go.ColumnInfo, 0),
       }
@@ -754,7 +748,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
       config.Tables = append(config.Tables, newTable)
 
-      stateTable := datastore.TableInfo{
+      stateTable := TableInfo{
         TableName: newTable.TableName + "_state",
         Columns: []api2go.ColumnInfo{
           {
@@ -801,7 +795,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       fromTable := relation.GetSubject()
       targetTable := relation.GetObject()
 
-      newTable := datastore.TableInfo{
+      newTable := TableInfo{
         TableName: relation.GetSubjectName() + "_" + relation.GetObjectName(),
         Columns:   make([]api2go.ColumnInfo, 0),
       }
@@ -839,7 +833,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
       config.Tables = append(config.Tables, newTable)
 
-      stateTable := datastore.TableInfo{
+      stateTable := TableInfo{
         TableName: newTable.TableName + "_state",
         Columns: []api2go.ColumnInfo{
           {
@@ -896,7 +890,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
 func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB) {
 
-  tables := []datastore.TableInfo{}
+  tables := []TableInfo{}
 
   for _, table := range initConfig.Tables {
     CheckTable(&table, db)
@@ -906,7 +900,7 @@ func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB) {
   return
 }
 
-func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *datastore.TableInfo) (map[string]bool, map[string]api2go.ColumnInfo) {
+func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]bool, map[string]api2go.ColumnInfo) {
   columnsWeWant := map[string]bool{}
   colInfoMap := map[string]api2go.ColumnInfo{}
   for i, c := range tableInfo.Columns {
@@ -918,7 +912,7 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *datastore.TableInfo) (m
     colInfoMap[c.ColumnName] = c
   }
 
-  for _, sCol := range datastore.StandardColumns {
+  for _, sCol := range StandardColumns {
     _, ok := colInfoMap[sCol.ColumnName]
     if ok {
       log.Infof("Column [%v] already present in config for table [%v]", sCol.ColumnName, tableInfo.TableName)
@@ -931,7 +925,7 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *datastore.TableInfo) (m
   return columnsWeWant, colInfoMap
 }
 
-func CheckTable(tableInfo *datastore.TableInfo, db *sqlx.DB) {
+func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 
   for i, c := range tableInfo.Columns {
     if c.ColumnName == "" {
@@ -988,7 +982,7 @@ func alterTableAddColumn(tableName string, colInfo *api2go.ColumnInfo, sqlDriver
   return fmt.Sprintf("alter table %v add column %v", tableName, getColumnLine(colInfo, sqlDriverName))
 }
 
-func CreateTable(tableInfo *datastore.TableInfo, db *sqlx.DB) {
+func CreateTable(tableInfo *TableInfo, db *sqlx.DB) {
 
   createTableQuery := MakeCreateTableQuery(tableInfo, db.DriverName())
 
@@ -999,7 +993,7 @@ func CreateTable(tableInfo *datastore.TableInfo, db *sqlx.DB) {
   }
 }
 
-func MakeCreateTableQuery(tableInfo *datastore.TableInfo, sqlDriverName string) string {
+func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
   createTableQuery := fmt.Sprintf("create table %s (\n", tableInfo.TableName)
 
   columnStrings := []string{}

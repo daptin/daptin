@@ -9,6 +9,14 @@
     </li>
 
 
+    <li class="header">Connections</li>
+
+    <li class="pageLink">
+      <router-link :to="{name: 'Entity', params: {tablename: 'world'}}">
+        <span class="page">Add a connection</span>
+      </router-link>
+    </li>
+
     <li class="header">System</li>
     <li class="pageLink" v-on:click="toggleMenu">
       <router-link to="/in/world">
@@ -46,14 +54,6 @@
         </li>
       </ul>
     </li>
-
-
-    <!--<li class="pageLink" v-on:click="toggleMenu">-->
-    <!--<router-link to="/setting">-->
-    <!--<i class="fa fa-cog"></i>-->
-    <!--<span class="page">Settings</span>-->
-    <!--</router-link>-->
-    <!--</li>-->
 
   </ul>
 </template>
