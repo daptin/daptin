@@ -1,9 +1,7 @@
-package datastore
+package resource
 
 import (
   "github.com/artpar/api2go"
-  "github.com/artpar/goms/server/resource"
-  "github.com/artpar/goms/server/fsm_manager"
 )
 
 var StandardColumns = []api2go.ColumnInfo{
@@ -69,12 +67,13 @@ var StandardRelations = []api2go.TableRelation{
   api2go.NewTableRelation("world_column", "belongs_to", "world"),
   api2go.NewTableRelation("action", "belongs_to", "world"),
   api2go.NewTableRelation("world", "has_many", "smd"),
+  api2go.NewTableRelation("oauthtoken", "has_one", "oauthconnect"),
 }
 
-var SystemSmds = []fsm_manager.LoopbookFsmDescription{
+var SystemSmds = []LoopbookFsmDescription{
 
 }
-var SystemActions = []resource.Action{
+var SystemActions = []Action{
   {
     Name:   "upload_system_schema",
     Label:  "Upload features",
@@ -87,7 +86,7 @@ var SystemActions = []resource.Action{
         IsNullable: false,
       },
     },
-    OutFields: []resource.Outcome{
+    OutFields: []Outcome{
       {
         Type:   "system_json_schema_update",
         Method: "EXECUTE",
@@ -102,7 +101,7 @@ var SystemActions = []resource.Action{
     Label:    "Download system schema",
     OnType:   "world",
     InFields: []api2go.ColumnInfo{},
-    OutFields: []resource.Outcome{
+    OutFields: []Outcome{
       {
         Type:       "system_json_schema_download",
         Method:     "EXECUTE",
@@ -115,7 +114,7 @@ var SystemActions = []resource.Action{
     Label:    "Become GoMS admin",
     OnType:   "world",
     InFields: []api2go.ColumnInfo{},
-    OutFields: []resource.Outcome{
+    OutFields: []Outcome{
       {
         Type:   "become_admin",
         Method: "EXECUTE",
@@ -155,7 +154,7 @@ var SystemActions = []resource.Action{
         IsNullable: false,
       },
     },
-    OutFields: []resource.Outcome{
+    OutFields: []Outcome{
       {
         Type:      "user",
         Method:    "POST",
@@ -203,7 +202,7 @@ var SystemActions = []resource.Action{
         IsNullable: false,
       },
     },
-    OutFields: []resource.Outcome{
+    OutFields: []Outcome{
       {
         Type:   "jwt.token",
         Method: "EXECUTE",
@@ -501,6 +500,90 @@ var StandardTables = []TableInfo{
       },
     },
   },
+  {
+    TableName: "oauthconnect",
+    IsHidden:  true,
+    Columns: []api2go.ColumnInfo{
+      {
+        Name:       "name",
+        ColumnName: "name",
+        IsUnique:   true,
+        IsIndexed:  true,
+        DataType:   "varchar(80)",
+        ColumnType: "name",
+      },
+      {
+        Name:       "client_id",
+        ColumnName: "name",
+        IsUnique:   true,
+        IsIndexed:  true,
+        DataType:   "varchar(80)",
+        ColumnType: "name",
+      },
+      {
+        Name:       "client_secret",
+        ColumnName: "name",
+        IsUnique:   true,
+        IsIndexed:  true,
+        DataType:   "varchar(80)",
+        ColumnType: "name",
+      },
+      {
+        Name:       "response_type",
+        ColumnName: "name",
+        IsUnique:   true,
+        IsIndexed:  true,
+        DataType:   "varchar(80)",
+        ColumnType: "name",
+      },
+      {
+        Name:       "redirect_uri",
+        ColumnName: "name",
+        IsUnique:   true,
+        IsIndexed:  true,
+        DataType:   "varchar(80)",
+        ColumnType: "name",
+      },
+      {
+        Name:       "grant_type",
+        ColumnName: "name",
+        IsUnique:   true,
+        IsIndexed:  true,
+        DataType:   "varchar(80)",
+        ColumnType: "name",
+      },
+    },
+  },
+  {
+    TableName: "oauthtoken",
+    IsHidden:  true,
+    Columns: []api2go.ColumnInfo{
+      {
+        Name:       "access_token",
+        ColumnName: "access_token",
+        ColumnType: "encrypted",
+        DataType:   "varchar(100)",
+      },
+      {
+        Name:       "expires_in",
+        ColumnName: "expires_in",
+        ColumnType: "minutes",
+        DataType:   "int(11)",
+      },
+      {
+        Name:       "refresh_token",
+        ColumnName: "refresh_token",
+        ColumnType: "encrypted",
+        DataType:   "varchar(100)",
+      },
+      {
+        Name:       "token_type",
+        ColumnName: "token_type",
+        ColumnType: "label",
+        DataType:   "varchar(20)",
+      },
+    },
+  },
 }
 
 type TableInfo struct {
@@ -508,7 +591,7 @@ type TableInfo struct {
   TableId                int
   DefaultPermission      int64 `db:"default_permission"`
   Columns                []api2go.ColumnInfo
-  StateMachines          []fsm_manager.LoopbookFsmDescription
+  StateMachines          []LoopbookFsmDescription
   Relations              []api2go.TableRelation
   IsTopLevel             bool `db:"is_top_level"`
   Permission             int64
