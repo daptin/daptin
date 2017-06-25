@@ -11,8 +11,8 @@ const AppConfig = function () {
     hostname: window.location.hostname,
   };
 
-  if (that.location.hostname == "site.goms") {
-    that.apiRoot = that.location.protocol + "//api.goms:6336"
+  if (that.location.hostname == "site.goms.com") {
+    that.apiRoot = that.location.protocol + "//api.goms.com:6336"
   }
 
 

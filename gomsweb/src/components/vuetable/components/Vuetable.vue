@@ -320,7 +320,7 @@
         let obj;
         this.fields.forEach(function (field, i) {
           var fieldType = that.fieldsData[field];
-//          console.log("field type", field, fieldType, that.fieldsData);
+          console.log("field type", field, fieldType, that.fieldsData);
           field = {
             name: field,
             title: self.setTitle(field),
@@ -329,7 +329,11 @@
           };
 
           if (fieldType == "hidden") {
-            return;
+            field.visible = false;
+          }
+
+          if (fieldType == "encrypted") {
+            field.visible = false;
           }
 
           if (typeof fieldType == "object") {

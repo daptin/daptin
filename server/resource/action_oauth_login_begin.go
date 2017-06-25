@@ -8,6 +8,7 @@ import (
   "gopkg.in/Masterminds/squirrel.v1"
   "github.com/pquerna/otp/totp"
   "time"
+  "strings"
 )
 
 type OauthLoginBeginActionPerformer struct {
@@ -28,7 +29,8 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
     return nil, []error{err}
   }
 
-  authenticator := "google"
+  scope := inFieldMap["scope"].(string)
+  authenticator := inFieldMap["authenticator"]
 
   rows, _, err := d.cruds["oauthconnect"].GetRowsByWhereClause("oauthconnect", squirrel.Eq{"name": authenticator})
 
@@ -48,8 +50,8 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
   conf := &oauth2.Config{
     ClientID:     authConnectorData["client_id"].(string),
     ClientSecret: authConnectorData["client_secret"].(string),
-    RedirectURL:  "http://site.goms.com:8080/oauth/response",
-    Scopes:       []string{"https://www.googleapis.com/auth/spreadsheets"},
+    RedirectURL:  authConnectorData["redirect_uri"].(string),
+    Scopes:       strings.Split(scope, ","),
     Endpoint: oauth2.Endpoint{
       AuthURL:  "https://accounts.google.com/o/oauth2/auth",
       TokenURL: "https://accounts.google.com/o/oauth2/token",
