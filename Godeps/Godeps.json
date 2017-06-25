@@ -34,6 +34,18 @@
 			"Rev": "f3f7de3b9e394e3af3b88e1b9457f6f71d1ae0ac"
 		},
 		{
+			"ImportPath": "github.com/boombuler/barcode",
+			"Rev": "56ef0af91246fb5279df4f87bc3daf1bf7cb9e89"
+		},
+		{
+			"ImportPath": "github.com/boombuler/barcode/qr",
+			"Rev": "56ef0af91246fb5279df4f87bc3daf1bf7cb9e89"
+		},
+		{
+			"ImportPath": "github.com/boombuler/barcode/utils",
+			"Rev": "56ef0af91246fb5279df4f87bc3daf1bf7cb9e89"
+		},
+		{
 			"ImportPath": "github.com/dgrijalva/jwt-go",
 			"Comment": "v3.0.0-6-g63734ea",
 			"Rev": "63734eae1ef55eaac06fdc0f312615f2e321e273"
@@ -155,6 +167,18 @@
 			"ImportPath": "github.com/pkg/errors",
 			"Comment": "v0.8.0-5-gc605e28",
 			"Rev": "c605e284fe17294bda444b34710735b29d1a9d90"
+		},
+		{
+			"ImportPath": "github.com/pquerna/otp",
+			"Rev": "9e1935374bc73ffe011187dafed51a412b90fe43"
+		},
+		{
+			"ImportPath": "github.com/pquerna/otp/hotp",
+			"Rev": "9e1935374bc73ffe011187dafed51a412b90fe43"
+		},
+		{
+			"ImportPath": "github.com/pquerna/otp/totp",
+			"Rev": "9e1935374bc73ffe011187dafed51a412b90fe43"
 		},
 		{
 			"ImportPath": "github.com/rcrowley/goagain",
