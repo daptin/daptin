@@ -12,6 +12,7 @@ import AdminComponent from './components/Admin'
 import SignInComponent from './components/SignIn'
 import SignedInComponent from './components/SignedIn'
 import SignOutComponent from './components/SignOut'
+import OauthResponseComponent from './components/OauthResponse'
 import SignUpComponent from './components/SignUp'
 import ActionComponent from './components/Action'
 import HomeComponent from './components/Home'
@@ -46,6 +47,11 @@ const routes = [
     name: 'SignOut',
     path: '/auth/signout',
     component: SignOutComponent
+  },
+  {
+    name: "OauthResponse",
+    path: '/oauth/response',
+    component: OauthResponseComponent,
   },
   {
     path: '/',

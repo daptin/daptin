@@ -1,9 +1,7 @@
 import  JsonApi from "devour-client"
 import {Notification} from "element-ui"
 import appConfig from "../plugins/appconfig"
-import {getToken} from '../utils/auth'
-
-import {logout} from '../utils/lock'
+import {getToken, unsetToken} from '../utils/auth'
 
 const jsonapi = new JsonApi({
   apiUrl: appConfig.apiRoot + '/api',
@@ -21,7 +19,7 @@ jsonapi.replaceMiddleware('errors', {
         "title": "Failed",
         "message": payload.data
       });
-      logout();
+      unsetToken();
       return;
     }
 
