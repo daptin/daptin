@@ -24,8 +24,8 @@ import (
   "path/filepath"
   //"github.com/pkg/errors"
   "flag"
-  uuid2 "github.com/satori/go.uuid"
   "github.com/gorilla/context"
+  uuid2 "github.com/satori/go.uuid"
   "gopkg.in/Masterminds/squirrel.v1"
 )
 
@@ -202,11 +202,16 @@ func Main() {
 
   actionPerformers := GetActionPerformers(&initConfig, configStore)
 
-  r.POST("/action/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
-  r.GET("/action/:actionName", resource.CreateGetActionHandler(&initConfig, configStore, cruds))
+  r.POST("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
+  r.GET("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
 
   r.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
   r.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
+
+
+  r.NoRoute(func(c *gin.Context) {
+    c.File("./gomsweb/dist/index.html")
+  })
 
   r.Run(fmt.Sprintf(":%v", *port))
 }
@@ -221,6 +226,14 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
   downloadConfigPerformer, err := resource.NewDownloadCmsConfigPerformer(initConfig)
   resource.CheckErr(err, "Failed to create download config performer")
   performers = append(performers, downloadConfigPerformer)
+
+  oauth2redirect, err := resource.NewOauthLoginBeginActionPerformer(initConfig, cruds, configStore)
+  resource.CheckErr(err, "Failed to create oauth2 request performer")
+  performers = append(performers, oauth2redirect)
+
+  oauth2response, err := resource.NewOauthLoginResponseActionPerformer(initConfig, cruds, configStore)
+  resource.CheckErr(err, "Failed to create oauth2 response handler")
+  performers = append(performers, oauth2response)
 
   generateJwtPerformer, err := resource.NewGenerateJwtTokenPerformer(configStore, cruds)
   resource.CheckErr(err, "Failed to create generate jwt performer")
@@ -263,9 +276,7 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
     refId := m["referenceId"].(string)
     stateMachineId := gincontext.Param("stateMachineId")
 
-    pr := &http.Request{
-
-    }
+    pr := &http.Request{}
     pr.Method = "GET"
     req := api2go.Request{
       PlainRequest: pr,
@@ -334,9 +345,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
     currentUserReferenceId := context.Get(gincontext.Request, "user_id").(string)
     currentUsergroups := context.Get(gincontext.Request, "usergroup_id").([]auth.GroupPermission)
 
-    pr := &http.Request{
-
-    }
+    pr := &http.Request{}
     pr.Method = "GET"
     req := api2go.Request{
       PlainRequest: pr,

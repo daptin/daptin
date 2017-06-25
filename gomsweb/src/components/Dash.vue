@@ -273,10 +273,8 @@
   import {mapState} from 'vuex'
   import config from '../config'
   import Sidebar from './Sidebar'
-  import 'hideseek'
 
   import {getToken} from '../utils/auth'
-  import {logout} from '../utils/lock'
   import {Notification} from 'element-ui';
   import worldManager from "../plugins/worldmanager"
   import {mapGetters} from 'vuex'
