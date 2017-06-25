@@ -69,14 +69,12 @@ const ActionManager = function () {
     var that = this;
     return new Promise(function (resolve, reject) {
       axios({
-        url: appConfig.apiRoot + "/action/" + actionName,
+        url: appConfig.apiRoot + "/action/" + type + "/" + actionName,
         method: "POST",
         headers: {
           "Authorization": "Bearer " + getToken()
         },
         data: {
-          type: type,
-          action: actionName,
           attributes: data
         }
       }).then(function (res) {

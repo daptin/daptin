@@ -70,9 +70,7 @@ var StandardRelations = []api2go.TableRelation{
   api2go.NewTableRelation("oauthtoken", "has_one", "oauthconnect"),
 }
 
-var SystemSmds = []LoopbookFsmDescription{
-
-}
+var SystemSmds = []LoopbookFsmDescription{}
 var SystemActions = []Action{
   {
     Name:   "upload_system_schema",
@@ -205,6 +203,57 @@ var SystemActions = []Action{
     OutFields: []Outcome{
       {
         Type:   "jwt.token",
+        Method: "EXECUTE",
+        Attributes: map[string]string{
+          "email":    "$email",
+          "password": "$password",
+        },
+      },
+    },
+  },
+  {
+    Name:   "oauth.login.begin",
+    Label:  "Authenticate via OAuth",
+    OnType: "oauthconnect",
+    InFields: []api2go.ColumnInfo{
+      {
+        Name:       "scope",
+        ColumnName: "scope",
+        ColumnType: "name",
+        IsNullable: false,
+      },
+    },
+    OutFields: []Outcome{
+      {
+        Type:   "oauth.client.redirect",
+        Method: "EXECUTE",
+        Attributes: map[string]string{
+          "authenticator": "$.name",
+        },
+      },
+    },
+  },
+  {
+    Name:   "oauth.login.response",
+    Label:  "",
+    OnType: "oauthtoken",
+    InFields: []api2go.ColumnInfo{
+      {
+        Name:       "code",
+        ColumnName: "code",
+        ColumnType: "hidden",
+        IsNullable: false,
+      },
+      {
+        Name:       "state",
+        ColumnName: "state",
+        ColumnType: "hidden",
+        IsNullable: false,
+      },
+    },
+    OutFields: []Outcome{
+      {
+        Type:   "oauth.login.response",
         Method: "EXECUTE",
         Attributes: map[string]string{
           "email":    "$email",
@@ -514,41 +563,31 @@ var StandardTables = []TableInfo{
       },
       {
         Name:       "client_id",
-        ColumnName: "name",
-        IsUnique:   true,
-        IsIndexed:  true,
+        ColumnName: "client_id",
         DataType:   "varchar(80)",
         ColumnType: "name",
       },
       {
         Name:       "client_secret",
-        ColumnName: "name",
-        IsUnique:   true,
-        IsIndexed:  true,
+        ColumnName: "client_secret",
         DataType:   "varchar(80)",
-        ColumnType: "name",
+        ColumnType: "encrypted",
       },
       {
         Name:       "response_type",
-        ColumnName: "name",
-        IsUnique:   true,
-        IsIndexed:  true,
+        ColumnName: "response_type",
         DataType:   "varchar(80)",
         ColumnType: "name",
       },
       {
         Name:       "redirect_uri",
-        ColumnName: "name",
-        IsUnique:   true,
-        IsIndexed:  true,
+        ColumnName: "redirect_uri",
         DataType:   "varchar(80)",
         ColumnType: "name",
       },
       {
         Name:       "grant_type",
-        ColumnName: "name",
-        IsUnique:   true,
-        IsIndexed:  true,
+        ColumnName: "grant_type",
         DataType:   "varchar(80)",
         ColumnType: "name",
       },
@@ -562,7 +601,7 @@ var StandardTables = []TableInfo{
         Name:       "access_token",
         ColumnName: "access_token",
         ColumnType: "encrypted",
-        DataType:   "varchar(100)",
+        DataType:   "varchar(1000)",
       },
       {
         Name:       "expires_in",
@@ -574,7 +613,7 @@ var StandardTables = []TableInfo{
         Name:       "refresh_token",
         ColumnName: "refresh_token",
         ColumnType: "encrypted",
-        DataType:   "varchar(100)",
+        DataType:   "varchar(1000)",
       },
       {
         Name:       "token_type",
@@ -597,6 +636,6 @@ type TableInfo struct {
   Permission             int64
   UserId                 uint64 `db:"user_id"`
   IsHidden               bool   `db:"is_hidden"`
-  IsJoinTable            bool `db:"is_join_table"`
-  IsStateTrackingEnabled bool `db:"is_state_tracking_enabled"`
+  IsJoinTable            bool   `db:"is_join_table"`
+  IsStateTrackingEnabled bool   `db:"is_state_tracking_enabled"`
 }

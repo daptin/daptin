@@ -6,7 +6,6 @@
 import axios from "axios"
 import {Notification} from "element-ui"
 import {unsetToken, extractInfoFromHash} from "../utils/auth"
-import {logout} from '../utils/lock'
 
 // Add a response interceptor
 axios.interceptors.response.use(function (response) {
@@ -23,7 +22,6 @@ axios.interceptors.response.use(function (response) {
     })
   } else if (error.response && error.response.status == 401) {
     unsetToken();
-    logout();
     Notification.error({
       "title": "Unauthorized",
       "message": error.message
