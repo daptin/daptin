@@ -30,10 +30,12 @@ func (d *BecomeAdminActionPerformer) DoAction(request ActionRequest, inFieldMap 
 
   actionResponse := NewActionResponse("client.redirect", responseAttrs)
 
+  go restart()
+
   return []ActionResponse{actionResponse}, nil
 }
 
-func NewBecomeAdminPerformer(initConfig *CmsConfig, cruds  map[string]*DbResource) (ActionPerformerInterface, error) {
+func NewBecomeAdminPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
   handler := BecomeAdminActionPerformer{
     cruds: cruds,

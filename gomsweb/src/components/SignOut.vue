@@ -4,13 +4,11 @@
 
 <script>
   import {unsetToken} from '../utils/auth'
-  import {logout} from '../utils/lock'
 
   export default {
     mounted () {
-      unsetToken()
-      logout()
-      console.log("logged out")
+      unsetToken();
+      console.log("logged out");
       this.$router.push({
         name: 'SignIn'
       })

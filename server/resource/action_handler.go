@@ -66,6 +66,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
   return func(ginContext *gin.Context) {
 
     actionName := ginContext.Param("actionName")
+    log.Infof("Action name: %v", actionName)
 
     bytes, err := ioutil.ReadAll(ginContext.Request.Body)
     if err != nil {
@@ -75,6 +76,18 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
     actionRequest := ActionRequest{}
     json.Unmarshal(bytes, &actionRequest)
+
+    actionRequest.Type = ginContext.Param("typename")
+    actionRequest.Action = actionName
+
+    if actionRequest.Attributes == nil {
+      actionRequest.Attributes = make(map[string]interface{})
+    }
+
+    params := ginContext.Params
+    for _, param := range params {
+      actionRequest.Attributes[param.Key] = param.Value
+    }
 
     //log.Infof("Request body: %v", actionRequest)
 
@@ -121,6 +134,13 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
     log.Infof("Handle event for [%v]", actionName)
 
     action, err := cruds["action"].GetActionByName(actionRequest.Type, actionRequest.Action)
+
+    for _, field := range action.InFields {
+      _, ok := actionRequest.Attributes[field.ColumnName]
+      if !ok {
+        actionRequest.Attributes[field.ColumnName] = ginContext.Query(field.ColumnName)
+      }
+    }
 
     if err != nil {
       ginContext.AbortWithError(400, err)
@@ -424,7 +444,9 @@ func GetValidatedInFields(actionRequest ActionRequest, action Action) (map[strin
     val, ok := dataMap[inField.ColumnName]
     if ok {
       finalDataMap[inField.ColumnName] = val
+
     } else if inField.DefaultValue != "" {
+    } else if inField.IsNullable {
 
     } else {
       return nil, errors.New(fmt.Sprintf("Field %s cannot be blank", inField.Name))

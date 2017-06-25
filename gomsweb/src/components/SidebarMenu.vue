@@ -10,10 +10,10 @@
 
 
     <li class="header">Connections</li>
-
-    <li class="pageLink">
-      <router-link :to="{name: 'Entity', params: {tablename: 'world'}}">
-        <span class="page">Add a connection</span>
+    <li>
+      <router-link class="upload-schema"
+                   :to="{name : 'Entity', params: {tablename: 'oauthconnect'}}">
+        <i class="fa fa-link"></i> New connection
       </router-link>
     </li>
 

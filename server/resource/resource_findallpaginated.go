@@ -123,7 +123,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	//}
 
 	//for _, rel := range dr.model.GetRelations() {
-		//log.Infof("TableRelation[%v] == [%v]", dr.model.GetName(), rel.String())
+	//log.Infof("TableRelation[%v] == [%v]", dr.model.GetName(), rel.String())
 
 	//}
 	for _, rel := range dr.model.GetRelations() {
