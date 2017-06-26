@@ -194,6 +194,7 @@ type ColumnInfo struct {
 }
 
 type ForeignKeyData struct {
+  DataSource string
   TableName  string
   ColumnName string
 }
@@ -208,13 +209,22 @@ func (f *ForeignKeyData) Scan(src interface{}) error {
   tableName := parts[0]
   columnName := strings.Split(parts[1], ")")[0]
 
+  dataSource := "self"
+
+  indexColon := strings.Index(tableName, ":")
+  if indexColon > -1 {
+    dataSource = tableName[0:indexColon]
+    tableName = tableName[indexColon+1:]
+  }
+
   f.TableName = tableName
   f.ColumnName = columnName
+  f.ColumnName = dataSource
   return nil
 }
 
 func (f ForeignKeyData) String() string {
-  return fmt.Sprintf("%s(%s)", f.TableName, f.ColumnName)
+  return fmt.Sprintf("%s:%s(%s)", f.DataSource, f.TableName, f.ColumnName)
 }
 
 func NewApi2GoModelWithData(name string, columns []ColumnInfo, defaultPermission int64, relations []TableRelation, m map[string]interface{}) *Api2GoModel {
@@ -280,14 +290,19 @@ func (m *Api2GoModel) SetToManyReferenceIDs(name string, IDs []string) error {
 
   for _, rel := range m.relations {
     log.Infof("Check relation: %v", rel.String())
-    if rel.GetRelation() != "belongs_to" {
+    if rel.GetRelation() != "belongs_to" && rel.GetRelation() != "has_one" {
 
       if rel.GetObjectName() == name || rel.GetSubjectName() == name {
         var rows = make([]map[string]interface{}, 0)
         for _, id := range IDs {
           row := make(map[string]interface{})
           row[name] = id
-          row[rel.GetSubjectName()] = m.Data["reference_id"]
+          if rel.GetSubjectName() == name {
+            row[rel.GetObjectName()] = m.Data["reference_id"]
+          } else {
+            row[rel.GetSubjectName()] = m.Data["reference_id"]
+
+          }
           rows = append(rows, row)
         }
         m.Data[name] = rows

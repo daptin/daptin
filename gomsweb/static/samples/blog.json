@@ -168,9 +168,24 @@
   ],
   "exchanges": [
     {
-      "sourceName": "user",
+      "name": "User to excel sync",
+      "sourceName": "blog",
       "sourceType": "self",
-      "targetName": "",
-    },
+      "targetName": "https://docs.google.com/spreadsheets/d/1QuGjDfsV7SWS2xyRadwfbWUH0dtNT4S-YqeM97eE4tw/edit#gid=0",
+      "targetType": "gsheet",
+      "attributes": [
+        {
+          "sourceColumn": "$blog.title",
+          "targetColumn": "Blog title"
+        },
+        {
+          "sourceColumn": "$blog.view_count",
+          "targetColumn": "View count"
+        }
+      ],
+      "options": {
+        "hasHeader": true
+      }
+    }
   ]
 }

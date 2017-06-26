@@ -108,14 +108,14 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
         if rel.GetRelation() == "belongs_to" || rel.GetRelation() == "has_one" {
           r = "hasOne"
         }
-        res[rel.GetObjectName()] = NewJsonApiRelation(rel.GetObject(), r, "entity")
+        res[rel.GetObjectName()] = NewJsonApiRelation(rel.GetObject(), rel.GetObjectName(), r, "entity")
       } else {
         if rel.GetRelation() == "belongs_to" {
-          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasMany", "entity")
+          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), rel.GetSubjectName(), "hasMany", "entity")
         } else if rel.GetRelation() == "has_one" {
-          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasMany", "entity")
+          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), rel.GetSubjectName(), "hasMany", "entity")
         } else {
-          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), "hasMany", "entity")
+          res[rel.GetSubjectName()] = NewJsonApiRelation(rel.GetSubject(), rel.GetSubjectName(), "hasMany", "entity")
         }
       }
     }
@@ -144,12 +144,13 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
   }
 }
 
-func NewJsonApiRelation(name string, relationType string, columnType string) JsonApiRelation {
+func NewJsonApiRelation(name string, relationName string, relationType string, columnType string) JsonApiRelation {
 
   return JsonApiRelation{
     Type:       name,
     JsonApi:    relationType,
     ColumnType: columnType,
+    ColumnName: relationName,
   }
 
 }
@@ -158,4 +159,5 @@ type JsonApiRelation struct {
   JsonApi    string `json:"jsonApi,omitempty"`
   ColumnType string `json:"columnType"`
   Type       string `json:"type,omitempty"`
+  ColumnName string `json:"columName"`
 }

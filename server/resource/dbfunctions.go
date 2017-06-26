@@ -11,7 +11,94 @@ import (
   "strings"
   //"errors"
   "github.com/artpar/goms/server/auth"
+  "time"
 )
+
+func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
+
+  log.Infof("We have %d data exchange updates", len(initConfig.ExchangeContracts))
+
+  adminId, _ := GetAdminUserIdAndUserGroupId(db)
+
+  for _, exchange := range initConfig.ExchangeContracts {
+
+    s, v, err := squirrel.Select("reference_id").From("data_exchange").Where(squirrel.Eq{"name": exchange.Name}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+
+    if err != nil {
+      log.Errorf("Failed to query existing data exchange: %v", err)
+      continue
+    }
+
+    var referenceId string
+    err = db.QueryRowx(s, v...).Scan(&referenceId)
+
+    if err != nil {
+      log.Infof("No existing data exchange for  [%v]", exchange.Name)
+    }
+
+    if err == nil {
+
+      attrsJson, err := json.Marshal(exchange.Attributes)
+      CheckErr(err, "Failed to marshal attributes to json: %v")
+
+      optionsJson, err := json.Marshal(exchange.Options)
+
+      CheckErr(err, "Failed to marshal options to json: %v")
+
+      s, v, err = squirrel.
+      Update("data_exchange").
+          Set("source_name", exchange.SourceName).
+          Set("source_type", exchange.SourceType).
+          Set("target_name", exchange.TargetName).
+          Set("target_type", exchange.TargetType).
+          Set("attributes", attrsJson).
+          Set("options", optionsJson).
+          Set("updated_at", time.Now()).
+          Set("user_id", adminId).
+          Where(squirrel.Eq{"reference_id": referenceId}).
+          ToSql()
+
+      _, err = db.Exec(s, v...)
+
+      CheckErr(err, "Failed to update exchange row")
+
+    } else {
+      attrsJson, err := json.Marshal(exchange.Attributes)
+      CheckErr(err, "Failed to marshal attributes to json")
+
+      optionsJson, err := json.Marshal(exchange.Options)
+
+      CheckErr(err, "Failed to marshal options to json")
+
+      s, v, err = squirrel.
+      Insert("data_exchange").
+          Columns("permission", "name", "source_name", "source_type", "target_name", "target_type", "attributes", "options", "created_at", "user_id", "reference_id").
+          Values(auth.DEFAULT_PERMISSION, exchange.Name, exchange.SourceName, exchange.SourceType, exchange.TargetName, exchange.TargetType, attrsJson, optionsJson, time.Now(), adminId, uuid.NewV4().String()).
+          ToSql()
+
+      _, err = db.Exec(s, v...)
+
+      CheckErr(err, "Failed to insert exchange row")
+
+    }
+
+  }
+
+  allExchnages := make([]ExchangeContract, 0)
+
+  s, v, err := squirrel.Select("name", "source_name", "source_type", "target_name", "target_type", "attributes", "options", "updated_at", "user_id").
+      From("data_exchange").Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+
+  rows, err := db.Queryx(s, v...)
+  CheckErr(err, "Failed to query existing exchanges")
+
+  if err == nil {
+    rows.Scan(&allExchnages)
+  }
+
+  initConfig.ExchangeContracts = allExchnages
+
+}
 
 func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.DB) {
 
@@ -79,7 +166,6 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.DB) {
       updateMap["initial_state"] = smd.InitialState
       updateMap["events"] = eventsDescription
       updateMap["user_id"] = adminUserId
-      updateMap["reference_id"] = eventsDescription
       s, v, err := squirrel.Update("smd").SetMap(updateMap).Where(squirrel.Eq{"reference_id": refId}).ToSql()
 
       if err != nil {
@@ -688,6 +774,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
         ForeignKeyData: api2go.ForeignKeyData{
           TableName:  targetTable,
           ColumnName: "id",
+          DataSource: "self",
         },
         DataType: "int(11)",
       }
@@ -738,6 +825,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
         ColumnType:   "alias",
         IsForeignKey: true,
         ForeignKeyData: api2go.ForeignKeyData{
+          DataSource: "self",
           TableName:  fromTable,
           ColumnName: "id",
         },
@@ -753,6 +841,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
         IsForeignKey: true,
         ForeignKeyData: api2go.ForeignKeyData{
           TableName:  targetTable,
+          DataSource: "self",
           ColumnName: "id",
         },
         DataType: "int(11)",
@@ -783,6 +872,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
             IsForeignKey: true,
             IsNullable:   false,
             ForeignKeyData: api2go.ForeignKeyData{
+              DataSource: "self",
               TableName:  "smd",
               ColumnName: "id",
             },
@@ -795,6 +885,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
             IsForeignKey: true,
             IsNullable:   false,
             ForeignKeyData: api2go.ForeignKeyData{
+              DataSource: "self",
               TableName:  newTable.TableName,
               ColumnName: "id",
             },
@@ -824,6 +915,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
         ColumnType:   "alias",
         ForeignKeyData: api2go.ForeignKeyData{
           TableName:  fromTable,
+          DataSource: "self",
           ColumnName: "id",
         },
         DataType: "int(11)",
@@ -839,6 +931,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
         ForeignKeyData: api2go.ForeignKeyData{
           TableName:  targetTable,
           ColumnName: "id",
+          DataSource: "self",
         },
         DataType: "int(11)",
       }
@@ -870,6 +963,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
             ForeignKeyData: api2go.ForeignKeyData{
               TableName:  "smd",
               ColumnName: "id",
+              DataSource: "self",
             },
           },
           {
@@ -882,6 +976,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
             ForeignKeyData: api2go.ForeignKeyData{
               TableName:  newTable.TableName,
               ColumnName: "id",
+              DataSource: "self",
             },
           },
         },

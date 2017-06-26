@@ -18,9 +18,16 @@
     </li>
 
     <li>
-      <router-link class="list-exchange"
+      <router-link class="oauth-tokens"
                    :to="{name : 'Entity', params: {tablename: 'oauth_token'}}">
-        <i class="fa fa-exchange"></i> Exchanges
+        <i class="fa fa-tags"></i> Oauth Tokens
+      </router-link>
+    </li>
+
+    <li>
+      <router-link class="data-exchanges"
+                   :to="{name : 'Entity', params: {tablename: 'data_exchange'}}">
+        <i class="fa fa-exchange"></i> Data Exchanges
       </router-link>
     </li>
 
@@ -89,7 +96,7 @@
   </ul>
 </template>
 <script>
-  import {mapGetters} from "vuex"
+  import {mapState} from "vuex"
   export default {
     name: 'SidebarName',
     methods: {
@@ -113,19 +120,35 @@
       }
     },
     computed: {
-      ...mapGetters([
-        'topWorlds'
+      ...mapState([
+        'worlds'
       ])
     },
+    data: function () {
+      return {
+        topWorlds: [],
+      }
+    },
     mounted() {
+      var that = this;
       console.log("sidebarmenu visible worlds: ", this.topWorlds)
+
+      that.topWorlds = that.worlds.filter(function (w, r) {
+        return w.is_top_level == '1' && w.is_hidden == '0';
+      });
+
       setTimeout(function () {
         $(window).resize()
+        console.log("this sidebar again", that.topWorlds)
       }, 300);
     },
     watch: {
-      'topWorlds': function () {
+      'worlds': function () {
         console.log("got worlds")
+        that.topWorlds = that.worlds.filter(function (w, r) {
+          return w.is_top_level == '1' && w.is_hidden == '0';
+        });
+
         setTimeout(function () {
           $(window).resize()
         }, 300);

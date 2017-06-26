@@ -49,6 +49,7 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
   globalInitConfig.Relations = append(globalInitConfig.Relations, resource.StandardRelations...)
   globalInitConfig.Actions = append(globalInitConfig.Actions, resource.SystemActions...)
   globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
+  globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
 
   files, err := filepath.Glob("schema_*_gocms.json")
   log.Infof("Found files to load: %v", files)
@@ -77,6 +78,7 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
     globalInitConfig.Relations = append(globalInitConfig.Relations, initConfig.Relations...)
     globalInitConfig.Actions = append(globalInitConfig.Actions, initConfig.Actions...)
     globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, initConfig.StateMachineDescriptions...)
+    globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
 
     //for _, table := range initConfig.Tables {
     //log.Infof("Table: %v: %v", table.TableName, table.Relations)
@@ -144,6 +146,7 @@ func Main() {
   resource.UpdateWorldTable(&initConfig, db)
   resource.UpdateWorldColumnTable(&initConfig, db)
   resource.UpdateStateMachineDescriptions(&initConfig, db)
+  resource.UpdateExchanges(&initConfig, db)
 
   err = resource.UpdateActionTable(&initConfig, db)
   resource.CheckErr(err, "Failed to update action table")

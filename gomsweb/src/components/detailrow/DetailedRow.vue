@@ -155,7 +155,7 @@
 
         worldManager.getColumnKeys(newRow.type, function (newRowTypeAttributes) {
 
-          // console.log("newRowTypeAttributes for ", newRow.type, newRowTypeAttributes, newRow);
+           console.log("newRowTypeAttributes for ", newRow.type, newRowTypeAttributes, newRow);
 
           if (newRowTypeAttributes.ColumnModel[that.jsonApiModelName + "_id"]
             && newRowTypeAttributes.ColumnModel[that.jsonApiModelName + "_id"]["jsonApi"] === "hasOne") {
@@ -186,7 +186,7 @@
 
             })
           } else {
-
+            console.log("add to existing object", newRow)
             var patchObject = {};
             if (newRowTypeAttributes.ColumnModel[that.jsonApiModelName + "_id"]["jsonApi"] == "hasMany"
               && that.meta["attributes"][colName]["jsonApi"] == "hasMany") {
@@ -198,7 +198,7 @@
 
             patchObject["id"] = that.model["id"];
 
-            // console.log("patch object", patchObject);
+             console.log("patch object", patchObject);
             that.jsonApi.update(that.jsonApiModelName, patchObject).then(function (r) {
               that.$notify.success("Added " + relation.type);
               // console.log("reference of list : ", that.$refs[relation.name])
