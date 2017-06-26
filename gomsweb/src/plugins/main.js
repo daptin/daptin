@@ -26,6 +26,7 @@ import "../components/vuetable/vuetable.css";
 // Register my awesome field
 import fileUpload from "../components/fields/FileUpload.vue";
 Vue.component("fieldFileUpload", fileUpload);
+Vue.component("fieldSelectOneOrMore", SelectOneOrMore);
 
 
 Vue.use(ElementUI, { locale });

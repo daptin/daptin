@@ -1,7 +1,6 @@
 package resource
 
 import (
-  "github.com/artpar/api2go"
   "google.golang.org/api/sheets/v4"
   log "github.com/sirupsen/logrus"
   "fmt"
@@ -17,7 +16,7 @@ type ExternalExchange interface {
 
 type GsheetExternalExchange struct {
   token      *oauth2.Token
-  columnInfo []api2go.ColumnInfo
+  columnInfo ColumnMapping
   config     *oauth2.Config
 }
 
@@ -88,7 +87,7 @@ func (g *GsheetExternalExchange) ReadDestination(destinationName string) ([]map[
   return nil, nil
 }
 
-func NewGsheetExternalExchange(columnInfo []api2go.ColumnInfo, token *oauth2.Token) ExternalExchange {
+func NewGsheetExternalExchange(columnInfo ColumnMapping, token *oauth2.Token) ExternalExchange {
 
   return &GsheetExternalExchange{
     token:      token,

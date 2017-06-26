@@ -8,6 +8,7 @@ import jsonApi from "./jsonapi"
 import actionManager from "./actionmanager"
 import appconfig from "./appconfig"
 import {getToken} from '../utils/auth'
+import store from '../store'
 
 
 const WorldManager = function () {
@@ -159,6 +160,7 @@ const WorldManager = function () {
               include: ['world_column']
             }).then(function (res) {
               that.worlds = res;
+              store.commit("SET_WORLDS", res)
               console.log("Get all worlds result", res)
               // resolve("Stuff worked!");
               var total = res.length;

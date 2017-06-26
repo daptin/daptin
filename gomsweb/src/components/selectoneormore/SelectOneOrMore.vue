@@ -1,12 +1,17 @@
 <template>
 
   <div class="box">
+    <div class="box-title">
+      <div class="box-header">
+        <span class="font-size: 20px; font-weight: 400">{{schema.inputType | titleCase }}</span>
+      </div>
+    </div>
     <div class="box-body">
       <el-select
         v-model="value"
         filterable
         remote
-        :placeholder="'Search and add ' + jsonApiModelName"
+        :placeholder="'Search and add ' + schema.inputType"
         :remote-method="remoteMethod"
         :loading="loading">
         <el-option
@@ -20,7 +25,7 @@
     </div>
     <div class="box-footer">
       <button v-if="value != null" @click.prevent="addObject"
-              class="btn"> Add {{jsonApiModelName | titleCase}}
+              class="btn"> Add {{schema.inputType | titleCase}}
       </button>
     </div>
   </div>
@@ -28,26 +33,21 @@
 </template>
 
 <script>
+  import {abstractField} from "vue-form-generator";
+  import jsonApi from "../../plugins/jsonapi"
+
   export default {
+    mixins: [abstractField],
     props: {
-      jsonApi: {
-        type: Object,
-        required: true
-      },
       model: {
         type: Object,
         required: false,
-      },
-      jsonApiModelName: {
-        type: String,
-        required: true,
       }
     },
     data: function () {
       return {
         formModel: null,
         loading: false,
-        value: null,
         options: []
       }
     },
@@ -57,7 +57,7 @@
         var that = this;
         console.log("emit add object event", this.value);
         this.$emit("save", {
-          type: that.jsonApiModelName,
+          type: that.schema.inputType,
           id: this.value.id
         })
       },
@@ -90,7 +90,7 @@
         console.log("remote method called", arguments);
         var that = this;
         this.loading = true;
-        this.jsonApi.findAll(this.jsonApiModelName, {
+        jsonApi.findAll(this.schema.inputType, {
           page: 1,
           size: 20,
           query: query
@@ -110,7 +110,7 @@
     mounted: function () {
       var that = this;
 
-      console.log("start select one or more", this.model, this.meta)
+      console.log("start select one or more", this.model, that.meta, that.value, this.schema)
 
     },
     watch: {},
