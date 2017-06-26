@@ -30,7 +30,7 @@ func (d *RestartSystemActionPerformer) DoAction(request ActionRequest, inFields 
 	restartAttrs = make(map[string]interface{})
 	restartAttrs["location"] = "/"
 	restartAttrs["window"] = "self"
-	restartAttrs["delay"] = 5000
+	restartAttrs["delay"] = 10000
 	actionResponse = NewActionResponse("client.redirect", restartAttrs)
 	responses = append(responses, actionResponse)
 

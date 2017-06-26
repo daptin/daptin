@@ -11,10 +11,11 @@ type DbResource struct {
 	db           *sqlx.DB
 	cruds        map[string]*DbResource
 	ms           *MiddlewareSet
+	configStore *ConfigStore
 	contextCache map[string]interface{}
 }
 
-func NewDbResource(model *api2go.Api2GoModel, db *sqlx.DB, ms *MiddlewareSet, cruds map[string]*DbResource) *DbResource {
+func NewDbResource(model *api2go.Api2GoModel, db *sqlx.DB, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore) *DbResource {
 	cols := model.GetColumns()
 	model.SetColumns(cols)
 	//log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
@@ -22,6 +23,7 @@ func NewDbResource(model *api2go.Api2GoModel, db *sqlx.DB, ms *MiddlewareSet, cr
 		model:        model,
 		db:           db,
 		ms:           ms,
+		configStore: configStore,
 		cruds:        cruds,
 		contextCache: make(map[string]interface{}),
 	}

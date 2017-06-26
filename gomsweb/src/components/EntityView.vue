@@ -4,32 +4,37 @@
   <div class="box">
     <div class="box-header">
       <div class="box-title">
-        <h2>{{selectedTable | titleCase}}</h2>
+        <span style="font-size: 40px; font-weight: 700">{{selectedTable | titleCase}}</span>
       </div>
       <div class="box-tools pull-right">
         <div class="ui icon buttons">
-          <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'"><i class="fa  fa-2x fa-table grey "></i></button>
-          <button class="btn btn-box-tool" @click.prevent="viewMode = 'items'"><i class="fa  fa-2x fa-th-large grey"></i></button>
+          <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'"><i
+            class="fa  fa-2x fa-table maroon "></i>
+          </button>
+          <button class="btn btn-box-tool" @click.prevent="viewMode = 'card'"><i
+            class="fa  fa-2x fa-th-large fuchsia"></i></button>
           <button class="btn btn-box-tool" @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i></button>
-          <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh orange"></i></button>
+          <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh orange"></i>
+          </button>
+          <button class="btn btn-box-tool" @click.prevent="doAction(addExchangeAction)"><i
+            class="fa fa-2x fa-link teal"></i></button>
         </div>
 
       </div>
     </div>
     <div class="box-body">
-
       <div class="row" v-if="showAddEdit && rowBeingEdited != null">
         <div class="col-md-6">
-          <model-form :title="'New ' + selectedTable" @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
+          <model-form :hideTitle="true" @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
                       @cancel="showAddEdit = false"
                       v-bind:model="rowBeingEdited"
                       v-bind:meta="selectedTableColumns" ref="modelform"></model-form>
         </div>
       </div>
 
-      <table-view @newRow="newRow()" @editRow="editRow" v-if="selectedTable"
-                  :finder="finder" ref="tableview1" :json-api="jsonApi"
-                  :json-api-model-name="selectedTable"></table-view>
+      <table-view @newRow="newRow()" @editRow="editRow"
+                  :finder="finder" ref="tableview1" :view-mode="viewMode" :json-api="jsonApi"
+                  :json-api-model-name="selectedTable" v-if="selectedTable"></table-view>
     </div>
 
 
@@ -69,6 +74,8 @@
         actionManager: actionManager,
         showAddEdit: false,
         selectedWorldAction: {},
+        addExchangeAction: null,
+        viewMode: "card"
       }
     },
     methods: {
@@ -142,7 +149,6 @@
             that.setTable();
             that.showAddEdit = false;
             that.$refs.tableview1.reloadData(currentTableType);
-            that.$refs.tableview2.reloadData(currentTableType)
           }, function (r) {
             console.error(r)
           });
@@ -155,9 +161,6 @@
         var that = this;
         if (that.$refs.tableview1) {
           that.$refs.tableview1.reloadData(currentTableType);
-
-        } else if (that.$refs.tableview2) {
-          that.$refs.tableview2.reloadData(currentTableType)
 
         }
       },
@@ -238,6 +241,9 @@
 
       that.actionManager = actionManager;
       const worldActions = actionManager.getActions("world");
+
+
+      that.addExchangeAction = actionManager.getActionModel("world", "add-exchange")
 
       let tableName = that.$route.params.tablename;
       let subTableName = that.$route.params.subTable;

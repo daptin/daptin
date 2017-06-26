@@ -7,7 +7,14 @@
 
         <div class="box-header">
           <div class="box-title">
-            <h2>{{selectedTable | titleCase}} - <b>{{selectedRow | chooseTitle | titleCase}}</b></h2>
+            <span
+              style="font-size: 40px; font-weight: 400">{{selectedTable | titleCase}} - <b>{{selectedRow | chooseTitle | titleCase}}</b></span>
+          </div>
+          <div class="box-tools pull-right">
+            <div class="ui icon buttons">
+              <button class="btn btn-box-tool" @click.prevent="showAddEdit = true"><i class="fa fa-3x fa-pencil-square teal"></i>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -46,7 +53,7 @@
                 <h2>Start Tracking</h2>
               </div>
               <div class="col-md-12" v-for="a, k in stateMachines">
-                <el-button style="width: 100%" @click="addStateMachine(a)">{{a.label}}</el-button>
+                <button class="btn btn-default" style="width: 100%" @click="addStateMachine(a)">{{a.label}}</button>
               </div>
             </div>
 
@@ -56,7 +63,7 @@
                 <h2>Actions</h2>
               </div>
               <div class="col-md-12" v-for="a, k in actions">
-                <el-button style="width: 100%" @click="doAction(a)">{{a.label}}</el-button>
+                <button class="btn btn-default" style="width: 100%" @click="doAction(a)">{{a.label}}</button>
               </div>
             </div>
 
@@ -204,7 +211,35 @@
       },
       setTable() {
         const that = this;
-        var tableName;
+
+        console.log("Enter tablename: ", that);
+
+        that.actionManager = actionManager;
+        const worldActions = actionManager.getActions("world");
+
+        let tableName = that.$route.params.tablename;
+        let selectedInstanceId = that.$route.params.refId;
+
+        if (!tableName) {
+          alert("no table name");
+          return;
+        }
+
+        that.$store.commit("SET_SELECTED_TABLE", tableName);
+        that.$store.commit("SET_ACTIONS", worldActions);
+
+        that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", selectedInstanceId);
+        console.log("Get instance: ", tableName, selectedInstanceId);
+        jsonApi.find(tableName, selectedInstanceId).then(function (res) {
+          console.log("got object", res);
+          that.$store.commit("SET_SELECTED_ROW", res);
+        }, function (err) {
+          console.log("Errors", err)
+        });
+
+
+        that.$store.commit("SET_SELECTED_TABLE", tableName);
+
 
         let all = {};
 
@@ -285,36 +320,6 @@
 
     mounted() {
       var that = this;
-
-      console.log("Enter tablename: ", that);
-
-      that.actionManager = actionManager;
-      const worldActions = actionManager.getActions("world");
-
-      let tableName = that.$route.params.tablename;
-      let selectedInstanceId = that.$route.params.refId;
-
-      if (!tableName) {
-        alert("no table name");
-        return;
-      }
-
-      that.$store.commit("SET_SELECTED_TABLE", tableName);
-      that.$store.commit("SET_ACTIONS", worldActions);
-
-      that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", selectedInstanceId);
-      console.log("Get instance: ", tableName, selectedInstanceId);
-      jsonApi.find(tableName, selectedInstanceId).then(function (res) {
-        console.log("got object", res);
-        that.$store.commit("SET_SELECTED_ROW", res);
-      }, function (err) {
-        console.log("Errors", err)
-      });
-
-
-      that.$store.commit("SET_SELECTED_TABLE", tableName);
-
-
       that.setTable();
 
 
@@ -338,34 +343,35 @@
     },
     watch: {
       '$route.params.tablename': function (to, from) {
-        console.log("tablename page, path changed: ", arguments);
+        var that = this;
+
+        console.log("tablename page, path changed: ", arguments, this.$route.params.refId);
         this.$store.commit("SET_SELECTED_TABLE", to);
         this.$store.commit("SET_SELECTED_SUB_TABLE", null);
+        that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", this.$route.params.refId);
         this.showAddEdit = false;
+
+        jsonApi.one(that.selectedTable, this.$route.params.refId).get().then(function (r) {
+          console.log("TableName SET_SELECTED_ROW", r);
+          that.$store.commit("SET_SELECTED_ROW", r);
+          that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", r["id"])
+        });
         this.setTable();
       },
       '$route.params.refId': function (to, from) {
         var that = this;
-        console.log("refId changed in tablename path", arguments);
+
+        console.log("tablename page, path changed: ", arguments, this.$route.params.refId);
+        this.$store.commit("SET_SELECTED_TABLE", to);
+        this.$store.commit("SET_SELECTED_SUB_TABLE", null);
+        that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", this.$route.params.refId);
         this.showAddEdit = false;
 
-
-        if (!to) {
-          this.$store.commit("SET_SELECTED_ROW", null);
-          that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", null)
-        } else {
-          jsonApi.one(that.selectedTable, to).get().then(function (r) {
-            console.log("TableName SET_SELECTED_ROW", r);
-            that.$store.commit("SET_SELECTED_ROW", r);
-            that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", r["id"])
-          });
-        }
-        this.setTable();
-      },
-      '$route.params.subTable': function (to, from) {
-        this.showAddEdit = false;
-        console.log("TableName SubTable changed", arguments);
-        this.$store.commit("SET_SELECTED_SUB_TABLE", to);
+        jsonApi.one(that.selectedTable, this.$route.params.refId).get().then(function (r) {
+          console.log("TableName SET_SELECTED_ROW", r);
+          that.$store.commit("SET_SELECTED_ROW", r);
+          that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", r["id"])
+        });
         this.setTable();
       }
     }

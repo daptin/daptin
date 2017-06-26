@@ -1,5 +1,6 @@
 import Vue from "vue";
 import Vuetable from "./components/Vuetable.vue";
+import Vuecard from "./components/Vuecard.vue";
 import VuetablePagination from "./components/VuetablePagination.vue";
 import VuetablePaginationDropdown from "./components/VuetablePaginationDropdown.vue";
 import VuetablePaginationInfo from "./components/VuetablePaginationInfo.vue";
@@ -203,6 +204,7 @@ let vm = new Vue({
   el: '#app',
   components: {
     Vuetable,
+    Vuecard,
     VuetablePagination,
     VuetablePaginationDropdown,
     VuetablePaginationInfo,
