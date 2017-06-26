@@ -40,8 +40,8 @@
       <template v-if="showAddEdit && meta">
 
         <div class="col-md-6 pull-right" v-if="showSelect">
-          <select-one-or-more :json-api="jsonApi"
-                              @save="saveRow" :json-api-model-name="jsonApiModelName">
+          <select-one-or-more
+            @save="saveRow" :schema="{inputType: jsonApiModelName}">
           </select-one-or-more>
 
         </div>

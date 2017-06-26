@@ -72,6 +72,7 @@ var StandardRelations = []api2go.TableRelation{
 }
 
 var SystemSmds = []LoopbookFsmDescription{}
+var SystemExchanges = []ExchangeContract{}
 var SystemActions = []Action{
   {
     Name:   "upload_system_schema",
@@ -279,6 +280,15 @@ var SystemActions = []Action{
         ColumnName: "name",
         ColumnType: "name",
         IsNullable: false,
+      },
+      {
+        Name:         "sheet_id",
+        ColumnName:   "sheet_id",
+        ColumnType:   "alias",
+        IsForeignKey: true,
+        ForeignKeyData: api2go.ForeignKeyData{
+
+        },
       },
     },
   },
@@ -622,14 +632,49 @@ var StandardTables = []TableInfo{
   },
   {
     TableName: "data_exchange",
-    IsHidden:  true,
     Columns: []api2go.ColumnInfo{
       {
         Name:       "name",
         ColumnName: "name",
         ColumnType: "name",
-        DataType:   "varchar(100)",
+        DataType:   "varchar(200)",
         IsIndexed:  true,
+      },
+      {
+        Name:       "source_name",
+        ColumnName: "source_name",
+        ColumnType: "name",
+        DataType:   "varchar(1000)",
+      },
+      {
+        Name:       "source_type",
+        ColumnName: "source_type",
+        ColumnType: "name",
+        DataType:   "varchar(100)",
+      },
+      {
+        Name:       "target_name",
+        ColumnName: "target_name",
+        ColumnType: "name",
+        DataType:   "varchar(1000)",
+      },
+      {
+        Name:       "target_type",
+        ColumnName: "target_type",
+        ColumnType: "name",
+        DataType:   "varchar(100)",
+      },
+      {
+        Name:       "attributes",
+        ColumnName: "attributes",
+        ColumnType: "json",
+        DataType:   "text",
+      },
+      {
+        Name:       "options",
+        ColumnName: "options",
+        ColumnType: "json",
+        DataType:   "text",
       },
     },
   },

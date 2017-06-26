@@ -7,7 +7,18 @@
       </div>
     </div>
     <div class="box-body">
-      <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
+      <div :class="{'col-md-6': relations.length > 0, 'col-md-12': relations.length == 0 }">
+        <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
+      </div>
+      <div class="col-md-6" v-if="relations.length > 0">
+
+        <div class="row">
+          <div class="col-md-12" v-for="item in relations">
+            <select-one-or-more :value="item.value" :schema="item" @save="setRelation"></select-one-or-more>
+          </div>
+        </div>
+
+      </div>
     </div>
     <div class="box-footer">
       <el-button class="bg-yellow" type="submit" v-loading.body="loading" @click.prevent="saveRow()"> Submit
@@ -63,9 +74,13 @@
         formModel: null,
         formValue: {},
         loading: false,
+        relations: [],
       }
     },
     methods: {
+      setRelation(item){
+        console.log("save relation", item);
+      },
       getTextInputType(columnMeta) {
         let inputType = columnMeta.ColumnType;
 
@@ -80,6 +95,9 @@
         switch (inputType) {
           case "hidden":
             inputType = "hidden";
+            break;
+          case "entity":
+            inputType = columnMeta.ColumnName;
             break;
           case "password":
             inputType = "password";
@@ -109,6 +127,9 @@
         switch (inputType) {
           case "truefalse":
             inputType = "checkbox";
+            break;
+          case "entity":
+            inputType = "selectOneOrMore";
             break;
           case "content":
             inputType = "textArea";
@@ -167,6 +188,8 @@
           "usergroup_id"
         ];
 
+        var foreignKeys = [];
+
         formFields = columnsKeys.map(function (columnName) {
 
 
@@ -179,8 +202,10 @@
           const columnLabel = that.titleCase(columnMeta.Name);
 
           if (columnMeta.columnType && columnMeta.columnType === "entity") {
-            console.log("Skip relation", columnName);
-            return null;
+            columnMeta.ColumnType = columnMeta.columnType;
+            columnMeta.ColumnName = columnMeta.type;
+//            console.log("Skip relation", columnName);
+//            return null;
           }
 
           if (columnMeta.ColumnType == "hidden") {
@@ -209,9 +234,7 @@
 
           console.log("Add column model ", columnName, columnMeta);
 
-
-
-          return {
+          var resVal = {
             type: inputType,
             inputType: textInputType,
             label: columnLabel,
@@ -233,13 +256,24 @@
                 console.warn("Validation error in Name field! Errors:", errors);
             }
           };
+
+          if (columnMeta.ColumnType == "entity") {
+            if (columnMeta.jsonApi == "hasOne") {
+              resVal.value = that.model[resVal.inputType];
+              foreignKeys.push(resVal);
+            }
+            return null;
+          }
+
+          return resVal;
         }).filter(function (e) {
           return !!e
         });
 
 
-        console.log("all form fields", formFields);
+        console.log("all form fields", formFields, foreignKeys);
         that.formModel.fields = formFields;
+        that.relations = foreignKeys;
       }
     },
     mounted: function () {
