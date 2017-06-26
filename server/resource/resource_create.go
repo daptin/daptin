@@ -9,6 +9,7 @@ import (
   "github.com/satori/go.uuid"
   //"strconv"
   "github.com/artpar/goms/server/auth"
+  "time"
 )
 
 // Create a new object. Newly created object/struct must be in Responder.
@@ -147,6 +148,9 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
   colsList = append(colsList, "permission")
   valsList = append(valsList, dr.model.GetDefaultPermission())
+
+  colsList = append(colsList, "created_at")
+  valsList = append(valsList, time.Now())
 
   var userId uint64
   userIdInt := context.Get(req.PlainRequest, "user_id_integer")
