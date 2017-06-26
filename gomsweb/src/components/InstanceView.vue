@@ -12,18 +12,25 @@
           </div>
           <div class="box-tools pull-right">
             <div class="ui icon buttons">
-              <button class="btn btn-box-tool" @click.prevent="showAddEdit = true"><i class="fa fa-3x fa-pencil-square teal"></i>
+              <button class="btn btn-box-tool" @click.prevent="editRow()"><i
+                class="fa fa-3x fa-pencil-square teal"></i>
               </button>
             </div>
           </div>
         </div>
 
         <div class="box-body">
-          <div class="col-md-12">
-            <div class="row" v-if="selectedAction != null && showAddEdit">
+          <div class="col-md-12" v-if="showAddEdit">
+            <div class="row" v-if="selectedAction != null">
               <action-view @cancel="showAddEdit = false" @action-complete="showAddEdit = false"
                            :action-manager="actionManager" :action="selectedAction"
                            :json-api="jsonApi" :model="selectedRow"></action-view>
+            </div>
+            <div class="row" v-if="rowBeingEdited != null">
+              <model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
+                          @cancel="showAddEdit = false"
+                          v-bind:model="rowBeingEdited"
+                          v-bind:meta="selectedTableColumns" ref="modelform"></model-form>
             </div>
           </div>
           <div class="col-md-9">
@@ -72,7 +79,7 @@
                 <h2>Related</h2>
               </div>
               <div class="col-md-12" v-for="world in visibleWorlds">
-                <router-link style="width: 100%" class="btn btn-default"
+                <router-link v-if="selectedInstanceReferenceId" style="width: 100%" class="btn btn-default"
                              :to="{name: 'Relation', params: {tablename: selectedTable, refId: selectedInstanceReferenceId, subTable: world.table_name}}">
                   {{world.table_name | titleCase}}
                 </router-link>
@@ -141,6 +148,12 @@
       }
     },
     methods: {
+      editRow() {
+        console.log("edit row");
+        this.$store.commit("SET_SELECTED_ACTION", null);
+        this.showAddEdit = true;
+        this.rowBeingEdited = this.selectedRow;
+      },
       doEvent(action, event){
         var that = this;
         console.log("do event", action, event);
@@ -173,6 +186,7 @@
       },
       doAction (action) {
         this.$store.commit("SET_SELECTED_ACTION", action);
+        this.rowBeingEdited = null;
         this.showAddEdit = true;
       },
       saveRow(row) {
