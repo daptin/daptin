@@ -27,7 +27,7 @@ Vue.filter('chooseTitle', function (obj) {
   }
 
   var keys = Object.keys(obj);
-  console.log("choose title for ", obj);
+  // console.log("choose title for ", obj);
   for (var i = 0; i < keys.length; i++) {
     if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
       return obj[keys[i]];
@@ -56,13 +56,13 @@ Vue.filter('chooseTitle', function (obj) {
 
 });
 Vue.filter('titleCase', function (str) {
-  console.log("TitleCase  : [" + str + "]", str)
+  // console.log("TitleCase  : [" + str + "]", str)
   if (!str || str.length < 2) {
     return str;
   }
   let s = str.replace(/[-_]+/g, " ").trim().split(' ')
     .map(w => (w[0] ? w[0].toUpperCase() : "") + w.substr(1).toLowerCase()).join(' ');
-  console.log("titled: ", s);
+  // console.log("titled: ", s);
   return s
 });
 
@@ -96,10 +96,11 @@ sync(store, router);
 
 // Start out app!
 // eslint-disable-next-line no-new
-new Vue({
+window.vueApp = new Vue({
   el: '#root',
   router: router,
   store: store,
+  filter: VueFilter,
   render: h => h(AppView)
 });
 

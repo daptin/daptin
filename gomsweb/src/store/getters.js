@@ -65,7 +65,7 @@ export default {
         // console.log("No selected item. Return top level tables")
         return w.is_top_level == '1' && w.is_hidden == '0';
       } else {
-        console.log("Selected item found. Return child tables")
+        // console.log("Selected item found. Return child tables")
         const model = jsonApi.modelFor(w.table_name);
         const attrs = model["attributes"];
         const keys = Object.keys(attrs);

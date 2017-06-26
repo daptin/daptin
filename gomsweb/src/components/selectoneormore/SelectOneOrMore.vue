@@ -3,14 +3,15 @@
   <div class="box">
     <div class="box-title">
       <div class="box-header">
-        <span class="font-size: 20px; font-weight: 400">{{schema.inputType | titleCase }}</span>
+        <span class="font-size: 20px; font-weight: 400">{{schema.name | titleCase }}</span>
       </div>
     </div>
     <div class="box-body">
       <el-select
-        v-model="value"
+        v-model="selectedItem"
         filterable
         remote
+        :multiple="schema.multiple"
         :placeholder="'Search and add ' + schema.inputType"
         :remote-method="remoteMethod"
         :loading="loading">
@@ -24,8 +25,8 @@
       </el-select>
     </div>
     <div class="box-footer">
-      <button v-if="value != null" @click.prevent="addObject"
-              class="btn"> Add {{schema.inputType | titleCase}}
+      <button v-if="selectedItem != null" @click.prevent="addObject"
+              class="btn"> Add {{schema.name | titleCase}}
       </button>
     </div>
   </div>
@@ -48,17 +49,24 @@
       return {
         formModel: null,
         loading: false,
-        options: []
+        options: [],
+        selectedItem: null,
       }
     },
     methods: {
-
-      addObject: function (value) {
+      formatValueToModel(obj){
+        console.log("formatValueToModel", arguments)
+        return {
+          id: obj.id,
+          type: obj.type
+        };
+      },
+      addObject: function () {
         var that = this;
         console.log("emit add object event", this.value);
         this.$emit("save", {
-          type: that.schema.inputType,
-          id: this.value.id
+          name: that.schema.name,
+          id: this.selectedItem.id
         })
       },
       chooseTitle: function (obj) {
@@ -95,8 +103,8 @@
           size: 20,
           query: query
         }).then(function (data) {
-          delete data["links"]
           console.log("remote method response", data)
+          delete data["links"]
           for (var i = 0; i < data.length; i++) {
             data[i].label = that.chooseTitle(data[i])
             data[i].value = data[i]["id"]
@@ -109,10 +117,19 @@
     },
     mounted: function () {
       var that = this;
+      that.selectedItem = that.model;
+      console.log("select one or more value on mounted", that.value, that.schema.value);
+      if (that.schema.multiple) {
+        that.value = [that.value];
+      } else {
 
+      }
       console.log("start select one or more", this.model, that.meta, that.value, this.schema)
-
     },
-    watch: {},
+    watch: {
+      'selectedItem': function(to){
+        console.log("value change", to);
+      }
+    },
   }
 </script>s
