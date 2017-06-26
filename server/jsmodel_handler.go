@@ -159,5 +159,5 @@ type JsonApiRelation struct {
   JsonApi    string `json:"jsonApi,omitempty"`
   ColumnType string `json:"columnType"`
   Type       string `json:"type,omitempty"`
-  ColumnName string `json:"columName"`
+  ColumnName string `json:"ColumnName"`
 }

@@ -80,6 +80,23 @@
     methods: {
       setRelation(item){
         console.log("save relation", item);
+
+        var meta = this.meta[item.name];
+
+        if (meta.jsonApi == "hasOne") {
+
+          this.model[item.name] = {
+            type: meta.ColumnType,
+            id: item.id
+          }
+        } else {
+          this.model[item.name] = [
+            {
+              type: meta.ColumnType,
+              id: item.id
+            }
+          ]
+        }
       },
       getTextInputType(columnMeta) {
         let inputType = columnMeta.ColumnType;
@@ -97,7 +114,7 @@
             inputType = "hidden";
             break;
           case "entity":
-            inputType = columnMeta.ColumnName;
+            inputType = columnMeta.type;
             break;
           case "password":
             inputType = "password";
@@ -199,11 +216,11 @@
           }
 
           const columnMeta = that.meta[columnName];
-          const columnLabel = that.titleCase(columnMeta.Name);
+          columnMeta.ColumnName = columnName;
+          const columnLabel = that.titleCase(columnName);
 
           if (columnMeta.columnType && columnMeta.columnType === "entity") {
             columnMeta.ColumnType = columnMeta.columnType;
-            columnMeta.ColumnName = columnMeta.type;
 //            console.log("Skip relation", columnName);
 //            return null;
           }
@@ -239,7 +256,7 @@
             inputType: textInputType,
             label: columnLabel,
             model: columnMeta.ColumnName,
-            name: columnMeta.ColumnName,
+            name: columnName,
             id: "id",
             readonly: false,
             value: columnMeta.DefaultValue,
@@ -259,7 +276,12 @@
 
           if (columnMeta.ColumnType == "entity") {
             if (columnMeta.jsonApi == "hasOne") {
-              resVal.value = that.model[resVal.inputType];
+              resVal.value = that.model[resVal.ColumnName];
+              resVal.multiple = false;
+              foreignKeys.push(resVal);
+            } else {
+              resVal.value = that.model[resVal.ColumnName];
+              resVal.multiple = false;
               foreignKeys.push(resVal);
             }
             return null;

@@ -113,8 +113,8 @@ const ActionManager = function () {
                     var target = redirectAttrs["window"];
 
                     if (target == "self") {
-                      // window.location = redirectAttrs.location;
-                      that.$router.push(redirectAttrs.location);
+                      window.location = redirectAttrs.location;
+                      // window.vueApp.$router.push(redirectAttrs.location);
                     } else {
                       window.open(redirectAttrs.location, "_target")
                     }
