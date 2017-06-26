@@ -1,7 +1,6 @@
 package resource
 
 import (
-  "github.com/artpar/api2go"
   "google.golang.org/api/drive/v3"
   log "github.com/sirupsen/logrus"
   "context"
@@ -10,7 +9,7 @@ import (
 
 type GdriveExternalExchange struct {
   token      *oauth2.Token
-  columnInfo []api2go.ColumnInfo
+  columnInfo ColumnMapping
   config     *oauth2.Config
 }
 
@@ -59,7 +58,7 @@ func (g *GdriveExternalExchange) ReadDestination(destinationName string) ([]map[
   return resp, nil
 }
 
-func NewGdriveExternalExchange(columnInfo []api2go.ColumnInfo, token *oauth2.Token) ExternalExchange {
+func NewGdriveExternalExchange(columnInfo ColumnMapping, token *oauth2.Token) ExternalExchange {
 
   return &GdriveExternalExchange{
     token:      token,

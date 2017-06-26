@@ -1,7 +1,6 @@
 package resource
 
 import (
-  "github.com/artpar/api2go"
   "golang.org/x/oauth2"
 )
 
@@ -9,12 +8,23 @@ type ExchangeInterface interface {
   Update(target string, data []map[string]interface{}) error
 }
 
+type ColumnMap struct {
+  SourceColumn     string
+  SourceColumnType string
+  TargetColumn     string
+  TargetColumnType string
+}
+
+type ColumnMapping []ColumnMap
+
 type ExchangeContract struct {
+  Name       string
   SourceName string
   SourceType string
   TargetName string
   TargetType string
-  Attributes []api2go.ColumnInfo
+  Attributes ColumnMapping
+  Options    map[string]interface{}
 }
 
 type ExchangeExecution struct {

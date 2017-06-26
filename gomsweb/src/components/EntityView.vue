@@ -24,7 +24,7 @@
     </div>
     <div class="box-body">
       <div class="row" v-if="showAddEdit && rowBeingEdited != null">
-        <div class="col-md-6">
+        <div class="col-md-12">
           <model-form :hideTitle="true" @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
                       @cancel="showAddEdit = false"
                       v-bind:model="rowBeingEdited"

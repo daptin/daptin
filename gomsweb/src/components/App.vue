@@ -1,7 +1,8 @@
 <template>
   <div id="app">
-    <!--<div id="auth0-lock" v-if="!loaded"/>-->
-    <router-view v-if="loaded"></router-view>
+    <template v-if="loaded">
+      <router-view></router-view>
+    </template>
   </div>
 </template>
 
@@ -37,6 +38,7 @@
         that.loaded = true;
 
       } else {
+        console.log("begin load models")
         var promise = worldManager.loadModels();
         promise.then(function () {
           console.log("World loaded, start view");

@@ -60,7 +60,7 @@ export default {
     return state.showAddEdit;
   },
   visibleWorlds (state) {
-    let filtered = worldManger.getWorlds().filter(function (w, r) {
+    let filtered = state.worlds.filter(function (w, r) {
       if (!state.selectedInstanceReferenceId) {
         // console.log("No selected item. Return top level tables")
         return w.is_top_level == '1' && w.is_hidden == '0';
@@ -78,10 +78,5 @@ export default {
     console.log("filtered worlds: ", filtered)
 
     return filtered;
-  },
-  topWorlds (state) {
-    return worldManger.getWorlds().filter(function (w, r) {
-      return w.is_top_level == '1' && w.is_hidden == '0';
-    });
   }
 }
