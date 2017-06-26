@@ -7,6 +7,11 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "cloud.google.com/go/compute/metadata",
+			"Comment": "v0.7.0-204-gc60d02f",
+			"Rev": "c60d02f3cdeb4bf91d4810e9e505800cad03ce9f"
+		},
+		{
 			"ImportPath": "github.com/ahl5esoft/golang-underscore",
 			"Rev": "4c4738d8de61796a6f759d2813f4ec3ae97baf89"
 		},
@@ -204,14 +209,30 @@
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
-			"Rev": "84f0e6f92b10139f986b1756e149a7d9de270cdc"
+			"Rev": "5f8847ae0d0e90b6a9dc8148e7ad616874625171"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context/ctxhttp",
+			"Rev": "5f8847ae0d0e90b6a9dc8148e7ad616874625171"
 		},
 		{
 			"ImportPath": "golang.org/x/oauth2",
 			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
 		},
 		{
+			"ImportPath": "golang.org/x/oauth2/google",
+			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
+		},
+		{
 			"ImportPath": "golang.org/x/oauth2/internal",
+			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/jws",
+			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/jwt",
 			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
 		},
 		{
@@ -249,6 +270,26 @@
 		{
 			"ImportPath": "golang.org/x/text/unicode/norm",
 			"Rev": "3491b61b9edc56653ad4333e605e2908e46a036b"
+		},
+		{
+			"ImportPath": "google.golang.org/api/drive/v3",
+			"Rev": "1ba364a3bb616587dfd46d5009edefdfd7896ed9"
+		},
+		{
+			"ImportPath": "google.golang.org/api/gensupport",
+			"Rev": "1ba364a3bb616587dfd46d5009edefdfd7896ed9"
+		},
+		{
+			"ImportPath": "google.golang.org/api/googleapi",
+			"Rev": "1ba364a3bb616587dfd46d5009edefdfd7896ed9"
+		},
+		{
+			"ImportPath": "google.golang.org/api/googleapi/internal/uritemplates",
+			"Rev": "1ba364a3bb616587dfd46d5009edefdfd7896ed9"
+		},
+		{
+			"ImportPath": "google.golang.org/api/sheets/v4",
+			"Rev": "1ba364a3bb616587dfd46d5009edefdfd7896ed9"
 		},
 		{
 			"ImportPath": "gopkg.in/Masterminds/squirrel.v1",

@@ -11,11 +11,19 @@
 
     <li class="header">Connections</li>
     <li>
-      <router-link class="upload-schema"
-                   :to="{name : 'Entity', params: {tablename: 'oauthconnect'}}">
-        <i class="fa fa-link"></i> New connection
+      <router-link class="list-connections"
+                   :to="{name : 'Entity', params: {tablename: 'oauth_connect'}}">
+        <i class="fa fa-link"></i> Connections
       </router-link>
     </li>
+
+    <li>
+      <router-link class="list-exchange"
+                   :to="{name : 'Entity', params: {tablename: 'oauth_token'}}">
+        <i class="fa fa-exchange"></i> Exchanges
+      </router-link>
+    </li>
+
 
     <li class="header">System</li>
     <li class="pageLink" v-on:click="toggleMenu">
@@ -52,6 +60,29 @@
             <i class="fa fa-graduation-cap"></i> Become Admin
           </router-link>
         </li>
+      </ul>
+    </li>
+
+    <li class="treeview help-support">
+      <a href="#">
+        <i class="fa fa-question"></i>
+        <span>Help and Support</span>
+        <span class="pull-right-container">
+          <i class="fa fa-angle-left fa-fw pull-right"></i>
+        </span>
+      </a>
+      <ul class="treeview-menu">
+        <li><a href="https://github.com/artpar/goms/wiki" target="_blank"><span class="fa fa-files-o"></span>
+          Dev help</a></li>
+
+
+        <li><a href="https://github.com/artpar/goms/issues/new" target="_blank"><span class="fa fa-cogs"></span>
+          File an issue/bug</a></li>
+
+
+        <li><a href="mailto:artpar@gmail.com?subject=GoMS&body=Hi Parth,\n"><span class="fa fa-envelope-o"></span>
+          Email support</a></li>
+
       </ul>
     </li>
 

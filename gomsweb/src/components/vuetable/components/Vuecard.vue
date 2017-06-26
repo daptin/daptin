@@ -1,112 +1,125 @@
 <template>
-  <table :class="['vuetable', css.tableClass]" style="width: 100%">
-    <thead>
-    <tr>
-      <template v-for="field in tableFields">
-        <template v-if="field.visible">
-          <template v-if="isSpecialField(field.name)">
-            <th v-if="extractName(field.name) == '__checkbox'"
-                :class="['vuetable-th-checkbox-'+trackBy, field.titleClass]">
-              <input type="checkbox" @change="toggleAllCheckboxes(field.name, $event)"
-                     :checked="checkCheckboxesState(field.name)">
-            </th>
-            <th v-if="extractName(field.name) == '__component'"
-                @click="orderBy(field, $event)"
-                :class="['vuetable-th-component-'+trackBy, field.titleClass, {'sortable': isSortable(field)}]"
-                v-html="renderTitle(field)"
-            ></th>
-            <th v-if="extractName(field.name) == '__slot'"
-                @click="orderBy(field, $event)"
-                :class="['vuetable-th-slot-'+extractArgs(field.name), field.titleClass, {'sortable': isSortable(field)}]"
-                v-html="renderTitle(field)"
-            ></th>
-            <th v-if="apiMode && extractName(field.name) == '__sequence'"
-                :class="['vuetable-th-sequence', field.titleClass || '']" v-html="renderTitle(field)">
-            </th>
-            <th v-if="notIn(extractName(field.name), ['__sequence', '__checkbox', '__component', '__slot'])"
-                :class="['vuetable-th-'+field.name, field.titleClass || '']" v-html="renderTitle(field)">
-            </th>
-          </template>
-          <template v-else>
-            <th @click="orderBy(field, $event)"
-                :id="'_' + field.name"
-                :class="['vuetable-th-'+field.name, field.titleClass,  {'sortable': isSortable(field)}]"
-                v-html="renderTitle(field)"
-            ></th>
-          </template>
-        </template>
-      </template>
-    </tr>
-    </thead>
-    <tbody v-cloak class="vuetable-body">
-    <template v-for="(item, index) in tableData">
-      <tr @dblclick="onRowDoubleClicked(item, $event)" :item-index="index" @click="onRowClicked(item, $event)"
-          :render="onRowChanged(item)" :class="onRowClass(item, index)">
-        <template v-for="field in tableFields">
-          <template v-if="field.visible">
-            <template v-if="isSpecialField(field.name)">
-              <td v-if="apiMode && extractName(field.name) == '__sequence'"
-                  :class="['vuetable-sequence', field.dataClass]"
-                  v-html="tablePagination.from + index">
-              </td>
-              <td v-if="extractName(field.name) == '__handle'" :class="['vuetable-handle', field.dataClass]"
-                  v-html="renderIconTag(['handle-icon', css.handleIcon])"
-              ></td>
-              <td v-if="extractName(field.name) == '__checkbox'" :class="['vuetable-checkboxes', field.dataClass]">
-                <input type="checkbox"
-                       @change="toggleCheckbox(item, field.name, $event)"
-                       :checked="rowSelected(item, field.name)">
-              </td>
-              <td v-if="extractName(field.name) === '__component'" :class="['vuetable-component', field.dataClass]">
-                <component :is="extractArgs(field.name)"
-                           :row-data="item" :row-index="index" :row-field="field.sortField"
-                ></component>
-              </td>
-              <td v-if="extractName(field.name) === '__slot'" :class="['vuetable-slot', field.dataClass]">
-                <slot :name="extractArgs(field.name)"
-                      :row-data="item" :row-index="index" :row-field="field.sortField"
-                ></slot>
-              </td>
+  <div :class="['vuecard', 'row', css.tableClass]">
+    <!--<thead>-->
+    <!--<tr>-->
+    <!--<template v-for="field in tableFields">-->
+    <!--<template v-if="field.visible">-->
+    <!--<template v-if="isSpecialField(field.name)">-->
+    <!--<th v-if="extractName(field.name) == '__checkbox'"-->
+    <!--:class="['vuecard-th-checkbox-'+trackBy, field.titleClass]">-->
+    <!--<input type="checkbox" @change="toggleAllCheckboxes(field.name, $event)"-->
+    <!--:checked="checkCheckboxesState(field.name)">-->
+    <!--</th>-->
+    <!--<th v-if="extractName(field.name) == '__component'"-->
+    <!--@click="orderBy(field, $event)"-->
+    <!--:class="['vuecard-th-component-'+trackBy, field.titleClass, {'sortable': isSortable(field)}]"-->
+    <!--v-html="renderTitle(field)"-->
+    <!--&gt;</th>-->
+    <!--<th v-if="extractName(field.name) == '__slot'"-->
+    <!--@click="orderBy(field, $event)"-->
+    <!--:class="['vuecard-th-slot-'+extractArgs(field.name), field.titleClass, {'sortable': isSortable(field)}]"-->
+    <!--v-html="renderTitle(field)"-->
+    <!--&gt;</th>-->
+    <!--<th v-if="apiMode && extractName(field.name) == '__sequence'"-->
+    <!--:class="['vuecard-th-sequence', field.titleClass || '']" v-html="renderTitle(field)">-->
+    <!--</th>-->
+    <!--<th v-if="notIn(extractName(field.name), ['__sequence', '__checkbox', '__component', '__slot'])"-->
+    <!--:class="['vuecard-th-'+field.name, field.titleClass || '']" v-html="renderTitle(field)">-->
+    <!--</th>-->
+    <!--</template>-->
+    <!--<template v-else>-->
+    <!--<th @click="orderBy(field, $event)"-->
+    <!--:id="'_' + field.name"-->
+    <!--:class="['vuecard-th-'+field.name, field.titleClass,  {'sortable': isSortable(field)}]"-->
+    <!--v-html="renderTitle(field)"-->
+    <!--&gt;</th>-->
+    <!--</template>-->
+    <!--</template>-->
+    <!--</template>-->
+    <!--</tr>-->
+    <!--</thead>-->
+    <div v-cloak class="vuecard-body">
+      <div class="col-md-6" v-for="(item, index) in tableData">
+        <div @dblclick="onRowDoubleClicked(item, $event)" :item-index="index" @click="onRowClicked(item, $event)"
+             :render="onRowChanged(item)" :class="[onRowClass(item, index), 'box']">
+          <div class="box-header">
+            <div class="box-title">
+              <span class="bold">{{item | chooseTitle | titleCase }}</span>
+            </div>
+            <div class="box-tools pull-right">
+              <slot name="actions" :row-data="item" :row-index="index"></slot>
+            </div>
+
+          </div>
+          <div class="box-body">
+
+            <template v-for="field in tableFields">
+              <dl v-if="field.visible">
+                <dt v-if="!isSpecialField(field.name)">{{field.name | titleCase}}</dt>
+                <template v-if="isSpecialField(field.name)">
+                  <dd v-if="apiMode && extractName(field.name) == '__sequence'"
+                      :class="['vuecard-sequence', field.dataClass]"
+                      v-html="tablePagination.from + index">
+                  </dd>
+                  <dd v-if="extractName(field.name) == '__handle'" :class="['vuecard-handle', field.dataClass]"
+                      v-html="renderIconTag(['handle-icon', css.handleIcon])"
+                  ></dd>
+                  <dd v-if="extractName(field.name) == '__checkbox'" :class="['vuecard-checkboxes', field.dataClass]">
+                    <input type="checkbox"
+                           @change="toggleCheckbox(item, field.name, $event)"
+                           :checked="rowSelected(item, field.name)">
+                  </dd>
+                  <dd v-if="extractName(field.name) === '__component'" :class="['vuecard-component', field.dataClass]">
+                    <component :is="extractArgs(field.name)"
+                               :row-data="item" :row-index="index" :row-field="field.sortField"
+                    ></component>
+                  </dd>
+                  <dd v-if="extractName(field.name) === '__slot'" :class="['vuecard-slot', field.dataClass]">
+                    <slot :name="extractArgs(field.name)"
+                          :row-data="item" :row-index="index" :row-field="field.sortField"
+                    ></slot>
+                  </dd>
+                </template>
+                <template v-else>
+                  <dd v-if="hasCallback(field)" :class="field.dataClass"
+                      @click="onCellClicked(item, field, $event)"
+                      @dblclick="onCellDoubleClicked(item, field, $event)"
+                      v-html="callCallback(field, item)"
+                  >
+                  </dd>
+                  <dd v-else :class="field.dataClass"
+                      @click="onCellClicked(item, field, $event)"
+                      @dblclick="onCellDoubleClicked(item, field, $event)"
+                      v-html="getObjectValue(item, field.name, '')"
+                  >
+                  </dd>
+                </template>
+              </dl>
             </template>
-            <template v-else>
-              <td v-if="hasCallback(field)" :class="field.dataClass"
-                  @click="onCellClicked(item, field, $event)"
-                  @dblclick="onCellDoubleClicked(item, field, $event)"
-                  v-html="callCallback(field, item)"
-              >
+          </div>
+        </div>
+        <template v-if="useDetailRow">
+          <tr v-if="isVisibleDetailRow(item[trackBy])"
+              @click="onDetailRowClick(item, $event)"
+              :class="[css.detailRowClass]">
+            <transition :name="detailRowTransition">
+              <td :colspan="countVisibleFields">
+                <component :is="detailRowComponent" :model="item" :json-api="jsonApi"
+                           :json-api-model-name="jsonApiModelName" :row-index="index"></component>
               </td>
-              <td v-else :class="field.dataClass"
-                  @click="onCellClicked(item, field, $event)"
-                  @dblclick="onCellDoubleClicked(item, field, $event)"
-                  v-html="getObjectValue(item, field.name, '')"
-              >
-              </td>
-            </template>
-          </template>
+            </transition>
+          </tr>
         </template>
-      </tr>
-      <template v-if="useDetailRow">
-        <tr v-if="isVisibleDetailRow(item[trackBy])"
-            @click="onDetailRowClick(item, $event)"
-            :class="[css.detailRowClass]">
-          <transition :name="detailRowTransition">
-            <td :colspan="countVisibleFields">
-              <component :is="detailRowComponent" :model="item" :json-api="jsonApi"
-                         :json-api-model-name="jsonApiModelName" :row-index="index"></component>
-            </td>
-          </transition>
+      </div>
+      <template v-if="lessThanMinRows">
+        <tr v-for="i in blankRows" class="blank-row">
+          <template v-for="field in tableFields">
+            <td v-if="field.visible">&nbsp;</td>
+          </template>
         </tr>
       </template>
-    </template>
-    <template v-if="lessThanMinRows">
-      <tr v-for="i in blankRows" class="blank-row">
-        <template v-for="field in tableFields">
-          <td v-if="field.visible">&nbsp;</td>
-        </template>
-      </tr>
-    </template>
-    </tbody>
-  </table>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -220,7 +233,7 @@
             loadingClass: 'loading',
             ascendingIcon: 'blue chevron up icon',
             descendingIcon: 'blue chevron down icon',
-            detailRowClass: 'vuetable-detail-row',
+            detailRowClass: 'vuecard-detail-row',
             handleIcon: 'grey sidebar icon',
           }
         }
@@ -248,10 +261,11 @@
     },
     data () {
       return {
-        eventPrefix: 'vuetable:',
+        eventPrefix: 'vuecard:',
         tableFields: [],
         tableData: null,
         tablePagination: null,
+        actionSlot: null,
         currentPage: 1,
         selectedTo: [],
         visibleDetailRows: [],
@@ -304,7 +318,7 @@
     methods: {
       normalizeFields () {
         var that = this;
-//        console.log("vuetable for ", this.jsonApiModelName)
+//        console.log("vuecard for ", this.jsonApiModelName)
         let modelFor = this.jsonApi.modelFor(this.jsonApiModelName);
 //        console.log("json model for ", this.jsonApiModelName, " is ", modelFor)
 
@@ -313,14 +327,14 @@
         }
         this.fieldsData = modelFor["attributes"];
         this.fields = Object.keys(this.fieldsData);
-//        console.log("VueTable fields for ", this.jsonApiModelName, this.fields);
+//        console.log("vuecard fields for ", this.jsonApiModelName, this.fields);
 
         this.tableFields = [];
         let self = this;
         let obj;
         this.fields.forEach(function (field, i) {
           var fieldType = that.fieldsData[field];
-//          console.log("field type", field, fieldType, that.fieldsData);
+          console.log("field type", field, fieldType, that.fieldsData);
           field = {
             name: field,
             title: self.setTitle(field),
@@ -396,14 +410,22 @@
 
           self.tableFields.push(obj)
         });
-        self.tableFields.push({
+        self.actionSlot = {
           name: '__slot:actions',
 //          title: '<button class="ui button" @click="newRow()"><i class="fa fa-plus"></i> Add '+ this.jsonApiModelName +'</button>',
           title: '',
           visible: true,
           titleClass: 'center aligned',
           dataClass: 'center aligned',
-        });
+        };
+//        self.tableFields.unshift({
+//          name: '__slot:actions',
+////          title: '<button class="ui button" @click="newRow()"><i class="fa fa-plus"></i> Add '+ this.jsonApiModelName +'</button>',
+//          title: '',
+//          visible: true,
+//          titleClass: 'center aligned',
+//          dataClass: 'center aligned',
+//        });
       },
       setData (data) {
         this.apiMode = false;
@@ -474,7 +496,7 @@
 
 
         if (this.tablePagination === null) {
-          this.warn('vuetable: pagination-path "' + this.paginationPath + '" not found. '
+          this.warn('vuecard: pagination-path "' + this.paginationPath + '" not found. '
             + 'It looks like the data returned from the sever does not have pagination information '
             + "or you may have set it incorrectly.\n"
             + 'You can explicitly suppress this warning by setting pagination-path="".'
@@ -732,7 +754,7 @@
         } else {
           this.unselectId(key)
         }
-        this.emit1('vuetable:checkbox-toggled', isChecked, dataItem)
+        this.emit1('vuecard:checkbox-toggled', isChecked, dataItem)
       },
       selectId (key) {
         if (!this.isSelectedRow(key)) {
@@ -758,7 +780,7 @@
 
         let self = this;
         let idColumn = this.trackBy;
-        let selector = 'th.vuetable-th-checkbox-' + idColumn + ' input[type=checkbox]';
+        let selector = 'th.vuecard-th-checkbox-' + idColumn + ' input[type=checkbox]';
         let els = document.querySelectorAll(selector);
 
         //fixed:document.querySelectorAll return the typeof nodeList not array
@@ -808,7 +830,7 @@
             self.unselectId(dataItem[idColumn])
           })
         }
-        this.emit1('vuetable:checkbox-toggled-all', isChecked)
+        this.emit1('vuecard:checkbox-toggled-all', isChecked)
       },
       gotoPreviousPage () {
         if (this.currentPage > 1) {
@@ -962,22 +984,22 @@
     display: none;
   }
 
-  .vuetable th.sortable:hover {
+  .vuecard th.sortable:hover {
     color: #2185d0;
     cursor: pointer;
   }
 
-  .vuetable-actions {
+  .vuecard-actions {
     width: 15%;
     padding: 12px 0px;
     text-align: center;
   }
 
-  .vuetable-pagination {
+  .vuecard-pagination {
     background: #f9fafb !important;
   }
 
-  .vuetable-pagination-info {
+  .vuecard-pagination-info {
     margin-top: auto;
     margin-bottom: auto;
   }

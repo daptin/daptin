@@ -10,7 +10,8 @@
       <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
     </div>
     <div class="box-footer">
-      <el-button class="bg-yellow" type="submit"  v-loading.body="loading" @click.prevent="saveRow()"> Submit </el-button>
+      <el-button class="bg-yellow" type="submit" v-loading.body="loading" @click.prevent="saveRow()"> Submit
+      </el-button>
       <el-button class="bg-red" v-if="!hideCancel" @click="cancel()">Cancel</el-button>
     </div>
   </div>
@@ -125,7 +126,7 @@
         var that = this;
         console.log("save row", this.model);
         this.loading = true;
-        setTimeout((function(){
+        setTimeout((function () {
           that.loading = false;
         }), 3000);
         this.$emit('save', this.model)
@@ -187,11 +188,28 @@
           }
 
 
+          if (!that.model[columnMeta.ColumnName] && columnMeta.DefaultValue) {
+
+            if (columnMeta.DefaultValue[0] == "'") {
+              that.model[columnMeta.ColumnName] = columnMeta.DefaultValue.substring(1, columnMeta.DefaultValue.length - 1);
+            } else {
+              that.model[columnMeta.ColumnName] = columnMeta.DefaultValue;
+            }
+
+          }
+
+          if (columnMeta.ColumnType == "truefalse") {
+            that.model[columnMeta.ColumnName] = that.model[columnMeta.ColumnName] === "1" ? true : false;
+          }
+
+
           let inputType = that.getInputType(columnMeta);
           const textInputType = that.getTextInputType(columnMeta);
 
 
           console.log("Add column model ", columnName, columnMeta);
+
+
 
           return {
             type: inputType,
@@ -201,11 +219,11 @@
             name: columnMeta.ColumnName,
             id: "id",
             readonly: false,
-            value: columnName.DefaultValue,
+            value: columnMeta.DefaultValue,
             featured: true,
-            disabled: !!columnName.DefaultValue,
-            required: !columnName.IsNullable,
-            "default": columnName.DefaultValue,
+            disabled: false,
+            required: !columnMeta.IsNullable,
+            "default": columnMeta.DefaultValue,
             validator: null,
             onChanged: function (model, newVal, oldVal, field) {
 //              console.log(`Model's name changed from ${oldVal} to ${newVal}. Model:`, model);
