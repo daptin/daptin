@@ -67,7 +67,8 @@ var StandardRelations = []api2go.TableRelation{
   api2go.NewTableRelation("world_column", "belongs_to", "world"),
   api2go.NewTableRelation("action", "belongs_to", "world"),
   api2go.NewTableRelation("world", "has_many", "smd"),
-  api2go.NewTableRelation("oauthtoken", "has_one", "oauthconnect"),
+  api2go.NewTableRelation("oauth_token", "has_one", "oauth_connect"),
+  api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
 }
 
 var SystemSmds = []LoopbookFsmDescription{}
@@ -214,13 +215,14 @@ var SystemActions = []Action{
   {
     Name:   "oauth.login.begin",
     Label:  "Authenticate via OAuth",
-    OnType: "oauthconnect",
+    OnType: "oauth_connect",
     InFields: []api2go.ColumnInfo{
       {
-        Name:       "scope",
-        ColumnName: "scope",
-        ColumnType: "name",
-        IsNullable: false,
+        Name:         "scope",
+        ColumnName:   "scope",
+        ColumnType:   "name",
+        IsNullable:   false,
+        DefaultValue: "https://www.googleapis.com/auth/spreadsheets",
       },
     },
     OutFields: []Outcome{
@@ -236,7 +238,7 @@ var SystemActions = []Action{
   {
     Name:   "oauth.login.response",
     Label:  "",
-    OnType: "oauthtoken",
+    OnType: "oauth_token",
     InFields: []api2go.ColumnInfo{
       {
         Name:       "code",
@@ -250,15 +252,33 @@ var SystemActions = []Action{
         ColumnType: "hidden",
         IsNullable: false,
       },
+      {
+        Name:       "authenticator",
+        ColumnName: "authenticator",
+        ColumnType: "hidden",
+        IsNullable: false,
+      },
     },
     OutFields: []Outcome{
       {
         Type:   "oauth.login.response",
         Method: "EXECUTE",
         Attributes: map[string]string{
-          "email":    "$email",
-          "password": "$password",
+          "authenticator": "$authenticator",
         },
+      },
+    },
+  },
+  {
+    Name:   "add.exchange",
+    Label:  "Add new data exchange",
+    OnType: "oauth_token",
+    InFields: []api2go.ColumnInfo{
+      {
+        Name:       "name",
+        ColumnName: "name",
+        ColumnType: "name",
+        IsNullable: false,
       },
     },
   },
@@ -278,12 +298,11 @@ var StandardTables = []TableInfo{
         ColumnType: "name",
       },
       {
-        Name:           "schema_json",
-        ColumnName:     "schema_json",
-        DataType:       "text",
-        IsNullable:     false,
-        ExcludeFromApi: true,
-        ColumnType:     "json",
+        Name:       "schema_json",
+        ColumnName: "schema_json",
+        DataType:   "text",
+        IsNullable: false,
+        ColumnType: "json",
       },
       {
         Name:         "default_permission",
@@ -454,12 +473,11 @@ var StandardTables = []TableInfo{
       },
 
       {
-        Name:           "password",
-        ColumnName:     "password",
-        DataType:       "varchar(100)",
-        ExcludeFromApi: true,
-        ColumnType:     "password",
-        IsNullable:     true,
+        Name:       "password",
+        ColumnName: "password",
+        DataType:   "varchar(100)",
+        ColumnType: "password",
+        IsNullable: true,
       },
       {
         Name:         "confirmed",
@@ -550,7 +568,7 @@ var StandardTables = []TableInfo{
     },
   },
   {
-    TableName: "oauthconnect",
+    TableName: "oauth_connect",
     IsHidden:  true,
     Columns: []api2go.ColumnInfo{
       {
@@ -574,10 +592,11 @@ var StandardTables = []TableInfo{
         ColumnType: "encrypted",
       },
       {
-        Name:       "response_type",
-        ColumnName: "response_type",
-        DataType:   "varchar(80)",
-        ColumnType: "name",
+        Name:         "response_type",
+        ColumnName:   "response_type",
+        DataType:     "varchar(80)",
+        ColumnType:   "name",
+        DefaultValue: "'code'",
       },
       {
         Name:       "redirect_uri",
@@ -586,15 +605,36 @@ var StandardTables = []TableInfo{
         ColumnType: "name",
       },
       {
-        Name:       "grant_type",
-        ColumnName: "grant_type",
-        DataType:   "varchar(80)",
-        ColumnType: "name",
+        Name:         "auth_url",
+        ColumnName:   "auth_url",
+        DataType:     "varchar(200)",
+        DefaultValue: "'https://accounts.google.com/o/oauth2/auth'",
+        ColumnType:   "url",
+      },
+      {
+        Name:         "token_url",
+        ColumnName:   "token_url",
+        DataType:     "varchar(200)",
+        DefaultValue: "'https://accounts.google.com/o/oauth2/token'",
+        ColumnType:   "url",
       },
     },
   },
   {
-    TableName: "oauthtoken",
+    TableName: "data_exchange",
+    IsHidden:  true,
+    Columns: []api2go.ColumnInfo{
+      {
+        Name:       "name",
+        ColumnName: "name",
+        ColumnType: "name",
+        DataType:   "varchar(100)",
+        IsIndexed:  true,
+      },
+    },
+  },
+  {
+    TableName: "oauth_token",
     IsHidden:  true,
     Columns: []api2go.ColumnInfo{
       {

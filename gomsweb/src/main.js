@@ -47,16 +47,23 @@ Vue.filter('chooseTitle', function (obj) {
       return obj[keys[i]];
     }
   }
-  return obj["id"].toUpperCase();
+
+  if (obj["id"]) {
+    return obj["id"].toUpperCase();
+  } else {
+    return "#un-named";
+  }
 
 });
 Vue.filter('titleCase', function (str) {
-//        console.log("TitleCase  : ", str)
+  console.log("TitleCase  : [" + str + "]", str)
   if (!str || str.length < 2) {
     return str;
   }
-  return str.replace(/[-_]+/g, " ").trim().split(' ')
-    .map(w => (w[0] ? w[0].toUpperCase() : "") + w.substr(1).toLowerCase()).join(' ')
+  let s = str.replace(/[-_]+/g, " ").trim().split(' ')
+    .map(w => (w[0] ? w[0].toUpperCase() : "") + w.substr(1).toLowerCase()).join(' ');
+  console.log("titled: ", s);
+  return s
 });
 
 Vue.use(VueFilter);

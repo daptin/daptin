@@ -21,7 +21,7 @@
         var that = this;
         console.log("oauth response", this.$route)
         var query = this.$route.query;
-        this.actionManager.doAction("oauthtoken", "oauth.login.response", this.$route.query).then(function () {
+        this.actionManager.doAction("oauth_token", "oauth.login.response", this.$route.query).then(function () {
 
         }, function () {
           Notification.error({

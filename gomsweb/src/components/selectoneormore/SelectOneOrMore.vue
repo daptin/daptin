@@ -1,36 +1,27 @@
 <template>
 
-  <div class="row">
-    <div class="col-md-12">
-      <div class="box">
-        <div class="box-header">
-          <div class="box-title">
-            <h4> Search {{jsonApiModelName}}</h4>
-          </div>
-        </div>
-        <div class="box-body">
-          <el-select
-            v-model="value"
-            filterable
-            remote
-            placeholder="Search and add"
-            :remote-method="remoteMethod"
-            :loading="loading">
-            <el-option
-              v-for="item in options"
-              :key="item.value"
-              :label="item.label"
-              :value="item">
-            </el-option>
+  <div class="box">
+    <div class="box-body">
+      <el-select
+        v-model="value"
+        filterable
+        remote
+        :placeholder="'Search and add ' + jsonApiModelName"
+        :remote-method="remoteMethod"
+        :loading="loading">
+        <el-option
+          v-for="item in options"
+          :key="item.value"
+          :label="item.label"
+          :value="item">
+        </el-option>
 
-          </el-select>
-        </div>
-        <div class="box-footer">
-          <button v-if="value != null" @click.prevent="addObject"
-                  class="btn"> Add {{jsonApiModelName | titleCase}}
-          </button>
-        </div>
-      </div>
+      </el-select>
+    </div>
+    <div class="box-footer">
+      <button v-if="value != null" @click.prevent="addObject"
+              class="btn"> Add {{jsonApiModelName | titleCase}}
+      </button>
     </div>
   </div>
 

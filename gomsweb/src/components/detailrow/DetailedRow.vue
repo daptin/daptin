@@ -3,45 +3,68 @@
 
   <div class="row">
     <!-- DetailRow -->
-    <template v-if="!showAll">
-      <div class="col-md-12" v-if="truefalse.length > 0">
-        <div class="row">
+    <div class="col-md-12" v-if="!showAll">
+      <div class="box">
+        <div class="box-header">
+          <div class="box-title">
+            {{model | chooseTitle | titleCase}}
+          </div>
+          <div class="box-tools pull-right">
+            <router-link :to="{name: 'Instance', params: {tablename: jsonApiModelName, refId: model.reference_id}}">
+              <span class="fa fa-2x fa-external-link"></span>
+            </router-link>
+          </div>
+
+        </div>
+
+
+        <div class="box-body">
           <div class="col-md-4" v-for="tf in truefalse">
             <input disabled type="checkbox" :checked="tf.value" name="tf.name">
             <label>{{tf.label}}</label>
           </div>
-        </div>
-      </div>
 
-
-      <div class="col-md-12">
-        <table class="table">
-          <tbody>
-          <tr v-for="col in normalFields" :id="col.name">
-            <td style="width: 50%"><b> {{col.label}} </b></td>
-            <td :style="col.style"> {{col.value}} </td>
-          </tr>
-          </tbody>
-        </table>
-      </div>
-
-    </template>
-
-
-    <template v-if="showAll">
-      <div class="col-md-10">
-        <el-tabs>
-
-
-          <el-tab-pane label="Overview">
+          <div class="col-md-12">
             <table class="table">
               <tbody>
               <tr v-for="col in normalFields" :id="col.name">
-                <td><b> {{col.label}} </b></td>
+                <td style="width: 50%"><b> {{col.label}} </b></td>
                 <td :style="col.style"> {{col.value}} </td>
               </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <template v-if="showAll">
+      <div class="col-md-12">
+        <el-tabs>
+
+
+          <el-tab-pane label="Overview">
+            <div class="col-md-12">
+              <table class="table">
+                <tbody>
+                <tr v-for="col in normalFields" :id="col.name">
+                  <td><b> {{col.label}} </b></td>
+                  <td :style="col.style"> {{col.value}} </td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="col-md-12" v-if="truefalse != null && truefalse.length > 0">
+              <div class="row">
+                <div class="col-md-4" v-for="tf in truefalse">
+                  <input disabled type="checkbox" :checked="tf.value" name="tf.name">
+                  <label>{{tf.label}}</label>
+                </div>
+              </div>
+            </div>
 
           </el-tab-pane>
 
@@ -58,14 +81,6 @@
 
       </div>
 
-      <div class="col-md-2" v-if="truefalse != null && truefalse.length > 0">
-        <div class="row">
-          <div class="col-md-12" v-for="tf in truefalse">
-            <input disabled type="checkbox" :checked="tf.value" name="tf.name">
-            <label>{{tf.label}}</label>
-          </div>
-        </div>
-      </div>
 
     </template>
   </div>

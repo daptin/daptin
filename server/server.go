@@ -27,6 +27,7 @@ import (
   "github.com/gorilla/context"
   uuid2 "github.com/satori/go.uuid"
   "gopkg.in/Masterminds/squirrel.v1"
+  "strings"
 )
 
 var cruds = make(map[string]*resource.DbResource)
@@ -185,7 +186,15 @@ func Main() {
     api2go.NewStaticResolver("/"),
     gingonic.New(r),
   )
-  cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms)
+  cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore)
+
+  encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend")
+
+  if err != nil || len(encryptionSecret) < 10 {
+
+    newSecret := strings.Replace(uuid2.NewV4().String(), "-", "", -1)
+    configStore.SetConfigValueFor("encryption.secret", newSecret, "backend")
+  }
 
   authMiddleware.SetUserCrud(cruds["user"])
   authMiddleware.SetUserGroupCrud(cruds["usergroup"])
@@ -207,7 +216,6 @@ func Main() {
 
   r.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
   r.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
-
 
   r.NoRoute(func(c *gin.Context) {
     c.File("./gomsweb/dist/index.html")
@@ -594,7 +602,7 @@ func CorsMiddlewareFunc(c *gin.Context) {
   return
 }
 
-func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet) map[string]*resource.DbResource {
+func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet, configStore *resource.ConfigStore) map[string]*resource.DbResource {
   cruds := make(map[string]*resource.DbResource)
   for _, table := range tables {
     log.Infof("Table [%v] Relations: %v", table.TableName)
@@ -603,7 +611,7 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx
     }
     model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
 
-    res := resource.NewDbResource(model, db, ms, cruds)
+    res := resource.NewDbResource(model, db, ms, cruds, configStore)
 
     cruds[table.TableName] = res
     api.AddResource(model, res)
