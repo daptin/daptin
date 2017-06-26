@@ -25,7 +25,7 @@ func (d *BecomeAdminActionPerformer) DoAction(request ActionRequest, inFieldMap 
   if d.cruds["world"].BecomeAdmin(user["id"].(int64)) {
     responseAttrs["location"] = "/"
     responseAttrs["window"] = "self"
-    responseAttrs["delay"] = 0
+    responseAttrs["delay"] = 10000
   }
 
   actionResponse := NewActionResponse("client.redirect", responseAttrs)

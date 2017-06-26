@@ -2,10 +2,8 @@ package resource
 
 import (
   "fmt"
-  "github.com/pkg/errors"
   log "github.com/sirupsen/logrus"
   "golang.org/x/oauth2"
-  "gopkg.in/Masterminds/squirrel.v1"
   "github.com/pquerna/otp/totp"
   "time"
   "strings"
@@ -14,6 +12,7 @@ import (
 type OauthLoginBeginActionPerformer struct {
   responseAttrs map[string]interface{}
   cruds         map[string]*DbResource
+  configStore   *ConfigStore
   otpKey        string
 }
 
@@ -30,31 +29,53 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
   }
 
   scope := inFieldMap["scope"].(string)
-  authenticator := inFieldMap["authenticator"]
+  authConnectorData := inFieldMap["subject"].(map[string]interface{})
 
-  rows, _, err := d.cruds["oauthconnect"].GetRowsByWhereClause("oauthconnect", squirrel.Eq{"name": authenticator})
+  //rows, _, err := d.cruds["oauth_connect"].GetRowsByWhereClause("oauth_connect", squirrel.Eq{"name": authenticator})
 
+  //if err != nil {
+  //  log.Errorf("Failed to get oauth connection details for in begin login  [%v]", authenticator)
+  //  return nil, []error{err}
+  //}
+  //
+  //if len(rows) < 1 {
+  //  log.Errorf("Failed to get oauth connection details for  [%v]", authenticator)
+  //  err = errors.New(fmt.Sprintf("No such authenticator [%v]", authenticator))
+  //  return nil, []error{err}
+  //}
+
+  //authConnectorData := rows[0]
+
+  redirectUri := authConnectorData["redirect_uri"].(string)
+
+  if strings.Index(redirectUri, "?") > -1 {
+    redirectUri = redirectUri + "&authenticator=" + authConnectorData["name"].(string)
+  } else {
+    redirectUri = redirectUri + "?authenticator=" + authConnectorData["name"].(string)
+  }
+
+  clientSecretEncrypted := authConnectorData["client_secret"].(string)
+
+  secret, err := d.configStore.GetConfigValueFor("encryption.secret", "backend")
   if err != nil {
-    log.Errorf("Failed to get oauth connection details for  [%v]", authenticator)
+    log.Errorf("Failed to get secret: %v", err)
     return nil, []error{err}
   }
 
-  if len(rows) < 1 {
-    log.Errorf("Failed to get oauth connection details for  [%v]", authenticator)
-    err = errors.New(fmt.Sprintf("No such authenticator [%v]", authenticator))
+  clientSecretPlainText, err := Decrypt([]byte(secret), clientSecretEncrypted)
+  if err != nil {
+    log.Errorf("Failed to get decrypt text: %v", err)
     return nil, []error{err}
   }
-
-  authConnectorData := rows[0]
 
   conf := &oauth2.Config{
     ClientID:     authConnectorData["client_id"].(string),
-    ClientSecret: authConnectorData["client_secret"].(string),
-    RedirectURL:  authConnectorData["redirect_uri"].(string),
+    ClientSecret: clientSecretPlainText,
+    RedirectURL:  redirectUri,
     Scopes:       strings.Split(scope, ","),
     Endpoint: oauth2.Endpoint{
-      AuthURL:  "https://accounts.google.com/o/oauth2/auth",
-      TokenURL: "https://accounts.google.com/o/oauth2/token",
+      AuthURL:  authConnectorData["auth_url"].(string),
+      TokenURL: authConnectorData["token_url"].(string),
     },
   }
 
@@ -94,8 +115,9 @@ func NewOauthLoginBeginActionPerformer(initConfig *CmsConfig, cruds map[string]*
   }
 
   handler := OauthLoginBeginActionPerformer{
-    cruds:  cruds,
-    otpKey: secret,
+    cruds:       cruds,
+    otpKey:      secret,
+    configStore: configStore,
   }
 
   return &handler, nil

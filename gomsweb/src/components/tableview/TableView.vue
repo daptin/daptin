@@ -3,10 +3,11 @@
 
   <div class="row">
     <div class="col-md-12">
-      <!-- TableView -->
       <vuetable-pagination :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
-
-      <vuetable ref="vuetable"
+    </div>
+    <div class="col-md-12">
+      <!-- TableView -->
+      <vuetable v-if="viewMode == 'table'" ref="vuetable"
                 :json-api="jsonApi"
                 :finder="finder"
                 track-by="id"
@@ -58,6 +59,60 @@
           </div>
         </template>
       </vuetable>
+
+      <vuecard v-if="viewMode == 'card'" ref="vuetable"
+               :json-api="jsonApi"
+               :finder="finder"
+               track-by="id"
+               detail-row-component="detailed-table-row"
+               edit-row-component="model-form"
+               @vuetable:cell-clicked="onCellClicked"
+               pagination-path="links"
+               :css="css.table"
+               :json-api-model-name="jsonApiModelName"
+               @pagination-data="onPaginationData"
+               :api-mode="true"
+               :query-params="{ sort: 'sort', page: 'page[number]', perPage: 'page[size]' }"
+               :load-on-start="autoload">
+        <template slot="actions" scope="props">
+          <div class="custom-actions">
+
+            <button class="btn btn-box-tool"
+                    @click="onAction('go-item', props.rowData, props.rowIndex)">
+              <i class="fa fa-2x fa-expand"></i>
+            </button>
+
+            <button class="btn btn-box-tool"
+                    @click="onAction('view-item', props.rowData, props.rowIndex)">
+              <i class="fa  fa-2x fa-eye"></i>
+            </button>
+
+            <button class="btn btn-box-tool"
+                    @click="onAction('edit-item', props.rowData, props.rowIndex)">
+              <i class="fa fa-2x fa-pencil-square"></i>
+            </button>
+
+            <el-popover
+              placement="top"
+              trigger="click"
+              width="160">
+              <p>Are you sure to delete this?</p>
+              <div style="text-align: right; margin: 0">
+                <el-button type="primary" size="mini" @click="onAction('delete-item', props.rowData, props.rowIndex)">
+                  confirm
+                </el-button>
+              </div>
+              <button class="btn btn-box-tool" slot="reference">
+                <i class="fa fa-2x fa-times red"></i>
+              </button>
+
+            </el-popover>
+
+
+          </div>
+        </template>
+      </vuecard>
+
     </div>
   </div>
 
@@ -85,7 +140,12 @@
       finder: {
         type: Array,
         required: true,
-      }
+      },
+      viewMode: {
+        type: String,
+        required: false,
+        default: "card"
+      },
     },
     data () {
       return {

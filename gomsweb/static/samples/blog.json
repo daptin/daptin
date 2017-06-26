@@ -165,5 +165,12 @@
         }
       ]
     }
+  ],
+  "exchanges": [
+    {
+      "sourceName": "user",
+      "sourceType": "self",
+      "targetName": "",
+    },
   ]
 }

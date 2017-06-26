@@ -12,11 +12,13 @@ import (
   "github.com/artpar/api2go"
   "net/http"
   "github.com/artpar/goms/server/auth"
+  "strings"
 )
 
 type OauthLoginResponseActionPerformer struct {
   responseAttrs map[string]interface{}
   cruds         map[string]*DbResource
+  configStore   *ConfigStore
   otpKey        string
 }
 
@@ -35,12 +37,12 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
     return nil, []error{errors.New("No ongoing authentication")}
   }
 
-  authenticator := "google"
+  authenticator := inFieldMap["authenticator"].(string)
 
-  rows, _, err := d.cruds["oauthconnect"].GetRowsByWhereClause("oauthconnect", squirrel.Eq{"name": authenticator})
+  rows, _, err := d.cruds["oauth_connect"].GetRowsByWhereClause("oauth_connect", squirrel.Eq{"name": authenticator})
 
   if err != nil {
-    log.Errorf("Failed to get oauth connection details for  [%v]", authenticator)
+    log.Errorf("Failed to get oauth connection details for in response handler  [%v]", authenticator)
     return nil, []error{err}
   }
 
@@ -54,14 +56,35 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 
   code := inFieldMap["code"].(string)
 
+  redirectUri := authConnectorData["redirect_uri"].(string)
+
+  if strings.Index(redirectUri, "?") > -1 {
+    redirectUri = redirectUri + "&authenticator=" + authenticator
+  } else {
+    redirectUri = redirectUri + "?authenticator=" + authenticator
+  }
+
+  secret, err := d.configStore.GetConfigValueFor("encryption.secret", "backend")
+  if err != nil {
+    log.Errorf("Failed to get secret: %v", err)
+    return nil, []error{err}
+  }
+
+  clientSecretEncrypted := authConnectorData["client_secret"].(string)
+  clientSecretPlainText, err := Decrypt([]byte(secret), clientSecretEncrypted)
+  if err != nil {
+    log.Errorf("Failed to get decrypt text: %v", err)
+    return nil, []error{err}
+  }
+
   conf := &oauth2.Config{
     ClientID:     authConnectorData["client_id"].(string),
-    ClientSecret: authConnectorData["client_secret"].(string),
-    RedirectURL:  "http://site.goms.com:8080/oauth/response",
+    ClientSecret: clientSecretPlainText,
+    RedirectURL:  redirectUri,
     Scopes:       []string{"https://www.googleapis.com/auth/spreadsheets"},
     Endpoint: oauth2.Endpoint{
-      AuthURL:  "https://accounts.google.com/o/oauth2/auth",
-      TokenURL: "https://accounts.google.com/o/oauth2/token",
+      AuthURL:  authConnectorData["auth_url"].(string),
+      TokenURL: authConnectorData["token_url"].(string),
     },
   }
 
@@ -78,7 +101,7 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
   storeToken["refresh_token"] = token.RefreshToken
   storeToken["expires_in"] = token.Expiry.Unix()
   storeToken["token_type"] = "auth_token"
-  storeToken["oauthconnect_id"] = authConnectorData["reference_id"]
+  storeToken["oauth_connect_id"] = authConnectorData["reference_id"]
 
   pr := &http.Request{
     Method: "POST",
@@ -92,9 +115,9 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
   gorillaContext.Set(pr, "usergroup_id", []auth.GroupPermission{})
   gorillaContext.Set(pr, "user_id_integer", user["id"])
 
-  model := api2go.NewApi2GoModelWithData("oauthtoken", nil, auth.DEFAULT_PERMISSION, nil, storeToken)
+  model := api2go.NewApi2GoModelWithData("oauth_token", nil, auth.DEFAULT_PERMISSION, nil, storeToken)
 
-  _, err = d.cruds["oauthtoken"].Create(model, req)
+  _, err = d.cruds["oauth_token"].Create(model, req)
   if err != nil {
     log.Errorf("Failed to store oauth token: %v", err)
     return nil, []error{err}
@@ -110,7 +133,7 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 
   redirectAttrs := make(map[string]interface{})
   redirectAttrs["delay"] = 0
-  redirectAttrs["location"] = "/in/oauthtoken"
+  redirectAttrs["location"] = "/in/oauth_token"
   redirectAttrs["window"] = "self"
   redirectResponse := NewActionResponse("client.redirect", redirectAttrs)
 
@@ -137,8 +160,9 @@ func NewOauthLoginResponseActionPerformer(initConfig *CmsConfig, cruds map[strin
   }
 
   handler := OauthLoginResponseActionPerformer{
-    cruds:  cruds,
-    otpKey: secret,
+    cruds:       cruds,
+    otpKey:      secret,
+    configStore: configStore,
   }
 
   return &handler, nil

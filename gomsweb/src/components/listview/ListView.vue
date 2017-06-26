@@ -1,60 +1,67 @@
 <template>
 
 
-  <div class="row">
+  <div class="box">
     <!-- ListView -->
 
-    <div class="col-md-3"><h3> {{jsonApiModelName | titleCase}} </h3></div>
-    <div class="col-md-3 pull-right">
+    <div class="box-header">
+      <div class="box-title">
+        <span style="font-weight: 600; font-size: 35px;"> {{jsonApiModelName | titleCase}} </span>
+      </div>
+      <div class="box-tools">
+        <div class="ui icon buttons">
 
-      <div class="ui icon buttons">
-
-        <button type="button" class="btn btn-box-tool" @click="reloadData()">
+          <button type="button" class="btn btn-box-tool" @click="reloadData()">
             <span>
               <i class="fa fa-2x fa-refresh yellow"></i>
             </span>
-        </button>
+          </button>
 
-        <button type="button" class="btn btn-box-tool" @click="showAddEdit = true">
+          <button type="button" class="btn btn-box-tool" @click="showAddEdit = true">
             <span>
               <i class="fa fa-2x fa-plus green"></i>
             </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="box-body">
+      <div class="col-md-12" v-if="showAddEdit">
+        <button class="btn btn-success" v-if="showSelect" @click="showSelect = false">
+          Create new {{jsonApiModelName | titleCase}}
+        </button>
+        <button class="btn btn-primary" v-if="!showSelect" @click="showSelect = true">
+          Search and add {{jsonApiModelName | titleCase}}
         </button>
       </div>
-    </div>
 
-    <template class="row" v-if="showAddEdit && meta">
 
-      <div class="col-md-12">
-        <select-one-or-more :json-api="jsonApi" v-if="showSelect"
-                            @save="saveRow" :json-api-model-name="jsonApiModelName">
-        </select-one-or-more>
+      <template v-if="showAddEdit && meta">
 
+        <div class="col-md-6 pull-right" v-if="showSelect">
+          <select-one-or-more :json-api="jsonApi"
+                              @save="saveRow" :json-api-model-name="jsonApiModelName">
+          </select-one-or-more>
+
+        </div>
+        <div class="col-md-12" v-if="!showSelect">
+          <model-form
+            :json-api="jsonApi" @save="saveRow"
+            @cancel="cancel()" :meta="meta">
+          </model-form>
+        </div>
+
+
+      </template>
+
+
+      <div class="col-md-12" v-for="item in tableData">
+        <detailed-table-row :show-all="false" :model="item" :json-api="jsonApi"
+                            :json-api-model-name="jsonApiModelName"
+                            :key="item.id">
+        </detailed-table-row>
       </div>
-      <div class="col-md-12">
-        <model-form
-          :json-api="jsonApi" @save="saveRow"
-          @cancel="cancel()" :meta="meta" v-if="!showSelect">
-        </model-form>
-      </div>
-
-
-    </template>
-    <div class="col-md-12" v-if="showAddEdit">
-      <button class="el-button ui button el-button--default orange" v-if="showSelect" @click="showSelect = false">
-        Create new {{jsonApiModelName | titleCase}}
-      </button>
-      <button class="el-button ui button el-button--default orange" v-if="!showSelect" @click="showSelect = true">
-        Search and add {{jsonApiModelName | titleCase}}
-      </button>
-    </div>
-
-
-    <div class="col-md-12" v-for="item in tableData">
-      <detailed-table-row :show-all="false" :model="item" :json-api="jsonApi"
-                          :json-api-model-name="jsonApiModelName"
-                          :key="item.id">
-      </detailed-table-row>
     </div>
 
   </div>
