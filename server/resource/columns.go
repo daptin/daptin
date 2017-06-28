@@ -90,7 +90,7 @@ var SystemActions = []Action{
       {
         Type:   "system_json_schema_update",
         Method: "EXECUTE",
-        Attributes: map[string]string{
+        Attributes: map[string]interface{}{
           "json_schema": "$schema_json_file",
         },
       },
@@ -105,7 +105,7 @@ var SystemActions = []Action{
       {
         Type:       "system_json_schema_download",
         Method:     "EXECUTE",
-        Attributes: map[string]string{},
+        Attributes: map[string]interface{}{},
       },
     },
   },
@@ -118,7 +118,7 @@ var SystemActions = []Action{
       {
         Type:   "become_admin",
         Method: "EXECUTE",
-        Attributes: map[string]string{
+        Attributes: map[string]interface{}{
           "user_id": "$user.id",
         },
       },
@@ -159,7 +159,7 @@ var SystemActions = []Action{
         Type:      "user",
         Method:    "POST",
         Reference: "user",
-        Attributes: map[string]string{
+        Attributes: map[string]interface{}{
           "name":     "$name",
           "email":    "$email",
           "password": "$password",
@@ -169,7 +169,7 @@ var SystemActions = []Action{
         Type:      "usergroup",
         Method:    "POST",
         Reference: "usergroup",
-        Attributes: map[string]string{
+        Attributes: map[string]interface{}{
           "name": "!'Home group for ' + user.name",
         },
       },
@@ -177,7 +177,7 @@ var SystemActions = []Action{
         Type:      "user_user_id_has_usergroup_usergroup_id",
         Method:    "POST",
         Reference: "user_usergroup",
-        Attributes: map[string]string{
+        Attributes: map[string]interface{}{
           "user_id":      "$user.reference_id",
           "usergroup_id": "$usergroup.reference_id",
         },
@@ -206,7 +206,7 @@ var SystemActions = []Action{
       {
         Type:   "jwt.token",
         Method: "EXECUTE",
-        Attributes: map[string]string{
+        Attributes: map[string]interface{}{
           "email":    "$email",
           "password": "$password",
         },
@@ -223,7 +223,7 @@ var SystemActions = []Action{
       {
         Type:   "oauth.client.redirect",
         Method: "EXECUTE",
-        Attributes: map[string]string{
+        Attributes: map[string]interface{}{
           "authenticator": "$.name",
           "scope":         "$.scope",
         },
@@ -258,7 +258,7 @@ var SystemActions = []Action{
       {
         Type:   "oauth.login.response",
         Method: "EXECUTE",
-        Attributes: map[string]string{
+        Attributes: map[string]interface{}{
           "authenticator": "$authenticator",
         },
       },

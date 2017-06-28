@@ -51,9 +51,9 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
 
       s, v, err = squirrel.
       Update("data_exchange").
-          Set("source_name", sourceAttrsJson).
+          Set("source_attributes", sourceAttrsJson).
           Set("source_type", exchange.SourceType).
-          Set("target_name", targetAttrsJson).
+          Set("target_attributes", targetAttrsJson).
           Set("target_type", exchange.TargetType).
           Set("attributes", attrsJson).
           Set("options", optionsJson).
@@ -115,12 +115,12 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
       CheckErr(err, "Failed to Scan existing exchanges")
 
       m := make(map[string]interface{})
-      err = json.Unmarshal(source_attributes, m)
+      err = json.Unmarshal(source_attributes, &m)
       ec.SourceAttributes = m
       CheckErr(err, "Failed to unmarshal source attributes")
 
       m = make(map[string]interface{})
-      err = json.Unmarshal(target_attributes, m)
+      err = json.Unmarshal(target_attributes, &m)
       ec.TargetAttributes = m
       CheckErr(err, "Failed to unmarshal target attributes")
 
@@ -711,7 +711,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
     config.Tables[i].Relations = make([]api2go.TableRelation, 0)
 
     if len(existingRelations) > 0 {
-      log.Infof("Found existing %d columns from db", len(existingRelations))
+      log.Infof("Found existing %d columns from db for [%v]", len(existingRelations), config.Tables[i].TableName)
       for _, rel := range existingRelations {
 
         //if rel.Object == "user" && rel.Relation == "belongs_to" {

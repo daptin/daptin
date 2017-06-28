@@ -174,10 +174,7 @@
       },
       "sourceType": "self",
       "targetAttributes": {
-        "spreadSheetId": "",
-        "range": "",
-        "valueInputOption": "",
-        "sheetId": ""
+        "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append"
       },
       "targetType": "gsheet-append",
       "attributes": [
@@ -199,13 +196,17 @@
     {
       "name": "gsheet-append",
       "method": "POST",
-      "url": "https://sheets.googleapis.com/v4/spreadsheets/$spreadSheetId/values/$range:append?valueInputOption=$valueInputOption",
+      "url": "$sheetUrl",
       "headers": {
         "Accept": "application/json"
       },
-      "body": "$",
+      "body": {
+        "range": "A",
+        "majorDimension": "",
+        "values": "!Object.keys(subject)"
+      },
       "queryParams": {
-        "queryParam": "$sheetId"
+        "valueInputOption": "RAW"
       }
     }
   ]
