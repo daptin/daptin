@@ -374,11 +374,12 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where squirrel.Eq) (
 
   //log.Infof("Select query: %v == [%v]", s, q)
   rows, err := dr.db.Queryx(s, q...)
-  defer rows.Close()
-  m1, include, err := dr.ResultToArrayOfMap(rows, dr.cruds[typeName].model.GetColumnMap(), true)
   if err != nil {
     return nil, nil, err
   }
+  defer rows.Close()
+
+  m1, include, err := dr.ResultToArrayOfMap(rows, dr.cruds[typeName].model.GetColumnMap(), true)
 
   return m1, include, nil
 

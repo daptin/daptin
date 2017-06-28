@@ -153,7 +153,7 @@ func Main() {
 
   CleanUpConfigFiles()
 
-  ms := BuildMiddlewareSet()
+  ms := BuildMiddlewareSet(&initConfig, cruds)
 
   /// end system initialise
 
@@ -512,16 +512,18 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 
 }
 
-func BuildMiddlewareSet() resource.MiddlewareSet {
+func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) resource.MiddlewareSet {
 
   var ms resource.MiddlewareSet
+
+  exchangeMiddleware := resource.NewExchangeMiddleware(cmsConfig, cruds)
 
   permissionChecker := &resource.TableAccessPermissionChecker{}
 
   findOneHandler := resource.NewFindOneEventHandler()
-  createHandler := resource.NewCreateEventHandler()
-  updateHandler := resource.NewUpdateEventHandler()
-  deleteHandler := resource.NewDeleteEventHandler()
+  createEventHandler := resource.NewCreateEventHandler()
+  updateEventHandler := resource.NewUpdateEventHandler()
+  deleteEventHandler := resource.NewDeleteEventHandler()
 
   ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
     permissionChecker,
@@ -533,29 +535,30 @@ func BuildMiddlewareSet() resource.MiddlewareSet {
 
   ms.BeforeCreate = []resource.DatabaseRequestInterceptor{
     permissionChecker,
-    createHandler,
+    createEventHandler,
   }
   ms.AfterCreate = []resource.DatabaseRequestInterceptor{
     permissionChecker,
-    createHandler,
+    createEventHandler,
+    exchangeMiddleware,
   }
 
   ms.BeforeDelete = []resource.DatabaseRequestInterceptor{
     permissionChecker,
-    deleteHandler,
+    deleteEventHandler,
   }
   ms.AfterDelete = []resource.DatabaseRequestInterceptor{
     permissionChecker,
-    deleteHandler,
+    deleteEventHandler,
   }
 
   ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
     permissionChecker,
-    updateHandler,
+    updateEventHandler,
   }
   ms.AfterUpdate = []resource.DatabaseRequestInterceptor{
     permissionChecker,
-    updateHandler,
+    updateEventHandler,
   }
 
   ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
