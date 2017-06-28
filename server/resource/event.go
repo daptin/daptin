@@ -9,7 +9,6 @@ import (
   //"github.com/lann/ps"
   "golang.org/x/oauth2"
   "gopkg.in/Masterminds/squirrel.v1"
-  "context"
   "time"
 )
 
@@ -156,10 +155,10 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
             log.Errorf("No oauth description for [%v]: %v", exchange.Name, err)
           }
 
-          ctx := context.Background()
-          client := oauthDesc.Client(ctx, token)
+          //ctx := context.Background()
+          //client := oauthDesc.Client(ctx, token)
 
-          exchangeExecution := NewExchangeExecution(exchange, client)
+          exchangeExecution := NewExchangeExecution(exchange, token, oauthDesc)
 
           inFields := make(map[string]interface{})
 
@@ -207,8 +206,17 @@ func (resource *DbResource) GetTokenForExchangeByTokenId(id *int64) (*oauth2.Tok
     return nil, err
   }
 
-  token.AccessToken = access_token
-  token.RefreshToken = refresh_token
+  secret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+  CheckErr(err, "Failed to get encryption secret")
+
+  dec, err := Decrypt([]byte(secret), access_token)
+  CheckErr(err, "Failed to decrypt access token")
+
+  ref, err := Decrypt([]byte(secret), refresh_token)
+  CheckErr(err, "Failed to decrypt refresh token")
+
+  token.AccessToken = dec
+  token.RefreshToken = ref
   token.TokenType = token_type
   token.Expiry = time.Unix(expires_in, 0)
 

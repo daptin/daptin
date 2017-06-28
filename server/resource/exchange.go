@@ -2,11 +2,11 @@ package resource
 
 import (
   log "github.com/sirupsen/logrus"
-  "net/http"
   "github.com/pkg/errors"
   //"bytes"
   "encoding/json"
   "bytes"
+  "golang.org/x/oauth2"
 )
 
 type ExchangeInterface interface {
@@ -52,7 +52,8 @@ func (c *ColumnMapping) UnmarshalJSON(payload []byte) error {
 
 type ExchangeExecution struct {
   ExchangeContract ExchangeContract
-  httpClient       *http.Client
+  oauthToken       *oauth2.Token
+  oauthConfig      *oauth2.Config
 }
 
 func (ec *ExchangeExecution) Execute(inFields map[string]interface{}, data []map[string]interface{}) (err error) {
@@ -65,15 +66,21 @@ func (ec *ExchangeExecution) Execute(inFields map[string]interface{}, data []map
     return errors.New("self in target, not yet implemented")
     break
   default:
-    handler, err = NewRestExchangeHandler(ec.ExchangeContract, inFields, ec.httpClient)
+    handler, err = NewRestExchangeHandler(ec.ExchangeContract, ec.oauthToken, ec.oauthConfig)
     if err != nil {
       return err
     }
     break
   }
 
+  targetAttrs := ec.ExchangeContract.TargetAttributes
+
+  for k, v := range targetAttrs {
+    inFields[k] = v
+  }
+
   for _, row := range data {
-    err = handler.ExecuteTarget(row)
+    err = handler.ExecuteTarget(row, inFields)
     if err != nil {
       log.Errorf("Failed to execute target for [%v]: %v", row["__type"], err)
     }
@@ -82,10 +89,11 @@ func (ec *ExchangeExecution) Execute(inFields map[string]interface{}, data []map
   return nil
 }
 
-func NewExchangeExecution(exchange ExchangeContract, httpClient *http.Client) (*ExchangeExecution) {
+func NewExchangeExecution(exchange ExchangeContract, oauthToken *oauth2.Token, oauthConfig *oauth2.Config) (*ExchangeExecution) {
 
   return &ExchangeExecution{
     ExchangeContract: exchange,
-    httpClient:       httpClient,
+    oauthToken:       oauthToken,
+    oauthConfig:      oauthConfig,
   }
 }
