@@ -17,6 +17,7 @@ import (
   "io/ioutil"
   "net/http"
   "strings"
+  "reflect"
 )
 
 var guestActions = map[string]Action{}
@@ -287,7 +288,7 @@ func NewActionResponse(responseType string, attrs interface{}) ActionResponse {
 
 func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.Api2GoModel, api2go.Request, error) {
 
-  attrs := buildActionContext(outcome, inFieldMap)
+  attrs := buildActionContext(outcome.Attributes, inFieldMap).(map[string]interface{})
 
   switch outcome.Type {
   case "system_json_schema_update":
@@ -382,7 +383,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 
 }
 
-func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) string {
+func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) interface{} {
 
   vm := goja.New()
 
@@ -395,45 +396,121 @@ func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) strin
     log.Errorf("failed to execute: %v", err)
   }
 
-  return v.String()
+  return v.Export()
 }
 
-func buildActionContext(outcome Outcome, inFieldMap map[string]interface{}) map[string]interface{} {
+func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]interface{}) interface{} {
 
-  data := make(map[string]interface{})
-  for key, field := range outcome.Attributes {
+  var data interface{}
 
-    if field[0] == '$' {
+  kindOfOutcome := reflect.TypeOf(outcomeAttributes).Kind()
 
-      fieldParts := strings.Split(field[1:], ".")
+  if kindOfOutcome == reflect.Map {
 
-      if fieldParts[0] == "" {
-        fieldParts[0] = "subject"
+    dataMap := make(map[string]interface{})
+
+    outcomeMap := outcomeAttributes.(map[string]interface{})
+    for key, field := range outcomeMap {
+
+      typeOfField := reflect.TypeOf(field).Kind()
+      log.Infof("Outcome attribute [%v] == %v [%v]", key, field, typeOfField)
+
+      if typeOfField == reflect.String {
+
+        fieldString := field.(string)
+
+        dataMap[key] = evaluateString(fieldString, inFieldMap)
+
+      } else if typeOfField == reflect.Map || typeOfField == reflect.Slice || typeOfField == reflect.Array {
+
+        dataMap[key] = buildActionContext(field, inFieldMap)
+
       }
 
-      var finalValue interface{}
-
-      // it looks confusing but it does whats its supposed to do
-      // todo: add helpful comment
-
-      finalValue = inFieldMap
-      for i := 0; i < len(fieldParts)-1; i++ {
-        fieldPart := fieldParts[i]
-        finalValue = finalValue.(map[string]interface{})[fieldPart]
-      }
-      finalValue = finalValue.(map[string]interface{})[fieldParts[len(fieldParts)-1]]
-      data[key] = finalValue
-    } else if field[0] == '!' {
-
-      res := runUnsafeJavascript(field[1:], inFieldMap)
-      data[key] = res
-
-    } else {
-      data[key] = inFieldMap[field]
     }
 
+    data = dataMap
+
+  } else if kindOfOutcome == reflect.Array || kindOfOutcome == reflect.Slice {
+
+    outcomeArray, ok  := outcomeAttributes.([]interface{})
+
+    if !ok {
+      outcomeArray = make([]interface{}, 0)
+      outcomeArrayString := outcomeAttributes.([]string)
+      for _, o := range outcomeArrayString {
+        outcomeArray = append(outcomeArray, o)
+      }
+    }
+
+    outcomes := make([]interface{}, 0)
+
+    for _, outcome := range outcomeArray {
+
+      outcomeKind := reflect.TypeOf(outcome).Kind()
+
+      if outcomeKind == reflect.String {
+
+        outcomeString := outcome.(string)
+
+        outcomes = append(outcomes, evaluateString(outcomeString, inFieldMap))
+
+      } else if outcomeKind == reflect.Map || outcomeKind == reflect.Array || outcomeKind == reflect.Slice {
+        outcomes = append(outcomes, buildActionContext(outcome, inFieldMap))
+      }
+
+    }
+    data = outcomes
+
   }
+
   return data
+}
+
+func evaluateString(fieldString string, inFieldMap map[string]interface{}) interface{} {
+
+  var val interface{}
+
+  if fieldString == "" {
+    return ""
+  }
+
+  if fieldString[0] == '$' {
+
+    fieldParts := strings.Split(fieldString[1:], ".")
+
+    if fieldParts[0] == "" {
+      fieldParts[0] = "subject"
+    }
+
+    var finalValue interface{}
+
+    // it looks confusing but it does whats its supposed to do
+    // todo: add helpful comment
+
+    finalValue = inFieldMap
+    for i := 0; i < len(fieldParts)-1; i++ {
+      fieldPart := fieldParts[i]
+      finalValue = finalValue.(map[string]interface{})[fieldPart]
+    }
+    finalValue = finalValue.(map[string]interface{})[fieldParts[len(fieldParts)-1]]
+    val = finalValue
+  } else if fieldString[0] == '!' {
+
+    res := runUnsafeJavascript(fieldString[1:], inFieldMap)
+    val = res
+
+  } else {
+    m, ok := inFieldMap[fieldString]
+    if ok {
+      val = m
+    } else {
+      val = fieldString
+    }
+  }
+
+  return val
+
 }
 
 func GetValidatedInFields(actionRequest ActionRequest, action Action) (map[string]interface{}, error) {
