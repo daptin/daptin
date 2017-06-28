@@ -26,6 +26,59 @@ func (d *OauthLoginResponseActionPerformer) Name() string {
   return "oauth.login.response"
 }
 
+func GetOauthConnectionDescription(authenticator string, dbResource *DbResource) (*oauth2.Config, string, error) {
+
+  rows, _, err := dbResource.cruds["oauth_connect"].GetRowsByWhereClause("oauth_connect", squirrel.Eq{"name": authenticator})
+
+  if err != nil {
+    log.Errorf("Failed to get oauth connection details for in response handler  [%v]", authenticator)
+    return nil, "", err
+  }
+
+  if len(rows) < 1 {
+    log.Errorf("Failed to get oauth connection details for  [%v]", authenticator)
+    err = errors.New(fmt.Sprintf("No such authenticator [%v]", authenticator))
+    return nil, "", err
+  }
+
+  authConnectorData := rows[0]
+
+  redirectUri := authConnectorData["redirect_uri"].(string)
+
+  if strings.Index(redirectUri, "?") > -1 {
+    redirectUri = redirectUri + "&authenticator=" + authenticator
+  } else {
+    redirectUri = redirectUri + "?authenticator=" + authenticator
+  }
+
+  secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
+  if err != nil {
+    log.Errorf("Failed to get secret: %v", err)
+    return nil, "", err
+  }
+
+  clientSecretEncrypted := authConnectorData["client_secret"].(string)
+  clientSecretPlainText, err := Decrypt([]byte(secret), clientSecretEncrypted)
+  if err != nil {
+    log.Errorf("Failed to get decrypt text: %v", err)
+    return nil, "", err
+  }
+
+  conf := &oauth2.Config{
+    ClientID:     authConnectorData["client_id"].(string),
+    ClientSecret: clientSecretPlainText,
+    RedirectURL:  redirectUri,
+    Scopes:       strings.Split(authConnectorData["scope"].(string), ","),
+    Endpoint: oauth2.Endpoint{
+      AuthURL:  authConnectorData["auth_url"].(string),
+      TokenURL: authConnectorData["token_url"].(string),
+    },
+  }
+
+  return conf, authConnectorData["reference_id"].(string), nil
+
+}
+
 func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {
 
   state := inFieldMap["state"].(string)
@@ -38,54 +91,12 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
   }
 
   authenticator := inFieldMap["authenticator"].(string)
-
-  rows, _, err := d.cruds["oauth_connect"].GetRowsByWhereClause("oauth_connect", squirrel.Eq{"name": authenticator})
-
-  if err != nil {
-    log.Errorf("Failed to get oauth connection details for in response handler  [%v]", authenticator)
-    return nil, []error{err}
-  }
-
-  if len(rows) < 1 {
-    log.Errorf("Failed to get oauth connection details for  [%v]", authenticator)
-    err = errors.New(fmt.Sprintf("No such authenticator [%v]", authenticator))
-    return nil, []error{err}
-  }
-
-  authConnectorData := rows[0]
-
   code := inFieldMap["code"].(string)
 
-  redirectUri := authConnectorData["redirect_uri"].(string)
+  conf, authReferenceId, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"])
 
-  if strings.Index(redirectUri, "?") > -1 {
-    redirectUri = redirectUri + "&authenticator=" + authenticator
-  } else {
-    redirectUri = redirectUri + "?authenticator=" + authenticator
-  }
-
-  secret, err := d.configStore.GetConfigValueFor("encryption.secret", "backend")
   if err != nil {
-    log.Errorf("Failed to get secret: %v", err)
     return nil, []error{err}
-  }
-
-  clientSecretEncrypted := authConnectorData["client_secret"].(string)
-  clientSecretPlainText, err := Decrypt([]byte(secret), clientSecretEncrypted)
-  if err != nil {
-    log.Errorf("Failed to get decrypt text: %v", err)
-    return nil, []error{err}
-  }
-
-  conf := &oauth2.Config{
-    ClientID:     authConnectorData["client_id"].(string),
-    ClientSecret: clientSecretPlainText,
-    RedirectURL:  redirectUri,
-    Scopes:       []string{"https://www.googleapis.com/auth/spreadsheets"},
-    Endpoint: oauth2.Endpoint{
-      AuthURL:  authConnectorData["auth_url"].(string),
-      TokenURL: authConnectorData["token_url"].(string),
-    },
   }
 
   ctx := context.Background()
@@ -100,8 +111,8 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
   storeToken["access_token"] = token.AccessToken
   storeToken["refresh_token"] = token.RefreshToken
   storeToken["expires_in"] = token.Expiry.Unix()
-  storeToken["token_type"] = "auth_token"
-  storeToken["oauth_connect_id"] = authConnectorData["reference_id"]
+  storeToken["token_type"] = "google"
+  storeToken["oauth_connect_id"] = authReferenceId
 
   pr := &http.Request{
     Method: "POST",

@@ -169,10 +169,17 @@
   "exchanges": [
     {
       "name": "User to excel sync",
-      "sourceName": "blog",
+      "sourceAttributes": {
+        "name": "blog"
+      },
       "sourceType": "self",
-      "targetName": "https://docs.google.com/spreadsheets/d/1QuGjDfsV7SWS2xyRadwfbWUH0dtNT4S-YqeM97eE4tw/edit#gid=0",
-      "targetType": "gsheet",
+      "targetAttributes": {
+        "spreadSheetId": "",
+        "range": "",
+        "valueInputOption": "",
+        "sheetId": ""
+      },
+      "targetType": "gsheet-append",
       "attributes": [
         {
           "sourceColumn": "$blog.title",
@@ -185,6 +192,20 @@
       ],
       "options": {
         "hasHeader": true
+      }
+    }
+  ],
+  "exchangeDescriptions": [
+    {
+      "name": "gsheet-append",
+      "method": "POST",
+      "url": "https://sheets.googleapis.com/v4/spreadsheets/$spreadSheetId/values/$range:append?valueInputOption=$valueInputOption",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "body": "$",
+      "queryParams": {
+        "queryParam": "$sheetId"
       }
     }
   ]

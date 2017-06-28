@@ -1,96 +1,75 @@
 package resource
 
 import (
-  "google.golang.org/api/sheets/v4"
   log "github.com/sirupsen/logrus"
-  "fmt"
-  "context"
   "net/http"
-  "golang.org/x/oauth2"
+  "github.com/pkg/errors"
+  "fmt"
 )
 
 type ExternalExchange interface {
-  UpdateDestination(destinationName string, data []map[string]interface{}) error
-  ReadDestination(destinationName string) ([]map[string]interface{}, error)
+  ExecuteTarget(inFields map[string]interface{}) error
 }
 
-type GsheetExternalExchange struct {
-  token      *oauth2.Token
-  columnInfo ColumnMapping
-  config     *oauth2.Config
+type RestExchange struct {
+  Name        string
+  Method      string
+  Url         string
+  Headers     map[string]string
+  Body        string
+  QueryParams map[string]string
 }
 
-func getClient(ctx context.Context, config *oauth2.Config, token *oauth2.Token) *http.Client {
-  return config.Client(ctx, token)
+var restExchanges = []RestExchange{
+  {
+
+    Name:   "gsheet-append",
+    Method: "POST",
+    Url:    "https://sheets.googleapis.com/v4/spreadsheets/$spreadSheetId/values/$range:append?valueInputOption=$valueInputOption",
+    Headers: map[string]string{
+      "Accept": "application/json",
+    },
+    Body: "",
+    QueryParams: map[string]string{
+      "param1": "$sheetId",
+    },
+
+  },
 }
 
-func (g *GsheetExternalExchange) UpdateDestination(destinationName string, data []map[string]interface{}) error {
+type RestExternalExchange struct {
+  RestExchange        RestExchange
+  httpClient          *http.Client
+  exchangeContract    ExchangeContract
+  exchangeInformation *RestExchange
+}
 
-  ctx := context.Background()
-  client := g.config.Client(ctx, g.token)
+func (g *RestExternalExchange) ExecuteTarget(inFields map[string]interface{}) error {
 
-  srv, err := sheets.New(client)
-  if err != nil {
-    log.Fatalf("Unable to retrieve Sheets Client %v", err)
-  }
-
-  // Prints the names and majors of students in a sample spreadsheet:
-  // https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
-  spreadsheetId := "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
-  readRange := "Class Data!A2:E"
-  resp, err := srv.Spreadsheets.Values.Get(spreadsheetId, readRange).Do()
-  if err != nil {
-    log.Fatalf("Unable to retrieve data from sheet. %v", err)
-  }
-
-  if len(resp.Values) > 0 {
-    fmt.Println("Name, Major:")
-    for _, row := range resp.Values {
-      // Print columns A and E, which correspond to indices 0 and 4.
-      fmt.Printf("%s, %s\n", row[0], row[4])
-    }
-  } else {
-    fmt.Print("No data found.")
-  }
+  log.Infof("Execute rest external exchange")
 
   return nil
 }
-func (g *GsheetExternalExchange) ReadDestination(destinationName string) ([]map[string]interface{}, error) {
 
-  ctx := context.Background()
-  client := g.config.Client(ctx, g.token)
+func NewRestExchangeHandler(exchangeContext ExchangeContract, inFields map[string]interface{}, httpClient *http.Client) (ExternalExchange, error) {
 
-  srv, err := sheets.New(client)
-  if err != nil {
-    log.Fatalf("Unable to retrieve Sheets Client %v", err)
-  }
+  found := false
+  var selected *RestExchange
 
-  // Prints the names and majors of students in a sample spreadsheet:
-  // https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
-  spreadsheetId := "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
-  readRange := "Class Data!A2:E"
-  resp, err := srv.Spreadsheets.Values.Get(spreadsheetId, readRange).Do()
-  if err != nil {
-    log.Fatalf("Unable to retrieve data from sheet. %v", err)
-  }
-
-  if len(resp.Values) > 0 {
-    fmt.Println("Name, Major:")
-    for _, row := range resp.Values {
-      // Print columns A and E, which correspond to indices 0 and 4.
-      fmt.Printf("%s, %s\n", row[0], row[4])
+  for _, ra := range restExchanges {
+    if ra.Name == exchangeContext.TargetType {
+      found = true
+      selected = &ra
     }
-  } else {
-    fmt.Print("No data found.")
   }
 
-  return nil, nil
-}
-
-func NewGsheetExternalExchange(columnInfo ColumnMapping, token *oauth2.Token) ExternalExchange {
-
-  return &GsheetExternalExchange{
-    token:      token,
-    columnInfo: columnInfo,
+  if !found {
+    return nil, errors.New(fmt.Sprintf("Unknown target type [%v]", exchangeContext.TargetType))
   }
+
+  return &RestExternalExchange{
+    httpClient:          httpClient,
+    exchangeContract:    exchangeContext,
+    exchangeInformation: selected,
+  }, nil
 }
