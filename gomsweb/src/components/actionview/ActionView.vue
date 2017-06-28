@@ -8,7 +8,8 @@
     </div>
     <div class="box-body">
       <div class="col-md-12">
-        <model-form :hide-title="true" :hide-cancel="hideCancel" v-if="meta != null" @save="doAction(data)" @cancel="cancel()" :meta="meta"
+        <model-form :hide-title="true" :hide-cancel="hideCancel" v-if="meta != null" @save="doAction(data)"
+                    @cancel="cancel()" :meta="meta"
                     :model.sync="data"></model-form>
       </div>
     </div>
@@ -63,6 +64,7 @@
         console.log("perform action", actionData, this.model);
         if (this.model && Object.keys(this.model).indexOf("id") > -1) {
           actionData[this.action.onType + "_id"] = this.model["id"]
+        } else {
         }
         that.actionManager.doAction(that.action.onType, that.action.name, actionData).then(function () {
           that.$emit("action-complete", that.action);
@@ -91,7 +93,14 @@
         }
 
         if (this.action.fields && this.action.fields.length == 0) {
-          this.actionManager.doAction(this.action.onType, this.action.name, {}).then(function () {
+
+          var payload = {};
+
+          if (this.model && this.model["id"]) {
+            payload[this.action.onType + "_id"] = this.model["id"];
+          }
+
+          this.actionManager.doAction(this.action.onType, this.action.name, payload).then(function () {
           }, function () {
 
           });

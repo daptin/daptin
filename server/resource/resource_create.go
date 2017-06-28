@@ -158,7 +158,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     userId = uint64(userIdInt.(int64))
   }
 
-  if userId != 0 && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" && dr.model.HasColumn("user_id") {
+  if userId != 0 && dr.model.HasColumn("user_id") {
 
     colsList = append(colsList, "user_id")
     valsList = append(valsList, userId)
