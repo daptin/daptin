@@ -28,7 +28,6 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
     return nil, []error{err}
   }
 
-  scope := inFieldMap["scope"].(string)
   authConnectorData := inFieldMap["subject"].(map[string]interface{})
 
   //rows, _, err := d.cruds["oauth_connect"].GetRowsByWhereClause("oauth_connect", squirrel.Eq{"name": authenticator})
@@ -72,7 +71,7 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
     ClientID:     authConnectorData["client_id"].(string),
     ClientSecret: clientSecretPlainText,
     RedirectURL:  redirectUri,
-    Scopes:       strings.Split(scope, ","),
+    Scopes:       strings.Split(authConnectorData["scope"].(string), ","),
     Endpoint: oauth2.Endpoint{
       AuthURL:  authConnectorData["auth_url"].(string),
       TokenURL: authConnectorData["token_url"].(string),

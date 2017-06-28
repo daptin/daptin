@@ -44,12 +44,16 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
       optionsJson, err := json.Marshal(exchange.Options)
 
       CheckErr(err, "Failed to marshal options to json: %v")
+      sourceAttrsJson, err := json.Marshal(exchange.SourceAttributes)
+      CheckErr(err, "Failed to marshal source attrs to json")
+      targetAttrsJson, err := json.Marshal(exchange.TargetAttributes)
+      CheckErr(err, "Failed to marshal target attrs to json")
 
       s, v, err = squirrel.
       Update("data_exchange").
-          Set("source_name", exchange.SourceName).
+          Set("source_name", sourceAttrsJson).
           Set("source_type", exchange.SourceType).
-          Set("target_name", exchange.TargetName).
+          Set("target_name", targetAttrsJson).
           Set("target_type", exchange.TargetType).
           Set("attributes", attrsJson).
           Set("options", optionsJson).
@@ -67,13 +71,19 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
       CheckErr(err, "Failed to marshal attributes to json")
 
       optionsJson, err := json.Marshal(exchange.Options)
-
       CheckErr(err, "Failed to marshal options to json")
+      sourceAttrsJson, err := json.Marshal(exchange.SourceAttributes)
+      CheckErr(err, "Failed to marshal source attributes to json")
+      targetAttrsJson, err := json.Marshal(exchange.TargetAttributes)
+      CheckErr(err, "Failed to marshal target attributes to json")
+
 
       s, v, err = squirrel.
       Insert("data_exchange").
-          Columns("permission", "name", "source_name", "source_type", "target_name", "target_type", "attributes", "options", "created_at", "user_id", "reference_id").
-          Values(auth.DEFAULT_PERMISSION, exchange.Name, exchange.SourceName, exchange.SourceType, exchange.TargetName, exchange.TargetType, attrsJson, optionsJson, time.Now(), adminId, uuid.NewV4().String()).
+          Columns("permission", "name", "source_attributes", "source_type", "target_attributes", "target_type",
+        "attributes", "options", "created_at", "user_id", "reference_id").
+          Values(auth.DEFAULT_PERMISSION, exchange.Name, sourceAttrsJson, exchange.SourceType, targetAttrsJson, exchange.TargetType,
+        attrsJson, optionsJson, time.Now(), adminId, uuid.NewV4().String()).
           ToSql()
 
       _, err = db.Exec(s, v...)
@@ -86,14 +96,53 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
 
   allExchnages := make([]ExchangeContract, 0)
 
-  s, v, err := squirrel.Select("name", "source_name", "source_type", "target_name", "target_type", "attributes", "options", "updated_at", "user_id").
+  s, v, err := squirrel.Select("name", "source_attributes", "source_type", "target_attributes",
+    "target_type", "attributes", "options", "oauth_token_id").
       From("data_exchange").Where(squirrel.Eq{"deleted_at": nil}).ToSql()
 
   rows, err := db.Queryx(s, v...)
   CheckErr(err, "Failed to query existing exchanges")
 
   if err == nil {
-    rows.Scan(&allExchnages)
+    for ; rows.Next(); {
+
+      var name, source_type, target_type string;
+      var attributes, source_attributes, target_attributes, options []byte
+      var oauth_token_id *int64
+
+      var ec ExchangeContract
+      err = rows.Scan(&name, &source_attributes, &source_type, &target_attributes, &target_type, &attributes, &options, &oauth_token_id)
+      CheckErr(err, "Failed to Scan existing exchanges")
+
+      m := make(map[string]interface{})
+      err = json.Unmarshal(source_attributes, m)
+      ec.SourceAttributes = m
+      CheckErr(err, "Failed to unmarshal source attributes")
+
+      m = make(map[string]interface{})
+      err = json.Unmarshal(target_attributes, m)
+      ec.TargetAttributes = m
+      CheckErr(err, "Failed to unmarshal target attributes")
+
+      ec.Name = name
+      ec.SourceType = source_type
+      ec.TargetType = target_type
+
+      var columnMapping []ColumnMap
+      err = json.Unmarshal(attributes, &columnMapping)
+      CheckErr(err, "Failed to unmarshal column mapping")
+
+      ec.Attributes = columnMapping
+      err = json.Unmarshal(options, &ec.Options)
+      CheckErr(err, "Failed to unmarshal exchange options")
+
+      if oauth_token_id == nil {
+      }
+
+      ec.OauthTokenId = oauth_token_id
+
+      allExchnages = append(allExchnages, ec)
+    }
   }
 
   initConfig.ExchangeContracts = allExchnages

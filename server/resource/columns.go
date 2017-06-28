@@ -218,13 +218,6 @@ var SystemActions = []Action{
     Label:  "Authenticate via OAuth",
     OnType: "oauth_connect",
     InFields: []api2go.ColumnInfo{
-      {
-        Name:         "scope",
-        ColumnName:   "scope",
-        ColumnType:   "name",
-        IsNullable:   false,
-        DefaultValue: "https://www.googleapis.com/auth/spreadsheets",
-      },
     },
     OutFields: []Outcome{
       {
@@ -232,6 +225,7 @@ var SystemActions = []Action{
         Method: "EXECUTE",
         Attributes: map[string]string{
           "authenticator": "$.name",
+          "scope":         "$.scope",
         },
       },
     },
@@ -602,6 +596,13 @@ var StandardTables = []TableInfo{
         ColumnType: "encrypted",
       },
       {
+        Name:         "scope",
+        ColumnName:   "scope",
+        DataType:     "varchar(1000)",
+        ColumnType:   "content",
+        DefaultValue: "'https://www.googleapis.com/auth/spreadsheets'",
+      },
+      {
         Name:         "response_type",
         ColumnName:   "response_type",
         DataType:     "varchar(80)",
@@ -641,10 +642,10 @@ var StandardTables = []TableInfo{
         IsIndexed:  true,
       },
       {
-        Name:       "source_name",
-        ColumnName: "source_name",
+        Name:       "source_attributes",
+        ColumnName: "source_attributes",
         ColumnType: "name",
-        DataType:   "varchar(1000)",
+        DataType:   "text",
       },
       {
         Name:       "source_type",
@@ -653,10 +654,10 @@ var StandardTables = []TableInfo{
         DataType:   "varchar(100)",
       },
       {
-        Name:       "target_name",
-        ColumnName: "target_name",
+        Name:       "target_attributes",
+        ColumnName: "target_attributes",
         ColumnType: "name",
-        DataType:   "varchar(1000)",
+        DataType:   "text",
       },
       {
         Name:       "target_type",

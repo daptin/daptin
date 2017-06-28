@@ -17,6 +17,7 @@ type MiddlewareSet struct {
 	AfterFindOne []DatabaseRequestInterceptor
 	AfterUpdate  []DatabaseRequestInterceptor
 	AfterDelete  []DatabaseRequestInterceptor
+
 }
 
 type DatabaseRequestInterceptor interface {
