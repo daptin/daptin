@@ -633,6 +633,7 @@ var StandardTables = []TableInfo{
   },
   {
     TableName: "data_exchange",
+    IsHidden:  true,
     Columns: []api2go.ColumnInfo{
       {
         Name:       "name",
