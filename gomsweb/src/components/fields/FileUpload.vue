@@ -10,7 +10,7 @@
     :file-list="fileList">
 
     <el-button size="small" type="primary">Add file</el-button>
-    <div slot="tip" class="el-upload__tip">{{schema.inputType}}</div>
+    <div slot="tip" class="el-upload__tip">File type: {{schema.inputType}}</div>
 
   </el-upload>
 </template>
