@@ -305,7 +305,7 @@
 
         console.log("Start get states for ", tableName, selectedInstanceId);
 
-        jsonApi.one(tableName, selectedInstanceId).all(tableName + "_has_state").get({
+        jsonApi.one(tableName, selectedInstanceId).all(tableName + "_state").get({
           page: {
             number: 1,
             size: 20
