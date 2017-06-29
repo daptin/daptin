@@ -161,6 +161,9 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
             tokenSource := oauthDesc.TokenSource(ctx, token)
             token, err = tokenSource.Token()
             CheckErr(err, "Failed to get new access token")
+            if err != nil {
+              return results, err
+            }
 
             err = dr.UpdateAccessToken(exchange.OauthTokenId, token.AccessToken, token.Expiry.Unix())
             CheckErr(err, "failed to update access token")
