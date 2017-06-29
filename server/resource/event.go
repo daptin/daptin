@@ -10,6 +10,7 @@ import (
   "golang.org/x/oauth2"
   "gopkg.in/Masterminds/squirrel.v1"
   "time"
+  "context"
 )
 
 type eventHandlerMiddleware struct {
@@ -149,13 +150,22 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
             log.Errorf("No token selected for [%v][%v]: %v", exchange.Name, exchange.OauthTokenId, err)
           }
 
-          oauthDesc, err := dr.GetOauthDescripitonByTokenId(exchange.OauthTokenId)
+          oauthDesc, err := dr.GetOauthDescriptionByTokenId(exchange.OauthTokenId)
 
           if err != nil {
             log.Errorf("No oauth description for [%v][%v]: %v", exchange.Name, exchange.OauthTokenId, err)
           }
+          ctx := context.Background()
 
-          //ctx := context.Background()
+          if !token.Valid() {
+            tokenSource := oauthDesc.TokenSource(ctx, token)
+            token, err = tokenSource.Token()
+            CheckErr(err, "Failed to get new access token")
+
+            err = dr.UpdateAccessToken(exchange.OauthTokenId, token.AccessToken, token.Expiry.Unix())
+            CheckErr(err, "failed to update access token")
+          }
+
           //client := oauthDesc.Client(ctx, token)
 
           exchangeExecution := NewExchangeExecution(exchange, token, oauthDesc)
@@ -224,7 +234,33 @@ func (resource *DbResource) GetTokenForExchangeByTokenId(id *int64) (*oauth2.Tok
 
 }
 
-func (resource *DbResource) GetOauthDescripitonByTokenId(id *int64) (*oauth2.Config, error) {
+func (resource *DbResource) UpdateAccessToken(id *int64, accessToken string, expiresIn int64) (error) {
+
+  encryptionSecret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+  if err != nil {
+    return err
+  }
+
+  accessToken, err = Encrypt([]byte(encryptionSecret), accessToken)
+  if err != nil {
+    return err
+  }
+
+  s, v, err := squirrel.Update("oauth_token").
+      Set("access_token", accessToken).
+      Set("expires_in", expiresIn).
+      Where(squirrel.Eq{"id": id}).ToSql()
+
+  if err != nil {
+    return err
+  }
+
+  _, err = resource.db.Exec(s, v...)
+  return err
+
+}
+
+func (resource *DbResource) GetOauthDescriptionByTokenId(id *int64) (*oauth2.Config, error) {
 
   var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
@@ -240,6 +276,16 @@ func (resource *DbResource) GetOauthDescripitonByTokenId(id *int64) (*oauth2.Con
 
   err = resource.db.QueryRowx(s, v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl, &scope)
 
+  if err != nil {
+    return nil, err
+  }
+
+  encryptionSecret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+  if err != nil {
+    return nil, err
+  }
+
+  clientSecret, err = Decrypt([]byte(encryptionSecret), clientSecret)
   if err != nil {
     return nil, err
   }
