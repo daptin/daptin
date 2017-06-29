@@ -153,8 +153,6 @@ func Main() {
 
   CleanUpConfigFiles()
 
-  ms := BuildMiddlewareSet(&initConfig, cruds)
-
   /// end system initialise
 
   r := gin.Default()
@@ -189,6 +187,7 @@ func Main() {
     api2go.NewStaticResolver("/"),
     gingonic.New(r),
   )
+  ms := BuildMiddlewareSet(&initConfig)
   cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore)
 
   encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend")
@@ -512,11 +511,11 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 
 }
 
-func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) resource.MiddlewareSet {
+func BuildMiddlewareSet(cmsConfig *resource.CmsConfig) resource.MiddlewareSet {
 
   var ms resource.MiddlewareSet
 
-  exchangeMiddleware := resource.NewExchangeMiddleware(cmsConfig, cruds)
+  exchangeMiddleware := resource.NewExchangeMiddleware(cmsConfig, &cruds)
 
   permissionChecker := &resource.TableAccessPermissionChecker{}
 
@@ -609,7 +608,7 @@ func CorsMiddlewareFunc(c *gin.Context) {
 }
 
 func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet, configStore *resource.ConfigStore) map[string]*resource.DbResource {
-  cruds := make(map[string]*resource.DbResource)
+  cruds = make(map[string]*resource.DbResource)
   for _, table := range tables {
     log.Infof("Table [%v] Relations: %v", table.TableName)
     for _, r := range table.Relations {
