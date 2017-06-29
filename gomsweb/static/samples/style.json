@@ -177,5 +177,56 @@
       ]
     }
   ],
-  "exchange": []
+  "exchanges": [
+    {
+      "name": "Style to excel sync",
+      "sourceAttributes": {
+        "name": "style"
+      },
+      "sourceType": "self",
+      "targetAttributes": {
+        "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append"
+      },
+      "targetType": "gsheet-append",
+      "attributes": [
+        {
+          "sourceColumn": "$style.title",
+          "targetColumn": "Style title"
+        }
+      ],
+      "options": {
+        "hasHeader": true
+      }
+    },
+    {
+      "name": "Order to excel sync",
+      "sourceAttributes": {
+        "name": "orders"
+      },
+      "sourceType": "self",
+      "targetAttributes": {
+        "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append"
+      },
+      "targetType": "gsheet-append",
+      "attributes": [],
+      "options": {
+        "hasHeader": true
+      }
+    },
+    {
+      "name": "Vendor to excel sync",
+      "sourceAttributes": {
+        "name": "vendor"
+      },
+      "sourceType": "self",
+      "targetAttributes": {
+        "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append"
+      },
+      "targetType": "gsheet-append",
+      "attributes": [],
+      "options": {
+        "hasHeader": true
+      }
+    }
+  ]
 }
