@@ -72,14 +72,14 @@ func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Re
 type ExchangeMiddleware struct {
   cmsConfig   *CmsConfig
   exchangeMap map[string][]ExchangeContract
-  cruds       map[string]*DbResource
+  cruds       *map[string]*DbResource
 }
 
 func (em *ExchangeMiddleware) String() string {
   return "ExchangeMiddleware"
 }
 
-func NewExchangeMiddleware(cmsConfig *CmsConfig, cruds map[string]*DbResource) DatabaseRequestInterceptor {
+func NewExchangeMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) DatabaseRequestInterceptor {
 
   exchangeMap := make(map[string][]ExchangeContract)
 
@@ -146,13 +146,13 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
         for _, exchange := range exchanges {
           token, err := dr.GetTokenForExchangeByTokenId(exchange.OauthTokenId)
           if err != nil {
-            log.Errorf("No token selected for [%v]: %v", exchange.Name, err)
+            log.Errorf("No token selected for [%v][%v]: %v", exchange.Name, exchange.OauthTokenId, err)
           }
 
           oauthDesc, err := dr.GetOauthDescripitonByTokenId(exchange.OauthTokenId)
 
           if err != nil {
-            log.Errorf("No oauth description for [%v]: %v", exchange.Name, err)
+            log.Errorf("No oauth description for [%v][%v]: %v", exchange.Name, exchange.OauthTokenId, err)
           }
 
           //ctx := context.Background()
@@ -226,10 +226,10 @@ func (resource *DbResource) GetTokenForExchangeByTokenId(id *int64) (*oauth2.Tok
 
 func (resource *DbResource) GetOauthDescripitonByTokenId(id *int64) (*oauth2.Config, error) {
 
-  var clientId, clientSecret, redirectUri, authUrl, tokenUrl string
+  var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
   s, v, err := squirrel.
-  Select("oc.client_id", "oc.client_secret", "oc.redirect_uri", "oc.auth_url", "oc.token_url").
+  Select("oc.client_id", "oc.client_secret", "oc.redirect_uri", "oc.auth_url", "oc.token_url", "oc.scope").
       From("oauth_token ot").Join("oauth_connect oc").
       JoinClause("on oc.id = ot.oauth_connect_id").
       Where(squirrel.Eq{"ot.deleted_at": nil}).Where(squirrel.Eq{"ot.id": id}).ToSql()
@@ -238,7 +238,7 @@ func (resource *DbResource) GetOauthDescripitonByTokenId(id *int64) (*oauth2.Con
     return nil, err
   }
 
-  err = resource.db.QueryRowx(s, v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl)
+  err = resource.db.QueryRowx(s, v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl, &scope)
 
   if err != nil {
     return nil, err
@@ -252,7 +252,7 @@ func (resource *DbResource) GetOauthDescripitonByTokenId(id *int64) (*oauth2.Con
       AuthURL:  authUrl,
       TokenURL: tokenUrl,
     },
-    Scopes: []string{},
+    Scopes: strings.Split(scope, ","),
   }
 
   return conf, nil

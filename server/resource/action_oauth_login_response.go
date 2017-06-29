@@ -41,14 +41,25 @@ func GetOauthConnectionDescription(authenticator string, dbResource *DbResource)
     return nil, "", err
   }
 
-  authConnectorData := rows[0]
+  secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
+  if err != nil {
+    log.Errorf("Failed to get secret: %v", err)
+    return nil, "", err
+  }
 
-  redirectUri := authConnectorData["redirect_uri"].(string)
+  conf, err := mapToOauthConfig(rows[0], secret)
 
-  if strings.Index(redirectUri, "?") > -1 {
-    redirectUri = redirectUri + "&authenticator=" + authenticator
-  } else {
-    redirectUri = redirectUri + "?authenticator=" + authenticator
+  return conf, rows[0]["reference_id"].(string), err
+
+}
+
+func GetOauthConnectionById(authenticatorId int64, dbResource *DbResource) (*oauth2.Config, string, error) {
+
+  connectDetails, err := dbResource.cruds["oauth_connect"].GetIdToObject("oauth_connect", authenticatorId)
+
+  if err != nil {
+    log.Errorf("Failed to get oauth connection details for in response handler  [%v]", authenticatorId)
+    return nil, "", err
   }
 
   secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
@@ -57,11 +68,28 @@ func GetOauthConnectionDescription(authenticator string, dbResource *DbResource)
     return nil, "", err
   }
 
+  conf, err := mapToOauthConfig(connectDetails, secret)
+
+  return conf, connectDetails["reference_id"].(string), err
+
+}
+
+func mapToOauthConfig(authConnectorData map[string]interface{}, secret string) (*oauth2.Config, error) {
+
+  redirectUri := authConnectorData["redirect_uri"].(string)
+  authenticator := authConnectorData["name"].(string)
+
+  if strings.Index(redirectUri, "?") > -1 {
+    redirectUri = redirectUri + "&authenticator=" + authenticator
+  } else {
+    redirectUri = redirectUri + "?authenticator=" + authenticator
+  }
+
   clientSecretEncrypted := authConnectorData["client_secret"].(string)
   clientSecretPlainText, err := Decrypt([]byte(secret), clientSecretEncrypted)
   if err != nil {
     log.Errorf("Failed to get decrypt text: %v", err)
-    return nil, "", err
+    return nil, err
   }
 
   conf := &oauth2.Config{
@@ -75,8 +103,7 @@ func GetOauthConnectionDescription(authenticator string, dbResource *DbResource)
     },
   }
 
-  return conf, authConnectorData["reference_id"].(string), nil
-
+  return conf, nil
 }
 
 func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {

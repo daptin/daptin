@@ -10,21 +10,21 @@
 
 
     <li class="header">Connections</li>
-    <li>
+    <li class="pageLink">
       <router-link class="list-connections"
                    :to="{name : 'Entity', params: {tablename: 'oauth_connect'}}">
         <i class="fa fa-link"></i> Connections
       </router-link>
     </li>
 
-    <li>
+    <li class="pageLink">
       <router-link class="oauth-tokens"
                    :to="{name : 'Entity', params: {tablename: 'oauth_token'}}">
         <i class="fa fa-tags"></i> Oauth Tokens
       </router-link>
     </li>
 
-    <li>
+    <li class="pageLink">
       <router-link class="data-exchanges"
                    :to="{name : 'Entity', params: {tablename: 'data_exchange'}}">
         <i class="fa fa-exchange"></i> Data Exchanges
