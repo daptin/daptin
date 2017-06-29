@@ -217,7 +217,7 @@
 
           const columnMeta = that.meta[columnName];
           columnMeta.ColumnName = columnName;
-          const columnLabel = that.titleCase(columnName);
+          const columnLabel = that.titleCase(columnMeta.Name);
 
           if (columnMeta.columnType && columnMeta.columnType === "entity") {
             columnMeta.ColumnType = columnMeta.columnType;
