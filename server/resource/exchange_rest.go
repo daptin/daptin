@@ -38,7 +38,7 @@ var restExchanges = []RestExchange{
     },
     QueryParams: map[string]interface{}{
       "valueInputOption": "RAW",
-      "key":              "AIzaSyAC2xame4NShrzH9ZJeEpWT5GkySooa0XM",
+      "key":              "$appKey",
     },
 
   },

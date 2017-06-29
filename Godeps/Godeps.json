@@ -216,6 +216,10 @@
 			"Rev": "5f8847ae0d0e90b6a9dc8148e7ad616874625171"
 		},
 		{
+			"ImportPath": "golang.org/x/net/publicsuffix",
+			"Rev": "5f8847ae0d0e90b6a9dc8148e7ad616874625171"
+		},
+		{
 			"ImportPath": "golang.org/x/oauth2",
 			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
 		},
@@ -309,6 +313,11 @@
 			"ImportPath": "gopkg.in/go-playground/validator.v8",
 			"Comment": "v8.18.1",
 			"Rev": "5f57d2222ad794d0dffb07e664ea05e2ee07d60c"
+		},
+		{
+			"ImportPath": "gopkg.in/resty.v0",
+			"Comment": "v0.13",
+			"Rev": "cf81ed0a604d373be63b4c036c6b05c06520615f"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
