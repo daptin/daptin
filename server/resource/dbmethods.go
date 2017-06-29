@@ -444,6 +444,11 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 
   m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), false)
 
+  if len(m) == 0 {
+    log.Infof("No result found for [%v][%v]", typeName, id)
+    return nil, err
+  }
+
   return m[0], err
 }
 

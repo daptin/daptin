@@ -30,21 +30,6 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
 
   authConnectorData := inFieldMap["subject"].(map[string]interface{})
 
-  //rows, _, err := d.cruds["oauth_connect"].GetRowsByWhereClause("oauth_connect", squirrel.Eq{"name": authenticator})
-
-  //if err != nil {
-  //  log.Errorf("Failed to get oauth connection details for in begin login  [%v]", authenticator)
-  //  return nil, []error{err}
-  //}
-  //
-  //if len(rows) < 1 {
-  //  log.Errorf("Failed to get oauth connection details for  [%v]", authenticator)
-  //  err = errors.New(fmt.Sprintf("No such authenticator [%v]", authenticator))
-  //  return nil, []error{err}
-  //}
-
-  //authConnectorData := rows[0]
-
   redirectUri := authConnectorData["redirect_uri"].(string)
 
   if strings.Index(redirectUri, "?") > -1 {
@@ -53,30 +38,8 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
     redirectUri = redirectUri + "?authenticator=" + authConnectorData["name"].(string)
   }
 
-  clientSecretEncrypted := authConnectorData["client_secret"].(string)
-
-  secret, err := d.configStore.GetConfigValueFor("encryption.secret", "backend")
-  if err != nil {
-    log.Errorf("Failed to get secret: %v", err)
-    return nil, []error{err}
-  }
-
-  clientSecretPlainText, err := Decrypt([]byte(secret), clientSecretEncrypted)
-  if err != nil {
-    log.Errorf("Failed to get decrypt text: %v", err)
-    return nil, []error{err}
-  }
-
-  conf := &oauth2.Config{
-    ClientID:     authConnectorData["client_id"].(string),
-    ClientSecret: clientSecretPlainText,
-    RedirectURL:  redirectUri,
-    Scopes:       strings.Split(authConnectorData["scope"].(string), ","),
-    Endpoint: oauth2.Endpoint{
-      AuthURL:  authConnectorData["auth_url"].(string),
-      TokenURL: authConnectorData["token_url"].(string),
-    },
-  }
+  conf, _, err := GetOauthConnectionDescription(authConnectorData["name"].(string), d.cruds["oauth_connect"])
+  CheckErr(err, "Failed to get oauth.conf from authenticator name")
 
   // Redirect user to consent page to ask for permission
   // for the scopes specified above.
