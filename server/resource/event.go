@@ -166,6 +166,10 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
             CheckErr(err, "failed to update access token")
           }
 
+          if err != nil {
+            return results, err
+          }
+
           //client := oauthDesc.Client(ctx, token)
 
           exchangeExecution := NewExchangeExecution(exchange, token, oauthDesc)

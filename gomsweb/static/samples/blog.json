@@ -168,7 +168,7 @@
   ],
   "exchanges": [
     {
-      "name": "User to excel sync",
+      "name": "Blog to excel sheet sync",
       "sourceAttributes": {
         "name": "blog"
       },
@@ -189,24 +189,6 @@
       ],
       "options": {
         "hasHeader": true
-      }
-    }
-  ],
-  "exchangeDescriptions": [
-    {
-      "name": "gsheet-append",
-      "method": "POST",
-      "url": "$sheetUrl",
-      "headers": {
-        "Accept": "application/json"
-      },
-      "body": {
-        "range": "A",
-        "majorDimension": "",
-        "values": "!Object.keys(subject)"
-      },
-      "queryParams": {
-        "valueInputOption": "RAW"
       }
     }
   ]
