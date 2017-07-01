@@ -20,3 +20,4 @@ temp.*gocms.json
 docker_dir/
 test.db
 npm-debug.log
+dist
