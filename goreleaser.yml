@@ -10,7 +10,7 @@ build:
 
   # Custom build tags.
   # Default is empty
-  flags: -tags dev  -linkmode external
+  flags: -tags dev -linkmode external
 
   # Custom ldflags template.
   # This is parsed with Golang template engine and the following variables
@@ -21,7 +21,7 @@ build:
   # - Version (Tag with the `v` prefix stripped)
   # The default is `-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}`
   # Date format is `2006-01-02_15:04:05`
-  ldflags: -s -w -X main.build={{.Version}}
+#  ldflags: -s -w -X main.build={{.Version}}
 
   # Custom environment variables to be set durign the builds.
   # Default is empty
