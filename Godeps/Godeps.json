@@ -12,6 +12,14 @@
 			"Rev": "c60d02f3cdeb4bf91d4810e9e505800cad03ce9f"
 		},
 		{
+			"ImportPath": "github.com/GeertJohan/go.rice",
+			"Rev": "c02ca9a983da5807ddf7d796784928f5be4afd09"
+		},
+		{
+			"ImportPath": "github.com/GeertJohan/go.rice/embedded",
+			"Rev": "c02ca9a983da5807ddf7d796784928f5be4afd09"
+		},
+		{
 			"ImportPath": "github.com/ahl5esoft/golang-underscore",
 			"Rev": "4c4738d8de61796a6f759d2813f4ec3ae97baf89"
 		},
@@ -49,6 +57,10 @@
 		{
 			"ImportPath": "github.com/boombuler/barcode/utils",
 			"Rev": "56ef0af91246fb5279df4f87bc3daf1bf7cb9e89"
+		},
+		{
+			"ImportPath": "github.com/daaku/go.zipexe",
+			"Rev": "a5fe2436ffcb3236e175e5149162b41cd28bd27d"
 		},
 		{
 			"ImportPath": "github.com/dgrijalva/jwt-go",
@@ -131,6 +143,10 @@
 			"ImportPath": "github.com/julienschmidt/httprouter",
 			"Comment": "v1.1-41-g8a45e95",
 			"Rev": "8a45e95fc75cb77048068a62daed98cc22fdac7c"
+		},
+		{
+			"ImportPath": "github.com/kardianos/osext",
+			"Rev": "ae77be60afb1dcacde03767a8c37337fad28ac14"
 		},
 		{
 			"ImportPath": "github.com/lann/builder",
