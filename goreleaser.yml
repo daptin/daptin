@@ -33,7 +33,6 @@ build:
   # Defaults are darwin and linux
   goos:
     - freebsd
-    - windows
 
   # GOARCH to build in.
   # For more info refer to https://golang.org/doc/install/source#environment
