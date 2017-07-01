@@ -43,9 +43,9 @@ build:
   # GOARM to build in when GOARCH is arm.
   # For more info refer to https://golang.org/doc/install/source#environment
   # Defaults are 6
-  goarm:
-    - 6
-    - 7
+#  goarm:
+#    - 6
+#    - 7
 
   # List of combinations of GOOS + GOARCH + GOARM to ignore.
   # Default is empty.
