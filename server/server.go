@@ -28,6 +28,7 @@ import (
   uuid2 "github.com/satori/go.uuid"
   "gopkg.in/Masterminds/squirrel.v1"
   "strings"
+  "github.com/GeertJohan/go.rice"
 )
 
 var cruds = make(map[string]*resource.DbResource)
@@ -158,10 +159,19 @@ func Main() {
   r := gin.Default()
   r.Use(CorsMiddlewareFunc)
 
-  r.StaticFS("/static", http.Dir("./gomsweb/dist/static"))
-  r.StaticFile("", "./gomsweb/dist/index.html")
-  r.StaticFile("/favicon.ico", "./gomsweb/dist/static/favicon.ico")
+  //r.StaticFS("/static", http.Dir("./gomsweb/dist/static"))
+  boxStatic := rice.MustFindBox("../gomsweb/dist/static").HTTPBox()
+  boxRoot := rice.MustFindBox("../gomsweb/dist").HTTPBox()
 
+  //boxStatic := rice.MustFindBox("./gomsweb/dist/static").HTTPBox()
+  r.StaticFS("/static", boxStatic)
+  //r.StaticFile("", "./gomsweb/dist/index.html")
+
+  r.GET("/favicon.ico", func(c *gin.Context) {
+    file := boxRoot.MustBytes("index.html")
+    _, err := c.Writer.Write(file)
+    resource.CheckErr(err, "Failed to write favico")
+  })
   configStore, err := resource.NewConfigStore(db)
   if err != nil {
     log.Errorf("Failed to create a config store: %v", err)
@@ -220,7 +230,9 @@ func Main() {
   r.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
 
   r.NoRoute(func(c *gin.Context) {
-    c.File("./gomsweb/dist/index.html")
+    file := boxRoot.MustBytes("index.html")
+    _, err := c.Writer.Write(file)
+    resource.CheckErr(err, "Failed to write index html")
   })
 
   r.Run(fmt.Sprintf(":%v", *port))
