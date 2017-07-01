@@ -26,20 +26,20 @@ var restExchanges = []RestExchange{
   {
 
     Name:   "gsheet-append",
-    Method: "POST",
-    Url:    "$sheetUrl",
-    Headers: map[string]interface{}{
-      "Accept": "application/json",
-    },
-    Body: map[string]interface{}{
-      "values": []string{
-        "!Object.keys(subject).sort().map(function(e){return subject[e];})",
+      Method: "POST",
+      Url:    "$sheetUrl",
+      Headers: map[string]interface{}{
+        "Accept": "application/json",
       },
-    },
-    QueryParams: map[string]interface{}{
-      "valueInputOption": "RAW",
-      "key":              "$appKey",
-    },
+      Body: map[string]interface{}{
+        "values": []string{
+          "!Object.keys(subject).sort().map(function(e){return subject[e];})",
+        },
+      },
+      QueryParams: map[string]interface{}{
+        "valueInputOption": "RAW",
+        "key":              "$appKey",
+      },
 
   },
 }
