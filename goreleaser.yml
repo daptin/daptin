@@ -25,8 +25,8 @@ build:
 
   # Custom environment variables to be set durign the builds.
   # Default is empty
-  env:
-   - CGO_ENABLED=0
+#  env:
+#   - CGO_ENABLED=0
 
   # GOOS list to build in.
   # For more info refer to https://golang.org/doc/install/source#environment
