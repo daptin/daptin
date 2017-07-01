@@ -32,7 +32,7 @@ build:
   # For more info refer to https://golang.org/doc/install/source#environment
   # Defaults are darwin and linux
   goos:
-    - freebsd
+    - linux
 
   # GOARCH to build in.
   # For more info refer to https://golang.org/doc/install/source#environment
