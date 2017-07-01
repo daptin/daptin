@@ -19,3 +19,4 @@ temp.*gocms.json
 *.iml
 docker_dir/
 test.db
+npm-debug.log
