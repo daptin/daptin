@@ -61,4 +61,12 @@ build:
   # Default is both hooks empty.
   hooks:
     pre: rice embed-go
-    post: ./script.sh
+    post: ./clean.sh
+archive:
+  format: tar.gz
+  replacements:
+    amd64: 64-bit
+    darwin: macOS
+    linux: Tux
+  files:
+    - main
