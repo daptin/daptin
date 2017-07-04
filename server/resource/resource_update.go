@@ -10,6 +10,7 @@ import (
   "gopkg.in/Masterminds/squirrel.v1"
   "net/http"
   "time"
+  "fmt"
 )
 
 // Update an object
@@ -92,6 +93,36 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
         return nil, err
       }
       val = uId
+    }
+    var err error
+
+    if col.ColumnType == "datetime" {
+
+      // 2017-07-13T18:30:00.000Z
+      val, err = time.Parse("2006-01-02T15:04:05.999Z", val.(string))
+      CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
+    }
+
+    if col.ColumnType == "date" {
+
+      // 2017-07-13T18:30:00.000Z
+      val1, err := time.Parse("2006-01-02T15:04:05.999Z", val.(string))
+      CheckErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
+
+      if err != nil {
+        val, err = time.Parse("2006-01-02", val.(string))
+        CheckErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
+      } else {
+        val = val1
+      }
+
+    }
+
+    if col.ColumnType == "time" {
+
+      // 2017-07-13T18:30:00.000Z
+      val, err = time.Parse("15:04:05", val.(string))
+      CheckErr(err, fmt.Sprintf("Failed to parse string as time [%v]", val))
     }
 
     if ok {
@@ -198,15 +229,18 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
         log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
 
         updateForeignRow := make(map[string]interface{})
-        valMap := val.(map[string]interface{})
-        updateForeignRow[rel.GetSubjectName()] = updatedResource["reference_id"].(string)
-        updateForeignRow["reference_id"] = valMap[rel.GetObjectName()]
+        valMapList := val.([]map[string]interface{})
 
-        model := api2go.NewApi2GoModelWithData(rel.GetObject(), nil, auth.DEFAULT_PERMISSION, nil, updateForeignRow)
+        for _, valMap := range valMapList {
+          updateForeignRow[rel.GetObjectName()] = updatedResource["reference_id"].(string)
+          updateForeignRow["reference_id"] = valMap[rel.GetSubjectName()]
 
-        _, err := dr.cruds[rel.GetObject()].Update(model, req)
-        if err != nil {
-          log.Errorf("Failed to update [%v][%v]: %V", rel.GetObject(), )
+          model := api2go.NewApi2GoModelWithData(rel.GetObject(), nil, auth.DEFAULT_PERMISSION, nil, updateForeignRow)
+
+          _, err := dr.cruds[rel.GetSubject()].Update(model, req)
+          if err != nil {
+            log.Errorf("Failed to update [%v][%v]: %V", rel.GetObject(), )
+          }
         }
 
         //relUpdateQuery, vars, err = squirrel.Update(rel.GetSubject()).
@@ -225,15 +259,18 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
         log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
 
         updateForeignRow := make(map[string]interface{})
-        valMap := val.(map[string]interface{})
-        updateForeignRow[rel.GetSubjectName()] = updatedResource["reference_id"].(string)
-        updateForeignRow["reference_id"] = valMap[rel.GetObjectName()]
+        valMapList := val.([]map[string]interface{})
 
-        model := api2go.NewApi2GoModelWithData(rel.GetObject(), nil, auth.DEFAULT_PERMISSION, nil, updateForeignRow)
+        for _, valMap := range valMapList {
+          updateForeignRow[rel.GetSubjectName()] = updatedResource["reference_id"].(string)
+          updateForeignRow["reference_id"] = valMap[rel.GetObjectName()]
 
-        _, err := dr.cruds[rel.GetObject()].Update(model, req)
-        if err != nil {
-          log.Errorf("Failed to update [%v][%v]: %V", rel.GetObject(), )
+          model := api2go.NewApi2GoModelWithData(rel.GetObject(), nil, auth.DEFAULT_PERMISSION, nil, updateForeignRow)
+
+          _, err := dr.cruds[rel.GetObject()].Update(model, req)
+          if err != nil {
+            log.Errorf("Failed to update [%v][%v]: %V", rel.GetObject(), )
+          }
         }
 
         break

@@ -17,7 +17,6 @@ import ActionView from "../components/actionview/ActionView.vue";
 
 import locale from 'element-ui/lib/locale/lang/en'
 
-
 import "element-ui/lib/theme-default/index.css";
 import "tether-shepherd/dist/css/shepherd-theme-dark.css";
 import "../components/vuetable/vuetable.css";
@@ -25,11 +24,13 @@ import "../components/vuetable/vuetable.css";
 
 // Register my awesome field
 import fileUpload from "../components/fields/FileUpload.vue";
+import jsonEditor from "../components/fields/FileJsonEditor.vue";
 Vue.component("fieldFileUpload", fileUpload);
 Vue.component("fieldSelectOneOrMore", SelectOneOrMore);
+Vue.component("fieldJsonEditor", jsonEditor);
 
 
-Vue.use(ElementUI, { locale });
+Vue.use(ElementUI, {locale});
 Vue.use(Vuetable);
 Vue.use(Vuecard);
 Vue.use(VuetablePagination);

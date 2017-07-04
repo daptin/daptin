@@ -7,10 +7,10 @@
       </div>
     </div>
     <div class="box-body">
-      <div :class="{'col-md-6': relations.length > 0, 'col-md-12': relations.length == 0 }">
+      <div :class="{'col-md-8': relations.length > 0, 'col-md-12': relations.length == 0 }">
         <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
       </div>
-      <div class="col-md-6" v-if="relations.length > 0">
+      <div class="col-md-4" v-if="relations.length > 0">
 
         <div class="row">
           <div class="col-md-12" v-for="item in relations">
@@ -119,11 +119,33 @@
           case "password":
             inputType = "password";
             break;
+          case "measurement":
+            inputType = "number";
+            break;
+          case "date":
+            inputType = "date";
+            break;
+          case "time":
+            inputType = "time";
+            break;
+          case "datetime":
+            inputType = "datetime";
+            break;
           case "content":
             inputType = "";
             break;
           case "json":
             inputType = "";
+            console.log("get type for json", columnMeta)
+            if (columnMeta.ColumnName == "schema_json") {
+              return "world"
+            } else if (columnMeta.ColumnName == "options") {
+              return "data_exchange_options"
+            } else if (columnMeta.ColumnName == "attributes") {
+              return "data_exchange_attributes"
+            } else {
+              return ""
+            }
             break;
           default:
             inputType = "text";
@@ -148,11 +170,14 @@
           case "entity":
             inputType = "selectOneOrMore";
             break;
+          case "measurement":
+            inputType = "input";
+            break;
           case "content":
             inputType = "textArea";
             break;
           case "json":
-            inputType = "textArea";
+            inputType = "jsonEditor";
             break;
           default:
             inputType = "input";
@@ -202,6 +227,7 @@
           "deleted_at",
           "status",
           "user_id",
+          "permission",
           "usergroup_id"
         ];
 
@@ -244,12 +270,20 @@
             that.model[columnMeta.ColumnName] = that.model[columnMeta.ColumnName] === "1" ? true : false;
           }
 
+          if (columnMeta.ColumnType == "date") {
+            var parseTime = Date.parse(that.model[columnMeta.ColumnName])
+            if (!isNaN(parseTime)) {
+              console.log("parsed time is not nan", parseTime)
+              that.model[columnMeta.ColumnName] = new Date(parseTime)
+            }
+          }
+
 
           let inputType = that.getInputType(columnMeta);
           const textInputType = that.getTextInputType(columnMeta);
 
 
-          console.log("Add column model ", columnName, columnMeta);
+          console.log("Add column model ", columnName, columnMeta, that.model[columnMeta.ColumnName]);
 
           var resVal = {
             type: inputType,
@@ -282,7 +316,7 @@
             } else {
               resVal.value = that.model[resVal.ColumnName];
               resVal.multiple = false;
-              foreignKeys.push(resVal);
+//              foreignKeys.push(resVal);
             }
             return null;
           }

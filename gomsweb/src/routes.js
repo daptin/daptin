@@ -58,6 +58,11 @@ const routes = [
     component: DashView,
     children: [
       {
+        path: '',
+        name: 'Dashboard',
+        component: DashboardView,
+      },
+      {
         path: '/act/:tablename/:actionname',
         name: 'Action',
         component: ActionComponent
@@ -69,6 +74,11 @@ const routes = [
           {
             path: ':tablename',
             name: 'Entity',
+            component: EntityView
+          },
+          {
+            path: ':tablename/new',
+            name: 'NewEntity',
             component: EntityView
           },
           {

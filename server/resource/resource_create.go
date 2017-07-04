@@ -10,6 +10,7 @@ import (
   //"strconv"
   "github.com/artpar/goms/server/auth"
   "time"
+  "fmt"
 )
 
 // Create a new object. Newly created object/struct must be in Responder.
@@ -97,9 +98,9 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
       }
       val = uId
     }
+    var err error
 
     if col.ColumnType == "password" {
-      var err error
       val, err = BcryptHashString(val.(string))
       if err != nil {
         log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
@@ -107,8 +108,28 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
       }
     }
 
+    if col.ColumnType == "datetime" {
+
+      // 2017-07-13T18:30:00.000Z
+      val, err = time.Parse("2006-01-02T15:04:05.999Z", val.(string))
+      CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
+    }
+
+    if col.ColumnType == "date" {
+
+      // 2017-07-13T18:30:00.000Z
+      val, err = time.Parse("2006-01-02T15:04:05.999Z", val.(string))
+      CheckErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
+    }
+
+    if col.ColumnType == "time" {
+
+      // 2017-07-13T18:30:00.000Z
+      val, err = time.Parse("15:04:05", val.(string))
+      CheckErr(err, fmt.Sprintf("Failed to parse string as time [%v]", val))
+    }
+
     if col.ColumnType == "encrypted" {
-      var err error
 
       secret, err := dr.configStore.GetConfigValueFor("encryption.secret", "backend")
       if err != nil {
@@ -184,7 +205,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
   }
   //
 
-  log.Infof("Crated entry: %v", createdResource)
+  log.Infof("Created entry: %v", createdResource)
 
   userGroupId := dr.GetUserGroupIdByUserId(userId)
 
@@ -199,6 +220,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
     log.Infof("Query: %v", belogsToUserGroupSql)
     _, err = dr.db.Exec(belogsToUserGroupSql, q...)
+    createdResource["__type"] = dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id"
 
     if err != nil {
       log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
@@ -212,7 +234,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
     Insert("user_user_id_has_usergroup_usergroup_id").
         Columns("user_id", "usergroup_id", "reference_id", "permission").
         Values(userId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
-
+    createdResource["__type"] = "user_user_id_has_usergroup_usergroup_id"
     log.Infof("Query: %v", belogsToUserGroupSql)
     _, err = dr.db.Exec(belogsToUserGroupSql, q...)
 

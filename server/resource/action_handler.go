@@ -433,7 +433,7 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 
   } else if kindOfOutcome == reflect.Array || kindOfOutcome == reflect.Slice {
 
-    outcomeArray, ok  := outcomeAttributes.([]interface{})
+    outcomeArray, ok := outcomeAttributes.([]interface{})
 
     if !ok {
       outcomeArray = make([]interface{}, 0)
@@ -493,7 +493,11 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) inter
       fieldPart := fieldParts[i]
       finalValue = finalValue.(map[string]interface{})[fieldPart]
     }
-    finalValue = finalValue.(map[string]interface{})[fieldParts[len(fieldParts)-1]]
+    if finalValue == nil {
+      return nil
+    }
+    castMap := finalValue.(map[string]interface{})
+    finalValue = castMap[fieldParts[len(fieldParts)-1]]
     val = finalValue
   } else if fieldString[0] == '!' {
 
