@@ -93,7 +93,7 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 
 }
 
-func Main() {
+func Main(boxRoot, boxStatic *rice.HTTPBox) {
 
   var port = flag.String("port", "6336", "GoMS port")
   var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
@@ -160,9 +160,6 @@ func Main() {
   r.Use(CorsMiddlewareFunc)
 
   //r.StaticFS("/static", http.Dir("./gomsweb/dist/static"))
-  boxStatic := rice.MustFindBox("../gomsweb/dist/static").HTTPBox()
-  boxRoot := rice.MustFindBox("../gomsweb/dist").HTTPBox()
-
   //boxStatic := rice.MustFindBox("./gomsweb/dist/static").HTTPBox()
   r.StaticFS("/static", boxStatic)
   //r.StaticFile("", "./gomsweb/dist/index.html")
