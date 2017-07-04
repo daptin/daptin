@@ -8,7 +8,9 @@ cache:
 services:
   - docker
 
-script: go get github.com/artpar/goms && go build -o docker_dir/goms && cp -Rf gomsweb/dist docker_dir/static && cp Dockerfile docker_dir/Dockerfile
+script: go get github.com/GeertJohan/go.rice
+ && go get github.com/GeertJohan/go.rice/rice
+ && go get github.com/artpar/goms && rice embed-go && go build -o docker_dir/goms && cp -Rf gomsweb/dist docker_dir/static && cp Dockerfile docker_dir/Dockerfile
 
 
 after_success:
