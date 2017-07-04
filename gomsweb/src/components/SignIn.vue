@@ -7,7 +7,7 @@
         </div>
         <div class="col-md-4 col-sm-offset-4">
           <!-- login form -->
-          <action-view :hide-cancel="true" v-if="signInAction" :actionManager="actionManager" :action="signInAction"></action-view>
+          <action-view :model="{}" :hide-cancel="true" v-if="signInAction" :actionManager="actionManager" :action="signInAction"></action-view>
 
           <!-- errors -->
           <div v-if=response class="text-red"><p>{{response}}</p></div>

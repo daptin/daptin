@@ -8,7 +8,7 @@
 
         <div class="col-md-4 col-sm-offset-4">
           <!-- login form -->
-          <action-view @action-complete="signupComplete" :hide-cancel="true" v-if="signInAction"
+          <action-view @action-complete="signupComplete" :model="{}" :hide-cancel="true" v-if="signInAction"
                        :actionManager="actionManager"
                        :action="signInAction"></action-view>
 

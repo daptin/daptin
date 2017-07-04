@@ -66,12 +66,12 @@ const WorldManager = function () {
     }).then(function (r) {
       if (r.status == 200) {
         var r = r.data;
-        // console.log("Loaded Model :", typeName)
+        // console.log("Loaded Model inside :", typeName)
         if (r.Actions.length > 0) {
-          console.log("Register actions", r.Actions)
+          console.log("Register actions", typeName, r.Actions,)
           actionManager.addAllActions(r.Actions);
-          that.stateMachines[typeName] = r.StateMachines
         }
+        that.stateMachines[typeName] = r.StateMachines;
         that.columnKeysCache[typeName] = r;
         callback(r);
       } else {
@@ -133,6 +133,13 @@ const WorldManager = function () {
   that.getWorlds = function () {
     console.log("GET WORLDS", that.worlds)
     return that.worlds;
+  };
+  that.getWorldByName = function (name) {
+    return that.worlds.filter(function (e) {
+      return e.table_name == name;
+    })[0];
+    // console.log("GET WORLDS", that.worlds)
+    // return that.worlds;
   };
 
   that.systemActions = [];
