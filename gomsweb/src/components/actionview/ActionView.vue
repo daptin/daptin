@@ -1,12 +1,15 @@
 <template>
 
   <div class="box" v-if="action">
-    <div v-if="!hideTitle" class="box-head">
+    <div v-if="!hideTitle" class="box-header">
       <div class="box-title">
-        <h3 class="text-center"> {{action.label}}</h3>
+        <h1> {{action.label}}</h1>
       </div>
     </div>
     <div class="box-body">
+      <div class="col-md-12" v-if="!finalModel && !action.instanceOptional">
+        <select-one-or-more :value="finalModel" :schema="modelSchema" @save="setModel"></select-one-or-more>
+      </div>
       <div class="col-md-12">
         <model-form :hide-title="true" :hide-cancel="hideCancel" v-if="meta != null" @save="doAction(data)"
                     @cancel="cancel()" :meta="meta"
@@ -20,6 +23,8 @@
 
 
   import actionManager from '../../plugins/actionmanager'
+  import jsonApi from '../../plugins/jsonapi'
+  import {Notification} from "element-ui"
 
   export default {
     props: {
@@ -41,7 +46,7 @@
         type: Object,
         required: false,
         default: function () {
-          return {}
+          return null
         }
       },
       actionManager: {
@@ -53,17 +58,31 @@
       return {
         meta: null,
         data: {},
+        modelSchema: {},
+        finalModel: null,
       }
     },
     created () {
     },
     computed: {},
     methods: {
+      setModel (m1){
+        console.log("set model", m1)
+        this.finalModel = m1;
+      },
       doAction(actionData){
         var that = this;
-        console.log("perform action", actionData, this.model);
-        if (this.model && Object.keys(this.model).indexOf("id") > -1) {
-          actionData[this.action.onType + "_id"] = this.model["id"]
+
+        if (!this.finalModel && !this.action.instanceOptional) {
+          Notification.error({
+            title: "Error",
+            message: "Please select a " + this.action.onType,
+          });
+          return
+        }
+        console.log("perform action", actionData, this.finalModel);
+        if (this.finalModel && Object.keys(this.finalModel).indexOf("id") > -1) {
+          actionData[this.action.onType + "_id"] = this.finalModel["id"]
         } else {
         }
         that.actionManager.doAction(that.action.onType, that.action.name, actionData).then(function () {
@@ -83,8 +102,17 @@
 
 
         var that = this;
-        var modelName = "_actionmodel_" + that.action.name;
         console.log("render action ", that.action, " on ", that.model);
+        that.finalModel = that.model;
+        var worldName = that.action.onType;
+        var worldSchema = jsonApi.modelFor(worldName);
+
+        that.modelSchema = {
+          inputType: worldName,
+          value: null,
+          multiple: false,
+          name: that.action.onType,
+        };
 
         var meta = {};
 
@@ -92,12 +120,12 @@
           meta[this.action.fields[i].ColumnName] = that.action.fields[i]
         }
 
-        if (this.action.fields && this.action.fields.length == 0) {
+        if (this.action.fields && this.action.fields.length == 0 && this.action.instanceOptional) {
 
           var payload = {};
 
-          if (this.model && this.model["id"]) {
-            payload[this.action.onType + "_id"] = this.model["id"];
+          if (this.finalModel && this.finalModel["id"]) {
+            payload[this.action.onType + "_id"] = this.finalModel["id"];
           }
 
           this.actionManager.doAction(this.action.onType, this.action.name, payload).then(function () {

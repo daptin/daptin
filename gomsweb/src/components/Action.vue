@@ -1,16 +1,10 @@
 <template>
-  <div class="ui three column grid">
+  <div class="row">
 
-    <div class="column">
 
-    </div>
 
-    <div class="column">
-      <b class="header" style="font-size: 36px;" v-if="action">
-        {{action.label}}
-      </b>
-
-      <action-view ref="systemActionView" v-if="action" :hide-title="true" @cancel="cancel"
+    <div class="col-md-12">
+      <action-view ref="systemActionView" v-if="action" :hide-title="false" @cancel="cancel"
                    :action-manager="actionManager"
                    :action="action"
                    :json-api="jsonApi"></action-view>
