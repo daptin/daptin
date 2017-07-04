@@ -13,7 +13,8 @@
           </button>
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'card'"><i
             class="fa  fa-2x fa-th-large fuchsia"></i></button>
-          <button class="btn btn-box-tool" @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i></button>
+          <router-link v-if="selectedTable" :to="{name: 'NewEntity', params: {tablename: selectedTable}}" class="btn btn-box-tool"
+                       @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i></router-link>
           <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh orange"></i>
           </button>
           <button class="btn btn-box-tool" @click.prevent="doAction(addExchangeAction)"><i
@@ -34,7 +35,7 @@
 
       <table-view @newRow="newRow()" @editRow="editRow"
                   :finder="finder" ref="tableview1" :view-mode="viewMode" :json-api="jsonApi"
-                  :json-api-model-name="selectedTable" v-if="selectedTable"></table-view>
+                  :json-api-model-name="selectedTable" v-if="selectedTable && !showAddEdit"></table-view>
     </div>
 
 
@@ -233,17 +234,21 @@
         this.$parent.logout();
       }
     },
-
     mounted() {
       var that = this;
 
-      console.log("Enter tablename: ", that);
+      console.log("Enter tablename: ", that, that.$route);
 
       that.actionManager = actionManager;
       const worldActions = actionManager.getActions("world");
 
 
-      that.addExchangeAction = actionManager.getActionModel("world", "add-exchange")
+      that.addExchangeAction = actionManager.getActionModel("world", "add-exchange");
+
+      if (that.$route.name == "NewEntity") {
+        this.rowBeingEdited = {};
+        that.showAddEdit = true;
+      }
 
       let tableName = that.$route.params.tablename;
       let subTableName = that.$route.params.subTable;
@@ -321,6 +326,22 @@
         console.log("TableName SubTable changed", arguments);
         this.$store.commit("SET_SELECTED_SUB_TABLE", to);
         this.setTable();
+      },
+      '$route.name': function () {
+        if (this.$route.name == "NewEntity") {
+          this.showAddEdit = true;
+          this.rowBeingEdited = {};
+        } else {
+          this.showAddEdit = false;
+        }
+      },
+      'showAddEdit': function (newVal) {
+        if (!newVal) {
+          if (this.$route.name == "NewEntity") {
+            console.log("triggr back")
+            window.history.back();
+          }
+        }
       }
     }
   }

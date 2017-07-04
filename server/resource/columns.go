@@ -69,15 +69,17 @@ var StandardRelations = []api2go.TableRelation{
   api2go.NewTableRelation("world", "has_many", "smd"),
   api2go.NewTableRelation("oauth_token", "has_one", "oauth_connect"),
   api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
+  api2go.NewTableRelation("timeline", "belongs_to", "world"),
 }
 
 var SystemSmds = []LoopbookFsmDescription{}
 var SystemExchanges = []ExchangeContract{}
 var SystemActions = []Action{
   {
-    Name:   "upload_system_schema",
-    Label:  "Upload features",
-    OnType: "world",
+    Name:             "upload_system_schema",
+    Label:            "Upload features",
+    OnType:           "world",
+    InstanceOptional: true,
     InFields: []api2go.ColumnInfo{
       {
         Name:       "Schema JSON file",
@@ -97,10 +99,11 @@ var SystemActions = []Action{
     },
   },
   {
-    Name:     "download_system_schema",
-    Label:    "Download system schema",
-    OnType:   "world",
-    InFields: []api2go.ColumnInfo{},
+    Name:             "download_system_schema",
+    Label:            "Download system schema",
+    OnType:           "world",
+    InstanceOptional: true,
+    InFields:         []api2go.ColumnInfo{},
     OutFields: []Outcome{
       {
         Type:       "system_json_schema_download",
@@ -110,10 +113,11 @@ var SystemActions = []Action{
     },
   },
   {
-    Name:     "invoke_become_admin",
-    Label:    "Become GoMS admin",
-    OnType:   "world",
-    InFields: []api2go.ColumnInfo{},
+    Name:             "invoke_become_admin",
+    Label:            "Become GoMS admin",
+    InstanceOptional: true,
+    OnType:           "world",
+    InFields:         []api2go.ColumnInfo{},
     OutFields: []Outcome{
       {
         Type:   "become_admin",
@@ -125,9 +129,10 @@ var SystemActions = []Action{
     },
   },
   {
-    Name:   "signup",
-    Label:  "Sign up on Goms",
-    OnType: "user",
+    Name:             "signup",
+    Label:            "Sign up on Goms",
+    InstanceOptional: true,
+    OnType:           "user",
     InFields: []api2go.ColumnInfo{
       {
         Name:       "name",
@@ -185,9 +190,10 @@ var SystemActions = []Action{
     },
   },
   {
-    Name:   "signin",
-    Label:  "Sign in to Goms",
-    OnType: "user",
+    Name:             "signin",
+    Label:            "Sign in to Goms",
+    InstanceOptional: true,
+    OnType:           "user",
     InFields: []api2go.ColumnInfo{
       {
         Name:       "email",
@@ -231,9 +237,10 @@ var SystemActions = []Action{
     },
   },
   {
-    Name:   "oauth.login.response",
-    Label:  "",
-    OnType: "oauth_token",
+    Name:             "oauth.login.response",
+    Label:            "",
+    InstanceOptional: true,
+    OnType:           "oauth_token",
     InFields: []api2go.ColumnInfo{
       {
         Name:       "code",
@@ -265,9 +272,10 @@ var SystemActions = []Action{
     },
   },
   {
-    Name:   "add.exchange",
-    Label:  "Add new data exchange",
-    OnType: "oauth_token",
+    Name:             "add.exchange",
+    Label:            "Add new data exchange",
+    OnType:           "data_exchange",
+    InstanceOptional: true,
     InFields: []api2go.ColumnInfo{
       {
         Name:       "name",
@@ -289,6 +297,33 @@ var SystemActions = []Action{
 }
 
 var StandardTables = []TableInfo{
+  {
+    TableName: "timeline",
+    IsHidden:  true,
+    Columns: []api2go.ColumnInfo{
+      {
+        Name:       "event_type",
+        ColumnName: "event_type",
+        ColumnType: "label",
+        DataType:   "varchar(50)",
+        IsNullable: false,
+      },
+      {
+        Name:       "title",
+        ColumnName: "title",
+        ColumnType: "label",
+        DataType:   "varchar(50)",
+        IsNullable: false,
+      },
+      {
+        Name:       "payload",
+        ColumnName: "payload",
+        ColumnType: "content",
+        DataType:   "text",
+        IsNullable: true,
+      },
+    },
+  },
   {
     TableName: "world",
     IsHidden:  true,
@@ -521,6 +556,13 @@ var StandardTables = []TableInfo{
         IsIndexed:  true,
         DataType:   "varchar(100)",
         ColumnType: "label",
+      },
+      {
+        Name:       "instance_optional",
+        ColumnName: "instance_optional",
+        IsIndexed:  false,
+        DataType:   "bool",
+        ColumnType: "truefalse",
       },
       {
         Name:       "in_fields",
