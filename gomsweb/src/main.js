@@ -20,7 +20,48 @@ import AppView from './components/App.vue'
 
 // Import Install and register helper items
 
-Vue.filter('chooseTitle', function (obj) {
+window.stringToColor = function (str, prc) {
+  // Check for optional lightness/darkness
+  var prc = typeof prc === 'number' ? prc : -10;
+
+  // Generate a Hash for the String
+  var hash = function (word) {
+    var h = 0;
+    for (var i = 0; i < word.length; i++) {
+      h = word.charCodeAt(i) + ((h << 5) - h);
+    }
+    return h;
+  };
+
+  // Change the darkness or lightness
+  var shade = function (color, prc) {
+    var num = parseInt(color, 16),
+      amt = Math.round(2.55 * prc),
+      R = (num >> 16) + amt,
+      G = (num >> 8 & 0x00FF) + amt,
+      B = (num & 0x0000FF) + amt;
+    return (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+    (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+    (B < 255 ? B < 1 ? 0 : B : 255))
+      .toString(16)
+      .slice(1);
+  };
+
+  // Convert init to an RGBA
+  var int_to_rgba = function (i) {
+    var color = ((i >> 24) & 0xFF).toString(16) +
+      ((i >> 16) & 0xFF).toString(16) +
+      ((i >> 8) & 0xFF).toString(16) +
+      (i & 0xFF).toString(16);
+    return color;
+  };
+
+  return shade(int_to_rgba(hash(str)), prc);
+
+}
+
+
+window.chooseTitle = function (obj) {
 
   if (!obj) {
     return "_"
@@ -28,6 +69,8 @@ Vue.filter('chooseTitle', function (obj) {
 
   var keys = Object.keys(obj);
   // console.log("choose title for ", obj);
+
+
   for (var i = 0; i < keys.length; i++) {
     if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
       return obj[keys[i]];
@@ -48,14 +91,53 @@ Vue.filter('chooseTitle', function (obj) {
     }
   }
 
+  console.log("choose totle for ", obj)
+  for (var i = 0; i < keys.length; i++) {
+    if (keys[i].indexOf("description") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
+      if (obj[keys[i]].length > 30) {
+        return obj[keys[i]].substring(0, 30) + " ...";
+      } else {
+        return obj[keys[i]]
+      }
+    }
+  }
+
+  for (var i = 0; i < keys.length; i++) {
+
+    if (!obj[keys[i]]) {
+      continue;
+    }
+    if (obj[keys[i]] instanceof Array) {
+      continue;
+    }
+    if (!(obj[keys[i]] instanceof Object)) {
+      continue;
+    }
+
+    if (!obj[keys[i]]) {
+      return ""
+    }
+
+    if (obj[keys[i]] == obj[keys[i]]) {
+      continue
+    }
+
+    var childTitle = chooseTitle(obj[keys[i]]);
+    return titleCase(obj["type"]) + " for " + childTitle;
+
+
+    return obj[keys[i]];
+  }
+
   if (obj["id"]) {
     return obj["id"].toUpperCase();
   } else {
     return "#un-named";
   }
 
-});
-Vue.filter('titleCase', function (str) {
+}
+
+window.titleCase = function (str) {
   // console.log("TitleCase  : [" + str + "]", str)
   if (!str || str.length < 2) {
     return str;
@@ -64,7 +146,10 @@ Vue.filter('titleCase', function (str) {
     .map(w => (w[0] ? w[0].toUpperCase() : "") + w.substr(1).toLowerCase()).join(' ');
   // console.log("titled: ", s);
   return s
-});
+}
+
+Vue.filter('chooseTitle', chooseTitle);
+Vue.filter('titleCase', titleCase);
 
 Vue.use(VueFilter);
 Vue.use(VueRouter);

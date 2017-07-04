@@ -24,9 +24,9 @@ type ColumnMapping []ColumnMap
 
 type ExchangeContract struct {
   Name             string
-  SourceAttributes map[string]interface{} `db:"source_name",json:"source_name"`
+  SourceAttributes map[string]interface{} `db:"source_attributes",json:"source_attributes"`
   SourceType       string `db:"source_type",json:"source_type"`
-  TargetAttributes map[string]interface{} `db:"target_name",json:"target_name"`
+  TargetAttributes map[string]interface{} `db:"target_attributes",json:"target_attributes"`
   TargetType       string `db:"target_type",json:"target_type"`
   Attributes       []ColumnMap `db:"attributes",json:"attributes"`
   Options          map[string]interface{}

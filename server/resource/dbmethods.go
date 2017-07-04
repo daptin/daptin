@@ -62,7 +62,7 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
   action := make([]Action, 0)
 
   rows, err := dr.db.Queryx("select a.action_name as name, w.table_name as ontype, a.label, in_fields as infields,"+
-      " out_fields as outfields, a.reference_id as referenceid from action a"+
+      " out_fields as outfields, a.instance_optional as instance_optional, a.reference_id as referenceid from action a"+
       " join world w on w.id = a.world_id"+
       " where w.table_name = ? "+
       " and a.deleted_at is null", typeName)
@@ -75,7 +75,8 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 
     var act Action
     var a ActionRow
-    rows.StructScan(&a)
+    err := rows.StructScan(&a)
+    CheckErr(err, "Failed to struct scan action row")
 
     if len(a.Label) < 1 {
       continue
@@ -85,6 +86,7 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
     act.Label = a.Label
     act.ReferenceId = a.ReferenceId
     act.OnType = a.OnType
+    act.InstanceOptional = a.InstanceOptional
 
     err = json.Unmarshal([]byte(a.InFields), &act.InFields)
     CheckError(err, "failed to unmarshal infields")

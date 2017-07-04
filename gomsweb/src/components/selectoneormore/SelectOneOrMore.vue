@@ -43,6 +43,10 @@
       model: {
         type: Object,
         required: false,
+      },
+      schema: {
+        type: Object,
+        required: true,
       }
     },
     data: function () {
@@ -69,31 +73,6 @@
           id: this.selectedItem.id
         })
       },
-      chooseTitle: function (obj) {
-        var keys = Object.keys(obj);
-        console.log("choose title for ", obj);
-        for (var i = 0; i < keys.length; i++) {
-          if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
-            return obj[keys[i]];
-          }
-        }
-
-
-        for (var i = 0; i < keys.length; i++) {
-          if (keys[i].indexOf("title") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
-            return obj[keys[i]];
-          }
-        }
-
-
-        for (var i = 0; i < keys.length; i++) {
-          if (keys[i].indexOf("label") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
-            return obj[keys[i]];
-          }
-        }
-        return obj["id"].toUpperCase();
-
-      },
       remoteMethod: function (query) {
         console.log("remote method called", arguments);
         var that = this;
@@ -106,7 +85,7 @@
           console.log("remote method response", data)
           delete data["links"]
           for (var i = 0; i < data.length; i++) {
-            data[i].label = that.chooseTitle(data[i])
+            data[i].label = window.chooseTitle(data[i])
             data[i].value = data[i]["id"]
           }
           console.log("final result optiopsn", data);
@@ -120,14 +99,16 @@
       that.selectedItem = that.model;
       console.log("select one or more value on mounted", that.value, that.schema.value);
       if (that.schema.multiple) {
-        that.value = [that.value];
+        if (!(that.value instanceof Array)) {
+          that.value = [that.value];
+        }
       } else {
 
       }
       console.log("start select one or more", this.model, that.meta, that.value, this.schema)
     },
     watch: {
-      'selectedItem': function(to){
+      'selectedItem': function (to) {
         console.log("value change", to);
       }
     },

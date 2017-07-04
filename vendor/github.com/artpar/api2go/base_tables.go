@@ -290,7 +290,7 @@ func (m *Api2GoModel) SetToManyReferenceIDs(name string, IDs []string) error {
 
   for _, rel := range m.relations {
     log.Infof("Check relation: %v", rel.String())
-    if rel.GetRelation() != "belongs_to" && rel.GetRelation() != "has_one" {
+    if rel.GetRelation() == "has_many" || rel.GetRelation() == "has_many_and_belongs_to_many" {
 
       if rel.GetObjectName() == name || rel.GetSubjectName() == name {
         var rows = make([]map[string]interface{}, 0)
@@ -301,13 +301,27 @@ func (m *Api2GoModel) SetToManyReferenceIDs(name string, IDs []string) error {
             row[rel.GetObjectName()] = m.Data["reference_id"]
           } else {
             row[rel.GetSubjectName()] = m.Data["reference_id"]
-
           }
           rows = append(rows, row)
         }
         m.Data[name] = rows
         return nil
       }
+    } else if rel.GetRelation() == "has_one" {
+
+      var rows = make([]map[string]interface{}, 0)
+      for _, id := range IDs {
+        row := make(map[string]interface{})
+        row[name] = id
+        if rel.GetSubjectName() == name {
+          row[rel.GetObjectName()] = m.Data["reference_id"]
+        } else {
+          row[rel.GetSubjectName()] = m.Data["reference_id"]
+        }
+        rows = append(rows, row)
+      }
+      m.Data[name] = rows
+      return nil
     }
   }
 

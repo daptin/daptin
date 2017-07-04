@@ -1,10 +1,52 @@
 <template>
   <ul class="sidebar-menu">
+    <li class="header">Dashboard </li>
+    <li class="pageLink" v-on:click="toggleMenu">
+      <router-link :to="{name: 'Dashboard', params: {}}">
+        <span class="page">Dashboard</span>
+      </router-link>
+    </li>
+
     <li class="header">Items </li>
 
-    <li class="pageLink" v-on:click="toggleMenu" v-for="w in topWorlds">
+    <li class="pageLink" v-on:click="toggleMenu" v-for="w in topWorlds"
+        v-if="w.table_name != 'user' && w.table_name != 'usergroup'">
       <router-link :class="w.table_name + '-link'" :to="{name: 'Entity', params: {tablename: w.table_name}}">
         <span class="page">{{w.table_name | titleCase}}</span>
+      </router-link>
+    </li>
+
+    <li class="header">People </li>
+    <li class="pageLink" v-on:click="toggleMenu">
+      <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'user'}}">
+        <span class="page">User</span>
+      </router-link>
+    </li>
+    <li class="pageLink" v-on:click="toggleMenu">
+      <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'usergroup'}}">
+        <span class="page">User Group</span>
+      </router-link>
+    </li>
+
+
+    <li class="header">Goms</li>
+
+    <li class="pageLink">
+      <router-link class="upload-schema"
+                   :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}">
+        <i class="fa fa-upload"></i> Update Features using JSON
+      </router-link>
+    </li>
+    <li class="pageLink">
+      <router-link class="download-schema"
+                   :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}">
+        <i class="fa fa-download"></i> Download System Schema
+      </router-link>
+    </li>
+    <li class="pageLink">
+      <router-link class="become-admin-button"
+                   :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}">
+        <i class="fa fa-graduation-cap"></i> Become Admin
       </router-link>
     </li>
 
@@ -40,35 +82,6 @@
       </router-link>
     </li>
 
-    <li class="treeview system-action-list">
-      <a href="#">
-        <i class="fa fa-folder-o"></i>
-        <span>System Actions</span>
-        <span class="pull-right-container">
-          <i class="fa fa-angle-left fa-fw pull-right"></i>
-        </span>
-      </a>
-      <ul class="treeview-menu">
-        <li>
-          <router-link class="upload-schema"
-                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}">
-            <i class="fa fa-upload"></i> Update Features using JSON
-          </router-link>
-        </li>
-        <li>
-          <router-link class="download-schema"
-                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}">
-            <i class="fa fa-download"></i> Download System Schema
-          </router-link>
-        </li>
-        <li>
-          <router-link class="become-admin-button"
-                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}">
-            <i class="fa fa-graduation-cap"></i> Become Admin
-          </router-link>
-        </li>
-      </ul>
-    </li>
 
     <li class="treeview help-support">
       <a href="#">
