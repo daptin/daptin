@@ -77,7 +77,6 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
       targetAttrsJson, err := json.Marshal(exchange.TargetAttributes)
       CheckErr(err, "Failed to marshal target attributes to json")
 
-
       s, v, err = squirrel.
       Insert("data_exchange").
           Columns("permission", "name", "source_attributes", "source_type", "target_attributes", "target_type",
@@ -408,7 +407,23 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
       ifj, _ := json.Marshal(action.InFields)
       ofj, _ := json.Marshal(action.OutFields)
 
-      s, v, err := squirrel.Insert("action").Columns("action_name", "label", "world_id", "in_fields", "out_fields", "reference_id", "permission").Values(action.Name, action.Label, worldId, ifj, ofj, uuid.NewV4().String(), 777).ToSql()
+      s, v, err := squirrel.Insert("action").Columns(
+        "action_name",
+        "label",
+        "world_id",
+        "in_fields",
+        "out_fields",
+        "instance_optional",
+        "reference_id",
+        "permission").Values(
+        action.Name,
+        action.Label,
+        worldId,
+        ifj,
+        ofj,
+        action.InstanceOptional,
+        uuid.NewV4().String(),
+        777).ToSql()
 
       _, err = db.Exec(s, v...)
       if err != nil {

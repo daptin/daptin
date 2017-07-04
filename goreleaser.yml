@@ -62,11 +62,3 @@ build:
   hooks:
     pre: rice embed-go
     post: ./clean.sh
-archive:
-  format: tar.gz
-  replacements:
-    amd64: 64-bit
-    darwin: macOS
-    linux: Tux
-  files:
-    - main
