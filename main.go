@@ -11,6 +11,7 @@ import (
   "syscall"
   "time"
   "github.com/GeertJohan/go.rice"
+  "net/http"
 )
 
 func init() {
@@ -26,8 +27,14 @@ func main() {
   boxRoot1, err := rice.FindBox("gomsweb/dist")
   log.Println("Failed to open dist: %v", err)
 
-  boxStatic := boxStatic1.HTTPBox()
-  boxRoot := boxRoot1.HTTPBox()
+  var boxStatic, boxRoot http.FileSystem
+  if err != nil {
+    boxStatic = boxStatic1.HTTPBox()
+    boxRoot = boxRoot1.HTTPBox()
+  } else {
+    boxStatic = http.Dir("gomsweb/dist/static")
+    boxRoot = http.Dir("gomsweb/dist")
+  }
 
   // Inherit a net.Listener from our parent process or listen anew.
   ch := make(chan struct{})
