@@ -29,11 +29,11 @@ func main() {
 
   var boxStatic, boxRoot http.FileSystem
   if err != nil {
-    boxStatic = boxStatic1.HTTPBox()
-    boxRoot = boxRoot1.HTTPBox()
-  } else {
     boxStatic = http.Dir("gomsweb/dist/static")
     boxRoot = http.Dir("gomsweb/dist")
+  } else {
+    boxStatic = boxStatic1.HTTPBox()
+    boxRoot = boxRoot1.HTTPBox()
   }
 
   // Inherit a net.Listener from our parent process or listen anew.
