@@ -21,8 +21,11 @@ func init() {
 
 func main() {
 
-  boxStatic := rice.MustFindBox("gomsweb/dist/static").HTTPBox()
-  boxRoot := rice.MustFindBox("gomsweb/dist").HTTPBox()
+  boxStatic1, err := rice.FindBox("gomsweb/dist/static")
+  boxRoot1, err := rice.FindBox("gomsweb/dist")
+
+  boxStatic := boxStatic1.HTTPBox()
+  boxRoot := boxRoot1.HTTPBox()
 
   // Inherit a net.Listener from our parent process or listen anew.
   ch := make(chan struct{})
