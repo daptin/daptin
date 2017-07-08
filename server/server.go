@@ -28,7 +28,6 @@ import (
   uuid2 "github.com/satori/go.uuid"
   "gopkg.in/Masterminds/squirrel.v1"
   "strings"
-  "github.com/GeertJohan/go.rice"
 )
 
 var cruds = make(map[string]*resource.DbResource)
@@ -93,7 +92,7 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 
 }
 
-func Main(boxRoot, boxStatic *rice.HTTPBox) {
+func Main(boxRoot, boxStatic http.FileSystem) {
 
   var port = flag.String("port", "6336", "GoMS port")
   var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
@@ -165,8 +164,10 @@ func Main(boxRoot, boxStatic *rice.HTTPBox) {
   //r.StaticFile("", "./gomsweb/dist/index.html")
 
   r.GET("/favicon.ico", func(c *gin.Context) {
-    file := boxRoot.MustBytes("index.html")
-    _, err := c.Writer.Write(file)
+
+    file, err := boxRoot.Open("index.html")
+    fileContents, err := ioutil.ReadAll(file)
+    _, err = c.Writer.Write(fileContents)
     resource.CheckErr(err, "Failed to write favico")
   })
   configStore, err := resource.NewConfigStore(db)
@@ -227,8 +228,9 @@ func Main(boxRoot, boxStatic *rice.HTTPBox) {
   r.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
 
   r.NoRoute(func(c *gin.Context) {
-    file := boxRoot.MustBytes("index.html")
-    _, err := c.Writer.Write(file)
+    file, err := boxRoot.Open("index.html")
+    fileContents, err := ioutil.ReadAll(file)
+    _, err = c.Writer.Write(fileContents)
     resource.CheckErr(err, "Failed to write index html")
   })
 
