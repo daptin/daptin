@@ -1,1 +1,1 @@
-web: goms -port $PORT -runtime release
+web: bin/goms -port $PORT -runtime release
