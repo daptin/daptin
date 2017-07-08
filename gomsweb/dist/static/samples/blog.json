@@ -1,0 +1,195 @@
+{
+  "state_machine_descriptions": [
+    {
+      "name": "publish_status",
+      "label": "Publish Status",
+      "initial_state": "draft",
+      "events": [
+        {
+          "name": "mark_as_edited",
+          "label": "Mark as edited",
+          "src": [
+            "draft",
+            "ready-to-publish"
+          ],
+          "dst": "ready-to-publish"
+        },
+        {
+          "name": "publish",
+          "label": "Publish",
+          "src": [
+            "draft",
+            "ready-to-publish"
+          ],
+          "dst": "published"
+        },
+        {
+          "name": "delete",
+          "label": "Delete",
+          "src": [
+            "draft",
+            "ready-to-publish",
+            "published"
+          ],
+          "dst": "deleted"
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "tableName": "blog",
+      "columns": [
+        {
+          "name": "title",
+          "dataType": "varchar(500)",
+          "columnType": "label"
+        },
+        {
+          "name": "view_count",
+          "dataType": "int(11)",
+          "columnType": "measurement"
+        }
+      ]
+    },
+    {
+      "tableName": "post",
+      "columns": [
+        {
+          "name": "title",
+          "dataType": "varchar(200)",
+          "columnType": "label"
+        },
+        {
+          "name": "body",
+          "dataType": "text",
+          "columnType": "content"
+        }
+      ]
+    },
+    {
+      "tableName": "comment",
+      "columns": [
+        {
+          "name": "body",
+          "dataType": "text",
+          "columnType": "content"
+        },
+        {
+          "name": "likes_count",
+          "columnName": "likes_count",
+          "dataType": "int(11)",
+          "columnType": "measurement"
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "subject": "comment",
+      "relation": "belongs_to",
+      "object": "post"
+    },
+    {
+      "subject": "post",
+      "relation": "belongs_to",
+      "object": "blog"
+    },
+    {
+      "subject": "blog",
+      "relation": "has_one",
+      "object": "post",
+      "objectName": "current_post",
+      "subjectName": "current_post_of"
+    }
+  ],
+  "actions": [
+    {
+      "name": "comment",
+      "label": "Leave a comment",
+      "onType": "post",
+      "fields": [
+        {
+          "columnName": "name",
+          "name": "Author name",
+          "columnType": "label"
+        },
+        {
+          "columnName": "comment",
+          "name": "Your comment",
+          "columnType": "content"
+        },
+        {
+          "columnName": "like",
+          "name": "Rating",
+          "columnType": "rating"
+        }
+      ],
+      "outcomes": [
+        {
+          "method": "POST",
+          "type": "comment",
+          "attributes": {
+            "body": "comment",
+            "post_id": "$.reference_id",
+            "likes_count": "like"
+          }
+        }
+      ]
+    },
+    {
+      "name": "post",
+      "label": "Create a new post",
+      "onType": "blog",
+      "fields": [
+        {
+          "columnName": "title",
+          "name": "Post title",
+          "columnType": "label"
+        },
+        {
+          "columnName": "body",
+          "name": "Blog",
+          "columnType": "content"
+        }
+      ],
+      "outcomes": [
+        {
+          "type": "post",
+          "method": "POST",
+          "attributes": {
+            "title": "title",
+            "body": "body",
+            "blog_id": "$.reference_id"
+          }
+        }
+      ]
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "Blog to excel sheet sync",
+      "sourceAttributes": {
+        "name": "blog"
+      },
+      "sourceType": "self",
+      "targetAttributes": {
+        "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append"
+      },
+      "targetType": "gsheet-append",
+      "attributes": [
+        {
+          "sourceColumn": "$blog.title",
+          "targetColumn": "Blog title"
+        },
+        {
+          "sourceColumn": "$blog.view_count",
+          "targetColumn": "View count"
+        }
+      ],
+      "options": {
+        "hasHeader": true
+      }
+    }
+  ]
+}
