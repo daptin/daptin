@@ -1,16 +1,27 @@
-GO_BUILD_ENV := GOOS=linux GOARCH=amd64
-DOCKER_BUILD=$(shell pwd)/docker_dir
-DOCKER_CMD=$(DOCKER_BUILD)/goms
+.PHONY: container publish serve serve-container clean
 
-$(DOCKER_CMD): clean
-	mkdir -p $(DOCKER_BUILD)
-	$(GO_BUILD_ENV) go build -v -o $(DOCKER_CMD) .
+app        := goms
+static-app := build/linux-amd64/$(app)
+docker-tag := goms/goms
 
-web:
-      rm -rf
+bin/$(app): *.go
+	go build -o $@
+
+$(static-app): *.go
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
+		go build -ldflags "-s" -a -installsuffix cgo -o $(static-app)
+
+container: $(static-app)
+	docker build -t $(docker-tag) .
+
+publish: container
+	docker push $(docker-tag)
+
+serve: bin/$(app)
+	env PATH=$(PATH):./bin forego start web
+
+serve-container:
+	docker run -it --rm --env-file=.env -p 8081:8080 $(docker-tag)
 
 clean:
-	rm -rf $(DOCKER_BUILD)
-
-heroku: $(DOCKER_CMD)
-	heroku container:push web
+	rm -rf bin build
