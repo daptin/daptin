@@ -22,7 +22,9 @@ func init() {
 func main() {
 
   boxStatic1, err := rice.FindBox("gomsweb/dist/static")
+  log.Println("Failed to open dist/static: %v", err)
   boxRoot1, err := rice.FindBox("gomsweb/dist")
+  log.Println("Failed to open dist: %v", err)
 
   boxStatic := boxStatic1.HTTPBox()
   boxRoot := boxRoot1.HTTPBox()
