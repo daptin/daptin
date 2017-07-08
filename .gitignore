@@ -22,3 +22,4 @@ test.db
 npm-debug.log
 dist
 rice-box.go
+test*
