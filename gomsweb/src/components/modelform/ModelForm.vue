@@ -170,6 +170,9 @@
           case "entity":
             inputType = "selectOneOrMore";
             break;
+          case "date":
+            inputType = "dateSelect";
+            break;
           case "measurement":
             inputType = "input";
             break;
@@ -330,6 +333,11 @@
         console.log("all form fields", formFields, foreignKeys);
         that.formModel.fields = formFields;
         that.relations = foreignKeys;
+
+        if (formFields.length + foreignKeys.length  == 0) {
+
+        }
+
       }
     },
     mounted: function () {
