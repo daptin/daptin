@@ -10,7 +10,7 @@ services:
 
 script: go get github.com/GeertJohan/go.rice
  && go get github.com/GeertJohan/go.rice/rice
- && go get github.com/artpar/goms && rice embed-go && go build -o docker_dir/goms && rice append --exec main && cp -Rf gomsweb/dist docker_dir/static && cp Dockerfile docker_dir/Dockerfile
+ && go get github.com/artpar/goms && rice embed-go && go build -o docker_dir/goms && cp -Rf gomsweb/dist docker_dir/static && cp Dockerfile docker_dir/Dockerfile
 
 
 after_success:

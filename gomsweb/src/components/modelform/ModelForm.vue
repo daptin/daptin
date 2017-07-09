@@ -270,7 +270,7 @@
           }
 
           if (columnMeta.ColumnType == "truefalse") {
-            that.model[columnMeta.ColumnName] = that.model[columnMeta.ColumnName] === "1" ? true : false;
+            that.model[columnMeta.ColumnName] = that.model[columnMeta.ColumnName] === "1" || that.model[columnMeta.ColumnName] === 1 ? true : false;
           }
 
           if (columnMeta.ColumnType == "date") {
@@ -334,7 +334,7 @@
         that.formModel.fields = formFields;
         that.relations = foreignKeys;
 
-        if (formFields.length + foreignKeys.length  == 0) {
+        if (formFields.length + foreignKeys.length == 0) {
 
         }
 
