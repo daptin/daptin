@@ -154,7 +154,7 @@
           "method": "POST",
           "reference": "vendor1",
           "attributes": {
-            "name": "vendor"
+            "name": "~vendor"
           }
         },
         {
@@ -163,7 +163,7 @@
           "reference": "order1",
           "attributes": {
             "vendor_id": "$vendor1.reference_id",
-            "quantity": "quantity"
+            "quantity": "~quantity"
           }
         },
         {
