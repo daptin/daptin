@@ -73,13 +73,20 @@
         {
           "name": "url",
           "dataType": "varchar(200)",
-          "columnType": "url"
+          "columnType": "url",
+          "isNullable": true
         },
         {
           "name": "completed",
           "dataType": "int(1)",
           "columnType": "truefalse",
           "defaultValue": "false"
+        },
+        {
+          "name": "schedule",
+          "dataType": "date",
+          "columnType": "date",
+          "isNullable": true
         },
         {
           "name": "order",
@@ -92,7 +99,7 @@
           "name": "text",
           "dataType": "text",
           "columnType": "text",
-          "is_nullable": true
+          "isNullable": true
         }
       ]
     },
@@ -155,7 +162,7 @@
           "method": "POST",
           "attributes": {
             "schedule": "~schedule",
-            "description": "~description",
+            "title": "~description",
             "project_id": "$.reference_id"
           }
         },
@@ -190,6 +197,21 @@
           "method": "error",
           "attributes": {
             "message": "show this in error notification body"
+          }
+        }
+      ]
+    },
+    {
+      "name": "completed",
+      "label": "Completed",
+      "onType": "todos",
+      "outcomes": [
+        {
+          "type": "todos",
+          "method": "UPDATE",
+          "attributes": {
+            "completed": "1",
+            "reference_id": "$.reference_id"
           }
         }
       ]

@@ -194,7 +194,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
       }
 
       log.Infof("Next outcome method: %v", outcome.Method)
-      switch request.PlainRequest.Method {
+      switch outcome.Method {
       case "POST":
         res, err = dbResource.Create(model, request)
         if err != nil {
@@ -409,6 +409,26 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 
     break
 
+  case "POST":
+
+    model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION, nil, attrs)
+
+    req := api2go.Request{
+      PlainRequest: &http.Request{
+        Method: "POST",
+      },
+    }
+    return model, req, nil
+  case "UPDATE":
+
+    model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION, nil, attrs)
+
+    req := api2go.Request{
+      PlainRequest: &http.Request{
+        Method: "POST",
+      },
+    }
+    return model, req, nil
   default:
 
     model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION, nil, attrs)
