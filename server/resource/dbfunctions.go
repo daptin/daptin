@@ -401,7 +401,23 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
     _, ok = currentActions[worldIdString][action.Name]
     if ok {
       log.Infof("Action [%v] on [%v] already present in database", action.Name, action.OnType)
-      continue
+
+      ifj, err := json.Marshal(action.InFields)
+      CheckErr(err, "Failed to marshal infields")
+      ofj, err := json.Marshal(action.OutFields)
+      CheckErr(err, "Failed to marshal outfields")
+
+      s, v, err := squirrel.Update("action").
+          Set("label", action.Label).
+          Set("world_id", worldId).
+          Set("in_fields", ifj).
+          Set("out_fields", ofj).
+          Set("instance_optional", action.InstanceOptional).Where(squirrel.Eq{"action_name": action.Name}).ToSql()
+
+      _, err = db.Exec(s, v...)
+      if err != nil {
+        log.Errorf("Failed to insert action [%v]: %v", action.Name, err)
+      }
     } else {
 
       ifj, _ := json.Marshal(action.InFields)

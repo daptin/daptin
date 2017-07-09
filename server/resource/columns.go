@@ -93,7 +93,7 @@ var SystemActions = []Action{
         Type:   "system_json_schema_update",
         Method: "EXECUTE",
         Attributes: map[string]interface{}{
-          "json_schema": "$schema_json_file",
+          "json_schema": "~schema_json_file",
         },
       },
     },
@@ -165,9 +165,9 @@ var SystemActions = []Action{
         Method:    "POST",
         Reference: "user",
         Attributes: map[string]interface{}{
-          "name":     "$name",
-          "email":    "$email",
-          "password": "$password",
+          "name":     "~name",
+          "email":    "~email",
+          "password": "~password",
         },
       },
       {
@@ -213,8 +213,8 @@ var SystemActions = []Action{
         Type:   "jwt.token",
         Method: "EXECUTE",
         Attributes: map[string]interface{}{
-          "email":    "$email",
-          "password": "$password",
+          "email":    "~email",
+          "password": "~password",
         },
       },
     },
@@ -266,7 +266,7 @@ var SystemActions = []Action{
         Type:   "oauth.login.response",
         Method: "EXECUTE",
         Attributes: map[string]interface{}{
-          "authenticator": "$authenticator",
+          "authenticator": "~authenticator",
         },
       },
     },
