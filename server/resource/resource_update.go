@@ -51,7 +51,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
   valsList := []interface{}{}
   for _, col := range allColumns {
 
-    log.Infof("Add column: %v", col.ColumnName)
+    //log.Infof("Add column: %v", col.ColumnName)
     if col.IsAutoIncrement {
       continue
     }
