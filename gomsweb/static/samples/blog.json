@@ -130,9 +130,9 @@
           "method": "POST",
           "type": "comment",
           "attributes": {
-            "body": "comment",
+            "body": "~comment",
             "post_id": "$.reference_id",
-            "likes_count": "like"
+            "likes_count": "~like"
           }
         }
       ]
@@ -158,8 +158,8 @@
           "type": "post",
           "method": "POST",
           "attributes": {
-            "title": "title",
-            "body": "body",
+            "title": "~title",
+            "body": "~body",
             "blog_id": "$.reference_id"
           }
         }
