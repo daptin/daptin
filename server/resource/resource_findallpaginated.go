@@ -130,7 +130,9 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
           colString = append(colString, fmt.Sprintf("%v like '%v%%'", c, q))
         }
       }
-      queryBuilder = queryBuilder.Where("( " + strings.Join(colString, " or ") + ")")
+      if len(colString) > 0 {
+        queryBuilder = queryBuilder.Where("( " + strings.Join(colString, " or ") + ")")
+      }
     }
   } else {
     //user_id_int := context.Get(req.PlainRequest, "user_id_int")
