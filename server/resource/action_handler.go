@@ -597,7 +597,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) inter
 
       castMap := finalValue.(map[string]interface{})
       finalValue = castMap[fieldParts[len(fieldParts)-1]]
-      fieldString = strings.Replace(fieldString, fmt.Sprintf("%s", match[0]), finalValue.(string), -1)
+      fieldString = strings.Replace(fieldString, fmt.Sprintf("%v", match[0]), fmt.Sprintf("%v", finalValue), -1)
     }
     val = fieldString
 

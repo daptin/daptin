@@ -236,7 +236,7 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
   rel.ObjectName = "usergroup_id"
   rel.Relation = "has_many_and_belongs_to_many"
 
-  log.Infof("Join string: %v: ", rel.GetJoinString())
+  //log.Infof("Join string: %v: ", rel.GetJoinString())
 
   sql := fmt.Sprintf("select usergroup.reference_id as referenceid, j1.permission from %s join %s  where %s.%s = ?", rel.Subject, rel.GetJoinString(), rel.Subject, colName)
   //log.Infof("Group select sql: %v", sql)
@@ -343,7 +343,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) Permission {
   rowType := row["__type"].(string)
 
   loc := strings.Index(dr.cruds[rowType].model.GetName(), "_has_")
-  log.Infof("Location [%v]: %v", dr.model.GetName(), loc)
+  //log.Infof("Location [%v]: %v", dr.model.GetName(), loc)
   if dr.cruds[rowType].model.HasMany("usergroup") && loc == -1 {
 
     perm.UserGroupId = dr.GetObjectUserGroupsByWhere(rowType, "reference_id", refId.(string))
