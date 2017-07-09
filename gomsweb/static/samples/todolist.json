@@ -62,24 +62,37 @@
   ],
   "tables": [
     {
-      "tableName": "to_do",
+      "tableName": "todos",
       "columns": [
         {
-          "name": "description",
+          "name": "title",
           "dataType": "varchar(500)",
           "columnType": "label",
           "isIndexed": true
         },
         {
-          "name": "schedule",
-          "dataType": "date",
-          "columnType": "date"
+          "name": "url",
+          "dataType": "varchar(200)",
+          "columnType": "url"
         },
         {
-          "name": "priority",
+          "name": "completed",
+          "dataType": "int(1)",
+          "columnType": "truefalse",
+          "defaultValue": "false"
+        },
+        {
+          "name": "order",
+          "columnName": "item_order",
           "dataType": "int(4)",
-          "columnType": "rating",
-          "defaultValue": "100"
+          "columnType": "number",
+          "defaultValue": "10"
+        },
+        {
+          "name": "text",
+          "dataType": "text",
+          "columnType": "text",
+          "is_nullable": true
         }
       ]
     },
@@ -108,12 +121,12 @@
   ],
   "relations": [
     {
-      "subject": "to_do",
+      "subject": "todos",
       "relation": "has_one",
       "object": "project"
     },
     {
-      "subject": "to_do",
+      "subject": "todos",
       "relation": "has_many",
       "object": "tag"
     }
@@ -138,12 +151,45 @@
       ],
       "outcomes": [
         {
-          "type": "to_do",
+          "type": "todos",
           "method": "POST",
           "attributes": {
-            "schedule": "schedule",
-            "description": "description",
+            "schedule": "~schedule",
+            "description": "~description",
             "project_id": "$.reference_id"
+          }
+        },
+        {
+          "type": "action.response",
+          "method": "client.notify",
+          "attributes": {
+            "type": "success",
+            "message": "Created new todo, taking you to it.",
+            "title": "Wait for it"
+          }
+        },
+        {
+          "type": "action.response",
+          "method": "client.redirect",
+          "attributes": {
+            "location": "/in/todos/$.reference_id",
+            "window": "self",
+            "delay": "1000"
+          }
+        },
+        {
+          "type": "action.response",
+          "method": "client.store",
+          "attributes": {
+            "value": "last_created_todo",
+            "key": "$.reference_id"
+          }
+        },
+        {
+          "type": "action.response",
+          "method": "error",
+          "attributes": {
+            "message": "show this in error notification body"
           }
         }
       ]
@@ -165,7 +211,16 @@
           "type": "project",
           "method": "POST",
           "attributes": {
-            "name": "name"
+            "name": "~name"
+          }
+        },
+        {
+          "type": "action.response",
+          "method": "client.redirect",
+          "attributes": {
+            "location": "/in/project/$.reference_id",
+            "window": "self",
+            "delay": "1000"
           }
         }
       ]
@@ -192,8 +247,8 @@
           "type": "data_exchange",
           "method": "POST",
           "attributes": {
-            "schedule": "schedule",
-            "description": "description",
+            "schedule": "~schedule",
+            "description": "~description",
             "project_id": "$.reference_id"
           }
         }
@@ -204,7 +259,7 @@
     {
       "name": "Task to excel sheet",
       "sourceAttributes": {
-        "name": "to_do"
+        "name": "todos"
       },
       "sourceType": "self",
       "targetAttributes": {

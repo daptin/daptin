@@ -18,6 +18,7 @@ import (
   "net/http"
   "strings"
   "reflect"
+  "regexp"
 )
 
 var guestActions = map[string]Action{}
@@ -171,8 +172,8 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
     responses := make([]ActionResponse, 0)
 
-    var res api2go.Responder
     for _, outcome := range action.OutFields {
+      var res api2go.Responder
 
       var actionResponse ActionResponse
 
@@ -192,7 +193,8 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
         //log.Errorf("No DbResource for type [%v]", outcome.Type)
       }
 
-      switch outcome.Method {
+      log.Infof("Next outcome method: %v", outcome.Method)
+      switch request.PlainRequest.Method {
       case "POST":
         res, err = dbResource.Create(model, request)
         if err != nil {
@@ -235,12 +237,38 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
         if errors1 != nil && len(errors1) > 0 {
           err = errors1[0]
         }
+        break
+      case "ACTIONRESPONSE":
+        //res, err = cruds[outcome.Type].Create(model, request)
+        log.Infof("Create action response: ", model.GetName())
+        var actionResponse ActionResponse
+        switch model.GetName() {
+        case "client.notify":
+          actionResponse = NewActionResponse("client.notify", model.Data)
+          break;
+        case "client.redirect":
+          actionResponse = NewActionResponse("client.redirect", model.Data)
+          break;
+        case "client.store.set":
+          actionResponse = NewActionResponse("client.store.set", model.Data)
+          break;
+        case "error":
+          actionResponse = NewActionResponse("error", model.Data)
+          break;
+        default:
+
+        }
+        responses = append(responses, actionResponse)
 
         break
 
       }
       if res != nil && res.Result() != nil {
         inFieldMap[outcome.Reference] = res.Result().(*api2go.Api2GoModel).Data
+
+        if outcome.Reference == "" {
+          inFieldMap["subject"] = inFieldMap[outcome.Reference]
+        }
       }
 
       if err != nil {
@@ -248,6 +276,8 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
         return
       }
     }
+
+    log.Infof("Final responses: %v", responses)
 
     ginContext.JSON(200, responses)
 
@@ -365,6 +395,19 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
     return respopnseModel, returnRequest, nil
 
     break
+  case "action.response":
+
+    //respopnseModel := NewActionResponse(attrs["responseType"].(string), attrs)
+    returnRequest := api2go.Request{
+      PlainRequest: &http.Request{
+        Method: "ACTIONRESPONSE",
+      },
+    }
+    model := api2go.NewApi2GoModelWithData(outcome.Method, nil, auth.DEFAULT_PERMISSION, nil, attrs)
+
+    return model, returnRequest, nil
+
+    break
 
   default:
 
@@ -475,14 +518,18 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) inter
     return ""
   }
 
-  if fieldString[0] == '$' {
+  if fieldString[0] == '!' {
+
+    res := runUnsafeJavascript(fieldString[1:], inFieldMap)
+    val = res
+
+  } else if fieldString[0] == '~' {
 
     fieldParts := strings.Split(fieldString[1:], ".")
 
     if fieldParts[0] == "" {
       fieldParts[0] = "subject"
     }
-
     var finalValue interface{}
 
     // it looks confusing but it does whats its supposed to do
@@ -496,21 +543,44 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) inter
     if finalValue == nil {
       return nil
     }
+
     castMap := finalValue.(map[string]interface{})
     finalValue = castMap[fieldParts[len(fieldParts)-1]]
     val = finalValue
-  } else if fieldString[0] == '!' {
-
-    res := runUnsafeJavascript(fieldString[1:], inFieldMap)
-    val = res
 
   } else {
-    m, ok := inFieldMap[fieldString]
-    if ok {
-      val = m
-    } else {
-      val = fieldString
+
+    rex := regexp.MustCompile(`\$([a-zA-Z0-9_]+)?(\.[a-zA-Z0-9_]+)+`)
+    matches := rex.FindAllStringSubmatch(fieldString, -1)
+
+    for _, match := range matches {
+
+      fieldParts := strings.Split(match[0][1:], ".")
+
+      if fieldParts[0] == "" {
+        fieldParts[0] = "subject"
+      }
+
+      var finalValue interface{}
+
+      // it looks confusing but it does whats its supposed to do
+      // todo: add helpful comment
+
+      finalValue = inFieldMap
+      for i := 0; i < len(fieldParts)-1; i++ {
+        fieldPart := fieldParts[i]
+        finalValue = finalValue.(map[string]interface{})[fieldPart]
+      }
+      if finalValue == nil {
+        return nil
+      }
+
+      castMap := finalValue.(map[string]interface{})
+      finalValue = castMap[fieldParts[len(fieldParts)-1]]
+      fieldString = strings.Replace(fieldString, fmt.Sprintf("%s", match[0]), finalValue.(string), -1)
     }
+    val = fieldString
+
   }
 
   return val
