@@ -47,26 +47,47 @@
 
           <el-tab-pane label="Overview">
             <div class="col-md-6">
-              <table class="table">
-                <tbody>
-                <tr v-for="col in normalFields" :id="col.name">
-                  <td><b> {{col.label}} </b></td>
-                  <td :style="col.style"> {{col.value}} </td>
-                </tr>
-                </tbody>
-              </table>
+              <div class="box">
+                <div class="box-header">
+                  <div class="box-title">
+                    Details
+                  </div>
+                </div>
+                <div class="box-body">
+                  <table class="table">
+                    <tbody>
+                    <tr v-for="col in normalFields" :id="col.name">
+                      <td><b> {{col.label}} </b></td>
+                      <td :style="col.style"> {{col.value}} </td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
 
             <div class="col-md-6" v-if="truefalse != null && truefalse.length > 0">
-              <table class="table">
-                <tbody>
-                <tr v-for="tf in truefalse">
-                  <td><input disabled type="checkbox" :checked="tf.value" name="tf.name"></td>
-                  <td><label>{{tf.label}}</label>
-                  </td>
-                </tr>
-                </tbody>
-              </table>
+
+              <div class="box">
+                <div class="box-header">
+                  <div class="box-title">
+                    Options
+                  </div>
+                </div>
+                <div class="box-body">
+                  <table class="table">
+                    <tbody>
+                    <tr v-for="tf in truefalse">
+                      <td><input disabled type="checkbox" :checked="tf.value" name="tf.name"></td>
+                      <td><label>{{tf.label}}</label>
+                      </td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+
             </div>
 
           </el-tab-pane>
