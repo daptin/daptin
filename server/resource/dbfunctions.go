@@ -745,14 +745,6 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
       log.Infof("Found existing %d columns from db for [%v]", len(existingRelations), config.Tables[i].TableName)
       for _, rel := range existingRelations {
 
-        //if rel.Object == "user" && rel.Relation == "belongs_to" {
-        //  continue
-        //}
-        //
-        //if rel.Object == "usergroup" && rel.Relation == "has_many" {
-        //  continue
-        //}
-
         relhash := rel.Hash()
         _, ok := relationsDone[relhash]
         if ok {
@@ -763,38 +755,79 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
           relationsDone[relhash] = true
         }
       }
+
+      if table.IsStateTrackingEnabled {
+
+        stateRelation := api2go.TableRelation{
+          Subject:     table.TableName + "_state",
+          SubjectName: table.TableName + "_has_state",
+          Object:      table.TableName,
+          ObjectName:  "is_state_of_" + table.TableName,
+          Relation:    "belongs_to",
+        }
+
+        if !relationsDone[stateRelation.Hash()] {
+
+          stateTable := TableInfo{
+            TableName: table.TableName + "_state",
+            Columns: []api2go.ColumnInfo{
+              {
+                Name:       "current_state",
+                ColumnName: "current_state",
+                ColumnType: "label",
+                DataType:   "varchar(100)",
+                IsNullable: false,
+              },
+            },
+          }
+
+          newTables = append(newTables, stateTable)
+
+          stateTableHasOneDescription := api2go.NewTableRelation(stateTable.TableName, "has_one", "smd")
+          stateTableHasOneDescription.SubjectName = table.TableName + "_status"
+          stateTableHasOneDescription.ObjectName = table.TableName + "_smd"
+          relations = append(relations, stateTableHasOneDescription)
+          relationsDone[stateTableHasOneDescription.Hash()] = true
+          relationsDone[stateRelation.Hash()] = true
+          relations = append(relations, stateRelation)
+
+        }
+      }
+
     } else {
 
-      stateTable := TableInfo{
-        TableName: table.TableName + "_state",
-        Columns: []api2go.ColumnInfo{
-          {
-            Name:       "current_state",
-            ColumnName: "current_state",
-            ColumnType: "label",
-            DataType:   "varchar(100)",
-            IsNullable: false,
+      if table.IsStateTrackingEnabled {
+        stateTable := TableInfo{
+          TableName: table.TableName + "_state",
+          Columns: []api2go.ColumnInfo{
+            {
+              Name:       "current_state",
+              ColumnName: "current_state",
+              ColumnType: "label",
+              DataType:   "varchar(100)",
+              IsNullable: false,
+            },
           },
-        },
+        }
+
+        newTables = append(newTables, stateTable)
+
+        stateTableHasOneDescription := api2go.NewTableRelation(stateTable.TableName, "has_one", "smd")
+        stateTableHasOneDescription.SubjectName = table.TableName + "_status"
+        stateTableHasOneDescription.ObjectName = table.TableName + "_smd"
+        relations = append(relations, stateTableHasOneDescription)
+        relationsDone[stateTableHasOneDescription.Hash()] = true
+
+        stateRelation := api2go.TableRelation{
+          Subject:     stateTable.TableName,
+          SubjectName: table.TableName + "_has_state",
+          Object:      table.TableName,
+          ObjectName:  "is_state_of_" + table.TableName,
+          Relation:    "belongs_to",
+        }
+        relationsDone[stateRelation.Hash()] = true
+        relations = append(relations, stateRelation)
       }
-
-      newTables = append(newTables, stateTable)
-
-      stateTableHasOneDescription := api2go.NewTableRelation(stateTable.TableName, "has_one", "smd")
-      stateTableHasOneDescription.SubjectName = table.TableName + "_status"
-      stateTableHasOneDescription.ObjectName = table.TableName + "_smd"
-      relations = append(relations, stateTableHasOneDescription)
-      relationsDone[stateTableHasOneDescription.Hash()] = true
-
-      stateRelation := api2go.TableRelation{
-        Subject:     stateTable.TableName,
-        SubjectName: table.TableName + "_has_state",
-        Object:      table.TableName,
-        ObjectName:  "is_state_of_" + table.TableName,
-        Relation:    "belongs_to",
-      }
-      relationsDone[stateRelation.Hash()] = true
-      relations = append(relations, stateRelation)
 
       if table.TableName == "usergroup" {
         continue
@@ -816,16 +849,6 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
     }
 
   }
-
-  //var stateMachineDescriptionTable TableInfo
-  //var stateMachineDescriptionTableIndex int
-
-  //for i, t := range config.Tables {
-  //  if t.TableName == "state_table_machine" {
-  //    stateMachineDescriptionTableIndex = i
-  //    stateMachineDescriptionTable = t
-  //  }
-  //}
 
   log.Infof("%d state tables on base entities", len(newTables))
   config.Tables = append(config.Tables, newTables...)
@@ -934,49 +957,47 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
       config.Tables = append(config.Tables, newTable)
 
-      stateTable := TableInfo{
-        TableName: newTable.TableName + "_state",
-        Columns: []api2go.ColumnInfo{
-          {
-            ColumnName: "state",
-            Name:       "state",
-            ColumnType: "label",
-            DataType:   "varchar(100)",
-            IsNullable: false,
-          },
-          {
-            ColumnName:   "smd_id",
-            Name:         "smd_id",
-            ColumnType:   "alias",
-            DataType:     "int(11)",
-            IsForeignKey: true,
-            IsNullable:   false,
-            ForeignKeyData: api2go.ForeignKeyData{
-              DataSource: "self",
-              TableName:  "smd",
-              ColumnName: "id",
+      if targetTable != "usergroup" {
+        stateTable := TableInfo{
+          TableName: newTable.TableName + "_state",
+          Columns: []api2go.ColumnInfo{
+            {
+              ColumnName: "state",
+              Name:       "state",
+              ColumnType: "label",
+              DataType:   "varchar(100)",
+              IsNullable: false,
+            },
+            {
+              ColumnName:   "smd_id",
+              Name:         "smd_id",
+              ColumnType:   "alias",
+              DataType:     "int(11)",
+              IsForeignKey: true,
+              IsNullable:   false,
+              ForeignKeyData: api2go.ForeignKeyData{
+                DataSource: "self",
+                TableName:  "smd",
+                ColumnName: "id",
+              },
+            },
+            {
+              ColumnName:   newTable.TableName + "_id",
+              Name:         newTable.TableName + "_id",
+              ColumnType:   "alias",
+              DataType:     "int(11)",
+              IsForeignKey: true,
+              IsNullable:   false,
+              ForeignKeyData: api2go.ForeignKeyData{
+                DataSource: "self",
+                TableName:  newTable.TableName,
+                ColumnName: "id",
+              },
             },
           },
-          {
-            ColumnName:   newTable.TableName + "_id",
-            Name:         newTable.TableName + "_id",
-            ColumnType:   "alias",
-            DataType:     "int(11)",
-            IsForeignKey: true,
-            IsNullable:   false,
-            ForeignKeyData: api2go.ForeignKeyData{
-              DataSource: "self",
-              TableName:  newTable.TableName,
-              ColumnName: "id",
-            },
-          },
-        },
+        }
+        config.Tables = append(config.Tables, stateTable)
       }
-      //stateRelation := api2go.NewTableRelation(stateTable.TableName, "has_one", "smd")
-      //stateTable.Relations = append(stateTable.Relations, stateRelation)
-      //stateMachineDescriptionTable.Relations = append(stateMachineDescriptionTable.Relations, stateRelation)
-      //newRelations = append(newRelations, stateRelation)
-      config.Tables = append(config.Tables, stateTable)
 
     } else if relation2 == "has_many_and_belongs_to_many" {
 
@@ -1023,50 +1044,48 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
       config.Tables = append(config.Tables, newTable)
 
-      stateTable := TableInfo{
-        TableName: newTable.TableName + "_state",
-        Columns: []api2go.ColumnInfo{
-          {
-            ColumnName: "state",
-            Name:       "state",
-            ColumnType: "label",
-            DataType:   "varchar(100)",
-            IsNullable: false,
-          },
-          {
-            ColumnName:   "smd_id",
-            Name:         "smd_id",
-            ColumnType:   "alias",
-            IsForeignKey: true,
-            DataType:     "int(11)",
-            IsNullable:   false,
-            ForeignKeyData: api2go.ForeignKeyData{
-              TableName:  "smd",
-              ColumnName: "id",
-              DataSource: "self",
-            },
-          },
-          {
-            ColumnName:   newTable.TableName + "_id",
-            Name:         newTable.TableName + "_id",
-            ColumnType:   "alias",
-            DataType:     "int(11)",
-            IsForeignKey: true,
-            IsNullable:   false,
-            ForeignKeyData: api2go.ForeignKeyData{
-              TableName:  newTable.TableName,
-              ColumnName: "id",
-              DataSource: "self",
-            },
-          },
-        },
-      }
-      //stateRelation := api2go.NewTableRelation(stateTable.TableName, "has_one", "smd")
-      //stateTable.Relations = append(stateTable.Relations, stateRelation)
-      //stateMachineDescriptionTable.Relations = append(stateMachineDescriptionTable.Relations, stateRelation)
-      //newRelations = append(newRelations, stateRelation)
-      config.Tables = append(config.Tables, stateTable)
+      if targetTable != "usergroup" {
 
+        stateTable := TableInfo{
+          TableName: newTable.TableName + "_state",
+          Columns: []api2go.ColumnInfo{
+            {
+              ColumnName: "state",
+              Name:       "state",
+              ColumnType: "label",
+              DataType:   "varchar(100)",
+              IsNullable: false,
+            },
+            {
+              ColumnName:   "smd_id",
+              Name:         "smd_id",
+              ColumnType:   "alias",
+              IsForeignKey: true,
+              DataType:     "int(11)",
+              IsNullable:   false,
+              ForeignKeyData: api2go.ForeignKeyData{
+                TableName:  "smd",
+                ColumnName: "id",
+                DataSource: "self",
+              },
+            },
+            {
+              ColumnName:   newTable.TableName + "_id",
+              Name:         newTable.TableName + "_id",
+              ColumnType:   "alias",
+              DataType:     "int(11)",
+              IsForeignKey: true,
+              IsNullable:   false,
+              ForeignKeyData: api2go.ForeignKeyData{
+                TableName:  newTable.TableName,
+                ColumnName: "id",
+                DataSource: "self",
+              },
+            },
+          },
+        }
+        config.Tables = append(config.Tables, stateTable)
+      }
     } else {
       log.Errorf("Failed to identify relation type: %v", relation)
     }

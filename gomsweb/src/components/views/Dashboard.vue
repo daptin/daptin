@@ -1,100 +1,120 @@
 <template>
-  <!-- Main content -->
-  <section class="content">
-    <!-- Info boxes -->
-    <div class="row">
-      <div class="col-md-12">
-        <h3>Dashboard is empty for now. You can take a tour.</h3>
+  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <h1>
+        Dashboard
+      </h1>
+      <ol class="breadcrumb">
+        <li>
+          <a href="javascript:;">
+            <i class="fa fa-home"></i>Home</a>
+        </li>
+        <li class="active">{{$route.name.toUpperCase()}}</li>
+      </ol>
+      <div class="pull-right">
+        <div class="ui icon buttons">
+          <button class="btn btn-box-tool" @click.prevent="editRow()"><i
+            class="fa fa-3x fa-pencil-square teal"></i>
+          </button>
+        </div>
       </div>
-    </div>
-    <!-- Main row -->
-    <!-- /.row -->
-    <div class="row">
-      <div class="col-md-3" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0">
+    </section>
 
-        <div class="box box-solid">
-          <div class="box-header with-border">
-            <h3 class="box-title">{{tableName | titleCase}}</h3>
+    <!-- Main content -->
+    <section class="content">
 
-            <div class="box-tools">
-              <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
-              </button>
+      <!-- Main row -->
+      <!-- /.row -->
+      <div class="row">
+        <div class="col-md-3" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0">
+
+          <div class="box box-solid">
+            <div class="box-header with-border">
+              <h3 class="box-title">{{tableName | titleCase}}</h3>
+
+              <div class="box-tools">
+                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+                </button>
+              </div>
             </div>
-          </div>
-          <div class="box-body no-padding">
-            <ul class="nav nav-pills nav-stacked">
-              <li v-for="action in worlds" v-if="action.instanceOptional">
-                <router-link :style="'color: ' + stringToColor(action.name)"
-                             :to="{name: 'Action', params: {tablename: action.onType, actionname: action.name}}">
-                  {{action.label}}
-                </router-link>
-              </li>
+            <div class="box-body no-padding">
+              <ul class="nav nav-pills nav-stacked">
+                <li v-for="action in worlds" v-if="action.instanceOptional">
+                  <router-link :style="'color: ' + stringToColor(action.name)"
+                               :to="{name: 'Action', params: {tablename: action.onType, actionname: action.name}}">
+                    {{action.label}}
+                  </router-link>
+                </li>
 
-            </ul>
+              </ul>
+            </div>
+            <!-- /.box-body -->
           </div>
-          <!-- /.box-body -->
+
+
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-3" v-for="(worlds, tableName) in actionGroups" v-if="worlds.length > 0">
+
+          <div class="box box-solid collapsed-box">
+            <div class="box-header with-border">
+              <h3 class="box-title">{{tableName | titleCase}}</h3>
+
+              <div class="box-tools">
+                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+                </button>
+              </div>
+            </div>
+            <div class="box-body no-padding">
+              <ul class="nav nav-pills nav-stacked">
+                <li v-for="world in worlds">
+                  <router-link :style="'color: ' + stringToColor(world.name)"
+                               :to="{name: 'Action', params: {tablename: world.onType, actionname: world.name}}">
+                    {{world.label}}
+                  </router-link>
+                </li>
+
+              </ul>
+            </div>
+            <!-- /.box-body -->
+          </div>
+
+
         </div>
 
-
       </div>
-    </div>
 
-    <div class="row">
-      <div class="col-md-3" v-for="(worlds, tableName) in actionGroups" v-if="worlds.length > 0">
+      <div class="row">
+        <div class="col-md-12">
 
-        <div class="box box-solid collapsed-box">
-          <div class="box-header with-border">
-            <h3 class="box-title">{{tableName | titleCase}}</h3>
+          <router-link :to="{name: 'NewEntity', params: {tablename: 'world'}}"
+                       style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+            <i style="font-size: 30px" class="fa fa-3x fa-plus green"></i>New Entity
+          </router-link>
 
-            <div class="box-tools">
-              <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
-              </button>
-            </div>
-          </div>
-          <div class="box-body no-padding">
-            <ul class="nav nav-pills nav-stacked">
-              <li v-for="world in worlds">
-                <router-link :style="'color: ' + stringToColor(world.name)"
-                             :to="{name: 'Action', params: {tablename: world.onType, actionname: world.name}}">
-                  {{world.label}}
-                </router-link>
-              </li>
+          <router-link :to="{name: 'NewEntity', params: {tablename: 'data_exchange'}}"
+                       style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+            <i style="font-size: 30px" class="fa fa-3x fa-level-up orange"></i>Add Export
+          </router-link>
 
-            </ul>
-          </div>
-          <!-- /.box-body -->
+          <a style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+            <i style="font-size: 30px" class="fa fa-3x fa-level-down maroon"></i>Add Import
+          </a>
+
+          <a style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+            <i style="font-size: 30px" class="fa fa-3x fa-upload yellow"></i>Upload Csv/Xls
+          </a>
+
         </div>
-
-
       </div>
+    </section>
+    <!-- /.content -->
+  </div>
 
-    </div>
-
-    <div class="row">
-      <div class="col-md-12">
-
-        <router-link :to="{name: 'NewEntity', params: {tablename: 'world'}}"
-                     style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
-          <i style="font-size: 30px" class="fa fa-3x fa-plus green"></i>New Entity
-        </router-link>
-
-        <router-link :to="{name: 'NewEntity', params: {tablename: 'data_exchange'}}"
-                     style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
-          <i style="font-size: 30px" class="fa fa-3x fa-level-up orange"></i>Add Export
-        </router-link>
-
-        <a style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
-          <i style="font-size: 30px" class="fa fa-3x fa-level-down maroon"></i>Add Import
-        </a>
-
-        <a style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
-          <i style="font-size: 30px" class="fa fa-3x fa-upload yellow"></i>Upload Csv/Xls
-        </a>
-
-      </div>
-    </div>
-  </section>
-  <!-- /.content -->
 </template>
 
 <script>

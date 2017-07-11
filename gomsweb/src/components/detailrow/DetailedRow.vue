@@ -27,7 +27,7 @@
           <div class="col-md-12">
             <table class="table">
               <tbody>
-              <tr v-for="col in normalFields" :id="col.name">
+              <tr v-for="col in normalFields" :id="col.name" v-if="col.value != ''">
                 <td style="width: 50%"><b> {{col.label}} </b></td>
                 <td :style="col.style"> {{col.value}} </td>
               </tr>
@@ -46,7 +46,7 @@
 
 
           <el-tab-pane label="Overview">
-            <div class="col-md-12">
+            <div class="col-md-6">
               <table class="table">
                 <tbody>
                 <tr v-for="col in normalFields" :id="col.name">
@@ -57,13 +57,16 @@
               </table>
             </div>
 
-            <div class="col-md-12" v-if="truefalse != null && truefalse.length > 0">
-              <div class="row">
-                <div class="col-md-4" v-for="tf in truefalse">
-                  <input disabled type="checkbox" :checked="tf.value" name="tf.name">
-                  <label>{{tf.label}}</label>
-                </div>
-              </div>
+            <div class="col-md-6" v-if="truefalse != null && truefalse.length > 0">
+              <table class="table">
+                <tbody>
+                <tr v-for="tf in truefalse">
+                  <td><input disabled type="checkbox" :checked="tf.value" name="tf.name"></td>
+                  <td><label>{{tf.label}}</label>
+                  </td>
+                </tr>
+                </tbody>
+              </table>
             </div>
 
           </el-tab-pane>

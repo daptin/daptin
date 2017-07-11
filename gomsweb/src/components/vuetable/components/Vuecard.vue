@@ -1,45 +1,8 @@
 <template>
   <div :class="['vuecard', 'row', css.tableClass]">
-    <!--<thead>-->
-    <!--<tr>-->
-    <!--<template v-for="field in tableFields">-->
-    <!--<template v-if="field.visible">-->
-    <!--<template v-if="isSpecialField(field.name)">-->
-    <!--<th v-if="extractName(field.name) == '__checkbox'"-->
-    <!--:class="['vuecard-th-checkbox-'+trackBy, field.titleClass]">-->
-    <!--<input type="checkbox" @change="toggleAllCheckboxes(field.name, $event)"-->
-    <!--:checked="checkCheckboxesState(field.name)">-->
-    <!--</th>-->
-    <!--<th v-if="extractName(field.name) == '__component'"-->
-    <!--@click="orderBy(field, $event)"-->
-    <!--:class="['vuecard-th-component-'+trackBy, field.titleClass, {'sortable': isSortable(field)}]"-->
-    <!--v-html="renderTitle(field)"-->
-    <!--&gt;</th>-->
-    <!--<th v-if="extractName(field.name) == '__slot'"-->
-    <!--@click="orderBy(field, $event)"-->
-    <!--:class="['vuecard-th-slot-'+extractArgs(field.name), field.titleClass, {'sortable': isSortable(field)}]"-->
-    <!--v-html="renderTitle(field)"-->
-    <!--&gt;</th>-->
-    <!--<th v-if="apiMode && extractName(field.name) == '__sequence'"-->
-    <!--:class="['vuecard-th-sequence', field.titleClass || '']" v-html="renderTitle(field)">-->
-    <!--</th>-->
-    <!--<th v-if="notIn(extractName(field.name), ['__sequence', '__checkbox', '__component', '__slot'])"-->
-    <!--:class="['vuecard-th-'+field.name, field.titleClass || '']" v-html="renderTitle(field)">-->
-    <!--</th>-->
-    <!--</template>-->
-    <!--<template v-else>-->
-    <!--<th @click="orderBy(field, $event)"-->
-    <!--:id="'_' + field.name"-->
-    <!--:class="['vuecard-th-'+field.name, field.titleClass,  {'sortable': isSortable(field)}]"-->
-    <!--v-html="renderTitle(field)"-->
-    <!--&gt;</th>-->
-    <!--</template>-->
-    <!--</template>-->
-    <!--</template>-->
-    <!--</tr>-->
-    <!--</thead>-->
+
     <div v-cloak class="vuecard-body">
-      <div class="col-md-6" v-for="(item, index) in tableData">
+      <div class="col-md-4" v-for="(item, index) in tableData">
         <div @dblclick="onRowDoubleClicked(item, $event)" :item-index="index" @click="onRowClicked(item, $event)"
              :render="onRowChanged(item)" :class="[onRowClass(item, index), 'box']">
           <div class="box-header">
@@ -334,7 +297,7 @@
         let obj;
         this.fields.forEach(function (field, i) {
           var fieldType = that.fieldsData[field];
-          console.log("field type", field, fieldType, that.fieldsData);
+//          console.log("field type", field, fieldType, that.fieldsData);
           field = {
             name: field,
             title: self.setTitle(field),

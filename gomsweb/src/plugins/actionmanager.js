@@ -104,10 +104,21 @@ const ActionManager = function () {
               case "client.redirect":
                 (function (redirectAttrs) {
 
-                  Notification.success({
-                    title: "Redirecting",
-                    message: "In " + (redirectAttrs.delay / 1000) + " seconds",
-                  });
+                  if (redirectAttrs.delay > 1500) {
+                    Notification({
+                      title: "Redirecting",
+                      type: 'success',
+                      message: "In " + (redirectAttrs.delay / 1000) + " seconds",
+                    });
+
+                  } else {
+                    Notification({
+                      title: "Redirecting",
+                      type: 'success',
+                      message: "In a second",
+                    });
+
+                  }
                   setTimeout(function () {
 
                     var target = redirectAttrs["window"];
