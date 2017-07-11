@@ -96,14 +96,18 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
     }
     var err error
 
-    if col.ColumnType == "datetime" {
+    if col.ColumnType == "password" {
+      val, err = BcryptHashString(val.(string))
+      if err != nil {
+        log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
+        continue
+      }
+    } else if col.ColumnType == "datetime" {
 
       // 2017-07-13T18:30:00.000Z
       val, err = time.Parse("2006-01-02T15:04:05.999Z", val.(string))
       CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
-    }
-
-    if col.ColumnType == "date" {
+    } else if col.ColumnType == "date" {
 
       // 2017-07-13T18:30:00.000Z
       val1, err := time.Parse("2006-01-02T15:04:05.999Z", val.(string))
@@ -116,9 +120,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
         val = val1
       }
 
-    }
-
-    if col.ColumnType == "time" {
+    } else if col.ColumnType == "time" {
 
       // 2017-07-13T18:30:00.000Z
       val, err = time.Parse("15:04:05", val.(string))
