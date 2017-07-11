@@ -97,25 +97,23 @@
 
       </div>
 
-
-      <div class="col-md-12">
-        <div class="box" v-if="objectStates.length > 0">
-          <div class="box-header">
-            <div class="box-title">
-              <h2>Status tracks</h2>
-            </div>
-          </div>
-          <div class="box-body">
-            <div class="col-md-2" v-for="state, k in objectStates">
-              <div class="row">
-                <div class="col-md-12">
-                  <span class="badge" style="width: 100%; text-transform: uppercase">{{state.current_state}}</span>
+      <div class="col-md-12" v-if="objectStates.length > 0">
+        <h3>Status tracks</h3>
+        <div class="row">
+          <div class="col-md-3" v-for="state, k in objectStates">
+            <div class="box">
+              <div class="box-header">
+                <div class="box-title">
+                  <small>{{state.smd.label}}</small>
+                </div>
+                <div class="box-title pull-right">
+                  {{state.current_state | titleCase}}
                 </div>
               </div>
-              <div class="row">
-                <div class="col-md-12">
-                  <button @click="doEvent(state, action)" class="btn btn-primary btn-xs btn-flat" style="width: 100%"
-                          v-for="action in state.possibleActions">{{action.label}}
+              <div class="box-body">
+                <div class="col-md-12" v-for="action in state.possibleActions">
+                  <button @click="doEvent(state, action)" class="btn btn-primary btn-xs btn-flat"
+                          style="width: 100%">{{action.label}}
                   </button>
                 </div>
               </div>
