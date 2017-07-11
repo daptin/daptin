@@ -134,8 +134,6 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 
   //AddStateMachines(&initConfig, db)
 
-  log.Infof("After check relations")
-
   resource.CheckAllTableStatus(&initConfig, db)
 
   resource.CreateRelations(&initConfig, db)
@@ -478,7 +476,7 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 
   ts := make([]resource.TableInfo, 0)
 
-  res, err := db.Queryx("select table_name, permission, default_permission, schema_json, is_top_level, is_hidden" +
+  res, err := db.Queryx("select table_name, permission, default_permission, schema_json, is_top_level, is_hidden, is_state_tracking_enabled" +
       " from world where deleted_at is null and table_name not like '%_has_%' and table_name not in ('world', 'world_column', 'action', 'user', 'usergroup')")
   if err != nil {
     log.Infof("Failed to select from world table: %v", err)
@@ -492,8 +490,9 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
     var schema_json string
     var is_top_level bool
     var is_hidden bool
+    var is_state_tracking_enabled bool
 
-    err = res.Scan(&table_name, &permission, &default_permission, &schema_json, &is_top_level, &is_hidden)
+    err = res.Scan(&table_name, &permission, &default_permission, &schema_json, &is_top_level, &is_hidden, &is_state_tracking_enabled)
     if err != nil {
       log.Errorf("Failed to scan json schema from world: %v", err)
       continue
@@ -512,6 +511,7 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
     t.DefaultPermission = default_permission
     t.IsHidden = is_hidden
     t.IsTopLevel = is_top_level
+    t.IsStateTrackingEnabled = is_state_tracking_enabled
     ts = append(ts, t)
 
   }

@@ -161,10 +161,6 @@
         that.topWorlds = that.worlds.filter(function (w, r) {
           return w.is_top_level == '1' && w.is_hidden == '0';
         });
-
-        setTimeout(function () {
-          $(window).resize()
-        }, 300);
       }
     }
   }

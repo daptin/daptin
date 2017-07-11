@@ -1,25 +1,45 @@
 <template>
 
-
-  <div class="box">
-    <div class="box-header">
-      <div class="box-title">
+  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <h1>
         {{selectedSubTable | titleCase}}
-      </div>
+        <small>{{ $route.meta.description }}</small>
+      </h1>
+      <ol class="breadcrumb">
+        <li>
+          <a href="javascript:;">
+            <i class="fa fa-home"></i>Home</a>
+        </li>
+        <li>
+          <router-link :to="{name: 'Entity', params: {tablename: selectedTable}}">
+            {{selectedTable | titleCase}}
+          </router-link>
+        </li>
+        <li class="active">
+          <router-link :to="{name: 'Instance', params: {tablename: selectedTable, refId: $route.params.refId}}">
+            {{selectedRow | chooseTitle | titleCase}}
+          </router-link>
+        </li>
+      </ol>
       <div class="box-tools pull-right">
         <div class="ui icon buttons">
-          <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'"><i class="fa  fa-2x fa-table blue "></i>
+          <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'"><i
+            class="fa  fa-2x fa-table blue "></i>
           </button>
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'items'"><i
             class="fa  fa-2x fa-th-large blue"></i>
           </button>
-          <button class="btn btn-box-tool" @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i></button>
+          <button class="btn btn-box-tool" @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i>
+          </button>
           <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh orange"></i>
           </button>
         </div>
       </div>
-    </div>
-    <div class="box-body">
+    </section>
+    <section class="content">
 
       <div class="col-md-12" v-if="showAddEdit && rowBeingEdited != null">
         <model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
@@ -38,9 +58,7 @@
                     :json-api-model-name="selectedSubTable"></table-view>
 
       </div>
-    </div>
-
-
+    </section>
   </div>
 </template>
 

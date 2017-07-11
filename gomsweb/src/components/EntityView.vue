@@ -1,11 +1,21 @@
 <template>
 
+  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <h1>
 
-  <div class="box">
-    <div class="box-header">
-      <div class="box-title">
-        <span style="font-size: 40px; font-weight: 700">{{selectedTable | titleCase}}</span>
-      </div>
+        {{selectedTable | titleCase}}
+        <small>{{ $route.meta.description }}</small>
+      </h1>
+      <ol class="breadcrumb">
+        <li>
+          <a href="javascript:;">
+            <i class="fa fa-home"></i>Home</a>
+        </li>
+        <li class="active">{{$route.name.toUpperCase()}}</li>
+      </ol>
       <div class="box-tools pull-right">
         <div class="ui icon buttons">
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'"><i
@@ -13,17 +23,20 @@
           </button>
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'card'"><i
             class="fa  fa-2x fa-th-large fuchsia"></i></button>
-          <router-link v-if="selectedTable" :to="{name: 'NewEntity', params: {tablename: selectedTable}}" class="btn btn-box-tool"
+          <router-link v-if="selectedTable" :to="{name: 'NewEntity', params: {tablename: selectedTable}}"
+                       class="btn btn-box-tool"
                        @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i></router-link>
           <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh orange"></i>
           </button>
-          <button class="btn btn-box-tool" @click.prevent="doAction(addExchangeAction)"><i
-            class="fa fa-2x fa-link teal"></i></button>
+          <router-link :to="{name: 'Action', params: {actionname: 'add_exchange', tablename: 'world'}}"
+                       class="btn btn-box-tool"><i
+            class="fa fa-2x fa-link teal"></i></router-link>
         </div>
 
       </div>
-    </div>
-    <div class="box-body">
+    </section>
+    <section class="content">
+
       <div class="row" v-if="showAddEdit && rowBeingEdited != null">
         <div class="col-md-12">
           <model-form :hideTitle="true" @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
@@ -36,10 +49,11 @@
       <table-view @newRow="newRow()" @editRow="editRow"
                   :finder="finder" ref="tableview1" :view-mode="viewMode" :json-api="jsonApi"
                   :json-api-model-name="selectedTable" v-if="selectedTable && !showAddEdit"></table-view>
-    </div>
 
+    </section>
 
   </div>
+
 
 </template>
 
@@ -76,7 +90,8 @@
         showAddEdit: false,
         selectedWorldAction: {},
         addExchangeAction: null,
-        viewMode: "card"
+        viewMode: "card",
+        rowBeingEdited: null,
       }
     },
     methods: {
@@ -85,7 +100,10 @@
         $('#uploadJson').modal('hide all');
       },
       doAction (action) {
+        console.log("set action", action);
+
         this.$store.commit("SET_SELECTED_ACTION", action)
+        this.rowBeingEdited = true;
         this.showAddEdit = true;
       },
       uploadJsonSchemaFile(){
