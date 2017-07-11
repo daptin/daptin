@@ -167,8 +167,8 @@
           }
         },
         {
-          "type": "action.response",
-          "method": "client.notify",
+          "type": "client.notify",
+          "method": "ACTIONRESPONSE",
           "attributes": {
             "type": "success",
             "message": "Created new todo, taking you to it.",
@@ -176,8 +176,8 @@
           }
         },
         {
-          "type": "action.response",
-          "method": "client.redirect",
+          "type": "client.redirect",
+          "method": "ACTIONRESPONSE",
           "attributes": {
             "location": "/in/todos/$.reference_id",
             "window": "self",
@@ -185,16 +185,16 @@
           }
         },
         {
-          "type": "action.response",
-          "method": "client.store",
+          "type": "client.store.set",
+          "method": "ACTIONRESPONSE",
           "attributes": {
             "value": "last_created_todo",
             "key": "$.reference_id"
           }
         },
         {
-          "type": "action.response",
-          "method": "error",
+          "type": "error",
+          "method": "ACTIONRESPONSE",
           "attributes": {
             "message": "show this in error notification body"
           }
@@ -237,8 +237,8 @@
           }
         },
         {
-          "type": "action.response",
-          "method": "client.redirect",
+          "type": "client.redirect",
+          "method": "ACTIONRESPONSE",
           "attributes": {
             "location": "/in/project/$.reference_id",
             "window": "self",
