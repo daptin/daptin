@@ -29,10 +29,10 @@
               <i class="fa fa-2x fa-expand"></i>
             </button>
 
-            <button class="btn btn-box-tool"
-                    @click="onAction('view-item', props.rowData, props.rowIndex)">
-              <i class="fa  fa-2x fa-eye"></i>
-            </button>
+            <!--<button class="btn btn-box-tool"-->
+                    <!--@click="onAction('view-item', props.rowData, props.rowIndex)">-->
+              <!--<i class="fa  fa-2x fa-eye"></i>-->
+            <!--</button>-->
 
             <button class="btn btn-box-tool"
                     @click="onAction('edit-item', props.rowData, props.rowIndex)">
@@ -82,10 +82,10 @@
               <i class="fa fa-2x fa-expand"></i>
             </button>
 
-            <button class="btn btn-box-tool"
-                    @click="onAction('view-item', props.rowData, props.rowIndex)">
-              <i class="fa  fa-2x fa-eye"></i>
-            </button>
+            <!--<button class="btn btn-box-tool"-->
+                    <!--@click="onAction('view-item', props.rowData, props.rowIndex)">-->
+              <!--<i class="fa  fa-2x fa-eye"></i>-->
+            <!--</button>-->
 
             <button class="btn btn-box-tool"
                     @click="onAction('edit-item', props.rowData, props.rowIndex)">

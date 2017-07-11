@@ -272,9 +272,9 @@ var SystemActions = []Action{
     },
   },
   {
-    Name:             "add.exchange",
+    Name:             "add_exchange",
     Label:            "Add new data exchange",
-    OnType:           "data_exchange",
+    OnType:           "world",
     InstanceOptional: true,
     InFields: []api2go.ColumnInfo{
       {

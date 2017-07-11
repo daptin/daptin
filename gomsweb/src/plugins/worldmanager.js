@@ -41,7 +41,7 @@ const WorldManager = function () {
   };
 
   that.trackObjectEvent = function (typeName, stateMachineRefId, eventName) {
-
+    console.log("change object track", getToken())
     return axios({
       url: appconfig.apiRoot + "/track/event/" + stateMachineRefId + "/" + eventName,
       url: appconfig.apiRoot + "/track/event/" + typeName + "/" + stateMachineRefId + "/" + eventName,

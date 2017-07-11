@@ -58,7 +58,7 @@
         }
       },
       processFile: function (file, filelist) {
-        console.log("provided schema", this.schema)
+        console.log("provided schema", this.schema, file.raw)
         const isJson = file.raw.type === 'application/json';
 
         if (!isJson) {
@@ -71,7 +71,7 @@
           }
 
 
-          this.$message.error('Please select a JSON file');
+          this.$message.error('Please select a application/json file. You are uploading: ' + file.raw.type);
           return isJson;
         }
 

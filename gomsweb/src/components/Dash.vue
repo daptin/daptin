@@ -226,27 +226,7 @@
     <!-- Left side column. contains the logo and sidebar -->
     <sidebar :user="user"/>
 
-    <!-- Content Wrapper. Contains page content -->
-    <div class="content-wrapper">
-      <!-- Content Header (Page header) -->
-      <section class="content-header">
-        <!--<h1>-->
-
-        <!--{{$route.name.toUpperCase() }}-->
-
-        <!--<small>{{ $route.meta.description }}</small>-->
-        <!--</h1>-->
-        <!--<ol class="breadcrumb">-->
-        <!--<li>-->
-        <!--<a href="javascript:;">-->
-        <!--<i class="fa fa-home"></i>Home</a>-->
-        <!--</li>-->
-        <!--<li class="active">{{$route.name.toUpperCase()}}</li>-->
-        <!--</ol>-->
-      </section>
-
-      <router-view></router-view>
-    </div>
+    <router-view></router-view>
     <!-- /.content-wrapper -->
 
     <!-- Main Footer -->
@@ -258,7 +238,6 @@
 </template>
 
 <script>
-  import faker from 'faker'
   import {mapState} from 'vuex'
   import config from '../config'
   import Sidebar from './Sidebar'
@@ -718,6 +697,13 @@
       },
       changeloading () {
         this.$store.commit('TOGGLE_SEARCHING')
+      }
+    },
+    watch: {
+      '$route': function () {
+        setTimeout(function () {
+          $(window).resize();
+        }, 100);
       }
     }
   }

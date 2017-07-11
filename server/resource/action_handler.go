@@ -203,7 +203,6 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
           actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
         }
         responses = append(responses, actionResponse)
-        break
       case "UPDATE":
         res, err = dbResource.Update(model, request)
         if err != nil {
@@ -212,7 +211,6 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
           actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
         }
         responses = append(responses, actionResponse)
-        break
       case "DELETE":
         res, err = dbResource.Delete(model.Data["reference_id"].(string), request)
         if err != nil {
@@ -221,7 +219,6 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
           actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
         }
         responses = append(responses, actionResponse)
-        break
       case "EXECUTE":
         //res, err = cruds[outcome.Type].Create(model, request)
 
@@ -229,15 +226,15 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
         if !ok {
           log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
           ginContext.AbortWithError(500, errors.New("Invalid outcome"))
-          return
+        } else {
+          responses1, errors1 := performer.DoAction(actionRequest, inFieldMap)
+          responses = append(responses, responses1...)
+          if errors1 != nil && len(errors1) > 0 {
+            err = errors1[0]
+          }
+
         }
 
-        responses1, errors1 := performer.DoAction(actionRequest, inFieldMap)
-        responses = append(responses, responses1...)
-        if errors1 != nil && len(errors1) > 0 {
-          err = errors1[0]
-        }
-        break
       case "ACTIONRESPONSE":
         //res, err = cruds[outcome.Type].Create(model, request)
         log.Infof("Create action response: ", model.GetName())
@@ -245,22 +242,19 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
         switch model.GetName() {
         case "client.notify":
           actionResponse = NewActionResponse("client.notify", model.Data)
-          break;
         case "client.redirect":
           actionResponse = NewActionResponse("client.redirect", model.Data)
-          break;
         case "client.store.set":
           actionResponse = NewActionResponse("client.store.set", model.Data)
-          break;
         case "error":
           actionResponse = NewActionResponse("error", model.Data)
-          break;
         default:
 
         }
         responses = append(responses, actionResponse)
 
-        break
+      default:
+        log.Errorf("Unknown outcome method: %v", outcome.Method)
 
       }
       if res != nil && res.Result() != nil {
@@ -357,7 +351,6 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
     log.Infof("Written all json files. Attempting restart")
 
     return responseModel, returnRequest, nil
-    break
 
   case "system_json_schema_download":
 
@@ -370,7 +363,6 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 
     return respopnseModel, returnRequest, nil
 
-    break
   case "become_admin":
 
     respopnseModel := api2go.NewApi2GoModel("__become_admin", nil, 0, nil)
@@ -382,7 +374,6 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 
     return respopnseModel, returnRequest, nil
 
-    break
   case "jwt.token":
 
     respopnseModel := api2go.NewApi2GoModel("generate.jwt.token", nil, 0, nil)
@@ -393,21 +384,22 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
     }
 
     return respopnseModel, returnRequest, nil
-
-    break
   case "action.response":
-
+    fallthrough
+  case "client.redirect":
+    fallthrough
+  case "client.store.set":
+    fallthrough
+  case "client.notify":
     //respopnseModel := NewActionResponse(attrs["responseType"].(string), attrs)
     returnRequest := api2go.Request{
       PlainRequest: &http.Request{
         Method: "ACTIONRESPONSE",
       },
     }
-    model := api2go.NewApi2GoModelWithData(outcome.Method, nil, auth.DEFAULT_PERMISSION, nil, attrs)
+    model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION, nil, attrs)
 
     return model, returnRequest, nil
-
-    break
 
   case "POST":
 

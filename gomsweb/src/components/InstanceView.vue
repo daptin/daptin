@@ -1,124 +1,130 @@
 <template>
+  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <h1>
+        {{selectedTable | titleCase}} - <b>{{selectedRow | chooseTitle | titleCase}}</b>
+        <small>{{ $route.meta.description }}</small>
+      </h1>
+      <ol class="breadcrumb">
+        <li>
+          <a href="javascript:;">
+            <i class="fa fa-home"></i>Home</a>
+        </li>
+        <li class="active">{{$route.name.toUpperCase()}}</li>
+      </ol>
+      <div class="pull-right">
+        <div class="ui icon buttons">
+          <button class="btn btn-box-tool" @click.prevent="editRow()"><i
+            class="fa fa-3x fa-pencil-square teal"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+    <section class="content">
 
-  <div class="row">
+      <div class="row">
 
-    <div class="col-md-12">
-      <div class="box">
-
-        <div class="box-header">
-          <div class="box-title">
-            <span
-              style="font-size: 40px; font-weight: 400">{{selectedTable | titleCase}} - <b>{{selectedRow | chooseTitle | titleCase}}</b></span>
+        <div class="col-md-12" v-if="showAddEdit">
+          <div class="row" v-if="selectedAction != null">
+            <action-view @cancel="showAddEdit = false" @action-complete="showAddEdit = false"
+                         :action-manager="actionManager" :action="selectedAction"
+                         :json-api="jsonApi" :model="selectedRow"></action-view>
           </div>
-          <div class="box-tools pull-right">
-            <div class="ui icon buttons">
-              <button class="btn btn-box-tool" @click.prevent="editRow()"><i
-                class="fa fa-3x fa-pencil-square teal"></i>
-              </button>
-            </div>
+          <div class="row" v-if="rowBeingEdited != null">
+            <model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
+                        @cancel="showAddEdit = false"
+                        v-bind:model="rowBeingEdited"
+                        v-bind:meta="selectedTableColumns" ref="modelform"></model-form>
           </div>
         </div>
+        <div class="col-md-9">
 
-        <div class="box-body">
-          <div class="col-md-12" v-if="showAddEdit">
-            <div class="row" v-if="selectedAction != null">
-              <action-view @cancel="showAddEdit = false" @action-complete="showAddEdit = false"
-                           :action-manager="actionManager" :action="selectedAction"
-                           :json-api="jsonApi" :model="selectedRow"></action-view>
-            </div>
-            <div class="row" v-if="rowBeingEdited != null">
-              <model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
-                          @cancel="showAddEdit = false"
-                          v-bind:model="rowBeingEdited"
-                          v-bind:meta="selectedTableColumns" ref="modelform"></model-form>
-            </div>
-          </div>
-          <div class="col-md-9">
+          <detailed-table-row :model="selectedRow" v-if="selectedRow" :json-api="jsonApi"
+                              :json-api-model-name="selectedTable"></detailed-table-row>
 
-            <detailed-table-row :model="selectedRow" v-if="selectedRow" :json-api="jsonApi"
-                                :json-api-model-name="selectedTable"></detailed-table-row>
-
-            <div class="row" v-if="showAddEdit && rowBeingEdited != null">
+          <div class="row" v-if="showAddEdit && rowBeingEdited != null">
 
 
-              <model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
-                          v-if="selectedSubTable"
-                          @cancel="showAddEdit = false"
-                          v-bind:model="rowBeingEdited"
-                          v-bind:meta="subTableColumns" ref="modelform"></model-form>
-
-
-            </div>
+            <model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
+                        v-if="selectedSubTable"
+                        @cancel="showAddEdit = false"
+                        v-bind:model="rowBeingEdited"
+                        v-bind:meta="subTableColumns" ref="modelform"></model-form>
 
 
           </div>
-          <div class="col-md-3">
 
 
-            <div class="row" v-if="stateMachines != null && stateMachines.length > 0">
-              <div class="col-md-12">
-                <h2>Start Tracking</h2>
-              </div>
-              <div class="col-md-12" v-for="a, k in stateMachines">
-                <button class="btn btn-default" style="width: 100%" @click="addStateMachine(a)">{{a.label}}</button>
-              </div>
+        </div>
+        <div class="col-md-3">
+
+
+          <div class="row" v-if="stateMachines != null && stateMachines.length > 0">
+            <div class="col-md-12">
+              <h2>Start Tracking</h2>
             </div>
-
-
-            <div class="row" v-if="actions != null">
-              <div class="col-md-12">
-                <h2>Actions</h2>
-              </div>
-              <div class="col-md-12" v-for="a, k in actions">
-                <button class="btn btn-default" style="width: 100%" @click="doAction(a)">{{a.label}}</button>
-              </div>
+            <div class="col-md-12" v-for="a, k in stateMachines">
+              <button class="btn btn-default" style="width: 100%" @click="addStateMachine(a)">{{a.label}}</button>
             </div>
-
-            <div class="row" v-if="visibleWorlds.length > 0">
-              <div class="col-md-12">
-                <h2>Related</h2>
-              </div>
-              <div class="col-md-12" v-for="world in visibleWorlds">
-                <router-link v-if="selectedInstanceReferenceId" style="width: 100%" class="btn btn-default"
-                             :to="{name: 'Relation', params: {tablename: selectedTable, refId: selectedInstanceReferenceId, subTable: world.table_name}}">
-                  {{world.table_name | titleCase}}
-                </router-link>
-              </div>
-            </div>
-
-
           </div>
+
+
+          <div class="row" v-if="actions != null">
+            <div class="col-md-12">
+              <h2>Actions</h2>
+            </div>
+            <div class="col-md-12" v-for="a, k in actions">
+              <button class="btn btn-default" style="width: 100%" @click="doAction(a)">{{a.label}}</button>
+            </div>
+          </div>
+
+          <div class="row" v-if="visibleWorlds.length > 0">
+            <div class="col-md-12">
+              <h2>Related</h2>
+            </div>
+            <div class="col-md-12" v-for="world in visibleWorlds">
+              <router-link v-if="selectedInstanceReferenceId" style="width: 100%" class="btn btn-default"
+                           :to="{name: 'Relation', params: {tablename: selectedTable, refId: selectedInstanceReferenceId, subTable: world.table_name}}">
+                {{world.table_name | titleCase}}
+              </router-link>
+            </div>
+          </div>
+
 
         </div>
 
       </div>
-    </div>
 
-    <div class="col-md-12">
-      <div class="box" v-if="objectStates.length > 0">
-        <div class="box-header">
-          <div class="box-title">
-            <h2>Status tracks</h2>
-          </div>
-        </div>
-        <div class="box-body">
-          <div class="col-md-2" v-for="state, k in objectStates">
-            <div class="row">
-              <div class="col-md-12">
-                <span class="badge" style="width: 100%; text-transform: uppercase">{{state.current_state}}</span>
-              </div>
+
+      <div class="col-md-12">
+        <div class="box" v-if="objectStates.length > 0">
+          <div class="box-header">
+            <div class="box-title">
+              <h2>Status tracks</h2>
             </div>
-            <div class="row">
-              <div class="col-md-12">
-                <button @click="doEvent(state, action)" class="btn btn-primary btn-xs btn-flat" style="width: 100%"
-                        v-for="action in state.possibleActions">{{action.label}}
-                </button>
+          </div>
+          <div class="box-body">
+            <div class="col-md-2" v-for="state, k in objectStates">
+              <div class="row">
+                <div class="col-md-12">
+                  <span class="badge" style="width: 100%; text-transform: uppercase">{{state.current_state}}</span>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-12">
+                  <button @click="doEvent(state, action)" class="btn btn-primary btn-xs btn-flat" style="width: 100%"
+                          v-for="action in state.possibleActions">{{action.label}}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+    </section>
   </div>
 
 
