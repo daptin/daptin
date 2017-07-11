@@ -1,18 +1,35 @@
 <template>
-  <div class="row">
+
+  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <h1>
+        <small>{{ $route.actionname }}</small>
+      </h1>
+      <ol class="breadcrumb">
+        <li>
+          <a href="javascript:;">
+            <i class="fa fa-home"></i>Home</a>
+        </li>
+        <li class="active">{{$route.name.toUpperCase()}}</li>
+      </ol>
+
+    </section>
+    <section class="content">
 
 
+      <div class="col-md-12">
+        <action-view ref="systemActionView" v-if="action" :hide-title="false" @cancel="cancel"
+                     :action-manager="actionManager"
+                     :action="action"
+                     :json-api="jsonApi"></action-view>
 
-    <div class="col-md-12">
-      <action-view ref="systemActionView" v-if="action" :hide-title="false" @cancel="cancel"
-                   :action-manager="actionManager"
-                   :action="action"
-                   :json-api="jsonApi"></action-view>
+      </div>
+      <h3 v-if="!action">404, Action not found</h3>
 
 
-    </div>
-
-
+    </section>
   </div>
 </template>
 

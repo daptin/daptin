@@ -348,6 +348,10 @@
             field.visible = false;
           }
 
+          if (field.name == "created_at") {
+            field.visible = false;
+          }
+
           if (field.name == "reference_id") {
 //                        field.visible = false;
           }
