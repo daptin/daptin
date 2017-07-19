@@ -8,13 +8,10 @@ import (
   "github.com/artpar/goms/server/auth"
   "github.com/artpar/goms/server/resource"
   "github.com/jamiealquiza/envy"
-  "github.com/jmoiron/sqlx"
   "net/http"
   //"strings"
-  "encoding/json"
   "fmt"
   "io/ioutil"
-  "path/filepath"
   //"github.com/pkg/errors"
   "flag"
   uuid2 "github.com/satori/go.uuid"
@@ -22,66 +19,6 @@ import (
 )
 
 var cruds = make(map[string]*resource.DbResource)
-
-func loadConfigFiles() (resource.CmsConfig, []error) {
-
-  var err error
-
-  errs := make([]error, 0)
-  var globalInitConfig resource.CmsConfig
-  globalInitConfig = resource.CmsConfig{
-    Tables:                   make([]resource.TableInfo, 0),
-    Relations:                make([]api2go.TableRelation, 0),
-    Actions:                  make([]resource.Action, 0),
-    StateMachineDescriptions: make([]resource.LoopbookFsmDescription, 0),
-  }
-
-  globalInitConfig.Tables = append(globalInitConfig.Tables, resource.StandardTables...)
-  globalInitConfig.Relations = append(globalInitConfig.Relations, resource.StandardRelations...)
-  globalInitConfig.Actions = append(globalInitConfig.Actions, resource.SystemActions...)
-  globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
-  globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
-
-  files, err := filepath.Glob("schema_*_gocms.json")
-  log.Infof("Found files to load: %v", files)
-
-  if err != nil {
-    errs = append(errs, err)
-    return globalInitConfig, errs
-  }
-
-  for _, fileName := range files {
-    log.Infof("Process file: %v", fileName)
-
-    fileContents, err := ioutil.ReadFile(fileName)
-    if err != nil {
-      errs = append(errs, err)
-      continue
-    }
-    var initConfig resource.CmsConfig
-    err = json.Unmarshal(fileContents, &initConfig)
-    if err != nil {
-      errs = append(errs, err)
-      continue
-    }
-
-    globalInitConfig.Tables = append(globalInitConfig.Tables, initConfig.Tables...)
-    globalInitConfig.Relations = append(globalInitConfig.Relations, initConfig.Relations...)
-    globalInitConfig.Actions = append(globalInitConfig.Actions, initConfig.Actions...)
-    globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, initConfig.StateMachineDescriptions...)
-    globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
-
-    //for _, table := range initConfig.Tables {
-    //log.Infof("Table: %v: %v", table.TableName, table.Relations)
-    //}
-
-    log.Infof("File added to config, deleting %v", fileName)
-
-  }
-
-  return globalInitConfig, errs
-
-}
 
 func Main(boxRoot, boxStatic http.FileSystem) {
 
@@ -143,11 +80,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 
   r := gin.Default()
   r.Use(CorsMiddlewareFunc)
-
-  //r.StaticFS("/static", http.Dir("./gomsweb/dist/static"))
-  //boxStatic := rice.MustFindBox("./gomsweb/dist/static").HTTPBox()
   r.StaticFS("/static", boxStatic)
-  //r.StaticFile("", "./gomsweb/dist/index.html")
 
   r.GET("/favicon.ico", func(c *gin.Context) {
 
@@ -156,19 +89,15 @@ func Main(boxRoot, boxStatic http.FileSystem) {
     _, err = c.Writer.Write(fileContents)
     resource.CheckErr(err, "Failed to write favico")
   })
+
   configStore, err := resource.NewConfigStore(db)
-  if err != nil {
-    log.Errorf("Failed to create a config store: %v", err)
-  }
+  jwtSecret, _ := configStore.GetConfigValueFor("jwt.secret", "backend")
+
+  resource.CheckError(err, "Failed to get config store")
+  err = CheckSystemSecrets(configStore)
+  resource.CheckErr(err, "Failed to initialise system secrets")
 
   r.GET("/config", CreateConfigHandler(configStore))
-
-  jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
-  if err != nil {
-    jwtSecret = uuid2.NewV4().String()
-    err = configStore.SetConfigValueFor("jwt.secret", jwtSecret, "backend")
-    resource.CheckErr(err, "Failed to store jwt secret")
-  }
 
   authMiddleware := auth.NewAuthMiddlewareBuilder(db)
   auth.InitJwtMiddleware([]byte(jwtSecret))
@@ -183,14 +112,6 @@ func Main(boxRoot, boxStatic http.FileSystem) {
   )
   ms := BuildMiddlewareSet(&initConfig)
   cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore)
-
-  encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend")
-
-  if err != nil || len(encryptionSecret) < 10 {
-
-    newSecret := strings.Replace(uuid2.NewV4().String(), "-", "", -1)
-    configStore.SetConfigValueFor("encryption.secret", newSecret, "backend")
-  }
 
   authMiddleware.SetUserCrud(cruds["user"])
   authMiddleware.SetUserGroupCrud(cruds["usergroup"])
@@ -222,59 +143,21 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 
   r.Run(fmt.Sprintf(":%v", *port))
 }
-
-func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore) []resource.ActionPerformerInterface {
-  performers := make([]resource.ActionPerformerInterface, 0)
-
-  becomeAdminPerformer, err := resource.NewBecomeAdminPerformer(initConfig, cruds)
-  resource.CheckErr(err, "Failed to create become admin performer")
-  performers = append(performers, becomeAdminPerformer)
-
-  downloadConfigPerformer, err := resource.NewDownloadCmsConfigPerformer(initConfig)
-  resource.CheckErr(err, "Failed to create download config performer")
-  performers = append(performers, downloadConfigPerformer)
-
-  oauth2redirect, err := resource.NewOauthLoginBeginActionPerformer(initConfig, cruds, configStore)
-  resource.CheckErr(err, "Failed to create oauth2 request performer")
-  performers = append(performers, oauth2redirect)
-
-  oauth2response, err := resource.NewOauthLoginResponseActionPerformer(initConfig, cruds, configStore)
-  resource.CheckErr(err, "Failed to create oauth2 response handler")
-  performers = append(performers, oauth2response)
-
-  generateJwtPerformer, err := resource.NewGenerateJwtTokenPerformer(configStore, cruds)
-  resource.CheckErr(err, "Failed to create generate jwt performer")
-  performers = append(performers, generateJwtPerformer)
-
-  restartPerformer, err := resource.NewRestarSystemPerformer(initConfig)
-  resource.CheckErr(err, "Failed to create restart performer")
-  performers = append(performers, restartPerformer)
-
-  return performers
-}
-
-func CreateConfigHandler(configStore *resource.ConfigStore) func(context *gin.Context) {
-
-  return func(c *gin.Context) {
-    webConfig := configStore.GetWebConfig()
-    c.JSON(200, webConfig)
+func CheckSystemSecrets(store *resource.ConfigStore) error {
+  jwtSecret, err := store.GetConfigValueFor("jwt.secret", "backend")
+  if err != nil {
+    jwtSecret = uuid2.NewV4().String()
+    err = store.SetConfigValueFor("jwt.secret", jwtSecret, "backend")
+    resource.CheckErr(err, "Failed to store jwt secret")
   }
-}
 
+  encryptionSecret, err := store.GetConfigValueFor("encryption.secret", "backend")
 
-func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet, configStore *resource.ConfigStore) map[string]*resource.DbResource {
-  cruds = make(map[string]*resource.DbResource)
-  for _, table := range tables {
-    log.Infof("Table [%v] Relations: %v", table.TableName)
-    for _, r := range table.Relations {
-      log.Infof("Relation :: %v", r.String())
-    }
-    model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
+  if err != nil || len(encryptionSecret) < 10 {
 
-    res := resource.NewDbResource(model, db, ms, cruds, configStore)
-
-    cruds[table.TableName] = res
-    api.AddResource(model, res)
+    newSecret := strings.Replace(uuid2.NewV4().String(), "-", "", -1)
+    err = store.SetConfigValueFor("encryption.secret", newSecret, "backend")
   }
-  return cruds
+  return err
+
 }
