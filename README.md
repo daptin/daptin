@@ -48,7 +48,6 @@ Wedding | has many people called "attendees" | Send everyone SMS on updates to w
 - A status tracking system (Visually design a state machine and make it available for any kind of object)
 
 
-
 GoMS is a platform which can be customised using Schema files, which describe your requirements and processes.
 
 ## Tech Goals
