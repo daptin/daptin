@@ -309,6 +309,8 @@
         let selectedInstanceId = that.$route.params.refId;
 
         console.log("Start get states for ", tableName, selectedInstanceId);
+        var tableModel = jsonApi.modelFor(tableName);
+        console.log("json api model", tableModel);
 
         jsonApi.one(tableName, selectedInstanceId).all(tableName + "_has_state").get({
           page: {

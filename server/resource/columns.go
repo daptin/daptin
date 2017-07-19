@@ -558,11 +558,12 @@ var StandardTables = []TableInfo{
         ColumnType: "label",
       },
       {
-        Name:       "instance_optional",
-        ColumnName: "instance_optional",
-        IsIndexed:  false,
-        DataType:   "bool",
-        ColumnType: "truefalse",
+        Name:         "instance_optional",
+        ColumnName:   "instance_optional",
+        IsIndexed:    false,
+        DataType:     "bool",
+        ColumnType:   "truefalse",
+        DefaultValue: "true",
       },
       {
         Name:       "in_fields",

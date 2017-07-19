@@ -7,22 +7,31 @@
       </div>
     </div>
     <div class="box-body">
-      <el-select
-        v-model="selectedItem"
-        filterable
-        remote
-        :multiple="schema.multiple"
-        :placeholder="'Search and add ' + schema.inputType"
-        :remote-method="remoteMethod"
-        :loading="loading">
-        <el-option
-          v-for="item in options"
-          :key="item.value"
-          :label="item.label"
-          :value="item">
-        </el-option>
 
-      </el-select>
+
+      <div class="ui section">
+        <el-select
+          v-model="selectedItem"
+          filterable
+          remote
+          :multiple="schema.multiple"
+          :placeholder="'Search and add ' + schema.inputType"
+          :remote-method="remoteMethod"
+          :loading="loading">
+          <el-option
+            v-for="item in options"
+            :key="item.value"
+            :label="item.label"
+            :value="item">
+          </el-option>
+
+        </el-select>
+      </div>
+      <div class="ui section" v-if="selectedItem">
+        Selected: {{selectedItem | chooseTitle | titleCase }}
+      </div>
+
+
     </div>
     <div class="box-footer">
       <button v-if="selectedItem != null" @click.prevent="addObject"

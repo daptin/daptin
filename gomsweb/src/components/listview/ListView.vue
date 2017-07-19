@@ -123,9 +123,14 @@
     methods: {
 
       saveRow(obj) {
+        var that = this;
         var res = {data: obj, type: this.jsonApiModelName};
         this.$emit("addRow", this.jsonApiRelationName, res)
         this.showAddEdit = false;
+        setTimeout(function () {
+          console.log("reload data")
+          that.reloadData();
+        }, 1000);
       },
 
       cancel() {

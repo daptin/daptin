@@ -144,6 +144,12 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
   }
 }
 
+type JsModel struct {
+  ColumnModel   map[string]interface{}
+  Actions       []resource.Action
+  StateMachines []map[string]interface{}
+}
+
 func NewJsonApiRelation(name string, relationName string, relationType string, columnType string) JsonApiRelation {
 
   return JsonApiRelation{

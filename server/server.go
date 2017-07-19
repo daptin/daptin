@@ -3,20 +3,13 @@ package server
 import (
   "github.com/artpar/api2go"
   "github.com/artpar/api2go-adapter/gingonic"
-  _ "github.com/go-sql-driver/mysql"
   log "github.com/sirupsen/logrus"
   "gopkg.in/gin-gonic/gin.v1"
-  //"gopkg.in/authboss.v1"
-  _ "github.com/lib/pq"
-  _ "github.com/mattn/go-sqlite3"
-  //"io/ioutil"
-  //"encoding/json"
   "github.com/artpar/goms/server/auth"
   "github.com/artpar/goms/server/resource"
   "github.com/jamiealquiza/envy"
   "github.com/jmoiron/sqlx"
   "net/http"
-  "os"
   //"strings"
   "encoding/json"
   "fmt"
@@ -24,9 +17,7 @@ import (
   "path/filepath"
   //"github.com/pkg/errors"
   "flag"
-  "github.com/gorilla/context"
   uuid2 "github.com/satori/go.uuid"
-  "gopkg.in/Masterminds/squirrel.v1"
   "strings"
 )
 
@@ -109,10 +100,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 
   //configFile := "gocms_style.json"
 
-  db, err := sqlx.Open(*db_type, *connection_string)
-
-  //db, err := sqlx.Open("sqlite3", "test.db")
-  //db, err = sqlx.Open("mysql", "root:parth123@tcp(localhost:3306)/example")
+  db, err := GetDbConnection(*db_type, *connection_string)
   if err != nil {
     panic(err)
   }
@@ -265,193 +253,6 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
   return performers
 }
 
-func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*resource.DbResource, db *sqlx.DB) func(context *gin.Context) {
-
-  return func(gincontext *gin.Context) {
-
-    uId := context.Get(gincontext.Request, "user_id")
-    var currentUserReferenceId string
-    currentUsergroups := make([]auth.GroupPermission, 0)
-
-    if uId != nil {
-      currentUserReferenceId = uId.(string)
-    }
-    ugId := context.Get(gincontext.Request, "usergroup_id")
-    if ugId != nil {
-      currentUsergroups = ugId.([]auth.GroupPermission)
-    }
-
-    jsBytes, err := ioutil.ReadAll(gincontext.Request.Body)
-    if err != nil {
-      log.Errorf("Failed to read post body: %v", err)
-      gincontext.AbortWithError(400, err)
-      return
-    }
-
-    m := make(map[string]interface{})
-    json.Unmarshal(jsBytes, &m)
-
-    typename := m["typeName"].(string)
-    refId := m["referenceId"].(string)
-    stateMachineId := gincontext.Param("stateMachineId")
-
-    pr := &http.Request{}
-    pr.Method = "GET"
-    req := api2go.Request{
-      PlainRequest: pr,
-      QueryParams:  map[string][]string{},
-    }
-
-    context.Set(pr, "user_id", currentUserReferenceId)
-    context.Set(pr, "usergroup_id", currentUsergroups)
-
-    response, err := cruds["smd"].FindOne(stateMachineId, req)
-    if err != nil {
-      gincontext.AbortWithError(400, err)
-      return
-    }
-
-    stateMachineInstance := response.Result().(*api2go.Api2GoModel)
-    stateMachineInstanceProperties := stateMachineInstance.GetAttributes()
-    stateMachinePermission := cruds["smd"].GetRowPermission(stateMachineInstance.GetAllAsAttributes())
-
-    if !stateMachinePermission.CanExecute(currentUserReferenceId, currentUsergroups) {
-      gincontext.AbortWithStatus(403)
-      return
-    }
-
-    subjectInstanceResponse, err := cruds[typename].FindOne(refId, req)
-    if err != nil {
-      gincontext.AbortWithError(400, err)
-      return
-    }
-    subjectInstanceModel := subjectInstanceResponse.Result().(*api2go.Api2GoModel).GetAttributes()
-
-    newStateMachine := make(map[string]interface{})
-
-    newStateMachine["current_state"] = stateMachineInstanceProperties["initial_state"]
-    newStateMachine[typename+"_smd"] = stateMachineInstanceProperties["reference_id"]
-    newStateMachine["is_state_of_"+typename] = subjectInstanceModel["reference_id"]
-    newStateMachine["permission"] = "750"
-
-    req.PlainRequest.Method = "POST"
-
-    resp, err := cruds[typename+"_state"].Create(api2go.NewApi2GoModelWithData(typename+"_state", nil, 0, nil, newStateMachine), req)
-
-    //s, v, err := squirrel.Insert(typename + "_state").SetMap(newStateMachine).ToSql()
-    //if err != nil {
-    //  log.Errorf("Failed to create state insert query: %v", err)
-    //  gincontext.AbortWithError(500, err)
-    //}
-
-    //_, err = db.Exec(s, v...)
-    if err != nil {
-      log.Errorf("Failed to execute state insert query: %v", err)
-      gincontext.AbortWithError(500, err)
-      return
-    }
-
-    gincontext.JSON(200, resp)
-
-  }
-
-}
-
-func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmManager, cruds map[string]*resource.DbResource, db *sqlx.DB) func(context *gin.Context) {
-
-  return func(gincontext *gin.Context) {
-
-    currentUserReferenceId := context.Get(gincontext.Request, "user_id").(string)
-    currentUsergroups := context.Get(gincontext.Request, "usergroup_id").([]auth.GroupPermission)
-
-    pr := &http.Request{}
-    pr.Method = "GET"
-    req := api2go.Request{
-      PlainRequest: pr,
-      QueryParams:  map[string][]string{},
-    }
-
-    context.Set(pr, "user_id", currentUserReferenceId)
-    context.Set(pr, "usergroup_id", currentUsergroups)
-
-    objectStateMachineId := gincontext.Param("objectStateId")
-    typename := gincontext.Param("typename")
-
-    objectStateMachineResponse, err := cruds[typename+"_state"].FindOne(objectStateMachineId, req)
-    if err != nil {
-      log.Errorf("Failed to get object state machine: %v", err)
-      gincontext.AbortWithError(400, err)
-      return
-    }
-
-    objectStateMachine := objectStateMachineResponse.Result().(*api2go.Api2GoModel)
-
-    stateObject := objectStateMachine.Data
-
-    var subjectInstanceModel *api2go.Api2GoModel
-    var stateMachineDescriptionInstance *api2go.Api2GoModel
-
-    for _, included := range objectStateMachine.Includes {
-      casted := included.(*api2go.Api2GoModel)
-      if casted.GetTableName() == typename {
-        subjectInstanceModel = casted
-      } else if casted.GetTableName() == "smd" {
-        stateMachineDescriptionInstance = casted
-      }
-
-    }
-
-    stateMachineId := objectStateMachine.GetID()
-    eventName := gincontext.Param("eventName")
-
-    stateMachinePermission := cruds["smd"].GetRowPermission(stateMachineDescriptionInstance.GetAllAsAttributes())
-
-    if !stateMachinePermission.CanExecute(currentUserReferenceId, currentUsergroups) {
-      gincontext.AbortWithStatus(403)
-      return
-    }
-
-    nextState, err := fsmManager.ApplyEvent(subjectInstanceModel.GetAllAsAttributes(), NewStateMachineEvent(stateMachineId, eventName))
-    if err != nil {
-      gincontext.AbortWithError(400, err)
-      return
-    }
-
-    stateObject["current_state"] = nextState
-
-    s, v, err := squirrel.Update(typename + "_state").Set("current_state", nextState).Where(squirrel.Eq{"reference_id": stateMachineId}).ToSql()
-
-    _, err = db.Exec(s, v...)
-    if err != nil {
-      gincontext.AbortWithError(500, err)
-      return
-    }
-
-    gincontext.AbortWithStatus(200)
-
-  }
-
-}
-
-type simpleStateMachinEvent struct {
-  machineReferenceId string
-  eventName          string
-}
-
-func NewStateMachineEvent(machineId string, eventName string) resource.StateMachineEvent {
-  return &simpleStateMachinEvent{
-    machineReferenceId: machineId,
-    eventName:          eventName,
-  }
-}
-
-func (f *simpleStateMachinEvent) GetStateMachineInstanceId() string {
-  return f.machineReferenceId
-}
-func (f *simpleStateMachinEvent) GetEventName() string {
-  return f.eventName
-}
-
 func CreateConfigHandler(configStore *resource.ConfigStore) func(context *gin.Context) {
 
   return func(c *gin.Context) {
@@ -460,163 +261,6 @@ func CreateConfigHandler(configStore *resource.ConfigStore) func(context *gin.Co
   }
 }
 
-func CleanUpConfigFiles() {
-
-  files, _ := filepath.Glob("schema_*_gocms.json")
-  log.Infof("Found files to load: %v", files)
-
-  for _, fileName := range files {
-    os.Remove(fileName)
-
-  }
-
-}
-
-func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
-
-  ts := make([]resource.TableInfo, 0)
-
-  res, err := db.Queryx("select table_name, permission, default_permission, schema_json, is_top_level, is_hidden, is_state_tracking_enabled" +
-      " from world where deleted_at is null and table_name not like '%_has_%' and table_name not in ('world', 'world_column', 'action', 'user', 'usergroup')")
-  if err != nil {
-    log.Infof("Failed to select from world table: %v", err)
-    return ts, err
-  }
-
-  for res.Next() {
-    var table_name string
-    var permission int64
-    var default_permission int64
-    var schema_json string
-    var is_top_level bool
-    var is_hidden bool
-    var is_state_tracking_enabled bool
-
-    err = res.Scan(&table_name, &permission, &default_permission, &schema_json, &is_top_level, &is_hidden, &is_state_tracking_enabled)
-    if err != nil {
-      log.Errorf("Failed to scan json schema from world: %v", err)
-      continue
-    }
-
-    var t resource.TableInfo
-
-    err = json.Unmarshal([]byte(schema_json), &t)
-    if err != nil {
-      log.Errorf("Failed to unmarshal json schema: %v", err)
-      continue
-    }
-
-    t.TableName = table_name
-    t.Permission = permission
-    t.DefaultPermission = default_permission
-    t.IsHidden = is_hidden
-    t.IsTopLevel = is_top_level
-    t.IsStateTrackingEnabled = is_state_tracking_enabled
-    ts = append(ts, t)
-
-  }
-
-  log.Infof("Loaded %d tables from world table", len(ts))
-
-  return ts, nil
-
-}
-
-func BuildMiddlewareSet(cmsConfig *resource.CmsConfig) resource.MiddlewareSet {
-
-  var ms resource.MiddlewareSet
-
-  exchangeMiddleware := resource.NewExchangeMiddleware(cmsConfig, &cruds)
-
-  permissionChecker := &resource.TableAccessPermissionChecker{}
-
-  findOneHandler := resource.NewFindOneEventHandler()
-  createEventHandler := resource.NewCreateEventHandler()
-  updateEventHandler := resource.NewUpdateEventHandler()
-  deleteEventHandler := resource.NewDeleteEventHandler()
-
-  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
-    permissionChecker,
-  }
-
-  ms.AfterFindAll = []resource.DatabaseRequestInterceptor{
-    permissionChecker,
-  }
-
-  ms.BeforeCreate = []resource.DatabaseRequestInterceptor{
-    permissionChecker,
-    createEventHandler,
-  }
-  ms.AfterCreate = []resource.DatabaseRequestInterceptor{
-    permissionChecker,
-    createEventHandler,
-    exchangeMiddleware,
-  }
-
-  ms.BeforeDelete = []resource.DatabaseRequestInterceptor{
-    permissionChecker,
-    deleteEventHandler,
-  }
-  ms.AfterDelete = []resource.DatabaseRequestInterceptor{
-    permissionChecker,
-    deleteEventHandler,
-  }
-
-  ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
-    permissionChecker,
-    updateEventHandler,
-  }
-  ms.AfterUpdate = []resource.DatabaseRequestInterceptor{
-    permissionChecker,
-    updateEventHandler,
-  }
-
-  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
-    permissionChecker,
-    findOneHandler,
-  }
-  ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
-    permissionChecker,
-    findOneHandler,
-  }
-  return ms
-}
-
-type ManualResponse struct {
-  Data interface{}
-}
-
-//func GetActionList(typename string, initConfig *CmsConfig) []resource.Action {
-//
-//  actions := make([]resource.Action, 0)
-//
-//  for _, a := range initConfig.Actions {
-//    if a.OnType == typename {
-//      actions = append(actions, a)
-//    }
-//  }
-//  return actions
-//}
-
-type JsModel struct {
-  ColumnModel   map[string]interface{}
-  Actions       []resource.Action
-  StateMachines []map[string]interface{}
-}
-
-func CorsMiddlewareFunc(c *gin.Context) {
-  //log.Infof("middleware ")
-
-  c.Header("Access-Control-Allow-Origin", "*")
-  c.Header("Access-Control-Allow-Methods", "POST,GET,DELETE,PUT,OPTIONS,PATCH")
-  c.Header("Access-Control-Allow-Headers", "Content-Type,Authorization")
-
-  if c.Request.Method == "OPTIONS" {
-    c.AbortWithStatus(200)
-  }
-
-  return
-}
 
 func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet, configStore *resource.ConfigStore) map[string]*resource.DbResource {
   cruds = make(map[string]*resource.DbResource)
