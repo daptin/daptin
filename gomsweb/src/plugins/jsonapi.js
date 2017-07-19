@@ -44,7 +44,7 @@ jsonapi.insertMiddlewareBefore("HEADER", {
   }
 });
 
-jsonapi.insertMiddlewareBefore('response', {
+jsonapi.insertMiddlewareAfter('response', {
   name: 'track-request',
   req: function (payload) {
     // console.log("request initiate", payload);
@@ -63,7 +63,8 @@ jsonapi.insertMiddlewareBefore('response', {
 
         Notification.success({
           title: action + payload.config.model
-        })
+        });
+        console.log("return payload from response middleware")
       } else {
         Notification.warn({
           "title": "Unidentified status"

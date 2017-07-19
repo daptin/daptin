@@ -170,7 +170,7 @@
       addRow: function (colName, newRow) {
         var relation = this.getRelationByName(colName);
         if (relation == null) {
-          // console.log("relation not found: ", colName)
+          console.log("relation not found: ", colName)
           return
         }
 
@@ -191,55 +191,47 @@
 
           if (!newRow.data["id"]) {
             that.jsonApi.create(newRow.type, newRow.data).then(function (newRowResult) {
-              that.$notify.success("Created new " + that.chooseTitle(newRow));
-
-              var patchObject = {};
-              patchObject[relation.name] = {"id": newRowResult["id"]};
-              patchObject["id"] = that.model["id"];
-
-              // console.log("patch object", patchObject);
-              that.jsonApi.update(that.jsonApiModelName, patchObject).then(function (r) {
-
-                // console.log("reference of list : ", that.$refs[relation.name])
-                that.$refs[relation.name].reloadData()
-
-                that.$notify.success("Added " + relation.type);
-              }, function (err) {
-                that.$notify.error(err)
-              })
-
+              that.patchObjectAddRelation(colName, relation, newRowResult.id);
             })
           } else {
-            console.log("add to existing object", newRow)
-            var patchObject = {};
-
-
-            if (that.meta["attributes"][colName]["jsonApi"] == "hasMany") {
-              patchObject[relation.name] = [newRow.data];
-            } else {
-              patchObject[relation.name] = {
-                id: newRow.data.id,
-                type: relation.type,
-              };
-            }
-
-
-            patchObject["id"] = that.model["id"];
-
-            console.log("patch object", patchObject);
-            that.jsonApi.update(that.jsonApiModelName, patchObject).then(function (r) {
-              that.$notify.success("Added " + relation.type);
-              // console.log("reference of list : ", that.$refs[relation.name])
-              that.$refs[relation.name].reloadData()
-            }, function (err) {
-              that.$notify.error(err)
-            })
+            that.patchObjectAddRelation(colName, relation, newRow.data.id);
           }
 
 
         });
 
 
+      },
+
+      patchObjectAddRelation: function (colName, relation, newRowId) {
+        var that = this;
+        console.log("add to existing object", newRowId)
+        var patchObject = {};
+
+
+        if (that.meta["attributes"][colName]["jsonApi"] == "hasMany") {
+          patchObject[relation.name] = [{
+            id: newRowId,
+            type: relation.type,
+          }];
+        } else {
+          patchObject[relation.name] = {
+            id: newRowId,
+            type: relation.type,
+          };
+        }
+
+
+        patchObject["id"] = that.model["id"];
+
+        console.log("patch object", patchObject);
+        that.jsonApi.update(that.jsonApiModelName, patchObject).then(function (r) {
+          that.$notify.success("Added " + relation.type);
+          // console.log("reference of list : ", that.$refs[relation.name])
+          that.$refs[relation.name].reloadData()
+        }, function (err) {
+          that.$notify.error(err)
+        })
       },
       titleCase: function (str) {
         return str.replace(/[-_]/g, " ").trim().split(' ')

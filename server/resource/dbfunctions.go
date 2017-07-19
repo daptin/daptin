@@ -1190,7 +1190,10 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 }
 
 func alterTableAddColumn(tableName string, colInfo *api2go.ColumnInfo, sqlDriverName string) string {
-  return fmt.Sprintf("alter table %v add column %v", tableName, getColumnLine(colInfo, sqlDriverName))
+  sq := fmt.Sprintf("alter table %v add column %v", tableName, getColumnLine(colInfo, sqlDriverName))
+
+
+  return sq
 }
 
 func CreateTable(tableInfo *TableInfo, db *sqlx.DB) {
