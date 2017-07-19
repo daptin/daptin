@@ -20,16 +20,32 @@ GoMS is a ready-to-deploy schema driven adaptable platform for quick apps
 docker run -d -p 8080:8080 goms/goms
 ```
 
-Then open [console](http://localhost:8080)
+Then open [Goms Dashboard](http://localhost:8080) to sign up and sign-in
+
+## What can be done 
+
+Examples
+
+Define your own entities | Define relations | Subscribe to events | Sync changes with other systems | Deploy back end server
+--- | --- | --- | --- | ---
+Todo | Belongs to project | Send SMS if deadline is today | Update a Google Sheet when todo updated | Build an android app
+Todo | Has current status | Update manager when employee updates a todo | SMS when todo is marked complete | Build an Electron app
+Cooking Recipe | Has many Ingredients | Get Slack notification when anyone adds new Recipe | Get recipe from Google sheets | Build a quick angular app 
+Wedding | has many people called "attendees" | Send everyone SMS on updates to wedding party schedule | Calender changes with every attendees calender | Build a UI using React
+
 
 ## How can you use GoMS
 
-Goms uses a SQL database and works are a very high level framework/management system. 
+- Goms uses a SQL database and works like a very high level framework/management system
+- Goms asks you to define your domain entities along with their relations in the way you want to organise them.
+- Goms takes the responsibility of giving you following:
 
-Goms asks you to define your domain entities plus along with their relations in the way you want to organise them, and provide you a complete dashboard with following
 
-- a responsive dashboard, tested on desktop browsers and mobile browsers
-- A status tracking system 
+- A responsive dashboard to interact with the system, tested on desktop browsers and mobile browsers
+- A in-built event framework which you can hook to
+- User notifications - Email/Sms/Messengers/Dashboard
+- Actions - Which can be hooked to events, and have multiple outcomes
+- A status tracking system (Visually design a state machine and make it available for any kind of object)
 
 
 
@@ -37,8 +53,8 @@ GoMS is a platform which can be customised using Schema files, which describe yo
 
 ## Tech Goals
 
-- Zero config start (sqlite db for fresh install, data can be later automatically moved to mysql/postgres using goms)
-- A closely knit set of components to work together
+- Zero config start (sqlite db for fresh install, data can be moved to mysql/postgres using goms)
+- A closely knit set of components which work together
 - Completely configurable at runtime, can be run without any dev help
 - Stateless
 - Try to piggyback on used/known standards
@@ -51,31 +67,24 @@ Incomplete, might be confusing.
 
 Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
 
+## Roadmap
 
-## Subsystems 
 
-### Currently present
-
-- Normalised Db Design from JSON schema upload
-- Json Api, with CRUD and Relationships
-- OAuth Authentication, inbuilt jwt token generator (setups up secret itself)
-- Authorization based on a slightly modified linux FS permission model
-- Objects and action chains
-
-### Road Map
-
-| Goal                | Objectives                                                                                                                                                  |
-|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| State based objects | Objects to have multiple state machines concurrently maintained.                                                                                            |
-| Object events       | created/modified/deleted                                                                                                                                    |
-| Views               | Composing views on run time                                                                                                                                 |
-| Data connectors     | Event/action triggered Input/Output from the environment/services/apis |
-|       | Consume data from other services and send data to them |
-|       | Handle format exchanges |
-| Plugin system       |    Compose your desired modifications using resuable JSON files                                                                                                                                                         |
-| Pages/Sub-sites     |  Frequently there is a need for showing "list of items" to public   |
-| Tags                | Native support object tagging   |
-| Rich fields collection |   The system will understand the data better to provide you a lot more features       |
+* [x] Normalised Db Design from JSON schema upload
+* [x] Json Api, with CRUD and Relationships
+* [x] OAuth Authentication, inbuilt jwt token generator (setups up secret itself)
+* [x] Authorization based on a slightly modified linux FS permission model
+* [x] Objects and action chains
+* [x] State tracking using state machine
+* [ ] Native tag support for user defined entities
+* [ ] Data connectors -> Incoming/Outgoing data
+* [ ] Plugin system -> Grow the system according to your needs
+* [ ] Native support for different data types (geo location/time/colors/measurements)
+* [ ] Configurable intelligent Validation for data in the APIs
+* [ ] Pages/Sub-sites -> Create a sub-site for a target audiance
+* [ ] Define events all around the system
+* [ ] Ability define hooks on events from UI
+* [ ] Data conversion/exchange/transformations
 
 ### Target
 

@@ -7,7 +7,25 @@ import (
   "encoding/json"
   "path/filepath"
   "os"
+  "github.com/artpar/api2go"
 )
+
+func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet, configStore *resource.ConfigStore) map[string]*resource.DbResource {
+  cruds = make(map[string]*resource.DbResource)
+  for _, table := range tables {
+    log.Infof("Table [%v] Relations: %v", table.TableName)
+    for _, r := range table.Relations {
+      log.Infof("Relation :: %v", r.String())
+    }
+    model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
+
+    res := resource.NewDbResource(model, db, ms, cruds, configStore)
+
+    cruds[table.TableName] = res
+    api.AddResource(model, res)
+  }
+  return cruds
+}
 
 func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 
@@ -118,7 +136,6 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig) resource.MiddlewareSet {
   }
   return ms
 }
-
 
 func CleanUpConfigFiles() {
 
