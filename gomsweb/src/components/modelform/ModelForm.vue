@@ -228,9 +228,7 @@
           "updated_at",
           "created_at",
           "deleted_at",
-          "status",
           "user_id",
-          "permission",
           "usergroup_id"
         ];
 
