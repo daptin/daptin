@@ -12,3 +12,5 @@ test*
 bin/
 build/
 projectFilesBackup/
+gomsweb/static/samples/devsupport.json
+main
