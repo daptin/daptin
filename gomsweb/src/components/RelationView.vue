@@ -257,7 +257,7 @@
 
     mounted() {
       var that = this;
-      that.$store.dispatch("LOAD_WORLDS");
+//      that.$store.dispatch("LOAD_WORLDS");
       console.log("Enter tablename: ", that);
 
       that.actionManager = actionManager;
