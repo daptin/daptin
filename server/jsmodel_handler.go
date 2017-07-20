@@ -9,7 +9,14 @@ import (
   "gopkg.in/gin-gonic/gin.v1"
   "net/http"
   "strings"
+  "github.com/artpar/goms/server/apiblueprint"
 )
+
+func CreateApiBlueprintHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(ctx *gin.Context) {
+  return func(c *gin.Context) {
+    c.String(200, "%s", apiblueprint.BuildApiBlueprint(initConfig, cruds))
+  }
+}
 
 func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
   tableMap := make(map[string]resource.TableInfo)

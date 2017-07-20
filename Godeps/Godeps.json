@@ -2,15 +2,7 @@
 	"ImportPath": "github.com/artpar/goms",
 	"GoVersion": "go1.8",
 	"GodepVersion": "v79",
-	"Packages": [
-		"./..."
-	],
 	"Deps": [
-		{
-			"ImportPath": "cloud.google.com/go/compute/metadata",
-			"Comment": "v0.7.0-204-gc60d02f",
-			"Rev": "c60d02f3cdeb4bf91d4810e9e505800cad03ce9f"
-		},
 		{
 			"ImportPath": "github.com/GeertJohan/go.rice",
 			"Rev": "c02ca9a983da5807ddf7d796784928f5be4afd09"
@@ -57,6 +49,10 @@
 		{
 			"ImportPath": "github.com/boombuler/barcode/utils",
 			"Rev": "56ef0af91246fb5279df4f87bc3daf1bf7cb9e89"
+		},
+		{
+			"ImportPath": "github.com/corpix/uarand",
+			"Rev": "bec9f4e76616d890ce207e1898e5998764435494"
 		},
 		{
 			"ImportPath": "github.com/daaku/go.zipexe",
@@ -124,6 +120,10 @@
 			"ImportPath": "github.com/gorilla/context",
 			"Comment": "v1.1-7-g08b5f42",
 			"Rev": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
+		},
+		{
+			"ImportPath": "github.com/icrowley/fake",
+			"Rev": "9ebaa17f46192cb20228d501435ff944717ef907"
 		},
 		{
 			"ImportPath": "github.com/jamiealquiza/envy",
@@ -228,10 +228,6 @@
 			"Rev": "5f8847ae0d0e90b6a9dc8148e7ad616874625171"
 		},
 		{
-			"ImportPath": "golang.org/x/net/context/ctxhttp",
-			"Rev": "5f8847ae0d0e90b6a9dc8148e7ad616874625171"
-		},
-		{
 			"ImportPath": "golang.org/x/net/publicsuffix",
 			"Rev": "5f8847ae0d0e90b6a9dc8148e7ad616874625171"
 		},
@@ -240,19 +236,7 @@
 			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
 		},
 		{
-			"ImportPath": "golang.org/x/oauth2/google",
-			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
-		},
-		{
 			"ImportPath": "golang.org/x/oauth2/internal",
-			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
-		},
-		{
-			"ImportPath": "golang.org/x/oauth2/jws",
-			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
-		},
-		{
-			"ImportPath": "golang.org/x/oauth2/jwt",
 			"Rev": "f047394b6d14284165300fd82dad67edb3a4d7f6"
 		},
 		{
@@ -290,26 +274,6 @@
 		{
 			"ImportPath": "golang.org/x/text/unicode/norm",
 			"Rev": "3491b61b9edc56653ad4333e605e2908e46a036b"
-		},
-		{
-			"ImportPath": "google.golang.org/api/drive/v3",
-			"Rev": "1ba364a3bb616587dfd46d5009edefdfd7896ed9"
-		},
-		{
-			"ImportPath": "google.golang.org/api/gensupport",
-			"Rev": "1ba364a3bb616587dfd46d5009edefdfd7896ed9"
-		},
-		{
-			"ImportPath": "google.golang.org/api/googleapi",
-			"Rev": "1ba364a3bb616587dfd46d5009edefdfd7896ed9"
-		},
-		{
-			"ImportPath": "google.golang.org/api/googleapi/internal/uritemplates",
-			"Rev": "1ba364a3bb616587dfd46d5009edefdfd7896ed9"
-		},
-		{
-			"ImportPath": "google.golang.org/api/sheets/v4",
-			"Rev": "1ba364a3bb616587dfd46d5009edefdfd7896ed9"
 		},
 		{
 			"ImportPath": "gopkg.in/Masterminds/squirrel.v1",

@@ -9,13 +9,9 @@ import (
   "github.com/artpar/goms/server/resource"
   "github.com/jamiealquiza/envy"
   "net/http"
-  //"strings"
   "fmt"
   "io/ioutil"
-  //"github.com/pkg/errors"
   "flag"
-  uuid2 "github.com/satori/go.uuid"
-  "strings"
 )
 
 var cruds = make(map[string]*resource.DbResource)
@@ -124,6 +120,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
   })
 
   r.GET("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
+  r.GET("/apiblueprint.json", CreateApiBlueprintHandler(&initConfig, cruds))
   r.OPTIONS("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
 
   actionPerformers := GetActionPerformers(&initConfig, configStore)
@@ -141,23 +138,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
     resource.CheckErr(err, "Failed to write index html")
   })
 
+  resource.InitialiseColumnManager()
+
   r.Run(fmt.Sprintf(":%v", *port))
-}
-func CheckSystemSecrets(store *resource.ConfigStore) error {
-  jwtSecret, err := store.GetConfigValueFor("jwt.secret", "backend")
-  if err != nil {
-    jwtSecret = uuid2.NewV4().String()
-    err = store.SetConfigValueFor("jwt.secret", jwtSecret, "backend")
-    resource.CheckErr(err, "Failed to store jwt secret")
-  }
-
-  encryptionSecret, err := store.GetConfigValueFor("encryption.secret", "backend")
-
-  if err != nil || len(encryptionSecret) < 10 {
-
-    newSecret := strings.Replace(uuid2.NewV4().String(), "-", "", -1)
-    err = store.SetConfigValueFor("encryption.secret", newSecret, "backend")
-  }
-  return err
-
 }

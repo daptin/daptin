@@ -58,7 +58,7 @@ window.stringToColor = function (str, prc) {
 
   return shade(int_to_rgba(hash(str)), prc);
 
-}
+};
 
 
 window.chooseTitle = function (obj) {
@@ -91,7 +91,7 @@ window.chooseTitle = function (obj) {
     }
   }
 
-  console.log("choose totle for ", obj)
+  console.log("choose totle for ", obj);
   for (var i = 0; i < keys.length; i++) {
     if (keys[i].indexOf("description") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
       if (obj[keys[i]].length > 30) {
@@ -135,7 +135,7 @@ window.chooseTitle = function (obj) {
     return "#un-named";
   }
 
-}
+};
 
 window.titleCase = function (str) {
   // console.log("TitleCase  : [" + str + "]", str)
@@ -146,7 +146,7 @@ window.titleCase = function (str) {
     .map(w => (w[0] ? w[0].toUpperCase() : "") + w.substr(1).toLowerCase()).join(' ');
   // console.log("titled: ", s);
   return s
-}
+};
 
 Vue.filter('chooseTitle', chooseTitle);
 Vue.filter('titleCase', titleCase);
@@ -159,7 +159,8 @@ var router = new VueRouter({
   routes: routes,
   mode: 'history',
   scrollBehavior: function (to, from, savedPosition) {
-    return savedPosition || {x: 0, y: 0}
+    return {x: 0, y: 0}
+    // return savedPosition || {x: 0, y: 0}
   }
 });
 

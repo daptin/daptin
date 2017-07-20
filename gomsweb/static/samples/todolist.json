@@ -92,13 +92,13 @@
           "name": "order",
           "columnName": "item_order",
           "dataType": "int(4)",
-          "columnType": "number",
+          "columnType": "measurement",
           "defaultValue": "10"
         },
         {
           "name": "text",
           "dataType": "text",
-          "columnType": "text",
+          "columnType": "content",
           "isNullable": true
         }
       ]

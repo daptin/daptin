@@ -14,6 +14,7 @@ type CmsConfig struct {
   Relations                []api2go.TableRelation
   Actions                  []Action `json:"actions"`
   ExchangeContracts        []ExchangeContract `json:"exchanges"`
+  Hostname                 string
 }
 
 type User struct {
