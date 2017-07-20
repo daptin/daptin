@@ -53,14 +53,6 @@ var StandardColumns = []api2go.ColumnInfo{
     IsIndexed:  false,
     ColumnType: "value",
   },
-  {
-    Name:         "status",
-    ColumnName:   "status",
-    DataType:     "varchar(20)",
-    DefaultValue: "'pending'",
-    IsIndexed:    true,
-    ColumnType:   "state",
-  },
 }
 
 var StandardRelations = []api2go.TableRelation{
@@ -736,7 +728,7 @@ var StandardTables = []TableInfo{
       {
         Name:       "expires_in",
         ColumnName: "expires_in",
-        ColumnType: "minutes",
+        ColumnType: "measurement",
         DataType:   "int(11)",
       },
       {

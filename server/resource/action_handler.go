@@ -225,7 +225,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
         performer, ok := actionHandlerMap[model.GetName()]
         if !ok {
           log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
-          ginContext.AbortWithError(500, errors.New("Invalid outcome"))
+          //return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
         } else {
           responses1, errors1 := performer.DoAction(actionRequest, inFieldMap)
           responses = append(responses, responses1...)

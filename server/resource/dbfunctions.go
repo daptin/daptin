@@ -241,7 +241,7 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
     for j, col := range table.Columns {
 
       var colInfo api2go.ColumnInfo
-      err := db.QueryRowx("select name, is_unique, data_type, is_indexed, permission, column_type, column_name, is_nullable, default_value, is_primary_key, is_foreign_key, include_in_api, foreign_key_data, is_auto_increment from world_column where world_id = ? and column_name = ? and deleted_at is null", worldid, col.ColumnName).StructScan(&colInfo)
+      err := db.QueryRowx("select name, is_unique, data_type, is_indexed, permission, column_type, column_name, column_description, is_nullable, default_value, is_primary_key, is_foreign_key, include_in_api, foreign_key_data, is_auto_increment from world_column where world_id = ? and column_name = ? and deleted_at is null", worldid, col.ColumnName).StructScan(&colInfo)
       if err != nil {
         log.Infof("Failed to scan world column: ", err)
         log.Infof("No existing row for TableColumn[%v][%v]: %v", table.TableName, col.ColumnName, err)
@@ -256,6 +256,7 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
         mapData["permission"] = auth.DEFAULT_PERMISSION
         mapData["column_type"] = col.ColumnType
         mapData["column_name"] = col.ColumnName
+        mapData["column_description"] = col.ColumnDescription
         mapData["is_nullable"] = col.IsNullable
         mapData["reference_id"] = uuid.NewV4().String()
         mapData["default_value"] = col.DefaultValue
@@ -1191,7 +1192,6 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 
 func alterTableAddColumn(tableName string, colInfo *api2go.ColumnInfo, sqlDriverName string) string {
   sq := fmt.Sprintf("alter table %v add column %v", tableName, getColumnLine(colInfo, sqlDriverName))
-
 
   return sq
 }

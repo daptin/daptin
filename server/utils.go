@@ -8,7 +8,28 @@ import (
   "path/filepath"
   "os"
   "github.com/artpar/api2go"
+  "strings"
+  "github.com/satori/go.uuid"
 )
+
+func CheckSystemSecrets(store *resource.ConfigStore) error {
+  jwtSecret, err := store.GetConfigValueFor("jwt.secret", "backend")
+  if err != nil {
+    jwtSecret = uuid.NewV4().String()
+    err = store.SetConfigValueFor("jwt.secret", jwtSecret, "backend")
+    resource.CheckErr(err, "Failed to store jwt secret")
+  }
+
+  encryptionSecret, err := store.GetConfigValueFor("encryption.secret", "backend")
+
+  if err != nil || len(encryptionSecret) < 10 {
+
+    newSecret := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+    err = store.SetConfigValueFor("encryption.secret", newSecret, "backend")
+  }
+  return err
+
+}
 
 func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet, configStore *resource.ConfigStore) map[string]*resource.DbResource {
   cruds = make(map[string]*resource.DbResource)
