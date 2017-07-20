@@ -177,20 +177,21 @@ func (a *Api2GoModel) GetRelations() []TableRelation {
 }
 
 type ColumnInfo struct {
-  Name            string         `db:"name"`
-  ColumnName      string         `db:"column_name"`
-  ColumnType      string         `db:"column_type"`
-  IsPrimaryKey    bool           `db:"is_primary_key"`
-  IsAutoIncrement bool           `db:"is_auto_increment"`
-  IsIndexed       bool           `db:"is_indexed"`
-  IsUnique        bool           `db:"is_unique"`
-  IsNullable      bool           `db:"is_nullable"`
-  Permission      uint64         `db:"permission"`
-  IsForeignKey    bool           `db:"is_foreign_key"`
-  ExcludeFromApi  bool           `db:"include_in_api"`
-  ForeignKeyData  ForeignKeyData `db:"foreign_key_data"`
-  DataType        string         `db:"data_type"`
-  DefaultValue    string         `db:"default_value"`
+  Name              string         `db:"name"`
+  ColumnName        string         `db:"column_name"`
+  ColumnDescription string         `db:"column_description"`
+  ColumnType        string         `db:"column_type"`
+  IsPrimaryKey      bool           `db:"is_primary_key"`
+  IsAutoIncrement   bool           `db:"is_auto_increment"`
+  IsIndexed         bool           `db:"is_indexed"`
+  IsUnique          bool           `db:"is_unique"`
+  IsNullable        bool           `db:"is_nullable"`
+  Permission        uint64         `db:"permission"`
+  IsForeignKey      bool           `db:"is_foreign_key"`
+  ExcludeFromApi    bool           `db:"include_in_api"`
+  ForeignKeyData    ForeignKeyData `db:"foreign_key_data"`
+  DataType          string         `db:"data_type"`
+  DefaultValue      string         `db:"default_value"`
 }
 
 type ForeignKeyData struct {

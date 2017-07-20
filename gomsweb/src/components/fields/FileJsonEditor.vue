@@ -331,17 +331,38 @@
         if (!startVal) {
           startVal = {};
         } else {
-          startVal = JSON.parse(startVal)
+          if (typeof startVal != "string") {
+            startVal = startVal
+          } else {
+            startVal = JSON.parse(startVal)
+          }
         }
         console.log("start value", startVal);
         var element = document.getElementById('jsonEditor');
-        let schema = schemas[that.schema.inputType].schema;
+
+        let schema;
+        if (schemas[that.schema.inputType]) {
+          schema = schemas[that.schema.inputType].schema;
+        } else {
+          schema = {};
+        }
 
         var editor = new JSONEditor(element, {
           startval: startVal,
           schema: schema,
           theme: 'bootstrap3'
         });
+        editor.on('change', function () {
+          // Do something
+          console.log("Json data updated", editor.getValue());
+          var val = editor.getValue();
+          if (!val) {
+            that.value = null;
+          } else {
+            that.value = JSON.stringify(editor.getValue());
+          }
+        });
+
       }, 500)
     },
     methods: {}
