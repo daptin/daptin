@@ -370,7 +370,7 @@
           });
         } else {
           schema = {};
-          that.value = JSON.stringify(startVal);
+          that.value = JSON.stringify(startVal, null, 2);
           that.useAce = true;
           that.$on('editor-update', function (newValue) {
             that.value = newValue;
