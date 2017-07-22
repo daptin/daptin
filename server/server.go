@@ -1,144 +1,200 @@
 package server
 
 import (
-  "github.com/artpar/api2go"
-  "github.com/artpar/api2go-adapter/gingonic"
-  log "github.com/sirupsen/logrus"
-  "gopkg.in/gin-gonic/gin.v1"
-  "github.com/artpar/goms/server/auth"
-  "github.com/artpar/goms/server/resource"
-  "github.com/jamiealquiza/envy"
-  "net/http"
-  "fmt"
-  "io/ioutil"
-  "flag"
+	"github.com/artpar/api2go"
+	"github.com/artpar/api2go-adapter/gingonic"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/gin-gonic/gin.v1"
+	"github.com/artpar/goms/server/auth"
+	"github.com/artpar/goms/server/resource"
+	"github.com/jamiealquiza/envy"
+	"net/http"
+	"fmt"
+	"io/ioutil"
+	"flag"
 )
 
 var cruds = make(map[string]*resource.DbResource)
 
 func Main(boxRoot, boxStatic http.FileSystem) {
 
-  var port = flag.String("port", "6336", "GoMS port")
-  var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
-  var connection_string = flag.String("db_connection_string", "test.db", "\n\tSQLite: test.db\n"+
-      "\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
-      "\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
+	var port = flag.String("port", "6336", "GoMS port")
+	var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
+	var connection_string = flag.String("db_connection_string", "test.db", "\n\tSQLite: test.db\n"+
+			"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
+			"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
-  var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
+	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
 
-  envy.Parse("GOMS") // looks for GOMS_PORT
-  flag.Parse()
+	envy.Parse("GOMS") // looks for GOMS_PORT
+	flag.Parse()
 
-  gin.SetMode(*runtimeMode)
+	gin.SetMode(*runtimeMode)
 
-  //configFile := "gocms_style.json"
+	//configFile := "gocms_style.json"
 
-  db, err := GetDbConnection(*db_type, *connection_string)
-  if err != nil {
-    panic(err)
-  }
+	db, err := GetDbConnection(*db_type, *connection_string)
+	if err != nil {
+		panic(err)
+	}
 
-  /// Start system initialise
+	/// Start system initialise
 
-  log.Infof("Load config files")
-  initConfig, errs := loadConfigFiles()
-  if errs != nil {
-    for _, err := range errs {
-      log.Errorf("Failed to load config file: %v", err)
-    }
-  }
+	log.Infof("Load config files")
+	initConfig, errs := loadConfigFiles()
+	if errs != nil {
+		for _, err := range errs {
+			log.Errorf("Failed to load config file: %v", err)
+		}
+	}
 
-  existingTables, _ := GetTablesFromWorld(db)
-  initConfig.Tables = append(initConfig.Tables, existingTables...)
+	existingTables, _ := GetTablesFromWorld(db)
+	//initConfig.Tables = append(initConfig.Tables, existingTables...)
+	existingTablesMap := make(map[string]bool)
 
-  resource.CheckRelations(&initConfig, db)
+	allTables := make([]resource.TableInfo, 0)
 
-  //AddStateMachines(&initConfig, db)
+	for j, existableTable := range existingTables {
+		existingTablesMap[existableTable.TableName] = true
+		var isBeingModified = false
+		var indexBeingModified = -1
 
-  resource.CheckAllTableStatus(&initConfig, db)
+		for i, newTable := range initConfig.Tables {
+			if newTable.TableName == existableTable.TableName {
+				isBeingModified = true
+				indexBeingModified = i
+				break
+			}
+		}
 
-  resource.CreateRelations(&initConfig, db)
+		if isBeingModified {
+			log.Infof("Table %s is being modified", existableTable.TableName)
+			newTable := initConfig.Tables[indexBeingModified]
 
-  resource.CreateUniqueConstraints(&initConfig, db)
-  resource.CreateIndexes(&initConfig, db)
+			if len(newTable.Columns) > 0 {
 
-  resource.UpdateWorldTable(&initConfig, db)
-  resource.UpdateWorldColumnTable(&initConfig, db)
-  resource.UpdateStateMachineDescriptions(&initConfig, db)
-  resource.UpdateExchanges(&initConfig, db)
+				for _, newColumnDef := range newTable.Columns {
+					columnAlreadyExist := false
+					for _, existingColumn := range existableTable.Columns {
+						if existingColumn.ColumnName == newColumnDef.ColumnName {
+							columnAlreadyExist = true
+							break
+						}
+					}
+					if columnAlreadyExist {
+						log.Errorf("Modifying existing columns is ont supported at present. not sure what would break. and alter query isnt being run currently.");
+					} else {
+						existableTable.Columns = append(existableTable.Columns, newColumnDef)
+					}
 
-  err = resource.UpdateActionTable(&initConfig, db)
-  resource.CheckErr(err, "Failed to update action table")
+				}
 
-  CleanUpConfigFiles()
+			}
+			if len(newTable.Relations) > 0 {
+				existableTable.Relations = append(existableTable.Relations, newTable.Relations...)
+			}
+			existingTables[j] = existableTable
+		}
+		allTables = append(allTables, existableTable)
+	}
 
-  /// end system initialise
+	for _, newTable := range initConfig.Tables {
+		if existingTablesMap[newTable.TableName] {
+			continue
+		}
+		allTables = append(allTables, newTable)
 
-  r := gin.Default()
-  r.Use(CorsMiddlewareFunc)
-  r.StaticFS("/static", boxStatic)
+	}
+	initConfig.Tables = allTables
 
-  r.GET("/favicon.ico", func(c *gin.Context) {
+	resource.CheckRelations(&initConfig, db)
 
-    file, err := boxRoot.Open("index.html")
-    fileContents, err := ioutil.ReadAll(file)
-    _, err = c.Writer.Write(fileContents)
-    resource.CheckErr(err, "Failed to write favico")
-  })
+	//AddStateMachines(&initConfig, db)
 
-  configStore, err := resource.NewConfigStore(db)
-  jwtSecret, _ := configStore.GetConfigValueFor("jwt.secret", "backend")
+	resource.CheckAllTableStatus(&initConfig, db)
 
-  resource.CheckError(err, "Failed to get config store")
-  err = CheckSystemSecrets(configStore)
-  resource.CheckErr(err, "Failed to initialise system secrets")
+	resource.CreateRelations(&initConfig, db)
 
-  r.GET("/config", CreateConfigHandler(configStore))
+	resource.CreateUniqueConstraints(&initConfig, db)
+	resource.CreateIndexes(&initConfig, db)
 
-  authMiddleware := auth.NewAuthMiddlewareBuilder(db)
-  auth.InitJwtMiddleware([]byte(jwtSecret))
-  r.Use(authMiddleware.AuthCheckMiddleware)
+	resource.UpdateWorldTable(&initConfig, db)
+	resource.UpdateWorldColumnTable(&initConfig, db)
+	resource.UpdateStateMachineDescriptions(&initConfig, db)
+	resource.UpdateExchanges(&initConfig, db)
 
-  r.GET("/actions", resource.CreateGuestActionListHandler(&initConfig, cruds))
+	err = resource.UpdateActionTable(&initConfig, db)
+	resource.CheckErr(err, "Failed to update action table")
 
-  api := api2go.NewAPIWithRouting(
-    "api",
-    api2go.NewStaticResolver("/"),
-    gingonic.New(r),
-  )
-  ms := BuildMiddlewareSet(&initConfig)
-  cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore)
+	CleanUpConfigFiles()
 
-  authMiddleware.SetUserCrud(cruds["user"])
-  authMiddleware.SetUserGroupCrud(cruds["usergroup"])
-  authMiddleware.SetUserUserGroupCrud(cruds["user_user_id_has_usergroup_usergroup_id"])
+	/// end system initialise
 
-  fsmManager := resource.NewFsmManager(db, cruds)
+	r := gin.Default()
+	r.Use(CorsMiddlewareFunc)
+	r.StaticFS("/static", boxStatic)
 
-  r.GET("/ping", func(c *gin.Context) {
-    c.String(200, "pong")
-  })
+	r.GET("/favicon.ico", func(c *gin.Context) {
 
-  r.GET("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
-  r.GET("/apiblueprint.json", CreateApiBlueprintHandler(&initConfig, cruds))
-  r.OPTIONS("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
+		file, err := boxRoot.Open("index.html")
+		fileContents, err := ioutil.ReadAll(file)
+		_, err = c.Writer.Write(fileContents)
+		resource.CheckErr(err, "Failed to write favico")
+	})
 
-  actionPerformers := GetActionPerformers(&initConfig, configStore)
+	configStore, err := resource.NewConfigStore(db)
+	jwtSecret, _ := configStore.GetConfigValueFor("jwt.secret", "backend")
 
-  r.POST("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
-  r.GET("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
+	resource.CheckError(err, "Failed to get config store")
+	err = CheckSystemSecrets(configStore)
+	resource.CheckErr(err, "Failed to initialise system secrets")
 
-  r.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
-  r.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
+	r.GET("/config", CreateConfigHandler(configStore))
 
-  r.NoRoute(func(c *gin.Context) {
-    file, err := boxRoot.Open("index.html")
-    fileContents, err := ioutil.ReadAll(file)
-    _, err = c.Writer.Write(fileContents)
-    resource.CheckErr(err, "Failed to write index html")
-  })
+	authMiddleware := auth.NewAuthMiddlewareBuilder(db)
+	auth.InitJwtMiddleware([]byte(jwtSecret))
+	r.Use(authMiddleware.AuthCheckMiddleware)
 
-  resource.InitialiseColumnManager()
+	r.GET("/actions", resource.CreateGuestActionListHandler(&initConfig, cruds))
 
-  r.Run(fmt.Sprintf(":%v", *port))
+	api := api2go.NewAPIWithRouting(
+		"api",
+		api2go.NewStaticResolver("/"),
+		gingonic.New(r),
+	)
+	ms := BuildMiddlewareSet(&initConfig)
+	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore)
+
+	authMiddleware.SetUserCrud(cruds["user"])
+	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
+	authMiddleware.SetUserUserGroupCrud(cruds["user_user_id_has_usergroup_usergroup_id"])
+
+	fsmManager := resource.NewFsmManager(db, cruds)
+
+	r.GET("/ping", func(c *gin.Context) {
+		c.String(200, "pong")
+	})
+
+	r.GET("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
+	r.GET("/apiblueprint.json", CreateApiBlueprintHandler(&initConfig, cruds))
+	r.OPTIONS("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
+
+	actionPerformers := GetActionPerformers(&initConfig, configStore)
+
+	r.POST("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
+	r.GET("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
+
+	r.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
+	r.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
+
+	r.NoRoute(func(c *gin.Context) {
+		file, err := boxRoot.Open("index.html")
+		fileContents, err := ioutil.ReadAll(file)
+		_, err = c.Writer.Write(fileContents)
+		resource.CheckErr(err, "Failed to write index html")
+	})
+
+	resource.InitialiseColumnManager()
+
+	r.Run(fmt.Sprintf(":%v", *port))
 }
