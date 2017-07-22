@@ -1,12 +1,17 @@
 <!-- FileUpload.vue -->
 <template>
   <div class="col-md-12">
-    <div id="jsonEditor"></div>
+    <div id="jsonEditor" v-if="!useAce"></div>
+    <editor ref="aceEditor" :content="value" v-if="useAce" :lang="'json'"
+            :sync="true"></editor>
   </div>
 </template>
 
 <script>
   import {abstractField} from "vue-form-generator";
+  import editor from 'vue2-ace'
+  import 'brace/mode/json'
+  import 'brace/theme/chrome'
 
 
   var schemas = {
@@ -318,8 +323,12 @@
     mixins: [abstractField],
     data: function () {
       return {
-        fileList: []
+        fileList: [],
+        useAce: false,
       }
+    },
+    components: {
+      editor
     },
     updated() {
 
@@ -343,28 +352,37 @@
         let schema;
         if (schemas[that.schema.inputType]) {
           schema = schemas[that.schema.inputType].schema;
+
+          var editor = new JSONEditor(element, {
+            startval: startVal,
+            schema: schema,
+            theme: 'bootstrap3'
+          });
+          editor.on('change', function () {
+            // Do something
+            console.log("Json data updated", editor.getValue());
+            var val = editor.getValue();
+            if (!val) {
+              that.value = null;
+            } else {
+              that.value = JSON.stringify(editor.getValue());
+            }
+          });
         } else {
           schema = {};
+          that.value = JSON.stringify(startVal);
+          that.useAce = true;
+          that.$on('editor-update', function (newValue) {
+            that.value = newValue;
+          });
         }
-
-        var editor = new JSONEditor(element, {
-          startval: startVal,
-          schema: schema,
-          theme: 'bootstrap3'
-        });
-        editor.on('change', function () {
-          // Do something
-          console.log("Json data updated", editor.getValue());
-          var val = editor.getValue();
-          if (!val) {
-            that.value = null;
-          } else {
-            that.value = JSON.stringify(editor.getValue());
-          }
-        });
 
       }, 500)
     },
-    methods: {}
+    methods: {
+      updated(){
+        console.log("editor adsflkj asdf", arguments);
+      }
+    }
   };
 </script>

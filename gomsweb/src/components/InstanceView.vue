@@ -312,29 +312,33 @@
         var tableModel = jsonApi.modelFor(tableName);
         console.log("json api model", tableModel);
 
-        jsonApi.one(tableName, selectedInstanceId).all(tableName + "_has_state").get({
-          page: {
-            number: 1,
-            size: 20
-          }
-        }).then(function (states) {
-          console.log("states", states);
-          states.map(function (e) {
-            e.smd = e[tableName + "_smd"];
-            e.smd.events = JSON.parse(e.smd.events);
-            e.possibleActions = e.smd.events.filter(function (t) {
-              return t.Src.indexOf(e.current_state) > -1
-            }).map(function (er) {
-              return {
-                name: er.Name,
-                label: er.Label,
-              }
+
+        if (worldManager.isStateMachineEnabled(tableModel)) {
+          jsonApi.one(tableName, selectedInstanceId).all(tableName + "_has_state").get({
+            page: {
+              number: 1,
+              size: 20
+            }
+          }).then(function (states) {
+            console.log("states", states);
+            states.map(function (e) {
+              e.smd = e[tableName + "_smd"];
+              e.smd.events = JSON.parse(e.smd.events);
+              e.possibleActions = e.smd.events.filter(function (t) {
+                return t.Src.indexOf(e.current_state) > -1
+              }).map(function (er) {
+                return {
+                  name: er.Name,
+                  label: er.Label,
+                }
+              });
+              console.log(e)
             });
-            console.log(e)
+
+            that.objectStates = states;
           });
 
-          that.objectStates = states;
-        });
+        }
 
       },
     },

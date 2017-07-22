@@ -17,6 +17,7 @@ const WorldManager = function () {
 
 
   that.stateMachines = {};
+  that.stateMachineEnabled = {};
 
 
   that.getStateMachinesForType = function (typeName) {
@@ -72,6 +73,7 @@ const WorldManager = function () {
           actionManager.addAllActions(r.Actions);
         }
         that.stateMachines[typeName] = r.StateMachines;
+        that.stateMachineEnabled[typeName] = r.IsStateMachineEnabled;
         that.columnKeysCache[typeName] = r;
         callback(r);
       } else {
@@ -81,6 +83,10 @@ const WorldManager = function () {
       callback(e)
     })
 
+  };
+
+  that.isStateMachineEnabled = function (typeName) {
+    return that.stateMachineEnabled[typeName] == true;
   };
 
   that.getColumnKeysWithErrorHandleWithThisBuilder = function () {

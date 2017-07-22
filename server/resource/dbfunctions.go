@@ -674,18 +674,18 @@ func CreateIndexes(initConfig *CmsConfig, db *sqlx.DB) {
       if column.IsUnique {
         indexName := "u" + GetMD5Hash("index_"+table.TableName+"_"+column.ColumnName+"_index")
         alterTable := "create unique index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
-        log.Infof("Create index sql: %v", alterTable)
+        //log.Infof("Create index sql: %v", alterTable)
         _, err := db.Exec(alterTable)
         if err != nil {
-          log.Infof("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
+          //log.Infof("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
         }
       } else if column.IsIndexed {
         indexName := "i" + GetMD5Hash("index_"+table.TableName+"_"+column.ColumnName+"_index")
         alterTable := "create index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
-        log.Infof("Create index sql: %v", alterTable)
+        //log.Infof("Create index sql: %v", alterTable)
         _, err := db.Exec(alterTable)
         if err != nil {
-          log.Infof("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
+          //log.Infof("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
         }
       }
     }
@@ -743,7 +743,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
     config.Tables[i].Relations = make([]api2go.TableRelation, 0)
 
     if len(existingRelations) > 0 {
-      log.Infof("Found existing %d columns from db for [%v]", len(existingRelations), config.Tables[i].TableName)
+      log.Infof("Found existing %d relations from db for [%v]", len(existingRelations), config.Tables[i].TableName)
       for _, rel := range existingRelations {
 
         relhash := rel.Hash()
@@ -1127,7 +1127,7 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
   for _, sCol := range StandardColumns {
     _, ok := colInfoMap[sCol.ColumnName]
     if ok {
-      log.Infof("Column [%v] already present in config for table [%v]", sCol.ColumnName, tableInfo.TableName)
+      //log.Infof("Column [%v] already present in config for table [%v]", sCol.ColumnName, tableInfo.TableName)
     } else {
       colInfoMap[sCol.Name] = sCol
       columnsWeWant[sCol.Name] = true

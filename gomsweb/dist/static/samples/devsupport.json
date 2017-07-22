@@ -16,32 +16,52 @@
       "columns": [
         {
           "name": "name",
-          "dataType": "varchar(500)",
+          "dataType": "varchar(100)",
           "columnType": "label",
           "isIndexed": true
         },
         {
+          "name": "icon",
+          "dataType": "varchar(100)",
+          "columnType": "label",
+          "defaultValue": "'devicon-devicon-plain'"
+        },
+        {
+          "name": "color",
+          "dataType": "varchar(10)",
+          "columnType": "color",
+          "defaultValue": "'#708ad8'"
+        },
+        {
+          "name": "description",
+          "dataType": "text",
+          "columnType": "content",
+          "isNullable": true
+        },
+        {
           "name": "language",
-          "dataType": "varchar(500)",
+          "dataType": "varchar(100)",
           "columnType": "label",
           "isIndexed": true
         },
         {
           "name": "stack",
-          "dataType": "varchar(500)",
+          "dataType": "varchar(100)",
           "columnType": "label",
           "isIndexed": true
         },
         {
           "name": "api_type",
-          "dataType": "varchar(500)",
+          "dataType": "varchar(100)",
           "columnType": "label",
+          "isNullable": true,
           "isIndexed": true
         },
         {
           "name": "api_sub_type",
-          "dataType": "varchar(500)",
+          "dataType": "varchar(100)",
           "columnType": "label",
+          "isNullable": true,
           "isIndexed": true
         },
         {

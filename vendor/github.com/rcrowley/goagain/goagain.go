@@ -216,19 +216,19 @@ func Wait(l net.Listener) (syscall.Signal, error) {
 				}
 			}
 
-		// SIGINT should exit.
+			// SIGINT should exit.
 		case syscall.SIGINT:
 			return syscall.SIGINT, nil
 
-		// SIGQUIT should exit gracefully.
+			// SIGQUIT should exit gracefully.
 		case syscall.SIGQUIT:
 			return syscall.SIGQUIT, nil
 
-		// SIGTERM should exit.
+			// SIGTERM should exit.
 		case syscall.SIGTERM:
 			return syscall.SIGTERM, nil
 
-		// SIGUSR1 should reopen logs.
+			// SIGUSR1 should reopen logs.
 		case syscall.SIGUSR1:
 			if nil != OnSIGUSR1 {
 				if err := OnSIGUSR1(l); nil != err {
@@ -236,8 +236,8 @@ func Wait(l net.Listener) (syscall.Signal, error) {
 				}
 			}
 
-		// SIGUSR2 forks and re-execs the first time it is received and execs
-		// without forking from then on.
+			// SIGUSR2 forks and re-execs the fi	rst time it is received and execs
+			// without forking from then on.
 		case syscall.SIGUSR2:
 			if forked {
 				return syscall.SIGUSR2, nil

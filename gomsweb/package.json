@@ -36,6 +36,7 @@
     "vue-quill-editor": "^2.2.2",
     "vue-resource": "^1.0.3",
     "vue-router": "^2.2.0",
+    "vue2-ace": "^1.0.6",
     "vuex": "^2.0.0",
     "vuex-router-sync": "^4.1.2"
   },
