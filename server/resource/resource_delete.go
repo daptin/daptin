@@ -8,6 +8,7 @@ import (
 	//"github.com/satori/go.uuid"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"time"
+	"github.com/pkg/errors"
 )
 
 // Delete an object
@@ -20,13 +21,18 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 
 	for _, bf := range dr.ms.BeforeDelete {
 		log.Infof("Invoke BeforeDelete [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
-		r, err := bf.InterceptBefore(dr, &req)
+		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
+			{
+				"reference_id": id,
+				"__type": dr.model.GetName(),
+			},
+		})
 		if err != nil {
 			log.Errorf("Error from BeforeDelete middleware: %v", err)
 			return nil, err
 		}
-		if r != nil {
-			return r, err
+		if r == nil || len(r) == 0 {
+			return nil, errors.New("Cannot delete this object")
 		}
 	}
 
