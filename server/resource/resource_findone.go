@@ -3,6 +3,7 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
 )
 
 // FindOne returns an object by its ID
@@ -11,13 +12,18 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 
 	for _, bf := range dr.ms.BeforeFindOne {
 		log.Infof("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
-		r, err := bf.InterceptBefore(dr, &req)
+		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
+			{
+				"reference_id": referenceId,
+				"__type": dr.model.GetName(),
+			},
+		})
 		if err != nil {
 			log.Errorf("Error from BeforeFindOne middleware: %v", err)
 			return nil, err
 		}
-		if r != nil {
-			return r, err
+		if r == nil {
+			return nil, errors.New("Cannot find this object")
 		}
 	}
 

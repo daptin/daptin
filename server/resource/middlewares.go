@@ -21,7 +21,7 @@ type MiddlewareSet struct {
 }
 
 type DatabaseRequestInterceptor interface {
-	InterceptBefore(*DbResource, *api2go.Request) (api2go.Responder, error)
+	InterceptBefore(*DbResource, *api2go.Request, []map[string]interface{}) ([]map[string]interface{}, error)
 	InterceptAfter(*DbResource, *api2go.Request, []map[string]interface{}) ([]map[string]interface{}, error)
 	fmt.Stringer
 }

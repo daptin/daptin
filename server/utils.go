@@ -104,7 +104,8 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig) resource.MiddlewareSet {
 
 	exchangeMiddleware := resource.NewExchangeMiddleware(cmsConfig, &cruds)
 
-	permissionChecker := &resource.TableAccessPermissionChecker{}
+	tablePermissionChecker := &resource.TableAccessPermissionChecker{}
+	objectPermissionChecker := &resource.ObjectAccessPermissionChecker{}
 
 	findOneHandler := resource.NewFindOneEventHandler()
 	createEventHandler := resource.NewCreateEventHandler()
@@ -112,47 +113,57 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig) resource.MiddlewareSet {
 	deleteEventHandler := resource.NewDeleteEventHandler()
 
 	ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
-		permissionChecker,
+		tablePermissionChecker,
+		objectPermissionChecker,
 	}
 
 	ms.AfterFindAll = []resource.DatabaseRequestInterceptor{
-		permissionChecker,
+		tablePermissionChecker,
+		objectPermissionChecker,
 	}
 
 	ms.BeforeCreate = []resource.DatabaseRequestInterceptor{
-		permissionChecker,
+		tablePermissionChecker,
+		objectPermissionChecker,
 		createEventHandler,
 	}
 	ms.AfterCreate = []resource.DatabaseRequestInterceptor{
-		permissionChecker,
+		tablePermissionChecker,
+		objectPermissionChecker,
 		createEventHandler,
 		exchangeMiddleware,
 	}
 
 	ms.BeforeDelete = []resource.DatabaseRequestInterceptor{
-		permissionChecker,
+		tablePermissionChecker,
+		objectPermissionChecker,
 		deleteEventHandler,
 	}
 	ms.AfterDelete = []resource.DatabaseRequestInterceptor{
-		permissionChecker,
+		tablePermissionChecker,
+		objectPermissionChecker,
 		deleteEventHandler,
 	}
 
 	ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
-		permissionChecker,
+		tablePermissionChecker,
+		objectPermissionChecker,
 		updateEventHandler,
 	}
 	ms.AfterUpdate = []resource.DatabaseRequestInterceptor{
-		permissionChecker,
+		tablePermissionChecker,
+		objectPermissionChecker,
 		updateEventHandler,
 	}
 
 	ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
-		permissionChecker,
+		tablePermissionChecker,
+		objectPermissionChecker,
 		findOneHandler,
 	}
 	ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
-		permissionChecker,
+		tablePermissionChecker,
+		objectPermissionChecker,
 		findOneHandler,
 	}
 	return ms
