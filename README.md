@@ -40,12 +40,11 @@ Wedding | has many people called "attendees" | Send everyone SMS on updates to w
 - Goms asks you to define your domain entities along with their relations in the way you want to organise them.
 - Goms takes the responsibility of giving you following:
 
-
-- A responsive dashboard to interact with the system, tested on desktop browsers and mobile browsers
-- A in-built event framework which you can hook to
-- User notifications - Email/Sms/Messengers/Dashboard
-- Actions - Which can be hooked to events, and have multiple outcomes
-- A status tracking system (Visually design a state machine and make it available for any kind of object)
+  - A responsive dashboard to interact with the system, tested on desktop browsers and mobile browsers
+  - A in-built event framework which you can hook to
+  - User notifications - Email/Sms/Messengers/Dashboard
+  - Actions - Which can be hooked to events, and have multiple outcomes
+  - A status tracking system (Visually design a state machine and make it available for any kind of object)
 
 
 GoMS is a platform which can be customised using Schema files, which describe your requirements and processes.
@@ -82,7 +81,7 @@ Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
 * [ ] Configurable intelligent Validation for data in the APIs
 * [ ] Pages/Sub-sites -> Create a sub-site for a target audiance
 * [ ] Define events all around the system
-* [ ] Ability define hooks on events from UI
+* [ ] Ability to define hooks on events from UI
 * [ ] Data conversion/exchange/transformations
 
 ### Target
@@ -166,8 +165,14 @@ Actions are defined on entities, have a set of Input Fields, and a set of Outcom
 
 ## Tech stack
 
+
+Backend | FrontEnd | Standards | Frameworks
+---|---|---|---
+Golang | BootStrap | JsonAPI Spec | CoPilot Theme
+[Api2go](https://github.com/manyminds/api2go) | [BootStrap](http://getbootstrap.com/) | [JsonAPI](jsonapi.org) | [CoPilot Theme](copilot.mistergf.io)
+[Api2go](https://github.com/manyminds/api2go) | [BootStrap](http://getbootstrap.com/) | [JsonAPI](jsonapi.org) | [Element UI](element.eleme.io)
+
 - Golang
-- Semantic UI
 - JSONAPI
 - VueJS
 - CoPilot theme
