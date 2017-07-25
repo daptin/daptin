@@ -9,9 +9,10 @@
 <script>
   import {setToken, checkSecret, extractInfoFromHash} from '../utils/auth'
   import worldManager from "../plugins/worldmanager"
+
   export default {
     name: 'App',
-    data () {
+    data() {
       return {
         section: 'Head',
         loaded: false,
@@ -48,7 +49,7 @@
       }
     },
     methods: {
-      logout () {
+      logout() {
         this.$store.commit('SET_USER', null);
         this.$store.commit('SET_TOKEN', null);
 

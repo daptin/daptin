@@ -101,6 +101,22 @@
           "columnType": "content",
           "isNullable": true
         }
+      ],
+      "conformations": [
+        {
+          "columnName": "order",
+          "tags": "numeric"
+        }
+      ],
+      "validations": [
+        {
+          "columnName": "title",
+          "tags": "required"
+        },
+        {
+          "columnName": "schedule",
+          "tags": "time"
+        }
       ]
     },
     {

@@ -82,7 +82,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 						}
 					}
 					if columnAlreadyExist {
-						log.Errorf("Modifying existing columns is ont supported at present. not sure what would break. and alter query isnt being run currently.");
+						log.Infof("Modifying existing columns is ont supported at present. not sure what would break. and alter query isnt being run currently.");
 					} else {
 						existableTable.Columns = append(existableTable.Columns, newColumnDef)
 					}
