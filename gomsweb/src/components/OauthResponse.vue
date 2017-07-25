@@ -7,7 +7,6 @@
 <script>
   import configManager from '../plugins/configmanager'
   import actionManager from "../plugins/actionmanager"
-  import {Notification} from "element-ui"
 
   export default {
 
@@ -19,12 +18,12 @@
     methods: {
       init() {
         var that = this;
-        console.log("oauth response", this.$route)
+        console.log("oauth response", this.$route);
         var query = this.$route.query;
         this.actionManager.doAction("oauth_token", "oauth.login.response", this.$route.query).then(function () {
 
         }, function () {
-          Notification.error({
+          that.$notify.error({
             message: "Failed to validate connection"
           });
           that.$router.push({
@@ -33,7 +32,7 @@
         });
       },
     },
-    mounted () {
+    mounted() {
       this.init();
     }
   }

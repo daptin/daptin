@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"encoding/json"
 	"gopkg.in/gin-gonic/gin.v1"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 //import "github.com/artpar/goms/datastore"
@@ -76,6 +77,8 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 
 	}
 
+
+	globalInitConfig.Validator = validator.New()
 	return globalInitConfig, errs
 
 }

@@ -45,14 +45,14 @@
     },
     methods: {
       signupComplete(){
-        Notification({
-          title: "Registration successful",
-          type: 'success',
-          message: "redirecting to sign in page",
-        });
-        this.$router.push({
-          name: "SignIn"
-        })
+//        Notification({
+//          title: "Registration successful",
+//          type: 'success',
+//          message: "redirecting to sign in page",
+//        });
+//        this.$router.push({
+//          name: "SignIn"
+//        })
       },
       init() {
         var that = this;

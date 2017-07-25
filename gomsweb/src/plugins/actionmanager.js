@@ -141,8 +141,13 @@ const ActionManager = function () {
           Notification.success("Action " + actionName + " finished.")
         }
       }, function (res) {
+        console.log("action failed", res);
         reject("Failed");
-        Notification.error("Action " + actionName + " failed.")
+        if (res.response.data.Message) {
+          Notification.error(res.response.data.Message)
+        } else {
+          Notification.error("Action " + actionName + " failed.")
+        }
       })
 
     })

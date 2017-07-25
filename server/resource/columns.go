@@ -15,6 +15,13 @@ var StandardColumns = []api2go.ColumnInfo{
 		ColumnType:      "id",
 	},
 	{
+		Name:         "version",
+		ColumnName:   "version",
+		DataType:     "INTEGER",
+		ColumnType:   "measurement",
+		DefaultValue: "1",
+	},
+	{
 		Name:         "created_at",
 		ColumnName:   "created_at",
 		DataType:     "timestamp",
@@ -151,6 +158,30 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
+		Validations: []ColumnTag{
+			{
+				ColumnName: "email",
+				Tags:       "email",
+			},
+			{
+				ColumnName: "name",
+				Tags:       "required",
+			},
+			{
+				ColumnName: "password",
+				Tags:       "eqfield=InnerStructField[passwordConfirm],min=8",
+			},
+		},
+		Conformations: []ColumnTag{
+			{
+				ColumnName: "email",
+				Tags:       "email",
+			},
+			{
+				ColumnName: "name",
+				Tags:       "trim",
+			},
+		},
 		OutFields: []Outcome{
 			{
 				Type:      "user",
@@ -177,6 +208,22 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"user_id":      "$user.reference_id",
 					"usergroup_id": "$usergroup.reference_id",
+				},
+			},
+			{
+				Type:   "client.notify",
+				Method: "ACTIONRESPONSE",
+				Attributes: map[string]interface{}{
+					"type":    "success",
+					"message": "Signup Successful",
+				},
+			},
+			{
+				Type:   "client.redirect",
+				Method: "ACTIONRESPONSE",
+				Attributes: map[string]interface{}{
+					"location": "/auth/signin",
+					"window":   "self",
 				},
 			},
 		},
@@ -526,6 +573,26 @@ var StandardTables = []TableInfo{
 				DefaultValue: "false",
 			},
 		},
+		Validations: []ColumnTag{
+			{
+				ColumnName: "email",
+				Tags:       "email",
+			},
+			{
+				ColumnName: "password",
+				Tags:       "required",
+			},
+			{
+				ColumnName: "name",
+				Tags:       "required",
+			},
+		},
+		Conformations: []ColumnTag{
+			{
+				ColumnName: "email",
+				Tags:       "email",
+			},
+		},
 	},
 	{
 		TableName: "usergroup",
@@ -565,14 +632,8 @@ var StandardTables = []TableInfo{
 				DefaultValue: "true",
 			},
 			{
-				Name:       "in_fields",
-				ColumnName: "in_fields",
-				DataType:   "text",
-				ColumnType: "json",
-			},
-			{
-				Name:       "out_fields",
-				ColumnName: "out_fields",
+				Name:       "action_schema",
+				ColumnName: "action_schema",
 				DataType:   "text",
 				ColumnType: "json",
 			},
@@ -767,4 +828,12 @@ type TableInfo struct {
 	IsHidden               bool   `db:"is_hidden"`
 	IsJoinTable            bool   `db:"is_join_table"`
 	IsStateTrackingEnabled bool   `db:"is_state_tracking_enabled"`
+	IsAuditEnabled         bool   `db:"is_audit_enabled"`
+	Validations            []ColumnTag
+	Conformations          []ColumnTag
+}
+
+type ColumnTag struct {
+	ColumnName string
+	Tags       string
 }

@@ -106,6 +106,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig) resource.MiddlewareSet {
 
 	tablePermissionChecker := &resource.TableAccessPermissionChecker{}
 	objectPermissionChecker := &resource.ObjectAccessPermissionChecker{}
+	dataValidationMiddleware := resource.NewDataValidationMiddleware(cmsConfig, &cruds)
 
 	findOneHandler := resource.NewFindOneEventHandler()
 	createEventHandler := resource.NewCreateEventHandler()
@@ -125,6 +126,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig) resource.MiddlewareSet {
 	ms.BeforeCreate = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
+		dataValidationMiddleware,
 		createEventHandler,
 	}
 	ms.AfterCreate = []resource.DatabaseRequestInterceptor{
@@ -148,6 +150,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig) resource.MiddlewareSet {
 	ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
+		dataValidationMiddleware,
 		updateEventHandler,
 	}
 	ms.AfterUpdate = []resource.DatabaseRequestInterceptor{
