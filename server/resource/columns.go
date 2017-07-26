@@ -15,11 +15,12 @@ var StandardColumns = []api2go.ColumnInfo{
 		ColumnType:      "id",
 	},
 	{
-		Name:         "version",
-		ColumnName:   "version",
-		DataType:     "INTEGER",
-		ColumnType:   "measurement",
-		DefaultValue: "1",
+		Name:           "version",
+		ColumnName:     "version",
+		DataType:       "INTEGER",
+		ColumnType:     "measurement",
+		DefaultValue:   "1",
+		ExcludeFromApi: true,
 	},
 	{
 		Name:         "created_at",
