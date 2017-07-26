@@ -1123,7 +1123,7 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
 			//log.Infof("Column [%v] already present in config for table [%v]", sCol.ColumnName, tableInfo.TableName)
 		} else {
 			colInfoMap[sCol.Name] = sCol
-			columnsWeWant[sCol.Name] = true
+			columnsWeWant[sCol.Name] = false
 			tableInfo.Columns = append(tableInfo.Columns, sCol)
 		}
 	}
@@ -1139,7 +1139,7 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 		}
 	}
 	columnsWeWant, colInfoMap := CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo)
-	log.Infof("Columns we want: %v", columnsWeWant)
+	log.Infof("Columns we want in [%v]: %v", tableInfo.TableName, columnsWeWant)
 
 	s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
 	//log.Infof("Sql: %v", s)
@@ -1157,8 +1157,8 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 		} else {
 			if present {
 				log.Infof("Column [%v] already present in table [%v]", col, tableInfo.TableName)
-				//columnsWeWant[col] = true
 			}
+			columnsWeWant[col] = true
 		}
 	}
 
