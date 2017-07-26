@@ -123,7 +123,9 @@ type Api2GoModel struct {
 	defaultPermission int64
 	relations         []TableRelation
 	Data              map[string]interface{}
+	oldData           map[string]interface{}
 	Includes          []jsonapi.MarshalIdentifier
+	dirty             bool
 }
 
 func (a *Api2GoModel) GetColumnMap() map[string]ColumnInfo {
@@ -235,6 +237,7 @@ func NewApi2GoModelWithData(name string, columns []ColumnInfo, defaultPermission
 		relations:         relations,
 		Data:              m,
 		defaultPermission: defaultPermission,
+		dirty:             false,
 	}
 }
 func NewApi2GoModel(name string, columns []ColumnInfo, defaultPermission int64, relations []TableRelation) *Api2GoModel {
@@ -244,6 +247,7 @@ func NewApi2GoModel(name string, columns []ColumnInfo, defaultPermission int64, 
 		defaultPermission: defaultPermission,
 		relations:         relations,
 		columns:           columns,
+		dirty:             false,
 	}
 }
 
@@ -548,9 +552,54 @@ func (g *Api2GoModel) SetAttributes(attrs map[string]interface{}) {
 		return
 	}
 	for k, v := range attrs {
+
+		existingValue, ok := g.Data[k]
+		if !ok || v != existingValue {
+			if !g.dirty {
+				g.dirty = true
+				g.oldData = g.Data
+			}
+		}
 		g.Data[k] = v
 	}
+}
 
+type Change struct {
+	OldValue interface{}
+	NewValue interface{}
+}
+
+func (g *Api2GoModel) GetAuditModel() *Api2GoModel {
+	return NewApi2GoModelWithData(g.typeName+"_audit", g.columns, g.defaultPermission, nil, g.oldData)
+
+}
+
+func (g *Api2GoModel) GetChanges() map[string]Change {
+	changeMap := make(map[string]Change)
+	if !g.dirty {
+		return changeMap
+	}
+
+	for key, newVal := range g.Data {
+		if g.oldData[key] != newVal {
+			changeMap[key] = Change{
+				OldValue: g.oldData[key],
+				NewValue: newVal,
+			}
+		}
+	}
+	return changeMap
+}
+
+func (g *Api2GoModel) IsDirty() bool {
+	return g.dirty
+}
+
+func (g *Api2GoModel) GetUnmodifiedAttributes() map[string]interface{} {
+	if g.dirty {
+		return g.oldData
+	}
+	return g.Data
 }
 
 func (g *Api2GoModel) SetID(str string) error {

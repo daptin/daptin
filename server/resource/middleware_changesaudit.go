@@ -4,8 +4,6 @@ import (
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
 	//"gopkg.in/Masterminds/squirrel.v1"
-	"errors"
-
 	"github.com/artpar/goms/server/auth"
 	"github.com/gorilla/context"
 )
@@ -71,11 +69,8 @@ func (omam *ObjectModificationAuditMiddleware) InterceptAfter(dr *DbResource, re
 
 }
 
-var (
-	ERR_UNAUTHORIZED = errors.New("Unauthorized")
-)
 
-func (omam *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
+func (omam *ObjectModificationAuditMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
 
 	//var err error
 	//log.Infof("context: %v", context.GetAll(req.PlainRequest))
