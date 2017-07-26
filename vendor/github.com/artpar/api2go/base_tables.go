@@ -570,7 +570,16 @@ type Change struct {
 }
 
 func (g *Api2GoModel) GetAuditModel() *Api2GoModel {
-	return NewApi2GoModelWithData(g.typeName+"_audit", g.columns, g.defaultPermission, nil, g.oldData)
+	auditTableName := g.GetTableName() + "_audit"
+
+	newData := make(map[string]interface{})
+
+	for k, v := range g.oldData {
+		newData[k] = v
+	}
+	newData["__type"] = auditTableName
+
+	return NewApi2GoModelWithData(auditTableName, g.columns, g.defaultPermission, nil, newData)
 
 }
 
