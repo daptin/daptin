@@ -8,6 +8,18 @@
           "dataType": "varchar(500)",
           "columnType": "label",
           "isIndexed": true
+        },
+        {
+          "name": "image_url",
+          "dataType": "varchar(500)",
+          "columnType": "label",
+          "isNullable": true
+        },
+        {
+          "name": "status",
+          "dataType": "varchar(50)",
+          "columnType": "label",
+          "defaultValue": "'active'"
         }
       ]
     },
