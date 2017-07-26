@@ -112,10 +112,6 @@
         {
           "columnName": "title",
           "tags": "required"
-        },
-        {
-          "columnName": "schedule",
-          "tags": "time"
         }
       ]
     },

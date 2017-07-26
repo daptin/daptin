@@ -27,6 +27,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
 	for _, bf := range dr.ms.BeforeCreate {
 		log.Infof("Invoke BeforeCreate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		data.Data["__type"] = dr.model.GetName()
 		responseData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{data.Data})
 		if err != nil {
 			log.Warnf("Error from before create middleware: %v", err)
