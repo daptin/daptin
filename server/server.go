@@ -162,6 +162,8 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 		api2go.NewStaticResolver("/"),
 		gingonic.New(r),
 	)
+
+	api.UseMiddleware(jsonApiChangeRecordMiddleware)
 	ms := BuildMiddlewareSet(&initConfig)
 	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore)
 
@@ -197,4 +199,8 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	resource.InitialiseColumnManager()
 
 	r.Run(fmt.Sprintf(":%v", *port))
+}
+
+func jsonApiChangeRecordMiddleware(contexter api2go.APIContexter, writer http.ResponseWriter, request *http.Request) {
+	log.Infof("Middleware: ", contexter.Done())
 }

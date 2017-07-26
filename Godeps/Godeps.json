@@ -35,6 +35,11 @@
 			"Rev": "f38ae978e574f70ce6be54c3dd763e1d583c3c89"
 		},
 		{
+			"ImportPath": "github.com/artpar/conform",
+			"Comment": "1.1.0-7-g0a5d416",
+			"Rev": "0a5d4165efbaf1ca49ccdbdf21cd7a2bf63e7f04"
+		},
+		{
 			"ImportPath": "github.com/auth0/go-jwt-middleware",
 			"Rev": "f3f7de3b9e394e3af3b88e1b9457f6f71d1ae0ac"
 		},
@@ -94,6 +99,10 @@
 			"Rev": "d1f41622ac0e71a1a5b5404ad3dbd4cf38c6f3e9"
 		},
 		{
+			"ImportPath": "github.com/etgryphon/stringUp",
+			"Rev": "31534ccd8cac1d3d205c906ea5722928b045ed8c"
+		},
+		{
 			"ImportPath": "github.com/gedex/inflector",
 			"Rev": "16278e9db8130ac7ec405dc174cfb94344f16325"
 		},
@@ -106,6 +115,26 @@
 			"ImportPath": "github.com/gin-gonic/gin/render",
 			"Comment": "v1.1.4-1-gd5b353c",
 			"Rev": "d5b353c5d5a560322e6d96121c814115562501f7"
+		},
+		{
+			"ImportPath": "github.com/go-playground/locales",
+			"Comment": "v0.11.1-2-g1e5f116",
+			"Rev": "1e5f1161c6416a5ff48840eb8724a394e48cc534"
+		},
+		{
+			"ImportPath": "github.com/go-playground/locales/currency",
+			"Comment": "v0.11.1-2-g1e5f116",
+			"Rev": "1e5f1161c6416a5ff48840eb8724a394e48cc534"
+		},
+		{
+			"ImportPath": "github.com/go-playground/locales/en",
+			"Comment": "v0.11.1-2-g1e5f116",
+			"Rev": "1e5f1161c6416a5ff48840eb8724a394e48cc534"
+		},
+		{
+			"ImportPath": "github.com/go-playground/universal-translator",
+			"Comment": "v0.16.0-1-g7120149",
+			"Rev": "71201497bace774495daed26a3874fd339e0b538"
 		},
 		{
 			"ImportPath": "github.com/go-sql-driver/mysql",
@@ -293,6 +322,16 @@
 			"ImportPath": "gopkg.in/go-playground/validator.v8",
 			"Comment": "v8.18.1",
 			"Rev": "5f57d2222ad794d0dffb07e664ea05e2ee07d60c"
+		},
+		{
+			"ImportPath": "gopkg.in/go-playground/validator.v9",
+			"Comment": "v9.4.0",
+			"Rev": "fb68f39656d7ebf8aa339ad4917aa0c260ecc237"
+		},
+		{
+			"ImportPath": "gopkg.in/go-playground/validator.v9/translations/en",
+			"Comment": "v9.4.0",
+			"Rev": "fb68f39656d7ebf8aa339ad4917aa0c260ecc237"
 		},
 		{
 			"ImportPath": "gopkg.in/resty.v0",
