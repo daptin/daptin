@@ -356,12 +356,16 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) Permission {
 		var err error
 		i64, ok := row["permission"].(int64)
 		if !ok {
-			i64, err = strconv.ParseInt(row["permission"].(string), 10, 64)
-			//p, err := int64(row["permission"].(int))
-			if err != nil {
-				log.Errorf("Invalid cast :%v", err)
+			f64, ok := row["permission"].(float64)
+			if !ok {
+				i64, err = strconv.ParseInt(row["permission"].(string), 10, 64)
+				//p, err := int64(row["permission"].(int))
+				if err != nil {
+					log.Errorf("Invalid cast :%v", err)
+				}
+			} else {
+				i64 = int64(f64)
 			}
-
 		}
 
 		perm.Permission = i64

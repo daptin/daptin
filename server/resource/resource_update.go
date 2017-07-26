@@ -178,6 +178,15 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		return NewResponse(nil, nil, 500, nil), err
 	}
 
+
+
+	if data.IsDirty() {
+
+		//auditModel := data.GetAuditModel()
+		//dr.cruds[auditModel.GetTableName()]
+
+	}
+
 	query, vals, err = squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create select query: %v", err)

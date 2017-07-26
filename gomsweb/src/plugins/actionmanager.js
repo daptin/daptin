@@ -1,7 +1,7 @@
 import axios from "axios"
 import appConfig from "./appconfig"
 import {getToken} from "../utils/auth"
-// import {Notification} from "element-ui"
+import {Notification} from "element-ui"
 import jwtDecode from 'jwt-decode'
 
 const ActionManager = function () {
@@ -89,7 +89,7 @@ const ActionManager = function () {
             switch (responseType) {
               case "client.notify":
                 console.log("notify client", data);
-                that.notify(data);
+                Notification(data);
                 break;
               case "client.store.set":
                 console.log("notify client", data);
@@ -105,14 +105,14 @@ const ActionManager = function () {
                 (function (redirectAttrs) {
 
                   if (redirectAttrs.delay > 1500) {
-                    that.$notify({
+                    Notification({
                       title: "Redirecting",
                       type: 'success',
                       message: "In " + (redirectAttrs.delay / 1000) + " seconds",
                     });
 
                   } else {
-                    that.$notify({
+                    Notification({
                       title: "Redirecting",
                       type: 'success',
                       message: "In a second",
@@ -138,15 +138,15 @@ const ActionManager = function () {
             }
           }
         } else {
-          that.$notify.success("Action " + actionName + " finished.")
+          Notification.success("Action " + actionName + " finished.")
         }
       }, function (res) {
         console.log("action failed", res);
         reject("Failed");
         if (res.response.data.Message) {
-          that.$notify.error(res.response.data.Message)
+          Notification.error(res.response.data.Message)
         } else {
-          that.$notify.error("Action " + actionName + " failed.")
+          Notification.error("Action " + actionName + " failed.")
         }
       })
 
