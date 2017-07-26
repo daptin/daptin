@@ -333,7 +333,7 @@
     updated() {
 
     },
-    mounted(){
+    mounted() {
       var that = this;
       setTimeout(function () {
         var startVal = that.value;
@@ -343,7 +343,12 @@
           if (typeof startVal != "string") {
             startVal = startVal
           } else {
-            startVal = JSON.parse(startVal)
+            try {
+              var startValNew = JSON.parse(startVal);
+              startVal = startValNew;
+            } catch (e) {
+
+            }
           }
         }
         console.log("start value", startVal);
@@ -380,7 +385,7 @@
       }, 500)
     },
     methods: {
-      updated(){
+      updated() {
         console.log("editor adsflkj asdf", arguments);
       }
     }
