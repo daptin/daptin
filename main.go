@@ -23,9 +23,9 @@ func init() {
 
 func main() {
 
-	boxStatic1, err := rice.FindBox("gomsweb/dist/static")
+	boxStatic1, err := rice.FindBox("gomsweb-dist-static")
 	log.Println("Failed to open dist/static: %v", err)
-	boxRoot1, err := rice.FindBox("gomsweb/dist")
+	boxRoot1, err := rice.FindBox("gomsweb-dist")
 	log.Println("Failed to open dist: %v", err)
 
 	var boxStatic, boxRoot http.FileSystem
