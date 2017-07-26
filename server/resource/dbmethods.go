@@ -323,11 +323,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) Permission {
 	var perm Permission
 
 	if row["user_id"] != nil {
-		uid, ok := row["user_id"].(string)
-
-		if !ok {
-
-		}
+		uid, _ := row["user_id"].(string)
 		perm.UserId = uid
 	}
 

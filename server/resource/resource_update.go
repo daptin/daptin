@@ -178,12 +178,15 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		return NewResponse(nil, nil, 500, nil), err
 	}
 
-
-
 	if data.IsDirty() {
 
 		//auditModel := data.GetAuditModel()
-		//dr.cruds[auditModel.GetTableName()]
+		//resp, err := dr.cruds[auditModel.GetTableName()].Create(auditModel, req)
+		//if err != nil {
+		//	log.Errorf("Failed to create audit entry: %v", err)
+		//} else {
+		//	log.Infof("ReferenceId for change: %v", resp.Result())
+		//}
 
 	}
 
