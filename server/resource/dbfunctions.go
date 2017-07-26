@@ -1157,8 +1157,8 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 		} else {
 			if present {
 				log.Infof("Column [%v] already present in table [%v]", col, tableInfo.TableName)
+				//columnsWeWant[col] = true
 			}
-			columnsWeWant[col] = true
 		}
 	}
 
