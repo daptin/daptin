@@ -108,6 +108,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	initConfig.Tables = allTables
 
 	resource.CheckRelations(&initConfig, db)
+	resource.CheckAuditTables(&initConfig, db)
 
 	//AddStateMachines(&initConfig, db)
 

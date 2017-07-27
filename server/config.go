@@ -35,7 +35,6 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 	}
 
 	globalInitConfig.Tables = append(globalInitConfig.Tables, resource.StandardTables...)
-	globalInitConfig.Relations = append(globalInitConfig.Relations, resource.StandardRelations...)
 	globalInitConfig.Actions = append(globalInitConfig.Actions, resource.SystemActions...)
 	globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
 	globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
@@ -76,7 +75,6 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 		//log.Infof("File added to config, deleting %v", fileName)
 
 	}
-
 
 	globalInitConfig.Validator = validator.New()
 	return globalInitConfig, errs
