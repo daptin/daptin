@@ -42,7 +42,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		log.Errorf("Request data is not api2go model: %v", data)
 		return nil, errors.New("Invalid request")
 	}
-	log.Infof("Update object request: %v", data.Data)
+	log.Infof("Update object request with changes: %v", data.GetChanges())
 	id := data.GetID()
 
 	attrs := data.GetAllAsAttributes()
@@ -73,6 +73,10 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		}
 
 		if col.ColumnName == "updated_at" {
+			continue
+		}
+
+		if col.ColumnName == "version" {
 			continue
 		}
 
@@ -123,11 +127,11 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			parsedTime, ok := val.(time.Time)
 			if !ok {
 				val1, err := time.Parse("2006-01-02T15:04:05.999Z", val.(string))
-				CheckErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
 
+				InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
 				if err != nil {
 					val, err = time.Parse("2006-01-02", val.(string))
-					CheckErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
+					InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
 				} else {
 					val = val1
 				}
@@ -158,6 +162,9 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	colsList = append(colsList, "updated_at")
 	valsList = append(valsList, time.Now())
 
+	colsList = append(colsList, "version")
+	valsList = append(valsList, data.GetNextVersion())
+
 	builder := squirrel.Update(dr.model.GetName())
 
 	for i := range colsList {
@@ -180,13 +187,13 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 	if data.IsDirty() {
 
-		//auditModel := data.GetAuditModel()
-		//resp, err := dr.cruds[auditModel.GetTableName()].Create(auditModel, req)
-		//if err != nil {
-		//	log.Errorf("Failed to create audit entry: %v", err)
-		//} else {
-		//	log.Infof("ReferenceId for change: %v", resp.Result())
-		//}
+		auditModel := data.GetAuditModel()
+		resp, err := dr.cruds[auditModel.GetTableName()].Create(auditModel, req)
+		if err != nil {
+			log.Errorf("Failed to create audit entry: %v", err)
+		} else {
+			log.Infof("ReferenceId for change: %v", resp.Result())
+		}
 
 	}
 
@@ -262,14 +269,22 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 				intId := updatedResource["id"].(int64)
 				log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
 
-				updateForeignRow := make(map[string]interface{})
 				valMapList := val.([]map[string]interface{})
 
 				for _, valMap := range valMapList {
-					updateForeignRow[rel.GetObjectName()] = updatedResource["reference_id"].(string)
-					updateForeignRow["reference_id"] = valMap[rel.GetSubjectName()]
 
-					model := api2go.NewApi2GoModelWithData(rel.GetObject(), nil, auth.DEFAULT_PERMISSION, nil, updateForeignRow)
+					updateForeignRow := make(map[string]interface{})
+
+					updateForeignRow, err = dr.cruds[rel.GetSubject()].GetReferenceIdToObject(rel.GetSubject(), valMap[rel.GetSubjectName()].(string))
+					if err != nil {
+						log.Infof("Failed to get object by reference id: %v", err)
+						continue
+					}
+					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, auth.DEFAULT_PERMISSION, nil, updateForeignRow)
+
+					model.SetAttributes(map[string]interface{}{
+						rel.GetObjectName(): updatedResource["reference_id"].(string),
+					})
 
 					_, err := dr.cruds[rel.GetSubject()].Update(model, req)
 					if err != nil {
@@ -292,16 +307,16 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 				intId := updatedResource["id"].(int64)
 				log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
 
-				updateForeignRow := make(map[string]interface{})
 				valMapList := val.([]map[string]interface{})
 
 				for _, valMap := range valMapList {
+					updateForeignRow := make(map[string]interface{})
+					updateForeignRow, err = dr.GetReferenceIdToObject(rel.GetSubject(), valMap[rel.GetSubjectName()].(string))
 					updateForeignRow[rel.GetSubjectName()] = updatedResource["reference_id"].(string)
-					updateForeignRow["reference_id"] = valMap[rel.GetObjectName()]
 
-					model := api2go.NewApi2GoModelWithData(rel.GetObject(), nil, auth.DEFAULT_PERMISSION, nil, updateForeignRow)
+					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, auth.DEFAULT_PERMISSION, nil, updateForeignRow)
 
-					_, err := dr.cruds[rel.GetObject()].Update(model, req)
+					_, err := dr.cruds[rel.GetSubject()].Update(model, req)
 					if err != nil {
 						log.Errorf("Failed to update [%v][%v]: %V", rel.GetObject(), )
 					}

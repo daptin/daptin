@@ -12,6 +12,7 @@ import (
 	//"errors"
 	"github.com/artpar/goms/server/auth"
 	"time"
+	"github.com/jinzhu/copier"
 )
 
 func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
@@ -615,6 +616,12 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
 }
 
+func InfoErr(err error, message string) {
+	if err != nil {
+		log.Infof("%v: %v", message, err)
+	}
+
+}
 func CheckErr(err error, message string) {
 	if err != nil {
 		log.Errorf("%v: %v", message, err)
@@ -719,8 +726,135 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
 	}
 }
 
+func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
+
+	newRelations := make([]api2go.TableRelation, 0)
+
+	tableMap := make(map[string]*TableInfo)
+	for i := range config.Tables {
+		t := config.Tables[i]
+		tableMap[t.TableName] = &t
+	}
+
+	createAuditTableFor := make([]string, 0)
+	updateAuditTableFor := make([]string, 0)
+
+	for _, table := range config.Tables {
+
+		if api2go.EndsWithCheck(table.TableName, "_audit") {
+			log.Infof("[%v] is an audit table", table.TableName)
+			continue
+		}
+
+		auditTableName := table.TableName + "_audit"
+		existingAuditTable, ok := tableMap[auditTableName]
+		if !ok {
+			createAuditTableFor = append(createAuditTableFor, table.TableName)
+		} else {
+
+			if len(table.Columns) > len(existingAuditTable.Columns) {
+				log.Infof("New columns added to the table, audit table need to be updated")
+				updateAuditTableFor = append(updateAuditTableFor, table.TableName)
+			}
+		}
+
+	}
+
+	for _, tableName := range createAuditTableFor {
+
+		table := tableMap[tableName]
+		columnsCopy := make([]api2go.ColumnInfo, len(table.Columns))
+		auditTableName := tableName + "_audit"
+
+		for o, col := range table.Columns {
+
+			var c api2go.ColumnInfo
+			err := copier.Copy(&c, &col)
+			if err != nil {
+				log.Errorf("Failed to copy columns for audit table: %v", err)
+				continue
+			}
+
+			c.IsUnique = false
+			c.IsPrimaryKey = false
+			c.IsAutoIncrement = false
+			c.DefaultValue = ""
+
+			columnsCopy[o] = c
+
+		}
+
+		newRelation := api2go.TableRelation{
+			Subject:    auditTableName,
+			Relation:   "belongs_to",
+			Object:     tableName,
+			ObjectName: "audit_object_id",
+		}
+
+		newRelations = append(newRelations, newRelation)
+
+		newTable := TableInfo{
+			TableName:         auditTableName,
+			Columns:           columnsCopy,
+			IsHidden:          true,
+			DefaultPermission: 222,
+			Permission:        222,
+		}
+
+		config.Tables = append(config.Tables, newTable)
+	}
+
+	log.Infof("%d Audit tables are new", len(createAuditTableFor))
+	log.Infof("%d Audit tables are updated", len(updateAuditTableFor))
+
+	for _, tableName := range updateAuditTableFor {
+
+		table := tableMap[tableName]
+		auditTable := tableMap[tableName+"_audit"]
+		existingColumns := auditTable.Columns
+
+		existingColumnMap := make(map[string]api2go.ColumnInfo)
+		for _, col := range existingColumns {
+			existingColumnMap[col.Name] = col
+		}
+
+		tableColumnMap := make(map[string]api2go.ColumnInfo)
+		for _, col := range table.Columns {
+			tableColumnMap[col.Name] = col
+		}
+
+		newColsToAdd := make([]api2go.ColumnInfo, 0)
+
+		for _, newCols := range table.Columns {
+
+			_, ok := existingColumnMap[newCols.Name]
+			if !ok {
+				var newAuditCol api2go.ColumnInfo
+				copier.Copy(&newAuditCol, &newCols)
+				newColsToAdd = append(newColsToAdd, newAuditCol)
+			}
+
+		}
+
+		if len(newColsToAdd) > 0 {
+
+			for i := range config.Tables {
+
+				if config.Tables[i].TableName == auditTable.TableName {
+					config.Tables[i].Columns = append(config.Tables[i].Columns, newColsToAdd...)
+				}
+			}
+
+		}
+
+	}
+
+	convertRelationsToColumns(newRelations, config)
+
+}
+
 func CheckRelations(config *CmsConfig, db *sqlx.DB) {
-	relations := config.Relations
+	relations := make([]api2go.TableRelation, 0)
 
 	relationsDone := make(map[string]bool)
 
@@ -733,7 +867,6 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 	for i, table := range config.Tables {
 		config.Tables[i].IsTopLevel = true
 		existingRelations := config.Tables[i].Relations
-		config.Tables[i].Relations = make([]api2go.TableRelation, 0)
 
 		if len(existingRelations) > 0 {
 			log.Infof("Found existing %d relations from db for [%v]", len(existingRelations), config.Tables[i].TableName)
@@ -848,9 +981,33 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 	config.Tables = append(config.Tables, newTables...)
 
 	//newRelations := make([]api2go.TableRelation, 0)
-	config.Relations = relations
+	convertRelationsToColumns(relations, config)
+	convertRelationsToColumns(StandardRelations, config)
+
+	//config.Tables[stateMachineDescriptionTableIndex] = stateMachineDescriptionTable
+
+	for _, rela := range relations {
+		log.Infof("All relations: %v", rela.String())
+	}
+}
+func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConfig) {
+
+	existingRelationMap := make(map[string]bool)
+
+	for _, rel := range config.Relations {
+		existingRelationMap[rel.Hash()] = true
+	}
 
 	for _, relation := range relations {
+
+		if existingRelationMap[relation.Hash()] {
+			log.Infof("Relation [%v] is already registered", relation.String())
+			continue
+		}
+		log.Infof("Register relation [%v]", relation.String())
+		config.Relations = append(config.Relations, relation)
+		existingRelationMap[relation.Hash()] = true
+
 		relation2 := relation.GetRelation()
 		log.Infof("Relation to table [%v]", relation.String())
 		if relation2 == "belongs_to" || relation2 == "has_one" {
@@ -1086,11 +1243,6 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
 	}
 
-	//config.Tables[stateMachineDescriptionTableIndex] = stateMachineDescriptionTable
-
-	for _, rela := range relations {
-		log.Infof("All relations: %v", rela.String())
-	}
 }
 
 func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB) {

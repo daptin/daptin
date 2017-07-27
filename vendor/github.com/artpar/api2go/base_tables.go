@@ -128,6 +128,22 @@ type Api2GoModel struct {
 	dirty             bool
 }
 
+func (g *Api2GoModel) GetNextVersion() int64 {
+	if g.dirty {
+		return g.oldData["version"].(int64) + 1
+	} else {
+		return g.Data["version"].(int64) + 1
+	}
+}
+
+func (g *Api2GoModel) GetCurrentVersion() int64 {
+	if g.dirty {
+		return g.oldData["version"].(int64)
+	} else {
+		return g.Data["version"].(int64)
+	}
+}
+
 func (a *Api2GoModel) GetColumnMap() map[string]ColumnInfo {
 	if a.columnMap != nil && len(a.columnMap) > 0 {
 		return a.columnMap
@@ -231,6 +247,7 @@ func (f ForeignKeyData) String() string {
 }
 
 func NewApi2GoModelWithData(name string, columns []ColumnInfo, defaultPermission int64, relations []TableRelation, m map[string]interface{}) *Api2GoModel {
+	m["__type"] = name
 	return &Api2GoModel{
 		typeName:          name,
 		columns:           columns,
@@ -285,7 +302,20 @@ func EndsWithCheck(str string, endsWith string) bool {
 
 func (m *Api2GoModel) SetToOneReferenceID(name, ID string) error {
 
-	m.Data[name] = ID
+	existingVal, ok := m.Data[name]
+	if !m.dirty && (!ok || existingVal != ID) {
+		m.dirty = true
+
+		tempMap := make(map[string]interface{})
+
+		for k1, v1 := range m.Data {
+			tempMap[k1] = v1
+		}
+
+		m.oldData = tempMap
+
+	}
+	existingVal = ID
 	return nil
 
 	return errors.New("There is no to-one relationship with the name " + name)
@@ -320,11 +350,14 @@ func (m *Api2GoModel) SetToManyReferenceIDs(name string, IDs []string) error {
 				row[name] = id
 				if rel.GetSubjectName() == name {
 					row[rel.GetObjectName()] = m.Data["reference_id"]
+					row["__type"] = rel.GetSubject()
 				} else {
+					row["__type"] = rel.GetObject()
 					row[rel.GetSubjectName()] = m.Data["reference_id"]
 				}
 				rows = append(rows, row)
 			}
+			//m.SetToOneReferenceID(name, IDs[0])
 			m.Data[name] = rows
 			return nil
 		}
@@ -554,10 +587,16 @@ func (g *Api2GoModel) SetAttributes(attrs map[string]interface{}) {
 	for k, v := range attrs {
 
 		existingValue, ok := g.Data[k]
-		if !ok || v != existingValue {
-			if !g.dirty {
+		if !g.dirty {
+			if !ok || v != existingValue {
 				g.dirty = true
-				g.oldData = g.Data
+				tempMap := make(map[string]interface{})
+
+				for k1, v1 := range g.Data {
+					tempMap[k1] = v1
+				}
+
+				g.oldData = tempMap
 			}
 		}
 		g.Data[k] = v
@@ -575,9 +614,19 @@ func (g *Api2GoModel) GetAuditModel() *Api2GoModel {
 	newData := make(map[string]interface{})
 
 	for k, v := range g.oldData {
+
+		if k == "reference_id" {
+			continue
+		}
+
+		if k == "id" {
+			continue
+		}
+
 		newData[k] = v
 	}
 	newData["__type"] = auditTableName
+	newData["audit_object_id"] = g.oldData["reference_id"]
 
 	return NewApi2GoModelWithData(auditTableName, g.columns, g.defaultPermission, nil, newData)
 
