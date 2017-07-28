@@ -6,7 +6,6 @@ temp.*gocms.json
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 docker_dir/
 npm-debug.log
-dist
 rice-box.go
 test*
 bin/
