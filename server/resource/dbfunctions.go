@@ -778,7 +778,6 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 			c.IsUnique = false
 			c.IsPrimaryKey = false
 			c.IsAutoIncrement = false
-			c.DefaultValue = ""
 
 			if c.ColumnName == "id" {
 				c.ColumnName = "__old_id"
