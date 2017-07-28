@@ -780,6 +780,11 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 			c.IsAutoIncrement = false
 			c.DefaultValue = ""
 
+			if c.ColumnName == "id" {
+				c.ColumnName = "__old_id"
+				c.DataType = "varchar(10)"
+			}
+
 			columnsCopy[o] = c
 
 		}
