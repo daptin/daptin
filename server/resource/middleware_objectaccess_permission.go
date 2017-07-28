@@ -71,6 +71,14 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 
 func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
 
+	if req.PlainRequest.Method == "POST" {
+		return results, nil
+	}
+
+	if req.PlainRequest.Method == "GET" {
+		return results, nil
+	}
+
 	//var err error
 	//log.Infof("context: %v", context.GetAll(req.PlainRequest))
 	userIdString := context.Get(req.PlainRequest, "user_id")
