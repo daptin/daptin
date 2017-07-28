@@ -20,6 +20,8 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 
 	if results == nil || len(results) < 1 {
 		return results, nil
+	} else {
+		return results, nil
 	}
 
 	returnMap := make([]map[string]interface{}, 0)
@@ -60,7 +62,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 		if permission.CanRead(currentUserId, currentUserGroupId) {
 			returnMap = append(returnMap, result)
 		} else {
-			log.Infof("Result not to be included: %v", result["reference_id"])
+			log.Infof("[ObjectAccessPermissionChecker] Result not to be included: %v", result["reference_id"])
 			notIncludedMapCache[referenceId] = true
 		}
 	}
@@ -72,10 +74,6 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
 
 	if req.PlainRequest.Method == "POST" {
-		return results, nil
-	}
-
-	if req.PlainRequest.Method == "GET" {
 		return results, nil
 	}
 
@@ -120,7 +118,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		}
 
 		permission := dr.GetRowPermission(result)
-		log.Infof("Permission check for ObjectAccessPermissionChecker type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.Permission)
+		log.Infof("[ObjectAccessPermissionChecker] Permission check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.Permission)
 		//log.Infof("Row Permission for [%v] for [%v]", permission, result)
 
 		if req.PlainRequest.Method == "GET" {
@@ -128,7 +126,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {
-				log.Infof("Result not to be included: %v", refIdInterface)
+				log.Infof("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
 				notIncludedMapCache[referenceId] = true
 
 			}
@@ -137,7 +135,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {
-				log.Infof("Result not to be included: %v", refIdInterface)
+				log.Infof("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
 				notIncludedMapCache[referenceId] = true
 			}
 		} else {

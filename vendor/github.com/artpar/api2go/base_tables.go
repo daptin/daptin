@@ -315,7 +315,7 @@ func (m *Api2GoModel) SetToOneReferenceID(name, ID string) error {
 		m.oldData = tempMap
 
 	}
-	existingVal = ID
+	m.Data[name] = ID
 	return nil
 
 	return errors.New("There is no to-one relationship with the name " + name)
@@ -391,7 +391,7 @@ func (m *Api2GoModel) GetReferencedIDs() []jsonapi.ReferenceID {
 
 	for _, rel := range m.relations {
 
-		log.Infof("Checked relations [%v]: %v", m.typeName, rel)
+		//log.Infof("Checked relations [%v]: %v", m.typeName, rel)
 
 		if rel.GetRelation() == "belongs_to" || rel.GetRelation() == "has_one" {
 			if rel.GetSubject() == m.typeName {

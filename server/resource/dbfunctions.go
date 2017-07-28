@@ -776,14 +776,15 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 				continue
 			}
 
+
+			if c.ColumnName == "id" {
+				continue
+			}
+
+
 			c.IsUnique = false
 			c.IsPrimaryKey = false
 			c.IsAutoIncrement = false
-
-			if c.ColumnName == "id" {
-				c.ColumnName = "__old_id"
-				c.DataType = "varchar(10)"
-			}
 
 			log.Infof("Add column to table [%v] == [%v]", auditTableName, c)
 			columnsCopy[o] = c
