@@ -765,6 +765,7 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 		table := tableMap[tableName]
 		columnsCopy := make([]api2go.ColumnInfo, len(table.Columns))
 		auditTableName := tableName + "_audit"
+		log.Infof("Create audit table [%s] for table [%v]", table.TableName, auditTableName)
 
 		for o, col := range table.Columns {
 
@@ -784,6 +785,7 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 				c.DataType = "varchar(10)"
 			}
 
+			log.Infof("Add column to table [%v] == [%v]", auditTableName, c)
 			columnsCopy[o] = c
 
 		}
@@ -1386,7 +1388,14 @@ func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
 }
 
 func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
-	columnParams := []string{c.ColumnName, c.DataType}
+
+	datatype := c.DataType
+
+	if datatype == "" {
+		datatype = "varchar(50)"
+	}
+
+	columnParams := []string{c.ColumnName, datatype}
 
 	if !c.IsNullable {
 		columnParams = append(columnParams, "not null")
