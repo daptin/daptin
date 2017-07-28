@@ -62,7 +62,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 			returnMap = append(returnMap, result)
 			includedMapCache[referenceId] = true
 		} else {
-			log.Infof("Result not to be included: %v", result["reference_id"])
+			log.Infof("[TableAccessPermissionChecker] Result not to be included: %v", result["reference_id"])
 			notIncludedMapCache[referenceId] = true
 		}
 	}
@@ -95,7 +95,7 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 
 	tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
 
-	log.Infof("Permission check for TableAccessPermissionChecker type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), tableOwnership.Permission)
+	log.Infof("[TableAccessPermissionChecker] Permission check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), tableOwnership.Permission)
 	if req.PlainRequest.Method == "GET" {
 		if !tableOwnership.CanRead(currentUserId, currentUserGroupId) {
 			return nil, ERR_UNAUTHORIZED

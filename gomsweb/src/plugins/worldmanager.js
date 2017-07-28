@@ -169,7 +169,7 @@ const WorldManager = function () {
             console.log("Defined world", columnKeys.ColumnModel);
             that.systemActions = columnKeys.Actions;
             jsonApi.findAll('world', {
-              page: {number: 1, size: 50},
+              page: {number: 1, size: 500},
               include: ['world_column']
             }).then(function (res) {
               that.worlds = res;
