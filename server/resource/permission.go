@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/goms/server/auth"
+	log "github.com/sirupsen/logrus"
 )
 
 type Permission struct {
@@ -29,7 +30,7 @@ func (p1 Permission) CheckBit(userId string, usergroupId []auth.GroupPermission,
 
 	if userId == p1.UserId && len(p1.UserId) > 0 {
 		p := p1.Permission / 100
-		//log.Infof("Check against user: %v", p)
+		log.Infof("Check against user: %v", p)
 		return (p & bit) == bit
 	}
 
@@ -39,13 +40,13 @@ func (p1 Permission) CheckBit(userId string, usergroupId []auth.GroupPermission,
 			if uid.ReferenceId == gid.ReferenceId && len(gid.ReferenceId) > 0 {
 				p := (gid.Permission % 100) / 10
 				p = p % 10
-				//log.Infof("Check against group [%v]: %v", gid.ReferenceId, p)
+				log.Infof("Check against group [%v]: %v", gid.ReferenceId, p)
 				return (p & bit) == bit
 			}
 		}
 	}
 
 	p := p1.Permission % 10
-	//log.Infof("check against world: %v == %v", p, (p&bit) == bit)
+	log.Infof("check against world: %v == %v", p, (p&bit) == bit)
 	return (p & bit) == bit
 }

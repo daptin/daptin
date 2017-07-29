@@ -1,0 +1,36 @@
+version: '2'
+
+services:
+  goms:
+    image: goms/goms
+    container_name: goms
+    restart: always
+    ports:
+     - "8090:8080"
+    command:
+    - -db_type=mysql
+    - -db_connection_string=devsuser:devspassword@tcp(gomsmysqldb:3306)/devsupport
+    - -port=8080
+    links:
+      - gomsmysqldb:gomsmysqldb
+    depends_on:
+        - "gomsmysqldb"
+    networks:
+      - my_net
+  gomsmysqldb:
+    image: mysql
+    container_name: mysql
+    restart: always
+    volumes:
+    - ./db_init:/docker-entrypoint-initdb.d
+    environment:
+        - MYSQL_DATABASE=devsupport
+        - MYSQL_ROOT_PASSWORD=devrootsupport
+        - MYSQL_USER=devsuser
+        - MYSQL_PASSWORD=devspassword
+    networks:
+      - my_net
+networks:
+  my_net:
+    external:
+      name: my_net

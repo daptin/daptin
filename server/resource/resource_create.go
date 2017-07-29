@@ -37,6 +37,8 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 			return nil, errors.New("No object to act upon")
 		}
 	}
+	currentUserReferenceId := context.Get(req.PlainRequest, "user_id").(string)
+	currentUsergroups := context.Get(req.PlainRequest, "usergroup_id").([]auth.GroupPermission)
 
 	attrs := data.GetAllAsAttributes()
 
@@ -93,7 +95,19 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 			if valString == "" {
 				uId = nil
 			} else {
-				uId, err = dr.GetReferenceIdToId(col.ForeignKeyData.TableName, valString)
+				foreignObject, err := dr.GetReferenceIdToObject(col.ForeignKeyData.TableName, valString)
+				if err != nil {
+					return nil, err
+				}
+
+				foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.TableName, valString)
+
+				if foreignObjectPermission.CanWrite(currentUserReferenceId, currentUsergroups) {
+					uId = foreignObject["id"]
+				} else {
+					return nil, errors.New("Cannot use that object")
+				}
+
 			}
 			if err != nil {
 				return nil, err
@@ -230,21 +244,19 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
 		log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
-		createdResource["__type"] = dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id"
 
 		if err != nil {
 			log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
 		}
 	} else if dr.model.GetName() == "usergroup" && userId != 0 {
 
-		log.Infof("Associate new user with usergroup: %v", userId)
+		log.Infof("Associate new usergroup with user: %v", userId)
 		nuuid := uuid.NewV4().String()
 
 		belogsToUserGroupSql, q, err := squirrel.
 		Insert("user_user_id_has_usergroup_usergroup_id").
 				Columns("user_id", "usergroup_id", "reference_id", "permission").
 				Values(userId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
-		createdResource["__type"] = "user_user_id_has_usergroup_usergroup_id"
 		log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 
@@ -271,10 +283,10 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	}
 
 	delete(createdResource, "id")
+	createdResource["__type"] = dr.model.GetName()
 
 	for _, bf := range dr.ms.AfterCreate {
 		log.Infof("Invoke AfterCreate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
-
 		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource})
 		if err != nil {
 			log.Errorf("Error from after create middleware: %v", err)
