@@ -118,7 +118,23 @@ func (dr *DbResource) GetActionPermissionByName(worldId int64, actionName string
 }
 
 func (dr *DbResource) GetObjectPermission(objectType string, referenceId string) Permission {
-	s, q, err := squirrel.Select("user_id", "permission", "id").From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+
+	var selectQuery string
+	var queryParameters []interface{}
+	var err error
+	if objectType == "usergroup" {
+		selectQuery, queryParameters, err = squirrel.
+		Select("permission", "id").
+				From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
+				Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+	} else {
+		selectQuery, queryParameters, err = squirrel.
+		Select("user_id", "permission", "id").
+				From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
+				Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+
+	}
+
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
 		return Permission{
@@ -126,27 +142,27 @@ func (dr *DbResource) GetObjectPermission(objectType string, referenceId string)
 		}
 	}
 
-	m := make(map[string]interface{})
-	err = dr.db.QueryRowx(s, q...).MapScan(m)
+	resultObject := make(map[string]interface{})
+	err = dr.db.QueryRowx(selectQuery, queryParameters...).MapScan(resultObject)
 	if err != nil {
-		log.Errorf("Failed to can permisison: %v", err)
+		log.Errorf("Failed to scan permission 1: %v", err)
 	}
-	//log.Infof("permi map: %v", m)
+	//log.Infof("permi map: %v", resultObject)
 	var perm Permission
-	if m["user_id"] != nil {
+	if resultObject["user_id"] != nil {
 
-		user, err := dr.GetIdToReferenceId("user", m["user_id"].(int64))
+		user, err := dr.GetIdToReferenceId("user", resultObject["user_id"].(int64))
 		if err == nil {
 			perm.UserId = user
 		}
 
 	}
 
-	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, m["id"].(int64))
+	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, resultObject["id"].(int64))
 
-	perm.Permission = m["permission"].(int64)
+	perm.Permission = resultObject["permission"].(int64)
 	if err != nil {
-		log.Errorf("Failed to scan permission: %v", err)
+		log.Errorf("Failed to scan permission 2: %v", err)
 	}
 
 	//log.Infof("Permission for [%v]: %v", typeName, perm)
@@ -253,11 +269,25 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 
 }
 func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) []auth.GroupPermission {
-
 	s := make([]auth.GroupPermission, 0)
 
-	res, err := dr.db.Queryx(fmt.Sprintf("select ug.reference_id as referenceid, uug.permission from usergroup ug join %s_has_usergroup uug on uug.usergroup_id = ug.id and uug.%s_id = ?", objType, objType), objectId)
+	if objType == "usergroup" {
+
+		refId, err := dr.GetIdToReferenceId(objType, objectId)
+		if err != nil {
+			log.Infof("Failed to get id to reference id [%v][%v] == %v", objType, objectId, err)
+			return s
+		}
+		s = append(s, auth.GroupPermission{
+			ReferenceId: refId,
+			Permission:  dr.cruds["usergroup"].model.GetDefaultPermission(),
+		})
+		return s
+	}
+
+	res, err := dr.db.Queryx(fmt.Sprintf("select ug.reference_id as referenceid, uug.permission from usergroup ug join %s_%s_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id and uug.%s_id = ?", objType, objType, objType), objectId)
 	if err != nil {
+		log.Errorf("Failed to query object group by object id [%v][%v] == %v", objType, objectId, err)
 		return s
 	}
 
@@ -320,18 +350,26 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 }
 
 func (dr *DbResource) GetRowPermission(row map[string]interface{}) Permission {
-	var perm Permission
-
-	if row["user_id"] != nil {
-		uid, _ := row["user_id"].(string)
-		perm.UserId = uid
-	}
 
 	refId, ok := row["reference_id"]
 	if !ok {
 		refId = row["id"]
 	}
 	rowType := row["__type"].(string)
+
+	var perm Permission
+
+	if row["user_id"] != nil && rowType != "usergroup" {
+		uid, _ := row["user_id"].(string)
+		perm.UserId = uid
+	} else {
+		row, _ = dr.GetReferenceIdToObject(rowType, refId.(string))
+		u := row["user_id"]
+		if u != nil {
+			uid, _ := u.(string)
+			perm.UserId = uid
+		}
+	}
 
 	loc := strings.Index(dr.cruds[rowType].model.GetName(), "_has_")
 	//log.Infof("Location [%v]: %v", dr.model.GetName(), loc)
@@ -343,7 +381,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) Permission {
 		perm.UserGroupId = []auth.GroupPermission{
 			{
 				ReferenceId: refId.(string),
-				Permission:  auth.DEFAULT_PERMISSION,
+				Permission:  dr.cruds["usergroup"].model.GetDefaultPermission(),
 			},
 		}
 	}

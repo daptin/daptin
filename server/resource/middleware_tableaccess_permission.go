@@ -68,7 +68,6 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 	}
 
 	return returnMap, nil
-
 }
 
 var (

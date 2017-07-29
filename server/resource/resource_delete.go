@@ -20,7 +20,7 @@ import (
 func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, error) {
 
 	for _, bf := range dr.ms.BeforeDelete {
-		log.Infof("Invoke BeforeDelete [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		log.Infof("[Before][%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
 			{
 				"reference_id": id,

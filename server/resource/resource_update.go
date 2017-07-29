@@ -42,12 +42,16 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		log.Errorf("Request data is not api2go model: %v", data)
 		return nil, errors.New("Invalid request")
 	}
-	log.Infof("Update object request with changes: %v", data.GetChanges())
 	id := data.GetID()
+
+	currentUserReferenceId := context.Get(req.PlainRequest, "user_id").(string)
+	currentUsergroups := context.Get(req.PlainRequest, "usergroup_id").([]auth.GroupPermission)
 
 	attrs := data.GetAllAsAttributes()
 
+	allChanges := data.GetChanges()
 	allColumns := dr.model.GetColumns()
+	log.Infof("Update object request with changes: %v", allChanges)
 
 	dataToInsert := make(map[string]interface{})
 
@@ -80,27 +84,32 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			continue
 		}
 
-		//log.Infof("Check column: %v", col.ColumnName)
-
-		val, ok := attrs[col.ColumnName]
-		if !ok || val == nil {
+		change, ok := allChanges[col.ColumnName]
+		if !ok {
 			continue
 		}
+
+		log.Infof("Check column: [%v]  (%v) => (%v) ", col.ColumnName, change.OldValue, change.NewValue)
+
+		val := change.NewValue
 		if col.IsForeignKey {
 			log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.TableName, val)
 
 			valString := val.(string)
-			var uId interface{}
-			var err error
-			if valString == "" {
-				uId = nil
-			} else {
-				uId, err = dr.GetReferenceIdToId(col.ForeignKeyData.TableName, valString)
-			}
+
+			foreignObject, err := dr.GetReferenceIdToObject(col.ForeignKeyData.TableName, valString)
 			if err != nil {
 				return nil, err
 			}
-			val = uId
+
+			foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.TableName, valString)
+
+			if foreignObjectPermission.CanWrite(currentUserReferenceId, currentUsergroups) {
+				val = foreignObject["id"]
+			} else {
+				return nil, errors.New("Cannot use that object")
+			}
+
 		}
 		var err error
 
@@ -188,11 +197,11 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	if data.IsDirty() {
 
 		auditModel := data.GetAuditModel()
-		resp, err := dr.cruds[auditModel.GetTableName()].Create(auditModel, req)
+		_, err := dr.cruds[auditModel.GetTableName()].Create(auditModel, req)
 		if err != nil {
 			log.Errorf("Failed to create audit entry: %v", err)
 		} else {
-			log.Infof("ReferenceId for change: %v", resp.Result())
+			//log.Infof("ReferenceId for change: %v", resp.Result())
 		}
 
 	}

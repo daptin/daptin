@@ -76,6 +76,12 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		queries = req.QueryParams["query"]
 	}
 
+	//filters := []string{}
+
+	//if len(req.QueryParams["filter"]) > 0 {
+	//	queries = req.QueryParams["filter"]
+	//}
+
 	if pageNumber > 0 {
 		pageNumber = pageNumber * pageSize
 	}
@@ -110,6 +116,8 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 	// todo: fix search in findall operation. currently no way to do an " or " query
 	if len(queries) > 0 {
+
+
 		colsToAdd := make([]string, 0)
 		for _, col := range infos {
 			if col.IsIndexed && col.ColumnType == "name" || col.ColumnType == "label" {

@@ -569,8 +569,13 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
 			//s, v, err = squirrel.Select("default_permission").From("world").Where(squirrel.Eq{"table_name": table.TableName}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
 			//CheckErr(err, "Failed to create select default permission sql")
+			log.Infof("Update table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)
 
-			s, v, err = squirrel.Update("world").Set("schema_json", string(schema)).Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
+			s, v, err = squirrel.Update("world").
+					Set("schema_json", string(schema)).
+					Set("is_top_level", table.IsTopLevel).
+					Set("is_hidden", table.IsHidden).
+					Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
 			CheckErr(err, "Failed to create update default permission sql")
 
 			_, err := tx.Exec(s, v...)
@@ -578,6 +583,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
 			continue
 		}
+
+		log.Infof("Insert table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)
 
 		s, v, err = squirrel.Insert("world").
 				Columns("table_name", "schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden").
@@ -776,11 +783,9 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 				continue
 			}
 
-
 			if c.ColumnName == "id" {
 				continue
 			}
-
 
 			c.IsUnique = false
 			c.IsPrimaryKey = false
@@ -997,6 +1002,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 		log.Infof("All relations: %v", rela.String())
 	}
 }
+
 func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConfig) {
 
 	existingRelationMap := make(map[string]bool)

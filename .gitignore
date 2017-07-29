@@ -7,7 +7,6 @@ temp.*gocms.json
 docker_dir/
 npm-debug.log
 rice-box.go
-test*
 bin/
 build/
 projectFilesBackup/
