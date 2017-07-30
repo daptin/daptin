@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	"github.com/artpar/goms/server/auth"
-	"github.com/gorilla/context"
 )
 
 type TableAccessPermissionChecker struct {
@@ -25,8 +24,8 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 
 	returnMap := make([]map[string]interface{}, 0)
 
-	userIdString := context.Get(req.PlainRequest, "user_id")
-	userGroupId := context.Get(req.PlainRequest, "usergroup_id")
+	userIdString := req.PlainRequest.Context().Value("user_id")
+	userGroupId := req.PlainRequest.Context().Value("usergroup_id")
 
 	currentUserId := ""
 	if userIdString != nil {
@@ -78,8 +77,8 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 
 	//var err error
 	//log.Infof("context: %v", context.GetAll(req.PlainRequest))
-	userIdString := context.Get(req.PlainRequest, "user_id")
-	userGroupId := context.Get(req.PlainRequest, "usergroup_id")
+	userIdString := req.PlainRequest.Context().Value("user_id")
+	userGroupId := req.PlainRequest.Context().Value("usergroup_id")
 
 	currentUserId := ""
 	if userIdString != nil {

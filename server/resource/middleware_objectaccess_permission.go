@@ -6,7 +6,6 @@ import (
 	//"gopkg.in/Masterminds/squirrel.v1"
 
 	"github.com/artpar/goms/server/auth"
-	"github.com/gorilla/context"
 )
 
 type ObjectAccessPermissionChecker struct {
@@ -26,8 +25,8 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 
 	returnMap := make([]map[string]interface{}, 0)
 
-	userIdString := context.Get(req.PlainRequest, "user_id")
-	userGroupId := context.Get(req.PlainRequest, "usergroup_id")
+	userIdString := req.PlainRequest.Context().Value("user_id")
+	userGroupId := req.PlainRequest.Context().Value("usergroup_id")
 
 	currentUserId := ""
 	if userIdString != nil {
@@ -79,8 +78,8 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 	//var err error
 	//log.Infof("context: %v", context.GetAll(req.PlainRequest))
-	userIdString := context.Get(req.PlainRequest, "user_id")
-	userGroupId := context.Get(req.PlainRequest, "usergroup_id")
+	userIdString := req.PlainRequest.Context().Value("user_id")
+	userGroupId := req.PlainRequest.Context().Value("usergroup_id")
 
 	currentUserId := ""
 	if userIdString != nil {

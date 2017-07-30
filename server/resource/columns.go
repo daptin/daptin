@@ -70,6 +70,7 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("oauth_token", "has_one", "oauth_connect"),
 	api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
+	api2go.NewTableRelation("cloud_store", "has_one", "oauth_token"),
 }
 
 var SystemSmds = []LoopbookFsmDescription{}
@@ -811,6 +812,42 @@ var StandardTables = []TableInfo{
 				ColumnName: "token_type",
 				ColumnType: "label",
 				DataType:   "varchar(20)",
+			},
+		},
+	},
+	{
+		TableName: "cloud_store",
+		IsHidden:  true,
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "Name",
+				ColumnName: "name",
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+			},
+			{
+				Name:       "Store type",
+				ColumnName: "store_type",
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+			},
+			{
+				Name:       "Store provider",
+				ColumnName: "store_provider",
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+			},
+			{
+				Name:       "Root path",
+				ColumnName: "root_path",
+				ColumnType: "label",
+				DataType:   "varchar(1000)",
+			},
+			{
+				Name:       "Store parameters",
+				ColumnName: "store_parameters",
+				ColumnType: "json",
+				DataType:   "text",
 			},
 		},
 	},

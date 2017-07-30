@@ -5,7 +5,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	//"gopkg.in/Masterminds/squirrel.v1"
 	"github.com/artpar/goms/server/auth"
-	"github.com/gorilla/context"
 )
 
 type ObjectModificationAuditMiddleware struct {
@@ -23,8 +22,8 @@ func (omam *ObjectModificationAuditMiddleware) InterceptAfter(dr *DbResource, re
 
 	returnMap := make([]map[string]interface{}, 0)
 
-	userIdString := context.Get(req.PlainRequest, "user_id")
-	userGroupId := context.Get(req.PlainRequest, "usergroup_id")
+	userIdString := req.PlainRequest.Context().Value("user_id")
+	userGroupId := req.PlainRequest.Context().Value("usergroup_id")
 
 	currentUserId := ""
 	if userIdString != nil {
@@ -69,13 +68,12 @@ func (omam *ObjectModificationAuditMiddleware) InterceptAfter(dr *DbResource, re
 
 }
 
-
 func (omam *ObjectModificationAuditMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
 
 	//var err error
 	//log.Infof("context: %v", context.GetAll(req.PlainRequest))
-	userIdString := context.Get(req.PlainRequest, "user_id")
-	userGroupId := context.Get(req.PlainRequest, "usergroup_id")
+	userIdString := req.PlainRequest.Context().Value("user_id")
+	userGroupId := req.PlainRequest.Context().Value("usergroup_id")
 
 	currentUserId := ""
 	if userIdString != nil {

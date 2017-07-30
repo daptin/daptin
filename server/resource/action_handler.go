@@ -8,7 +8,6 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/goms/server/auth"
 	"github.com/dop251/goja"
-	"github.com/gorilla/context"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gin-gonic/gin.v1"
 	//"io"
@@ -125,12 +124,12 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				Method: "GET",
 			},
 		}
-		userid := context.Get(ginContext.Request, "user_id")
+		userid := ginContext.Request.Context().Value("user_id")
 		var userReferenceId string
 		userGroupReferenceIds := make([]auth.GroupPermission, 0)
 		if userid != nil {
 			userReferenceId = userid.(string)
-			userGroupReferenceIds = context.Get(ginContext.Request, "usergroup_id").([]auth.GroupPermission)
+			userGroupReferenceIds = ginContext.Request.Context().Value("usergroup_id").([]auth.GroupPermission)
 		}
 
 		var subjectInstance *api2go.Api2GoModel
@@ -237,9 +236,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				continue
 			}
 
-			context.Set(request.PlainRequest, "user_id", context.Get(ginContext.Request, "user_id"))
-			context.Set(request.PlainRequest, "user_id_integer", context.Get(ginContext.Request, "user_id_integer"))
-			context.Set(request.PlainRequest, "usergroup_id", context.Get(ginContext.Request, "usergroup_id"))
+			request.PlainRequest = request.PlainRequest.WithContext(ginContext.Request.Context())
 
 			dbResource, ok := cruds[outcome.Type]
 			if !ok {

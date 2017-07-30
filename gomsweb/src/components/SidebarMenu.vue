@@ -29,69 +29,68 @@
     </li>
 
 
-    <li class="header">Goms</li>
-
-    <li class="pageLink">
-      <router-link class="upload-schema"
-                   :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}">
-        <i class="fa fa-upload"></i> Update Features using JSON
-      </router-link>
-    </li>
-    <li class="pageLink">
-      <router-link class="download-schema"
-                   :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}">
-        <i class="fa fa-download"></i> Download System Schema
-      </router-link>
-    </li>
-    <li class="pageLink">
-      <router-link class="become-admin-button"
-                   :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}">
-        <i class="fa fa-graduation-cap"></i> Become Admin
-      </router-link>
-    </li>
-
-
-    <li class="header">Connections</li>
-    <li class="pageLink">
-      <router-link class="list-connections"
-                   :to="{name : 'Entity', params: {tablename: 'oauth_connect'}}">
-        <i class="fa fa-link"></i> Connections
-      </router-link>
-    </li>
-
-    <li class="pageLink">
-      <router-link class="oauth-tokens"
-                   :to="{name : 'Entity', params: {tablename: 'oauth_token'}}">
-        <i class="fa fa-tags"></i> Oauth Tokens
-      </router-link>
-    </li>
-
-    <li class="pageLink">
-      <router-link class="data-exchanges"
-                   :to="{name : 'Entity', params: {tablename: 'data_exchange'}}">
-        <i class="fa fa-exchange"></i> Data Exchanges
-      </router-link>
-    </li>
-
-
-    <li class="header">System</li>
-    <li class="pageLink" v-on:click="toggleMenu">
-      <router-link to="/in/world">
-        <i class="fa fa-th"></i>
-        <span class="page">All tables</span>
-      </router-link>
-    </li>
-
-
     <li class="treeview help-support">
       <a href="#">
-        <i class="fa fa-question"></i>
-        <span>Help and Support</span>
+        <i class="fa fa-cog"></i>
+        <span>System adminstration</span>
         <span class="pull-right-container">
           <i class="fa fa-angle-left fa-fw pull-right"></i>
         </span>
       </a>
       <ul class="treeview-menu">
+
+        <li class="pageLink">
+          <router-link class="upload-schema"
+                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}">
+            <i class="fa fa-upload"></i> Update Features using JSON
+          </router-link>
+        </li>
+
+        <li class="pageLink" v-on:click="toggleMenu">
+          <router-link to="/in/world">
+            <i class="fa fa-th"></i>
+            <span class="page">All tables</span>
+          </router-link>
+        </li>
+        <li class="pageLink">
+          <router-link class="data-exchanges"
+                       :to="{name : 'Entity', params: {tablename: 'data_exchange'}}">
+            <i class="fa fa-exchange"></i> Data Exchanges
+          </router-link>
+        </li>
+        <li class="pageLink">
+          <router-link class="oauth-tokens"
+                       :to="{name : 'Entity', params: {tablename: 'oauth_token'}}">
+            <i class="fa fa-tags"></i> Oauth Tokens
+          </router-link>
+        </li>
+        <li class="pageLink">
+          <router-link class="list-connections"
+                       :to="{name : 'Entity', params: {tablename: 'oauth_connect'}}">
+            <i class="fa fa-link"></i> Connections
+          </router-link>
+        </li>
+        <li class="pageLink">
+          <router-link class="list-external-storage"
+                       :to="{name : 'Entity', params: {tablename: 'cloud_store'}}">
+            <i class="fa fa-link"></i> External storage
+          </router-link>
+        </li>
+        <li class="pageLink">
+          <router-link class="download-schema"
+                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}">
+            <i class="fa fa-download"></i> Download System Schema
+          </router-link>
+        </li>
+
+        <li class="pageLink">
+          <router-link class="become-admin-button"
+                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}">
+            <i class="fa fa-graduation-cap"></i> Become Admin
+          </router-link>
+        </li>
+
+
         <li><a href="https://github.com/artpar/goms/wiki" target="_blank"><span class="fa fa-files-o"></span>
           Dev help</a></li>
 
@@ -110,10 +109,11 @@
 </template>
 <script>
   import {mapState} from "vuex"
+
   export default {
     name: 'SidebarName',
     methods: {
-      toggleMenu (event) {
+      toggleMenu(event) {
         // remove active from li
         var active = document.querySelector('li.pageLink.active')
 

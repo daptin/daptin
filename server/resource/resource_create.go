@@ -5,7 +5,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	//"reflect"
-	"github.com/gorilla/context"
 	"github.com/satori/go.uuid"
 	//"strconv"
 	"github.com/artpar/goms/server/auth"
@@ -37,12 +36,12 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 			return nil, errors.New("No object to act upon")
 		}
 	}
-	uidPtr := context.Get(req.PlainRequest, "user_id")
+	uidPtr := req.PlainRequest.Context().Value("user_id")
 	var currentUserReferenceId string
 	var currentUsergroups []auth.GroupPermission
 	if uidPtr != nil {
 		currentUserReferenceId = uidPtr.(string)
-		currentUsergroups = context.Get(req.PlainRequest, "usergroup_id").([]auth.GroupPermission)
+		currentUsergroups = req.PlainRequest.Context().Value("usergroup_id").([]auth.GroupPermission)
 	}
 
 	attrs := data.GetAllAsAttributes()
@@ -203,7 +202,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	valsList = append(valsList, time.Now())
 
 	var userId uint64
-	userIdInt := context.Get(req.PlainRequest, "user_id_integer")
+	userIdInt := req.PlainRequest.Context().Value("user_id_integer")
 	if userIdInt != nil {
 		userId = uint64(userIdInt.(int64))
 	}

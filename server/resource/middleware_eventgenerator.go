@@ -3,7 +3,6 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	//"errors"
-	gContext "github.com/gorilla/context"
 	log "github.com/sirupsen/logrus"
 	"strings"
 	//"github.com/lann/ps"
@@ -44,10 +43,9 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, objects []map[string]interface{}) ([]map[string]interface{}, error) {
 
 	var err error = nil
-	log.Infof("%v: %v", pc.String(), gContext.GetAll(req.PlainRequest))
 
 	reqmethod := req.PlainRequest.Method
-	log.Infof("Request to intercept: %v", reqmethod)
+	log.Infof("Event generator handle new request to intercept: %v", reqmethod)
 	switch reqmethod {
 	case "GET":
 		break

@@ -6,7 +6,6 @@ import (
 	//"reflect"
 	"errors"
 	"github.com/artpar/goms/server/auth"
-	"github.com/gorilla/context"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
 	"time"
@@ -44,8 +43,8 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	}
 	id := data.GetID()
 
-	currentUserReferenceId := context.Get(req.PlainRequest, "user_id").(string)
-	currentUsergroups := context.Get(req.PlainRequest, "usergroup_id").([]auth.GroupPermission)
+	currentUserReferenceId := req.PlainRequest.Context().Value("user_id").(string)
+	currentUsergroups := req.PlainRequest.Context().Value("usergroup_id").([]auth.GroupPermission)
 
 	attrs := data.GetAllAsAttributes()
 
@@ -355,8 +354,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 					pre := &http.Request{
 						Method: "POST",
 					}
-					context.Set(pre, "user_id", context.Get(req.PlainRequest, "user_id"))
-					context.Set(pre, "usergroup_id", context.Get(req.PlainRequest, "usergroup_id"))
+					pre = pre.WithContext(req.PlainRequest.Context())
 					req1 := api2go.Request{
 						PlainRequest: pre,
 					}
@@ -381,8 +379,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 					pre := &http.Request{
 						Method: "POST",
 					}
-					context.Set(pre, "user_id", context.Get(req.PlainRequest, "user_id"))
-					context.Set(pre, "usergroup_id", context.Get(req.PlainRequest, "usergroup_id"))
+					pre = pre.WithContext(req.PlainRequest.Context())
 					req1 := api2go.Request{
 						PlainRequest: pre,
 					}

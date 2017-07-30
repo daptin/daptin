@@ -2,13 +2,13 @@ package auth
 
 import (
 	"github.com/artpar/api2go"
-	"github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/context"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gin-gonic/gin.v1"
 	"net/http"
+	"github.com/artpar/goms/server/jwt"
+	"context"
 )
 
 const DEFAULT_PERMISSION int64 = 750
@@ -119,22 +119,23 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 		return
 	}
 
-	err := jwtMiddleware.CheckJWT(c.Writer, c.Request)
+	user, err := jwtMiddleware.CheckJWT(c.Writer, c.Request)
 
 	if err != nil {
 		//log.Infof("Auth failed: %v", err)
 		c.Next()
 	} else {
 
-		user := context.Get(c.Request, "user")
 		log.Infof("Set user: %v", user)
 		if user == nil {
-			context.Set(c.Request, "user_id", "")
-			context.Set(c.Request, "usergroup_id", []GroupPermission{})
+
+			newRequest := c.Request.WithContext(context.WithValue(c.Request.Context(), "user_id", ""))
+			newRequest = newRequest.WithContext(context.WithValue(newRequest.Context(), "usergroup_id", []GroupPermission{}))
+			c.Request = newRequest
 			c.Next()
 		} else {
 
-			userToken := user.(*jwt.Token)
+			userToken := user
 			email := userToken.Claims.(jwt.MapClaims)["email"].(string)
 			name := userToken.Claims.(jwt.MapClaims)["name"].(string)
 			//log.Infof("User is not nil: %v", email  )
@@ -210,10 +211,10 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 
 			//log.Infof("Group permissions :%v", userGroups)
 
-			context.Set(c.Request, "user_id", referenceId)
-			context.Set(c.Request, "user_id_integer", userId)
-			context.Set(c.Request, "usergroup_id", userGroups)
-
+			newRequest := c.Request.WithContext(context.WithValue(c.Request.Context(), "user_id", referenceId))
+			newRequest = newRequest.WithContext(context.WithValue(newRequest.Context(), "user_id_integer", userId))
+			newRequest = newRequest.WithContext(context.WithValue(newRequest.Context(), "usergroup_id", userGroups))
+			c.Request = newRequest
 			c.Next()
 
 		}
