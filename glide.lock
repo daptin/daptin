@@ -1,5 +1,5 @@
-hash: 219bae30102ab63b4114a64ccedfad4fc2d9399111330315aa23e8e14dacdf01
-updated: 2017-07-31T01:52:52.578535098+05:30
+hash: ee21d819f0ff0497436a3b2228663ccbbee1331e5c6fbd9c6eccab399417ad14
+updated: 2017-07-31T02:31:26.580856575+05:30
 imports:
 - name: github.com/ahl5esoft/golang-underscore
   version: 4c4738d8de61796a6f759d2813f4ec3ae97baf89
@@ -13,7 +13,7 @@ imports:
   subpackages:
   - gingonic
 - name: github.com/artpar/conform
-  version: beb09010076843bc99ba0c1654f3cd216d52ac9a
+  version: 0a5d4165efbaf1ca49ccdbdf21cd7a2bf63e7f04
 - name: github.com/auth0/go-jwt-middleware
   version: 5493cabe49f7bfa6e2ec444a09d334d90cd4e2bd
 - name: github.com/boombuler/barcode
