@@ -1297,12 +1297,25 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
 
 func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 
+	finalColumns := make(map[string]api2go.ColumnInfo, 0)
+	finalColumnsList := make([]api2go.ColumnInfo, 0)
+
+	for _, col := range tableInfo.Columns {
+		finalColumns[col.ColumnName] = col
+	}
+
+	for _, c := range finalColumns {
+		finalColumnsList = append(finalColumnsList, c)
+	}
+	tableInfo.Columns = finalColumnsList
+
 	for i, c := range tableInfo.Columns {
 		if c.ColumnName == "" {
 			c.ColumnName = c.Name
 			tableInfo.Columns[i].ColumnName = c.Name
 		}
 	}
+
 	columnsWeWant, colInfoMap := CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo)
 	log.Infof("Columns we want in [%v]: %v", tableInfo.TableName, columnsWeWant)
 

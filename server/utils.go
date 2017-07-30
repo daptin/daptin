@@ -159,12 +159,12 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig) resource.MiddlewareSet {
 		updateEventHandler,
 	}
 
-	ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
+	ms.BeforeFindOne = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
 		findOneHandler,
 	}
-	ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
+	ms.AfterFindOne = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
 		findOneHandler,

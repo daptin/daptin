@@ -493,6 +493,7 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 }
 
 func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string) (map[string]interface{}, error) {
+	log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
 	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
 	if err != nil {
 		return nil, err
@@ -513,6 +514,8 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	if err != nil {
 		return nil, err
 	}
+
+	log.Infof("Have to return first of %d results", len(results))
 
 	return results[0], err
 }

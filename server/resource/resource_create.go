@@ -37,8 +37,13 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 			return nil, errors.New("No object to act upon")
 		}
 	}
-	currentUserReferenceId := context.Get(req.PlainRequest, "user_id").(string)
-	currentUsergroups := context.Get(req.PlainRequest, "usergroup_id").([]auth.GroupPermission)
+	uidPtr := context.Get(req.PlainRequest, "user_id")
+	var currentUserReferenceId string
+	var currentUsergroups []auth.GroupPermission
+	if uidPtr != nil {
+		currentUserReferenceId = uidPtr.(string)
+		currentUsergroups = context.Get(req.PlainRequest, "usergroup_id").([]auth.GroupPermission)
+	}
 
 	attrs := data.GetAllAsAttributes()
 
@@ -203,7 +208,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		userId = uint64(userIdInt.(int64))
 	}
 
-	if userId != 0 && dr.model.HasColumn("user_id") {
+	if userId != 0 && dr.model.HasColumn("user_id") && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" {
 
 		colsList = append(colsList, "user_id")
 		valsList = append(valsList, userId)
@@ -305,11 +310,6 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	//    createdResource[k] = string(v.([]uint8))
 	//  }
 	//}
-
-	delete(createdResource, "id")
-	delete(createdResource, "deleted_at")
-	log.Infof("Create response: %v", createdResource)
-
 	n1 := dr.model.GetName()
 	c1 := dr.model.GetColumns()
 	p1 := dr.model.GetDefaultPermission()

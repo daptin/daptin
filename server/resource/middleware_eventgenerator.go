@@ -136,6 +136,11 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 
 			for _, result := range results {
 
+				typ, ok := result["__type"]
+
+				if !ok || typ == nil {
+					continue
+				}
 				resultType := result["__type"].(string)
 
 				exchanges, ok := em.exchangeMap[resultType]

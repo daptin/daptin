@@ -247,7 +247,9 @@ func (f ForeignKeyData) String() string {
 }
 
 func NewApi2GoModelWithData(name string, columns []ColumnInfo, defaultPermission int64, relations []TableRelation, m map[string]interface{}) *Api2GoModel {
-	m["__type"] = name
+	if m != nil {
+		m["__type"] = name
+	}
 	return &Api2GoModel{
 		typeName:          name,
 		columns:           columns,
@@ -575,6 +577,9 @@ func (g Api2GoModel) GetTableName() string {
 }
 
 func (g *Api2GoModel) GetID() string {
+	if g.IsDirty() {
+		return fmt.Sprintf("%v", g.oldData["reference_id"])
+	}
 	return fmt.Sprintf("%v", g.Data["reference_id"])
 }
 
