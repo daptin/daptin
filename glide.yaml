@@ -9,7 +9,7 @@ import:
   subpackages:
   - gingonic
 - package: github.com/artpar/conform
-  version: ^1.1.0
+  version: ^1.1.1
 - package: github.com/auth0/go-jwt-middleware
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
