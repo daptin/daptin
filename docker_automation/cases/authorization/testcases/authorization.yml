@@ -21,7 +21,7 @@
                         }
 
 - test:
-    - group: "Users"
+    - group: "Users action positive"
     - name: "Basic user list"
     - url: "/api/user"
     - headers: {'Content-Type': 'application/json'}
@@ -29,11 +29,8 @@
     - validators:
       - compare: {jsonpath_mini: 'links.per_page', comparator: 'eq', expected: 10}
 
-
-
-
 - test:
-    - group: "Users"
+    - group: "Users action positive"
     - name: "Sign in bad"
     - url: "/action/user/signin"
     - method: "POST"
@@ -44,7 +41,7 @@
       - compare: {jsonpath_mini: '.0.ResponseType', comparator: 'eq', expected: 'client.notify'}
 
 - test:
-    - group: "Users"
+    - group: "Users action positive"
     - name: "Sign up"
     - url: "/action/user/signup"
     - method: "POST"
@@ -117,6 +114,21 @@
       - compare: {jsonpath_mini: '.0.ResponseType', comparator: 'eq', expected: 'client.store.set'}
     - extract_binds:
       - 'adminToken': {'jsonpath_mini': '.0.Attributes.value'}
+
+- test:
+    - group: "User read positive"
+    - name: "List users by admin"
+    - url: "/api/user"
+    - method: "GET"
+    - headers: {template: {'Content-Type': 'application/json', 'Authorization': 'Bearer $adminToken'}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jmespath: 'length(data)', comparator: 'eq', expected: 5}
+    - extract_binds:
+      - adminUserId: {jsonpath_mini: 'data.1.id'}
+      - user1Id: {jsonpath_mini: 'data.2.id'}
+      - user2Id: {jsonpath_mini: 'data.3.id'}
+      - user3Id: {jsonpath_mini: 'data.4.id'}
 
 
 - test:
@@ -233,7 +245,7 @@
       - compare: {jsonpath_mini: 'data.attributes.name', comparator: 'contains', expected: 'User group 1'}
       - compare: {jsonpath_mini: 'data.type', comparator: 'eq', expected: 'usergroup'}
     - extract_binds:
-      - 'usergroup1': {'jsonpath_mini': 'data.id'}
+      - 'usergroup1Id': {'jsonpath_mini': 'data.id'}
 
 
 - test:
@@ -248,7 +260,7 @@
       - compare: {jsonpath_mini: 'data.attributes.name', comparator: 'contains', expected: 'User group 2'}
       - compare: {jsonpath_mini: 'data.type', comparator: 'eq', expected: 'usergroup'}
     - extract_binds:
-      - 'usergroup2': {'jsonpath_mini': 'data.id'}
+      - 'usergroup2Id': {'jsonpath_mini': 'data.id'}
 
 - test:
     - group: "Usergroup write positive"
@@ -262,7 +274,7 @@
       - compare: {jsonpath_mini: 'data.attributes.name', comparator: 'contains', expected: 'User group 3'}
       - compare: {jsonpath_mini: 'data.type', comparator: 'eq', expected: 'usergroup'}
     - extract_binds:
-      - 'usergroup3': {'jsonpath_mini': 'data.id'}
+      - 'usergroup3Id': {'jsonpath_mini': 'data.id'}
 
 - test:
     - group: "Usergroup write negative"
@@ -284,7 +296,18 @@
     - validators:
       - compare: {jsonpath_mini: 'data.attributes.name', comparator: 'contains', expected: 'User group 4 by user 1'}
     - extract_binds:
-      - 'usergroup4': {'jsonpath_mini': 'data.id'}
+      - 'usergroup4Id': {'jsonpath_mini': 'data.id'}
+
+
+- test:
+    - group: "Usergroup write negative"
+    - name: 'Admin can add a usergroup to a user'
+    - url: "/api/user_usergroup"
+    - method: "POST"
+    - headers: {template: {'Content-Type': 'application/json', 'Authorization': 'Bearer $adminToken'}}
+    - body: {template: '{"data":{"type":"user_usergroup","attributes":{}}}'}
+    - expected_status: [201]
+
 
 #- test:
 #    - group: "Blog read positive"

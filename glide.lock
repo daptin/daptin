@@ -1,0 +1,177 @@
+hash: 219bae30102ab63b4114a64ccedfad4fc2d9399111330315aa23e8e14dacdf01
+updated: 2017-07-31T01:52:52.578535098+05:30
+imports:
+- name: github.com/ahl5esoft/golang-underscore
+  version: 4c4738d8de61796a6f759d2813f4ec3ae97baf89
+- name: github.com/artpar/api2go
+  version: ed93e3502d81c13b05948617f2d989d74e5634a0
+  subpackages:
+  - jsonapi
+  - routing
+- name: github.com/artpar/api2go-adapter
+  version: 4515b68a9d1972b2246048facb0dfdd8878dda36
+  subpackages:
+  - gingonic
+- name: github.com/artpar/conform
+  version: beb09010076843bc99ba0c1654f3cd216d52ac9a
+- name: github.com/auth0/go-jwt-middleware
+  version: 5493cabe49f7bfa6e2ec444a09d334d90cd4e2bd
+- name: github.com/boombuler/barcode
+  version: 56ef0af91246fb5279df4f87bc3daf1bf7cb9e89
+  subpackages:
+  - qr
+  - utils
+- name: github.com/corpix/uarand
+  version: 031be390f409fb4bac8fb299e3bcd101479f89f8
+- name: github.com/daaku/go.zipexe
+  version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
+- name: github.com/dgrijalva/jwt-go
+  version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
+- name: github.com/dlclark/regexp2
+  version: 487489b64fb796de2e55f4e8a4ad1e145f80e957
+  subpackages:
+  - syntax
+- name: github.com/dop251/goja
+  version: 613f33eefdee5996ef938043efe8f1a9955fb8cc
+  subpackages:
+  - ast
+  - file
+  - parser
+  - token
+- name: github.com/etgryphon/stringUp
+  version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
+- name: github.com/gedex/inflector
+  version: 16278e9db8130ac7ec405dc174cfb94344f16325
+- name: github.com/GeertJohan/go.rice
+  version: c02ca9a983da5807ddf7d796784928f5be4afd09
+  subpackages:
+  - embedded
+- name: github.com/gin-contrib/sse
+  version: 22d885f9ecc78bf4ee5d72b937e4bbcdc58e8cae
+- name: github.com/gin-gonic/gin
+  version: 7fafb3f4a177ca92821dc5bf6e59f17e5f130588
+  subpackages:
+  - binding
+  - json
+  - render
+- name: github.com/go-playground/locales
+  version: b860c92274dfb72f517b8b4c11c6d9f2f8cc9d91
+  subpackages:
+  - currency
+  - en
+- name: github.com/go-playground/universal-translator
+  version: b32fa301c9fe55953584134cb6853a13c87ec0a1
+- name: github.com/go-playground/validator
+  version: 0f6f568263a1ab5105b57f66f446d2625e4f545c
+- name: github.com/go-sql-driver/mysql
+  version: a0583e0143b1624142adab07e0e97fe106d99561
+- name: github.com/golang/protobuf
+  version: 748d386b5c1ea99658fd69fe9f03991ce86a90c1
+  subpackages:
+  - proto
+- name: github.com/gorilla/context
+  version: 1ea25387ff6f684839d82767c1733ff4d4d15d0a
+- name: github.com/icrowley/fake
+  version: e64cc2cf92049a299f359734c6ea76073f2a8b2c
+- name: github.com/jamiealquiza/envy
+  version: 0bbd0e6a316f4aedb2fcb3eaaabd3e89d88d606f
+- name: github.com/jinzhu/copier
+  version: 8bfca8a02a0ce12119cdc4974143c834ca589257
+- name: github.com/jmoiron/sqlx
+  version: d9bd385d68c068f1fabb5057e3dedcbcbb039d0f
+  subpackages:
+  - reflectx
+- name: github.com/json-iterator/go
+  version: c15b4d116cb805508fd5862d8761a88076b3cc8e
+- name: github.com/julienschmidt/httprouter
+  version: 975b5c4c7c21c0e3d2764200bf2aa8e34657ae6e
+- name: github.com/kardianos/osext
+  version: ae77be60afb1dcacde03767a8c37337fad28ac14
+- name: github.com/lann/builder
+  version: f22ce00fd9394014049dad11c244859432bd6820
+- name: github.com/lann/ps
+  version: 62de8c46ede02a7675c4c79c84883eb164cb71e3
+- name: github.com/lib/pq
+  version: dd1fe2071026ce53f36a39112e645b4d4f5793a4
+  subpackages:
+  - oid
+- name: github.com/looplab/fsm
+  version: bcc3636384ce80a109a6039432b30ff5b82476ee
+- name: github.com/mattn/go-isatty
+  version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
+- name: github.com/mattn/go-sqlite3
+  version: ca5e3819723d8eeaf170ad510e7da1d6d2e94a08
+- name: github.com/pkg/errors
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
+- name: github.com/pquerna/otp
+  version: bf99dcec38c7d2b0f437a53c047bac9ddbe693ed
+  subpackages:
+  - hotp
+  - totp
+- name: github.com/rcrowley/goagain
+  version: f2f192b5d1a96e21dd4026ce67cda85e49659a48
+- name: github.com/satori/go.uuid
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: github.com/sirupsen/logrus
+  version: a3f95b5c423586578a4e099b11a46c2479628cac
+- name: github.com/ugorji/go
+  version: 5efa3251c7f7d05e5d9704a69a984ec9f1386a40
+  subpackages:
+  - codec
+- name: golang.org/x/crypto
+  version: 558b6879de74bc843225cde5686419267ff707ca
+  subpackages:
+  - bcrypt
+  - blowfish
+- name: golang.org/x/net
+  version: f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f
+  subpackages:
+  - context
+  - context/ctxhttp
+  - publicsuffix
+- name: golang.org/x/oauth2
+  version: b53b38ad8a6435bd399ea76d0fa74f23149cca4e
+  subpackages:
+  - internal
+- name: golang.org/x/sys
+  version: 0f826bdd13b500be0f1d4004938ad978fcc6031e
+  subpackages:
+  - unix
+- name: golang.org/x/text
+  version: 3bd178b88a8180be2df394a1fbb81313916f0e7b
+  subpackages:
+  - cases
+  - collate
+  - internal
+  - internal/colltab
+  - internal/tag
+  - language
+  - transform
+  - unicode/norm
+- name: google.golang.org/appengine
+  version: ad2570cd3913654e00c5f0183b39d2f998e54046
+  subpackages:
+  - internal
+  - internal/base
+  - internal/datastore
+  - internal/log
+  - internal/remote_api
+  - internal/urlfetch
+  - urlfetch
+- name: gopkg.in/authboss.v1
+  version: be948e61d1f76faa4f25bd0eb32a4fb6c46659e5
+- name: gopkg.in/gin-gonic/gin.v1
+  version: d459835d2b077e44f7c9b453505ee29881d5d12d
+- name: gopkg.in/go-playground/validator.v8
+  version: 5f1438d3fca68893a817e4a66806cea46a9e4ebf
+- name: gopkg.in/go-playground/validator.v9
+  version: 0f6f568263a1ab5105b57f66f446d2625e4f545c
+  subpackages:
+  - translations/en
+- name: gopkg.in/Masterminds/squirrel.v1
+  version: 20f192218cf52a73397fa2df45bdda720f3e47c8
+- name: gopkg.in/resty.v0
+  version: cf81ed0a604d373be63b4c036c6b05c06520615f
+- name: gopkg.in/yaml.v2
+  version: 25c4ec802a7d637f88d584ab26798e94ad14c13b
+testImports: []
