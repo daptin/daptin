@@ -10,8 +10,9 @@ host=http://goms:8080
 
 
 rm -rf db_init
-cp -Rf case_$testcase/db_init db_init
-
+cp -Rf cases/$testcase/db_init db_init
+bunzip2 db_init/*.sql.bz2
+ls -lah db_init
 docker-compose up -d --force-recreate
 
 
@@ -24,8 +25,6 @@ until $(curl --output /dev/null --silent --fail http://$ip:8080/api/user); do
     sleep 5
 done
 
-
-
 docker ps
 
-docker run  --network=my_net --rm -v $PWD/case_$testcase/testcases:/tests thoom/pyresttest $host "/tests/users.yml"  --log debug
+docker run  --network=my_net --rm -v $PWD/cases/$testcase/testcases:/tests thoom/pyresttest $host "/tests/$testcase.yml"  --log debug

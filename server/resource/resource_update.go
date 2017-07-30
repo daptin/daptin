@@ -93,6 +93,11 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 		val := change.NewValue
 		if col.IsForeignKey {
+
+			if val != "" {
+				continue
+			}
+
 			log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.TableName, val)
 
 			valString := val.(string)
@@ -187,7 +192,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		return NewResponse(nil, nil, 500, nil), err
 	}
 
-	//log.Infof("Update query: %v", query)
+	//log.Infof("Update query: %v == %v", query, vals)
 	_, err = dr.db.Exec(query, vals...)
 	if err != nil {
 		log.Errorf("Failed to execute update query: %v", err)
@@ -201,16 +206,19 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		if err != nil {
 			log.Errorf("Failed to create audit entry: %v", err)
 		} else {
+			log.Infof("[%v][%v] Created audit record", auditModel.GetTableName(), data.GetID())
 			//log.Infof("ReferenceId for change: %v", resp.Result())
 		}
 
+	} else {
+		log.Infof("[%v][%v] Model was not dirty, not creating an audit row", data.GetTableName(), data.GetID())
 	}
 
-	query, vals, err = squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
-	if err != nil {
-		log.Errorf("Failed to create select query: %v", err)
-		return nil, err
-	}
+	//query, vals, err = squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+	//if err != nil {
+	//	log.Errorf("Failed to create select query: %v", err)
+	//	return nil, err
+	//}
 
 	updatedResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), id)
 	if err != nil {
