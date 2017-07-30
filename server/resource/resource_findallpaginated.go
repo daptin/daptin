@@ -6,7 +6,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"strconv"
-	//"github.com/gorilla/context"
 	"strings"
 )
 

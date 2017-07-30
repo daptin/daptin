@@ -3,7 +3,6 @@ package server
 import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/goms/server/resource"
-	"github.com/gorilla/context"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"gopkg.in/gin-gonic/gin.v1"
@@ -62,6 +61,8 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 			Method: "GET",
 		}
 
+		pr = pr.WithContext(c.Request.Context())
+
 		params := make(map[string][]string)
 		req := api2go.Request{
 			PlainRequest: pr,
@@ -72,9 +73,6 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 
 		params["worldName"] = []string{"smd_id"}
 		params["world_id"] = []string{worldRefId}
-
-		context.Set(pr, "user_id", context.Get(c.Request, "user_id"))
-		context.Set(pr, "usergroup_id", context.Get(c.Request, "usergroup_id"))
 
 		smdList := make([]map[string]interface{}, 0)
 
