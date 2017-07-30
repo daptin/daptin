@@ -1,0 +1,62 @@
+package: github.com/artpar/goms
+import:
+- package: github.com/GeertJohan/go.rice
+  subpackages:
+  - embedded
+- package: github.com/artpar/api2go
+  version: ^2.0
+- package: github.com/artpar/api2go-adapter
+  subpackages:
+  - gingonic
+- package: github.com/artpar/conform
+  version: ^1.1.0
+- package: github.com/auth0/go-jwt-middleware
+- package: github.com/dgrijalva/jwt-go
+  version: ^3.0.0
+- package: github.com/dop251/goja
+- package: github.com/go-playground/locales
+  version: ^0.11.1
+  subpackages:
+  - en
+- package: github.com/go-playground/universal-translator
+  version: ^0.16.0
+- package: github.com/go-playground/validator
+  version: ^9.5.0
+- package: github.com/go-sql-driver/mysql
+  version: ^1.3.0
+- package: github.com/gorilla/context
+  version: ^1.1.0
+- package: github.com/icrowley/fake
+- package: github.com/jamiealquiza/envy
+  version: ^1.0.0
+- package: github.com/jinzhu/copier
+- package: github.com/jmoiron/sqlx
+- package: github.com/lib/pq
+- package: github.com/looplab/fsm
+- package: github.com/mattn/go-sqlite3
+  version: ^1.2.0
+- package: github.com/pkg/errors
+  version: ^0.8.0
+- package: github.com/pquerna/otp
+  subpackages:
+  - totp
+- package: github.com/rcrowley/goagain
+- package: github.com/satori/go.uuid
+  version: ^1.1.0
+- package: github.com/sirupsen/logrus
+  version: ^1.0.2
+- package: golang.org/x/crypto
+  subpackages:
+  - bcrypt
+- package: golang.org/x/oauth2
+- package: gopkg.in/Masterminds/squirrel.v1
+- package: gopkg.in/authboss.v1
+  version: ^1.1.0
+- package: gopkg.in/gin-gonic/gin.v1
+  version: ^1.2.0
+- package: gopkg.in/go-playground/validator.v9
+  version: ^9.5.0
+  subpackages:
+  - translations/en
+- package: gopkg.in/resty.v0
+  version: ^0.13.0
