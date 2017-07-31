@@ -22,7 +22,7 @@ import (
 
 func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 	data := obj.(*api2go.Api2GoModel)
-	log.Infof("Create object request: %v", data)
+	log.Infof("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
 
 	for _, bf := range dr.ms.BeforeCreate {
 		log.Infof("Invoke BeforeCreate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
@@ -109,7 +109,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 				if foreignObjectPermission.CanWrite(currentUserReferenceId, currentUsergroups) {
 					uId = foreignObject["id"]
 				} else {
-					return nil, errors.New("Cannot use that object")
+					return nil, errors.New(fmt.Sprintf("No write permisssion on object [%v][%v]", col.ForeignKeyData.TableName, valString))
 				}
 
 			}

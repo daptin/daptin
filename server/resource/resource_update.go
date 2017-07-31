@@ -19,6 +19,7 @@ import (
 // - 204 No Content: Update was successful, no fields were changed by the server, return nothing
 func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 	data, ok := obj.(*api2go.Api2GoModel)
+	log.Infof("Update object request: [%v] %v", dr.model.GetTableName(), data.Data)
 
 	for _, bf := range dr.ms.BeforeUpdate {
 		log.Infof("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
@@ -111,7 +112,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			if foreignObjectPermission.CanWrite(currentUserReferenceId, currentUsergroups) {
 				val = foreignObject["id"]
 			} else {
-				return nil, errors.New("Cannot use that object")
+				return nil, errors.New(fmt.Sprintf("No write permisssion on object [%v][%v]", col.ForeignKeyData.TableName, valString))
 			}
 
 		}

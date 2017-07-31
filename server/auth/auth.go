@@ -122,7 +122,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 	user, err := jwtMiddleware.CheckJWT(c.Writer, c.Request)
 
 	if err != nil {
-		//log.Infof("Auth failed: %v", err)
+		log.Infof("Auth failed: %v", err)
 		c.Next()
 	} else {
 
