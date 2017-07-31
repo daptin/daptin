@@ -301,12 +301,63 @@
 
 - test:
     - group: "Usergroup write negative"
-    - name: 'Admin can add a usergroup to a user'
-    - url: "/api/user_usergroup"
-    - method: "POST"
+    - name: 'User 1 can not add user 1 to usergroup 1'
+    - url: {template: "/api/usergroup/$usergroup1Id"}
+    - method: "PATCH"
+    - headers: {template: {'Content-Type': 'application/json', 'Authorization': 'Bearer $user1Token'}}
+    - body: {template: '{"data":{"type":"usergroup","attributes":{},"relationships":{"user_id":{"data":[{"id":"$user1Id","type":"user"}]}},"id":"$usergroup1Id"}}'}
+    - expected_status: [500]
+
+
+- test:
+    - group: "Usergroup write negative"
+    - name: 'User 1 can not add user 1 to usergroup 2'
+    - url: {template: "/api/usergroup/$usergroup2Id"}
+    - method: "PATCH"
+    - headers: {template: {'Content-Type': 'application/json', 'Authorization': 'Bearer $user1Token'}}
+    - body: {template: '{"data":{"type":"usergroup","attributes":{},"relationships":{"user_id":{"data":[{"id":"$user1Id","type":"user"}]}},"id":"$usergroup2Id"}}'}
+    - expected_status: [500]
+
+
+- test:
+    - group: "Usergroup write negative"
+    - name: 'User 1 can not add user 2 to usergroup 1'
+    - url: {template: "/api/usergroup/$usergroup1Id"}
+    - method: "PATCH"
+    - headers: {template: {'Content-Type': 'application/json', 'Authorization': 'Bearer $user1Token'}}
+    - body: {template: '{"data":{"type":"usergroup","attributes":{},"relationships":{"user_id":{"data":[{"id":"$user2Id","type":"user"}]}},"id":"$usergroup1Id"}}'}
+    - expected_status: [500]
+
+
+
+- test:
+    - group: "Usergroup write positive"
+    - name: 'Admin can add user 1 to usergroup 1'
+    - url: {template: "/api/usergroup/$usergroup1Id"}
+    - method: "PATCH"
     - headers: {template: {'Content-Type': 'application/json', 'Authorization': 'Bearer $adminToken'}}
-    - body: {template: '{"data":{"type":"user_usergroup","attributes":{}}}'}
-    - expected_status: [201]
+    - body: {template: '{"data":{"type":"usergroup","attributes":{},"relationships":{"user_id":{"data":[{"id":"$user1Id","type":"user"}]}},"id":"$usergroup1Id"}}'}
+    - expected_status: [200]
+
+#
+#- test:
+#    - group: "Usergroup write positive"
+#    - name: 'Admin can add user 2 to usergroup 2'
+#    - url: {template: "/api/usergroup/$usergroup2Id"}
+#    - method: "PATCH"
+#    - headers: {template: {'Content-Type': 'application/json', 'Authorization': 'Bearer $admintoken'}}
+#    - body: {template: {"data":{"type":"usergroup","attributes":{},"relationships":{"user_id":{"data":[{"id":"$user2Id","type":"user"}]}},"id":"$usergroup2Id"}}}
+#    - expected_status: [201]
+#
+#
+#- test:
+#    - group: "Usergroup write positive"
+#    - name: 'Admin can add user 3 to usergroup 3'
+#    - url: {template: "/api/usergroup/$usergroup3Id"}
+#    - method: "PATCH"
+#    - headers: {template: {'Content-Type': 'application/json', 'Authorization': 'Bearer $admintoken'}}
+#    - body: {template: {"data":{"type":"usergroup","attributes":{},"relationships":{"user_id":{"data":[{"id":"$user3Id","type":"user"}]}},"id":"$usergroup3Id"}}}
+#    - expected_status: [201]
 
 
 #- test:
