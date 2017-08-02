@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"github.com/artpar/goms/server/auth"
 	"strings"
+	"github.com/pquerna/otp"
+	"time"
 )
 
 type OauthLoginResponseActionPerformer struct {
@@ -110,7 +112,12 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 	state := inFieldMap["state"].(string)
 	user := inFieldMap["user"].(map[string]interface{})
 
-	ok := totp.Validate(state, d.otpKey)
+	ok, err := totp.ValidateCustom(state, d.otpKey, time.Now().UTC(), totp.ValidateOpts{
+		Period:    300,
+		Skew:      1,
+		Digits:    otp.DigitsSix,
+		Algorithm: otp.AlgorithmSHA1,
+	})
 	if !ok {
 		log.Errorf("Failed to validate otp key")
 		return nil, []error{errors.New("No ongoing authentication")}
@@ -136,8 +143,12 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 
 	storeToken["access_token"] = token.AccessToken
 	storeToken["refresh_token"] = token.RefreshToken
-	storeToken["expires_in"] = token.Expiry.Unix()
-	storeToken["token_type"] = "google"
+	expiry := token.Expiry.Unix()
+	if expiry < 0 {
+		expiry = time.Now().Add(24 * 300 * time.Hour).Unix()
+	}
+	storeToken["expires_in"] = expiry
+	storeToken["token_type"] = authenticator
 	storeToken["oauth_connect_id"] = authReferenceId
 
 	pr := &http.Request{

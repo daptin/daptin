@@ -90,6 +90,15 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
+		OutFields: []Outcome{
+			{
+				Type:   "__external_file_upload",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"file": "~file",
+				},
+			},
+		},
 	},
 	{
 		Name:             "upload_system_schema",
@@ -100,7 +109,7 @@ var SystemActions = []Action{
 			{
 				Name:       "Schema JSON file",
 				ColumnName: "schema_json_file",
-				ColumnType: "file.json",
+				ColumnType: "file.application/json",
 				IsNullable: false,
 			},
 		},
@@ -122,7 +131,7 @@ var SystemActions = []Action{
 		InFields:         []api2go.ColumnInfo{},
 		OutFields: []Outcome{
 			{
-				Type:       "system_json_schema_download",
+				Type:       "__download_cms_config",
 				Method:     "EXECUTE",
 				Attributes: map[string]interface{}{},
 			},
@@ -136,7 +145,7 @@ var SystemActions = []Action{
 		InFields:         []api2go.ColumnInfo{},
 		OutFields: []Outcome{
 			{
-				Type:   "become_admin",
+				Type:   "__become_admin",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"user_id": "$user.id",

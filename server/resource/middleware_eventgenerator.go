@@ -148,7 +148,7 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 				}
 
 				for _, exchange := range exchanges {
-					token, err := dr.GetTokenForExchangeByTokenId(exchange.OauthTokenId)
+					token, err := dr.GetTokenByTokenId(exchange.OauthTokenId)
 					if err != nil {
 						log.Errorf("No token selected for [%v][%v]: %v", exchange.Name, exchange.OauthTokenId, err)
 					}
@@ -208,13 +208,48 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 	return results, nil
 }
 
-func (resource *DbResource) GetTokenForExchangeByTokenId(id *int64) (*oauth2.Token, error) {
+func (resource *DbResource) GetTokenByTokenId(id *int64) (*oauth2.Token, error) {
 
 	var access_token, refresh_token, token_type string
 	var expires_in int64
 	var token oauth2.Token
 	s, v, err := squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
 			Where(squirrel.Eq{"deleted_at": nil}).Where(squirrel.Eq{"id": id}).ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = resource.db.QueryRowx(s, v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
+
+	if err != nil {
+		return nil, err
+	}
+
+	secret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	CheckErr(err, "Failed to get encryption secret")
+
+	dec, err := Decrypt([]byte(secret), access_token)
+	CheckErr(err, "Failed to decrypt access token")
+
+	ref, err := Decrypt([]byte(secret), refresh_token)
+	CheckErr(err, "Failed to decrypt refresh token")
+
+	token.AccessToken = dec
+	token.RefreshToken = ref
+	token.TokenType = token_type
+	token.Expiry = time.Unix(expires_in, 0)
+
+	return &token, err
+
+}
+func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oauth2.Token, error) {
+
+	var access_token, refresh_token, token_type string
+	var expires_in int64
+	var token oauth2.Token
+	s, v, err := squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
+			Where(squirrel.Eq{"deleted_at": nil}).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 
 	if err != nil {
 		return nil, err
@@ -279,6 +314,51 @@ func (resource *DbResource) GetOauthDescriptionByTokenId(id *int64) (*oauth2.Con
 			From("oauth_token ot").Join("oauth_connect oc").
 			JoinClause("on oc.id = ot.oauth_connect_id").
 			Where(squirrel.Eq{"ot.deleted_at": nil}).Where(squirrel.Eq{"ot.id": id}).ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = resource.db.QueryRowx(s, v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl, &scope)
+
+	if err != nil {
+		return nil, err
+	}
+
+	encryptionSecret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	if err != nil {
+		return nil, err
+	}
+
+	clientSecret, err = Decrypt([]byte(encryptionSecret), clientSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	conf := &oauth2.Config{
+		ClientID:     clientId,
+		ClientSecret: clientSecret,
+		RedirectURL:  redirectUri,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  authUrl,
+			TokenURL: tokenUrl,
+		},
+		Scopes: strings.Split(scope, ","),
+	}
+
+	return conf, nil
+
+}
+
+func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId string) (*oauth2.Config, error) {
+
+	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
+
+	s, v, err := squirrel.
+	Select("oc.client_id", "oc.client_secret", "oc.redirect_uri", "oc.auth_url", "oc.token_url", "oc.scope").
+			From("oauth_token ot").Join("oauth_connect oc").
+			JoinClause("on oc.id = ot.oauth_connect_id").
+			Where(squirrel.Eq{"ot.deleted_at": nil}).Where(squirrel.Eq{"ot.reference_id": referenceId}).ToSql()
 
 	if err != nil {
 		return nil, err

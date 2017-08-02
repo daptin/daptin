@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/artpar/goms/server"
+	"github.com/gocraft/health"
 	"github.com/rcrowley/goagain"
 	"log"
 	//"os"
@@ -13,7 +14,10 @@ import (
 	"github.com/GeertJohan/go.rice"
 	"net/http"
 	"sync"
+	"os"
 )
+// Save the stream as a global variable
+var stream = health.NewStream()
 
 func init() {
 	goagain.Strategy = goagain.Double
@@ -22,7 +26,7 @@ func init() {
 }
 
 func main() {
-
+	stream.AddSink(&health.WriterSink{os.Stdout})
 	boxStatic1, err := rice.FindBox("gomsweb/dist/static")
 	log.Println("Failed to open dist/static: %v", err)
 	boxRoot1, err := rice.FindBox("gomsweb/dist")

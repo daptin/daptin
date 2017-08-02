@@ -184,9 +184,9 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			}
 		}
 
-		for _, validation := range action.Conformations {
+		for _, conformations := range action.Conformations {
 
-			val, ok := actionRequest.Attributes[validation.ColumnName]
+			val, ok := actionRequest.Attributes[conformations.ColumnName]
 			if !ok {
 				continue
 			}
@@ -194,13 +194,8 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			if !ok {
 				continue
 			}
-			newVal := conform.TransformString(valStr, validation.Tags)
-			actionRequest.Attributes[validation.ColumnName] = newVal
-		}
-
-		if err != nil {
-			ginContext.AbortWithError(400, err)
-			return
+			newVal := conform.TransformString(valStr, conformations.Tags)
+			actionRequest.Attributes[conformations.ColumnName] = newVal
 		}
 
 		inFieldMap, err := GetValidatedInFields(actionRequest, action)
@@ -412,38 +407,19 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 
 		return responseModel, returnRequest, nil
 
-	case "system_json_schema_download":
+	case "__download_cms_config":
+		fallthrough
+	case "__become_admin":
 
-		respopnseModel := api2go.NewApi2GoModel("__download_init_config", nil, 0, nil)
 		returnRequest := api2go.Request{
 			PlainRequest: &http.Request{
 				Method: "EXECUTE",
 			},
 		}
+		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION, nil, attrs)
 
-		return respopnseModel, returnRequest, nil
+		return model, returnRequest, nil
 
-	case "become_admin":
-
-		respopnseModel := api2go.NewApi2GoModel("__become_admin", nil, 0, nil)
-		returnRequest := api2go.Request{
-			PlainRequest: &http.Request{
-				Method: "EXECUTE",
-			},
-		}
-
-		return respopnseModel, returnRequest, nil
-
-	case "jwt.token":
-
-		respopnseModel := api2go.NewApi2GoModel("generate.jwt.token", nil, 0, nil)
-		returnRequest := api2go.Request{
-			PlainRequest: &http.Request{
-				Method: "EXECUTE",
-			},
-		}
-
-		return respopnseModel, returnRequest, nil
 	case "action.response":
 		fallthrough
 	case "client.redirect":

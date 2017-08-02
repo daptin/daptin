@@ -1,6 +1,10 @@
-hash: ee21d819f0ff0497436a3b2228663ccbbee1331e5c6fbd9c6eccab399417ad14
-updated: 2017-07-31T02:31:26.580856575+05:30
+hash: 77d9b26d6e271f48192b029233bef0da1483ea237a9ef48b0afd3c6fe38b1488
+updated: 2017-08-03T00:21:00.737803977+05:30
 imports:
+- name: cloud.google.com/go
+  version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
+  subpackages:
+  - compute/metadata
 - name: github.com/ahl5esoft/golang-underscore
   version: 4c4738d8de61796a6f759d2813f4ec3ae97baf89
 - name: github.com/artpar/api2go
@@ -14,8 +18,70 @@ imports:
   - gingonic
 - name: github.com/artpar/conform
   version: 0a5d4165efbaf1ca49ccdbdf21cd7a2bf63e7f04
+- name: github.com/artpar/rclone
+  version: 39eed0422d690d7f07eb8fa1f53feca7bb4d4fdc
+  subpackages:
+  - amazonclouddrive
+  - b2
+  - b2/api
+  - box
+  - box/api
+  - cmd
+  - crypt
+  - crypt/pkcs7
+  - dircache
+  - drive
+  - dropbox
+  - dropbox/dbhash
+  - fs
+  - fs/all
+  - ftp
+  - googlecloudstorage
+  - http
+  - hubic
+  - local
+  - oauthutil
+  - onedrive
+  - onedrive/api
+  - pacer
+  - rest
+  - s3
+  - sftp
+  - swift
+  - yandex
+  - yandex/api
 - name: github.com/auth0/go-jwt-middleware
   version: 5493cabe49f7bfa6e2ec444a09d334d90cd4e2bd
+- name: github.com/aws/aws-sdk-go
+  version: ae48d7372b4f879cfe994d7a037a6a822cafdde0
+  subpackages:
+  - aws
+  - aws/awserr
+  - aws/awsutil
+  - aws/client
+  - aws/client/metadata
+  - aws/corehandlers
+  - aws/credentials
+  - aws/credentials/ec2rolecreds
+  - aws/credentials/endpointcreds
+  - aws/credentials/stscreds
+  - aws/defaults
+  - aws/ec2metadata
+  - aws/endpoints
+  - aws/request
+  - aws/session
+  - aws/signer/v4
+  - internal/shareddefaults
+  - private/protocol
+  - private/protocol/query
+  - private/protocol/query/queryutil
+  - private/protocol/rest
+  - private/protocol/restxml
+  - private/protocol/xml/xmlutil
+  - service/s3
+  - service/s3/s3iface
+  - service/s3/s3manager
+  - service/sts
 - name: github.com/boombuler/barcode
   version: 56ef0af91246fb5279df4f87bc3daf1bf7cb9e89
   subpackages:
@@ -54,6 +120,8 @@ imports:
   - binding
   - json
   - render
+- name: github.com/go-ini/ini
+  version: 3d73f4b845efdf9989fffd4b4e562727744a34ba
 - name: github.com/go-playground/locales
   version: b860c92274dfb72f517b8b4c11c6d9f2f8cc9d91
   subpackages:
@@ -69,14 +137,24 @@ imports:
   version: 748d386b5c1ea99658fd69fe9f03991ce86a90c1
   subpackages:
   - proto
+- name: github.com/google/go-querystring
+  version: 53e6ce116135b80d037921a7fdd5138cf32d7a8a
+  subpackages:
+  - query
 - name: github.com/gorilla/context
   version: 1ea25387ff6f684839d82767c1733ff4d4d15d0a
 - name: github.com/icrowley/fake
   version: e64cc2cf92049a299f359734c6ea76073f2a8b2c
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jamiealquiza/envy
   version: 0bbd0e6a316f4aedb2fcb3eaaabd3e89d88d606f
 - name: github.com/jinzhu/copier
   version: 8bfca8a02a0ce12119cdc4974143c834ca589257
+- name: github.com/jlaffaye/ftp
+  version: 769512c448b98e9efa243279a7e281248332aa98
+- name: github.com/jmespath/go-jmespath
+  version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: github.com/jmoiron/sqlx
   version: d9bd385d68c068f1fabb5057e3dedcbcbb039d0f
   subpackages:
@@ -87,6 +165,8 @@ imports:
   version: 975b5c4c7c21c0e3d2764200bf2aa8e34657ae6e
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
+- name: github.com/kr/fs
+  version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - name: github.com/lann/builder
   version: f22ce00fd9394014049dad11c244859432bd6820
 - name: github.com/lann/ps
@@ -101,8 +181,21 @@ imports:
   version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
 - name: github.com/mattn/go-sqlite3
   version: ca5e3819723d8eeaf170ad510e7da1d6d2e94a08
+- name: github.com/ncw/dropbox-sdk-go-unofficial
+  version: 5d9f46f9862ae5f65e264e178de6ce2c41a32d40
+  subpackages:
+  - dropbox
+  - dropbox/async
+  - dropbox/files
+  - dropbox/properties
+- name: github.com/ncw/go-acd
+  version: 96a49aad3fc3889629f2eceb004927386884bd92
+- name: github.com/ncw/swift
+  version: e3042b26a510db220549150362f6733012148d45
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
+- name: github.com/pkg/sftp
+  version: 22f089b9c4056cf774ebd695b687d469f2ad4650
 - name: github.com/pquerna/otp
   version: bf99dcec38c7d2b0f437a53c047bac9ddbe693ed
   subpackages:
@@ -110,29 +203,61 @@ imports:
   - totp
 - name: github.com/rcrowley/goagain
   version: f2f192b5d1a96e21dd4026ce67cda85e49659a48
+- name: github.com/rfjakob/eme
+  version: da627cc50b6fb2eb623eaffe91fb29d7eddfd06a
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/sirupsen/logrus
   version: a3f95b5c423586578a4e099b11a46c2479628cac
+- name: github.com/skratchdot/open-golang
+  version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
+  subpackages:
+  - open
+- name: github.com/spf13/cobra
+  version: b26b538f693051ac6518e65672de3144ce3fbedc
+- name: github.com/spf13/pflag
+  version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
 - name: github.com/ugorji/go
   version: 5efa3251c7f7d05e5d9704a69a984ec9f1386a40
   subpackages:
   - codec
+- name: github.com/Unknwon/goconfig
+  version: 87a46d97951ee1ea20ed3b24c25646a79e87ba5d
+- name: github.com/VividCortex/ewma
+  version: b24eb346a94c3ba12c1da1e564dbac1b498a77ce
+- name: github.com/xanzy/ssh-agent
+  version: ba9c9e33906f58169366275e3450db66139a31a9
 - name: golang.org/x/crypto
   version: 558b6879de74bc843225cde5686419267ff707ca
   subpackages:
   - bcrypt
   - blowfish
+  - curve25519
+  - ed25519
+  - ed25519/internal/edwards25519
+  - nacl/secretbox
+  - pbkdf2
+  - poly1305
+  - salsa20/salsa
+  - scrypt
+  - ssh
+  - ssh/agent
+  - ssh/terminal
 - name: golang.org/x/net
   version: f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f
   subpackages:
   - context
   - context/ctxhttp
+  - html
+  - html/atom
   - publicsuffix
 - name: golang.org/x/oauth2
   version: b53b38ad8a6435bd399ea76d0fa74f23149cca4e
   subpackages:
+  - google
   - internal
+  - jws
+  - jwt
 - name: golang.org/x/sys
   version: 0f826bdd13b500be0f1d4004938ad978fcc6031e
   subpackages:
@@ -148,13 +273,27 @@ imports:
   - language
   - transform
   - unicode/norm
+- name: golang.org/x/time
+  version: 8be79e1e0910c292df4e79c241bb7e8f7e725959
+  subpackages:
+  - rate
+- name: google.golang.org/api
+  version: 3c107eb0fd1188c1e2f52a3101424b250162144b
+  subpackages:
+  - drive/v2
+  - gensupport
+  - googleapi
+  - googleapi/internal/uritemplates
+  - storage/v1
 - name: google.golang.org/appengine
   version: ad2570cd3913654e00c5f0183b39d2f998e54046
   subpackages:
   - internal
+  - internal/app_identity
   - internal/base
   - internal/datastore
   - internal/log
+  - internal/modules
   - internal/remote_api
   - internal/urlfetch
   - urlfetch

@@ -59,20 +59,22 @@
       },
       processFile: function (file, filelist) {
         console.log("provided schema", this.schema, file.raw)
-        const isJson = file.raw.type === 'application/json';
 
-        if (!isJson) {
+        if (this.schema.inputType != "*") {
+          const isFileTypeOkay = file.raw.type === this.schema.inputType;
 
-          for (var i = 0; i < filelist.length; i++) {
-            if (filelist[i].uid == file.uid) {
-              filelist.splice(i, 1);
-              break;
+          if (!isFileTypeOkay) {
+
+            for (var i = 0; i < filelist.length; i++) {
+              if (filelist[i].uid == file.uid) {
+                filelist.splice(i, 1);
+                break;
+              }
             }
+
+            this.$message.error('Please select a ' + this.schema.inputType + ' file. You are uploading: ' + file.raw.type);
+            return isFileTypeOkay;
           }
-
-
-          this.$message.error('Please select a application/json file. You are uploading: ' + file.raw.type);
-          return isJson;
         }
 
         var that = this;
