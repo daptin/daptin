@@ -11,7 +11,7 @@ type DownloadCmsConfigActionPerformer struct {
 }
 
 func (d *DownloadCmsConfigActionPerformer) Name() string {
-	return "__download_init_config"
+	return "__download_cms_config"
 }
 
 func (d *DownloadCmsConfigActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) ([]ActionResponse, []error) {

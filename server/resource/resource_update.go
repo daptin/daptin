@@ -135,6 +135,19 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			}
 			// 2017-07-13T18:30:00.000Z
 
+		} else if col.ColumnType == "encrypted" {
+
+			secret, err := dr.configStore.GetConfigValueFor("encryption.secret", "backend")
+			if err != nil {
+				log.Error("Failed to get secret from config: %v", err)
+				val = ""
+			} else {
+				val, err = Encrypt([]byte(secret), val.(string))
+				if err != nil {
+					log.Errorf("Failed to convert string to encrypted value, not storing the value: %v", err)
+					val = ""
+				}
+			}
 		} else if col.ColumnType == "date" {
 
 			// 2017-07-13T18:30:00.000Z

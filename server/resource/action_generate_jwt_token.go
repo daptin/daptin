@@ -16,7 +16,7 @@ type GenerateJwtTokenActionPerformer struct {
 }
 
 func (d *GenerateJwtTokenActionPerformer) Name() string {
-	return "generate.jwt.token"
+	return "jwt.token"
 }
 
 func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {

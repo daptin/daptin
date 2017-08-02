@@ -3,6 +3,7 @@ import:
 - package: github.com/GeertJohan/go.rice
   subpackages:
   - embedded
+- package: github.com/artpar/rclone
 - package: github.com/artpar/api2go
   version: ^2.0
 - package: github.com/artpar/api2go-adapter
