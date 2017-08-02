@@ -2,7 +2,7 @@
 
 
 cd gomsweb
-#npm run build
+npm run build
 cd ..
 
 

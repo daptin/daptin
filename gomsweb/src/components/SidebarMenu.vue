@@ -72,7 +72,7 @@
         <li class="pageLink">
           <router-link class="list-external-storage"
                        :to="{name : 'Entity', params: {tablename: 'cloud_store'}}">
-            <i class="fa fa-link"></i> External storage
+            <i class="fa fa-folder"></i> External storage
           </router-link>
         </li>
         <li class="pageLink">
