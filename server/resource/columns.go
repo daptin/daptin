@@ -71,11 +71,26 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "oauth_token"),
+	api2go.NewTableRelation("file", "belongs_to", "cloud_store"),
 }
 
 var SystemSmds = []LoopbookFsmDescription{}
 var SystemExchanges = []ExchangeContract{}
 var SystemActions = []Action{
+	{
+		Name:             "upload_file",
+		Label:            "Upload file to external store",
+		OnType:           "cloud_store",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "File",
+				ColumnName: "file",
+				ColumnType: "file.*",
+				IsNullable: false,
+			},
+		},
+	},
 	{
 		Name:             "upload_system_schema",
 		Label:            "Upload features",
@@ -718,7 +733,7 @@ var StandardTables = []TableInfo{
 				Name:       "redirect_uri",
 				ColumnName: "redirect_uri",
 				DataType:   "varchar(80)",
-				ColumnType: "name",
+				ColumnType: "url",
 			},
 			{
 				Name:         "auth_url",
@@ -848,6 +863,30 @@ var StandardTables = []TableInfo{
 				ColumnName: "store_parameters",
 				ColumnType: "json",
 				DataType:   "text",
+			},
+		},
+	},
+	{
+		TableName: "file",
+		IsHidden:  true,
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "Name",
+				ColumnName: "name",
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+			},
+			{
+				Name:       "Type",
+				ColumnName: "file_type",
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+			},
+			{
+				Name:       "File path",
+				ColumnName: "file_path",
+				ColumnType: "label",
+				DataType:   "varchar(1000)",
 			},
 		},
 	},

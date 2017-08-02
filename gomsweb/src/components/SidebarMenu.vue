@@ -31,8 +31,7 @@
 
     <li class="treeview help-support">
       <a href="#">
-        <i class="fa fa-cog"></i>
-        <span>System adminstration</span>
+        <span>Adminstration</span>
         <span class="pull-right-container">
           <i class="fa fa-angle-left fa-fw pull-right"></i>
         </span>

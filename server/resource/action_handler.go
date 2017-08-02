@@ -124,6 +124,9 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				Method: "GET",
 			},
 		}
+
+		req.PlainRequest = req.PlainRequest.WithContext(ginContext.Request.Context())
+
 		userid := ginContext.Request.Context().Value("user_id")
 		var userReferenceId string
 		userGroupReferenceIds := make([]auth.GroupPermission, 0)

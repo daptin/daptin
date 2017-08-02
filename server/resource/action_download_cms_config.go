@@ -27,7 +27,7 @@ func (d *DownloadCmsConfigActionPerformer) DoAction(request ActionRequest, inFie
 
 func NewDownloadCmsConfigPerformer(initConfig *CmsConfig) (ActionPerformerInterface, error) {
 
-	js, err := json.Marshal(*initConfig)
+	js, err := json.MarshalIndent(*initConfig, "", "  ")
 	if err != nil {
 		log.Errorf("Failed to marshal initconfig: %v", err)
 		return nil, err
