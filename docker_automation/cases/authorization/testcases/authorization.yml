@@ -306,7 +306,7 @@
     - method: "PATCH"
     - headers: {template: {'Content-Type': 'application/json', 'Authorization': 'Bearer $user1Token'}}
     - body: {template: '{"data":{"type":"usergroup","attributes":{},"relationships":{"user_id":{"data":[{"id":"$user1Id","type":"user"}]}},"id":"$usergroup1Id"}}'}
-    - expected_status: [500]
+    - expected_status: [201]
 
 
 - test:
@@ -316,7 +316,7 @@
     - method: "PATCH"
     - headers: {template: {'Content-Type': 'application/json', 'Authorization': 'Bearer $user1Token'}}
     - body: {template: '{"data":{"type":"usergroup","attributes":{},"relationships":{"user_id":{"data":[{"id":"$user1Id","type":"user"}]}},"id":"$usergroup2Id"}}'}
-    - expected_status: [500]
+    - expected_status: [201]
 
 
 - test:
@@ -326,7 +326,7 @@
     - method: "PATCH"
     - headers: {template: {'Content-Type': 'application/json', 'Authorization': 'Bearer $user1Token'}}
     - body: {template: '{"data":{"type":"usergroup","attributes":{},"relationships":{"user_id":{"data":[{"id":"$user2Id","type":"user"}]}},"id":"$usergroup1Id"}}'}
-    - expected_status: [500]
+    - expected_status: [201]
 
 
 

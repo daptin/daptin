@@ -91,10 +91,11 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 		log.Infof("Check column: [%v]  (%v) => (%v) ", col.ColumnName, change.OldValue, change.NewValue)
 
-		val := change.NewValue
+		var val interface{}
+		val = change.NewValue
 		if col.IsForeignKey {
 
-			if val != "" {
+			if val == "" {
 				continue
 			}
 
