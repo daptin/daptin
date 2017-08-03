@@ -1,5 +1,5 @@
-hash: 77d9b26d6e271f48192b029233bef0da1483ea237a9ef48b0afd3c6fe38b1488
-updated: 2017-08-03T00:21:00.737803977+05:30
+hash: 764bcd25f006ed7d7e7d202fa0c83111b1393e83dfee6ce0be41213ca8db3a8b
+updated: 2017-08-03T05:52:16.88802009+05:30
 imports:
 - name: cloud.google.com/go
   version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
@@ -133,6 +133,10 @@ imports:
   version: 0f6f568263a1ab5105b57f66f446d2625e4f545c
 - name: github.com/go-sql-driver/mysql
   version: a0583e0143b1624142adab07e0e97fe106d99561
+- name: github.com/gocraft/health
+  version: 25b40f8580168c1f905a6dba35d471cdc51ca629
+  subpackages:
+  - stack
 - name: github.com/golang/protobuf
   version: 748d386b5c1ea99658fd69fe9f03991ce86a90c1
   subpackages:
