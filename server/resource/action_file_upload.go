@@ -129,7 +129,7 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 		return nil, []error{err}
 	}
 
-	if !token.Valid() || true {
+	if !token.Valid() {
 		ctx := context.Background()
 		tokenSource := oauthConf.TokenSource(ctx, token)
 		token, err = tokenSource.Token()
