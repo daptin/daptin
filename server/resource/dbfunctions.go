@@ -551,7 +551,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 		CheckErr(err, "Failed to user group")
 	}
 
-	defaultWorldPermission := int64(777)
+	defaultWorldPermission := int64(750)
 
 	if systemHasNoAdmin {
 		defaultWorldPermission = 777
@@ -866,7 +866,8 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 }
 
 func CheckRelations(config *CmsConfig, db *sqlx.DB) {
-	relations := make([]api2go.TableRelation, 0)
+	relations := config.Relations
+	config.Relations = make([]api2go.TableRelation, 0)
 
 	relationsDone := make(map[string]bool)
 
@@ -1273,6 +1274,8 @@ func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB) {
 func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]bool, map[string]api2go.ColumnInfo) {
 	columnsWeWant := map[string]bool{}
 	colInfoMap := map[string]api2go.ColumnInfo{}
+
+	// first fist column names for each column, if they were initially left blank.
 	for i, c := range tableInfo.Columns {
 		if c.ColumnName == "" {
 			c.ColumnName = c.Name
@@ -1282,6 +1285,7 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
 		colInfoMap[c.ColumnName] = c
 	}
 
+	// append all the standard columns to this table
 	for _, sCol := range StandardColumns {
 		_, ok := colInfoMap[sCol.ColumnName]
 		if ok {
@@ -1300,6 +1304,13 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 	finalColumns := make(map[string]api2go.ColumnInfo, 0)
 	finalColumnsList := make([]api2go.ColumnInfo, 0)
 
+	for i, c := range tableInfo.Columns {
+		if c.ColumnName == "" {
+			c.ColumnName = c.Name
+			tableInfo.Columns[i].ColumnName = c.Name
+		}
+	}
+
 	for _, col := range tableInfo.Columns {
 		finalColumns[col.ColumnName] = col
 	}
@@ -1309,15 +1320,15 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 	}
 	tableInfo.Columns = finalColumnsList
 
-	for i, c := range tableInfo.Columns {
-		if c.ColumnName == "" {
-			c.ColumnName = c.Name
-			tableInfo.Columns[i].ColumnName = c.Name
-		}
-	}
-
 	columnsWeWant, colInfoMap := CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo)
-	log.Infof("Columns we want in [%v]: %v", tableInfo.TableName, columnsWeWant)
+	log.Infof("Columns we want in [%v]", tableInfo.TableName)
+
+	if tableInfo.TableName == "todo" {
+		log.Infof("special break")
+	}
+	for col := range columnsWeWant {
+		log.Infof("Column: [%v]%v", tableInfo.TableName, col)
+	}
 
 	s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
 	//log.Infof("Sql: %v", s)

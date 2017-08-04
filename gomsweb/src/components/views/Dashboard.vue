@@ -9,9 +9,11 @@
       <ol class="breadcrumb">
         <li>
           <a href="javascript:;">
-            <i class="fa fa-home"></i>Home</a>
+            <i class="fa fa-home"></i> 1 Home </a>
         </li>
-        <li class="active">{{$route.name.toUpperCase()}}</li>
+        <li v-for="crumb in $route.meta.breadcrumb">
+          {{crumb.label}}
+        </li>
       </ol>
       <div class="pull-right">
         <div class="ui icon buttons">
@@ -118,16 +120,16 @@
 </template>
 
 <script>
-  import jsonApi  from '../../plugins/jsonapi'
+  import jsonApi from '../../plugins/jsonapi'
   import actionManager from '../../plugins/actionmanager'
   import worldManager from '../../plugins/worldmanager'
 
   export default {
-    data () {
+    data() {
       return {
         worldActions: {},
         actionGroups: {},
-        generateRandomNumbers (numbers, max, min) {
+        generateRandomNumbers(numbers, max, min) {
           var a = []
           for (var i = 0; i < numbers; i++) {
             a.push(Math.floor(Math.random() * (max - min + 1)) + max)
@@ -138,14 +140,19 @@
     },
     computed: {},
     methods: {
-      stringToColor (str) {
+      stringToColor(str) {
 //        console.log("String to color", str, window.stringToColor(str))
         return "#" + window.stringToColor(str)
       },
     },
-    mounted () {
+    mounted() {
 
       var that = this;
+      that.$route.meta.breadcrumb = [
+        {
+          label: 'Dashboard'
+        }
+      ];
       var newWorldActions = {};
       jsonApi.all("world").get({
         page: {

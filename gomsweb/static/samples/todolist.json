@@ -62,7 +62,7 @@
   ],
   "tables": [
     {
-      "tableName": "todos",
+      "tableName": "todo",
       "columns": [
         {
           "name": "title",
@@ -140,12 +140,12 @@
   ],
   "relations": [
     {
-      "subject": "todos",
+      "subject": "todo",
       "relation": "has_one",
       "object": "project"
     },
     {
-      "subject": "todos",
+      "subject": "todo",
       "relation": "has_many",
       "object": "tag"
     }
@@ -170,7 +170,7 @@
       ],
       "outcomes": [
         {
-          "type": "todos",
+          "type": "todo",
           "method": "POST",
           "attributes": {
             "schedule": "~schedule",
@@ -191,7 +191,7 @@
           "type": "client.redirect",
           "method": "ACTIONRESPONSE",
           "attributes": {
-            "location": "/in/todos/$.reference_id",
+            "location": "/in/todo/$.reference_id",
             "window": "self",
             "delay": "1000"
           }
@@ -216,10 +216,10 @@
     {
       "name": "completed",
       "label": "Completed",
-      "onType": "todos",
+      "onType": "todo",
       "outcomes": [
         {
-          "type": "todos",
+          "type": "todo",
           "method": "UPDATE",
           "attributes": {
             "completed": "1",
@@ -293,7 +293,7 @@
     {
       "name": "Task to excel sheet",
       "sourceAttributes": {
-        "name": "todos"
+        "name": "todo"
       },
       "sourceType": "self",
       "targetAttributes": {

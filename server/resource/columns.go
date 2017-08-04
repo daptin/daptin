@@ -71,7 +71,7 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "oauth_token"),
-	api2go.NewTableRelation("file", "belongs_to", "cloud_store"),
+	api2go.NewTableRelation("site", "has_one", "cloud_store"),
 }
 
 var SystemSmds = []LoopbookFsmDescription{}
@@ -876,7 +876,7 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName: "file",
+		TableName: "site",
 		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -886,16 +886,10 @@ var StandardTables = []TableInfo{
 				DataType:   "varchar(100)",
 			},
 			{
-				Name:       "Type",
-				ColumnName: "file_type",
+				Name:       "Host name",
+				ColumnName: "hostname",
 				ColumnType: "label",
 				DataType:   "varchar(100)",
-			},
-			{
-				Name:       "File path",
-				ColumnName: "file_path",
-				ColumnType: "label",
-				DataType:   "varchar(1000)",
 			},
 		},
 	},

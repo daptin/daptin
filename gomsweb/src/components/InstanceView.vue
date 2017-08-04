@@ -12,7 +12,9 @@
           <a href="javascript:;">
             <i class="fa fa-home"></i>Home</a>
         </li>
-        <li class="active">{{$route.name.toUpperCase()}}</li>
+        <li v-for="crumb in $route.meta.breadcrumb">
+          {{crumb.label}}
+        </li>
       </ol>
       <div class="pull-right">
         <div class="ui icon buttons">
@@ -139,7 +141,7 @@
 
   export default {
     name: 'InstanceView',
-    data () {
+    data() {
       return {
         jsonApi: jsonApi,
         actionManager: actionManager,
@@ -158,7 +160,7 @@
         this.showAddEdit = true;
         this.rowBeingEdited = this.selectedRow;
       },
-      doEvent(action, event){
+      doEvent(action, event) {
         var that = this;
         console.log("do event", action, event);
         worldManager.trackObjectEvent(this.selectedTable, action.id, event.name).then(function () {
@@ -174,7 +176,7 @@
           })
         });
       },
-      addStateMachine (machine) {
+      addStateMachine(machine) {
         console.log("Add state machine", machine);
         console.log("Selected row", this.selectedRow);
         var that = this;
@@ -188,7 +190,7 @@
           that.updateStates();
         });
       },
-      doAction (action) {
+      doAction(action) {
         this.$store.commit("SET_SELECTED_ACTION", action);
         this.rowBeingEdited = null;
         this.showAddEdit = true;
@@ -242,6 +244,17 @@
           alert("no table name");
           return;
         }
+        that.$route.meta.breadcrumb = [{
+          label: tableName,
+          to: {
+            name: "Entity",
+            params: {
+              tablename: tableName
+            }
+          }
+        }, {
+          label: selectedInstanceId
+        }];
 
         that.$store.commit("SET_SELECTED_TABLE", tableName);
         that.$store.commit("SET_ACTIONS", worldActions);
@@ -346,8 +359,6 @@
     mounted() {
       var that = this;
       that.setTable();
-
-
     },
     computed: {
       ...mapState([

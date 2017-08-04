@@ -69,11 +69,11 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 
 		if isBeingModified {
 			log.Infof("Table %s is being modified", existableTable.TableName)
-			newTable := initConfig.Tables[indexBeingModified]
+			tableBeingModified := initConfig.Tables[indexBeingModified]
 
-			if len(newTable.Columns) > 0 {
+			if len(tableBeingModified.Columns) > 0 {
 
-				for _, newColumnDef := range newTable.Columns {
+				for _, newColumnDef := range tableBeingModified.Columns {
 					columnAlreadyExist := false
 					for _, existingColumn := range existableTable.Columns {
 						if existingColumn.ColumnName == newColumnDef.ColumnName {
@@ -82,7 +82,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 						}
 					}
 					if columnAlreadyExist {
-						log.Infof("Modifying existing columns is ont supported at present. not sure what would break. and alter query isnt being run currently.");
+						log.Infof("Modifying existing columns[%v][%v] is not supported at present. not sure what would break. and alter query isnt being run currently.", existableTable.TableName, newColumnDef.Name);
 					} else {
 						existableTable.Columns = append(existableTable.Columns, newColumnDef)
 					}
@@ -90,8 +90,8 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 				}
 
 			}
-			if len(newTable.Relations) > 0 {
-				existableTable.Relations = append(existableTable.Relations, newTable.Relations...)
+			if len(tableBeingModified.Relations) > 0 {
+				existableTable.Relations = append(existableTable.Relations, tableBeingModified.Relations...)
 			}
 			existingTables[j] = existableTable
 		}
