@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"flag"
+	"github.com/jmoiron/sqlx"
+	"github.com/julienschmidt/httprouter"
 )
 
 var cruds = make(map[string]*resource.DbResource)
@@ -166,6 +168,9 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 
 	ms := BuildMiddlewareSet(&initConfig)
 	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore)
+	hostSwitch := CreateSubSites(&initConfig, db, cruds)
+
+	hostSwitch["default"] = r
 
 	authMiddleware.SetUserCrud(cruds["user"])
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
@@ -198,5 +203,43 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 
 	resource.InitialiseColumnManager()
 
-	r.Run(fmt.Sprintf(":%v", *port))
+	//r.Run(fmt.Sprintf(":%v", *port))
+
+	http.ListenAndServe(fmt.Sprintf(":%v", *port), hostSwitch)
+}
+
+type HostSwitch map[string]http.Handler
+
+// Implement the ServerHTTP method on our new type
+func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Check if a http.Handler is registered for the given host.
+	// If yes, use it to handle the request.
+	if handler := hs[r.Host]; handler != nil {
+		handler.ServeHTTP(w, r)
+	} else {
+		handler := hs["default"]
+		handler.ServeHTTP(w, r)
+		// Handle host names for wich no handler is registered
+		//http.Error(w, "Forbidden", 403) // Or Redirect?
+	}
+}
+
+func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*resource.DbResource) HostSwitch {
+
+	router := httprouter.New()
+	router.ServeFiles("/*filepath", http.Dir("./scripts"))
+
+	hs := make(HostSwitch)
+
+	sites, err := cruds["site"].GetSites()
+	if err != nil {
+		log.Errorf("Failed to load sites from database: %v", err)
+		return hs
+	}
+
+	log.Infof("Sites to subhost: %v", sites)
+
+	hs["another.goms.com:6336"] = router
+
+	return hs
 }

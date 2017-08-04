@@ -9,7 +9,7 @@
       <ol class="breadcrumb">
         <li>
           <a href="javascript:;">
-            <i class="fa fa-home"></i> 1 Home </a>
+            <i class="fa fa-home"></i>Home </a>
         </li>
         <li v-for="crumb in $route.meta.breadcrumb">
           {{crumb.label}}
