@@ -59,6 +59,18 @@ GoMS is a platform which can be customised using Schema files, which describe yo
 - Runnable on all types on devices
 - Cross platform app using [qt](https://github.com/therecipe/qt) (very long term goal. A responsive website for now.)
 
+
+## Competitor products
+
+It will be untrue to say Goms has no competition. These are the possible competing products:
+
+- [Directus](https://getdirectus.com/) - Directus is an API-driven content management framework for custom databases. It decouples content for use in apps, websites, or any other data-driven projects.
+- [Cockpit](https://getcockpit.com/) - An API-driven CMS
+- [Contentful](https://www.contentful.com/) - Contentful is the essential content management infrastructure for projects of any size, with its flexible APIs and global CDN.
+
+All these products also target to solve the same problem, but differing in the solution pipeline (as an example say database choice or features).
+
+
 ### Documentation state
 
 Incomplete, might be confusing.
