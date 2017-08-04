@@ -15,11 +15,11 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/julienschmidt/httprouter"
 	"context"
-	"os"
 	"github.com/artpar/rclone/fs"
 	"strings"
 	"github.com/gin-gonic/gin/json"
 	"github.com/artpar/rclone/cmd"
+	"github.com/satori/go.uuid"
 )
 
 var cruds = make(map[string]*resource.DbResource)
@@ -266,8 +266,8 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 
 		oauthTokenId := cloudStore.OAutoTokenId
 
-		token, err := cruds["oauth_token"].GetTokenByTokenId(oauthTokenId)
-		oauthConf, err := cruds["oauth_token"].GetOauthDescriptionByTokenId(oauthTokenId)
+		token, err := cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+		oauthConf, err := cruds["oauth_token"].GetOauthDescriptionByTokenReferenceId(oauthTokenId)
 		if err != nil {
 			log.Errorf("Failed to get oauth token for store sync: %v", err)
 			continue
@@ -278,12 +278,14 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 			tokenSource := oauthConf.TokenSource(ctx, token)
 			token, err = tokenSource.Token()
 			resource.CheckErr(err, "Failed to get new access token")
-			err = cruds["oauth_token"].UpdateAccessTokenByTokenId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
+			err = cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
 			resource.CheckErr(err, "failed to update access token")
 		}
 
+		sourceDirectoryName := uuid.NewV4().String()
+		tempDirectoryPath, err := ioutil.TempDir("", sourceDirectoryName)
+
 		hostRouter := httprouter.New()
-		tempDirectory := os.TempDir()
 
 		jsonToken, err := json.Marshal(token)
 		resource.CheckErr(err, "Failed to convert token to json")
@@ -295,14 +297,14 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 		fs.ConfigFileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
 
 		args := []string{
-			tempDirectory,
 			cloudStore.RootPath,
+			tempDirectoryPath,
 		}
 
 		fsrc, fdst := cmd.NewFsSrcDst(args)
-
+		log.Infof("Temp dir for site [%v] ==> %v", site.Name, tempDirectoryPath)
 		go cmd.Run(true, true, nil, func() error {
-			log.Infof("Starting to copy drive for site base")
+			log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
 			if fsrc == nil || fdst == nil {
 				log.Errorf("Source or destination is null")
 				return nil
@@ -310,13 +312,11 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 			dir := fs.CopyDir(fdst, fsrc)
 			return dir
 		})
-		hostRouter.ServeFiles("/*filepath", http.Dir(tempDirectory))
+		hostRouter.ServeFiles("/*filepath", http.Dir(tempDirectoryPath))
 
 		hs[site.Hostname] = hostRouter
 
 	}
-
-	hs["another.goms.com:6336"] = router
 
 	return hs
 }

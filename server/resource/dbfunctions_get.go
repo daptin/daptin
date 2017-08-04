@@ -125,8 +125,8 @@ type CloudStore struct {
 	Id              int64
 	RootPath        string `db:"root_path"`
 	StoreParameters map[string]interface{}
-	UserId          int64
-	OAutoTokenId    int64
+	UserId          string
+	OAutoTokenId    string
 	Name            string
 	StoreType       string
 	StoreProvider   string
@@ -149,16 +149,16 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 	for _, storeMap := range rows {
 		var cloudStore CloudStore
 
-		oauthTokenId, _ := strconv.ParseInt(storeMap["oauth_token_id"].(string), 10, 64)
-		cloudStore.OAutoTokenId = oauthTokenId
+		cloudStore.OAutoTokenId = storeMap["oauth_token_id"].(string)
 		cloudStore.Name = storeMap["name"].(string)
-		id, _ := strconv.ParseInt(storeMap["id"].(string), 10, 64)
+		id, err := strconv.ParseInt(storeMap["id"].(string), 10, 64)
+		CheckErr(err, "Failed to parse id as int in loading stores")
 		cloudStore.Id = id
-		permission, _ := strconv.ParseInt(storeMap["permission"].(string), 10, 64)
+		permission, err := strconv.ParseInt(storeMap["permission"].(string), 10, 64)
+		CheckErr(err, "Failed to parse permission as int in loading stores")
 		cloudStore.Permission = int(permission)
 		cloudStore.ReferenceId = storeMap["reference_id"].(string)
-		userId, _ := strconv.ParseInt(storeMap["user_id"].(string), 10, 64)
-		cloudStore.UserId = userId
+		cloudStore.UserId = storeMap["user_id"].(string)
 		createdAt, _ := time.Parse(storeMap["created_at"].(string), "2006-01-02 15:04:05")
 		cloudStore.CreatedAt = &createdAt
 		updatedAt, _ := time.Parse(storeMap["updated_at"].(string), "2006-01-02 15:04:05")
@@ -187,26 +187,24 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	sites := []SubSite{}
 
-	rows, err := resource.GetAllObjects("site")
-
+	s, v, err := squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s.permission", "s.user_id").
+			From("site s").
+			Where(squirrel.Eq{"s.deleted_at": nil}).ToSql()
 	if err != nil {
 		return sites, err
 	}
 
-	for _, row := range rows {
-		var site SubSite
-		site.Hostname = row["hostname"].(string)
-		userId, err := strconv.ParseInt(row["user_id"].(string), 10, 64)
-		CheckErr(err, "Failed to parse userid in loading sites")
-		site.UserId = userId
-		permission, err := strconv.Atoi(row["permission"].(string))
-		CheckErr(err, "Failed to parse permission in loading sites")
-		site.Permission = permission
-		site.Name = row["name"].(string)
-		cloudStoreId, err := strconv.ParseInt(row["cloud_store_id"].(string), 10, 64)
-		CheckErr(err, "Failed to parse cloud store id in loading sites")
+	rows, err := resource.db.Queryx(s, v...)
+	if err != nil {
+		return sites, err
+	}
 
-		site.CloudStoreId = cloudStoreId
+	for rows.Next() {
+		var site SubSite
+		err = rows.StructScan(&site)
+		if err != nil {
+			log.Errorf("Failed to scan site from db to struct: %v", err)
+		}
 		sites = append(sites, site)
 	}
 
