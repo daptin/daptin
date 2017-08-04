@@ -9,13 +9,17 @@
         {{selectedTable | titleCase}}
         <small>{{ $route.meta.description }}</small>
       </h1>
+
       <ol class="breadcrumb">
         <li>
           <a href="javascript:;">
             <i class="fa fa-home"></i>Home</a>
         </li>
-        <li class="active">{{$route.name.toUpperCase()}}</li>
+        <li v-for="crumb in $route.meta.breadcrumb">
+          {{crumb.label}}
+        </li>
       </ol>
+
       <div class="box-tools pull-right">
         <div class="ui icon buttons">
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'"><i
@@ -35,6 +39,8 @@
 
       </div>
     </section>
+
+
     <section class="content">
 
       <div class="row" v-if="showAddEdit && rowBeingEdited != null">
@@ -83,7 +89,7 @@
       },
 
     },
-    data () {
+    data() {
       return {
         jsonApi: jsonApi,
         actionManager: actionManager,
@@ -95,18 +101,18 @@
       }
     },
     methods: {
-      hideModel () {
+      hideModel() {
         console.log("Call to hide model")
         $('#uploadJson').modal('hide all');
       },
-      doAction (action) {
+      doAction(action) {
         console.log("set action", action);
 
         this.$store.commit("SET_SELECTED_ACTION", action)
         this.rowBeingEdited = true;
         this.showAddEdit = true;
       },
-      uploadJsonSchemaFile(){
+      uploadJsonSchemaFile() {
         console.log("this files list", this.$refs.upload)
       },
       handleCommand(command) {
@@ -211,6 +217,17 @@
           console.log("Set subtable columns: ", that.subTableColumns)
         }
 
+        that.$route.meta.breadcrumb = [{
+          label: tableName,
+          to: {
+            name: "Entity",
+            params: {
+              tablename: tableName
+            }
+          }
+        }];
+
+
 
         if (that.selectedTable) {
           worldManager.getColumnKeys(that.selectedTable, function (model) {
@@ -275,6 +292,8 @@
       if (!tableName) {
         tableName = "user";
       }
+
+
       console.log("Set table 1", tableName);
       that.$store.commit("SET_SELECTED_TABLE", tableName);
       that.$store.commit("SET_ACTIONS", worldActions);
