@@ -491,6 +491,22 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 
 	return m[0], err
 }
+func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, error) {
+	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := dr.db.Queryx(s, q...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), false)
+
+	return m, err
+}
 
 func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string) (map[string]interface{}, error) {
 	log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)

@@ -12,7 +12,7 @@ import (
 	"github.com/artpar/goms/server/auth"
 )
 
-func (resource *DbResource) UpdateAccessTokenByTokenId(id *int64, accessToken string, expiresIn int64) (error) {
+func (resource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken string, expiresIn int64) (error) {
 
 	encryptionSecret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
 	if err != nil {
