@@ -168,7 +168,7 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 							return results, err
 						}
 
-						err = dr.UpdateAccessToken(exchange.OauthTokenId, token.AccessToken, token.Expiry.Unix())
+						err = dr.UpdateAccessTokenByTokenId(exchange.OauthTokenId, token.AccessToken, token.Expiry.Unix())
 						CheckErr(err, "failed to update access token")
 					}
 
@@ -272,14 +272,14 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 
 	token.AccessToken = dec
 	token.RefreshToken = ref
-	token.TokenType = token_type
+	token.TokenType = "Bearer"
 	token.Expiry = time.Unix(expires_in, 0)
 
 	return &token, err
 
 }
 
-func (resource *DbResource) UpdateAccessToken(id *int64, accessToken string, expiresIn int64) (error) {
+func (resource *DbResource) UpdateAccessTokenByTokenId(id *int64, accessToken string, expiresIn int64) (error) {
 
 	encryptionSecret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
 	if err != nil {
@@ -295,6 +295,31 @@ func (resource *DbResource) UpdateAccessToken(id *int64, accessToken string, exp
 			Set("access_token", accessToken).
 			Set("expires_in", expiresIn).
 			Where(squirrel.Eq{"id": id}).ToSql()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = resource.db.Exec(s, v...)
+	return err
+
+}
+func (resource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId string, accessToken string, expiresIn int64) (error) {
+
+	encryptionSecret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	if err != nil {
+		return err
+	}
+
+	accessToken, err = Encrypt([]byte(encryptionSecret), accessToken)
+	if err != nil {
+		return err
+	}
+
+	s, v, err := squirrel.Update("oauth_token").
+			Set("access_token", accessToken).
+			Set("expires_in", expiresIn).
+			Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 
 	if err != nil {
 		return err

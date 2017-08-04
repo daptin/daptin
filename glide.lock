@@ -1,5 +1,5 @@
-hash: 764bcd25f006ed7d7e7d202fa0c83111b1393e83dfee6ce0be41213ca8db3a8b
-updated: 2017-08-03T05:52:16.88802009+05:30
+hash: 5f76e02f5e12a1671a772a5abef05d8981fa258c9e85e86e3043d60ff0f28699
+updated: 2017-08-04T07:10:00.396802962+05:30
 imports:
 - name: cloud.google.com/go
   version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
@@ -19,7 +19,7 @@ imports:
 - name: github.com/artpar/conform
   version: 0a5d4165efbaf1ca49ccdbdf21cd7a2bf63e7f04
 - name: github.com/artpar/rclone
-  version: 39eed0422d690d7f07eb8fa1f53feca7bb4d4fdc
+  version: 9238933c7dfe9b1923e64906a2741b558a45fa93
   subpackages:
   - amazonclouddrive
   - b2
@@ -50,8 +50,6 @@ imports:
   - swift
   - yandex
   - yandex/api
-- name: github.com/auth0/go-jwt-middleware
-  version: 5493cabe49f7bfa6e2ec444a09d334d90cd4e2bd
 - name: github.com/aws/aws-sdk-go
   version: ae48d7372b4f879cfe994d7a037a6a822cafdde0
   subpackages:
@@ -145,8 +143,6 @@ imports:
   version: 53e6ce116135b80d037921a7fdd5138cf32d7a8a
   subpackages:
   - query
-- name: github.com/gorilla/context
-  version: 1ea25387ff6f684839d82767c1733ff4d4d15d0a
 - name: github.com/icrowley/fake
   version: e64cc2cf92049a299f359734c6ea76073f2a8b2c
 - name: github.com/inconshreveable/mousetrap
@@ -301,8 +297,6 @@ imports:
   - internal/remote_api
   - internal/urlfetch
   - urlfetch
-- name: gopkg.in/authboss.v1
-  version: be948e61d1f76faa4f25bd0eb32a4fb6c46659e5
 - name: gopkg.in/gin-gonic/gin.v1
   version: d459835d2b077e44f7c9b453505ee29881d5d12d
 - name: gopkg.in/go-playground/validator.v8

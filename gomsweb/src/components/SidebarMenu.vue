@@ -76,6 +76,12 @@
           </router-link>
         </li>
         <li class="pageLink">
+          <router-link class="list-site"
+                       :to="{name : 'Entity', params: {tablename: 'site'}}">
+            <i class="fa fa-sitemap"></i> Sub sites
+          </router-link>
+        </li>
+        <li class="pageLink">
           <router-link class="download-schema"
                        :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}">
             <i class="fa fa-download"></i> Download System Schema
