@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/go-playground/validator"
+	validator "gopkg.in/go-playground/validator.v9"
 	"fmt"
 )
 

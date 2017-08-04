@@ -15,6 +15,7 @@ import (
 	"archive/zip"
 	"io"
 	"os"
+	"context"
 )
 
 type FileUploadActionPerformer struct {
@@ -120,14 +121,24 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 		rootPath,
 	}
 
-	oauthToken, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(targetStorageDetails["oauth_token_id"].(string))
-	oauthConf, err := d.cruds["oauth_token"].GetOauthDescriptionByTokenReferenceId(targetStorageDetails["oauth_token_id"].(string))
+	oauthTokenId := targetStorageDetails["oauth_token_id"].(string)
+	token, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+	oauthConf, err := d.cruds["oauth_token"].GetOauthDescriptionByTokenReferenceId(oauthTokenId)
 	if err != nil {
 		log.Errorf("Failed to get oauth token for store sync: %v", err)
 		return nil, []error{err}
 	}
 
-	jsonToken, err := json.Marshal(oauthToken)
+	if !token.Valid() || true {
+		ctx := context.Background()
+		tokenSource := oauthConf.TokenSource(ctx, token)
+		token, err = tokenSource.Token()
+		CheckErr(err, "Failed to get new access token")
+		err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
+		CheckErr(err, "failed to update access token")
+	}
+
+	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to marshal access token to json")
 	configFile := filepath.Join(tempDirectoryPath, "upload.conf")
 	fs.LoadConfig()
@@ -141,10 +152,15 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 	fs.ConfigFileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
 	fs.ConfigFileSet(storeProvider, "token", string(jsonToken))
 	fs.ConfigFileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
+	fs.ConfigFileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
 
 	go cmd.Run(true, true, nil, func() error {
+		if fsrc == nil || fdst == nil {
+			log.Errorf("Source or destination is null")
+			return nil
+		}
 		dir := fs.CopyDir(fdst, fsrc)
 		os.RemoveAll(tempDirectoryPath)
 		return dir
