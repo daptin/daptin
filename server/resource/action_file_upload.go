@@ -140,12 +140,7 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to marshal access token to json")
-	configFile := filepath.Join(tempDirectoryPath, "upload.conf")
-	fs.LoadConfig()
-	fs.ConfigPath = configFile
-	fs.Config.DryRun = false
-	fs.Config.LogLevel = 200
-	fs.Config.StatsLogLevel = 200
+
 	storeProvider := targetStorageDetails["store_provider"].(string)
 	fs.ConfigFileSet(storeProvider, "client_id", oauthConf.ClientID)
 	fs.ConfigFileSet(storeProvider, "type", targetInformationMap["store_provider"].(string))

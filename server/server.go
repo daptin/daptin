@@ -14,6 +14,12 @@ import (
 	"flag"
 	"github.com/jmoiron/sqlx"
 	"github.com/julienschmidt/httprouter"
+	"context"
+	"os"
+	"github.com/artpar/rclone/fs"
+	"strings"
+	"github.com/gin-gonic/gin/json"
+	"github.com/artpar/rclone/cmd"
 )
 
 var cruds = make(map[string]*resource.DbResource)
@@ -108,6 +114,10 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 
 	}
 	initConfig.Tables = allTables
+	fs.LoadConfig()
+	fs.Config.DryRun = false
+	fs.Config.LogLevel = 200
+	fs.Config.StatsLogLevel = 200
 
 	resource.CheckRelations(&initConfig, db)
 	resource.CheckAuditTables(&initConfig, db)
@@ -231,13 +241,80 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 
 	hs := make(HostSwitch)
 
-	sites, err := cruds["site"].GetSites()
+	sites, err := cruds["site"].GetAllSites()
+	stores, err := cruds["cloud_store"].GetAllCloudStores()
+	cloudStoreMap := make(map[int64]resource.CloudStore)
+
+	for _, store := range stores {
+		cloudStoreMap[store.Id] = store
+	}
+
 	if err != nil {
 		log.Errorf("Failed to load sites from database: %v", err)
 		return hs
 	}
 
-	log.Infof("Sites to subhost: %v", sites)
+	for _, site := range sites {
+		log.Infof("Site to subhost: %v", site)
+
+		cloudStore, ok := cloudStoreMap[site.CloudStoreId]
+		storeProvider := cloudStore.StoreProvider
+		if !ok {
+			log.Infof("Site [%v] does not have a associated storage", site.Name)
+			continue
+		}
+
+		oauthTokenId := cloudStore.OAutoTokenId
+
+		token, err := cruds["oauth_token"].GetTokenByTokenId(oauthTokenId)
+		oauthConf, err := cruds["oauth_token"].GetOauthDescriptionByTokenId(oauthTokenId)
+		if err != nil {
+			log.Errorf("Failed to get oauth token for store sync: %v", err)
+			continue
+		}
+
+		if !token.Valid() {
+			ctx := context.Background()
+			tokenSource := oauthConf.TokenSource(ctx, token)
+			token, err = tokenSource.Token()
+			resource.CheckErr(err, "Failed to get new access token")
+			err = cruds["oauth_token"].UpdateAccessTokenByTokenId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
+			resource.CheckErr(err, "failed to update access token")
+		}
+
+		hostRouter := httprouter.New()
+		tempDirectory := os.TempDir()
+
+		jsonToken, err := json.Marshal(token)
+		resource.CheckErr(err, "Failed to convert token to json")
+		fs.ConfigFileSet(storeProvider, "client_id", oauthConf.ClientID)
+		fs.ConfigFileSet(storeProvider, "type", storeProvider)
+		fs.ConfigFileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
+		fs.ConfigFileSet(storeProvider, "token", string(jsonToken))
+		fs.ConfigFileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
+		fs.ConfigFileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
+
+		args := []string{
+			tempDirectory,
+			cloudStore.RootPath,
+		}
+
+		fsrc, fdst := cmd.NewFsSrcDst(args)
+
+		go cmd.Run(true, true, nil, func() error {
+			log.Infof("Starting to copy drive for site base")
+			if fsrc == nil || fdst == nil {
+				log.Errorf("Source or destination is null")
+				return nil
+			}
+			dir := fs.CopyDir(fdst, fsrc)
+			return dir
+		})
+		hostRouter.ServeFiles("/*filepath", http.Dir(tempDirectory))
+
+		hs[site.Hostname] = hostRouter
+
+	}
 
 	hs["another.goms.com:6336"] = router
 

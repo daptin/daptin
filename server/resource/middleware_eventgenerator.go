@@ -143,12 +143,12 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 				}
 
 				for _, exchange := range exchanges {
-					token, err := dr.GetTokenByTokenId(exchange.OauthTokenId)
+					token, err := dr.GetTokenByTokenId(*exchange.OauthTokenId)
 					if err != nil {
 						log.Errorf("No token selected for [%v][%v]: %v", exchange.Name, exchange.OauthTokenId, err)
 					}
 
-					oauthDesc, err := dr.GetOauthDescriptionByTokenId(exchange.OauthTokenId)
+					oauthDesc, err := dr.GetOauthDescriptionByTokenId(*exchange.OauthTokenId)
 
 					if err != nil {
 						log.Errorf("No oauth description for [%v][%v]: %v", exchange.Name, exchange.OauthTokenId, err)
@@ -163,7 +163,7 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 							return results, err
 						}
 
-						err = dr.UpdateAccessTokenByTokenId(exchange.OauthTokenId, token.AccessToken, token.Expiry.Unix())
+						err = dr.UpdateAccessTokenByTokenId(*exchange.OauthTokenId, token.AccessToken, token.Expiry.Unix())
 						CheckErr(err, "failed to update access token")
 					}
 

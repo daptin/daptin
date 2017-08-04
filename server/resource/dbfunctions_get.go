@@ -8,6 +8,8 @@ import (
 	"strings"
 	"golang.org/x/oauth2"
 	"time"
+	"encoding/json"
+	"strconv"
 )
 
 func GetObjectByWhereClause(objType string, db *sqlx.DB, queries ...squirrel.Eq) ([]map[string]interface{}, error) {
@@ -112,17 +114,107 @@ func GetAdminUserIdAndUserGroupId(db *sqlx.DB) (int64, int64) {
 }
 
 type SubSite struct {
+	Name         string
+	Hostname     string
+	CloudStoreId int64 `db:"cloud_store_id"`
+	Permission   int
+	UserId       int64 `db:"user_id"`
 }
 
-func (resource *DbResource) GetSites() ([]SubSite, error) {
+type CloudStore struct {
+	Id              int64
+	RootPath        string `db:"root_path"`
+	StoreParameters map[string]interface{}
+	UserId          int64
+	OAutoTokenId    int64
+	Name            string
+	StoreType       string
+	StoreProvider   string
+	Version         int
+	CreatedAt       *time.Time
+	UpdatedAt       *time.Time
+	DeletedAt       *time.Time
+	ReferenceId     string
+	Permission      int
+}
+
+func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
+	cloudStores := []CloudStore{}
+
+	rows, err := resource.GetAllObjects("cloud_store")
+	if err != nil {
+		return cloudStores, err
+	}
+
+	for _, storeMap := range rows {
+		var cloudStore CloudStore
+
+		oauthTokenId, _ := strconv.ParseInt(storeMap["oauth_token_id"].(string), 10, 64)
+		cloudStore.OAutoTokenId = oauthTokenId
+		cloudStore.Name = storeMap["name"].(string)
+		id, _ := strconv.ParseInt(storeMap["id"].(string), 10, 64)
+		cloudStore.Id = id
+		permission, _ := strconv.ParseInt(storeMap["permission"].(string), 10, 64)
+		cloudStore.Permission = int(permission)
+		cloudStore.ReferenceId = storeMap["reference_id"].(string)
+		userId, _ := strconv.ParseInt(storeMap["user_id"].(string), 10, 64)
+		cloudStore.UserId = userId
+		createdAt, _ := time.Parse(storeMap["created_at"].(string), "2006-01-02 15:04:05")
+		cloudStore.CreatedAt = &createdAt
+		updatedAt, _ := time.Parse(storeMap["updated_at"].(string), "2006-01-02 15:04:05")
+		cloudStore.UpdatedAt = &updatedAt
+		storeParameters := storeMap["store_parameters"].(string)
+
+		storeParamMap := make(map[string]interface{})
+
+		json.Unmarshal([]byte(storeParameters), &storeParamMap)
+
+		cloudStore.StoreParameters = storeParamMap
+		cloudStore.StoreProvider = storeMap["store_provider"].(string)
+		cloudStore.StoreType = storeMap["store_type"].(string)
+		cloudStore.RootPath = storeMap["root_path"].(string)
+		version, _ := strconv.ParseInt(storeMap["version"].(string), 10, 64)
+		cloudStore.Version = int(version)
+
+		cloudStores = append(cloudStores, cloudStore)
+	}
+
+	return cloudStores, nil
+
+}
+
+func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	sites := []SubSite{}
+
+	rows, err := resource.GetAllObjects("site")
+
+	if err != nil {
+		return sites, err
+	}
+
+	for _, row := range rows {
+		var site SubSite
+		site.Hostname = row["hostname"].(string)
+		userId, err := strconv.ParseInt(row["user_id"].(string), 10, 64)
+		CheckErr(err, "Failed to parse userid in loading sites")
+		site.UserId = userId
+		permission, err := strconv.Atoi(row["permission"].(string))
+		CheckErr(err, "Failed to parse permission in loading sites")
+		site.Permission = permission
+		site.Name = row["name"].(string)
+		cloudStoreId, err := strconv.ParseInt(row["cloud_store_id"].(string), 10, 64)
+		CheckErr(err, "Failed to parse cloud store id in loading sites")
+
+		site.CloudStoreId = cloudStoreId
+		sites = append(sites, site)
+	}
 
 	return sites, nil
 
 }
 
-func (resource *DbResource) GetOauthDescriptionByTokenId(id *int64) (*oauth2.Config, error) {
+func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Config, error) {
 
 	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
@@ -248,7 +340,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 
 }
 
-func (resource *DbResource) GetTokenByTokenId(id *int64) (*oauth2.Token, error) {
+func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 
 	var access_token, refresh_token, token_type string
 	var expires_in int64
