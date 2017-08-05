@@ -180,7 +180,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore)
 	hostSwitch := CreateSubSites(&initConfig, db, cruds)
 
-	hostSwitch["default"] = r
+	hostSwitch.handlerMap["default"] = r
 
 	authMiddleware.SetUserCrud(cruds["user"])
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
@@ -218,28 +218,47 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	http.ListenAndServe(fmt.Sprintf(":%v", *port), hostSwitch)
 }
 
-type HostSwitch map[string]http.Handler
+type HostSwitch struct {
+	handlerMap map[string]http.Handler
+	siteMap    map[string]resource.SubSite
+}
 
 // Implement the ServerHTTP method on our new type
 func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Check if a http.Handler is registered for the given host.
 	// If yes, use it to handle the request.
-	if handler := hs[r.Host]; handler != nil {
+	if handler := hs.handlerMap[r.Host]; handler != nil {
 		handler.ServeHTTP(w, r)
 	} else {
-		handler := hs["default"]
+		pathParts := strings.Split(r.URL.Path, "/")
+		if len(pathParts) > 1 {
+
+			firstSubFolder := pathParts[1]
+			subSite, isSubSite := hs.siteMap[firstSubFolder]
+			if isSubSite {
+				r.URL.Path = "/" + strings.Join(pathParts[2:], "/")
+				handler := hs.handlerMap[subSite.Hostname]
+				handler.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		handler := hs.handlerMap["default"]
 		handler.ServeHTTP(w, r)
+
 		// Handle host names for wich no handler is registered
 		//http.Error(w, "Forbidden", 403) // Or Redirect?
 	}
 }
 
-func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*resource.DbResource) HostSwitch {
+func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*resource.DbResource) (HostSwitch) {
 
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
 
-	hs := make(HostSwitch)
+	hs := HostSwitch{}
+	hs.handlerMap = make(map[string]http.Handler)
+	hs.siteMap = make(map[string]resource.SubSite)
 
 	sites, err := cruds["site"].GetAllSites()
 	stores, err := cruds["cloud_store"].GetAllCloudStores()
@@ -255,6 +274,7 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 	}
 
 	for _, site := range sites {
+		hs.siteMap[site.Path] = site
 		log.Infof("Site to subhost: %v", site)
 
 		cloudStore, ok := cloudStoreMap[site.CloudStoreId]
@@ -314,8 +334,7 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 		})
 		hostRouter.ServeFiles("/*filepath", http.Dir(tempDirectoryPath))
 
-		hs[site.Hostname] = hostRouter
-
+		hs.handlerMap[site.Hostname] = hostRouter
 	}
 
 	return hs

@@ -891,6 +891,12 @@ var StandardTables = []TableInfo{
 				ColumnType: "label",
 				DataType:   "varchar(100)",
 			},
+			{
+				Name:       "Path",
+				ColumnName: "path",
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+			},
 		},
 	},
 }
