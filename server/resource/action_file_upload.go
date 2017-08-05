@@ -16,6 +16,7 @@ import (
 	"io"
 	"os"
 	"context"
+	"github.com/pkg/errors"
 )
 
 type FileUploadActionPerformer struct {
@@ -121,7 +122,12 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 		rootPath,
 	}
 
-	oauthTokenId := targetStorageDetails["oauth_token_id"].(string)
+	oauthTokenId1 := targetStorageDetails["oauth_token_id"]
+	if oauthTokenId1 == nil {
+		log.Errorf("No oauth token set for target store")
+		return nil, []error{errors.New("No auth token set for this store")}
+	}
+	oauthTokenId := oauthTokenId1.(string)
 	token, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
 	oauthConf, err := d.cruds["oauth_token"].GetOauthDescriptionByTokenReferenceId(oauthTokenId)
 	if err != nil {

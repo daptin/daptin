@@ -93,7 +93,7 @@
       <div class="row">
         <div class="col-md-12">
 
-          <router-link :to="{name: 'NewEntity', params: {tablename: 'world'}}"
+          <router-link :to="{name: 'NewItem'}"
                        style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
             <i style="font-size: 30px" class="fa fa-3x fa-plus green"></i>New Entity
           </router-link>

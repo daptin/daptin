@@ -95,12 +95,7 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 
 func NewGenerateJwtTokenPerformer(configStore *ConfigStore, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	secret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
-	if err != nil {
-		newSecret := uuid.NewV4().String()
-		configStore.SetConfigValueFor("jwt.secret", newSecret, "backend")
-		secret = newSecret
-	}
+	secret, _ := configStore.GetConfigValueFor("jwt.secret", "backend")
 
 	handler := GenerateJwtTokenActionPerformer{
 		secret: []byte(secret),

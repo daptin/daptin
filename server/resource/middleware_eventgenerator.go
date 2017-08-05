@@ -143,6 +143,12 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 				}
 
 				for _, exchange := range exchanges {
+
+					if exchange.OauthTokenId == nil {
+						log.Infof("Oauth token for exchange [%v] is not set", exchange.Name)
+						continue
+					}
+
 					token, err := dr.GetTokenByTokenId(*exchange.OauthTokenId)
 					if err != nil {
 						log.Errorf("No token selected for [%v][%v]: %v", exchange.Name, exchange.OauthTokenId, err)
@@ -182,11 +188,8 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 						log.Errorf("Failed to execute exchange: %v", err)
 						//errors = append(errors, err)
 					}
-
 				}
-
 			}
-
 		}
 
 		break

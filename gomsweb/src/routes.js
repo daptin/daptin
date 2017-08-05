@@ -5,6 +5,7 @@ import NotFoundView from './components/404.vue'
 
 import InstanceView from './components/InstanceView'
 import EntityView from './components/EntityView'
+import NewMeta from './components/NewMeta'
 import RelationView from './components/RelationView'
 
 import AdminComponent from './components/Admin'
@@ -68,26 +69,31 @@ const routes = [
         component: ActionComponent
       },
       {
-        path: '/in',
+        path: '/',
         component: AdminComponent,
         children: [
           {
-            path: ':tablename',
+            path: '/in/item/:tablename',
             name: 'Entity',
             component: EntityView
           },
           {
-            path: ':tablename/new',
+            path: '/in/item/:tablename/new',
             name: 'NewEntity',
             component: EntityView
           },
           {
-            path: ':tablename/:refId',
+            path: '/in/item/:tablename/:refId',
             name: 'Instance',
             component: InstanceView
           },
           {
-            path: ':tablename/:refId/:subTable',
+            path: '/in/meta/new',
+            name: 'NewItem',
+            component: NewMeta
+          },
+          {
+            path: '/in/item/:tablename/:refId/:subTable',
             name: 'Relation',
             component: RelationView
           }
@@ -100,6 +106,6 @@ const routes = [
     path: '*',
     component: NotFoundView
   }
-]
+];
 
 export default routes

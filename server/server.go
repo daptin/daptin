@@ -156,7 +156,15 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	})
 
 	configStore, err := resource.NewConfigStore(db)
-	jwtSecret, _ := configStore.GetConfigValueFor("jwt.secret", "backend")
+	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
+
+
+	if err != nil {
+		newSecret := uuid.NewV4().String()
+		configStore.SetConfigValueFor("jwt.secret", newSecret, "backend")
+		jwtSecret = newSecret
+	}
+
 
 	resource.CheckError(err, "Failed to get config store")
 	err = CheckSystemSecrets(configStore)
