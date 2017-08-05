@@ -184,7 +184,7 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 
 	redirectAttrs := make(map[string]interface{})
 	redirectAttrs["delay"] = 0
-	redirectAttrs["location"] = "/in/oauth_token"
+	redirectAttrs["location"] = "/in/item/oauth_token"
 	redirectAttrs["window"] = "self"
 	redirectResponse := NewActionResponse("client.redirect", redirectAttrs)
 

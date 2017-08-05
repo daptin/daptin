@@ -531,7 +531,7 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 		return nil, err
 	}
 
-	log.Infof("Have to return first of %d results", len(results))
+	//log.Infof("Have to return first of %d results", len(results))
 
 	return results[0], err
 }

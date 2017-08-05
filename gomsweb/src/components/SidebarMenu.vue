@@ -46,7 +46,7 @@
         </li>
 
         <li class="pageLink" v-on:click="toggleMenu">
-          <router-link to="/in/world">
+          <router-link :to="{name: 'Entity', params: {tablename: 'world'}}">
             <i class="fa fa-th"></i>
             <span class="page">All tables</span>
           </router-link>

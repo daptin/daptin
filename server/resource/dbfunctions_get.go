@@ -150,7 +150,13 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 	for _, storeMap := range rows {
 		var cloudStore CloudStore
 
-		cloudStore.OAutoTokenId = storeMap["oauth_token_id"].(string)
+		tokenId := storeMap["oauth_token_id"]
+		if tokenId == nil {
+			log.Infof("Token id for store [%v] is empty", storeMap["name"])
+			continue
+		} else {
+			cloudStore.OAutoTokenId = tokenId.(string)
+		}
 		cloudStore.Name = storeMap["name"].(string)
 		id, err := strconv.ParseInt(storeMap["id"].(string), 10, 64)
 		CheckErr(err, "Failed to parse id as int in loading stores")
