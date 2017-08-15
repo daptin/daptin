@@ -17,6 +17,13 @@ type CmsConfig struct {
 	ExchangeContracts        []ExchangeContract `json:"exchanges"`
 	Hostname                 string
 	Validator                *validator.Validate
+	SubSites                 map[string]SubSiteInformation
+}
+
+type SubSiteInformation struct {
+	SubSite    SubSite
+	CloudStore CloudStore
+	SourceRoot string
 }
 
 type User struct {
