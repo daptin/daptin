@@ -287,7 +287,6 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					if errors1 != nil && len(errors1) > 0 {
 						err = errors1[0]
 					}
-
 				}
 
 			case "ACTIONRESPONSE":
@@ -304,7 +303,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				case "error":
 					actionResponse = NewActionResponse("error", model.Data)
 				default:
-
+					log.Errorf("Unknown action response type: %v", model.GetName())
 				}
 				responses = append(responses, actionResponse)
 

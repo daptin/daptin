@@ -4,7 +4,7 @@ import:
   subpackages:
   - embedded
 - package: github.com/artpar/rclone
-  version: 1.40
+  version: 1.43
 - package: github.com/gocraft/health
 - package: github.com/artpar/api2go
   version: ^2.0

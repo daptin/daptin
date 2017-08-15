@@ -191,7 +191,7 @@
           "type": "client.redirect",
           "method": "ACTIONRESPONSE",
           "attributes": {
-            "location": "/in/todo/$.reference_id",
+            "location": "/in/item/todo/$.reference_id",
             "window": "self",
             "delay": "1000"
           }
@@ -252,7 +252,7 @@
           "type": "client.redirect",
           "method": "ACTIONRESPONSE",
           "attributes": {
-            "location": "/in/project/$.reference_id",
+            "location": "/in/item/project/$.reference_id",
             "window": "self",
             "delay": "1000"
           }

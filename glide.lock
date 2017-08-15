@@ -1,5 +1,5 @@
-hash: 5f76e02f5e12a1671a772a5abef05d8981fa258c9e85e86e3043d60ff0f28699
-updated: 2017-08-04T07:10:00.396802962+05:30
+hash: f5d125128929ed51d15585cbe60536cef98dd10564d83c9ab69e05e5bb7fa779
+updated: 2017-08-15T04:20:50.746791074+05:30
 imports:
 - name: cloud.google.com/go
   version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
@@ -7,6 +7,8 @@ imports:
   - compute/metadata
 - name: github.com/ahl5esoft/golang-underscore
   version: 4c4738d8de61796a6f759d2813f4ec3ae97baf89
+- name: github.com/andybalholm/cascadia
+  version: 349dd0209470eabd9514242c688c403c0926d266
 - name: github.com/artpar/api2go
   version: ed93e3502d81c13b05948617f2d989d74e5634a0
   subpackages:
@@ -19,7 +21,7 @@ imports:
 - name: github.com/artpar/conform
   version: 0a5d4165efbaf1ca49ccdbdf21cd7a2bf63e7f04
 - name: github.com/artpar/rclone
-  version: 9238933c7dfe9b1923e64906a2741b558a45fa93
+  version: 9cac1e3d7150e0fa41171d5d1ce63472fc2eae96
   subpackages:
   - amazonclouddrive
   - b2
@@ -44,6 +46,7 @@ imports:
   - onedrive
   - onedrive/api
   - pacer
+  - qingstor
   - rest
   - s3
   - sftp
@@ -128,7 +131,7 @@ imports:
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
 - name: github.com/go-playground/validator
-  version: 0f6f568263a1ab5105b57f66f446d2625e4f545c
+  version: d529ee1b0f30352444f507cc6cdac96bfd12decc
 - name: github.com/go-sql-driver/mysql
   version: a0583e0143b1624142adab07e0e97fe106d99561
 - name: github.com/gocraft/health
@@ -192,6 +195,13 @@ imports:
   version: 96a49aad3fc3889629f2eceb004927386884bd92
 - name: github.com/ncw/swift
   version: e3042b26a510db220549150362f6733012148d45
+- name: github.com/pengsrc/go-shared
+  version: 454950d6a0782c34427d4f29b46c6bf447256f20
+  subpackages:
+  - check
+  - convert
+  - json
+  - yaml
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/sftp
@@ -201,6 +211,8 @@ imports:
   subpackages:
   - hotp
   - totp
+- name: github.com/PuerkitoBio/goquery
+  version: 8806ada2a4ab225c06e9106f9631be80932db7ce
 - name: github.com/rcrowley/goagain
   version: f2f192b5d1a96e21dd4026ce67cda85e49659a48
 - name: github.com/rfjakob/eme
@@ -227,6 +239,19 @@ imports:
   version: b24eb346a94c3ba12c1da1e564dbac1b498a77ce
 - name: github.com/xanzy/ssh-agent
   version: ba9c9e33906f58169366275e3450db66139a31a9
+- name: github.com/yunify/qingstor-sdk-go
+  version: 68ce7c233bde780b2bbe1e1cf018db8e2df86361
+  subpackages:
+  - config
+  - logger
+  - request
+  - request/builder
+  - request/data
+  - request/errors
+  - request/signer
+  - request/unpacker
+  - service
+  - utils
 - name: golang.org/x/crypto
   version: 558b6879de74bc843225cde5686419267ff707ca
   subpackages:
@@ -302,7 +327,7 @@ imports:
 - name: gopkg.in/go-playground/validator.v8
   version: 5f1438d3fca68893a817e4a66806cea46a9e4ebf
 - name: gopkg.in/go-playground/validator.v9
-  version: 0f6f568263a1ab5105b57f66f446d2625e4f545c
+  version: d529ee1b0f30352444f507cc6cdac96bfd12decc
   subpackages:
   - translations/en
 - name: gopkg.in/Masterminds/squirrel.v1

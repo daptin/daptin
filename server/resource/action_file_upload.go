@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"github.com/satori/go.uuid"
 	//"os"
-	_ "github.com/artpar/rclone/fs/all" // import all fs
 	"path/filepath"
 	"strings"
 	"github.com/gin-gonic/gin/json"
