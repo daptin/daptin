@@ -46,8 +46,16 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 	currentUserReferenceId := req.PlainRequest.Context().Value("user_id").(string)
 	currentUsergroups := req.PlainRequest.Context().Value("usergroup_id").([]auth.GroupPermission)
-
 	attrs := data.GetAllAsAttributes()
+
+	if !data.HasVersion() {
+		originalData, err := dr.GetReferenceIdToObject(dr.model.GetTableName(), id)
+		if err != nil {
+			return nil, err
+		}
+		data = api2go.NewApi2GoModelWithData(dr.model.GetTableName(), nil, 0, nil, originalData)
+		data.SetAttributes(attrs)
+	}
 
 	allChanges := data.GetChanges()
 	allColumns := dr.model.GetColumns()

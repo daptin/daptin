@@ -41,8 +41,8 @@ window.stringToColor = function (str, prc) {
       G = (num >> 8 & 0x00FF) + amt,
       B = (num & 0x0000FF) + amt;
     return (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
-    (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
-    (B < 255 ? B < 1 ? 0 : B : 255))
+      (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+      (B < 255 ? B < 1 ? 0 : B : 255))
       .toString(16)
       .slice(1);
   };
@@ -67,27 +67,34 @@ window.chooseTitle = function (obj) {
     return "_"
   }
 
+  var candidates = ["name", "model", "title", "label"];
+
+  var objType = obj["__type"];
+  if (objType) {
+    var objModel = jsonApi.modelFor(objType);
+    console.log("choose title for object model", objModel)
+    var attrs = objModel.attributes;
+    var attrKeys = Object.keys(attrs);
+    for (var i=0;i<attrKeys.length;i++) {
+      if (attrs[attrKeys[i]] == "label") {
+        console.log("Adding candidate", attrKeys[i])
+        candidates.push(attrKeys[i])
+      }
+    }
+  }
+
   var keys = Object.keys(obj);
   // console.log("choose title for ", obj);
 
 
-  for (var i = 0; i < keys.length; i++) {
-    if (keys[i].indexOf("name") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
-      return obj[keys[i]];
-    }
-  }
-
-
-  for (var i = 0; i < keys.length; i++) {
-    if (keys[i].indexOf("title") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
-      return obj[keys[i]];
-    }
-  }
-
-
-  for (var i = 0; i < keys.length; i++) {
-    if (keys[i].indexOf("label") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
-      return obj[keys[i]];
+  for (var i = 0; i < candidates.length; i++) {
+    var found = keys.indexOf(candidates[i])
+    if (found > -1) {
+      console.log("candidate found at", found);
+      var val = obj[keys[found]]
+      if (typeof val == "string" && val.length > 0) {
+        return val;
+      }
     }
   }
 
@@ -100,6 +107,11 @@ window.chooseTitle = function (obj) {
         return obj[keys[i]]
       }
     }
+  }
+
+
+  if (obj["id"]) {
+    return obj["id"].toUpperCase();
   }
 
   for (var i = 0; i < keys.length; i++) {
@@ -118,10 +130,6 @@ window.chooseTitle = function (obj) {
       return ""
     }
 
-    if (obj[keys[i]] == obj[keys[i]]) {
-      continue
-    }
-
     var childTitle = chooseTitle(obj[keys[i]]);
     return titleCase(obj["type"]) + " for " + childTitle;
 
@@ -129,12 +137,7 @@ window.chooseTitle = function (obj) {
     return obj[keys[i]];
   }
 
-  if (obj["id"]) {
-    return obj["id"].toUpperCase();
-  } else {
-    return "#un-named";
-  }
-
+  return "#un-named";
 };
 
 window.titleCase = function (str) {

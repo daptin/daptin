@@ -11,6 +11,7 @@ import (
 
 type CmsConfig struct {
 	Tables                   []TableInfo
+	Imports                  []DataFileImport
 	StateMachineDescriptions []LoopbookFsmDescription `json:"state_machine_descriptions"`
 	Relations                []api2go.TableRelation
 	Actions                  []Action `json:"actions"`

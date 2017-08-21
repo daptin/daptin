@@ -104,7 +104,8 @@
         if (inputType.indexOf(".") > 0) {
           var inputTypeParts = inputType.split(".")
           if (inputTypeParts[0] == "file") {
-            return inputTypeParts[1];
+            inputTypeParts.shift();
+            return inputTypeParts.join(".");
           }
         }
 

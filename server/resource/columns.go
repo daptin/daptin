@@ -124,6 +124,42 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "upload_xls_to_system_schema",
+		Label:            "Upload xls to entity",
+		OnType:           "world",
+		InstanceOptional: true,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "XLSX file",
+				ColumnName: "data_xls_file",
+				ColumnType: "file.application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+				IsNullable: false,
+			},
+			{
+				Name:       "Entity name",
+				ColumnName: "entity_name",
+				ColumnType: "label",
+				IsNullable: false,
+			},
+		},
+		Validations: []ColumnTag{
+			{
+				ColumnName: "entity_name",
+				Tags:       "required",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "__upload_file_to_entity",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"xls_data": "~data_xls_file",
+					"name":     "entity_name",
+				},
+			},
+		},
+	},
+	{
 		Name:             "download_system_schema",
 		Label:            "Download system schema",
 		OnType:           "world",

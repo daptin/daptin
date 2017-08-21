@@ -25,7 +25,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	log.Infof("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
 
 	for _, bf := range dr.ms.BeforeCreate {
-		log.Infof("Invoke BeforeCreate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Infof("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
 		data.Data["__type"] = dr.model.GetName()
 		responseData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{data.Data})
 		if err != nil {
@@ -238,7 +238,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	userGroupId := dr.GetUserGroupIdByUserId(userId)
 
 	if userGroupId != 0 && dr.model.HasMany("usergroup") {
-		log.Infof("Associate new entity with usergroup: %v", userGroupId)
+		log.Infof("Associate new entity [%v][%v] with usergroup: %v", dr.model.GetTableName(), createdResource["reference_id"], userGroupId)
 		nuuid := uuid.NewV4().String()
 
 		belogsToUserGroupSql, q, err := squirrel.
@@ -290,7 +290,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	createdResource["__type"] = dr.model.GetName()
 
 	for _, bf := range dr.ms.AfterCreate {
-		log.Infof("Invoke AfterCreate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Infof("Invoke AfterCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
 		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource})
 		if err != nil {
 			log.Errorf("Error from after create middleware: %v", err)

@@ -46,13 +46,16 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 		validations := dvm.tableInfoMap[dr.model.GetName()].Validations;
 		conformations := dvm.tableInfoMap[dr.model.GetName()].Conformations;
 
-		log.Infof("We have %d objects to validate", len(objects))
+		//log.Infof("We have %d objects to validate", len(objects))
 
 		for i, obj := range objects {
 
 			for _, validate := range validations {
 
-				colValue, _ := obj[validate.ColumnName]
+				colValue, ok := obj[validate.ColumnName]
+				if !ok {
+					continue
+				}
 				errs := dvm.config.Validator.VarWithValue(colValue, obj, validate.Tags)
 
 				if errs != nil {

@@ -30,6 +30,7 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 	globalInitConfig = resource.CmsConfig{
 		Tables:                   make([]resource.TableInfo, 0),
 		Relations:                make([]api2go.TableRelation, 0),
+		Imports:                  make([]resource.DataFileImport, 0),
 		Actions:                  make([]resource.Action, 0),
 		StateMachineDescriptions: make([]resource.LoopbookFsmDescription, 0),
 	}
@@ -64,6 +65,7 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 
 		globalInitConfig.Tables = append(globalInitConfig.Tables, initConfig.Tables...)
 		globalInitConfig.Relations = append(globalInitConfig.Relations, initConfig.Relations...)
+		globalInitConfig.Imports = append(globalInitConfig.Imports, initConfig.Imports...)
 		globalInitConfig.Actions = append(globalInitConfig.Actions, initConfig.Actions...)
 		globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, initConfig.StateMachineDescriptions...)
 		globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
