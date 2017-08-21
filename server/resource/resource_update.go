@@ -44,8 +44,19 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	}
 	id := data.GetID()
 
-	currentUserReferenceId := req.PlainRequest.Context().Value("user_id").(string)
-	currentUsergroups := req.PlainRequest.Context().Value("usergroup_id").([]auth.GroupPermission)
+	v := req.PlainRequest.Context().Value("user_id")
+
+	currentUserReferenceId := ""
+	if v != nil {
+		currentUserReferenceId = v.(string)
+	}
+
+	currentUsergroups := make([]auth.GroupPermission, 0)
+
+	t := req.PlainRequest.Context().Value("usergroup_id")
+	if t != nil {
+		currentUsergroups = t.([]auth.GroupPermission)
+	}
 	attrs := data.GetAllAsAttributes()
 
 	if !data.HasVersion() {
