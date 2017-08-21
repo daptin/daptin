@@ -40,8 +40,8 @@
 
         <li class="pageLink">
           <router-link class="upload-schema"
-                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}">
-            <i class="fa fa-upload"></i> Update Features using JSON
+                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}">
+            <i class="fa fa-upload"></i> Upload Xls to create entity
           </router-link>
         </li>
 

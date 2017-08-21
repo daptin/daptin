@@ -143,6 +143,10 @@ var ColumnTypes = []ColumnType{
 		Conformations: []string{"email"},
 	},
 	{
+		Name:          "namespace",
+		BlueprintType: "string",
+	},
+	{
 		Name:          "name",
 		BlueprintType: "string",
 		Validations:   []string{"required"},

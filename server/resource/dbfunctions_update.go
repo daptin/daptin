@@ -10,6 +10,11 @@ import (
 	"fmt"
 	"encoding/json"
 	"github.com/artpar/goms/server/auth"
+	"io/ioutil"
+	"github.com/tealeg/xlsx"
+	"net/http"
+	"context"
+	"os"
 )
 
 func (resource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken string, expiresIn int64) (error) {
@@ -38,7 +43,6 @@ func (resource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken str
 
 }
 
-
 func (resource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId string, accessToken string, expiresIn int64) (error) {
 
 	encryptionSecret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
@@ -64,7 +68,6 @@ func (resource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId stri
 	return err
 
 }
-
 
 func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
 
@@ -413,6 +416,79 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 	}
 
 	return nil
+}
+
+func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbResource) {
+
+	ctx := context.Background()
+	pr1 := http.Request{
+		Method: "POST",
+	}
+	pr := pr1.WithContext(ctx)
+	adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
+	adminUser, err := cruds["world"].GetIdToObject("user", adminUserId)
+	if err != nil {
+		log.Errorf("No admin user present")
+	} else {
+		adminUserRefId := adminUser["reference_id"].(string)
+		pr = pr.WithContext(context.WithValue(pr.Context(), "user_id", adminUserRefId))
+		pr = pr.WithContext(context.WithValue(pr.Context(), "user_id_integer", adminUserId))
+		pr = pr.WithContext(context.WithValue(pr.Context(), "usergroup_id", []auth.GroupPermission{}))
+
+	}
+
+	req := api2go.Request{
+		PlainRequest: pr,
+	}
+
+	for _, importFile := range initConfig.Imports {
+
+		log.Infof("Process import file %v", importFile.String())
+		fileBytes, err := ioutil.ReadFile(importFile.FilePath)
+		if err != nil {
+			log.Errorf("Failed to read file [%v]: %v", importFile.FilePath, err)
+			continue
+		}
+
+		importSuccess := false
+
+		switch importFile.FileType {
+		case "xlsx":
+			xlsxFile, err := xlsx.OpenBinary(fileBytes)
+			if err != nil {
+				log.Errorf("Failed to read file [%v] as xlsx file: %v", importFile.FilePath, err)
+			}
+
+			data, _, err := GetDataArray(xlsxFile.Sheets[0])
+			if err != nil {
+				log.Errorf("Failed to sheet 0 data to import: %v", err)
+				continue
+			}
+
+			importSuccess = true
+			for _, row := range data {
+				model := api2go.NewApi2GoModelWithData(importFile.Entity, nil, auth.DEFAULT_PERMISSION, nil, row)
+				_, err := cruds[importFile.Entity].Create(model, req)
+				if err != nil {
+					log.Errorf("Failed to import row from data file: %v", err)
+				}
+
+			}
+
+		case "csv":
+		default:
+			log.Errorf("Unknown file type to import: %v: %v", importFile.FileType, importFile.FilePath)
+		}
+
+		if importSuccess {
+			err := os.Remove(importFile.FilePath)
+			if err != nil {
+				log.Errorf("Failed to remove import file [%v]: %v", importFile.FilePath, err)
+			}
+		}
+
+	}
+
 }
 
 func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {

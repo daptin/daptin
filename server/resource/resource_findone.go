@@ -11,7 +11,7 @@ import (
 func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Responder, error) {
 
 	for _, bf := range dr.ms.BeforeFindOne {
-		log.Infof("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Infof("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
 			{
 				"reference_id": referenceId,
@@ -32,7 +32,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	data, include, err := dr.GetSingleRowByReferenceId(dr.model.GetName(), referenceId)
 
 	for _, bf := range dr.ms.AfterFindOne {
-		log.Infof("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Infof("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
 		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{data})
 		if len(results) != 0 {

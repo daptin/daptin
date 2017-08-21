@@ -179,7 +179,6 @@ func CleanUpConfigFiles() {
 
 	for _, fileName := range files {
 		os.Remove(fileName)
-
 	}
 
 }

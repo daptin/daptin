@@ -26,7 +26,7 @@ func (dr *DbResource) GetTotalCount() uint64 {
 func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, response api2go.Responder, err error) {
 
 	for _, bf := range dr.ms.BeforeFindAll {
-		log.Infof("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Infof("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		_, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{})
 		if err != nil {
 			log.Infof("Error from BeforeFindAll middleware [%v]: %v", bf.String(), err)
@@ -296,7 +296,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 	// todo: handle fetching of usergroups, because world permission
 	for _, bf := range dr.ms.AfterFindAll {
-		log.Infof("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Infof("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
 		results, err = bf.InterceptAfter(dr, &req, results)
 		if err != nil {
@@ -306,7 +306,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 	includesNew := make([][]map[string]interface{}, 0)
 	for _, bf := range dr.ms.AfterFindAll {
-		log.Infof("Invoke AfterFindAll Includes [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Infof("Invoke AfterFindAll Includes [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
 		for _, include := range includes {
 			include, err = bf.InterceptAfter(dr, &req, include)

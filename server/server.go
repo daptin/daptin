@@ -133,7 +133,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	err = resource.UpdateActionTable(&initConfig, db)
 	resource.CheckErr(err, "Failed to update action table")
 
-	CleanUpConfigFiles()
+	//CleanUpConfigFiles()
 
 	/// end system initialise
 
@@ -181,6 +181,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	hostSwitch := CreateSubSites(&initConfig, db, cruds)
 
 	hostSwitch.handlerMap["default"] = r
+	go resource.ImportDataFiles(&initConfig, db, cruds)
 
 	authMiddleware.SetUserCrud(cruds["user"])
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])

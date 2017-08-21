@@ -29,6 +29,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, restartPerformer)
 
+	xlsUploadPerformer, err := resource.NewUploadFileToEntityPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create xls upload performer")
+	performers = append(performers, xlsUploadPerformer)
+
 	fileUploadPerformer, err := resource.NewFileUploadActionPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, fileUploadPerformer)
