@@ -194,7 +194,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	})
 
 	r.GET("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
-	r.GET("/apiblueprint.json", CreateApiBlueprintHandler(&initConfig, cruds))
+	r.GET("/apispec.raml", CreateApiBlueprintHandler(&initConfig, cruds))
 	r.OPTIONS("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
 
 	actionPerformers := GetActionPerformers(&initConfig, configStore)
