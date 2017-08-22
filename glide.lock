@@ -1,10 +1,14 @@
 hash: f5d125128929ed51d15585cbe60536cef98dd10564d83c9ab69e05e5bb7fa779
-updated: 2017-08-15T04:20:50.746791074+05:30
+updated: 2017-08-23T01:07:04.92332228+05:30
 imports:
+- name: bitbucket.org/pkg/inflect
+  version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
 - name: cloud.google.com/go
   version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
   subpackages:
   - compute/metadata
+- name: github.com/advance512/yaml
+  version: e401b2b026855a4fa8e7014d553ae5bdfccb21cd
 - name: github.com/ahl5esoft/golang-underscore
   version: 4c4738d8de61796a6f759d2813f4ec3ae97baf89
 - name: github.com/andybalholm/cascadia
@@ -20,6 +24,10 @@ imports:
   - gingonic
 - name: github.com/artpar/conform
   version: 0a5d4165efbaf1ca49ccdbdf21cd7a2bf63e7f04
+- name: github.com/artpar/go-raml
+  version: 9d5e0e5b8e9a659bf0007b4288812ab72c321574
+  subpackages:
+  - raml
 - name: github.com/artpar/rclone
   version: 9cac1e3d7150e0fa41171d5d1ce63472fc2eae96
   subpackages:
@@ -88,6 +96,11 @@ imports:
   subpackages:
   - qr
   - utils
+- name: github.com/chuckpreslar/inflect
+  version: 423e3ac59c611e2d549527ab8c15fb99335d30ba
+  subpackages:
+  - languages
+  - types
 - name: github.com/corpix/uarand
   version: 031be390f409fb4bac8fb299e3bcd101479f89f8
 - name: github.com/daaku/go.zipexe
@@ -113,6 +126,8 @@ imports:
   version: c02ca9a983da5807ddf7d796784928f5be4afd09
   subpackages:
   - embedded
+- name: github.com/gigforks/yaml
+  version: 3396035bfe07c24995d93599a57cf12f9d1c58e4
 - name: github.com/gin-contrib/sse
   version: 22d885f9ecc78bf4ee5d72b937e4bbcdc58e8cae
 - name: github.com/gin-gonic/gin
@@ -170,6 +185,10 @@ imports:
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
+- name: github.com/kr/pretty
+  version: cfb55aafdaf3ec08f0db22699ab822c50091b1c4
+- name: github.com/kr/text
+  version: 7cafcd837844e784b526369c9bce262804aebc60
 - name: github.com/lann/builder
   version: f22ce00fd9394014049dad11c244859432bd6820
 - name: github.com/lann/ps
@@ -212,15 +231,17 @@ imports:
   - hotp
   - totp
 - name: github.com/PuerkitoBio/goquery
-  version: 8806ada2a4ab225c06e9106f9631be80932db7ce
+  version: ce645ea5e67a713599b7415f21f0786451fa9554
 - name: github.com/rcrowley/goagain
   version: f2f192b5d1a96e21dd4026ce67cda85e49659a48
 - name: github.com/rfjakob/eme
   version: da627cc50b6fb2eb623eaffe91fb29d7eddfd06a
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: github.com/Sirupsen/logrus
+  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/sirupsen/logrus
-  version: a3f95b5c423586578a4e099b11a46c2479628cac
+  version: f006c2ac4710855cf0f916dd6b77acf6b048dc6e
 - name: github.com/skratchdot/open-golang
   version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
   subpackages:
@@ -229,6 +250,8 @@ imports:
   version: b26b538f693051ac6518e65672de3144ce3fbedc
 - name: github.com/spf13/pflag
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
+- name: github.com/tealeg/xlsx
+  version: a06c872a6c402f194e9c817cf30f3840a75f8ffe
 - name: github.com/ugorji/go
   version: 5efa3251c7f7d05e5d9704a69a984ec9f1386a40
   subpackages:
@@ -240,7 +263,7 @@ imports:
 - name: github.com/xanzy/ssh-agent
   version: ba9c9e33906f58169366275e3450db66139a31a9
 - name: github.com/yunify/qingstor-sdk-go
-  version: 68ce7c233bde780b2bbe1e1cf018db8e2df86361
+  version: 4749bc5ebe4857b353e55b49ebe91eed9a7f6cda
   subpackages:
   - config
   - logger
