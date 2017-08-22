@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 	//"github.com/artpar/goms/server/fakerservice"
-	"github.com/artpar/go-raml/raml"
 	"github.com/advance512/yaml"
 )
 
@@ -59,24 +58,19 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		tableMap[table.TableName] = table
 	}
 
-	apiDefinition := raml.APIDefinition{}
+	apiDefinition := make(map[string]interface{})
 
-	blueprintWriter := NewBluePrintWriter()
+	apiDefinition["title"] = "Goms server"
+	apiDefinition["version"] = "v1"
+	apiDefinition["baseUri"] = fmt.Sprintf("http://%v", config.Hostname)
+	apiDefinition["mediaType"] = "application/json"
+	apiDefinition["protocols"] = []string{"HTTP", "HTTPS"}
 
-	blueprintWriter.WriteString("#%RAML 1.0")
-	blueprintWriter.WriteString("")
+	typeMap := make(map[string]map[string]interface{})
 
-	apiDefinition.Title = "Goms server"
-	apiDefinition.Version = "v1"
-	apiDefinition.BaseURI = fmt.Sprintf("http://%v", config.Hostname)
-	apiDefinition.MediaType = "application/json"
-	apiDefinition.Protocols = []string{"HTTP", "HTTPS"}
-
-	typeMap := make(map[string]raml.Type)
-
-	var relatedStructureType raml.Type
-	relatedStructureType.Type = "object"
-	relatedStructureType.Properties = map[string]interface{}{
+	relatedStructureType := make(map[string]interface{})
+	relatedStructureType["type"] = "object"
+	relatedStructureType["properties"] = map[string]interface{}{
 		"id": map[string]interface{}{
 			"type":        "string",
 			"description": "Id of the included object",
@@ -88,9 +82,9 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 	}
 	typeMap["RelatedStructure"] = relatedStructureType
 
-	var paginationObject raml.Type
-	paginationObject.Type = "object"
-	paginationObject.Properties = map[string]interface{}{
+	paginationObject := make(map[string]interface{})
+	paginationObject["type"] = "object"
+	paginationObject["properties"] = map[string]interface{}{
 		"page[number]": map[string]interface{}{
 			"type":        "number",
 			"description": "Id of the included object",
@@ -102,9 +96,9 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 	}
 	typeMap["Pagination"] = paginationObject
 
-	var paginationStatus raml.Type
-	paginationStatus.Type = "object"
-	paginationStatus.Properties = map[string]interface{}{
+	paginationStatus := make(map[string]interface{})
+	paginationStatus["type"] = "object"
+	paginationStatus["properties"] = map[string]interface{}{
 		"current_page": map[string]interface{}{
 			"type":        "number",
 			"description": "The current page, for pagination",
@@ -132,9 +126,9 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 	}
 	typeMap["PaginationStatus"] = paginationStatus
 
-	var IncludedRelationship raml.Type
-	IncludedRelationship.Type = "object"
-	IncludedRelationship.Properties = map[string]interface{}{
+	IncludedRelationship := make(map[string]interface{})
+	IncludedRelationship["type"] = "object"
+	IncludedRelationship["properties"] = map[string]interface{}{
 		"data": map[string]interface{}{
 			"type":        "RelatedStructure",
 			"description": "Associated objects which are also included in the current response",
@@ -157,7 +151,7 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 	typeMap["IncludedRelationship"] = IncludedRelationship
 
 	for _, tableInfo := range config.Tables {
-		var ramlType raml.Type
+		ramlType := make(map[string]interface{})
 
 		// skip join tables
 		if strings.Index(tableInfo.TableName, "_has_") > -1 {
@@ -165,10 +159,10 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		}
 
 		properties := make(map[string]interface{})
-		ramlType.Type = "object"
-		blueprintWriter.WriteString("  " + tableInfo.TableName + ":")
-		blueprintWriter.WriteString("    type: object")
-		blueprintWriter.WriteString("    properties:")
+		ramlType["type"] = "object"
+		//blueprintWriter.WriteString("  " + tableInfo.TableName + ":")
+		//blueprintWriter.WriteString("    type: object")
+		//blueprintWriter.WriteString("    properties:")
 
 		for _, colInfo := range tableInfo.Columns {
 			if colInfo.IsForeignKey {
@@ -181,21 +175,21 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 			properties[colInfo.ColumnName] = CreateColumnLine(colInfo)
 		}
 
-		for _, relation := range tableInfo.Relations {
-			if relation.Subject == tableInfo.TableName {
-				properties[relation.GetObjectName()] = relation.GetObject()
-			} else {
-				properties[relation.GetSubjectName()] = relation.GetSubject()
-			}
-		}
+		//for _, relation := range tableInfo.Relations {
+		//	if relation.Subject == tableInfo.TableName {
+		//		properties[relation.GetObjectName()] = relation.GetObject()
+		//	} else {
+		//		properties[relation.GetSubjectName()] = relation.GetSubject()
+		//	}
+		//}
 
-		ramlType.Properties = properties
+		ramlType["properties"] = properties
 		typeMap[tableInfo.TableName] = ramlType
 	}
 
-	apiDefinition.Types = typeMap
+	apiDefinition["types"] = typeMap
 
-	resourcesMap := map[string]raml.Resource{}
+	resourcesMap := map[string]map[string]interface{}{}
 
 	for _, tableInfo := range config.Tables {
 
@@ -204,249 +198,224 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 			continue
 		}
 
-		var resource raml.Resource
+		resource := make(map[string]interface{})
 
-		resource.DisplayName = tableInfo.TableName
-		resource.Description = "Resources in this group are related to " + tableInfo.TableName
-		var postMethod raml.Method
+		resource["displayName"] = tableInfo.TableName
+		resource["description"] = "Resources in this group are related to " + tableInfo.TableName
 
-		postMethod.DisplayName = fmt.Sprintf("Create new %s", tableInfo.TableName)
+		// BEGIN: POST request
 
-		var postBody raml.Bodies
-
-		postBody.Type = tableInfo.TableName
-		postMethod.Bodies = postBody
-
-		postResponseMap := make(map[raml.HTTPCode]raml.Response)
-
-		var postOkResponse raml.Response
-
-		var postResponseBody raml.Bodies
-		postResponseBody.Type = "object"
-		forMimeTypeMap := make(map[string]raml.Body)
-
+		postMethod := make(map[string]interface{})
+		postMethod["displayName"] = fmt.Sprintf("Create new %s", tableInfo.TableName)
+		postBody := make(map[string]interface{})
+		postBody["type"] = tableInfo.TableName
+		postMethod["body"] = postBody
+		postResponseMap := make(map[string]interface{})
+		postOkResponse := make(map[string]interface{})
+		postResponseBody := make(map[string]interface{})
+		postResponseBody["type"] = "object"
 		relationshipMap := make(map[string]interface{}, 0)
-
 		for _, relation := range tableInfo.Relations {
 			if relation.Object == tableInfo.TableName {
-				relationshipMap[relation.SubjectName] = "ReferenceToIncludedObject"
+				relationshipMap[relation.SubjectName] = "IncludedRelationship"
 			} else {
-				relationshipMap[relation.ObjectName] = "ReferenceToIncludedObject"
+				relationshipMap[relation.ObjectName] = "IncludedRelationship"
 			}
 		}
-
-		var dataInResponse = &raml.BodiesProperty{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"attributes": raml.BodiesProperty{
-					Type: tableInfo.TableName,
+		var dataInResponse = map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"attributes": map[string]interface{}{
+					"type": tableInfo.TableName,
 				},
-				"id": raml.BodiesProperty{
-					Type: "string",
+				"id": map[string]interface{}{
+					"type": "string",
 				},
-				"type": raml.BodiesProperty{
-					Type: "string",
+				"type": map[string]interface{}{
+					"type": "string",
 				},
-				"relationships": raml.BodiesProperty{
-					Type:       "object",
-					Properties: relationshipMap,
+				"relationships": map[string]interface{}{
+					"type":       "object",
+					"properties": relationshipMap,
 				},
 			},
 		}
-
-		postResponseBody.ApplicationJSON = &raml.BodiesProperty{
-			Type: "object",
-			Properties: map[string]interface{}{
+		postResponseBody = map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
 				"data": dataInResponse,
-				"links": raml.BodiesProperty{
-					Type: "PaginationStatus",
+				"links": map[string]interface{}{
+					"type": "PaginationStatus",
 				},
 			},
 		}
-
-		var postCreationContent raml.Body
-
-		forMimeTypeMap["application/json"] = postCreationContent
-
-		postOkResponse.Bodies = postResponseBody
-
+		postOkResponse["body"] = postResponseBody
 		postResponseMap["200"] = postOkResponse
-		postMethod.Responses = postResponseMap
+		postMethod["responses"] = postResponseMap
+		resource["post"] = &postMethod
+		//  END: POST Request
 
-		resource.Post = &postMethod
-		//  END POST Request
+		//  BEGIN: GET Request
 
-		//  BEGIN GET Request
-
-		var getAllMethod raml.Method
-		getAllMethod.Description = fmt.Sprintf("Returns a list of %v", tableInfo.TableName)
-		getAllMethod.DisplayName = fmt.Sprintf("Get " + tableInfo.TableName)
-
-		getAllMethod.QueryParameters = map[string]raml.NamedParameter{
+		getAllMethod := make(map[string]interface{})
+		getAllMethod["description"] = fmt.Sprintf("Returns a list of %v", tableInfo.TableName)
+		getAllMethod["displayName"] = fmt.Sprintf("Get " + tableInfo.TableName)
+		getAllMethod["queryParameters"] = map[string]map[string]interface{}{
 			"sort": {
-				Type:        "string",
-				Required:    false,
-				Description: "Field name to sort by",
+				"type":        "string",
+				"required":    false,
+				"description": "Field name to sort by",
 			},
-			"page%5Bnumber%5D": {
-				Type:        "string",
-				Required:    false,
-				Description: "Page number for the query set, starts with 1",
+			"page[number]": {
+				"type":        "string",
+				"required":    false,
+				"description": "Page number for the query set, starts with 1",
 			},
-			"page%5Bsize%5D": {
-				Type:        "string",
-				Required:    false,
-				Description: "Size of one page, try 10",
+			"page[size]": {
+				"type":        "string",
+				"required":    false,
+				"description": "Size of one page, try 10",
 			},
 			"query": {
-				Type:        "string",
-				Required:    false,
-				Description: "search text in indexed columns",
+				"type":        "string",
+				"required":    false,
+				"description": "search text in indexed columns",
 			},
 		}
-
-		getResponseMap := make(map[raml.HTTPCode]raml.Response)
-
-		var get200Response raml.Response
-
-		get200Response.Bodies = raml.Bodies{
-			ApplicationJSON: &raml.BodiesProperty{
-				Type: "object",
-				Properties: map[string]interface{}{
-					"data": dataInResponse,
-					"links": raml.BodiesProperty{
-						Type: "PaginationStatus",
-					},
+		getResponseMap := make(map[string]interface{})
+		get200Response := make(map[string]interface{})
+		get200Response["body"] = map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"data": dataInResponse,
+				"links": map[string]interface{}{
+					"type": "PaginationStatus",
 				},
 			},
 		}
-
 		getResponseMap["200"] = get200Response
-		getAllMethod.Responses = getResponseMap
-
-		resource.Get = &getAllMethod
+		getAllMethod["responses"] = getResponseMap
+		resource["get"] = &getAllMethod
+		//  END: GET Request
 
 		//fakeObject := fakerservice.NewFakeInstance(tableInfo)
 
-		var byIdResource raml.Resource
+		//  BEGIN: GET ById Request
 
-		nestedMap := make(map[string]*raml.Resource)
-
-		byIdResource.URIParameters = map[string]raml.NamedParameter{
-			"referenceId": raml.NamedParameter{
-				Type:        "string",
-				Description: "Reference id of the " + tableInfo.TableName + "to be fetched",
-				Required:    true,
+		byIdResource := make(map[string]interface{})
+		nestedMap := make(map[string]interface{})
+		byIdResource["uriParameters"] = map[string]interface{}{
+			"referenceId": map[string]interface{}{
+				"type":        "string",
+				"description": "Reference id of the " + tableInfo.TableName + "to be fetched",
+				"required":    true,
 			},
 		}
-
-		nestedMap["/{referenceId}"] = &byIdResource
-
-		var getByIdMethod raml.Method
-
-		var getByIdMethod200Response raml.Response
-		getByIdMethod200Response.Bodies = raml.Bodies{
-			ApplicationJSON: &raml.BodiesProperty{
-				Type: "object",
-				Properties: map[string]interface{}{
-					"data": dataInResponse,
-					"links": raml.BodiesProperty{
-						Type: "PaginationStatus",
-					},
+		getByIdMethod := make(map[string]interface{})
+		getByIdMethod200Response := make(map[string]interface{})
+		getByIdMethod200Response["body"] = map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"data": dataInResponse,
+				"links": map[string]interface{}{
+					"type": "PaginationStatus",
 				},
 			},
 		}
 
-		getByIdResponseMap := make(map[raml.HTTPCode]raml.Response)
+		getByIdResponseMap := make(map[string]interface{})
 		getByIdResponseMap["200"] = getByIdMethod200Response
-		getByIdMethod.Responses = getByIdResponseMap
+		getByIdMethod["responses"] = getByIdResponseMap
+		byIdResource["get"] = getByIdMethod
+		nestedMap["/{referenceId}"] = byIdResource
 
-		byIdResource.Get = &getByIdMethod
+		//  END: GET ById Request
 
-		resource.Nested = nestedMap
+		// BEGIN: POST request
+
+		patchMethod := make(map[string]interface{})
+		patchMethod["displayName"] = fmt.Sprintf("Edit an existing %s", tableInfo.TableName)
+		patchBody := make(map[string]interface{})
+		patchBody["type"] = tableInfo.TableName
+		patchMethod["body"] = patchBody
+		patchResponseMap := make(map[string]interface{})
+		patchOkResponse := make(map[string]interface{})
+		patchResponseBody := make(map[string]interface{})
+		patchResponseBody["type"] = "object"
+		patchRelationshipMap := make(map[string]interface{}, 0)
+		for _, relation := range tableInfo.Relations {
+			if relation.Object == tableInfo.TableName {
+				patchRelationshipMap[relation.SubjectName] = "IncludedRelationship"
+			} else {
+				patchRelationshipMap[relation.ObjectName] = "IncludedRelationship"
+			}
+		}
+		var patchDataInResponse = map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"attributes": map[string]interface{}{
+					"type": tableInfo.TableName,
+				},
+				"id": map[string]interface{}{
+					"type": "string",
+				},
+				"type": map[string]interface{}{
+					"type": "string",
+				},
+				"relationships": map[string]interface{}{
+					"type":       "object",
+					"properties": patchRelationshipMap,
+				},
+			},
+		}
+		patchResponseBody = map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"data": patchDataInResponse,
+				"links": map[string]interface{}{
+					"type": "PaginationStatus",
+				},
+			},
+		}
+		patchOkResponse["body"] = patchResponseBody
+		postResponseMap["200"] = patchOkResponse
+		patchMethod["responses"] = patchResponseMap
+		resource["patch"] = &patchMethod
+		//  END: PATCH Request
+
+		// BEGIN: DELETE Request
+
+		deleteByIdResource := make(map[string]interface{})
+		deleteByIdResource["uriParameters"] = map[string]interface{}{
+			"referenceId": map[string]interface{}{
+				"type":        "string",
+				"description": "Reference id of the " + tableInfo.TableName + "to be fetched",
+				"required":    true,
+			},
+		}
+		deleteByIdMethod := make(map[string]interface{})
+		deleteByIdMethod200Response := make(map[string]interface{})
+		deleteByIdMethod200Response["body"] = map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"meta": "string",
+			},
+		}
+
+		deleteByIdResponseMap := make(map[string]interface{})
+		deleteByIdResponseMap["200"] = deleteByIdMethod200Response
+		deleteByIdMethod["responses"] = deleteByIdResponseMap
+		deleteByIdResource["get"] = deleteByIdMethod
+		nestedMap["/{referenceId}"] = deleteByIdResource
+
+		// END: DELETE Request
+
+		for k, v := range nestedMap {
+			resource[k] = v
+		}
+
 		resourcesMap["/api/"+tableInfo.TableName] = resource
 
-		//blueprintWriter.WriteString("  /{referenceId}:")
-		//blueprintWriter.WriteString("    uriParameters")
-		//blueprintWriter.WriteString("      referenceId: ")
-		//blueprintWriter.WriteString("        type: string")
-		//blueprintWriter.WriteString("        description: reference id of the " + tableInfo.TableName + " to be fetched")
-		//blueprintWriter.WriteString("        required: true")
-		//blueprintWriter.WriteString("    get:")
-		//blueprintWriter.WriteString("      description: Get a single " + tableInfo.TableName + " by reference id")
-		//blueprintWriter.WriteString("      displayName: Returns the " + tableInfo.TableName)
-		//
-		//blueprintWriter.WriteString("      responses:")
-		//blueprintWriter.WriteString("        200:")
-		//blueprintWriter.WriteString("          body:")
-		//blueprintWriter.WriteString(fmt.Sprintf("          data:"))
-		//blueprintWriter.WriteString(fmt.Sprintf("            type: object"))
-		//blueprintWriter.WriteString(fmt.Sprintf("            description: list of queried %s", tableInfo.TableName))
-		//blueprintWriter.WriteString(fmt.Sprintf("            properties:"))
-		//blueprintWriter.WriteString(fmt.Sprintf("              attributes:"))
-		//blueprintWriter.WriteString(fmt.Sprintf("                type: object"))
-		//blueprintWriter.WriteString(fmt.Sprintf("                description: Attributes of %s", tableInfo.TableName))
-		//blueprintWriter.WriteString(fmt.Sprintf("              id: "))
-		//blueprintWriter.WriteString(fmt.Sprintf("                type: string"))
-		//blueprintWriter.WriteString(fmt.Sprintf("                description: - reference id of this %s", tableInfo.TableName))
-		//blueprintWriter.WriteString(fmt.Sprintf("              relationships:"))
-		//blueprintWriter.WriteString(fmt.Sprintf("                description:  - related entities of %v", tableInfo.TableName))
-		//blueprintWriter.WriteString(fmt.Sprintf("                type: object"))
-		//blueprintWriter.WriteString(fmt.Sprintf("                properties:"))
-
-		//for _, relation := range tableInfo.Relations {
-		//	if tableInfo.TableName == relation.Object {
-		//
-		//		blueprintWriter.WriteString(fmt.Sprintf("                  %s: ", relation.SubjectName))
-		//
-		//		if relation.Relation == "belongs_to" || relation.Relation == "has_one" {
-		//			blueprintWriter.WriteString(fmt.Sprintf("                    type: ReferenceToIncludedObject"))
-		//			blueprintWriter.WriteString(fmt.Sprintf("                    description: Reference to related %s of %s", relation.SubjectName, tableInfo.TableName))
-		//		} else {
-		//			blueprintWriter.WriteString(fmt.Sprintf("                    type: ReferenceToIncludedObject[]"))
-		//			blueprintWriter.WriteString(fmt.Sprintf("                    description: References to related %s of %s", relation.SubjectName, tableInfo.TableName))
-		//		}
-		//	} else {
-		//		blueprintWriter.WriteString(fmt.Sprintf("                  %s: ", relation.ObjectName))
-		//
-		//		if relation.Relation == "belongs_to" || relation.Relation == "has_one" {
-		//			blueprintWriter.WriteString(fmt.Sprintf("                data:"))
-		//			blueprintWriter.WriteString(fmt.Sprintf("                  type: ReferenceToIncludedObject"))
-		//			blueprintWriter.WriteString(fmt.Sprintf("                  description: Reference to related %s of %s", relation.Object, tableInfo.TableName))
-		//		} else {
-		//			blueprintWriter.WriteString(fmt.Sprintf("                data:"))
-		//			blueprintWriter.WriteString(fmt.Sprintf("                  type: ReferenceToIncludedObject[]"))
-		//			blueprintWriter.WriteString(fmt.Sprintf("                  description: References to related %s of %s", relation.Object, tableInfo.TableName))
-		//		}
-		//		blueprintWriter.WriteString(fmt.Sprintf("                links:"))
-		//		blueprintWriter.WriteString(fmt.Sprintf("                  type: object"))
-		//		blueprintWriter.WriteString(fmt.Sprintf("                  description: Urls to fetch associated objects"))
-		//		blueprintWriter.WriteString(fmt.Sprintf("                  properties:"))
-		//		blueprintWriter.WriteString(fmt.Sprintf("                    related:"))
-		//		blueprintWriter.WriteString(fmt.Sprintf("                      type: string"))
-		//		blueprintWriter.WriteString(fmt.Sprintf("                      descriptionUrls to Fetch relations of %s", relation.Object))
-		//		blueprintWriter.WriteString(fmt.Sprintf("                    self:"))
-		//		blueprintWriter.WriteString(fmt.Sprintf("                      type: string"))
-		//		blueprintWriter.WriteString(fmt.Sprintf("                      description: Url to Fetch self %s", relation.Object))
-		//	}
-		//}
-
-		//blueprintWriter.WriteString(fmt.Sprintf("              type:"))
-		//blueprintWriter.WriteString(fmt.Sprintf("                type: string"))
-		//blueprintWriter.WriteString(fmt.Sprintf("                description: this is the type name returned along with each object, will be %s here", tableInfo.TableName))
-		//blueprintWriter.WriteString(fmt.Sprintf("            included:"))
-		//blueprintWriter.WriteString(fmt.Sprintf("              type: array"))
-		//blueprintWriter.WriteString(fmt.Sprintf("              items: "))
-		//blueprintWriter.WriteString(fmt.Sprintf("                type: object"))
-		//blueprintWriter.WriteString(fmt.Sprintf("              relationships:"))
-		//blueprintWriter.WriteString(fmt.Sprintf("                type:"))
-		//blueprintWriter.WriteString(fmt.Sprintf("                  type: array"))
-		//blueprintWriter.WriteString(fmt.Sprintf("                  items:"))
-		//blueprintWriter.WriteString(fmt.Sprintf("                    type: object"))
-		//blueprintWriter.WriteString(fmt.Sprintf("                  description: Type of the related object"))
-		//blueprintWriter.WriteString(fmt.Sprintf("            links:"))
-		//blueprintWriter.WriteString(fmt.Sprintf("              type: PaginationStatus"))
-		//blueprintWriter.WriteString("")
 		//
 		//blueprintWriter.WriteString("    patch:")
 		//blueprintWriter.WriteString(fmt.Sprintf("    description: Edit existing %s", tableInfo.TableName))
@@ -469,9 +438,9 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		//
 		//for _, relation := range tableInfo.Relations {
 		//	if relation.Object == tableInfo.TableName {
-		//		blueprintWriter.WriteString(fmt.Sprintf("                        %v: ReferenceToIncludedObject", relation.SubjectName))
+		//		blueprintWriter.WriteString(fmt.Sprintf("                        %v: IncludedRelationship", relation.SubjectName))
 		//	} else {
-		//		blueprintWriter.WriteString(fmt.Sprintf("                        %v: ReferenceToIncludedObject", relation.ObjectName))
+		//		blueprintWriter.WriteString(fmt.Sprintf("                        %v: IncludedRelationship", relation.ObjectName))
 		//	}
 		//}
 		//
@@ -493,8 +462,8 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		//	blueprintWriter.WriteString("      description: " + typeName + " associated with " + tableInfo.TableName)
 		//	blueprintWriter.WriteString("+ Parameters")
 		//	blueprintWriter.WriteString("    + sort (optional, string) - sort results by a columns")
-		//	blueprintWriter.WriteString("    + page%5Bnumber%5D (string, required) - Page number for the query set, starts with 1")
-		//	blueprintWriter.WriteString("    + page%5Bsize%5D (string, required) - Size of one page, try 10")
+		//	blueprintWriter.WriteString("    + page[number] (string, required) - Page number for the query set, starts with 1")
+		//	blueprintWriter.WriteString("    + page[size] (string, required) - Size of one page, try 10")
 		//	blueprintWriter.WriteString("    + query (optional, string) - sort results by a columns")
 		//	blueprintWriter.WriteString("    + referenceId (string, required) - reference id of the parent object as path param")
 		//	blueprintWriter.WriteString("")
@@ -555,10 +524,13 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		//}
 
 	}
-	apiDefinition.Resources = resourcesMap
+
+	for key, val := range resourcesMap {
+		apiDefinition[key] = val
+	}
 
 	ym, _ := yaml.Marshal(apiDefinition)
-	return string(ym)
+	return "#%RAML 1.0\n" + string(ym)
 
 }
 
