@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"github.com/artpar/goms/server/resource"
 	"github.com/artpar/api2go"
+
 	"fmt"
 	"strings"
 	//"github.com/artpar/goms/server/fakerservice"
+	"github.com/artpar/go-raml/raml"
+	"github.com/advance512/yaml"
 )
 
 type BlueprintWriter struct {
@@ -39,13 +42,14 @@ var skipColumns = map[string]bool{
 	"status":     true,
 }
 
-func CreateColumnLine(colInfo api2go.ColumnInfo, blueprintWriter *BlueprintWriter) {
+func CreateColumnLine(colInfo api2go.ColumnInfo) map[string]interface{} {
 	columnType := colInfo.ColumnType
-
 	typ := resource.ColumnManager.GetBlueprintType(columnType)
-	blueprintWriter.WriteStringf("      %s:", colInfo.ColumnName)
-	blueprintWriter.WriteStringf("        type: %s", typ)
-	blueprintWriter.WriteStringf("        required: %v", colInfo.IsNullable)
+	m := map[string]interface{}{
+		"type":     typ,
+		"required": colInfo.IsNullable,
+	}
+	return m
 }
 
 func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.DbResource) string {
@@ -55,101 +59,113 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		tableMap[table.TableName] = table
 	}
 
-	parent := make(map[string]interface{})
+	apiDefinition := raml.APIDefinition{}
 
 	blueprintWriter := NewBluePrintWriter()
 
 	blueprintWriter.WriteString("#%RAML 1.0")
 	blueprintWriter.WriteString("")
 
-	parent["title"] = "Goms server"
-	parent["version"] = "v1"
-	parent["baseUri"] = fmt.Sprintf("http://%v", config.Hostname)
-	parent["mediaType"] = "application/json"
-	parent["protocols"] = []string{"HTTP", "HTTPS"}
-	parent["description"] = "Goms server RAML Spec"
+	apiDefinition.Title = "Goms server"
+	apiDefinition.Version = "v1"
+	apiDefinition.BaseURI = fmt.Sprintf("http://%v", config.Hostname)
+	apiDefinition.MediaType = "application/json"
+	apiDefinition.Protocols = []string{"HTTP", "HTTPS"}
 
-	dataTypesMap := make(map[string]interface{})
-	parent["types"] = dataTypesMap
-	blueprintWriter.WriteString("title: Goms Server API description")
-	blueprintWriter.WriteString("version: v1")
-	blueprintWriter.WriteString("baseUri: http://" + config.Hostname)
-	blueprintWriter.WriteString("mediaType:")
-	blueprintWriter.WriteString("protocols: [ HTTP, HTTPS ]")
-	blueprintWriter.WriteString("description: Welcome to the GoMS")
+	typeMap := make(map[string]raml.Type)
 
-	blueprintWriter.WriteString("types:")
-	blueprintWriter.WriteString("  RelatedStructure:")
-	blueprintWriter.WriteString("    type: object")
-	blueprintWriter.WriteString("    properties:")
-	blueprintWriter.WriteString("      id: ")
-	blueprintWriter.WriteString("        type: string")
-	blueprintWriter.WriteString("        description: Id of the included object")
-	blueprintWriter.WriteString("      type: ")
-	blueprintWriter.WriteString("        type: string")
-	blueprintWriter.WriteString("        description: type of the included object")
-	blueprintWriter.WriteString("  Pagination:")
-	blueprintWriter.WriteString("    type: object")
-	blueprintWriter.WriteString("    properties:")
-	blueprintWriter.WriteString("      page[number]: number")
-	blueprintWriter.WriteString("      page[limit]: number")
-	blueprintWriter.WriteString("  PaginationStatus:")
-	blueprintWriter.WriteString("    type: object")
-	blueprintWriter.WriteString("    properties: ")
-	blueprintWriter.WriteString("      current_page:")
-	blueprintWriter.WriteString("        type: number")
-	blueprintWriter.WriteString("        description: The current page, for pagination")
-	blueprintWriter.WriteString("      from:")
-	blueprintWriter.WriteString("        type: number")
-	blueprintWriter.WriteString("        description: From page")
-	blueprintWriter.WriteString("      last_page:")
-	blueprintWriter.WriteString("        type: number")
-	blueprintWriter.WriteString("        description: The last page number in current query set")
-	blueprintWriter.WriteString("      per_page:")
-	blueprintWriter.WriteString("        type: number")
-	blueprintWriter.WriteString("        description: This is the number of results in one page")
-	blueprintWriter.WriteString("      to:")
-	blueprintWriter.WriteString("        type: number")
-	blueprintWriter.WriteString("        description: Index of the last record feched in this result")
-	blueprintWriter.WriteString("      total:")
-	blueprintWriter.WriteString("        type: number")
-	blueprintWriter.WriteString("        description: Total number of records")
-	blueprintWriter.WriteString("  IncludedRelationship:")
-	blueprintWriter.WriteString("    type: object")
-	blueprintWriter.WriteString("    properties: ")
-	blueprintWriter.WriteString("      data:")
-	blueprintWriter.WriteString("        type: array")
-	blueprintWriter.WriteString("        items: object")
-	blueprintWriter.WriteString("      links:")
-	blueprintWriter.WriteString("        type: object")
-	blueprintWriter.WriteString("        properties:")
-	blueprintWriter.WriteString("          related:")
-	blueprintWriter.WriteString("            type: string")
-	blueprintWriter.WriteString("          self:")
-	blueprintWriter.WriteString("            type: string")
-	blueprintWriter.WriteString("  ReferenceToIncludedObject:")
-	blueprintWriter.WriteString("    type: object")
-	blueprintWriter.WriteString("    properties: ")
-	blueprintWriter.WriteString("      data: ")
-	blueprintWriter.WriteString("        type: RelatedStructure")
-	blueprintWriter.WriteString("        description: Associated objects which are also included in the current response")
-	blueprintWriter.WriteString("      links:")
-	blueprintWriter.WriteString("        type: object")
-	blueprintWriter.WriteString("        properties: ")
-	blueprintWriter.WriteString("          related: ")
-	blueprintWriter.WriteString("            type: string")
-	blueprintWriter.WriteString("            description: link to related objects")
-	blueprintWriter.WriteString("          self: ")
-	blueprintWriter.WriteString("            type: string")
-	blueprintWriter.WriteString("            description: link to self")
+	var relatedStructureType raml.Type
+	relatedStructureType.Type = "object"
+	relatedStructureType.Properties = map[string]interface{}{
+		"id": map[string]interface{}{
+			"type":        "string",
+			"description": "Id of the included object",
+		},
+		"type": map[string]interface{}{
+			"type":        "string",
+			"description": "Type of the included object",
+		},
+	}
+	typeMap["RelatedStructure"] = relatedStructureType
+
+	var paginationObject raml.Type
+	paginationObject.Type = "object"
+	paginationObject.Properties = map[string]interface{}{
+		"page[number]": map[string]interface{}{
+			"type":        "number",
+			"description": "Id of the included object",
+		},
+		"page[size]": map[string]interface{}{
+			"type":        "number",
+			"description": "Type of the included object",
+		},
+	}
+	typeMap["Pagination"] = paginationObject
+
+	var paginationStatus raml.Type
+	paginationStatus.Type = "object"
+	paginationStatus.Properties = map[string]interface{}{
+		"current_page": map[string]interface{}{
+			"type":        "number",
+			"description": "The current page, for pagination",
+		},
+		"from": map[string]interface{}{
+			"type":        "number",
+			"description": "From page",
+		},
+		"last_page": map[string]interface{}{
+			"type":        "number",
+			"description": "The last page number in current query set",
+		},
+		"per_page": map[string]interface{}{
+			"type":        "number",
+			"description": "This is the number of results in one page",
+		},
+		"to": map[string]interface{}{
+			"type":        "number",
+			"description": "Index of the last record feched in this result",
+		},
+		"total": map[string]interface{}{
+			"type":        "number",
+			"description": "Total number of records",
+		},
+	}
+	typeMap["PaginationStatus"] = paginationStatus
+
+	var IncludedRelationship raml.Type
+	IncludedRelationship.Type = "object"
+	IncludedRelationship.Properties = map[string]interface{}{
+		"data": map[string]interface{}{
+			"type":        "RelatedStructure",
+			"description": "Associated objects which are also included in the current response",
+		},
+		"links": map[string]interface{}{
+			"type":        "object",
+			"description": "From page",
+			"properties": map[string]interface{}{
+				"related": map[string]interface{}{
+					"type":        "string",
+					"description": "link to related objects",
+				},
+				"self": map[string]interface{}{
+					"type":        "string",
+					"description": "link to self",
+				},
+			},
+		},
+	}
+	typeMap["IncludedRelationship"] = IncludedRelationship
 
 	for _, tableInfo := range config.Tables {
+		var ramlType raml.Type
 
 		// skip join tables
 		if strings.Index(tableInfo.TableName, "_has_") > -1 {
 			continue
 		}
 
+		properties := make(map[string]interface{})
+		ramlType.Type = "object"
 		blueprintWriter.WriteString("  " + tableInfo.TableName + ":")
 		blueprintWriter.WriteString("    type: object")
 		blueprintWriter.WriteString("    properties:")
@@ -161,18 +177,25 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 			if skipColumns[colInfo.ColumnName] {
 				continue
 			}
-			CreateColumnLine(colInfo, &blueprintWriter)
+
+			properties[colInfo.ColumnName] = CreateColumnLine(colInfo)
 		}
 
 		for _, relation := range tableInfo.Relations {
 			if relation.Subject == tableInfo.TableName {
-				blueprintWriter.WriteString(CreateForwardRelationLine(relation))
+				properties[relation.GetObjectName()] = relation.GetObject()
 			} else {
-				blueprintWriter.WriteString(CreateBackwardRelationLine(relation))
+				properties[relation.GetSubjectName()] = relation.GetSubject()
 			}
 		}
 
+		ramlType.Properties = properties
+		typeMap[tableInfo.TableName] = ramlType
 	}
+
+	apiDefinition.Types = typeMap
+
+	resourcesMap := map[string]raml.Resource{}
 
 	for _, tableInfo := range config.Tables {
 
@@ -181,200 +204,279 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 			continue
 		}
 
-		//fakeObject := fakerservice.NewFakeInstance(tableInfo)
+		var resource raml.Resource
 
-		blueprintWriter.WriteString("/api/" + tableInfo.TableName + ":")
-		blueprintWriter.WriteString("  displayName: " + tableInfo.TableName)
-		blueprintWriter.WriteString("  description: |")
-		blueprintWriter.WriteString("    Resources in this group are related to " + tableInfo.TableName)
-		blueprintWriter.WriteString("    " + fmt.Sprintf("%v has %d relation.", tableInfo.TableName, len(tableInfo.Relations)))
+		resource.DisplayName = tableInfo.TableName
+		resource.Description = "Resources in this group are related to " + tableInfo.TableName
+		var postMethod raml.Method
 
-		//  BEGIN POST Request
-		blueprintWriter.WriteString("  post:")
-		blueprintWriter.WriteStringf("    displayName: New %s", tableInfo.TableName)
-		blueprintWriter.WriteStringf("    description: Create a new %s", tableInfo.TableName)
-		blueprintWriter.WriteString("    body: ")
-		blueprintWriter.WriteString("      type: " + tableInfo.TableName)
-		blueprintWriter.WriteString("    responses: ")
-		blueprintWriter.WriteString("      200: ")
-		blueprintWriter.WriteString("        body:")
-		blueprintWriter.WriteString("          type: object")
-		blueprintWriter.WriteString("          properties:")
-		blueprintWriter.WriteString("            data:")
-		blueprintWriter.WriteString("              type: object")
-		blueprintWriter.WriteString("              properties: ")
-		blueprintWriter.WriteString("                attributes: " + tableInfo.TableName)
-		blueprintWriter.WriteString("                id: ")
-		blueprintWriter.WriteString("                  type: string")
-		blueprintWriter.WriteString("                type: ")
-		blueprintWriter.WriteString("                  type: string")
-		blueprintWriter.WriteString("                relationships:")
+		postMethod.DisplayName = fmt.Sprintf("Create new %s", tableInfo.TableName)
+
+		var postBody raml.Bodies
+
+		postBody.Type = tableInfo.TableName
+		postMethod.Bodies = postBody
+
+		postResponseMap := make(map[raml.HTTPCode]raml.Response)
+
+		var postOkResponse raml.Response
+
+		var postResponseBody raml.Bodies
+		postResponseBody.Type = "object"
+		forMimeTypeMap := make(map[string]raml.Body)
+
+		relationshipMap := make(map[string]interface{}, 0)
 
 		for _, relation := range tableInfo.Relations {
 			if relation.Object == tableInfo.TableName {
-				blueprintWriter.WriteString(fmt.Sprintf("                  %v: ReferenceToIncludedObject", relation.SubjectName))
+				relationshipMap[relation.SubjectName] = "ReferenceToIncludedObject"
 			} else {
-				blueprintWriter.WriteString(fmt.Sprintf("                  %v: ReferenceToIncludedObject", relation.ObjectName))
+				relationshipMap[relation.ObjectName] = "ReferenceToIncludedObject"
 			}
 		}
 
+		var dataInResponse = &raml.BodiesProperty{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"attributes": raml.BodiesProperty{
+					Type: tableInfo.TableName,
+				},
+				"id": raml.BodiesProperty{
+					Type: "string",
+				},
+				"type": raml.BodiesProperty{
+					Type: "string",
+				},
+				"relationships": raml.BodiesProperty{
+					Type:       "object",
+					Properties: relationshipMap,
+				},
+			},
+		}
+
+		postResponseBody.ApplicationJSON = &raml.BodiesProperty{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"data": dataInResponse,
+				"links": raml.BodiesProperty{
+					Type: "PaginationStatus",
+				},
+			},
+		}
+
+		var postCreationContent raml.Body
+
+		forMimeTypeMap["application/json"] = postCreationContent
+
+		postOkResponse.Bodies = postResponseBody
+
+		postResponseMap["200"] = postOkResponse
+		postMethod.Responses = postResponseMap
+
+		resource.Post = &postMethod
 		//  END POST Request
 
 		//  BEGIN GET Request
 
-		blueprintWriter.WriteString("  get:")
-		blueprintWriter.WriteString("    description: Returns list of " + tableInfo.TableName)
-		blueprintWriter.WriteString("    displayName: Get " + tableInfo.TableName)
-		blueprintWriter.WriteString("    uriParameters:")
-		blueprintWriter.WriteString("      sort: ")
-		blueprintWriter.WriteString("        type: string")
-		blueprintWriter.WriteString("        required: false")
-		blueprintWriter.WriteString("        description: field name to sort by")
-		blueprintWriter.WriteString("      page%5Bnumber%5D:")
-		blueprintWriter.WriteString("        type: number")
-		blueprintWriter.WriteString("        required: false")
-		blueprintWriter.WriteString("        description: Page number for the query set, starts with 1")
-		blueprintWriter.WriteString("      page%5Bsize%5D:")
-		blueprintWriter.WriteString("        type: number")
-		blueprintWriter.WriteString("        required: false")
-		blueprintWriter.WriteString("        description: Size of one page, try 10")
-		blueprintWriter.WriteString("      query: ")
-		blueprintWriter.WriteString("       type: string")
-		blueprintWriter.WriteString("       required: false")
-		blueprintWriter.WriteString("       description: search text in indexed columns")
-		blueprintWriter.WriteString("    responses:")
-		blueprintWriter.WriteString("      200: ")
-		blueprintWriter.WriteString("        body: ")
-		blueprintWriter.WriteString("          type: object")
-		blueprintWriter.WriteString("          properties: ")
-		blueprintWriter.WriteString(fmt.Sprintf("          data: "))
-		blueprintWriter.WriteString(fmt.Sprintf("            attributes: "))
-		blueprintWriter.WriteString(fmt.Sprintf("              type: object"))
-		blueprintWriter.WriteString(fmt.Sprintf("              description: Attributes of %s", tableInfo.TableName))
-		blueprintWriter.WriteString(fmt.Sprintf("            id: "))
-		blueprintWriter.WriteString(fmt.Sprintf("              type: string"))
-		blueprintWriter.WriteString(fmt.Sprintf("              description: reference id of the %s", tableInfo.TableName))
-		blueprintWriter.WriteString(fmt.Sprintf("            relationships: ", ))
-		blueprintWriter.WriteString(fmt.Sprintf("              description: - related entities of %v", tableInfo.TableName))
-		blueprintWriter.WriteString(fmt.Sprintf("            type: "))
-		blueprintWriter.WriteString(fmt.Sprintf("              type: string"))
-		blueprintWriter.WriteString(fmt.Sprintf("              description: type of this object"))
+		var getAllMethod raml.Method
+		getAllMethod.Description = fmt.Sprintf("Returns a list of %v", tableInfo.TableName)
+		getAllMethod.DisplayName = fmt.Sprintf("Get " + tableInfo.TableName)
 
-		blueprintWriter.WriteString(fmt.Sprintf("              + type (string) - type of this included object"))
-		blueprintWriter.WriteString(fmt.Sprintf("            links: "))
-		blueprintWriter.WriteString(fmt.Sprintf("              type: PaginationStatus"))
-
-		blueprintWriter.WriteString("  /{referenceId}:")
-		blueprintWriter.WriteString("    uriParameters")
-		blueprintWriter.WriteString("      referenceId: ")
-		blueprintWriter.WriteString("        type: string")
-		blueprintWriter.WriteString("        description: reference id of the " + tableInfo.TableName + " to be fetched")
-		blueprintWriter.WriteString("        required: true")
-		blueprintWriter.WriteString("    get:")
-		blueprintWriter.WriteString("      description: Get a single " + tableInfo.TableName + " by reference id")
-		blueprintWriter.WriteString("      displayName: Returns the " + tableInfo.TableName)
-
-		blueprintWriter.WriteString("      responses:")
-		blueprintWriter.WriteString("        200:")
-		blueprintWriter.WriteString("          body:")
-		blueprintWriter.WriteString(fmt.Sprintf("          data:"))
-		blueprintWriter.WriteString(fmt.Sprintf("            type: object"))
-		blueprintWriter.WriteString(fmt.Sprintf("            description: list of queried %s", tableInfo.TableName))
-		blueprintWriter.WriteString(fmt.Sprintf("            properties:"))
-		blueprintWriter.WriteString(fmt.Sprintf("              attributes:"))
-		blueprintWriter.WriteString(fmt.Sprintf("                type: object"))
-		blueprintWriter.WriteString(fmt.Sprintf("                description: Attributes of %s", tableInfo.TableName))
-		blueprintWriter.WriteString(fmt.Sprintf("              id: "))
-		blueprintWriter.WriteString(fmt.Sprintf("                type: string"))
-		blueprintWriter.WriteString(fmt.Sprintf("                description: - reference id of this %s", tableInfo.TableName))
-		blueprintWriter.WriteString(fmt.Sprintf("              relationships:"))
-		blueprintWriter.WriteString(fmt.Sprintf("                description:  - related entities of %v", tableInfo.TableName))
-		blueprintWriter.WriteString(fmt.Sprintf("                type: object"))
-		blueprintWriter.WriteString(fmt.Sprintf("                properties:"))
-
-		for _, relation := range tableInfo.Relations {
-			if tableInfo.TableName == relation.Object {
-
-				blueprintWriter.WriteString(fmt.Sprintf("                  %s: ", relation.SubjectName))
-
-				if relation.Relation == "belongs_to" || relation.Relation == "has_one" {
-					blueprintWriter.WriteString(fmt.Sprintf("                    type: ReferenceToIncludedObject"))
-					blueprintWriter.WriteString(fmt.Sprintf("                    description: Reference to related %s of %s", relation.SubjectName, tableInfo.TableName))
-				} else {
-					blueprintWriter.WriteString(fmt.Sprintf("                    type: ReferenceToIncludedObject[]"))
-					blueprintWriter.WriteString(fmt.Sprintf("                    description: References to related %s of %s", relation.SubjectName, tableInfo.TableName))
-				}
-			} else {
-				blueprintWriter.WriteString(fmt.Sprintf("                  %s: ", relation.ObjectName))
-
-				if relation.Relation == "belongs_to" || relation.Relation == "has_one" {
-					blueprintWriter.WriteString(fmt.Sprintf("                data:"))
-					blueprintWriter.WriteString(fmt.Sprintf("                  type: ReferenceToIncludedObject"))
-					blueprintWriter.WriteString(fmt.Sprintf("                  description: Reference to related %s of %s", relation.Object, tableInfo.TableName))
-				} else {
-					blueprintWriter.WriteString(fmt.Sprintf("                data:"))
-					blueprintWriter.WriteString(fmt.Sprintf("                  type: ReferenceToIncludedObject[]"))
-					blueprintWriter.WriteString(fmt.Sprintf("                  description: References to related %s of %s", relation.Object, tableInfo.TableName))
-				}
-				blueprintWriter.WriteString(fmt.Sprintf("                links:"))
-				blueprintWriter.WriteString(fmt.Sprintf("                  type: object"))
-				blueprintWriter.WriteString(fmt.Sprintf("                  description: Urls to fetch associated objects"))
-				blueprintWriter.WriteString(fmt.Sprintf("                  properties:"))
-				blueprintWriter.WriteString(fmt.Sprintf("                    related:"))
-				blueprintWriter.WriteString(fmt.Sprintf("                      type: string"))
-				blueprintWriter.WriteString(fmt.Sprintf("                      descriptionUrls to Fetch relations of %s", relation.Object))
-				blueprintWriter.WriteString(fmt.Sprintf("                    self:"))
-				blueprintWriter.WriteString(fmt.Sprintf("                      type: string"))
-				blueprintWriter.WriteString(fmt.Sprintf("                      description: Url to Fetch self %s", relation.Object))
-			}
+		getAllMethod.QueryParameters = map[string]raml.NamedParameter{
+			"sort": {
+				Type:        "string",
+				Required:    false,
+				Description: "Field name to sort by",
+			},
+			"page%5Bnumber%5D": {
+				Type:        "string",
+				Required:    false,
+				Description: "Page number for the query set, starts with 1",
+			},
+			"page%5Bsize%5D": {
+				Type:        "string",
+				Required:    false,
+				Description: "Size of one page, try 10",
+			},
+			"query": {
+				Type:        "string",
+				Required:    false,
+				Description: "search text in indexed columns",
+			},
 		}
 
-		blueprintWriter.WriteString(fmt.Sprintf("              type:"))
-		blueprintWriter.WriteString(fmt.Sprintf("                type: string"))
-		blueprintWriter.WriteString(fmt.Sprintf("                description: this is the type name returned along with each object, will be %s here", tableInfo.TableName))
-		blueprintWriter.WriteString(fmt.Sprintf("            included:"))
-		blueprintWriter.WriteString(fmt.Sprintf("              type: array"))
-		blueprintWriter.WriteString(fmt.Sprintf("              items: "))
-		blueprintWriter.WriteString(fmt.Sprintf("                type: object"))
-		blueprintWriter.WriteString(fmt.Sprintf("              relationships:"))
-		blueprintWriter.WriteString(fmt.Sprintf("                type:"))
-		blueprintWriter.WriteString(fmt.Sprintf("                  type: array"))
-		blueprintWriter.WriteString(fmt.Sprintf("                  items:"))
-		blueprintWriter.WriteString(fmt.Sprintf("                    type: object"))
-		blueprintWriter.WriteString(fmt.Sprintf("                  description: Type of the related object"))
-		blueprintWriter.WriteString(fmt.Sprintf("            links:"))
-		blueprintWriter.WriteString(fmt.Sprintf("              type: PaginationStatus"))
-		blueprintWriter.WriteString("")
+		getResponseMap := make(map[raml.HTTPCode]raml.Response)
 
-		blueprintWriter.WriteString("    patch:")
-		blueprintWriter.WriteString(fmt.Sprintf("    description: Edit existing %s", tableInfo.TableName))
-		blueprintWriter.WriteString("      body: ")
-		blueprintWriter.WriteString("      type: " + tableInfo.TableName)
-		blueprintWriter.WriteString("        responses: ")
-		blueprintWriter.WriteString("          200: ")
-		blueprintWriter.WriteString("            body: ")
-		blueprintWriter.WriteString("              type: object")
-		blueprintWriter.WriteString("              properties:")
-		blueprintWriter.WriteString("                data:")
-		blueprintWriter.WriteString("                  type: object")
-		blueprintWriter.WriteString("                    properties:")
-		blueprintWriter.WriteString("                      attributes: " + tableInfo.TableName)
-		blueprintWriter.WriteString("                      id: ")
-		blueprintWriter.WriteString("                        type: string")
-		blueprintWriter.WriteString("                      type: ")
-		blueprintWriter.WriteString("                        type: string")
-		blueprintWriter.WriteString("                      relations:")
+		var get200Response raml.Response
 
-		for _, relation := range tableInfo.Relations {
-			if relation.Object == tableInfo.TableName {
-				blueprintWriter.WriteString(fmt.Sprintf("                        %v: ReferenceToIncludedObject", relation.SubjectName))
-			} else {
-				blueprintWriter.WriteString(fmt.Sprintf("                        %v: ReferenceToIncludedObject", relation.ObjectName))
-			}
+		get200Response.Bodies = raml.Bodies{
+			ApplicationJSON: &raml.BodiesProperty{
+				Type: "object",
+				Properties: map[string]interface{}{
+					"data": dataInResponse,
+					"links": raml.BodiesProperty{
+						Type: "PaginationStatus",
+					},
+				},
+			},
 		}
 
-		blueprintWriter.WriteString("    delete:")
-		blueprintWriter.WriteString(fmt.Sprintf("      description: Delete an existing %s", tableInfo.TableName))
+		getResponseMap["200"] = get200Response
+		getAllMethod.Responses = getResponseMap
+
+		resource.Get = &getAllMethod
+
+		//fakeObject := fakerservice.NewFakeInstance(tableInfo)
+
+		var byIdResource raml.Resource
+
+		nestedMap := make(map[string]*raml.Resource)
+
+		byIdResource.URIParameters = map[string]raml.NamedParameter{
+			"referenceId": raml.NamedParameter{
+				Type:        "string",
+				Description: "Reference id of the " + tableInfo.TableName + "to be fetched",
+				Required:    true,
+			},
+		}
+
+		nestedMap["/{referenceId}"] = &byIdResource
+
+		var getByIdMethod raml.Method
+
+		var getByIdMethod200Response raml.Response
+		getByIdMethod200Response.Bodies = raml.Bodies{
+			ApplicationJSON: &raml.BodiesProperty{
+				Type: "object",
+				Properties: map[string]interface{}{
+					"data": dataInResponse,
+					"links": raml.BodiesProperty{
+						Type: "PaginationStatus",
+					},
+				},
+			},
+		}
+
+		getByIdResponseMap := make(map[raml.HTTPCode]raml.Response)
+		getByIdResponseMap["200"] = getByIdMethod200Response
+		getByIdMethod.Responses = getByIdResponseMap
+
+		byIdResource.Get = &getByIdMethod
+
+		resource.Nested = nestedMap
+		resourcesMap["/api/"+tableInfo.TableName] = resource
+
+		//blueprintWriter.WriteString("  /{referenceId}:")
+		//blueprintWriter.WriteString("    uriParameters")
+		//blueprintWriter.WriteString("      referenceId: ")
+		//blueprintWriter.WriteString("        type: string")
+		//blueprintWriter.WriteString("        description: reference id of the " + tableInfo.TableName + " to be fetched")
+		//blueprintWriter.WriteString("        required: true")
+		//blueprintWriter.WriteString("    get:")
+		//blueprintWriter.WriteString("      description: Get a single " + tableInfo.TableName + " by reference id")
+		//blueprintWriter.WriteString("      displayName: Returns the " + tableInfo.TableName)
+		//
+		//blueprintWriter.WriteString("      responses:")
+		//blueprintWriter.WriteString("        200:")
+		//blueprintWriter.WriteString("          body:")
+		//blueprintWriter.WriteString(fmt.Sprintf("          data:"))
+		//blueprintWriter.WriteString(fmt.Sprintf("            type: object"))
+		//blueprintWriter.WriteString(fmt.Sprintf("            description: list of queried %s", tableInfo.TableName))
+		//blueprintWriter.WriteString(fmt.Sprintf("            properties:"))
+		//blueprintWriter.WriteString(fmt.Sprintf("              attributes:"))
+		//blueprintWriter.WriteString(fmt.Sprintf("                type: object"))
+		//blueprintWriter.WriteString(fmt.Sprintf("                description: Attributes of %s", tableInfo.TableName))
+		//blueprintWriter.WriteString(fmt.Sprintf("              id: "))
+		//blueprintWriter.WriteString(fmt.Sprintf("                type: string"))
+		//blueprintWriter.WriteString(fmt.Sprintf("                description: - reference id of this %s", tableInfo.TableName))
+		//blueprintWriter.WriteString(fmt.Sprintf("              relationships:"))
+		//blueprintWriter.WriteString(fmt.Sprintf("                description:  - related entities of %v", tableInfo.TableName))
+		//blueprintWriter.WriteString(fmt.Sprintf("                type: object"))
+		//blueprintWriter.WriteString(fmt.Sprintf("                properties:"))
+
+		//for _, relation := range tableInfo.Relations {
+		//	if tableInfo.TableName == relation.Object {
+		//
+		//		blueprintWriter.WriteString(fmt.Sprintf("                  %s: ", relation.SubjectName))
+		//
+		//		if relation.Relation == "belongs_to" || relation.Relation == "has_one" {
+		//			blueprintWriter.WriteString(fmt.Sprintf("                    type: ReferenceToIncludedObject"))
+		//			blueprintWriter.WriteString(fmt.Sprintf("                    description: Reference to related %s of %s", relation.SubjectName, tableInfo.TableName))
+		//		} else {
+		//			blueprintWriter.WriteString(fmt.Sprintf("                    type: ReferenceToIncludedObject[]"))
+		//			blueprintWriter.WriteString(fmt.Sprintf("                    description: References to related %s of %s", relation.SubjectName, tableInfo.TableName))
+		//		}
+		//	} else {
+		//		blueprintWriter.WriteString(fmt.Sprintf("                  %s: ", relation.ObjectName))
+		//
+		//		if relation.Relation == "belongs_to" || relation.Relation == "has_one" {
+		//			blueprintWriter.WriteString(fmt.Sprintf("                data:"))
+		//			blueprintWriter.WriteString(fmt.Sprintf("                  type: ReferenceToIncludedObject"))
+		//			blueprintWriter.WriteString(fmt.Sprintf("                  description: Reference to related %s of %s", relation.Object, tableInfo.TableName))
+		//		} else {
+		//			blueprintWriter.WriteString(fmt.Sprintf("                data:"))
+		//			blueprintWriter.WriteString(fmt.Sprintf("                  type: ReferenceToIncludedObject[]"))
+		//			blueprintWriter.WriteString(fmt.Sprintf("                  description: References to related %s of %s", relation.Object, tableInfo.TableName))
+		//		}
+		//		blueprintWriter.WriteString(fmt.Sprintf("                links:"))
+		//		blueprintWriter.WriteString(fmt.Sprintf("                  type: object"))
+		//		blueprintWriter.WriteString(fmt.Sprintf("                  description: Urls to fetch associated objects"))
+		//		blueprintWriter.WriteString(fmt.Sprintf("                  properties:"))
+		//		blueprintWriter.WriteString(fmt.Sprintf("                    related:"))
+		//		blueprintWriter.WriteString(fmt.Sprintf("                      type: string"))
+		//		blueprintWriter.WriteString(fmt.Sprintf("                      descriptionUrls to Fetch relations of %s", relation.Object))
+		//		blueprintWriter.WriteString(fmt.Sprintf("                    self:"))
+		//		blueprintWriter.WriteString(fmt.Sprintf("                      type: string"))
+		//		blueprintWriter.WriteString(fmt.Sprintf("                      description: Url to Fetch self %s", relation.Object))
+		//	}
+		//}
+
+		//blueprintWriter.WriteString(fmt.Sprintf("              type:"))
+		//blueprintWriter.WriteString(fmt.Sprintf("                type: string"))
+		//blueprintWriter.WriteString(fmt.Sprintf("                description: this is the type name returned along with each object, will be %s here", tableInfo.TableName))
+		//blueprintWriter.WriteString(fmt.Sprintf("            included:"))
+		//blueprintWriter.WriteString(fmt.Sprintf("              type: array"))
+		//blueprintWriter.WriteString(fmt.Sprintf("              items: "))
+		//blueprintWriter.WriteString(fmt.Sprintf("                type: object"))
+		//blueprintWriter.WriteString(fmt.Sprintf("              relationships:"))
+		//blueprintWriter.WriteString(fmt.Sprintf("                type:"))
+		//blueprintWriter.WriteString(fmt.Sprintf("                  type: array"))
+		//blueprintWriter.WriteString(fmt.Sprintf("                  items:"))
+		//blueprintWriter.WriteString(fmt.Sprintf("                    type: object"))
+		//blueprintWriter.WriteString(fmt.Sprintf("                  description: Type of the related object"))
+		//blueprintWriter.WriteString(fmt.Sprintf("            links:"))
+		//blueprintWriter.WriteString(fmt.Sprintf("              type: PaginationStatus"))
+		//blueprintWriter.WriteString("")
+		//
+		//blueprintWriter.WriteString("    patch:")
+		//blueprintWriter.WriteString(fmt.Sprintf("    description: Edit existing %s", tableInfo.TableName))
+		//blueprintWriter.WriteString("      body: ")
+		//blueprintWriter.WriteString("      type: " + tableInfo.TableName)
+		//blueprintWriter.WriteString("        responses: ")
+		//blueprintWriter.WriteString("          200: ")
+		//blueprintWriter.WriteString("            body: ")
+		//blueprintWriter.WriteString("              type: object")
+		//blueprintWriter.WriteString("              properties:")
+		//blueprintWriter.WriteString("                data:")
+		//blueprintWriter.WriteString("                  type: object")
+		//blueprintWriter.WriteString("                    properties:")
+		//blueprintWriter.WriteString("                      attributes: " + tableInfo.TableName)
+		//blueprintWriter.WriteString("                      id: ")
+		//blueprintWriter.WriteString("                        type: string")
+		//blueprintWriter.WriteString("                      type: ")
+		//blueprintWriter.WriteString("                        type: string")
+		//blueprintWriter.WriteString("                      relations:")
+		//
+		//for _, relation := range tableInfo.Relations {
+		//	if relation.Object == tableInfo.TableName {
+		//		blueprintWriter.WriteString(fmt.Sprintf("                        %v: ReferenceToIncludedObject", relation.SubjectName))
+		//	} else {
+		//		blueprintWriter.WriteString(fmt.Sprintf("                        %v: ReferenceToIncludedObject", relation.ObjectName))
+		//	}
+		//}
+		//
+		//blueprintWriter.WriteString("    delete:")
+		//blueprintWriter.WriteString(fmt.Sprintf("      description: Delete an existing %s", tableInfo.TableName))
 
 		//for _, relation := range tableInfo.Relations {
 		//
@@ -453,43 +555,46 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		//}
 
 	}
+	apiDefinition.Resources = resourcesMap
 
-	return blueprintWriter.Markdown()
+	ym, _ := yaml.Marshal(apiDefinition)
+	return string(ym)
 
 }
 
-func CreateForwardRelationLine(relation api2go.TableRelation) string {
-	relationDescription := relation.GetRelation()
+//func CreateForwardRelationLine(relation api2go.TableRelation) map[string]interface{} {
+//
+//	relationDescription := relation.GetRelation()
+//
+//	otherObjectName := relation.GetObject()
+//	switch relationDescription {
+//	case "has_one":
+//		relationDescription = "Has one " + otherObjectName
+//	case "has_many":
+//		relationDescription = "Has many " + otherObjectName
+//	case "belongs_to":
+//		relationDescription = "Belongs to " + otherObjectName
+//	case "has_many_and_belongs_to_many":
+//		relationDescription = "Has many and belongs to " + otherObjectName
+//	}
+//
+//	return fmt.Sprintf("      %s: %s", relation.GetObjectName(), otherObjectName)
+//}
 
-	otherObjectName := relation.GetObject()
-	switch relationDescription {
-	case "has_one":
-		relationDescription = "Has one " + otherObjectName
-	case "has_many":
-		relationDescription = "Has many " + otherObjectName
-	case "belongs_to":
-		relationDescription = "Belongs to " + otherObjectName
-	case "has_many_and_belongs_to_many":
-		relationDescription = "Has many and belongs to " + otherObjectName
-	}
-
-	return fmt.Sprintf("      %s: %s", relation.GetObjectName(), otherObjectName)
-}
-
-func CreateBackwardRelationLine(relation api2go.TableRelation) string {
-	relationDescription := relation.GetRelation()
-
-	otherObjectName := relation.GetSubject()
-	switch relationDescription {
-	case "has_one":
-		relationDescription = "Has one " + otherObjectName
-	case "has_many":
-		relationDescription = "Has many " + otherObjectName
-	case "belongs_to":
-		relationDescription = "Belongs to " + otherObjectName
-	case "has_many_and_belongs_to_many":
-		relationDescription = "Has many and belongs to " + otherObjectName
-	}
-
-	return fmt.Sprintf("      %s: %s", relation.GetSubjectName(), otherObjectName)
-}
+//func CreateBackwardRelationLine(relation api2go.TableRelation) string {
+//	relationDescription := relation.GetRelation()
+//
+//	otherObjectName := relation.GetSubject()
+//	switch relationDescription {
+//	case "has_one":
+//		relationDescription = "Has one " + otherObjectName
+//	case "has_many":
+//		relationDescription = "Has many " + otherObjectName
+//	case "belongs_to":
+//		relationDescription = "Belongs to " + otherObjectName
+//	case "has_many_and_belongs_to_many":
+//		relationDescription = "Has many and belongs to " + otherObjectName
+//	}
+//
+//	return fmt.Sprintf("      %s: %s", relation.GetSubjectName(), otherObjectName)
+//}
