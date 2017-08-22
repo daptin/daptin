@@ -1,8 +1,6 @@
-hash: f5d125128929ed51d15585cbe60536cef98dd10564d83c9ab69e05e5bb7fa779
-updated: 2017-08-23T01:07:04.92332228+05:30
+hash: 2b4e716f8d212b24d7c729b0171918824946c5f4f4f33e8d7ec30a2f48fb82b3
+updated: 2017-08-23T04:37:19.275643882+05:30
 imports:
-- name: bitbucket.org/pkg/inflect
-  version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
 - name: cloud.google.com/go
   version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
   subpackages:
@@ -14,7 +12,7 @@ imports:
 - name: github.com/andybalholm/cascadia
   version: 349dd0209470eabd9514242c688c403c0926d266
 - name: github.com/artpar/api2go
-  version: ed93e3502d81c13b05948617f2d989d74e5634a0
+  version: 00eb6fa49b5556a5a1ffc9c216df3138c3900e20
   subpackages:
   - jsonapi
   - routing
@@ -24,10 +22,6 @@ imports:
   - gingonic
 - name: github.com/artpar/conform
   version: 0a5d4165efbaf1ca49ccdbdf21cd7a2bf63e7f04
-- name: github.com/artpar/go-raml
-  version: 9d5e0e5b8e9a659bf0007b4288812ab72c321574
-  subpackages:
-  - raml
 - name: github.com/artpar/rclone
   version: 9cac1e3d7150e0fa41171d5d1ce63472fc2eae96
   subpackages:
@@ -96,11 +90,6 @@ imports:
   subpackages:
   - qr
   - utils
-- name: github.com/chuckpreslar/inflect
-  version: 423e3ac59c611e2d549527ab8c15fb99335d30ba
-  subpackages:
-  - languages
-  - types
 - name: github.com/corpix/uarand
   version: 031be390f409fb4bac8fb299e3bcd101479f89f8
 - name: github.com/daaku/go.zipexe
@@ -126,8 +115,6 @@ imports:
   version: c02ca9a983da5807ddf7d796784928f5be4afd09
   subpackages:
   - embedded
-- name: github.com/gigforks/yaml
-  version: 3396035bfe07c24995d93599a57cf12f9d1c58e4
 - name: github.com/gin-contrib/sse
   version: 22d885f9ecc78bf4ee5d72b937e4bbcdc58e8cae
 - name: github.com/gin-gonic/gin
@@ -185,10 +172,6 @@ imports:
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
-- name: github.com/kr/pretty
-  version: cfb55aafdaf3ec08f0db22699ab822c50091b1c4
-- name: github.com/kr/text
-  version: 7cafcd837844e784b526369c9bce262804aebc60
 - name: github.com/lann/builder
   version: f22ce00fd9394014049dad11c244859432bd6820
 - name: github.com/lann/ps
@@ -238,8 +221,6 @@ imports:
   version: da627cc50b6fb2eb623eaffe91fb29d7eddfd06a
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
-- name: github.com/Sirupsen/logrus
-  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/sirupsen/logrus
   version: f006c2ac4710855cf0f916dd6b77acf6b048dc6e
 - name: github.com/skratchdot/open-golang
