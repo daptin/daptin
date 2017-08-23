@@ -88,12 +88,27 @@ window.chooseTitle = function (obj) {
 
 
   for (var i = 0; i < candidates.length; i++) {
+
     var found = keys.indexOf(candidates[i])
-    if (found > -1) {
+
+    var found = keys.filter(function(k){
+      return k.indexOf(candidates[i]) > -1;
+    });
+
+
+    console.log("for ", candidates[i], found)
+
+
+    if (found.length > 0) {
       console.log("candidate found at", found);
-      var val = obj[keys[found]]
-      if (typeof val == "string" && val.length > 0) {
-        return val;
+
+      for (var u=0;u<found.length;u++) {
+        var val = obj[found[u]];
+        if (typeof val == "string" && val.length > 0) {
+          if (isNaN(parseInt(val))) {
+            return val;
+          }
+        }
       }
     }
   }

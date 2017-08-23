@@ -107,9 +107,9 @@
             <i style="font-size: 30px" class="fa fa-3x fa-level-down maroon"></i>Add Import
           </a>
 
-          <a style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
-            <i style="font-size: 30px" class="fa fa-3x fa-upload yellow"></i>Upload Csv/Xls
-          </a>
+          <router-link :to="{name: 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}" style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+            <i style="font-size: 30px" class="fa fa-3x fa-upload yellow"></i>Upload XLS
+          </router-link>
 
         </div>
       </div>
