@@ -12,6 +12,7 @@ import (
 	"github.com/artpar/conform"
 	"github.com/gin-gonic/gin/json"
 	"io/ioutil"
+	"strconv"
 )
 
 type UploadFileToEntityPerformer struct {
@@ -139,18 +140,28 @@ nextFile:
 			for _, colName := range columnNames {
 				var column api2go.ColumnInfo
 
+				dataMap := map[string]bool{}
 				datas := make([]string, 0)
 
-				count := 10
+				isNullable := false
+				count := 100
 				for _, d := range data {
 					if count < 0 {
 						break
 					}
 					i := d[colName]
+					var strVal string
 					if i == nil {
+						strVal = ""
+						isNullable = true
+					} else {
+						strVal = i.(string)
+					}
+					if dataMap[strVal] {
 						continue
 					}
-					datas = append(datas, i.(string))
+					dataMap[strVal] = true
+					datas = append(datas, strVal)
 					count -= 1
 				}
 
@@ -162,8 +173,9 @@ nextFile:
 					column.ColumnType = EntityTypeToColumnTypeMap[eType]
 					column.DataType = EntityTypeToDataTypeMap[eType]
 				}
+				column.IsNullable = isNullable
 				column.Name = colName
-				column.ColumnName = SmallSnakeCaseText(colName)
+				column.ColumnName = colName
 
 				if column.ColumnName == "" {
 					continue
@@ -193,9 +205,32 @@ nextFile:
 		ioutil.WriteFile(jsonFileName, jsonStr, 0644)
 
 		go restart()
+		return successResponses, nil
+	} else {
+		return failedResponses, nil
 	}
 
-	return []ActionResponse{}, nil
+}
+
+var successResponses = []ActionResponse{
+	NewActionResponse("client.notify", map[string]interface{}{
+		"type":    "success",
+		"message": "Initiating system update.",
+		"title":   "Success",
+	}),
+	NewActionResponse("client.redirect", map[string]interface{}{
+		"location": "/",
+		"window":   "self",
+		"delay":    10000,
+	}),
+}
+
+var failedResponses = []ActionResponse{
+	NewActionResponse("client.notify", map[string]interface{}{
+		"type":    "error",
+		"message": "Failed to import xls",
+		"title":   "Failed",
+	}),
 }
 
 func (s DataFileImport) String() string {
@@ -210,7 +245,8 @@ type DataFileImport struct {
 
 func SmallSnakeCaseText(str string) string {
 	transformed := conform.TransformString(str, "lower,snake")
-	if IsReservedWord(transformed) {
+	_, ok := strconv.Atoi(string(transformed[0]))
+	if IsReservedWord(transformed) || ok == nil {
 		return "col_" + transformed
 	}
 	return transformed
@@ -258,7 +294,11 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 		currentRow := sheet.Rows[i]
 		cCount := len(currentRow.Cells)
 		for j := 0; j < cCount; j++ {
-			dataMap[properColumnNames[j]] = currentRow.Cells[j].Value
+			i2 := currentRow.Cells[j].Value
+			if i2 == "" {
+				continue
+			}
+			dataMap[properColumnNames[j]] = i2
 		}
 
 		data = append(data, dataMap)

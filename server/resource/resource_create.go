@@ -157,6 +157,12 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 			CheckErr(err, fmt.Sprintf("Failed to parse string as time [%v]", val))
 		}
 
+		if col.ColumnType == "measurement" {
+			if val == "" {
+				continue
+			}
+		}
+
 		if col.ColumnType == "encrypted" {
 
 			secret, err := dr.configStore.GetConfigValueFor("encryption.secret", "backend")

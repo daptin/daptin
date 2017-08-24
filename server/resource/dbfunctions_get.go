@@ -26,7 +26,8 @@ func GetObjectByWhereClause(objType string, db *sqlx.DB, queries ...squirrel.Eq)
 		return result, err
 	}
 
-	rows, err := db.Queryx(q, v...)
+	stmt, err := db.Preparex(q)
+	rows, err := stmt.Queryx(v...)
 
 	if err != nil {
 		return result, err

@@ -78,6 +78,23 @@ var SystemSmds = []LoopbookFsmDescription{}
 var SystemExchanges = []ExchangeContract{}
 var SystemActions = []Action{
 	{
+		Name: "export_data",
+		Label: "Export data for backup",
+		OnType: "world",
+		InstanceOptional: true,
+		InFields: []api2go.ColumnInfo{
+		},
+		OutFields: []Outcome{
+			{
+				Type: "__data_export",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"world_reference_id": "$.reference_id",
+				},
+			},
+		},
+	},
+	{
 		Name:             "upload_file",
 		Label:            "Upload file to external store",
 		OnType:           "cloud_store",
