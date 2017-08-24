@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []auth.GroupPermission, typeName string, actionName string) bool {
@@ -491,6 +492,42 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 
 	return m[0], err
 }
+
+func (dr *DbResource) TruncateTable(typeName string) (error) {
+
+	s, q, err := squirrel.Update(typeName).Set("deleted_at", time.Now()).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = dr.db.Exec(s, q...)
+	return err
+
+}
+
+func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{}) (error) {
+
+	columnMap := dr.cruds[typeName].model.GetColumnMap()
+
+	cols := make([]string, 0)
+	vals := make([]interface{}, 0)
+	for columnName := range columnMap {
+
+		cols = append(cols, columnName)
+		vals = append(vals, data[columnName])
+
+	}
+
+	sqlString, args, err := squirrel.Insert(typeName).Columns(cols...).Values(vals...).ToSql()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = dr.db.Exec(sqlString, args...)
+	return err
+}
+
 func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, error) {
 	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
 	if err != nil {
@@ -504,6 +541,22 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 	}
 
 	m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), false)
+
+	return m, err
+}
+func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{}, error) {
+	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := dr.db.Queryx(s, q...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := RowsToMap(row, typeName)
 
 	return m, err
 }
@@ -745,4 +798,16 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 	}
 
 	return responseArray, includes, nil
+}
+
+func (dr *DbResource) ResultToArrayOfMapRaw(rows *sqlx.Rows, columnMap map[string]api2go.ColumnInfo) ([]map[string]interface{}, error) {
+
+	//finalArray := make([]map[string]interface{}, 0)
+
+	responseArray, err := RowsToMap(rows, dr.model.GetName())
+	if err != nil {
+		return responseArray, err
+	}
+
+	return responseArray, nil
 }

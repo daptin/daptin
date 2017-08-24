@@ -17,6 +17,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create data export performer")
 	performers = append(performers, exportDataPerformer)
 
+	importDataPerformer, err := resource.NewImportDataPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create data import performer")
+	performers = append(performers, importDataPerformer)
+
 	oauth2redirect, err := resource.NewOauthLoginBeginActionPerformer(initConfig, cruds, configStore)
 	resource.CheckErr(err, "Failed to create oauth2 request performer")
 	performers = append(performers, oauth2redirect)

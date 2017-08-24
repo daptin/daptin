@@ -78,18 +78,49 @@ var SystemSmds = []LoopbookFsmDescription{}
 var SystemExchanges = []ExchangeContract{}
 var SystemActions = []Action{
 	{
-		Name: "export_data",
-		Label: "Export data for backup",
-		OnType: "world",
+		Name:             "export_data",
+		Label:            "Export data for backup",
+		OnType:           "world",
 		InstanceOptional: true,
 		InFields: []api2go.ColumnInfo{
 		},
 		OutFields: []Outcome{
 			{
-				Type: "__data_export",
+				Type:   "__data_export",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"world_reference_id": "$.reference_id",
+				},
+			},
+		},
+	},
+	{
+		Name:             "import_json_data",
+		Label:            "Import data from JSON backup",
+		OnType:           "world",
+		InstanceOptional: true,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "JSON Dump file",
+				ColumnName: "json_dump_file",
+				ColumnType: "file.application/json",
+				IsNullable: false,
+			},
+			{
+				Name:       "truncate_before_insert",
+				ColumnName: "truncate_before_insert",
+				ColumnType: "truefalse",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "__data_import",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"world_reference_id":       "$.reference_id",
+					"execute_middleware_chain": "~execute_middleware_chain",
+					"truncate_before_insert":   "~truncate_before_insert",
+					"json_dump_file":           "~json_dump_file",
 				},
 			},
 		},

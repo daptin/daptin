@@ -93,8 +93,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 		res := map[string]interface{}{}
 
 		for _, col := range cols {
-			log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue)
-
+			//log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue)
 			if col.ExcludeFromApi {
 				continue
 			}
