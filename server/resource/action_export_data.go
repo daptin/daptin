@@ -13,7 +13,7 @@ type ExportDataPerformer struct {
 }
 
 func (d *ExportDataPerformer) Name() string {
-	return "__export_data"
+	return "__data_export"
 }
 
 func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) ([]ActionResponse, []error) {
@@ -41,7 +41,7 @@ func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 	} else {
 
 		for _, tableInfo := range d.cmsConfig.Tables {
-			data, err := d.cruds[tableInfo.TableName].GetAllObjects(tableInfo.TableName)
+			data, err := d.cruds[tableInfo.TableName].GetAllRawObjects(tableInfo.TableName)
 			if err != nil {
 				log.Errorf("Failed to export objects of type [%v]: %v", tableInfo.TableName, err)
 				continue

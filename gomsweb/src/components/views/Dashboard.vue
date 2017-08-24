@@ -138,7 +138,25 @@
         }
       }
     },
-    computed: {},
+    computed: {
+      sortedWorldActions : function() {
+
+        console.log("return sorted world actions", this.worldActions)
+        var keys = Object.keys(this.worldActions);
+
+        keys.sort();
+
+        var res = {};
+
+
+        for (var key in keys) {
+          res[key] = this.worldActions[key];
+        }
+
+        console.log("returning sorted worlds", res);
+        return res;
+      }
+    },
     methods: {
       stringToColor(str) {
 //        console.log("String to color", str, window.stringToColor(str))
