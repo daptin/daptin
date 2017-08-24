@@ -13,6 +13,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create download config performer")
 	performers = append(performers, downloadConfigPerformer)
 
+	exportDataPerformer, err := resource.NewExportDataPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create data export performer")
+	performers = append(performers, exportDataPerformer)
+
 	oauth2redirect, err := resource.NewOauthLoginBeginActionPerformer(initConfig, cruds, configStore)
 	resource.CheckErr(err, "Failed to create oauth2 request performer")
 	performers = append(performers, oauth2redirect)

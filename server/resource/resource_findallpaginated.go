@@ -279,7 +279,9 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 	log.Infof("Sql: %v\n", sql1)
 
-	rows, err := dr.db.Queryx(sql1, args...)
+
+	stmt, err := dr.db.Preparex(sql1)
+	rows, err := stmt.Queryx(args...)
 
 	if err != nil {
 		log.Infof("Error: %v", err)

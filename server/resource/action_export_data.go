@@ -1,0 +1,81 @@
+package resource
+
+import (
+	"encoding/base64"
+	log "github.com/sirupsen/logrus"
+	"github.com/gin-gonic/gin/json"
+	"fmt"
+)
+
+type ExportDataPerformer struct {
+	cmsConfig *CmsConfig
+	cruds     map[string]*DbResource
+}
+
+func (d *ExportDataPerformer) Name() string {
+	return "__export_data"
+}
+
+func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) ([]ActionResponse, []error) {
+
+	responses := make([]ActionResponse, 0)
+
+	subjectInstance, ok := inFields["subject"]
+
+	var finalString []byte
+	result := make(map[string]interface{})
+
+	if ok && subjectInstance != nil {
+
+		subjectMap := subjectInstance.(map[string]interface{})
+		tableName := subjectMap["table_name"].(string)
+		log.Infof("Export data for table: %v", tableName)
+
+		objects, err := d.cruds[tableName].GetAllObjects(tableName)
+		if err != nil {
+			log.Errorf("Failed to get all objects of type [%v] : %v", tableName)
+		}
+
+		result[tableName] = objects
+
+	} else {
+
+		for _, tableInfo := range d.cmsConfig.Tables {
+			data, err := d.cruds[tableInfo.TableName].GetAllObjects(tableInfo.TableName)
+			if err != nil {
+				log.Errorf("Failed to export objects of type [%v]: %v", tableInfo.TableName, err)
+				continue
+			}
+			result[tableInfo.TableName] = data
+		}
+
+	}
+
+	finalString, err := json.Marshal(result)
+	if err != nil {
+		log.Errorf("Failed to marshal objects as json: %v", err)
+	}
+
+	responseAttrs := make(map[string]interface{})
+	responseAttrs["content"] = base64.StdEncoding.EncodeToString(finalString)
+	responseAttrs["name"] = fmt.Sprintf("dump.json")
+	responseAttrs["contentType"] = "application/json"
+	responseAttrs["message"] = "Downloading data"
+
+	actionResponse := NewActionResponse("client.file.download", responseAttrs)
+
+	responses = append(responses, actionResponse)
+
+	return responses, nil
+}
+
+func NewExportDataPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
+
+	handler := ExportDataPerformer{
+		cmsConfig: initConfig,
+		cruds:     cruds,
+	}
+
+	return &handler, nil
+
+}

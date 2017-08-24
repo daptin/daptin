@@ -454,6 +454,10 @@ var detectorMap = map[EntityType]DataTypeDetector{
 
 			var realFloatValue float64
 			isFloat, floatValue := IsFloat(d)
+			isInt, _ := IsInt(d)
+			if isInt {
+				return false, nil
+			}
 
 			intVal, isInt := floatValue.(int)
 
@@ -482,7 +486,10 @@ var detectorMap = map[EntityType]DataTypeDetector{
 
 			var realFloatValue float64
 			isFloat, floatValue := IsFloat(d)
-
+			isInt, _ := IsInt(d)
+			if isInt {
+				return false, nil
+			}
 			intVal, isInt := floatValue.(int)
 
 			if !isInt {
@@ -604,8 +611,8 @@ func checkStringsAgainstDetector(d []string, detect DataTypeDetector) (ok bool, 
 	return false, unidentified
 }
 
-func DetectType(d []string) (EntityType, bool, error) {
-	thisHeaders := false
+func DetectType(d []string) (entityType EntityType, hasHeaders bool, err error) {
+	hasHeaders = false
 	var unidentified []string
 	for _, typeInfo := range order {
 		detect, ok := detectorMap[typeInfo]
@@ -633,7 +640,7 @@ func DetectType(d []string) (EntityType, bool, error) {
 	}
 
 	if foundType == None {
-		thisHeaders = true
+		hasHeaders = true
 		for _, typeInfo := range order {
 			detect, ok := detectorMap[typeInfo]
 			if !ok {
@@ -645,7 +652,7 @@ func DetectType(d []string) (EntityType, bool, error) {
 			ok, unidentified = checkStringsAgainstDetector(d[1:], detect)
 			if ok {
 				log.Infof("Column was identified as %v", typeInfo)
-				return typeInfo, thisHeaders, nil
+				return typeInfo, hasHeaders, nil
 			} else {
 				log.Infof("Column was not identified: %v", typeInfo)
 			}
@@ -653,10 +660,10 @@ func DetectType(d []string) (EntityType, bool, error) {
 	}
 
 	if foundType != None {
-		return foundType, thisHeaders, nil
+		return foundType, hasHeaders, nil
 	}
 
-	return None, thisHeaders, errors.New(fmt.Sprintf("Failed to identify - %v", unidentified))
+	return None, hasHeaders, errors.New(fmt.Sprintf("Failed to identify - %v", unidentified))
 }
 
 var nameMap = map[EntityType][]string{
