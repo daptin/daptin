@@ -31,7 +31,7 @@ func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 		tableName := subjectMap["table_name"].(string)
 		log.Infof("Export data for table: %v", tableName)
 
-		objects, err := d.cruds[tableName].GetAllObjects(tableName)
+		objects, err := d.cruds[tableName].GetAllRawObjects(tableName)
 		if err != nil {
 			log.Errorf("Failed to get all objects of type [%v] : %v", tableName)
 		}

@@ -562,7 +562,7 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 }
 
 func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string) (map[string]interface{}, error) {
-	log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
+	//log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
 	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
 	if err != nil {
 		return nil, err
@@ -705,14 +705,6 @@ func RowsToMap(rows *sqlx.Rows, typeName string) ([]map[string]interface{}, erro
 
 		dbRow := rc.Get()
 		dbRow["__type"] = typeName
-		//log.Infof("Scanned row: %v", dbRow)
-
-		//id := dbRow["id"]
-		//deletedAt := dbRow["deleted_at"]
-
-		//delete(dbRow, "id")
-		//delete(dbRow, "deleted_at")
-
 		responseArray = append(responseArray, dbRow)
 	}
 

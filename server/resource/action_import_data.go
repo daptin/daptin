@@ -21,6 +21,18 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 	responses := make([]ActionResponse, 0)
 
 	subjectInstance, isSubjected := inFields["subject"]
+	user, isUserPresent := inFields["user"]
+	userReferenceId := ""
+	userIdInt := uint64(1)
+	var err error
+	if isUserPresent {
+		userMap := user.(map[string]interface{})
+		userReferenceId = userMap["reference_id"].(string)
+		userIdInt, err = d.cruds["user"].GetReferenceIdToId("user", userReferenceId)
+		if err != nil {
+			log.Errorf("Failed to get user id from user reference id: %v", err)
+		}
+	}
 
 	files := inFields["json_dump_file"].([]interface{})
 
@@ -95,6 +107,10 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 
 			for _, row := range dataAsArray {
 				data := row.(map[string]interface{})
+
+				if isUserPresent {
+					data["user_id"] = userIdInt
+				}
 
 				err := d.cruds[tableName].DirectInsert(tableName, data)
 				if err != nil {

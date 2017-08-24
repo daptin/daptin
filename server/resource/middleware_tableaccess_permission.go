@@ -61,7 +61,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 			returnMap = append(returnMap, result)
 			includedMapCache[referenceId] = true
 		} else {
-			log.Infof("[TableAccessPermissionChecker] Result not to be included: %v", result["reference_id"])
+			//log.Infof("[TableAccessPermissionChecker] Result not to be included: %v", result["reference_id"])
 			notIncludedMapCache[referenceId] = true
 		}
 	}
