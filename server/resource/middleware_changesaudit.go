@@ -59,7 +59,7 @@ func (omam *ObjectModificationAuditMiddleware) InterceptAfter(dr *DbResource, re
 			returnMap = append(returnMap, result)
 			includedMapCache[referenceId] = true
 		} else {
-			log.Infof("Result not to be included: %v", result["reference_id"])
+			//log.Infof("Result not to be included: %v", result["reference_id"])
 			notIncludedMapCache[referenceId] = true
 		}
 	}
