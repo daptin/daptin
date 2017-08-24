@@ -72,12 +72,10 @@ window.chooseTitle = function (obj) {
   var objType = obj["__type"];
   if (objType) {
     var objModel = jsonApi.modelFor(objType);
-    console.log("choose title for object model", objModel)
     var attrs = objModel.attributes;
     var attrKeys = Object.keys(attrs);
     for (var i=0;i<attrKeys.length;i++) {
       if (attrs[attrKeys[i]] == "label") {
-        console.log("Adding candidate", attrKeys[i])
         candidates.push(attrKeys[i])
       }
     }
@@ -96,12 +94,7 @@ window.chooseTitle = function (obj) {
     });
 
 
-    console.log("for ", candidates[i], found)
-
-
     if (found.length > 0) {
-      console.log("candidate found at", found);
-
       for (var u=0;u<found.length;u++) {
         var val = obj[found[u]];
         if (typeof val == "string" && val.length > 0) {
@@ -113,7 +106,6 @@ window.chooseTitle = function (obj) {
     }
   }
 
-  console.log("choose totle for ", obj);
   for (var i = 0; i < keys.length; i++) {
     if (keys[i].indexOf("description") > -1 && typeof obj[keys[i]] == "string" && obj[keys[i]].length > 0) {
       if (obj[keys[i]].length > 30) {

@@ -6,13 +6,43 @@
 # Goms
 
 
-
  [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) [![Build Status](https://travis-ci.org/artpar/goms.svg?branch=master)](https://travis-ci.org/artpar/goms)
 
 
-### State: pre-alpha
 
-GoMS is a ready-to-deploy schema driven adaptable platform for quick apps
+Goms: A Compiler for Web Components
+
+Goms is a compiler that generates Web Components (more specifically, Custom Elements). Goms combines the best concepts of the most popular frameworks into a simple build-time tool.
+
+Goms takes features such as
+
+Entity names
+Relations between entities
+Actions related to different entities
+Users, User groups and their relation to entities
+External integration plugins
+and then generates standards-based JSON based Web APIs with these features baked in.
+
+Since Goms generates JSON API compliant web apis, they can work with many popular languages right out of the box using standard JSON clients, and can be used without a framework because they are just JSON rest APIs. Goms also enables a number of key capabilities on top of Web APIs, in particular Sub site hosting (SSR) without the need to run separate server, an events-actions-outcomes framework, and data-as-objects (instead of just strings).
+
+Compared to building JSON APIs directly, Goms provides extra APIs that makes writing fast frontend apps simpler. APIs like Virtual DOM, JSX, and async rendering make fast, powerful components easy to create, while still maintaining 100% compatibility with Web Components.
+
+The user experience is also tuned, and comes with fully featured dashboard and various site designs baked in to bootstrap.
+
+Why Goms?
+Goms was created by the DevSupport team to help build faster, more capable APIs over your data that worked across for all types of frontend.
+
+While Goms primarily targeted Web apps, the emergence of Android and IOs Apps as a rapidly growing target for developers demanded a different approach for building the backend. With developers classic use of traditional frameworks and bundling techniques, we struggle to invest enough time in the business and frontend demands for all sorts of Apps that provide consistent and predictable APIs which perform equally well on fast and slow load, across a diversity of platforms and devices.
+
+Additionally, framework fragmentation had created a APIs development interoperability nightmare, where backend built for one purpose needs a lot of boilerplate and integration with the rest of the system, in a consistent way.
+
+A component system around JSON APIs offered a solution to both problems, allowing more time available to be invested into frontend and business building, and targeting a standards-based JSON/Entity models that all frontends can use.
+
+However, JSON APIs for data manipulation by themselves weren't enough. Building apps required a lot of custom actions, workflows, data integrity, event subscription, integration with external services that were previously locked up inside of traditional web frameworks. Goms was built to pull these features out of traditional frameworks and bring them to the fast emerging JSON API standard in an automated way.
+
+
+
+### State: alpha
 
 ## Run it and take the tours before reading on
 
@@ -21,6 +51,15 @@ docker run -d -p 8080:8080 goms/goms
 ```
 
 Then open [Goms Dashboard](http://localhost:8080) to sign up and sign-in
+
+## Getting started
+
+
+- Deploy instance of Goms on a server
+- Upload JSON file which describes your entities,
+- or use XLS file to create entities and upload data
+- Become Admin of the instance (until then its a open for access)
+
 
 ## What can be done 
 
