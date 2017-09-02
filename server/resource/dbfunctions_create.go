@@ -148,7 +148,7 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 		auditTableName := tableName + "_audit"
 		log.Infof("Create audit table [%s] for table [%v]", table.TableName, auditTableName)
 
-		for o, col := range table.Columns {
+		for _, col := range table.Columns {
 
 			var c api2go.ColumnInfo
 			err := copier.Copy(&c, &col)
@@ -161,7 +161,7 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 				continue
 			}
 
-			if c.ColumnType == "timestamp" {
+			if c.ColumnType == "datetime" {
 				c.IsNullable = true
 			}
 
@@ -171,7 +171,7 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 			c.IsAutoIncrement = false
 
 			log.Infof("Add column to table [%v] == [%v]", auditTableName, c)
-			columnsCopy[o] = c
+			columnsCopy = append(columnsCopy, c)
 
 		}
 
