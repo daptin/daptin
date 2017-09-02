@@ -226,7 +226,7 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 		log.Infof("special break")
 	}
 	for col := range columnsWeWant {
-		log.Infof("Column: [%v]%v", tableInfo.TableName, col)
+		log.Infof("Column: [%v]%v @ %v", tableInfo.TableName, col, colInfoMap[col].ColumnType)
 	}
 
 	s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
