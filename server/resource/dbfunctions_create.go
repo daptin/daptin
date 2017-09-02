@@ -161,6 +161,11 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 				continue
 			}
 
+			if c.ColumnType == "timestamp" {
+				c.IsNullable = true
+			}
+
+
 			c.IsUnique = false
 			c.IsPrimaryKey = false
 			c.IsAutoIncrement = false

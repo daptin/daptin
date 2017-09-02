@@ -297,7 +297,8 @@
       },
       "sourceType": "self",
       "targetAttributes": {
-        "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append"
+        "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append",
+        "appKey": "AIzaSyAC2xame4NShrzH9ZJeEpWT5GkySooa0XM"
       },
       "targetType": "gsheet-append",
       "attributes": [

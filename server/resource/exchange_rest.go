@@ -27,7 +27,7 @@ var restExchanges = []RestExchange{
 
     Name:   "gsheet-append",
       Method: "POST",
-      Url:    "$sheetUrl",
+      Url:    "~sheetUrl",
       Headers: map[string]interface{}{
         "Accept": "application/json",
       },
@@ -38,7 +38,7 @@ var restExchanges = []RestExchange{
       },
       QueryParams: map[string]interface{}{
         "valueInputOption": "RAW",
-        "key":              "$appKey",
+        "key":              "~appKey",
       },
 
   },
@@ -79,7 +79,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, inField
   }
 
   attrs := make(map[string]interface{})
-  attrs["url"] = g.exchangeInformation.Url
+  attrs["url"] = evaluateString(g.exchangeInformation.Url, inFieldMap)
   attrs["method"] = g.exchangeInformation.Method
 
   body := g.exchangeInformation.Body

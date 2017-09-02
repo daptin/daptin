@@ -858,7 +858,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "source_attributes",
 				ColumnName: "source_attributes",
-				ColumnType: "name",
+				ColumnType: "json",
 				DataType:   "text",
 			},
 			{
@@ -870,7 +870,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "target_attributes",
 				ColumnName: "target_attributes",
-				ColumnType: "name",
+				ColumnType: "json",
 				DataType:   "text",
 			},
 			{
