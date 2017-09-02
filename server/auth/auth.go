@@ -126,7 +126,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 		c.Next()
 	} else {
 
-		log.Infof("Set user: %v", user)
+		//log.Infof("Set user: %v", user)
 		if user == nil {
 
 			newRequest := c.Request.WithContext(context.WithValue(c.Request.Context(), "user_id", ""))

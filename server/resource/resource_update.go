@@ -108,7 +108,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			continue
 		}
 
-		log.Infof("Check column: [%v]  (%v) => (%v) ", col.ColumnName, change.OldValue, change.NewValue)
+		//log.Infof("Check column: [%v]  (%v) => (%v) ", col.ColumnName, change.OldValue, change.NewValue)
 
 		var val interface{}
 		val = change.NewValue
