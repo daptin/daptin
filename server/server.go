@@ -133,7 +133,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	err = resource.UpdateActionTable(&initConfig, db)
 	resource.CheckErr(err, "Failed to update action table")
 
-	//CleanUpConfigFiles()
+	CleanUpConfigFiles()
 
 	/// end system initialise
 
