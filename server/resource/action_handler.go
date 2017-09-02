@@ -325,7 +325,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			}
 		}
 
-		log.Infof("Final responses: %v", responses)
+		//log.Infof("Final responses: %v", responses)
 
 		ginContext.JSON(200, responses)
 
