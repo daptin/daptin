@@ -1,5 +1,5 @@
 hash: 2b4e716f8d212b24d7c729b0171918824946c5f4f4f33e8d7ec30a2f48fb82b3
-updated: 2017-08-23T04:37:19.275643882+05:30
+updated: 2017-09-03T05:42:16.63661416+05:30
 imports:
 - name: cloud.google.com/go
   version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
@@ -141,7 +141,7 @@ imports:
   subpackages:
   - stack
 - name: github.com/golang/protobuf
-  version: 748d386b5c1ea99658fd69fe9f03991ce86a90c1
+  version: 655cdfa588ea190e901bc5590e65d5621688847c
   subpackages:
   - proto
 - name: github.com/google/go-querystring
@@ -244,7 +244,7 @@ imports:
 - name: github.com/xanzy/ssh-agent
   version: ba9c9e33906f58169366275e3450db66139a31a9
 - name: github.com/yunify/qingstor-sdk-go
-  version: 4749bc5ebe4857b353e55b49ebe91eed9a7f6cda
+  version: fba42e3d202dd9924a8a236693c3b675ec00d04c
   subpackages:
   - config
   - logger
@@ -273,7 +273,7 @@ imports:
   - ssh/agent
   - ssh/terminal
 - name: golang.org/x/net
-  version: f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f
+  version: e45385e9b226f570b1f086bf287b25d3d4117776
   subpackages:
   - context
   - context/ctxhttp

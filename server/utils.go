@@ -53,7 +53,7 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 	ts := make([]resource.TableInfo, 0)
 
 	res, err := db.Queryx("select table_name, permission, default_permission, schema_json, is_top_level, is_hidden, is_state_tracking_enabled" +
-			" from world where deleted_at is null and table_name not like '%_has_%' and table_name not in ('world', 'world_column', 'action', 'user', 'usergroup')")
+			" from world where deleted_at is null and table_name not like '%_has_%' and table_name not like '%_audit' and table_name not in ('world', 'world_column', 'action', 'user', 'usergroup')")
 	if err != nil {
 		log.Infof("Failed to select from world table: %v", err)
 		return ts, err

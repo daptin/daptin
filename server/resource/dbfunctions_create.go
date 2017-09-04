@@ -144,7 +144,7 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 	for _, tableName := range createAuditTableFor {
 
 		table := tableMap[tableName]
-		columnsCopy := make([]api2go.ColumnInfo, len(table.Columns))
+		columnsCopy := make([]api2go.ColumnInfo, 0)
 		auditTableName := tableName + "_audit"
 		log.Infof("Create audit table [%s] for table [%v]", table.TableName, auditTableName)
 
@@ -529,6 +529,10 @@ func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
 
 		if c.ColumnName == "" {
 			c.ColumnName = c.Name
+		}
+
+		if strings.TrimSpace(c.ColumnName) == "" {
+			continue
 		}
 
 		if colsDone[c.ColumnName] {
