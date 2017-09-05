@@ -6,30 +6,36 @@
 # Goms
 
 
- [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) [![Build Status](https://travis-ci.org/artpar/goms.svg?branch=master)](https://travis-ci.org/artpar/goms)
+ [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) [![Build Status](https://travis-ci.org/artpar/goms.svg?branch=master)](https://travis-ci.org/artpar/goms) [![Build Status](https://semaphoreci.com/api/v1/artpar/goms/branches/master/badge.svg)](https://semaphoreci.com/artpar/goms)
 
 
+Goms: A Compiler for JSON APIs
+#
 
-Goms: A Compiler for Web Components
+Goms is a compiler that generates Web APIs (more specifically, JSON APIs). Goms combines the best concepts of [the most popular BAAS platforms](http://baas.apievangelist.com/) into a simple run-time tool.
 
-Goms is a compiler that generates Web Components (more specifically, Custom Elements). Goms combines the best concepts of the most popular frameworks into a simple build-time tool.
 
 Goms takes features such as
 
-Entity names
-Relations between entities
-Actions related to different entities
-Users, User groups and their relation to entities
-External integration plugins
-and then generates standards-based JSON based Web APIs with these features baked in.
+- Entity names
+- Relations between entities
+- Actions related to different entities
+- Users, User groups and their relation to entities
+- Integration with external api's
+- and then generates standards-based JSON based Web APIs with these features baked in.
 
-Since Goms generates JSON API compliant web apis, they can work with many popular languages right out of the box using standard JSON clients, and can be used without a framework because they are just JSON rest APIs. Goms also enables a number of key capabilities on top of Web APIs, in particular Sub site hosting (SSR) without the need to run separate server, an events-actions-outcomes framework, and data-as-objects (instead of just strings).
+Since Goms generates JSON API compliant web apis, they can work with many popular languages right out of the box using standard JSON clients, and can be used without a framework because they are just JSON rest APIs. Goms also enables a number of key capabilities on top of Web APIs, in particular Sub site hosting (SSH) without the need to run separate server, an events-actions-outcomes framework, and data-as-objects (instead of just strings).
 
-Compared to building JSON APIs directly, Goms provides extra APIs that makes writing fast frontend apps simpler. APIs like Virtual DOM, JSX, and async rendering make fast, powerful components easy to create, while still maintaining 100% compatibility with Web Components.
+Compared to building JSON APIs directly, Goms provides extra APIs that makes writing fast frontend apps simpler.
+
+APIs like user signup and registration, create, read, write, update for all entities, and actions with multiple outcome chains, make fast, powerful frontends easy to create, while still maintaining 100% compatibility with common standards.
 
 The user experience is also tuned, and comes with fully featured dashboard and various site designs baked in to bootstrap.
 
+
 Why Goms?
+##
+
 Goms was created by the DevSupport team to help build faster, more capable APIs over your data that worked across for all types of frontend.
 
 While Goms primarily targeted Web apps, the emergence of Android and IOs Apps as a rapidly growing target for developers demanded a different approach for building the backend. With developers classic use of traditional frameworks and bundling techniques, we struggle to invest enough time in the business and frontend demands for all sorts of Apps that provide consistent and predictable APIs which perform equally well on fast and slow load, across a diversity of platforms and devices.

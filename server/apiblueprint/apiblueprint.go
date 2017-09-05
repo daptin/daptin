@@ -307,7 +307,7 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		byIdResource["uriParameters"] = map[string]interface{}{
 			"referenceId": map[string]interface{}{
 				"type":        "string",
-				"description": "Reference id of the " + tableInfo.TableName + "to be fetched",
+				"description": "Reference id of the " + tableInfo.TableName + " to be fetched",
 				"required":    true,
 			},
 		}
@@ -389,7 +389,7 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		deleteByIdResource["uriParameters"] = map[string]interface{}{
 			"referenceId": map[string]interface{}{
 				"type":        "string",
-				"description": "Reference id of the " + tableInfo.TableName + "to be fetched",
+				"description": "Reference id of the " + tableInfo.TableName + " to be fetched",
 				"required":    true,
 			},
 		}
