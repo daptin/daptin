@@ -38,7 +38,7 @@ The user experience is also tuned, and comes with fully featured dashboard and v
 ## Why Goms?
 
 
-Goms was created by the DevSupport team to help build faster, more capable APIs over your data that worked across for all types of frontend.
+Goms was to help build faster, more capable APIs over your data that worked across for all types of frontend.
 
 While Goms primarily targeted Web apps, the emergence of Android and IOs Apps as a rapidly growing target for developers demanded a different approach for building the backend. With developers classic use of traditional frameworks and bundling techniques, we struggle to invest enough time in the business and frontend demands for all sorts of Apps that provide consistent and predictable APIs which perform equally well on fast and slow load, across a diversity of platforms and devices.
 
