@@ -1,5 +1,5 @@
-hash: 113b9ef052bb57b1c1e3fefd758af91182a4c1062e08ee3c3cff806c554e09db
-updated: 2017-09-05T13:05:36.565219992+05:30
+hash: b7458dc4ef98d03dd48ea55e35154b91b939c5bb8932aae3de3e28ede4e41cbd
+updated: 2017-09-05T15:07:03.480720887+05:30
 imports:
 - name: cloud.google.com/go
   version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
@@ -23,7 +23,7 @@ imports:
 - name: github.com/artpar/conform
   version: 0a5d4165efbaf1ca49ccdbdf21cd7a2bf63e7f04
 - name: github.com/artpar/rclone
-  version: 133ddcc5d234b5d42579006ddb606b86d21e9ae8
+  version: 0c71f583f30d341f04cf92f12f2c0747e8aa7163
   subpackages:
   - amazonclouddrive
   - b2
@@ -107,6 +107,13 @@ imports:
   - file
   - parser
   - token
+- name: github.com/dropbox/dropbox-sdk-go-unofficial
+  version: b05850d887adc3fab2e87f337b71b25d4649bf4c
+  subpackages:
+  - dropbox
+  - dropbox/async
+  - dropbox/files
+  - dropbox/properties
 - name: github.com/etgryphon/stringUp
   version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
 - name: github.com/gedex/inflector
@@ -186,13 +193,6 @@ imports:
   version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
 - name: github.com/mattn/go-sqlite3
   version: ca5e3819723d8eeaf170ad510e7da1d6d2e94a08
-- name: github.com/ncw/dropbox-sdk-go-unofficial
-  version: 5d9f46f9862ae5f65e264e178de6ce2c41a32d40
-  subpackages:
-  - dropbox
-  - dropbox/async
-  - dropbox/files
-  - dropbox/properties
 - name: github.com/ncw/go-acd
   version: 96a49aad3fc3889629f2eceb004927386884bd92
 - name: github.com/ncw/swift
