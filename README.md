@@ -22,7 +22,9 @@ Goms takes features such as
 - Actions related to different entities
 - Users, User groups and their relation to entities
 - Integration with external api's
-- and then generates standards-based JSON based Web APIs with these features baked in.
+
+and then generates standards-based JSON based Web APIs with these features baked in.
+
 
 Since Goms generates JSON API compliant web apis, they can work with many popular languages right out of the box using standard JSON clients, and can be used without a framework because they are just JSON rest APIs. Goms also enables a number of key capabilities on top of Web APIs, in particular Sub site hosting (SSH) without the need to run separate server, an events-actions-outcomes framework, and data-as-objects (instead of just strings).
 
@@ -231,9 +233,9 @@ Actions are defined on entities, have a set of Input Fields, and a set of Outcom
 
 Backend | FrontEnd | Standards | Frameworks
 ---|---|---|---
-Golang | BootStrap | JsonAPI Spec | CoPilot Theme
-[Api2go](https://github.com/manyminds/api2go) | [BootStrap](http://getbootstrap.com/) | [JsonAPI](jsonapi.org) | [CoPilot Theme](copilot.mistergf.io)
-[rclone](https://github.com/ncw/rclone) | [BootStrap](http://getbootstrap.com/) | [grapesJs](grapesjs.com) | [Element UI](element.eleme.io)
+[Golang](golang.org) | [BootStrap](http://getbootstrap.com/) | [RAML](raml.org) | [CoPilot Theme](https://copilot.mistergf.io)
+[Api2go](https://github.com/manyminds/api2go) | [BootStrap](http://getbootstrap.com/) | [JsonAPI](jsonapi.org) | [VueJS](https://vuejs.org/v2/guide/)
+[rclone](https://github.com/ncw/rclone) |  [grapesJs](grapesjs.com) | | [Element UI](element.eleme.io)
 
 - Golang
 - JSONAPI
