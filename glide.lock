@@ -1,5 +1,5 @@
 hash: b7458dc4ef98d03dd48ea55e35154b91b939c5bb8932aae3de3e28ede4e41cbd
-updated: 2017-09-05T15:07:03.480720887+05:30
+updated: 2017-09-05T17:12:22.319831506+05:30
 imports:
 - name: cloud.google.com/go
   version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
@@ -244,7 +244,7 @@ imports:
 - name: github.com/xanzy/ssh-agent
   version: ba9c9e33906f58169366275e3450db66139a31a9
 - name: github.com/yunify/qingstor-sdk-go
-  version: fba42e3d202dd9924a8a236693c3b675ec00d04c
+  version: 69277cb8cc9c83c40b94161a61cb5487661a1afd
   subpackages:
   - config
   - logger
