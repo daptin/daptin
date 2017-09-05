@@ -9,8 +9,8 @@
  [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) [![Build Status](https://travis-ci.org/artpar/goms.svg?branch=master)](https://travis-ci.org/artpar/goms) [![Build Status](https://semaphoreci.com/api/v1/artpar/goms/branches/master/badge.svg)](https://semaphoreci.com/artpar/goms)
 
 
-Goms: A Compiler for JSON APIs
-#
+## A BAAS
+
 
 Goms is a compiler that generates Web APIs (more specifically, JSON APIs). Goms combines the best concepts of [the most popular BAAS platforms](http://baas.apievangelist.com/) into a simple run-time tool.
 
@@ -33,8 +33,8 @@ APIs like user signup and registration, create, read, write, update for all enti
 The user experience is also tuned, and comes with fully featured dashboard and various site designs baked in to bootstrap.
 
 
-Why Goms?
-##
+## Why Goms?
+
 
 Goms was created by the DevSupport team to help build faster, more capable APIs over your data that worked across for all types of frontend.
 
