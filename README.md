@@ -112,8 +112,10 @@ It will be untrue to say Goms has no competition. These are the possible competi
 - [Directus](https://getdirectus.com/) - Directus is an API-driven content management framework for custom databases. It decouples content for use in apps, websites, or any other data-driven projects.
 - [Cockpit](https://getcockpit.com/) - An API-driven CMS
 - [Contentful](https://www.contentful.com/) - Contentful is the essential content management infrastructure for projects of any size, with its flexible APIs and global CDN.
+- [Scaphold](https://scaphold.io/) - GraphQL Backend As A Service
 
-All these products also target to solve the same problem, but differing in the solution pipeline (as an example say database choice or features).
+
+All these products also target to solve the same problem, but differing in the solution pipeline or extent (as an example say database choice or features).
 
 
 ### Documentation state
@@ -132,14 +134,17 @@ Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
 * [x] Objects and action chains
 * [x] State tracking using state machine
 * [ ] Native tag support for user defined entities
-* [ ] Data connectors -> Incoming/Outgoing data
-* [ ] Plugin system -> Grow the system according to your needs
+* [x] Data connectors -> Incoming/Outgoing data
+* [x] Plugin system -> Grow the system according to your needs
 * [ ] Native support for different data types (geo location/time/colors/measurements)
 * [ ] Configurable intelligent Validation for data in the APIs
-* [ ] Pages/Sub-sites -> Create a sub-site for a target audiance
+* [x] Pages/Sub-sites -> Create a sub-site for a target audiance
 * [ ] Define events all around the system
 * [ ] Ability to define hooks on events from UI
 * [ ] Data conversion/exchange/transformations
+* [x] Live editor for subsites - grapesjs
+* [x] Store connectors for storing big files/subsites - rclone
+
 
 ### Target
 
@@ -147,15 +152,16 @@ Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
 
 Goms makes two tables for user management
 
-- user
+### user
 
 Every user who is interacting with the system will be associated with a user in Goms.
 
 By default a user is ```guest```
 
-- usergroup
+### usergroup
 
 User and every other entity in Goms is associated to multiple user groups
+
 
 Each user has his own user group
 
@@ -227,10 +233,12 @@ Backend | FrontEnd | Standards | Frameworks
 ---|---|---|---
 Golang | BootStrap | JsonAPI Spec | CoPilot Theme
 [Api2go](https://github.com/manyminds/api2go) | [BootStrap](http://getbootstrap.com/) | [JsonAPI](jsonapi.org) | [CoPilot Theme](copilot.mistergf.io)
-[Api2go](https://github.com/manyminds/api2go) | [BootStrap](http://getbootstrap.com/) | [JsonAPI](jsonapi.org) | [Element UI](element.eleme.io)
+[rclone](https://github.com/ncw/rclone) | [BootStrap](http://getbootstrap.com/) | [grapesJs](grapesjs.com) | [Element UI](element.eleme.io)
 
 - Golang
 - JSONAPI
 - VueJS
 - CoPilot theme
+- rclone
+- grapesjs
 - a lot of libraries...
