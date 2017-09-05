@@ -231,9 +231,9 @@ Actions are defined on entities, have a set of Input Fields, and a set of Outcom
 
 Backend | FrontEnd | Standards | Frameworks
 ---|---|---|---
-Golang | BootStrap | JsonAPI Spec | CoPilot Theme
-[Api2go](https://github.com/manyminds/api2go) | [BootStrap](http://getbootstrap.com/) | [JsonAPI](jsonapi.org) | [CoPilot Theme](copilot.mistergf.io)
-[rclone](https://github.com/ncw/rclone) | [BootStrap](http://getbootstrap.com/) | [grapesJs](grapesjs.com) | [Element UI](element.eleme.io)
+[Golang](golang.org) | [BootStrap](http://getbootstrap.com/) | [RAML](raml.org) | [CoPilot Theme](https://copilot.mistergf.io)
+[Api2go](https://github.com/manyminds/api2go) | [BootStrap](http://getbootstrap.com/) | [JsonAPI](jsonapi.org) | [VueJS](https://vuejs.org/v2/guide/)
+[rclone](https://github.com/ncw/rclone) |  [grapesJs](grapesjs.com) | | [Element UI](element.eleme.io)
 
 - Golang
 - JSONAPI
