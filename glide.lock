@@ -1,5 +1,5 @@
-hash: 2b4e716f8d212b24d7c729b0171918824946c5f4f4f33e8d7ec30a2f48fb82b3
-updated: 2017-09-03T05:42:16.63661416+05:30
+hash: 113b9ef052bb57b1c1e3fefd758af91182a4c1062e08ee3c3cff806c554e09db
+updated: 2017-09-05T13:05:36.565219992+05:30
 imports:
 - name: cloud.google.com/go
   version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
@@ -23,7 +23,7 @@ imports:
 - name: github.com/artpar/conform
   version: 0a5d4165efbaf1ca49ccdbdf21cd7a2bf63e7f04
 - name: github.com/artpar/rclone
-  version: 9cac1e3d7150e0fa41171d5d1ce63472fc2eae96
+  version: 133ddcc5d234b5d42579006ddb606b86d21e9ae8
   subpackages:
   - amazonclouddrive
   - b2
