@@ -235,13 +235,19 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	if data.IsDirty() {
 
 		auditModel := data.GetAuditModel()
+		log.Infof("Object [%v]%v has been changed, trying to audit in %v", data.GetTableName(), data.GetID(), auditModel.GetTableName())
 		if auditModel.GetTableName() != "" {
-			_, err := dr.cruds[auditModel.GetTableName()].Create(auditModel, req)
-			if err != nil {
-				log.Errorf("Failed to create audit entry: %v", err)
+			creator, ok := dr.cruds[auditModel.GetTableName()]
+			if !ok {
+				log.Errorf("No creator for audit type: %v", auditModel.GetTableName())
 			} else {
-				log.Infof("[%v][%v] Created audit record", auditModel.GetTableName(), data.GetID())
-				//log.Infof("ReferenceId for change: %v", resp.Result())
+				_, err := creator.Create(auditModel, req)
+				if err != nil {
+					log.Errorf("Failed to create audit entry: %v", err)
+				} else {
+					log.Infof("[%v][%v] Created audit record", auditModel.GetTableName(), data.GetID())
+					//log.Infof("ReferenceId for change: %v", resp.Result())
+				}
 			}
 		}
 
