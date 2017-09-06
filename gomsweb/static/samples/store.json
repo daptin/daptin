@@ -1,0 +1,99 @@
+{
+    "tables": [{
+            "tableName": "inventory",
+            "columns": [{
+                "name": "name",
+                "dataType": "varchar(100)",
+                "columnType": "label",
+                "isIndexed": true
+            }, {
+                "name": "description",
+                "dataType": "text",
+                "columnType": "label"
+            }, {
+                "name": "line_items",
+                "dataType": "int(11)",
+                "columnType": "measurement"
+            }],
+            "conformations": [{
+                "columnName": "order",
+                "tags": "numeric"
+            }],
+            "validations": [{
+                "columnName": "title",
+                "tags": "required"
+            }]
+        },
+        {
+            "tableName": "sale",
+            "columns": [{
+                "name": "is_returned",
+                "dataType": "bool",
+                "columnType": "truefalse",
+                "defaultValue": "false"
+            }]
+        }
+    ],
+    "relations": [{
+        "subject": "inventory",
+        "relation": "has_many",
+        "object": "sale"
+    }],
+    "actions": [{
+            "name": "new_purchase",
+            "label": "Purchase",
+            "onType": "inventory",
+            "instanceOptional": false,
+            "fields": [],
+            "outcomes": [{
+                    "type": "sale",
+                    "method": "POST",
+                    "reference": "sale",
+                    "attributes": {}
+                },
+                {
+                    "type": "inventory_inventory_id_has_sale_sale_id",
+                    "method": "POST",
+                    "reference": "inventory_sale",
+                    "attributes": {
+                        "sale_id": "$sale.reference_id",
+                        "inventory_id": "$.reference_id"
+                    }
+                },
+                {
+                    "type": "client.notify",
+                    "method": "ACTIONRESPONSE",
+                    "attributes": {
+                        "type": "success",
+                        "message": "You have purchased a new item",
+                        "title": "Wait for it"
+                    }
+                },
+                {
+                    "type": "client.redirect",
+                    "method": "ACTIONRESPONSE",
+                    "attributes": {
+                        "location": "/in/item/sale/$sale.reference_id",
+                        "window": "self",
+                        "delay": "1000"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "return",
+            "label": "Return item",
+            "onType": "sale",
+            "instanceOptional": false,
+            "outcomes": [{
+                "type": "sale",
+                "method": "UPDATE",
+                "attributes": {
+                    "is_returned": "1",
+                    "reference_id": "$.reference_id"
+                }
+            }]
+        }
+    ],
+    "exchanges": []
+}

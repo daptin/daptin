@@ -15,13 +15,13 @@
           {{crumb.label}}
         </li>
       </ol>
-      <div class="pull-right">
-        <div class="ui icon buttons">
-          <button class="btn btn-box-tool" @click.prevent="editRow()"><i
-            class="fa fa-3x fa-pencil-square teal"></i>
-          </button>
-        </div>
-      </div>
+      <!--<div class="pull-right">-->
+        <!--<div class="ui icon buttons">-->
+          <!--<button class="btn btn-box-tool" @click.prevent="editRow()"><i-->
+            <!--class="fa fa-3x fa-pencil-square teal"></i>-->
+          <!--</button>-->
+        <!--</div>-->
+      <!--</div>-->
     </section>
 
     <!-- Main content -->
