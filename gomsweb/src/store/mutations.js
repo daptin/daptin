@@ -28,6 +28,9 @@ export default {
   SET_SELECTED_SUB_TABLE(state, selectedSubTable) {
     state.selectedSubTable = selectedSubTable;
   },
+  SET_QUERY(state, query) {
+    state.query = query;
+  },
   SET_SELECTED_ROW(state, selectedRow) {
     state.selectedRow = selectedRow;
   },
