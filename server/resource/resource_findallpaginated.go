@@ -155,7 +155,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 		if rel.GetSubject() == dr.model.GetName() {
 
-			log.Infof("Forward Relation %v", rel.String())
+			//log.Infof("Forward Relation %v", rel.String())
 			queries, ok := req.QueryParams[rel.GetObject()+"_id"]
 			if !ok || len(queries) < 1 {
 				continue
@@ -204,7 +204,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		} else if rel.GetObject() == dr.model.GetName() {
 
 			subjectNameList, ok := req.QueryParams[rel.GetSubject()+"Name"]
-			log.Infof("Reverse Relation %v", rel.String())
+			//log.Infof("Reverse Relation %v", rel.String())
 
 			var subjectName string
 			/**
@@ -250,7 +250,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 				if len(subjectId) < 1 {
 					continue
 				}
-				log.Infof("Has many [%v] : [%v] === %v", dr.model.GetName(), subjectId, req.QueryParams)
+				//log.Infof("Has many [%v] : [%v] === %v", dr.model.GetName(), subjectId, req.QueryParams)
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
 
 			}
@@ -281,6 +281,10 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 
 	stmt, err := dr.db.Preparex(sql1)
+	if err != nil {
+		log.Errorf("Failed to prepare sql: %v", err)
+		return 0, nil, err
+	}
 	rows, err := stmt.Queryx(args...)
 
 	if err != nil {

@@ -22,7 +22,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	log.Infof("Update object request: [%v] %v", dr.model.GetTableName(), data.Data)
 
 	for _, bf := range dr.ms.BeforeUpdate {
-		log.Infof("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Infof("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
 		finalData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
 			data.Data,
@@ -269,7 +269,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 	for _, rel := range dr.model.GetRelations() {
 		relationName := rel.GetRelation()
-		log.Infof("Check relation in Update: %v", rel.String())
+		//log.Infof("Check relation in Update: %v", rel.String())
 		if rel.GetSubject() == dr.model.GetName() {
 
 			if relationName == "belongs_to" || relationName == "has_one" {
@@ -448,7 +448,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	//
 
 	for _, bf := range dr.ms.AfterUpdate {
-		log.Infof("Invoke AfterUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Infof("Invoke AfterUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
 		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{updatedResource})
 		if len(results) != 0 {

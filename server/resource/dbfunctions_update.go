@@ -356,6 +356,7 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 
 	for _, action := range initConfig.Actions {
 
+		log.Infof("System init check action: %v@%v", action.Name, action.OnType)
 		world, ok := worldTableMap[action.OnType]
 		if !ok {
 			log.Errorf("Action [%v] defined on unknown type [%v]", action.Name, action.OnType)
@@ -387,6 +388,7 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 				log.Errorf("Failed to insert action [%v]: %v", action.Name, err)
 			}
 		} else {
+			log.Infof("Action [%v] is new, adding action: %v @ %v", action.Name, action.OnType)
 
 			actionSchema, _ := json.Marshal(action)
 
