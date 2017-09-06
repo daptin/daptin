@@ -30,7 +30,7 @@
                 "name": "is_returned",
                 "dataType": "bool",
                 "columnType": "truefalse",
-                "defaultValue": "false"
+                "defaultValue": "0"
             }]
         }
     ],
