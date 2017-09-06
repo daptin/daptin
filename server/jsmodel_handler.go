@@ -46,7 +46,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 			return
 		}
 
-		log.Infof("data: %v", selectedTable.Relations)
+		//log.Infof("data: %v", selectedTable.Relations)
 
 		cols := selectedTable.Columns
 

@@ -20,7 +20,7 @@ import (
 func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, error) {
 
 	for _, bf := range dr.ms.BeforeDelete {
-		log.Infof("[Before][%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Infof("[Before][%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
 			{
 				"reference_id": id,
@@ -52,7 +52,7 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 	_, err = dr.db.Exec(sql1, args...)
 
 	for _, bf := range dr.ms.AfterDelete {
-		log.Infof("Invoke AfterDelete [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Infof("Invoke AfterDelete [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		_, err = bf.InterceptAfter(dr, &req, nil)
 		if err != nil {
 			log.Errorf("Error from AfterDelete middleware: %v", err)

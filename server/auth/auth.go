@@ -88,7 +88,7 @@ func InitJwtMiddleware(secret []byte) {
 			return secret, nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err string) {
-			log.Infof("Guest request: %v", err)
+			log.Infof("Guest request [%v]: %v", err, r.Header)
 		},
 		//Debug: true,
 		// When set, the middleware verifies that tokens are signed with the specific signing algorithm

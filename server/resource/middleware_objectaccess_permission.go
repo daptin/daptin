@@ -2,7 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
-	log "github.com/sirupsen/logrus"
+	//log "github.com/sirupsen/logrus"
 	//"gopkg.in/Masterminds/squirrel.v1"
 
 	"github.com/artpar/goms/server/auth"
@@ -117,7 +117,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		}
 
 		permission := dr.GetRowPermission(result)
-		log.Infof("[ObjectAccessPermissionChecker] Permission check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.Permission)
+		//log.Infof("[ObjectAccessPermissionChecker] Permission check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.Permission)
 		//log.Infof("Row Permission for [%v] for [%v]", permission, result)
 
 		if req.PlainRequest.Method == "GET" {

@@ -1,41 +1,139 @@
 {
-  "tables": [
-    {
-      "tableName": "merchant",
-      "columns": [
-        {
-          "name": "name",
-          "dataType": "varchar(100)",
-          "columnType": "label"
+    "tables": [{
+            "tableName": "merchant",
+            "columns": [{
+                    "Name": "name",
+                    "ColumnName": "name",
+                    "ColumnDescription": "",
+                    "ColumnType": "label",
+                    "IsPrimaryKey": false,
+                    "IsAutoIncrement": false,
+                    "IsIndexed": true,
+                    "IsUnique": false,
+                    "IsNullable": false,
+                    "DataType": "varchar(500)"
+                },
+                {
+                    "Name": "image_url",
+                    "ColumnName": "image_url",
+                    "ColumnDescription": "",
+                    "ColumnType": "label",
+                    "IsPrimaryKey": false,
+                    "IsAutoIncrement": false,
+                    "IsIndexed": false,
+                    "IsUnique": false,
+                    "DataType": "varchar(500)"
+                }
+            ]
         },
         {
-          "name": "image_url",
-          "dataType": "varchar(500)",
-          "columnType": "label"
+            "tableName": "integration",
+            "columns": [{
+                    "Name": "description",
+                    "ColumnName": "description",
+                    "ColumnDescription": "",
+                    "ColumnType": "content",
+                    "IsNullable": true,
+                    "DataType": "text"
+                },
+                {
+                    "Name": "language",
+                    "ColumnName": "language",
+                    "ColumnType": "label",
+                    "IsIndexed": true,
+                    "DataType": "varchar(100)"
+                },
+                {
+                    "Name": "api_sub_type",
+                    "ColumnName": "api_sub_type",
+                    "ColumnType": "label",
+                    "IsPrimaryKey": false,
+                    "IsAutoIncrement": false,
+                    "IsIndexed": true,
+                    "IsUnique": false,
+                    "IsNullable": true,
+                    "DataType": "varchar(100)"
+                },
+                {
+                    "Name": "name",
+                    "ColumnName": "name",
+                    "ColumnDescription": "",
+                    "ColumnType": "label",
+                    "IsPrimaryKey": false,
+                    "IsAutoIncrement": false,
+                    "IsIndexed": true,
+                    "IsUnique": false,
+                    "IsNullable": false,
+                    "DataType": "varchar(100)"
+                },
+                {
+                    "Name": "stack",
+                    "ColumnName": "stack",
+                    "ColumnDescription": "",
+                    "ColumnType": "label",
+                    "IsPrimaryKey": false,
+                    "IsAutoIncrement": false,
+                    "IsIndexed": true,
+                    "IsUnique": false,
+                    "IsNullable": false,
+                    "DataType": "varchar(100)"
+                },
+                {
+                    "Name": "api_type",
+                    "ColumnName": "api_type",
+                    "ColumnDescription": "",
+                    "ColumnType": "label",
+                    "IsPrimaryKey": false,
+                    "IsAutoIncrement": false,
+                    "IsIndexed": true,
+                    "IsUnique": false,
+                    "IsNullable": true,
+                    "DataType": "varchar(100)"
+                },
+                {
+                    "Name": "change_set",
+                    "ColumnName": "change_set",
+                    "ColumnDescription": "",
+                    "ColumnType": "json",
+                    "IsPrimaryKey": false,
+                    "IsAutoIncrement": false,
+                    "IsIndexed": true,
+                    "IsUnique": false,
+                    "IsNullable": false,
+                    "DataType": "text"
+                },
+                {
+                    "Name": "icon",
+                    "ColumnName": "icon",
+                    "ColumnDescription": "",
+                    "ColumnType": "label",
+                    "IsPrimaryKey": false,
+                    "IsAutoIncrement": false,
+                    "IsIndexed": false,
+                    "IsUnique": false,
+                    "IsNullable": false,
+                    "DataType": "varchar(100)",
+                    "DefaultValue": "'devicon-devicon-plain'"
+                },
+                {
+                    "Name": "color",
+                    "ColumnName": "color",
+                    "ColumnDescription": "",
+                    "ColumnType": "color",
+                    "IsPrimaryKey": false,
+                    "IsAutoIncrement": false,
+                    "IsIndexed": false,
+                    "IsUnique": false,
+                    "IsNullable": false,
+                    "DataType": "varchar(10)",
+                    "DefaultValue": "'#708ad8'"
+                }
+            ]
         }
-      ]
-    },
-    {
-      "tableName": "integration",
-      "columns": [
-        {
-          "name": "title",
-          "dataType": "varchar(200)",
-          "columnType": "label"
-        },
-        {
-          "name": "body",
-          "dataType": "text",
-          "columnType": "content"
-        }
-      ]
-    }
-  ],
-  "relations": [
-    {
-      "subject": "integration",
-      "relation": "belongs_to",
-      "object": "merchant"
-    }
-  ]
+    ],
+    "relations": [{
+        "subject": "integration",
+        "relation": "belongs_to",
+        "object": "merchant"
+    }]
 }
