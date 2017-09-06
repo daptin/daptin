@@ -296,6 +296,7 @@
         "systemActions",
         "finder",
         "selectedTableColumns",
+        "query",
         "selectedRow",
         "selectedTable",
         "selectedInstanceReferenceId",
@@ -352,6 +353,9 @@
             window.history.back();
           }
         }
+      },
+      'query': function() {
+        this.setTable();
       }
     }
   }

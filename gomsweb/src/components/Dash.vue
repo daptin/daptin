@@ -9,12 +9,12 @@
       <!-- Header Navbar -->
       <nav class="navbar navbar-static-top" role="navigation">
         <!-- Sidebar toggle button-->
-        <a href="javascript:;" class="sidebar-toggle" data-toggle="offcanvas" role="button">
+        <a href="javascript:" class="sidebar-toggle" data-toggle="offcanvas" role="button">
           <span class="sr-only"> Toggle navigation</span>
         </a>
-        <form class="navbar-form navbar-left" role="search">
+        <form class="navbar-form navbar-left" @submit.prevent="setQueryString" role="search">
           <div class="form-group">
-            <input type="text" class="form-control" id="navbar-search-input" placeholder="Search">
+            <input type="text" class="form-control"  id="navbar-search-input" placeholder="Search">
           </div>
         </form>
         <div class="navbar-custom-menu">
@@ -234,7 +234,7 @@
 
     <!-- Main Footer -->
     <footer class="main-footer">
-      <strong><a href="javascript:;">GoMS</a>.</strong> All rights reserved.
+      <strong><a href="javascript:">GoMS</a>.</strong> All rights reserved.
     </footer>
   </div>
   <!-- ./wrapper -->
@@ -242,6 +242,7 @@
 
 <script>
   import {mapState} from 'vuex'
+  import {mapActions} from 'vuex'
   import config from '../config'
   import Sidebar from './Sidebar'
 
@@ -294,17 +295,21 @@
           console.info('Something happened with the Sign In request');
 //          that.$router.go({name: "sigini"})
           this.$router.push("/auth/signin");
-          return
         } else {
-          console.log("got token from url", token)
+          console.log("got token from url", token);
           setToken(token);
           window.location.hash = "";
           window.location.reload();
-          return;
         }
       }
     },
     methods: {
+      ...mapActions(["setQuery"]),
+      setQueryString(query) {
+        console.log("set query", query)
+        this.setQuery(query);
+        return false;
+      },
       startTour(tourId) {
 
         if (Shepherd.activeTour) {
