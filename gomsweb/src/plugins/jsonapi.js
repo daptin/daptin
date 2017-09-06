@@ -2,6 +2,8 @@ import  JsonApi from "devour-client"
 import {Notification} from "element-ui"
 import appConfig from "../plugins/appconfig"
 import {getToken, unsetToken} from '../utils/auth'
+import {mapState} from 'vuex';
+
 
 const jsonapi = new JsonApi({
   apiUrl: appConfig.apiRoot + '/api',
@@ -44,6 +46,15 @@ jsonapi.insertMiddlewareBefore("HEADER", {
   }
 });
 
+jsonapi.insertMiddlewareBefore('HEADER', {
+  name: 'insert-query',
+  req: function(payload) {
+    var query = $("#navbar-search-input").val();
+    console.log("change payload for query", query);
+    payload.req.params.query = encodeURIComponent(query);
+    return payload;
+  }
+});
 jsonapi.insertMiddlewareAfter('response', {
   name: 'track-request',
   req: function (payload) {
