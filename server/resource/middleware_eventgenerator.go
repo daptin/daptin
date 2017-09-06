@@ -40,7 +40,7 @@ func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Re
 	var err error = nil
 
 	reqmethod := req.PlainRequest.Method
-	log.Infof("Event generator handle new request to intercept: %v", reqmethod)
+	log.Infof("Generate events for objects", reqmethod)
 	switch reqmethod {
 	case "GET":
 		break

@@ -131,13 +131,7 @@
 
       },
       getCurrentTableType() {
-        var that = this;
-        if (!that.selectedSubTable || !that.selectedInstanceReferenceId) {
           return that.selectedTable;
-        }
-
-        return that.selectedSubTable;
-
       },
       deleteRow(row) {
         var that = this;
@@ -152,12 +146,6 @@
         var that = this;
 
         var currentTableType = this.getCurrentTableType();
-
-        if (that.selectedSubTable && that.selectedInstanceReferenceId) {
-          row[that.selectedTable + "_id"] = {
-            "id": that.selectedInstanceReferenceId,
-          };
-        }
 
 
         console.log("save row", row);
@@ -208,14 +196,9 @@
         let all = {};
         console.log("Admin set table -", that.visibleWorlds)
         console.log("Admin set table -", that.$store, that.selectedTable, that.selectedTable)
-        if (!that.selectedSubTable) {
-          all = jsonApi.all(that.selectedTable);
-          tableName = that.selectedTable;
-        } else {
-          tableName = that.selectedSubTable;
-          all = jsonApi.one(that.selectedTable, that.selectedInstanceReferenceId).all(that.selectedSubTable + "_id");
-          console.log("Set subtable columns: ", that.subTableColumns)
-        }
+
+        all = jsonApi.all(that.selectedTable);
+        tableName = that.selectedTable;
 
         that.$route.meta.breadcrumb = [{
           label: tableName,
@@ -228,18 +211,10 @@
         }];
 
 
-
         if (that.selectedTable) {
           worldManager.getColumnKeys(that.selectedTable, function (model) {
             console.log("Set selected world columns", model.ColumnModel);
             that.$store.commit("SET_SELECTED_TABLE_COLUMNS", model.ColumnModel)
-          });
-        }
-
-        if (that.selectedSubTable) {
-          worldManager.getColumnKeys(that.selectedSubTable, function (model) {
-            console.log("Set selected world columns", model.ColumnModel);
-            that.$store.commit("SET_SUBTABLE_COLUMNS", model.ColumnModel)
           });
         }
 
@@ -248,7 +223,6 @@
         console.log("Finder stack: ", that.finder);
 
 
-        console.log("Selected sub table: ", that.selectedSubTable);
         console.log("Selected table: ", that.selectedTable);
 
         that.$store.commit("SET_ACTIONS", actionManager.getActions(that.selectedTable));
@@ -317,7 +291,6 @@
     },
     computed: {
       ...mapState([
-        "selectedSubTable",
         "selectedAction",
         "subTableColumns",
         "systemActions",

@@ -88,7 +88,7 @@
       },
 
     },
-    data () {
+    data() {
       return {
         jsonApi: jsonApi,
         actionManager: actionManager,
@@ -97,15 +97,15 @@
       }
     },
     methods: {
-      hideModel () {
+      hideModel() {
         console.log("Call to hide model")
         $('#uploadJson').modal('hide all');
       },
-      doAction (action) {
+      doAction(action) {
         this.$store.commit("SET_SELECTED_ACTION", action)
         this.showAddEdit = true;
       },
-      uploadJsonSchemaFile(){
+      uploadJsonSchemaFile() {
         console.log("this files list", this.$refs.upload)
       },
       handleCommand(command) {
@@ -187,13 +187,13 @@
       },
       newRow() {
         var that = this;
-        console.log("new row", that.selectedTable);
+        console.log("new row", that.selectedSubTable);
         this.rowBeingEdited = {};
         this.showAddEdit = true;
       },
       editRow(row) {
         var that = this;
-        console.log("new row", that.selectedTable);
+        console.log("new row", that.selectedSubTable);
         this.rowBeingEdited = row;
         this.showAddEdit = true;
       },
@@ -204,29 +204,16 @@
         let all = {};
         console.log("Admin set table -", that.visibleWorlds)
         console.log("Admin set table -", that.$store, that.selectedTable, that.selectedTable)
-        if (!that.selectedSubTable) {
-          all = jsonApi.all(that.selectedTable);
-          tableName = that.selectedTable;
-        } else {
-          tableName = that.selectedSubTable;
-          all = jsonApi.one(that.selectedTable, that.selectedInstanceReferenceId).all(that.selectedSubTable + "_id");
-          console.log("Set subtable columns: ", that.subTableColumns)
-        }
+
+        tableName = that.selectedSubTable;
+        all = jsonApi.one(that.selectedTable, that.selectedInstanceReferenceId).all(that.selectedSubTable + "_id");
+        console.log("Set subtable columns: ", that.subTableColumns)
 
 
-        if (that.selectedTable) {
-          worldManager.getColumnKeys(that.selectedTable, function (model) {
-            console.log("Set selected world columns", model.ColumnModel);
-            that.$store.commit("SET_SELECTED_TABLE_COLUMNS", model.ColumnModel)
-          });
-        }
-
-        if (that.selectedSubTable) {
-          worldManager.getColumnKeys(that.selectedSubTable, function (model) {
-            console.log("Set selected world columns", model.ColumnModel);
-            that.$store.commit("SET_SUBTABLE_COLUMNS", model.ColumnModel)
-          });
-        }
+        worldManager.getColumnKeys(that.selectedSubTable, function (model) {
+          console.log("Set selected world columns", model.ColumnModel);
+          that.$store.commit("SET_SUBTABLE_COLUMNS", model.ColumnModel)
+        });
 
 
         that.$store.commit("SET_FINDER", all.builderStack);

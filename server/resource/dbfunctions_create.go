@@ -265,9 +265,10 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 		relation2 := relation.GetRelation()
 		log.Infof("Relation to table [%v]", relation.String())
 		if relation2 == "belongs_to" || relation2 == "has_one" {
-			fromTable := relation.GetSubject()
-			targetTable := relation.GetObject()
+			fromTable := relation.Subject
+			targetTable := relation.Object
 
+			log.Infof("From table [%v] to table [%v]", fromTable, targetTable)
 			isNullable := false
 			if targetTable == "user" || targetTable == "usergroup" || relation2 == "has_one" {
 				isNullable = true
@@ -315,7 +316,13 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 
 			}
 			if noMatch {
+				newTable := TableInfo{
+					TableName: fromTable,
+					Columns: []api2go.ColumnInfo{col},
+				}
+				config.Tables = append(config.Tables, newTable)
 				log.Infof("No matching table found: %v", relation)
+				log.Infof("Created new table: %v", newTable.TableName)
 			}
 		} else if relation2 == "has_many" {
 
