@@ -1,0 +1,235 @@
+{
+    "name": "Instamojo Android Integration",
+    "variables": [{
+        "name": "serverurl",
+        "label": "Url pointing to your txn generating URL",
+        "stage": 1,
+        "description": "In order to proceed, you need to complete server integration first",
+        "help": "Example: https://mywebsite.com/new_txn.php"
+    }],
+    "variableValidations": [{
+        "validationType": "http",
+        "errorLabel": "New transaction url is not properly configured at the given url",
+        "params": {
+            "url": "{{=it.serverurl}}",
+            "method": "GET",
+            "headers": {},
+            "params": {
+                "amount": "9",
+                "name": "test user",
+                "purpose": "test api",
+                "email": "test@gmail.com"
+            }
+        },
+        "expectations": [{
+            "field": "$.data.payment_request.buyer_name",
+            "value": "test user",
+            "operator": "eq"
+        }],
+        "stage": 1
+    }],
+    "changes": [{
+            "name": "Add dependency for InstaMojo SDK",
+            "fileSelector": ".+build.gradle$",
+            "changeType": "fileEdit",
+            "stage": 2,
+            "fileType": "gradle",
+            "change": [{
+                    "changeType": "add.line",
+                    "line": "\ncompile 'ai.devsupport.instamojo:instamojolib:0.1.0'",
+                    "action": "append",
+                    "query": "compile 'com.android.support",
+                    "validations": [{
+                            "checkType": "negative",
+                            "query": "godel-release/godel"
+                        },
+                        {
+                            "checkType": "negative",
+                            "query": "instamojo:instamojolib"
+                        },
+                        {
+                            "checkType": "positive",
+                            "query": "compile 'com.android.support"
+                        }
+                    ]
+                },
+                {
+                    "changeType": "add.line",
+                    "line": "mavenCentral()\n    maven {\n        url \"https://s3-ap-southeast-1.amazonaws.com/godel-release/godel/\"\n    }",
+                    "action": "append",
+                    "query": "repositories[ \t]*{",
+                    "validations": [{
+                            "checkType": "positive",
+                            "query": "repositories"
+                        },
+                        {
+                            "checkType": "negative",
+                            "query": "godel-release/godel"
+                        }
+                    ]
+                },
+                {
+                    "changeType": "add.line",
+                    "line": "repositories {\n    mavenCentral()\n    maven {\n        url \"https://s3-ap-southeast-1.amazonaws.com/godel-release/godel/\"\n    }\n}\n",
+                    "action": "prepend",
+                    "query": "dependencies[ \t]*{",
+                    "validations": [{
+                            "checkType": "negative",
+                            "query": "repositories"
+                        },
+                        {
+                            "checkType": "negative",
+                            "query": "godel-release/godel"
+                        }
+                    ]
+                }
+            ],
+            "validations": [{
+                "checkType": "positive",
+                "query": "apply plugin: 'com.android.application'"
+            }]
+        },
+        {
+            "name": "Add key to AndroidManifest.xml",
+            "fileSelector": ".+main[\\\\/]AndroidManifest.xml",
+            "changeType": "fileEdit",
+            "stage": 2,
+            "fileType": "xml",
+            "change": [{
+                    "changeType": "add.line",
+                    "line": "<meta-data android:name=\"instamojo.orderauth.url\"\n                   android:value=\"{{=it.serverurl}}\"\n            />",
+                    "action": "prepend",
+                    "query": "</application>"
+                },
+                {
+                    "changeType": "add.line",
+                    "line": "<uses-permission android:name=\"android.permission.INTERNET\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />\n    //required for Juspay to read the OTP from the SMS sent to the device\n    <uses-permission android:name=\"android.permission.READ_PHONE_STATE\" />\n    <uses-permission android:name=\"android.permission.READ_SMS\" />\n    <uses-permission android:name=\"android.permission.RECEIVE_SMS\" />    <uses-permission-sdk-23 android:name=\"android.permission.READ_PHONE_STATE\" />\n    <uses-permission-sdk-23 android:name=\"android.permission.READ_SMS\" />\n    <uses-permission-sdk-23 android:name=\"android.permission.RECEIVE_SMS\" />",
+                    "action": "append",
+                    "query": "</application>"
+                }
+            ],
+            "validations": [{
+                "checkType": "negative",
+                "query": "instamojo.orderauth.url"
+            }]
+        },
+        {
+            "name": "Add functions to some Activity.java for Initiate Pay and Handle Response",
+            "fileSelector": ".+Activity.java",
+            "changeType": "fileEdit",
+            "stage": 2,
+            "fileType": "java",
+            "change": [{
+                    "changeType": "add.line",
+                    "action": "append",
+                    "query": "{",
+                    "line": "private void callInstamojoPay(String email, String phone, String amount, String purpose, String buyername) {\n        final Activity activity = this;\n        InstamojoPay instamojoPay = new InstamojoPay();\n        IntentFilter filter = new IntentFilter(\"ai.devsupport.instamojo\");\n        registerReceiver(instamojoPay, filter);\n        JSONObject pay = new JSONObject();\n        try {\n            pay.put(\"email\", email);\n            pay.put(\"phone\", phone);\n            pay.put(\"purpose\", purpose);\n            pay.put(\"amount\", amount);\n            pay.put(\"name\", buyername);\n            pay.put(\"env\", Config.PROD);\n        } catch (JSONException e) {\n            e.printStackTrace();\n        }\n        initListener();\n        instamojoPay.start(activity, pay, listener);\n    }",
+                    "validations": [{
+                        "checkType": "negative",
+                        "query": "callInstamojoPay"
+                    }]
+                }, {
+                    "changeType": "add.line",
+                    "action": "append",
+                    "query": "{",
+                    "line": "private void initListener() {\n        listener = new InstapayListener() {\n            @Override\n            public void onSuccess(String response) {\n                Toast.makeText(getApplicationContext(), response, Toast.LENGTH_LONG)\n                        .show();\n            }\n\n            @Override\n            public void onFailure(int code, String reason) {\n                Toast.makeText(getApplicationContext(), \"Failed: \" + reason, Toast.LENGTH_LONG)\n                        .show();\n            }\n        };\n    }",
+                    "validations": [{
+                        "checkType": "negative",
+                        "query": "initListener"
+                    }]
+                },
+                {
+                    "changeType": "add.line",
+                    "action": "append",
+                    "query": "import",
+                    "line": "import android.widget.Toast;",
+                    "validations": [{
+                        "checkType": "negative",
+                        "query": "import android.widget.Toast;"
+                    }]
+                },
+                {
+                    "changeType": "add.line",
+                    "action": "append",
+                    "query": "import",
+                    "line": "import org.json.JSONException;",
+                    "validations": [{
+                        "checkType": "negative",
+                        "query": "import org.json.JSONException;"
+                    }]
+                },
+                {
+                    "changeType": "add.line",
+                    "action": "append",
+                    "query": "import",
+                    "line": "import org.json.JSONObject;",
+                    "validations": [{
+                        "checkType": "negative",
+                        "query": "import org.json.JSONObject;"
+                    }]
+                },
+                {
+                    "changeType": "add.line",
+                    "action": "append",
+                    "query": "import",
+                    "line": "import instamojo.library.Config;",
+                    "validations": [{
+                        "checkType": "negative",
+                        "query": "import instamojo.library.Config;"
+                    }]
+                },
+                {
+                    "changeType": "add.line",
+                    "action": "append",
+                    "query": "import",
+                    "line": "import instamojo.library.InstamojoPay;",
+                    "validations": [{
+                        "checkType": "negative",
+                        "query": "import instamojo.library.InstamojoPay;"
+                    }]
+                },
+                {
+                    "changeType": "add.line",
+                    "action": "append",
+                    "query": "import",
+                    "line": "import instamojo.library.InstapayListener;",
+                    "validations": [{
+                        "checkType": "negative",
+                        "query": "import instamojo.library.InstapayListener;"
+                    }]
+                },
+                {
+                    "changeType": "add.line",
+                    "action": "append",
+                    "query": "import",
+                    "line": "import android.app.Activity;",
+                    "validations": [{
+                        "checkType": "negative",
+                        "query": "import android.app.Activity;"
+                    }]
+                },
+                {
+                    "changeType": "add.line",
+                    "action": "append",
+                    "query": "{",
+                    "line": "\n InstapayListener listener;\n",
+                    "validations": [{
+                        "checkType": "negative",
+                        "query": "InstapayListener listener;"
+                    }]
+                },
+                {
+                    "changeType": "add.line",
+                    "action": "append",
+                    "query": "setContentView",
+                    "line": "// Call the function callInstamojo to start payment here",
+                    "validations": [{
+                        "checkType": "negative",
+                        "query": "Call the function callInstamojo"
+                    }]
+                }
+            ],
+            "validations": []
+        }
+    ]
+}
