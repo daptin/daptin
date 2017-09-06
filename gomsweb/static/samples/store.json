@@ -50,6 +50,13 @@
                     "method": "POST",
                     "reference": "sale",
                     "attributes": {}
+                }, {
+                    "type": "inventory",
+                    "method": "UPDATE",
+                    "attributes": {
+                        "line_items": "!subject.line_items - 1",
+                        "reference_id": "$.reference_id"
+                    }
                 },
                 {
                     "type": "inventory_inventory_id_has_sale_sale_id",
