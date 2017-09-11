@@ -71,8 +71,8 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 	queries := []string{}
 
-	if len(req.QueryParams["query"]) > 0 {
-		queries = req.QueryParams["query"]
+	if len(req.QueryParams["filter"]) > 0 {
+		queries = req.QueryParams["filter"]
 	}
 
 	//filters := []string{}

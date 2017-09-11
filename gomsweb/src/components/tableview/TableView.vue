@@ -273,7 +273,7 @@
         }
 
         if (!tableName) {
-          alert("setting selected world to null")
+          alert("setting selected world to null");
         }
 
         that.selectedWorld = tableName;
@@ -291,7 +291,7 @@
           } catch (e) {
             console.log("probably table doesnt exist yet", e)
           }
-        }, 300);
+        }, 16);
       }
     },
     mounted() {

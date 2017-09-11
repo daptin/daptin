@@ -13,9 +13,11 @@ func InfoErr(err error, message string) {
 	}
 
 }
-func CheckErr(err error, message string) {
+func CheckErr(err error, message ...interface{}) {
 	if err != nil {
-		log.Errorf("%v: %v", message, err)
+		args := message[1:]
+		args = append(args, err)
+		log.Errorf(message[0].(string), args)
 	}
 }
 

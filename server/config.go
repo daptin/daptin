@@ -1,12 +1,11 @@
 package server
 
 import (
-	"io/ioutil"
 	"path/filepath"
 	"github.com/artpar/goms/server/resource"
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
-	"encoding/json"
+	"github.com/spf13/viper"
 	"gopkg.in/gin-gonic/gin.v1"
 	"gopkg.in/go-playground/validator.v9"
 )
@@ -33,10 +32,12 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 		Imports:                  make([]resource.DataFileImport, 0),
 		Actions:                  make([]resource.Action, 0),
 		StateMachineDescriptions: make([]resource.LoopbookFsmDescription, 0),
+		Streams:                  make([]resource.StreamContract, 0),
 	}
 
 	globalInitConfig.Tables = append(globalInitConfig.Tables, resource.StandardTables...)
 	globalInitConfig.Actions = append(globalInitConfig.Actions, resource.SystemActions...)
+	globalInitConfig.Streams = append(globalInitConfig.Streams, resource.StandardStreams...)
 	globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
 	globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
 
@@ -51,13 +52,17 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 	for _, fileName := range files {
 		log.Infof("Process file: %v", fileName)
 
-		fileContents, err := ioutil.ReadFile(fileName)
+		viper.SetConfigFile(fileName)
+
+		err = viper.ReadInConfig()
 		if err != nil {
 			errs = append(errs, err)
-			continue
 		}
-		var initConfig resource.CmsConfig
-		err = json.Unmarshal(fileContents, &initConfig)
+
+		initConfig := resource.CmsConfig{}
+		err = viper.UnmarshalKey("tables", &initConfig.Tables)
+		all := viper.AllSettings()
+		log.Infof("All settings", all)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -66,6 +71,7 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 		globalInitConfig.Tables = append(globalInitConfig.Tables, initConfig.Tables...)
 		globalInitConfig.Relations = append(globalInitConfig.Relations, initConfig.Relations...)
 		globalInitConfig.Imports = append(globalInitConfig.Imports, initConfig.Imports...)
+		globalInitConfig.Streams = append(globalInitConfig.Streams, initConfig.Streams...)
 		globalInitConfig.Actions = append(globalInitConfig.Actions, initConfig.Actions...)
 		globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, initConfig.StateMachineDescriptions...)
 		globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
