@@ -124,10 +124,6 @@
       },
       getCurrentTableType() {
         var that = this;
-        if (!that.selectedSubTable || !that.selectedInstanceReferenceId) {
-          return that.selectedTable;
-        }
-
         return that.selectedSubTable;
 
       },

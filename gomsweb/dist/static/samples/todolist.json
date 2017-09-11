@@ -1,235 +1,235 @@
 {
-    "state_machine_descriptions": [{
-        "name": "task_status",
-        "label": "Task Status",
-        "initial_state": "to_be_done",
-        "events": [{
-                "name": "start",
-                "label": "Start",
-                "src": [
+    "StateMachineDescription": [{
+        "Name": "task_status",
+        "Label": "Task Status",
+        "InitialState": "to_be_done",
+        "Events": [{
+                "Name": "start",
+                "Label": "Start",
+                "Src": [
                     "to_be_done",
                     "delayed"
                 ],
-                "dst": "started"
+                "Dst": "started"
             },
             {
-                "name": "delayed",
-                "label": "Unable to pick up",
-                "src": [
+                "Name": "delayed",
+                "Label": "Unable to pick up",
+                "Src": [
                     "to_be_done"
                 ],
-                "dst": "delayed"
+                "Dst": "delayed"
             },
             {
-                "name": "ongoing",
-                "label": "Record progress",
-                "src": [
+                "Name": "ongoing",
+                "Label": "Record progress",
+                "Src": [
                     "started",
                     "ongoing"
                 ],
-                "dst": "ongoing"
+                "Dst": "ongoing"
             },
             {
-                "name": "interrupted",
-                "label": "Interrupted",
-                "src": [
+                "Name": "interrupted",
+                "Label": "Interrupted",
+                "Src": [
                     "started",
                     "ongoing"
                 ],
-                "dst": "interrupted"
+                "Dst": "interrupted"
             },
             {
-                "name": "resume",
-                "label": "Resume from interruption",
-                "src": [
+                "Name": "resume",
+                "Label": "Resume from interruption",
+                "Src": [
                     "interrupted"
                 ],
-                "dst": "ongoing"
+                "Dst": "ongoing"
             },
             {
-                "name": "completed",
-                "label": "Mark as completed",
-                "src": [
+                "Name": "completed",
+                "Label": "Mark as completed",
+                "Src": [
                     "ongoing",
                     "started"
                 ],
-                "dst": "completed"
+                "Dst": "completed"
             }
         ]
     }],
-    "tables": [{
-            "tableName": "todo",
-            "columns": [{
-                    "name": "title",
-                    "dataType": "varchar(500)",
-                    "columnType": "label",
-                    "isIndexed": true
+    "Tables": [{
+            "TableName": "todo",
+            "Columns": [{
+                    "Name": "title",
+                    "DataType": "varchar(500)",
+                    "ColumnType": "label",
+                    "IsIndexed": true
                 },
                 {
-                    "name": "url",
-                    "dataType": "varchar(200)",
-                    "columnType": "url",
-                    "isNullable": true
+                    "Name": "url",
+                    "DataType": "varchar(200)",
+                    "ColumnType": "url",
+                    "IsNullable": true
                 },
                 {
-                    "name": "completed",
-                    "dataType": "int(1)",
-                    "columnType": "truefalse",
-                    "defaultValue": "false"
+                    "Name": "completed",
+                    "DataType": "int(1)",
+                    "ColumnType": "truefalse",
+                    "DefaultValue": "false"
                 },
                 {
-                    "name": "schedule",
-                    "dataType": "date",
-                    "columnType": "date",
-                    "isNullable": true
+                    "Name": "schedule",
+                    "DataType": "date",
+                    "ColumnType": "date",
+                    "IsNullable": true
                 },
                 {
-                    "name": "order",
+                    "Name": "order",
                     "columnName": "item_order",
-                    "dataType": "int(4)",
-                    "columnType": "measurement",
-                    "defaultValue": "10"
+                    "DataType": "int(4)",
+                    "ColumnType": "measurement",
+                    "DefaultValue": "10"
                 },
                 {
-                    "name": "text",
-                    "dataType": "text",
-                    "columnType": "content",
-                    "isNullable": true
+                    "Name": "text",
+                    "DataType": "text",
+                    "ColumnType": "content",
+                    "IsNullable": true
                 }
             ],
-            "conformations": [{
-                "columnName": "order",
-                "tags": "numeric"
+            "Conformations": [{
+                "ColumnName": "order",
+                "Tags": "numeric"
             }],
             "validations": [{
-                "columnName": "title",
-                "tags": "required"
+                "ColumnName": "title",
+                "Tags": "required"
             }]
         },
         {
-            "tableName": "tag",
-            "columns": [{
-                "name": "label",
-                "dataType": "varchar(100)",
-                "columnType": "label",
-                "isIndexed": true
+            "TableName": "tag",
+            "Columns": [{
+                "Name": "label",
+                "DataType": "varchar(100)",
+                "ColumnType": "label",
+                "IsIndexed": true
             }]
         },
         {
-            "tableName": "project",
-            "columns": [{
-                "name": "name",
-                "dataType": "varchar(200)",
-                "columnType": "name",
-                "isIndexed": true
+            "TableName": "project",
+            "Columns": [{
+                "Name": "name",
+                "DataType": "varchar(200)",
+                "ColumnType": "name",
+                "IsIndexed": true
             }]
         }
     ],
-    "relations": [{
-            "subject": "todo",
-            "relation": "has_one",
-            "object": "project"
+    "Relations": [{
+            "Subject": "todo",
+            "Relation": "has_one",
+            "Object": "project"
         },
         {
-            "subject": "todo",
-            "relation": "has_many",
-            "object": "tag"
+            "Subject": "todo",
+            "Relation": "has_many",
+            "Object": "tag"
         }
     ],
-    "actions": [{
-            "name": "new_task",
-            "label": "New to do",
-            "onType": "project",
-            "instanceOptional": true,
-            "fields": [{
-                    "columnName": "description",
-                    "name": "Description",
-                    "columnType": "label"
+    "Actions": [{
+            "Name": "new_task",
+            "Label": "New to do",
+            "OnType": "project",
+            "InstanceOptional": true,
+            "Fields": [{
+                    "ColumnName": "description",
+                    "Name": "Description",
+                    "ColumnType": "label"
                 },
                 {
-                    "columnName": "schedule",
-                    "name": "Scheduled at",
-                    "columnType": "date"
+                    "ColumnName": "schedule",
+                    "Name": "Scheduled at",
+                    "ColumnType": "date"
                 }
             ],
-            "outcomes": [{
-                    "type": "todo",
-                    "method": "POST",
-                    "attributes": {
+            "Outcomes": [{
+                    "Type": "todo",
+                    "Method": "POST",
+                    "Attributes": {
                         "schedule": "~schedule",
                         "title": "~description",
                         "project_id": "$.reference_id"
                     }
                 },
                 {
-                    "type": "client.notify",
-                    "method": "ACTIONRESPONSE",
-                    "attributes": {
+                    "Type": "client.notify",
+                    "Method": "ACTIONRESPONSE",
+                    "Attributes": {
                         "type": "success",
                         "message": "Created new todo, taking you to it.",
                         "title": "Wait for it"
                     }
                 },
                 {
-                    "type": "client.redirect",
-                    "method": "ACTIONRESPONSE",
-                    "attributes": {
+                    "Type": "client.redirect",
+                    "Method": "ACTIONRESPONSE",
+                    "Attributes": {
                         "location": "/in/item/todo/$.reference_id",
                         "window": "self",
                         "delay": "1000"
                     }
                 },
                 {
-                    "type": "client.store.set",
-                    "method": "ACTIONRESPONSE",
-                    "attributes": {
+                    "Type": "client.store.set",
+                    "Method": "ACTIONRESPONSE",
+                    "Attributes": {
                         "value": "last_created_todo",
                         "key": "$.reference_id"
                     }
                 },
                 {
-                    "type": "error",
-                    "method": "ACTIONRESPONSE",
-                    "attributes": {
+                    "Type": "error",
+                    "Method": "ACTIONRESPONSE",
+                    "Attributes": {
                         "message": "show this in error notification body"
                     }
                 }
             ]
         },
         {
-            "name": "completed",
-            "label": "Completed",
-            "onType": "todo",
-            "outcomes": [{
-                "type": "todo",
-                "method": "UPDATE",
-                "attributes": {
+            "Name": "completed",
+            "Label": "Completed",
+            "OnType": "todo",
+            "Outcomes": [{
+                "Type": "todo",
+                "Method": "UPDATE",
+                "Attributes": {
                     "completed": "1",
                     "reference_id": "$.reference_id"
                 }
             }]
         },
         {
-            "name": "new_project",
-            "label": "New project category",
-            "onType": "project",
-            "instanceOptional": true,
-            "fields": [{
-                "columnName": "name",
-                "name": "Name",
-                "columnType": "label"
+            "Name": "new_project",
+            "Label": "New project category",
+            "OnType": "project",
+            "InstanceOptional": true,
+            "Fields": [{
+                "ColumnName": "name",
+                "Name": "Name",
+                "ColumnType": "label"
             }],
-            "outcomes": [{
-                    "type": "project",
-                    "method": "POST",
-                    "attributes": {
+            "Outcomes": [{
+                    "Type": "project",
+                    "Method": "POST",
+                    "Attributes": {
                         "name": "~name"
                     }
                 },
                 {
-                    "type": "client.redirect",
-                    "method": "ACTIONRESPONSE",
-                    "attributes": {
+                    "Type": "client.redirect",
+                    "Method": "ACTIONRESPONSE",
+                    "Attributes": {
                         "location": "/in/item/project/$.reference_id",
                         "window": "self",
                         "delay": "1000"
@@ -238,25 +238,25 @@
             ]
         },
         {
-            "name": "new_data_exchange",
-            "label": "Sync tasks to Google sheet",
-            "onType": "data_exchange",
-            "fields": [{
-                    "columnName": "sheetUrl",
-                    "name": "Sheet url",
-                    "columnType": "url"
+            "Name": "new_data_exchange",
+            "Label": "Sync tasks to Google sheet",
+            "OnType": "data_exchange",
+            "Fields": [{
+                    "ColumnName": "sheetUrl",
+                    "Name": "Sheet url",
+                    "ColumnType": "url"
                 },
                 {
-                    "columnName": "include_all_columns",
-                    "name": "Include all columns ?",
-                    "columnType": "boolean",
-                    "defaultValue": "false"
+                    "ColumnName": "include_all_columns",
+                    "Name": "Include all Columns ?",
+                    "ColumnType": "boolean",
+                    "DefaultValue": "false"
                 }
             ],
-            "outcomes": [{
-                "type": "data_exchange",
-                "method": "POST",
-                "attributes": {
+            "Outcomes": [{
+                "Type": "data_exchange",
+                "Method": "POST",
+                "Attributes": {
                     "schedule": "~schedule",
                     "description": "~description",
                     "project_id": "$.reference_id"
@@ -264,27 +264,27 @@
             }]
         }
     ],
-    "exchanges": [{
-        "name": "Task to excel sheet",
-        "sourceAttributes": {
-            "name": "todo"
+    "Exchanges": [{
+        "Name": "Task to excel sheet",
+        "SourceAttributes": {
+            "Name": "todo"
         },
-        "sourceType": "self",
-        "targetAttributes": {
+        "SourceType": "self",
+        "TargetAttributes": {
             "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append",
             "appKey": "AIzaSyAC2xame4NShrzH9ZJeEpWT5GkySooa0XM"
         },
-        "targetType": "gsheet-append",
-        "attributes": [{
-                "sourceColumn": "$self.description",
-                "targetColumn": "Task description"
+        "TargetType": "gsheet-append",
+        "Attributes": [{
+                "SourceColumn": "$self.description",
+                "TargetColumn": "Task description"
             },
             {
-                "sourceColumn": "self.schedule",
-                "targetColumn": "Scheduled at"
+                "SourceColumn": "self.schedule",
+                "TargetColumn": "Scheduled at"
             }
         ],
-        "options": {
+        "Options": {
             "hasHeader": true
         }
     }]
