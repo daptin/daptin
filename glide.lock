@@ -1,5 +1,5 @@
 hash: b7458dc4ef98d03dd48ea55e35154b91b939c5bb8932aae3de3e28ede4e41cbd
-updated: 2017-09-05T17:12:22.319831506+05:30
+updated: 2017-09-08T03:15:11.376050835+05:30
 imports:
 - name: cloud.google.com/go
   version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
@@ -140,7 +140,7 @@ imports:
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
 - name: github.com/go-playground/validator
-  version: d529ee1b0f30352444f507cc6cdac96bfd12decc
+  version: a021b2ec9a8a8bb970f3f15bc42617cb520e8a64
 - name: github.com/go-sql-driver/mysql
   version: a0583e0143b1624142adab07e0e97fe106d99561
 - name: github.com/gocraft/health
@@ -177,6 +177,8 @@ imports:
   version: 975b5c4c7c21c0e3d2764200bf2aa8e34657ae6e
 - name: github.com/kardianos/osext
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
+- name: github.com/kniren/gota
+  version: 531ec7b7d82e2a7b7355b63011197a29d401aba6
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - name: github.com/lann/builder
@@ -244,7 +246,7 @@ imports:
 - name: github.com/xanzy/ssh-agent
   version: ba9c9e33906f58169366275e3450db66139a31a9
 - name: github.com/yunify/qingstor-sdk-go
-  version: 69277cb8cc9c83c40b94161a61cb5487661a1afd
+  version: fba42e3d202dd9924a8a236693c3b675ec00d04c
   subpackages:
   - config
   - logger
@@ -331,7 +333,7 @@ imports:
 - name: gopkg.in/go-playground/validator.v8
   version: 5f1438d3fca68893a817e4a66806cea46a9e4ebf
 - name: gopkg.in/go-playground/validator.v9
-  version: d529ee1b0f30352444f507cc6cdac96bfd12decc
+  version: a021b2ec9a8a8bb970f3f15bc42617cb520e8a64
   subpackages:
   - translations/en
 - name: gopkg.in/Masterminds/squirrel.v1

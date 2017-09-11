@@ -14,6 +14,7 @@ import (
 	"flag"
 	"github.com/artpar/rclone/fs"
 	"github.com/satori/go.uuid"
+	"github.com/jmoiron/sqlx"
 )
 
 var cruds = make(map[string]*resource.DbResource)
@@ -130,6 +131,8 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	resource.UpdateStateMachineDescriptions(&initConfig, db)
 	resource.UpdateExchanges(&initConfig, db)
 
+	resource.UpdateStreams(&initConfig, db)
+
 	err = resource.UpdateActionTable(&initConfig, db)
 	resource.CheckErr(err, "Failed to update action table")
 
@@ -178,6 +181,10 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 
 	ms := BuildMiddlewareSet(&initConfig)
 	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore)
+
+	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
+	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
+
 	hostSwitch := CreateSubSites(&initConfig, db, cruds)
 
 	hostSwitch.handlerMap["default"] = r
@@ -220,4 +227,30 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	//r.Run(fmt.Sprintf(":%v", *port))
 
 	http.ListenAndServe(fmt.Sprintf(":%v", *port), hostSwitch)
+}
+
+func AddStreamsToApi2Go(api *api2go.API, processors []*resource.StreamProcessor, db *sqlx.DB, middlewareSet *resource.MiddlewareSet, configStore *resource.ConfigStore) {
+
+	for _, processor := range processors {
+
+		contract := processor.GetContract()
+		model := api2go.NewApi2GoModel(contract.StreamName, contract.Columns, 0, nil)
+		api.AddResource(model, processor)
+
+	}
+
+}
+func GetStreamProcessors(config *resource.CmsConfig, store *resource.ConfigStore, cruds map[string]*resource.DbResource) []*resource.StreamProcessor {
+
+	allProcessors := make([]*resource.StreamProcessor, 0)
+
+	for _, streamContract := range config.Streams {
+
+		streamProcessor := resource.NewStreamProcessor(streamContract, cruds)
+		allProcessors = append(allProcessors, streamProcessor)
+
+	}
+
+	return allProcessors
+
 }

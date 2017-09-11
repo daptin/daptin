@@ -44,8 +44,7 @@
             <div class="box-body no-padding">
               <ul class="nav nav-pills nav-stacked">
                 <li v-for="action in worlds" v-if="action.instanceOptional">
-                  <router-link :style="'color: ' + stringToColor(action.name)"
-                               :to="{name: 'Action', params: {tablename: action.onType, actionname: action.name}}">
+                  <router-link :to="{name: 'Action', params: {tablename: action.onType, actionname: action.name}}">
                     {{action.label}}
                   </router-link>
                 </li>
@@ -74,8 +73,7 @@
             <div class="box-body no-padding">
               <ul class="nav nav-pills nav-stacked">
                 <li v-for="world in worlds">
-                  <router-link :style="'color: ' + stringToColor(world.name)"
-                               :to="{name: 'Action', params: {tablename: world.onType, actionname: world.name}}">
+                  <router-link  :to="{name: 'Action', params: {tablename: world.onType, actionname: world.name}}">
                     {{world.label}}
                   </router-link>
                 </li>
@@ -188,17 +186,17 @@
           var tableName = worlds[i].table_name;
           var actions = actionManager.getActions(tableName);
 
-          console.log("actions for ", tableName, actions)
+//          console.log("actions for ", tableName, actions)
           if (!actions) {
             continue
           }
           var actionKeys = Object.keys(actions);
           for (var j = 0; j < actionKeys.length; j++) {
             var action = actions[actionKeys[j]];
-            console.log("dashboard action", action)
+//            console.log("dashboard action", action)
             var onType = action.onType;
             var onWorld = worldManager.getWorldByName(onType)
-            console.log("on world", onWorld)
+//            console.log("on world", onWorld)
 
             if (onWorld.is_hidden == "1") {
               actionGroups["System"].push(action)

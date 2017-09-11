@@ -76,6 +76,7 @@ var StandardRelations = []api2go.TableRelation{
 
 var SystemSmds = []LoopbookFsmDescription{}
 var SystemExchanges = []ExchangeContract{}
+
 var SystemActions = []Action{
 	{
 		Name:             "export_data",
@@ -461,7 +462,7 @@ var StandardTables = []TableInfo{
 				Name:       "title",
 				ColumnName: "title",
 				ColumnType: "label",
-				IsIndexed: true,
+				IsIndexed:  true,
 				DataType:   "varchar(50)",
 				IsNullable: false,
 			},
@@ -647,6 +648,27 @@ var StandardTables = []TableInfo{
 				DataType:   "varchar(50)",
 				IsNullable: true,
 				ColumnType: "label",
+			},
+		},
+	},
+	{
+		TableName: "stream",
+		IsHidden: true,
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "stream_name",
+				ColumnName: "stream_name",
+				DataType:   "varchar(100)",
+				IsNullable: false,
+				ColumnType: "label",
+				IsIndexed:  true,
+			},
+			{
+				Name:       "stream_contract",
+				ColumnName: "stream_contract",
+				DataType:   "text",
+				IsNullable: false,
+				ColumnType: "json",
 			},
 		},
 	},
@@ -987,14 +1009,53 @@ var StandardTables = []TableInfo{
 	},
 }
 
+var StandardStreams = []StreamContract{
+	{
+		StreamName:     "transformed_user",
+		RootEntityName: "user",
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "transformed_user_name",
+				ColumnType: "label",
+			},
+			{
+				Name:       "primary_email",
+				ColumnType: "label",
+			},
+		},
+		Transformations: []Transformation{
+			{
+				Operation: "select",
+				Attributes: map[string]interface{}{
+					"columns": []string{"name", "email"},
+				},
+			},
+			{
+				Operation: "rename",
+				Attributes: map[string]interface{}{
+					"oldName": "name",
+					"newName": "transformed_user_name",
+				},
+			},
+			{
+				Operation: "rename",
+				Attributes: map[string]interface{}{
+					"oldName": "email",
+					"newName": "primary_email",
+				},
+			},
+		},
+	},
+}
+
 type TableInfo struct {
 	TableName              string `db:"table_name"`
 	TableId                int
-	DefaultPermission      int64 `db:"default_permission"`
+	DefaultPermission      int64  `db:"default_permission"`
 	Columns                []api2go.ColumnInfo
 	StateMachines          []LoopbookFsmDescription
 	Relations              []api2go.TableRelation
-	IsTopLevel             bool `db:"is_top_level"`
+	IsTopLevel             bool   `db:"is_top_level"`
 	Permission             int64
 	UserId                 uint64 `db:"user_id"`
 	IsHidden               bool   `db:"is_hidden"`

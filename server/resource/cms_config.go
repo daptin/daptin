@@ -12,31 +12,20 @@ import (
 type CmsConfig struct {
 	Tables                   []TableInfo
 	Imports                  []DataFileImport
-	StateMachineDescriptions []LoopbookFsmDescription `json:"state_machine_descriptions"`
+	StateMachineDescriptions []LoopbookFsmDescription
 	Relations                []api2go.TableRelation
-	Actions                  []Action `json:"actions"`
-	ExchangeContracts        []ExchangeContract `json:"exchanges"`
+	Actions                  []Action
+	ExchangeContracts        []ExchangeContract
 	Hostname                 string
 	Validator                *validator.Validate
 	SubSites                 map[string]SubSiteInformation
+	Streams                  []StreamContract
 }
 
 type SubSiteInformation struct {
 	SubSite    SubSite
 	CloudStore CloudStore
 	SourceRoot string
-}
-
-type User struct {
-	Name       string
-	Email      string
-	Password   string
-	Id         uint64
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	Permission int
-	Status     string
-	DeletedAt  *time.Time `sql:"index"`
 }
 
 type Config struct {
