@@ -18,6 +18,7 @@ const WorldManager = function () {
 
   that.stateMachines = {};
   that.stateMachineEnabled = {};
+  that.streams = {};
 
 
   that.getStateMachinesForType = function (typeName) {
@@ -156,7 +157,10 @@ const WorldManager = function () {
   }
 
   that.loadModels = function () {
+
+
     var promise = new Promise(function (resolve, reject) {
+
       // do a thing, possibly async, then…
       that.modelLoader("user", function (columnKeys) {
         jsonApi.define("user", that.GetJsonApiModel(columnKeys.ColumnModel));
@@ -168,6 +172,8 @@ const WorldManager = function () {
             // console.log("world column keys", columnKeys, that.GetJsonApiModel(columnKeys.ColumnModel))
             console.log("Defined world", columnKeys.ColumnModel);
             that.systemActions = columnKeys.Actions;
+
+
             jsonApi.findAll('world', {
               page: {number: 1, size: 500},
               include: ['world_column']
@@ -196,6 +202,24 @@ const WorldManager = function () {
 
               }
             });
+
+            jsonApi.findAll('stream', {
+              page: {number: 1, size: 500},
+            }).then(function (res) {
+              that.streams = res;
+              store.commit("SET_STREAMS", res);
+              console.log("Get all streams result", res);
+
+              var total = res.length;
+              for (var t = 0; t < total; t++) {
+                (function (typename) {
+                  that.modelLoader(typename, function (model) {
+                    console.log("Loaded stream model", typename, model);
+                  });
+                  jsonApi.define(typename, that.GetJsonApiModel(model.ColumnModel));
+                })(res[t].stream_name)
+              }
+            })
 
           })
         });

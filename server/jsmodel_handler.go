@@ -26,6 +26,11 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 		tableMap[table.TableName] = table
 	}
 
+	streamMap := make(map[string]resource.StreamContract)
+	for _, stream := range initConfig.Streams {
+		streamMap[stream.StreamName] = stream
+	}
+
 	worlds, _, err := cruds["world"].GetRowsByWhereClause("world", squirrel.Eq{"deleted_at": nil})
 	if err != nil {
 		log.Errorf("Failed to get worlds list")
@@ -39,19 +44,30 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 
 	return func(c *gin.Context) {
 		typeName := strings.Split(c.Param("typename"), ".")[0]
-		selectedTable, ok := tableMap[typeName]
+		selectedTable, isTable := tableMap[typeName]
 
-		if !ok {
-			c.AbortWithStatus(404)
-			return
+		if !isTable {
+
+			selectedStream, isStream := streamMap[typeName]
+
+			if !isStream {
+				c.AbortWithStatus(404)
+				return
+
+			} else {
+				selectedTable = resource.TableInfo{}
+				selectedTable.TableName = selectedStream.StreamName
+				selectedTable.Columns = selectedStream.Columns
+				selectedTable.Relations = make([]api2go.TableRelation, 0)
+
+			}
+
 		}
-
-		//log.Infof("data: %v", selectedTable.Relations)
 
 		cols := selectedTable.Columns
 
-		//actions := GetActionList(selectedTable.TableName, initConfig)
-		actions, err := cruds["world"].GetActionsByType(selectedTable.TableName)
+		//log.Infof("data: %v", selectedTable.Relations)
+		actions, err := cruds["world"].GetActionsByType(typeName)
 
 		if err != nil {
 			log.Errorf("Failed to get actions by type: %v", err)

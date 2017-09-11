@@ -96,6 +96,8 @@ func (d *UploadFileToEntityPerformer) DoAction(request ActionRequest, inFields m
 	files := inFields["data_xls_file"].([]interface{})
 
 	entityName := inFields["entity_name"].(string)
+	parts := strings.Split(entityName, ".")
+	fileType := parts[len(parts) - 1]
 
 	table := TableInfo{}
 	table.TableName = SmallSnakeCaseText(entityName)
@@ -201,7 +203,7 @@ nextFile:
 			return nil, []error{err}
 		}
 
-		jsonFileName := fmt.Sprintf("schema_%v_gocms.json", entityName)
+		jsonFileName := fmt.Sprintf("schema_%v_gocms.%v", entityName, fileType)
 		ioutil.WriteFile(jsonFileName, jsonStr, 0644)
 
 		go restart()
