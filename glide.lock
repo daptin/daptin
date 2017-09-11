@@ -1,8 +1,8 @@
-hash: b7458dc4ef98d03dd48ea55e35154b91b939c5bb8932aae3de3e28ede4e41cbd
-updated: 2017-09-12T02:03:35.794232187+05:30
+hash: 73b7007371e82bcb3c3ff562236bb9b4bb9fd2f07f82fa22cced5203665a7635
+updated: 2017-09-12T02:47:55.094830218+05:30
 imports:
 - name: cloud.google.com/go
-  version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
+  version: 5a9e19d4e1e41a734154e44a2132b358afb49a03
   subpackages:
   - compute/metadata
 - name: github.com/advance512/yaml
@@ -23,7 +23,7 @@ imports:
 - name: github.com/artpar/conform
   version: 0a5d4165efbaf1ca49ccdbdf21cd7a2bf63e7f04
 - name: github.com/artpar/rclone
-  version: 0c71f583f30d341f04cf92f12f2c0747e8aa7163
+  version: 0d3a649d4abc430e6c4f24726c7e9337bec6ea4b
   subpackages:
   - amazonclouddrive
   - b2
@@ -56,7 +56,7 @@ imports:
   - yandex
   - yandex/api
 - name: github.com/aws/aws-sdk-go
-  version: ae48d7372b4f879cfe994d7a037a6a822cafdde0
+  version: 12b6a0f7b3e676d459a9480e75df7efe576cfcb2
   subpackages:
   - aws
   - aws/awserr
@@ -86,12 +86,12 @@ imports:
   - service/s3/s3manager
   - service/sts
 - name: github.com/boombuler/barcode
-  version: 56ef0af91246fb5279df4f87bc3daf1bf7cb9e89
+  version: 45e1f5ec9e3e4bb74da34aee9ae6cb6dec7a30c8
   subpackages:
   - qr
   - utils
 - name: github.com/corpix/uarand
-  version: 031be390f409fb4bac8fb299e3bcd101479f89f8
+  version: 2b8494104d86337cdd41d0a49cbed8e4583c0ab4
 - name: github.com/daaku/go.zipexe
   version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
 - name: github.com/dgrijalva/jwt-go
@@ -101,7 +101,7 @@ imports:
   subpackages:
   - syntax
 - name: github.com/dop251/goja
-  version: 613f33eefdee5996ef938043efe8f1a9955fb8cc
+  version: 0aeff7545edfeafa4535f10f7fa4970c230915e8
   subpackages:
   - ast
   - file
@@ -127,13 +127,13 @@ imports:
 - name: github.com/gin-contrib/sse
   version: 22d885f9ecc78bf4ee5d72b937e4bbcdc58e8cae
 - name: github.com/gin-gonic/gin
-  version: 7fafb3f4a177ca92821dc5bf6e59f17e5f130588
+  version: 5afc5b19730118c9b8324fe9dd995d44ec65c81a
   subpackages:
   - binding
   - json
   - render
 - name: github.com/go-ini/ini
-  version: 3d73f4b845efdf9989fffd4b4e562727744a34ba
+  version: c787282c39ac1fc618827141a1f762240def08a3
 - name: github.com/go-playground/locales
   version: b860c92274dfb72f517b8b4c11c6d9f2f8cc9d91
   subpackages:
@@ -150,7 +150,7 @@ imports:
   subpackages:
   - stack
 - name: github.com/golang/protobuf
-  version: 655cdfa588ea190e901bc5590e65d5621688847c
+  version: 17ce1425424ab154092bbb43af630bd647f3bb0d
   subpackages:
   - proto
 - name: github.com/gonum/blas
@@ -197,7 +197,7 @@ imports:
 - name: github.com/jamiealquiza/envy
   version: 0bbd0e6a316f4aedb2fcb3eaaabd3e89d88d606f
 - name: github.com/jinzhu/copier
-  version: 8bfca8a02a0ce12119cdc4974143c834ca589257
+  version: 32e0d0db1dcd4373fb9eb0f9d727b1fe1a723e54
 - name: github.com/jlaffaye/ftp
   version: 769512c448b98e9efa243279a7e281248332aa98
 - name: github.com/jmespath/go-jmespath
@@ -207,7 +207,7 @@ imports:
   subpackages:
   - reflectx
 - name: github.com/json-iterator/go
-  version: c15b4d116cb805508fd5862d8761a88076b3cc8e
+  version: 6a4ba7bfa9e8d65cfd026267a44165b688352ad7
 - name: github.com/julienschmidt/httprouter
   version: 975b5c4c7c21c0e3d2764200bf2aa8e34657ae6e
 - name: github.com/kardianos/osext
@@ -224,7 +224,7 @@ imports:
 - name: github.com/lann/ps
   version: 62de8c46ede02a7675c4c79c84883eb164cb71e3
 - name: github.com/lib/pq
-  version: dd1fe2071026ce53f36a39112e645b4d4f5793a4
+  version: e42267488fe361b9dc034be7a6bffef5b195bceb
   subpackages:
   - oid
 - name: github.com/looplab/fsm
@@ -240,7 +240,7 @@ imports:
 - name: github.com/ncw/go-acd
   version: 96a49aad3fc3889629f2eceb004927386884bd92
 - name: github.com/ncw/swift
-  version: e3042b26a510db220549150362f6733012148d45
+  version: 9d3f812e23d270d1c66a9a01e20af1005061cdc4
 - name: github.com/pelletier/go-toml
   version: 1d6b12b7cb290426e27e6b4e38b89fcda3aeef03
 - name: github.com/pengsrc/go-shared
@@ -253,9 +253,9 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/sftp
-  version: 22f089b9c4056cf774ebd695b687d469f2ad4650
+  version: 98203f5a8333288eb3163b7c667d4260fe1333e9
 - name: github.com/pquerna/otp
-  version: bf99dcec38c7d2b0f437a53c047bac9ddbe693ed
+  version: 1baa0310d9a661ecba10bbea823ba64bf9253c0b
   subpackages:
   - hotp
   - totp
@@ -264,7 +264,7 @@ imports:
 - name: github.com/rcrowley/goagain
   version: f2f192b5d1a96e21dd4026ce67cda85e49659a48
 - name: github.com/rfjakob/eme
-  version: da627cc50b6fb2eb623eaffe91fb29d7eddfd06a
+  version: 7c8316a9cb0a6af865265f899f5de6aadb31a24b
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/sirupsen/logrus
@@ -280,23 +280,23 @@ imports:
 - name: github.com/spf13/cast
   version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
 - name: github.com/spf13/cobra
-  version: b26b538f693051ac6518e65672de3144ce3fbedc
+  version: b78744579491c1ceeaaa3b40205e56b0591b93a3
 - name: github.com/spf13/jwalterweatherman
   version: 12bd96e66386c1960ab0f74ced1362f66f552f7b
 - name: github.com/spf13/pflag
-  version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
+  version: 7aff26db30c1be810f9de5038ec5ef96ac41fd7c
 - name: github.com/spf13/viper
   version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
 - name: github.com/tealeg/xlsx
   version: a06c872a6c402f194e9c817cf30f3840a75f8ffe
 - name: github.com/ugorji/go
-  version: 5efa3251c7f7d05e5d9704a69a984ec9f1386a40
+  version: 8c0409fcbb70099c748d71f714529204975f6c3f
   subpackages:
   - codec
 - name: github.com/Unknwon/goconfig
   version: 87a46d97951ee1ea20ed3b24c25646a79e87ba5d
 - name: github.com/VividCortex/ewma
-  version: b24eb346a94c3ba12c1da1e564dbac1b498a77ce
+  version: 43880d236f695d39c62cf7aa4ebd4508c258e6c0
 - name: github.com/xanzy/ssh-agent
   version: ba9c9e33906f58169366275e3450db66139a31a9
 - name: github.com/yunify/qingstor-sdk-go
@@ -313,7 +313,7 @@ imports:
   - service
   - utils
 - name: golang.org/x/crypto
-  version: 558b6879de74bc843225cde5686419267ff707ca
+  version: 74b34b9dd60829a9fcaf56a59e81c3877a8ecd2c
   subpackages:
   - bcrypt
   - blowfish
@@ -329,7 +329,7 @@ imports:
   - ssh/agent
   - ssh/terminal
 - name: golang.org/x/net
-  version: e45385e9b226f570b1f086bf287b25d3d4117776
+  version: 66aacef3dd8a676686c7ae3716979581e8b03c47
   subpackages:
   - context
   - context/ctxhttp
@@ -337,18 +337,19 @@ imports:
   - html/atom
   - publicsuffix
 - name: golang.org/x/oauth2
-  version: b53b38ad8a6435bd399ea76d0fa74f23149cca4e
+  version: d89af98d7c6bba047c5a2622f36bc14b8766df85
   subpackages:
   - google
   - internal
   - jws
   - jwt
 - name: golang.org/x/sys
-  version: 0f826bdd13b500be0f1d4004938ad978fcc6031e
+  version: a5054c7c1385fd50d9394475365355a87a7873ec
   subpackages:
   - unix
+  - windows
 - name: golang.org/x/text
-  version: 3bd178b88a8180be2df394a1fbb81313916f0e7b
+  version: bd91bbf73e9a4a801adbfb97133c992678533126
   subpackages:
   - cases
   - collate
@@ -363,7 +364,7 @@ imports:
   subpackages:
   - rate
 - name: google.golang.org/api
-  version: 3c107eb0fd1188c1e2f52a3101424b250162144b
+  version: b6a02105ec5a446209e9d38557f0e1ac30cacf82
   subpackages:
   - drive/v2
   - gensupport
@@ -371,7 +372,7 @@ imports:
   - googleapi/internal/uritemplates
   - storage/v1
 - name: google.golang.org/appengine
-  version: ad2570cd3913654e00c5f0183b39d2f998e54046
+  version: d9a072cfa7b9736e44311ef77b3e09d804bfa599
   subpackages:
   - internal
   - internal/app_identity
@@ -391,9 +392,9 @@ imports:
   subpackages:
   - translations/en
 - name: gopkg.in/Masterminds/squirrel.v1
-  version: 20f192218cf52a73397fa2df45bdda720f3e47c8
+  version: a6b93000bd219143c56c16e6cb1c4b91da3f224b
 - name: gopkg.in/resty.v0
   version: cf81ed0a604d373be63b4c036c6b05c06520615f
 - name: gopkg.in/yaml.v2
-  version: 25c4ec802a7d637f88d584ab26798e94ad14c13b
+  version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
 testImports: []
