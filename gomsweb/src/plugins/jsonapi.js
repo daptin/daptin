@@ -50,8 +50,12 @@ jsonapi.insertMiddlewareBefore('HEADER', {
   name: 'insert-query',
   req: function(payload) {
     var query = $("#navbar-search-input").val();
-    console.log("change payload for query", query);
-    payload.req.params.query = encodeURIComponent(query);
+
+    if (query && query.length > 2) {
+      console.log("change payload for query", query);
+      payload.req.params.filter = encodeURIComponent(query);
+    }
+
     return payload;
   }
 });

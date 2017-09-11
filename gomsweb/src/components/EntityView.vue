@@ -131,7 +131,8 @@
 
       },
       getCurrentTableType() {
-          return that.selectedTable;
+        var that = this;
+        return that.selectedTable;
       },
       deleteRow(row) {
         var that = this;
@@ -354,7 +355,7 @@
           }
         }
       },
-      'query': function() {
+      'query': function () {
         this.setTable();
       }
     }

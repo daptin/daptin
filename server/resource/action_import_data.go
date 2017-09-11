@@ -101,7 +101,7 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 		for _, importedData := range importedDatas {
 			dataAsArray, ok := importedData.([]interface{})
 			if !ok {
-				log.Errorf("Data for [%v] in invalid format")
+				log.Errorf("Data for [%v] in invalid format", tableName)
 				continue
 			}
 
