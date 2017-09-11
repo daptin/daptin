@@ -300,7 +300,7 @@ imports:
 - name: github.com/xanzy/ssh-agent
   version: ba9c9e33906f58169366275e3450db66139a31a9
 - name: github.com/yunify/qingstor-sdk-go
-  version: fba42e3d202dd9924a8a236693c3b675ec00d04c
+  version: 69277cb8cc9c83c40b94161a61cb5487661a1afd
   subpackages:
   - config
   - logger
