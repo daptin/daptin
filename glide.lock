@@ -1,5 +1,5 @@
 hash: b7458dc4ef98d03dd48ea55e35154b91b939c5bb8932aae3de3e28ede4e41cbd
-updated: 2017-09-08T03:15:11.376050835+05:30
+updated: 2017-09-12T02:03:35.794232187+05:30
 imports:
 - name: cloud.google.com/go
   version: 2aa3b3de3db1271dfe6f113c33c185d76da84677
@@ -116,6 +116,8 @@ imports:
   - dropbox/properties
 - name: github.com/etgryphon/stringUp
   version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
+- name: github.com/fsnotify/fsnotify
+  version: 4da3e2cfbabc9f751898f250b49f2439785783a1
 - name: github.com/gedex/inflector
   version: 16278e9db8130ac7ec405dc174cfb94344f16325
 - name: github.com/GeertJohan/go.rice
@@ -151,10 +153,43 @@ imports:
   version: 655cdfa588ea190e901bc5590e65d5621688847c
   subpackages:
   - proto
+- name: github.com/gonum/blas
+  version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
+  subpackages:
+  - blas64
+  - native
+  - native/internal/math32
+- name: github.com/gonum/floats
+  version: f74b330d45c56584a6ea7a27f5c64ea2900631e9
+- name: github.com/gonum/internal
+  version: e57e4534cf9b3b00ef6c0175f59d8d2d34f60914
+  subpackages:
+  - asm/f32
+  - asm/f64
+- name: github.com/gonum/lapack
+  version: 5ed4b826becd1807e09377508f51756586d1a98c
+  subpackages:
+  - lapack64
+  - native
+- name: github.com/gonum/matrix
+  version: dd6034299e4242c9f0ea36735e6d4264dfcb3f9f
+  subpackages:
+  - mat64
 - name: github.com/google/go-querystring
   version: 53e6ce116135b80d037921a7fdd5138cf32d7a8a
   subpackages:
   - query
+- name: github.com/hashicorp/hcl
+  version: 8f6b1344a92ff8877cf24a5de9177bf7d0a2a187
+  subpackages:
+  - hcl/ast
+  - hcl/parser
+  - hcl/scanner
+  - hcl/strconv
+  - hcl/token
+  - json/parser
+  - json/scanner
+  - json/token
 - name: github.com/icrowley/fake
   version: e64cc2cf92049a299f359734c6ea76073f2a8b2c
 - name: github.com/inconshreveable/mousetrap
@@ -179,6 +214,9 @@ imports:
   version: ae77be60afb1dcacde03767a8c37337fad28ac14
 - name: github.com/kniren/gota
   version: 531ec7b7d82e2a7b7355b63011197a29d401aba6
+  subpackages:
+  - dataframe
+  - series
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - name: github.com/lann/builder
@@ -191,14 +229,20 @@ imports:
   - oid
 - name: github.com/looplab/fsm
   version: bcc3636384ce80a109a6039432b30ff5b82476ee
+- name: github.com/magiconair/properties
+  version: 8d7837e64d3c1ee4e54a880c5a920ab4316fc90a
 - name: github.com/mattn/go-isatty
   version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
 - name: github.com/mattn/go-sqlite3
   version: ca5e3819723d8eeaf170ad510e7da1d6d2e94a08
+- name: github.com/mitchellh/mapstructure
+  version: d0303fe809921458f417bcf828397a65db30a7e4
 - name: github.com/ncw/go-acd
   version: 96a49aad3fc3889629f2eceb004927386884bd92
 - name: github.com/ncw/swift
   version: e3042b26a510db220549150362f6733012148d45
+- name: github.com/pelletier/go-toml
+  version: 1d6b12b7cb290426e27e6b4e38b89fcda3aeef03
 - name: github.com/pengsrc/go-shared
   version: 454950d6a0782c34427d4f29b46c6bf447256f20
   subpackages:
@@ -229,10 +273,20 @@ imports:
   version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
   subpackages:
   - open
+- name: github.com/spf13/afero
+  version: ee1bd8ee15a1306d1f9201acc41ef39cd9f99a1b
+  subpackages:
+  - mem
+- name: github.com/spf13/cast
+  version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
 - name: github.com/spf13/cobra
   version: b26b538f693051ac6518e65672de3144ce3fbedc
+- name: github.com/spf13/jwalterweatherman
+  version: 12bd96e66386c1960ab0f74ced1362f66f552f7b
 - name: github.com/spf13/pflag
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
+- name: github.com/spf13/viper
+  version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
 - name: github.com/tealeg/xlsx
   version: a06c872a6c402f194e9c817cf30f3840a75f8ffe
 - name: github.com/ugorji/go
