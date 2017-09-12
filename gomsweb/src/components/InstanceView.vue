@@ -68,7 +68,7 @@
               <h2>Start Tracking</h2>
             </div>
             <div class="col-md-12" v-for="a, k in stateMachines">
-              <button class="btn btn-default" style="width: 100%" @click="addStateMachine(a)">{{a.label}}</button>
+              <button class="btn btn-default" style="width: 100%" @click="addStateMachine(a)">{{a.Label}}</button>
             </div>
           </div>
 
@@ -78,7 +78,7 @@
               <h2>Actions</h2>
             </div>
             <div class="col-md-12" v-for="a, k in actions">
-              <button class="btn btn-default" style="width: 100%" @click="doAction(a)">{{a.label}}</button>
+              <button class="btn btn-default" style="width: 100%" @click="doAction(a)">{{a.Label}}</button>
             </div>
           </div>
 

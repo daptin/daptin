@@ -223,6 +223,6 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 }
 
 type GroupPermission struct {
-	ReferenceId string `json:"reference_id"`
-	Permission  int64  `json:"permission"`
+	ReferenceId string
+	Permission  int64
 }

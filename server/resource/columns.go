@@ -326,6 +326,7 @@ var SystemActions = []Action{
 				Method: "ACTIONRESPONSE",
 				Attributes: map[string]interface{}{
 					"type":    "success",
+					"title": "Success",
 					"message": "Signup Successful",
 				},
 			},

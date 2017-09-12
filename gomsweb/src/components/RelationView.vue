@@ -161,7 +161,6 @@
             console.log("create complete", arguments);
             that.setTable();
             that.showAddEdit = false;
-            that.$refs.tableview1.reloadData(currentTableType);
             that.$refs.tableview2.reloadData(currentTableType)
           }, function (r) {
             console.error(r)
@@ -173,13 +172,9 @@
       reloadData: function () {
         var currentTableType = this.getCurrentTableType();
         var that = this;
-        if (that.$refs.tableview1) {
-          that.$refs.tableview1.reloadData(currentTableType);
 
-        } else if (that.$refs.tableview2) {
-          that.$refs.tableview2.reloadData(currentTableType)
 
-        }
+        that.$refs.tableview2.reloadData(currentTableType)
       },
       newRow() {
         var that = this;
@@ -224,13 +219,7 @@
         all.builderStack = [];
 
 
-        if (that.$refs.tableview1) {
-          console.log("setTable for [tableview1]: ", tableName);
-//          console.log("reload data for selected table", tableName);
-          that.$refs.tableview1.reloadData(tableName)
-        } else {
-//          console.error("no table is active")
-        }
+        that.$refs.tableview2.reloadData(tableName)
 
       },
       logout: function () {

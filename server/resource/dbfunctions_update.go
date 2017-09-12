@@ -127,12 +127,12 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 
 		if ok {
 
-			log.Infof("Stream [%v] already present in db, updating db values")
+			log.Infof("Stream [%v] already present in db, updating db values", stream.StreamName)
 
 
 			s, v, err := squirrel.Update("stream").
 					Set("stream_contract", schema).
-					Where(squirrel.Eq{"name": stream.StreamName}).
+					Where(squirrel.Eq{"stream_name": stream.StreamName}).
 					Where(squirrel.Eq{"deleted_at": nil}).ToSql()
 
 			_, err = db.Exec(s, v...)

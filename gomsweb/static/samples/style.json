@@ -1,232 +1,212 @@
 {
-  "state_machine_descriptions": [
-    {
-      "name": "light_states",
-      "label": "Light status",
-      "initial_state": "green",
-      "events": [
-        {
-          "name": "warn",
-          "label": "warn",
-          "src": [
-            "green"
-          ],
-          "dst": "yellow"
+    "StateMachineDescriptions": [{
+        "Name": "light_states",
+        "Label": "Light status",
+        "InitialState": "green",
+        "Events": [{
+                "Name": "warn",
+                "Label": "warn",
+                "Src": [
+                    "green"
+                ],
+                "Dst": "yellow"
+            },
+            {
+                "Name": "panic",
+                "Label": "panic",
+                "Src": [
+                    "yellow",
+                    "green"
+                ],
+                "Dst": "red"
+            },
+            {
+                "Name": "calm",
+                "Label": "calm",
+                "Src": [
+                    "red"
+                ],
+                "Dst": "yellow"
+            },
+            {
+                "Name": "calm",
+                "Label": "calm",
+                "Src": [
+                    "yellow"
+                ],
+                "Dst": "green"
+            }
+        ]
+    }],
+    "Tables": [{
+            "TableName": "style",
+            "Columns": [{
+                    "Name": "Name",
+                    "DataType": "varchar(500)",
+                    "ColumnType": "Label"
+                },
+                {
+                    "Name": "code",
+                    "DataType": "varchar(100)",
+                    "ColumnType": "Label",
+                    "IsUnique": true
+                }
+            ]
         },
         {
-          "name": "panic",
-          "label": "panic",
-          "src": [
-            "yellow",
-            "green"
-          ],
-          "dst": "red"
+            "TableName": "orders",
+            "Columns": [{
+                "Name": "quantity",
+                "DataType": "int(11)",
+                "ColumnType": "measurement"
+            }]
         },
         {
-          "name": "calm",
-          "label": "calm",
-          "src": [
-            "red"
-          ],
-          "dst": "yellow"
+            "TableName": "vendor",
+            "Columns": [{
+                "Name": "Name",
+                "ColumnType": "Label",
+                "DataType": "varchar(100)"
+            }]
         },
         {
-          "name": "calm",
-          "label": "calm",
-          "src": [
-            "yellow"
-          ],
-          "dst": "green"
-        }
-      ]
-    }
-  ],
-  "tables": [
-    {
-      "tableName": "style",
-      "columns": [
-        {
-          "name": "name",
-          "dataType": "varchar(500)",
-          "columnType": "label"
+            "TableName": "cost",
+            "Columns": [{
+                    "Name": "pre_road_show_cost",
+                    "DataType": "int(11)",
+                    "ColumnType": "measurement"
+                },
+                {
+                    "Name": "Target_cost",
+                    "DataType": "int(11)",
+                    "ColumnType": "measurement"
+                },
+                {
+                    "Name": "post_road_show_cost",
+                    "DataType": "int(11)",
+                    "ColumnType": "measurement"
+                }
+            ]
         },
         {
-          "name": "code",
-          "dataType": "varchar(100)",
-          "columnType": "label",
-          "isUnique": true
+            "TableName": "style_file",
+            "Columns": [{
+                "Name": "color",
+                "DataType": "varchar(100)",
+                "ColumnType": "color"
+            }]
         }
-      ]
-    },
-    {
-      "tableName": "orders",
-      "columns": [
-        {
-          "name": "quantity",
-          "dataType": "int(11)",
-          "columnType": "measurement"
-        }
-      ]
-    },
-    {
-      "tableName": "vendor",
-      "columns": [
-        {
-          "name": "name",
-          "columnType": "label",
-          "dataType": "varchar(100)"
-        }
-      ]
-    },
-    {
-      "tableName": "cost",
-      "columns": [
-        {
-          "name": "pre_road_show_cost",
-          "dataType": "int(11)",
-          "columnType": "measurement"
+    ],
+    "Relations": [{
+            "Subject": "cost",
+            "Relation": "belongs_to",
+            "Object": "style"
         },
         {
-          "name": "target_cost",
-          "dataType": "int(11)",
-          "columnType": "measurement"
+            "Subject": "style",
+            "Relation": "has_one",
+            "Object": "style_file"
         },
         {
-          "name": "post_road_show_cost",
-          "dataType": "int(11)",
-          "columnType": "measurement"
-        }
-      ]
-    },
-    {
-      "tableName": "style_file",
-      "columns": [
-        {
-          "name": "color",
-          "dataType": "varchar(100)",
-          "columnType": "color"
-        }
-      ]
-    }
-  ],
-  "relations": [
-    {
-      "subject": "cost",
-      "relation": "belongs_to",
-      "object": "style"
-    },
-    {
-      "subject": "style",
-      "relation": "has_one",
-      "object": "style_file"
-    },
-    {
-      "subject": "style",
-      "relation": "has_many",
-      "object": "orders"
-    },
-    {
-      "subject": "orders",
-      "relation": "has_one",
-      "object": "vendor"
-    }
-  ],
-  "actions": [
-    {
-      "name": "new_order",
-      "label": "Create a new order for the style",
-      "onType": "style",
-      "fields": [
-        {
-          "columnName": "vendor",
-          "name": "Vendor",
-          "columnType": "vendor"
+            "Subject": "style",
+            "Relation": "has_many",
+            "Object": "orders"
         },
         {
-          "columnName": "quantity",
-          "name": "quantity",
-          "columnType": "measurement"
+            "Subject": "orders",
+            "Relation": "has_one",
+            "Object": "vendor"
         }
-      ],
-      "outcomes": [
-        {
-          "type": "vendor",
-          "method": "POST",
-          "reference": "vendor1",
-          "attributes": {
-            "name": "~vendor"
-          }
+    ],
+    "Actions": [{
+        "Name": "new_order",
+        "Label": "Create a new order for the style",
+        "OnType": "style",
+        "Fields": [{
+                "ColumnName": "vendor",
+                "Name": "Vendor",
+                "ColumnType": "vendor"
+            },
+            {
+                "ColumnName": "quantity",
+                "Name": "quantity",
+                "ColumnType": "measurement"
+            }
+        ],
+        "Outcomes": [{
+                "Type": "vendor",
+                "Method": "POST",
+                "Reference": "vendor1",
+                "Attributes": {
+                    "Name": "~vendor"
+                }
+            },
+            {
+                "Type": "orders",
+                "Method": "POST",
+                "Reference": "order1",
+                "Attributes": {
+                    "vendor_id": "$vendor1.Reference_id",
+                    "quantity": "~quantity"
+                }
+            },
+            {
+                "Type": "style_style_id_has_orders_orders_id",
+                "Method": "POST",
+                "Attributes": {
+                    "orders_id": "$order1.Reference_id",
+                    "style_id": "$.Reference_id"
+                }
+            }
+        ]
+    }],
+    "Exchanges": [{
+            "Name": "Style to excel sync",
+            "SourceAttributes": {
+                "Name": "style"
+            },
+            "SourceType": "self",
+            "TargetAttributes": {
+                "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append"
+            },
+            "TargetType": "gsheet-append",
+            "Attributes": [{
+                "SourceColumn": "$style.title",
+                "TargetColumn": "Style title"
+            }],
+            "Options": {
+                "hasHeader": true
+            }
         },
         {
-          "type": "orders",
-          "method": "POST",
-          "reference": "order1",
-          "attributes": {
-            "vendor_id": "$vendor1.reference_id",
-            "quantity": "~quantity"
-          }
+            "Name": "Order to excel sync",
+            "SourceAttributes": {
+                "Name": "orders"
+            },
+            "SourceType": "self",
+            "TargetAttributes": {
+                "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append"
+            },
+            "TargetType": "gsheet-append",
+            "Attributes": [],
+            "Options": {
+                "hasHeader": true
+            }
         },
         {
-          "type": "style_style_id_has_orders_orders_id",
-          "method": "POST",
-          "attributes": {
-            "orders_id": "$order1.reference_id",
-            "style_id": "$.reference_id"
-          }
+            "Name": "Vendor to excel sync",
+            "SourceAttributes": {
+                "Name": "vendor"
+            },
+            "SourceType": "self",
+            "TargetAttributes": {
+                "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append"
+            },
+            "TargetType": "gsheet-append",
+            "Attributes": [],
+            "Options": {
+                "hasHeader": true
+            }
         }
-      ]
-    }
-  ],
-  "exchanges": [
-    {
-      "name": "Style to excel sync",
-      "sourceAttributes": {
-        "name": "style"
-      },
-      "sourceType": "self",
-      "targetAttributes": {
-        "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append"
-      },
-      "targetType": "gsheet-append",
-      "attributes": [
-        {
-          "sourceColumn": "$style.title",
-          "targetColumn": "Style title"
-        }
-      ],
-      "options": {
-        "hasHeader": true
-      }
-    },
-    {
-      "name": "Order to excel sync",
-      "sourceAttributes": {
-        "name": "orders"
-      },
-      "sourceType": "self",
-      "targetAttributes": {
-        "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append"
-      },
-      "targetType": "gsheet-append",
-      "attributes": [],
-      "options": {
-        "hasHeader": true
-      }
-    },
-    {
-      "name": "Vendor to excel sync",
-      "sourceAttributes": {
-        "name": "vendor"
-      },
-      "sourceType": "self",
-      "targetAttributes": {
-        "sheetUrl": "https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append"
-      },
-      "targetType": "gsheet-append",
-      "attributes": [],
-      "options": {
-        "hasHeader": true
-      }
-    }
-  ]
+    ]
 }

@@ -68,7 +68,7 @@ const WorldManager = function () {
     }).then(function (r) {
       if (r.status == 200) {
         var r = r.data;
-        // console.log("Loaded Model inside :", typeName)
+        console.log("Loaded Model inside :", typeName)
         if (r.Actions.length > 0) {
           console.log("Register actions", typeName, r.Actions,)
           actionManager.addAllActions(r.Actions);
@@ -106,7 +106,7 @@ const WorldManager = function () {
 
 
   that.GetJsonApiModel = function (columnModel) {
-    // console.log('get json api model for ', columnModel);
+    console.log('get json api model for ', columnModel);
     var model = {};
     if (!columnModel) {
       console.log("Column model is empty", columnModel);
@@ -168,58 +168,65 @@ const WorldManager = function () {
           jsonApi.define("usergroup", that.GetJsonApiModel(columnKeys.ColumnModel));
 
           that.modelLoader("world", function (columnKeys) {
-            jsonApi.define("world", that.GetJsonApiModel(columnKeys.ColumnModel));
-            // console.log("world column keys", columnKeys, that.GetJsonApiModel(columnKeys.ColumnModel))
-            console.log("Defined world", columnKeys.ColumnModel);
-            that.systemActions = columnKeys.Actions;
+            that.modelLoader("stream", function (streamKeys) {
+
+              jsonApi.define("world", that.GetJsonApiModel(columnKeys.ColumnModel));
+              jsonApi.define("stream", that.GetJsonApiModel(streamKeys.ColumnModel));
+              // console.log("world column keys", columnKeys, that.GetJsonApiModel(columnKeys.ColumnModel))
+              console.log("Defined world", columnKeys.ColumnModel);
+              that.systemActions = columnKeys.Actions;
 
 
-            jsonApi.findAll('world', {
-              page: {number: 1, size: 500},
-              include: ['world_column']
-            }).then(function (res) {
-              that.worlds = res;
-              store.commit("SET_WORLDS", res)
-              console.log("Get all worlds result", res)
-              // resolve("Stuff worked!");
-              var total = res.length;
+              jsonApi.findAll('world', {
+                page: {number: 1, size: 500},
+                include: ['world_column']
+              }).then(function (res) {
+                that.worlds = res;
+                store.commit("SET_WORLDS", res)
+                console.log("Get all worlds result", res)
+                // resolve("Stuff worked!");
+                var total = res.length;
 
-              for (var t = 0; t < res.length; t++) {
-                (function (typeName) {
-                  that.modelLoader(typeName, function (model) {
-                    console.log("Loaded model", typeName, model);
+                for (var t = 0; t < res.length; t++) {
+                  (function (typeName) {
+                    that.modelLoader(typeName, function (model) {
+                      // console.log("Loaded model", typeName, model);
 
-                    total -= 1;
+                      total -= 1;
 
-                    if (total < 1 && promise !== null) {
-                      resolve("Stuff worked!");
-                      promise = null;
-                    }
+                      if (total < 1 && promise !== null) {
+                        resolve("Stuff worked!");
+                        promise = null;
+                      }
 
-                    jsonApi.define(typeName, that.GetJsonApiModel(model.ColumnModel));
-                  })
-                })(res[t].table_name)
+                      jsonApi.define(typeName, that.GetJsonApiModel(model.ColumnModel));
+                    })
+                  })(res[t].table_name)
 
-              }
-            });
+                }
+              });
 
-            jsonApi.findAll('stream', {
-              page: {number: 1, size: 500},
-            }).then(function (res) {
-              that.streams = res;
-              store.commit("SET_STREAMS", res);
-              console.log("Get all streams result", res);
 
-              var total = res.length;
-              for (var t = 0; t < total; t++) {
-                (function (typename) {
-                  that.modelLoader(typename, function (model) {
-                    console.log("Loaded stream model", typename, model);
-                  });
-                  jsonApi.define(typename, that.GetJsonApiModel(model.ColumnModel));
-                })(res[t].stream_name)
-              }
+              jsonApi.findAll('stream', {
+                page: {number: 1, size: 500},
+              }).then(function (res) {
+                that.streams = res;
+                store.commit("SET_STREAMS", res);
+                console.log("Get all streams result", res);
+
+                var total = res.length;
+                for (var t = 0; t < total; t++) {
+                  (function (typename) {
+                    that.modelLoader(typename, function (model) {
+                      console.log("Loaded stream model", typename, model);
+                    });
+                    jsonApi.define(typename, that.GetJsonApiModel(model.ColumnModel));
+                  })(res[t].stream_name)
+                }
+              });
+
             })
+
 
           })
         });

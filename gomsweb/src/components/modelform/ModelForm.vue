@@ -309,7 +309,7 @@
                 console.warn("Validation error in Name field! Errors:", errors);
             }
           };
-
+          console.log("check column meta for entity", columnMeta)
           if (columnMeta.ColumnType == "entity") {
             if (columnMeta.jsonApi == "hasOne") {
               resVal.value = that.model[resVal.ColumnName];
