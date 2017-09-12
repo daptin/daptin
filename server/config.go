@@ -41,7 +41,7 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 	globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
 	globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
 
-	files, err := filepath.Glob("schema_*_gocms.json")
+	files, err := filepath.Glob("schema_*_gocms.*")
 	log.Infof("Found files to load: %v", files)
 
 	if err != nil {
@@ -84,6 +84,10 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 
 		for _, table := range initConfig.Tables {
 			log.Infof("Table: %v: %v", table.TableName, table.Columns)
+		}
+
+		for _, action := range initConfig.Actions {
+			log.Infof("Action [%v][%v]", fileName, action.Name)
 		}
 
 		//log.Infof("File added to config, deleting %v", fileName)

@@ -1,7 +1,7 @@
 {
-    "tables": [{
-            "tableName": "merchant",
-            "columns": [{
+    "Tables": [{
+            "TableName": "merchant",
+            "Columns": [{
                     "Name": "name",
                     "ColumnName": "name",
                     "ColumnDescription": "",
@@ -27,8 +27,8 @@
             ]
         },
         {
-            "tableName": "integration",
-            "columns": [{
+            "TableName": "integration",
+            "Columns": [{
                     "Name": "description",
                     "ColumnName": "description",
                     "ColumnDescription": "",
@@ -131,9 +131,9 @@
             ]
         }
     ],
-    "relations": [{
-        "subject": "integration",
-        "relation": "belongs_to",
-        "object": "merchant"
+    "Relations": [{
+        "Subject": "integration",
+        "Relation": "belongs_to",
+        "Object": "merchant"
     }]
 }

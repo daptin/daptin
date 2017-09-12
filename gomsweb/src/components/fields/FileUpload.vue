@@ -10,7 +10,7 @@
     :file-list="fileList">
 
     <el-button size="small" type="primary">Add file</el-button>
-    <div slot="tip" class="el-upload__tip">File type: {{schema.inputType}}</div>
+    <div slot="tip" class="el-upload__tip">File type: {{schema.inputType.split("|").join(" or ")}}</div>
 
   </el-upload>
 </template>
@@ -27,7 +27,7 @@
         fileList: []
       }
     },
-    mounted(){
+    mounted() {
       setTimeout(function () {
         let $input = $("input[type=file]");
         if ($input && $input.length > 0) {
@@ -60,8 +60,18 @@
       processFile: function (file, filelist) {
         console.log("provided schema", this.schema, file.raw)
 
-        if (this.schema.inputType != "*") {
-          const isFileTypeOkay = file.raw.type === this.schema.inputType;
+        let expectedFileType = this.schema.inputType;
+        if (expectedFileType != "*") {
+          var allTypes = expectedFileType.split("|");
+
+          var fileName = file.raw.name;
+          var fileNameParts = fileName.split(".")
+          var fileExtension = "";
+          if (fileNameParts.length > 1) {
+            fileExtension = fileNameParts[fileNameParts.length - 1];
+          }
+
+          const isFileTypeOkay = allTypes.indexOf(fileExtension) > -1;
 
           if (!isFileTypeOkay) {
 
@@ -72,9 +82,11 @@
               }
             }
 
-            this.$message.error('Please select a ' + this.schema.inputType + ' file. You are uploading: ' + file.raw.type);
+            this.$message.error('Please select a ' + expectedFileType + ' file. You are uploading: ' + file.raw.type);
             return isFileTypeOkay;
           }
+
+
         }
 
         var that = this;
