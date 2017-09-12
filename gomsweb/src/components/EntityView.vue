@@ -231,12 +231,9 @@
         all.builderStack = [];
 
 
+        console.log("setTable for [tableview1]: ", tableName);
         if (that.$refs.tableview1) {
-          console.log("setTable for [tableview1]: ", tableName);
-//          console.log("reload data for selected table", tableName);
           that.$refs.tableview1.reloadData(tableName)
-        } else {
-//          console.error("no table is active")
         }
 
       },
@@ -251,7 +248,7 @@
 
       that.actionManager = actionManager;
       const worldActions = actionManager.getActions("world");
-
+      console.log("world actions", worldActions)
 
       that.addExchangeAction = actionManager.getActionModel("world", "add-exchange");
 

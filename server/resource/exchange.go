@@ -24,14 +24,14 @@ type ColumnMapping []ColumnMap
 
 type ExchangeContract struct {
 	Name             string
-	SourceAttributes map[string]interface{} `db:"source_attributes",json:"source_attributes"`
-	SourceType       string `db:"source_type",json:"source_type"`
-	TargetAttributes map[string]interface{} `db:"target_attributes",json:"target_attributes"`
-	TargetType       string `db:"target_type",json:"target_type"`
-	Attributes       []ColumnMap `db:"attributes",json:"attributes"`
+	SourceAttributes map[string]interface{} `db:"source_attributes"`
+	SourceType       string `db:"source_type"`
+	TargetAttributes map[string]interface{} `db:"target_attributes"`
+	TargetType       string `db:"target_type"`
+	Attributes       []ColumnMap `db:"attributes"`
 	Options          map[string]interface{}
-	ReferenceId      string `db:"reference_id",json:"reference_id"`
-	OauthTokenId     *int64 `db:"oauth_token_id",json:"oauth_token_id"`
+	ReferenceId      string `db:"reference_id"`
+	OauthTokenId     *int64 `db:"oauth_token_id"`
 }
 
 var objectSuffix = []byte("{")

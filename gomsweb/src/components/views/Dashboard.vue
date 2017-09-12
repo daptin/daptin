@@ -15,13 +15,7 @@
           {{crumb.label}}
         </li>
       </ol>
-      <!--<div class="pull-right">-->
-        <!--<div class="ui icon buttons">-->
-          <!--<button class="btn btn-box-tool" @click.prevent="editRow()"><i-->
-            <!--class="fa fa-3x fa-pencil-square teal"></i>-->
-          <!--</button>-->
-        <!--</div>-->
-      <!--</div>-->
+
     </section>
 
     <!-- Main content -->
@@ -86,15 +80,33 @@
 
         </div>
 
-      </div>
+        <div class="col-md-6">
 
-      <div class="row">
-        <div class="col-md-12">
+          <div class="row">
+            <div class="col-md-12">
+              <h3>New Entity</h3>
 
-          <router-link :to="{name: 'NewItem'}"
-                       style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
-            <i style="font-size: 30px" class="fa fa-3x fa-plus green"></i>New Entity
-          </router-link>
+              <div class="row">
+
+                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-plus green"></i>Upload JSON
+                </router-link>
+
+
+
+                <router-link :to="{name: 'NewItem'}"
+                             style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-plus green"></i>New Entity
+                </router-link>
+
+
+              </div>
+
+            </div>
+          </div>
+
+
 
           <router-link :to="{name: 'NewEntity', params: {tablename: 'data_exchange'}}"
                        style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
@@ -110,6 +122,11 @@
           </router-link>
 
         </div>
+
+
+      </div>
+
+      <div class="row">
       </div>
     </section>
     <!-- /.content -->

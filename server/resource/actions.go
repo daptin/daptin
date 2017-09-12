@@ -5,30 +5,30 @@ import (
 )
 
 type Outcome struct {
-	Type       string `json:"type"`
-	Method     string `json:"method"`
+	Type       string
+	Method     string
 	Reference  string
-	Attributes map[string]interface{} `json:"attributes"`
+	Attributes map[string]interface{}
 }
 
 type Action struct {
-	Name             string              `json:"name"`
-	Label            string              `json:"label"`
-	OnType           string              `json:"onType"`
-	InstanceOptional bool              `json:"instanceOptional"`
-	ReferenceId      string              `json:"reference_id"`
-	InFields         []api2go.ColumnInfo `json:"fields"`
-	OutFields        []Outcome           `json:"outcomes"`
-	Validations      []ColumnTag         `json:"validations"`
-	Conformations    []ColumnTag         `json:"conformations"`
+	Name             string
+	Label            string
+	OnType           string
+	InstanceOptional bool
+	ReferenceId      string
+	InFields         []api2go.ColumnInfo
+	OutFields        []Outcome
+	Validations      []ColumnTag
+	Conformations    []ColumnTag
 }
 
 type ActionRow struct {
-	Name             string `json:"name"`
-	Label            string `json:"label"`
-	OnType           string `json:"onType"`
-	InstanceOptional bool   `db:"instance_optional",json:"instance_optional"`
-	ReferenceId      string `json:"reference_id"`
+	Name             string
+	Label            string
+	OnType           string
+	InstanceOptional bool   `db:"instance_optional"`
+	ReferenceId      string
 	ActionSchema     string `db:"action_schema"`
 }
 

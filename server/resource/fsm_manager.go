@@ -66,10 +66,10 @@ type LoopbackEventDesc struct {
 }
 
 type LoopbookFsmDescription struct {
-  InitialState string `json:"initial_state"`
+  InitialState string
   Name         string
   Label        string
-  Events       []LoopbackEventDesc `json:"events"`
+  Events       []LoopbackEventDesc
 }
 
 func (fsm *fsmManager) stateMachineRunnerFor(currentState string, typeName string, machineId int64) (*loopfsm.FSM, error) {
