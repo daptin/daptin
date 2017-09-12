@@ -387,13 +387,15 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 			f := file.(map[string]interface{})
 			fileName := f["name"].(string)
 			log.Infof("File name: %v", fileName)
+			fileNameParts := strings.Split(fileName, ".")
+			fileFormat := fileNameParts[len(fileNameParts) - 1]
 			fileContentsBase64 := f["file"].(string)
 			fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
 			if err != nil {
 				return nil, returnRequest, err
 			}
 
-			jsonFileName := fmt.Sprintf("schema_%v_gocms.json", fileName)
+			jsonFileName := fmt.Sprintf("schema_%v_gocms.%v", fileName, fileFormat)
 			err = ioutil.WriteFile(jsonFileName, fileBytes, 0644)
 			if err != nil {
 				log.Errorf("Failed to write json file: %v", jsonFileName)

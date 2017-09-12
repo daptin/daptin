@@ -66,6 +66,7 @@ window.chooseTitle = function (obj) {
   if (!obj) {
     return "_"
   }
+  console.log("choose title for ", obj)
 
   var candidates = ["name", "model", "title", "label"];
 
