@@ -3,11 +3,11 @@
   <div class="box" v-if="action">
     <div v-if="!hideTitle" class="box-header">
       <div class="box-title">
-        <h1> {{action.label}}</h1>
+        <h1> {{action.Label}}</h1>
       </div>
     </div>
     <div class="box-body">
-      <div class="col-md-12" v-if="!finalModel && !action.instanceOptional">
+      <div class="col-md-12" v-if="!finalModel && !action.InstanceOptional">
         <select-one-or-more :value="finalModel" :schema="modelSchema" @save="setModel"></select-one-or-more>
       </div>
       <div class="col-md-12">
@@ -73,19 +73,19 @@
       doAction(actionData){
         var that = this;
 
-        if (!this.finalModel && !this.action.instanceOptional) {
+        if (!this.finalModel && !this.action.InstanceOptional) {
           Notification.error({
             title: "Error",
-            message: "Please select a " + this.action.onType,
+            message: "Please select a " + this.action.OnType,
           });
           return
         }
         console.log("perform action", actionData, this.finalModel);
         if (this.finalModel && Object.keys(this.finalModel).indexOf("id") > -1) {
-          actionData[this.action.onType + "_id"] = this.finalModel["id"]
+          actionData[this.action.OnType + "_id"] = this.finalModel["id"]
         } else {
         }
-        that.actionManager.doAction(that.action.onType, that.action.name, actionData).then(function () {
+          that.actionManager.doAction(that.action.OnType, that.action.Name, actionData).then(function () {
           that.$emit("action-complete", that.action);
         }, function () {
           console.log("not clearing out the form")
@@ -104,31 +104,29 @@
         var that = this;
         console.log("render action ", that.action, " on ", that.model);
         that.finalModel = that.model;
-        var worldName = that.action.onType;
-        var worldSchema = jsonApi.modelFor(worldName);
-
+        var worldName = that.action.OnType;
         that.modelSchema = {
           inputType: worldName,
           value: null,
           multiple: false,
-          name: that.action.onType,
+          name: that.action.OnType,
         };
 
         var meta = {};
 
-        for (var i = 0; this.action.fields && i < this.action.fields.length; i++) {
-          meta[this.action.fields[i].ColumnName] = that.action.fields[i]
+        for (var i = 0; this.action.InFields && i < this.action.InFields.length; i++) {
+          meta[this.action.InFields[i].ColumnName] = that.action.InFields[i]
         }
 
-        if (this.action.fields && this.action.fields.length == 0 && this.action.instanceOptional) {
+        if (this.action.InFields && this.action.InFields.length == 0 && this.action.InstanceOptional) {
 
           var payload = {};
 
           if (this.finalModel && this.finalModel["id"]) {
-            payload[this.action.onType + "_id"] = this.finalModel["id"];
+            payload[this.action.OnType + "_id"] = this.finalModel["id"];
           }
 
-          this.actionManager.doAction(this.action.onType, this.action.name, payload).then(function () {
+          this.actionManager.doAction(this.action.OnType, this.action.Name, payload).then(function () {
           }, function () {
 
           });
@@ -136,7 +134,7 @@
             that.$emit("cancel");
           }, 400);
         }
-
+        console.log("action meta", meta);
         this.meta = meta;
       },
     },
@@ -144,26 +142,11 @@
       console.log("Mounted action view");
       this.init();
     },
-//    updated: function () {
-//      console.log("Updated action view");
-//      this.init();
-//    },
     watch: {
       'action': function (newValue) {
         console.log("ActionView: action changed");
-//        this.action = actionManager.getActionModel(this.$route.params.tablename, newValue);
         this.init();
       },
-//      '$route.params.actionname': function (newValue) {
-//        console.log("ActionView: action changed");
-//        this.action = actionManager.getActionModel(this.$route.params.tablename, newValue);
-//        this.init();
-//      },
-//      '$route.params.tablename': function (newValue) {
-//        console.log("ActionView: world changed");
-//        this.action = actionManager.getActionModel(newValue, this.$route.params.actionname);
-//        this.init();
-//      },
     },
   }
 </script>s

@@ -83,7 +83,8 @@
                     "content",
                     "file",
                     "url",
-                    "image"
+                    "image",
+                    "json"
                   ]
                 },
                 IsPrimaryKey: {

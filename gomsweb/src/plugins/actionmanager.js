@@ -166,13 +166,13 @@ const ActionManager = function () {
 
     for (var i = 0; i < actions.length; i++) {
       var action = actions[i];
-      var onType = action["onType"];
+      var onType = action["OnType"];
 
       if (!that.actionMap[onType]) {
         that.actionMap[onType] = {};
       }
 
-      that.actionMap[onType][action["name"]] = action;
+      that.actionMap[onType][action["Name"]] = action;
     }
   };
 

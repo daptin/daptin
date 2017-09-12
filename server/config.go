@@ -60,7 +60,13 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 		}
 
 		initConfig := resource.CmsConfig{}
-		err = viper.UnmarshalKey("tables", &initConfig.Tables)
+		err = viper.Unmarshal(&initConfig)
+		//err = viper.UnmarshalKey("tables", &initConfig.Relations)
+		//err = viper.UnmarshalKey("tables", &initConfig.Streams)
+		//err = viper.UnmarshalKey("tables", &initConfig.ExchangeContracts)
+		//err = viper.UnmarshalKey("tables", &initConfig.StateMachineDescriptions)
+		//err = viper.UnmarshalKey("tables", &initConfig.Actions)
+		//err = viper.UnmarshalKey("tables", &initConfig.Imports)
 		all := viper.AllSettings()
 		log.Infof("All settings", all)
 		if err != nil {
