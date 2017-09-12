@@ -104,7 +104,7 @@ var SystemActions = []Action{
 			{
 				Name:       "JSON Dump file",
 				ColumnName: "json_dump_file",
-				ColumnType: "file.application/json",
+				ColumnType: "file.application/json|application/yaml|application/toml|application/hcl",
 				IsNullable: false,
 			},
 			{
@@ -158,7 +158,7 @@ var SystemActions = []Action{
 			{
 				Name:       "Schema JSON file",
 				ColumnName: "schema_json_file",
-				ColumnType: "file.application/json",
+				ColumnType: "file.json|yaml|toml|hcl",
 				IsNullable: false,
 			},
 		},

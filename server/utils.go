@@ -174,7 +174,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig) resource.MiddlewareSet {
 
 func CleanUpConfigFiles() {
 
-	files, _ := filepath.Glob("schema_*_gocms.json")
+	files, _ := filepath.Glob("schema_*_gocms.*")
 	log.Infof("Clean up config files: %v", files)
 
 	for _, fileName := range files {
