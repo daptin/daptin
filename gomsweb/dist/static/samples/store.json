@@ -1,85 +1,85 @@
 {
-    "tables": [{
-            "tableName": "inventory",
-            "columns": [{
-                "name": "name",
+    "Tables": [{
+            "TableName": "inventory",
+            "Columns": [{
+                "Name": "Name",
                 "dataType": "varchar(100)",
-                "columnType": "label",
-                "isIndexed": true
+                "ColumnType": "Label",
+                "IsIndexed": true
             }, {
-                "name": "description",
-                "dataType": "text",
-                "columnType": "label"
+                "Name": "description",
+                "DataType": "text",
+                "ColumnType": "Label"
             }, {
-                "name": "line_items",
-                "dataType": "int(11)",
-                "columnType": "measurement"
+                "Name": "line_items",
+                "DataType": "int(11)",
+                "ColumnType": "measurement"
             }],
-            "conformations": [{
-                "columnName": "order",
-                "tags": "numeric"
+            "Conformations": [{
+                "ColumnName": "order",
+                "Tags": "numeric"
             }],
-            "validations": [{
-                "columnName": "title",
-                "tags": "required"
+            "Validations": [{
+                "ColumnName": "title",
+                "Tags": "required"
             }]
         },
         {
-            "tableName": "sale",
-            "columns": [{
-                "name": "is_returned",
-                "dataType": "bool",
-                "columnType": "truefalse",
-                "defaultValue": "0"
+            "TableName": "sale",
+            "Columns": [{
+                "Name": "is_returned",
+                "DataType": "bool",
+                "ColumnType": "truefalse",
+                "DefaultValue": "0"
             }]
         }
     ],
-    "relations": [{
-        "subject": "inventory",
-        "relation": "has_many",
-        "object": "sale"
+    "Relations": [{
+        "Subject": "inventory",
+        "Relation": "has_many",
+        "Object": "sale"
     }],
-    "actions": [{
-            "name": "new_purchase",
-            "label": "Purchase",
-            "onType": "inventory",
-            "instanceOptional": false,
-            "fields": [],
-            "outcomes": [{
-                    "type": "sale",
-                    "method": "POST",
-                    "reference": "sale",
-                    "attributes": {}
+    "Actions": [{
+            "Name": "new_purchase",
+            "Label": "Purchase",
+            "OnType": "inventory",
+            "InstanceOptional": false,
+            "Fields": [],
+            "Outcomes": [{
+                    "Type": "sale",
+                    "Method": "POST",
+                    "Reference": "sale",
+                    "Attributes": {}
                 }, {
-                    "type": "inventory",
-                    "method": "UPDATE",
-                    "attributes": {
+                    "Type": "inventory",
+                    "Method": "UPDATE",
+                    "Attributes": {
                         "line_items": "!subject.line_items - 1",
                         "reference_id": "$.reference_id"
                     }
                 },
                 {
-                    "type": "inventory_inventory_id_has_sale_sale_id",
-                    "method": "POST",
-                    "reference": "inventory_sale",
-                    "attributes": {
+                    "Type": "inventory_inventory_id_has_sale_sale_id",
+                    "Method": "POST",
+                    "Reference": "inventory_sale",
+                    "Attributes": {
                         "sale_id": "$sale.reference_id",
                         "inventory_id": "$.reference_id"
                     }
                 },
                 {
-                    "type": "client.notify",
-                    "method": "ACTIONRESPONSE",
-                    "attributes": {
-                        "type": "success",
+                    "Type": "client.notify",
+                    "Method": "ACTIONRESPONSE",
+                    "Attributes": {
+                        "Type": "success",
                         "message": "You have purchased a new item",
                         "title": "Wait for it"
                     }
                 },
                 {
-                    "type": "client.redirect",
-                    "method": "ACTIONRESPONSE",
-                    "attributes": {
+                    "Type": "client.redirect",
+                    "Method": "ACTIONRESPONSE",
+                    "Attributes": {
                         "location": "/in/item/sale/$sale.reference_id",
                         "window": "self",
                         "delay": "1000"
@@ -88,19 +88,19 @@
             ]
         },
         {
-            "name": "return",
-            "label": "Return item",
-            "onType": "sale",
-            "instanceOptional": false,
-            "outcomes": [{
-                "type": "sale",
-                "method": "UPDATE",
-                "attributes": {
+            "Name": "return",
+            "Label": "Return item",
+            "OnType": "sale",
+            "InstanceOptional": false,
+            "Outcomes": [{
+                "Type": "sale",
+                "Method": "UPDATE",
+                "Attributes": {
                     "is_returned": "1",
                     "reference_id": "$.reference_id"
                 }
             }]
         }
     ],
-    "exchanges": []
+    "Exchanges": []
 }
