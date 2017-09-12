@@ -5,9 +5,9 @@ import (
 )
 
 type Permission struct {
-	UserId      string                 `json:"user_id"`
-	UserGroupId []auth.GroupPermission `json:"usergroup_id"`
-	Permission  int64                  `json:"permission"`
+	UserId      string
+	UserGroupId []auth.GroupPermission
+	Permission  int64
 }
 
 func (p Permission) CanExecute(userId string, usergroupId []auth.GroupPermission) bool {

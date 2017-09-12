@@ -25,6 +25,9 @@ export default {
     console.log("SET_SELECTED_TABLE", selectedTable);
     state.selectedTable = selectedTable;
   },
+  SET_STREAMS(state, streams) {
+    state.streams = streams;
+  },
   SET_SELECTED_SUB_TABLE(state, selectedSubTable) {
     state.selectedSubTable = selectedSubTable;
   },
