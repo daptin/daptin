@@ -41,14 +41,14 @@
     "Tables": [{
             "TableName": "style",
             "Columns": [{
-                    "Name": "Name",
+                    "Name": "name",
                     "DataType": "varchar(500)",
-                    "ColumnType": "Label"
+                    "ColumnType": "label"
                 },
                 {
                     "Name": "code",
                     "DataType": "varchar(100)",
-                    "ColumnType": "Label",
+                    "ColumnType": "label",
                     "IsUnique": true
                 }
             ]
@@ -64,8 +64,8 @@
         {
             "TableName": "vendor",
             "Columns": [{
-                "Name": "Name",
-                "ColumnType": "Label",
+                "Name": "name",
+                "ColumnType": "label",
                 "DataType": "varchar(100)"
             }]
         },
@@ -122,7 +122,7 @@
         "Name": "new_order",
         "Label": "Create a new order for the style",
         "OnType": "style",
-        "Fields": [{
+        "InFields": [{
                 "ColumnName": "vendor",
                 "Name": "Vendor",
                 "ColumnType": "vendor"
@@ -133,12 +133,12 @@
                 "ColumnType": "measurement"
             }
         ],
-        "Outcomes": [{
+        "OutFields": [{
                 "Type": "vendor",
                 "Method": "POST",
                 "Reference": "vendor1",
                 "Attributes": {
-                    "Name": "~vendor"
+                    "name": "~vendor"
                 }
             },
             {
@@ -146,7 +146,7 @@
                 "Method": "POST",
                 "Reference": "order1",
                 "Attributes": {
-                    "vendor_id": "$vendor1.Reference_id",
+                    "vendor_id": "$vendor1.reference_id",
                     "quantity": "~quantity"
                 }
             },
@@ -154,8 +154,8 @@
                 "Type": "style_style_id_has_orders_orders_id",
                 "Method": "POST",
                 "Attributes": {
-                    "orders_id": "$order1.Reference_id",
-                    "style_id": "$.Reference_id"
+                    "orders_id": "$order1.reference_id",
+                    "style_id": "$.reference_id"
                 }
             }
         ]
