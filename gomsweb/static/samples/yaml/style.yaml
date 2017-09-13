@@ -1,0 +1,137 @@
+---
+StateMachineDescriptions:
+- Name: light_states
+  Label: Light status
+  InitialState: green
+  Events:
+  - Name: warn
+    Label: warn
+    Src:
+    - green
+    Dst: yellow
+  - Name: panic
+    Label: panic
+    Src:
+    - yellow
+    - green
+    Dst: red
+  - Name: calm
+    Label: calm
+    Src:
+    - red
+    Dst: yellow
+  - Name: calm
+    Label: calm
+    Src:
+    - yellow
+    Dst: green
+Tables:
+- TableName: style
+  Columns:
+  - Name: name
+    DataType: varchar(500)
+    ColumnType: label
+  - Name: code
+    DataType: varchar(100)
+    ColumnType: label
+    IsUnique: true
+- TableName: orders
+  Columns:
+  - Name: quantity
+    DataType: int(11)
+    ColumnType: measurement
+- TableName: vendor
+  Columns:
+  - Name: name
+    ColumnType: label
+    DataType: varchar(100)
+- TableName: cost
+  Columns:
+  - Name: pre_road_show_cost
+    DataType: int(11)
+    ColumnType: measurement
+  - Name: Target_cost
+    DataType: int(11)
+    ColumnType: measurement
+  - Name: post_road_show_cost
+    DataType: int(11)
+    ColumnType: measurement
+- TableName: style_file
+  Columns:
+  - Name: color
+    DataType: varchar(100)
+    ColumnType: color
+Relations:
+- Subject: cost
+  Relation: belongs_to
+  Object: style
+- Subject: style
+  Relation: has_one
+  Object: style_file
+- Subject: style
+  Relation: has_many
+  Object: orders
+- Subject: orders
+  Relation: has_one
+  Object: vendor
+Actions:
+- Name: new_order
+  Label: Create a new order for the style
+  OnType: style
+  InFields:
+  - ColumnName: vendor
+    Name: Vendor
+    ColumnType: vendor
+  - ColumnName: quantity
+    Name: quantity
+    ColumnType: measurement
+  OutFields:
+  - Type: vendor
+    Method: POST
+    Reference: vendor1
+    Attributes:
+      name: "~vendor"
+  - Type: orders
+    Method: POST
+    Reference: order1
+    Attributes:
+      vendor_id: "$vendor1.reference_id"
+      quantity: "~quantity"
+  - Type: style_style_id_has_orders_orders_id
+    Method: POST
+    Attributes:
+      orders_id: "$order1.reference_id"
+      style_id: "$.reference_id"
+Exchanges:
+- Name: Style to excel sync
+  SourceAttributes:
+    Name: style
+  SourceType: self
+  TargetAttributes:
+    sheetUrl: https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append
+  TargetType: gsheet-append
+  Attributes:
+  - SourceColumn: "$style.title"
+    TargetColumn: Style title
+  Options:
+    hasHeader: true
+- Name: Order to excel sync
+  SourceAttributes:
+    Name: orders
+  SourceType: self
+  TargetAttributes:
+    sheetUrl: https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append
+  TargetType: gsheet-append
+  Attributes: []
+  Options:
+    hasHeader: true
+- Name: Vendor to excel sync
+  SourceAttributes:
+    Name: vendor
+  SourceType: self
+  TargetAttributes:
+    sheetUrl: https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append
+  TargetType: gsheet-append
+  Attributes: []
+  Options:
+    hasHeader: true

@@ -2,14 +2,14 @@
     "Tables": [{
             "TableName": "inventory",
             "Columns": [{
-                "Name": "Name",
+                "Name": "name",
                 "dataType": "varchar(100)",
-                "ColumnType": "Label",
+                "ColumnType": "label",
                 "IsIndexed": true
             }, {
                 "Name": "description",
                 "DataType": "text",
-                "ColumnType": "Label"
+                "ColumnType": "label"
             }, {
                 "Name": "line_items",
                 "DataType": "int(11)",
@@ -44,8 +44,8 @@
             "Label": "Purchase",
             "OnType": "inventory",
             "InstanceOptional": false,
-            "Fields": [],
-            "Outcomes": [{
+            "InFields": [],
+            "OutFields": [{
                     "Type": "sale",
                     "Method": "POST",
                     "Reference": "sale",
@@ -71,7 +71,7 @@
                     "Type": "client.notify",
                     "Method": "ACTIONRESPONSE",
                     "Attributes": {
-                        "Type": "success",
+                        "type": "success",
                         "message": "You have purchased a new item",
                         "title": "Wait for it"
                     }
@@ -92,7 +92,7 @@
             "Label": "Return item",
             "OnType": "sale",
             "InstanceOptional": false,
-            "Outcomes": [{
+            "OutFields": [{
                 "Type": "sale",
                 "Method": "UPDATE",
                 "Attributes": {

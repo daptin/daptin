@@ -96,14 +96,14 @@ Actions:
   Label: New to do
   OnType: project
   InstanceOptional: true
-  Fields:
+  InFields:
   - ColumnName: description
     Name: Description
     ColumnType: label
   - ColumnName: schedule
     Name: Scheduled at
     ColumnType: date
-  Outcomes:
+  OutFields:
   - Type: todo
     Method: POST
     Attributes:
@@ -134,7 +134,7 @@ Actions:
 - Name: completed
   Label: Completed
   OnType: todo
-  Outcomes:
+  OutFields:
   - Type: todo
     Method: UPDATE
     Attributes:
@@ -144,11 +144,11 @@ Actions:
   Label: New project category
   OnType: project
   InstanceOptional: true
-  Fields:
+  InFields:
   - ColumnName: name
-    Name: Name
+    Name: name
     ColumnType: label
-  Outcomes:
+  OutFields:
   - Type: project
     Method: POST
     Attributes:
@@ -162,7 +162,7 @@ Actions:
 - Name: new_data_exchange
   Label: Sync tasks to Google sheet
   OnType: data_exchange
-  Fields:
+  InFields:
   - ColumnName: sheetUrl
     Name: Sheet url
     ColumnType: url
@@ -170,7 +170,7 @@ Actions:
     Name: Include all Columns ?
     ColumnType: boolean
     DefaultValue: 'false'
-  Outcomes:
+  OutFields:
   - Type: data_exchange
     Method: POST
     Attributes:
