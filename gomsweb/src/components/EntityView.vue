@@ -23,18 +23,23 @@
       <div class="box-tools pull-right">
         <div class="ui icon buttons">
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'"><i
-            class="fa  fa-2x fa-table maroon "></i>
+            class="fa  fa-2x fa-table grey "></i>
           </button>
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'card'"><i
-            class="fa  fa-2x fa-th-large fuchsia"></i></button>
+            class="fa  fa-2x fa-th-large grey"></i></button>
           <router-link v-if="selectedTable" :to="{name: 'NewEntity', params: {tablename: selectedTable}}"
                        class="btn btn-box-tool"
                        @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i></router-link>
-          <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh orange"></i>
+          <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh grey"></i>
           </button>
-          <router-link :to="{name: 'Action', params: {actionname: 'add_exchange', tablename: 'world'}}"
-                       class="btn btn-box-tool"><i
-            class="fa fa-2x fa-link teal"></i></router-link>
+          <router-link
+            :to="{name: 'Action', params: {actionname: 'add_exchange', tablename: 'world'}, query: {world_id: worldReferenceId}}"
+            class="btn btn-box-tool"><i
+            class="fa fa-2x fa-link grey"></i></router-link>
+          <router-link
+            :to="{name: 'Action', params: {actionname: 'export_data', tablename: 'world'}, query: {world_id: worldReferenceId}}"
+            class="btn btn-box-tool"><i
+            class="fa fa-2x fa-cloud-download grey"></i></router-link>
         </div>
 
       </div>
@@ -98,6 +103,7 @@
         addExchangeAction: null,
         viewMode: "card",
         rowBeingEdited: null,
+        worldReferenceId: null,
       }
     },
     methods: {
@@ -193,6 +199,9 @@
       setTable() {
         const that = this;
         var tableName;
+
+        let world = worldManager.getWorldByName(that.selectedTable);
+        this.worldReferenceId = world.id;
 
         let all = {};
         console.log("Admin set table -", that.visibleWorlds)
