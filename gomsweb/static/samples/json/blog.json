@@ -38,7 +38,7 @@
             "Columns": [{
                     "Name": "title",
                     "DataType": "varchar(500)",
-                    "ColumnType": "Label"
+                    "ColumnType": "label"
                 },
                 {
                     "Name": "view_count",
@@ -52,7 +52,7 @@
             "Columns": [{
                     "Name": "title",
                     "DataType": "varchar(200)",
-                    "ColumnType": "Label"
+                    "ColumnType": "label"
                 },
                 {
                     "Name": "body",
@@ -99,10 +99,10 @@
             "Name": "comment",
             "Label": "Leave a comment",
             "OnType": "post",
-            "Fields": [{
-                    "ColumnName": "Name",
+            "InFields": [{
+                    "ColumnName": "name",
                     "Name": "Author Name",
-                    "ColumnType": "Label"
+                    "ColumnType": "label"
                 },
                 {
                     "ColumnName": "comment",
@@ -115,7 +115,7 @@
                     "ColumnType": "rating"
                 }
             ],
-            "Outcomes": [{
+            "OutFields": [{
                 "Method": "POST",
                 "Type": "comment",
                 "Attributes": {
@@ -129,10 +129,10 @@
             "Name": "post",
             "Label": "Create a new post",
             "OnType": "blog",
-            "Fields": [{
+            "InFields": [{
                     "ColumnName": "title",
                     "Name": "Post title",
-                    "ColumnType": "Label"
+                    "ColumnType": "label"
                 },
                 {
                     "ColumnName": "body",
@@ -140,7 +140,7 @@
                     "ColumnType": "content"
                 }
             ],
-            "Outcomes": [{
+            "OutFields": [{
                 "Type": "post",
                 "Method": "POST",
                 "Attributes": {
