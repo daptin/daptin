@@ -106,6 +106,9 @@
           if (inputTypeParts[0] == "file") {
             inputTypeParts.shift();
             return inputTypeParts.join(".");
+          } else if (inputTypeParts[0] == "json") {
+            inputTypeParts.shift();
+            return inputTypeParts.join(".")
           }
         }
 

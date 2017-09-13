@@ -16,41 +16,37 @@
       </router-link>
     </li>
 
-    <li class="header">People </li>
-    <li class="pageLink" v-on:click="toggleMenu">
-      <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'user'}}">
-        <span class="page">User</span>
-      </router-link>
-    </li>
-    <li class="pageLink" v-on:click="toggleMenu">
-      <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'usergroup'}}">
-        <span class="page">User Group</span>
-      </router-link>
-    </li>
-
 
     <li class="treeview help-support">
       <a href="#">
-        <span>Adminstration</span>
+        <span>People</span>
+        <span class="pull-right-container">
+          <i class="fa fa-angle-left fa-fw pull-right"></i>
+        </span>
+      </a>
+      <ul class="treeview-menu">
+        <li class="pageLink" v-on:click="toggleMenu">
+          <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'user'}}">
+            <span class="page">User</span>
+          </router-link>
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
+          <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'usergroup'}}">
+            <span class="page">User Group</span>
+          </router-link>
+        </li>
+      </ul>
+    </li>
+
+    <li class="treeview help-support">
+      <a href="#">
+        <span>Administration</span>
         <span class="pull-right-container">
           <i class="fa fa-angle-left fa-fw pull-right"></i>
         </span>
       </a>
       <ul class="treeview-menu">
 
-        <li class="pageLink">
-          <router-link class="upload-schema"
-                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}">
-            <i class="fa fa-upload"></i> Update Features using JSON
-          </router-link>
-        </li>
-
-        <li class="pageLink">
-          <router-link class="upload-schema"
-                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}">
-            <i class="fa fa-upload"></i> Upload Xls to create entity
-          </router-link>
-        </li>
 
         <li class="pageLink" v-on:click="toggleMenu">
           <router-link :to="{name: 'Entity', params: {tablename: 'world'}}">
@@ -58,50 +54,18 @@
             <span class="page">All tables</span>
           </router-link>
         </li>
-        <li class="pageLink">
-          <router-link class="data-exchanges"
-                       :to="{name : 'Entity', params: {tablename: 'data_exchange'}}">
-            <i class="fa fa-exchange"></i> Data Exchanges
-          </router-link>
-        </li>
-        <li class="pageLink">
-          <router-link class="oauth-tokens"
-                       :to="{name : 'Entity', params: {tablename: 'oauth_token'}}">
-            <i class="fa fa-tags"></i> Oauth Tokens
-          </router-link>
-        </li>
-        <li class="pageLink">
-          <router-link class="list-connections"
-                       :to="{name : 'Entity', params: {tablename: 'oauth_connect'}}">
-            <i class="fa fa-link"></i> Connections
-          </router-link>
-        </li>
-        <li class="pageLink">
-          <router-link class="list-external-storage"
-                       :to="{name : 'Entity', params: {tablename: 'cloud_store'}}">
-            <i class="fa fa-folder"></i> External storage
-          </router-link>
-        </li>
-        <li class="pageLink">
-          <router-link class="list-site"
-                       :to="{name : 'Entity', params: {tablename: 'site'}}">
-            <i class="fa fa-sitemap"></i> Sub sites
-          </router-link>
-        </li>
-        <li class="pageLink">
-          <router-link class="download-schema"
-                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}">
-            <i class="fa fa-download"></i> Download System Schema
-          </router-link>
-        </li>
 
-        <li class="pageLink">
-          <router-link class="become-admin-button"
-                       :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}">
-            <i class="fa fa-graduation-cap"></i> Become Admin
-          </router-link>
-        </li>
+      </ul>
+    </li>
 
+    <li class="treeview help-support">
+      <a href="#">
+        <span>Support</span>
+        <span class="pull-right-container">
+          <i class="fa fa-angle-left fa-fw pull-right"></i>
+        </span>
+      </a>
+      <ul class="treeview-menu">
 
         <li><a href="https://github.com/artpar/goms/wiki" target="_blank"><span class="fa fa-files-o"></span>
           Dev help</a></li>
@@ -113,8 +77,8 @@
 
         <li><a href="mailto:artpar@gmail.com?subject=GoMS&body=Hi Parth,\n"><span class="fa fa-envelope-o"></span>
           Email support</a></li>
-
       </ul>
+
     </li>
 
   </ul>

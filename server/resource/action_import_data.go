@@ -34,7 +34,7 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 		}
 	}
 
-	files := inFields["json_dump_file"].([]interface{})
+	files := inFields["dump_file"].([]interface{})
 
 	truncate_before_insert := inFields["truncate_before_insert"].(bool)
 	//execute_middleware_chain := inFields["execute_middleware_chain"].(bool)

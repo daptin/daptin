@@ -118,9 +118,6 @@ window.chooseTitle = function (obj) {
   }
 
 
-  if (obj["id"]) {
-    return obj["id"].toUpperCase();
-  }
 
   for (var i = 0; i < keys.length; i++) {
 
@@ -144,6 +141,11 @@ window.chooseTitle = function (obj) {
 
     return obj[keys[i]];
   }
+
+  if (obj["id"]) {
+    return obj["id"].toUpperCase();
+  }
+
 
   return "#un-named";
 };
