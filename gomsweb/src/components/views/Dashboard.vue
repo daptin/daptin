@@ -67,7 +67,7 @@
             <div class="box-body no-padding">
               <ul class="nav nav-pills nav-stacked">
                 <li v-for="world in worlds">
-                  <router-link  :to="{name: 'Action', params: {tablename: world.onType, actionname: world.name}}">
+                  <router-link :to="{name: 'Action', params: {tablename: world.onType, actionname: world.name}}">
                     {{world.label}}
                   </router-link>
                 </li>
@@ -80,7 +80,7 @@
 
         </div>
 
-        <div class="col-md-6">
+        <div class="col-md-9">
 
           <div class="row">
             <div class="col-md-12">
@@ -90,36 +90,104 @@
 
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
                              style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
-                  <i style="font-size: 30px" class="fa fa-3x fa-plus green"></i>Upload JSON
+                  <i style="font-size: 30px" class="fa fa-3x fa-plus black"></i>Upload Schema JSON
                 </router-link>
 
 
+                <router-link
+                  :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
+                  style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-file-excel-o black"></i>Upload XLS
+                </router-link>
 
-                <router-link :to="{name: 'NewItem'}"
+                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
                              style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
-                  <i style="font-size: 30px" class="fa fa-3x fa-plus green"></i>New Entity
+                  <i style="font-size: 30px" class="fa fa-3x fa-upload black"></i>Upload Data JSON
                 </router-link>
 
 
               </div>
 
+              <h3>Backup</h3>
+              <div class="row">
+                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-object-group black"></i>Download schema JSON
+                </router-link>
+
+                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'export_data'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-cloud-download black"></i>Download dump JSON
+                </router-link>
+
+              </div>
+
+
+              <h3>People</h3>
+              <div class="row">
+                <router-link :to="{name: 'NewEntity', params: {tablename: 'user'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px"
+                             class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-user-plus black"></i>Create new user
+                </router-link>
+
+                <router-link :to="{name: 'NewEntity', params:{tablename: 'usergroup'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px"
+                             class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-users black"></i>Create new user group
+                </router-link>
+
+                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-expeditedssl black"></i>Become admin
+                </router-link>
+
+              </div>
+
+
+              <h3>Others</h3>
+              <div class="row">
+                <router-link :to="{name: 'Entity', params:{tablename: 'data_exchange'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px"
+                             class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-exchange black"></i>Data Exchange
+                </router-link>
+
+                <router-link :to="{name: 'Entity', params:{tablename: 'oauth_token'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px"
+                             class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-key black"></i>Oauth Tokens
+                </router-link>
+
+                <router-link :to="{name: 'Entity', params:{tablename: 'oauth_connect'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px"
+                             class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-institution black"></i>Oauth Connections
+                </router-link>
+
+                <router-link :to="{name: 'Entity', params:{tablename: 'cloud_store'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px"
+                             class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-cloud black"></i>Storage
+                </router-link>
+
+                <router-link :to="{name: 'Entity', params:{tablename: 'site'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px"
+                             class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-television black"></i>Sub sites
+                </router-link>
+                <router-link :to="{name: 'Entity', params:{tablename: 'stream'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px"
+                             class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-film black"></i>Data views
+                </router-link>
+
+              </div>
+
+
             </div>
           </div>
 
-
-
-          <router-link :to="{name: 'NewEntity', params: {tablename: 'data_exchange'}}"
-                       style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
-            <i style="font-size: 30px" class="fa fa-3x fa-level-up orange"></i>Add Export
-          </router-link>
-
-          <a style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
-            <i style="font-size: 30px" class="fa fa-3x fa-level-down maroon"></i>Add Import
-          </a>
-
-          <router-link :to="{name: 'Action', params: {tablename: 'world', actionname: 'fupload_xls_to_system_schema'}}" style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
-            <i style="font-size: 30px" class="fa fa-3x fa-upload yellow"></i>Upload XLS
-          </router-link>
 
         </div>
 
@@ -154,7 +222,7 @@
       }
     },
     computed: {
-      sortedWorldActions : function() {
+      sortedWorldActions: function () {
 
         console.log("return sorted world actions", this.worldActions)
         var keys = Object.keys(this.worldActions);

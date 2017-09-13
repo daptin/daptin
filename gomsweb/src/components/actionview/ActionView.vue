@@ -52,6 +52,10 @@
       actionManager: {
         type: Object,
         required: true
+      },
+      values: {
+        type: Object,
+        required: false
       }
     },
     data: function () {
@@ -62,15 +66,15 @@
         finalModel: null,
       }
     },
-    created () {
+    created() {
     },
     computed: {},
     methods: {
-      setModel (m1){
+      setModel(m1) {
         console.log("set model", m1)
         this.finalModel = m1;
       },
-      doAction(actionData){
+      doAction(actionData) {
         var that = this;
 
         if (!this.finalModel && !this.action.InstanceOptional) {
@@ -85,7 +89,7 @@
           actionData[this.action.OnType + "_id"] = this.finalModel["id"]
         } else {
         }
-          that.actionManager.doAction(that.action.OnType, that.action.Name, actionData).then(function () {
+        that.actionManager.doAction(that.action.OnType, that.action.Name, actionData).then(function () {
           that.$emit("action-complete", that.action);
         }, function () {
           console.log("not clearing out the form")
@@ -102,7 +106,20 @@
 
 
         var that = this;
+
+        if (that.values) {
+          console.log("values", that.values);
+          var keys = Object.keys(that.values);
+          for (var i = 0; i < keys.length; i++) {
+            let key = keys[i];
+            that.model[key] = that.values[key]
+          }
+
+        }
+
         console.log("render action ", that.action, " on ", that.model);
+
+
         that.finalModel = that.model;
         var worldName = that.action.OnType;
         that.modelSchema = {
@@ -120,7 +137,10 @@
 
         if (this.action.InFields && this.action.InFields.length == 0 && this.action.InstanceOptional) {
 
-          var payload = {};
+          var payload = this.model;
+          if (!payload) {
+            payload = {};
+          }
 
           if (this.finalModel && this.finalModel["id"]) {
             payload[this.action.OnType + "_id"] = this.finalModel["id"];

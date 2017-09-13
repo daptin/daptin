@@ -124,7 +124,7 @@ OnType = "style"
   Reference = "vendor1"
 
     [Actions.OutFields.Attributes]
-    Name = "~vendor"
+    name = "~vendor"
 
   [[Actions.OutFields]]
   Type = "orders"
@@ -132,7 +132,7 @@ OnType = "style"
   Reference = "order1"
 
     [Actions.OutFields.Attributes]
-    vendor_id = "$vendor1.Reference_id"
+    vendor_id = "$vendor1.reference_id"
     quantity = "~quantity"
 
   [[Actions.OutFields]]
@@ -140,8 +140,8 @@ OnType = "style"
   Method = "POST"
 
     [Actions.OutFields.Attributes]
-    orders_id = "$order1.Reference_id"
-    style_id = "$.Reference_id"
+    orders_id = "$order1.reference_id"
+    style_id = "$.reference_id"
 
 [[Exchanges]]
 Name = "Style to excel sync"

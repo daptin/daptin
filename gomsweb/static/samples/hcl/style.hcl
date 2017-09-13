@@ -23,7 +23,7 @@
 
   "OutFields" = {
     "Attributes" = {
-      "Name" = "~vendor"
+      "name" = "~vendor"
     }
 
     "Method" = "POST"
@@ -37,7 +37,7 @@
     "Attributes" = {
       "quantity" = "~quantity"
 
-      "vendor_id" = "$vendor1.Reference_id"
+      "vendor_id" = "$vendor1.reference_id"
     }
 
     "Method" = "POST"
@@ -49,9 +49,9 @@
 
   "OutFields" = {
     "Attributes" = {
-      "orders_id" = "$order1.Reference_id"
+      "orders_id" = "$order1.reference_id"
 
-      "style_id" = "$.Reference_id"
+      "style_id" = "$.reference_id"
     }
 
     "Method" = "POST"

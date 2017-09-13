@@ -12,6 +12,7 @@
   import editor from 'vue2-ace'
   import 'brace/mode/json'
   import 'brace/theme/chrome'
+  import jsonApi from '../../plugins/jsonapi';
 
 
   var schemas = {
@@ -356,6 +357,17 @@
         var element = document.getElementById('jsonEditor');
 
         let schema;
+
+
+        jsonApi.findAll("json_schema", {
+          filter: that.schema.inputType
+        }).then(function(e){
+          console.log("got json schema", e)
+        }).error(function(e){
+          console.log("json schema failed", e)
+        })
+
+
         if (schemas[that.schema.inputType]) {
           schema = schemas[that.schema.inputType].schema;
 
