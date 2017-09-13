@@ -141,7 +141,7 @@
             "Label": "New to do",
             "OnType": "project",
             "InstanceOptional": true,
-            "Fields": [{
+            "InFields": [{
                     "ColumnName": "description",
                     "Name": "Description",
                     "ColumnType": "label"
@@ -152,7 +152,7 @@
                     "ColumnType": "date"
                 }
             ],
-            "Outcomes": [{
+            "OutFields": [{
                     "Type": "todo",
                     "Method": "POST",
                     "Attributes": {
@@ -200,7 +200,7 @@
             "Name": "completed",
             "Label": "Completed",
             "OnType": "todo",
-            "Outcomes": [{
+            "OutFields": [{
                 "Type": "todo",
                 "Method": "UPDATE",
                 "Attributes": {
@@ -214,12 +214,12 @@
             "Label": "New project category",
             "OnType": "project",
             "InstanceOptional": true,
-            "Fields": [{
+            "InFields": [{
                 "ColumnName": "name",
-                "Name": "Name",
+                "Name": "name",
                 "ColumnType": "label"
             }],
-            "Outcomes": [{
+            "OutFields": [{
                     "Type": "project",
                     "Method": "POST",
                     "Attributes": {
@@ -241,7 +241,7 @@
             "Name": "new_data_exchange",
             "Label": "Sync tasks to Google sheet",
             "OnType": "data_exchange",
-            "Fields": [{
+            "InFields": [{
                     "ColumnName": "sheetUrl",
                     "Name": "Sheet url",
                     "ColumnType": "url"
@@ -253,7 +253,7 @@
                     "DefaultValue": "false"
                 }
             ],
-            "Outcomes": [{
+            "OutFields": [{
                 "Type": "data_exchange",
                 "Method": "POST",
                 "Attributes": {
