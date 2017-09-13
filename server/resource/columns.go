@@ -96,15 +96,15 @@ var SystemActions = []Action{
 		},
 	},
 	{
-		Name:             "import_json_data",
-		Label:            "Import data from JSON backup",
+		Name:             "import_data",
+		Label:            "Import data from dump",
 		OnType:           "world",
 		InstanceOptional: true,
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "JSON Dump file",
-				ColumnName: "json_dump_file",
-				ColumnType: "file.application/json|application/yaml|application/toml|application/hcl",
+				ColumnName: "dump_file",
+				ColumnType: "file.json|yaml|toml|hcl",
 				IsNullable: false,
 			},
 			{
@@ -121,7 +121,7 @@ var SystemActions = []Action{
 					"world_reference_id":       "$.reference_id",
 					"execute_middleware_chain": "~execute_middleware_chain",
 					"truncate_before_insert":   "~truncate_before_insert",
-					"json_dump_file":           "~json_dump_file",
+					"dump_file":           "~dump_file",
 				},
 			},
 		},
@@ -156,8 +156,8 @@ var SystemActions = []Action{
 		InstanceOptional: true,
 		InFields: []api2go.ColumnInfo{
 			{
-				Name:       "Schema JSON file",
-				ColumnName: "schema_json_file",
+				Name:       "Schema file",
+				ColumnName: "schema_file",
 				ColumnType: "file.json|yaml|toml|hcl",
 				IsNullable: false,
 			},
@@ -167,7 +167,7 @@ var SystemActions = []Action{
 				Type:   "system_json_schema_update",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"json_schema": "~schema_json_file",
+					"json_schema": "~schema_file",
 				},
 			},
 		},
@@ -326,7 +326,7 @@ var SystemActions = []Action{
 				Method: "ACTIONRESPONSE",
 				Attributes: map[string]interface{}{
 					"type":    "success",
-					"title": "Success",
+					"title":   "Success",
 					"message": "Signup Successful",
 				},
 			},
@@ -448,6 +448,25 @@ var SystemActions = []Action{
 }
 
 var StandardTables = []TableInfo{
+	{
+		TableName: "json_schema",
+		IsHidden:  true,
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "schema_name",
+				ColumnName: "schema_name",
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+				IsNullable: false,
+			},
+			{
+				Name:       "json_schema",
+				ColumnType: "json",
+				DataType:   "text",
+				ColumnName: "json_schema",
+			},
+		},
+	},
 	{
 		TableName: "timeline",
 		IsHidden:  true,
@@ -654,7 +673,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName: "stream",
-		IsHidden: true,
+		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "stream_name",

@@ -27,15 +27,21 @@
       <div class="box-tools pull-right">
         <div class="ui icon buttons">
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'"><i
-            class="fa  fa-2x fa-table blue "></i>
+            class="fa  fa-2x fa-table grey "></i>
           </button>
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'items'"><i
-            class="fa  fa-2x fa-th-large blue"></i>
+            class="fa  fa-2x fa-th-large grey"></i>
           </button>
           <button class="btn btn-box-tool" @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i>
           </button>
-          <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh orange"></i>
+          <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh grey"></i>
           </button>
+          <router-link :to="{name: 'Action', params: {actionname: 'add_exchange', tablename: 'world'}, query: {world_id: worldReferenceId}}"
+                       class="btn btn-box-tool"><i
+            class="fa fa-2x fa-link grey"></i></router-link>
+          <router-link :to="{name: 'Action', params: {actionname: 'export_data', tablename: 'world'}, query: {world_id: worldReferenceId}}"
+                       class="btn btn-box-tool"><i
+            class="fa fa-2x fa-cloud-download grey"></i></router-link>
         </div>
       </div>
     </section>

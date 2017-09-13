@@ -22,6 +22,8 @@ func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 
 	subjectInstance, ok := inFields["subject"]
 
+	finalName := "complete"
+
 	var finalString []byte
 	result := make(map[string]interface{})
 
@@ -37,7 +39,7 @@ func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 		}
 
 		result[tableName] = objects
-
+		finalName = tableName
 	} else {
 
 		for _, tableInfo := range d.cmsConfig.Tables {
@@ -58,7 +60,7 @@ func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 
 	responseAttrs := make(map[string]interface{})
 	responseAttrs["content"] = base64.StdEncoding.EncodeToString(finalString)
-	responseAttrs["name"] = fmt.Sprintf("dump.json")
+	responseAttrs["name"] = fmt.Sprintf("goms_dump_%v.json", finalName)
 	responseAttrs["contentType"] = "application/json"
 	responseAttrs["message"] = "Downloading data"
 

@@ -71,7 +71,7 @@
                     "Type": "client.notify",
                     "Method": "ACTIONRESPONSE",
                     "Attributes": {
-                        "Type": "success",
+                        "type": "success",
                         "message": "You have purchased a new item",
                         "title": "Wait for it"
                     }

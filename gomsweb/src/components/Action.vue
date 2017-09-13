@@ -22,7 +22,7 @@
       <div class="col-md-12">
         <action-view ref="systemActionView" v-if="action" :hide-title="false" @cancel="cancel"
                      :action-manager="actionManager"
-                     :action="action"
+                     :action="action" :model="model"
                      :json-api="jsonApi"></action-view>
 
       </div>
@@ -47,6 +47,7 @@
         action: null,
         jsonApi: jsonApi,
         tablename: null,
+        model: {},
         actionname: null,
         actionManager: actionManager,
       }
@@ -54,14 +55,17 @@
     methods: {
       cancel: function () {
         console.log("cancel action")
-        this.$router.push({
-          name: "Entity",
-          params: {
-            tablename: this.tablename,
-          }
-        });
+        window.history.back();
+//        this.$router.push({
+//          name: "Entity",
+//          params: {
+//            tablename: this.tablename,
+//          }
+//        });
       },
       init() {
+        this.model = this.$route.query;
+        console.log("action model", this.model)
         this.action = actionManager.getActionModel(this.tablename, this.actionname);
 
       }
