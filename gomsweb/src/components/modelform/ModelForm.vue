@@ -78,7 +78,7 @@
       }
     },
     methods: {
-      setRelation(item){
+      setRelation(item) {
         console.log("save relation", item);
 
         var meta = this.meta[item.name];
@@ -143,19 +143,6 @@
           case "content":
             inputType = "";
             break;
-          case "json":
-            inputType = "";
-            console.log("get type for json", columnMeta)
-            if (columnMeta.ColumnName == "schema_json") {
-              return "world"
-            } else if (columnMeta.ColumnName == "options") {
-              return "data_exchange_options"
-            } else if (columnMeta.ColumnName == "attributes") {
-              return "data_exchange_attributes"
-            } else {
-              return ""
-            }
-            break;
           default:
             inputType = "text";
             break;
@@ -189,6 +176,12 @@
             inputType = "textArea";
             break;
           case "json":
+            inputType = "jsonEditor";
+            break;
+          case "html":
+            inputType = "jsonEditor";
+            break;
+          case "markdown":
             inputType = "jsonEditor";
             break;
           default:
