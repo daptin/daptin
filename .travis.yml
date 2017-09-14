@@ -3,7 +3,7 @@ language: go
 sudo: required
 cache:
   directories:
-    - "gocms/node_modules"
+    - "goms/node_modules"
 
 services:
   - docker

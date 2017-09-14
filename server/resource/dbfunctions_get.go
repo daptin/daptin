@@ -191,6 +191,35 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 
 }
 
+func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
+
+	marketPlaces := []Marketplace{}
+
+	s, v, err := squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s.user_id", "s.reference_id").
+			From("marketplace s").
+			Where(squirrel.Eq{"s.deleted_at": nil}).ToSql()
+	if err != nil {
+		return marketPlaces, err
+	}
+
+	rows, err := resource.db.Queryx(s, v...)
+	if err != nil {
+		return marketPlaces, err
+	}
+
+	for rows.Next() {
+		var marketplace Marketplace
+		err = rows.StructScan(&marketplace)
+		if err != nil {
+			log.Errorf("Failed to scan marketplace from db to struct: %v", err)
+		}
+		marketPlaces = append(marketPlaces, marketplace)
+	}
+
+	return marketPlaces, nil
+
+}
+
 func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	sites := []SubSite{}

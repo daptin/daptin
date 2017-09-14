@@ -33,15 +33,17 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 		Actions:                  make([]resource.Action, 0),
 		StateMachineDescriptions: make([]resource.LoopbookFsmDescription, 0),
 		Streams:                  make([]resource.StreamContract, 0),
+		Marketplaces:             make([]resource.Marketplace, 0),
 	}
 
 	globalInitConfig.Tables = append(globalInitConfig.Tables, resource.StandardTables...)
 	globalInitConfig.Actions = append(globalInitConfig.Actions, resource.SystemActions...)
 	globalInitConfig.Streams = append(globalInitConfig.Streams, resource.StandardStreams...)
+	globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, resource.StandardMarketplaces...)
 	globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
 	globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
 
-	files, err := filepath.Glob("schema_*_gocms.*")
+	files, err := filepath.Glob("schema_*_goms.*")
 	log.Infof("Found files to load: %v", files)
 
 	if err != nil {
@@ -78,6 +80,7 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 		globalInitConfig.Relations = append(globalInitConfig.Relations, initConfig.Relations...)
 		globalInitConfig.Imports = append(globalInitConfig.Imports, initConfig.Imports...)
 		globalInitConfig.Streams = append(globalInitConfig.Streams, initConfig.Streams...)
+		globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, initConfig.Marketplaces...)
 		globalInitConfig.Actions = append(globalInitConfig.Actions, initConfig.Actions...)
 		globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, initConfig.StateMachineDescriptions...)
 		globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
@@ -88,6 +91,10 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 
 		for _, action := range initConfig.Actions {
 			log.Infof("Action [%v][%v]", fileName, action.Name)
+		}
+
+		for _, marketplace := range initConfig.Marketplaces {
+			log.Infof("Marketplace [%v][%v]", fileName, marketplace.Endpoint)
 		}
 
 		//log.Infof("File added to config, deleting %v", fileName)

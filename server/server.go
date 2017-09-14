@@ -34,7 +34,7 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 
 	gin.SetMode(*runtimeMode)
 
-	//configFile := "gocms_style.json"
+	//configFile := "goms_style.json"
 
 	db, err := GetDbConnection(*db_type, *connection_string)
 	if err != nil {
@@ -120,18 +120,15 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	//AddStateMachines(&initConfig, db)
 
 	resource.CheckAllTableStatus(&initConfig, db)
-
 	resource.CreateRelations(&initConfig, db)
-
 	resource.CreateUniqueConstraints(&initConfig, db)
 	resource.CreateIndexes(&initConfig, db)
-
 	resource.UpdateWorldTable(&initConfig, db)
 	resource.UpdateWorldColumnTable(&initConfig, db)
 	resource.UpdateStateMachineDescriptions(&initConfig, db)
 	resource.UpdateExchanges(&initConfig, db)
-
 	resource.UpdateStreams(&initConfig, db)
+	resource.UpdateMarketplaces(&initConfig, db)
 
 	err = resource.UpdateActionTable(&initConfig, db)
 	resource.CheckErr(err, "Failed to update action table")
