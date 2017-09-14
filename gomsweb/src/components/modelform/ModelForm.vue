@@ -7,10 +7,10 @@
       </div>
     </div>
     <div class="box-body">
-      <div :class="{'col-md-8': relations.length > 0, 'col-md-12': relations.length == 0 }">
+      <div :class="{'col-md-9': relations.length > 0, 'col-md-12': relations.length == 0 }">
         <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
       </div>
-      <div class="col-md-4" v-if="relations.length > 0">
+      <div class="col-md-3" v-if="relations.length > 0">
 
         <div class="row">
           <div class="col-md-12" v-for="item in relations">
@@ -100,7 +100,7 @@
       },
       getTextInputType(columnMeta) {
         let inputType = columnMeta.ColumnType;
-
+        console.log("get text input type for ", columnMeta)
         if (inputType.indexOf(".") > 0) {
           var inputTypeParts = inputType.split(".")
           if (inputTypeParts[0] == "file") {
@@ -110,6 +110,11 @@
             inputTypeParts.shift();
             return inputTypeParts.join(".")
           }
+        }
+
+        if (columnMeta.ColumnType == "json") {
+          console.log("get text input type for json ", this.model)
+          return columnMeta.ColumnName
         }
 
 

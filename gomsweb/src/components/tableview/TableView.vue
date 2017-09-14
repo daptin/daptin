@@ -307,7 +307,11 @@
     },
     watch: {
       'finder': function (newFinder, oldFinder) {
-        console.log("finder updated in ", newFinder, oldFinder)
+        var that = this;
+        console.log("finder updated in ", newFinder, oldFinder);
+        setTimeout(function(){
+          that.reloadData(that.selectedWorld);
+        }, 100)
       }
     }
   }
