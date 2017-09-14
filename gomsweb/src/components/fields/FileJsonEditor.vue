@@ -10,7 +10,6 @@
 <script>
   import {abstractField} from "vue-form-generator";
   import editor from 'vue2-ace'
-  import 'brace/mode/json'
   import 'brace/theme/chrome'
   import jsonApi from '../../plugins/jsonapi';
 
@@ -336,7 +335,7 @@
 
     },
     mounted() {
-      window.ace.require = function(mode) {
+      window.ace.require = function (mode) {
         console.log("ace wanted mode: ", mode)
         return false;
       };
@@ -344,7 +343,7 @@
       setTimeout(function () {
         var startVal = that.value;
         if (!startVal) {
-          startVal = {};
+          startVal = "";
         } else {
           if (typeof startVal != "string") {
             startVal = startVal
@@ -371,7 +370,7 @@
             try {
               schema = JSON.parse(e[0].json_schema);
 
-            }catch(e) {
+            } catch (e) {
               console.log("Failed to parse json schema", e)
               return;
             }
