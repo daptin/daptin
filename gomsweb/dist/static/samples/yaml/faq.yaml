@@ -1,0 +1,48 @@
+---
+Tables:
+- TableName: faq
+  Columns:
+  - Name: title
+    ColumnName: title
+    ColumnType: label
+    IsIndexed: true
+    DataType: varchar(1000)
+  - Name: summary
+    ColumnName: summary
+    DataType: varchar(1000)
+    IsIndexed: true
+  - Name: question_content
+    ColumnName: question_content
+    DataType: text
+    ColumnType: html
+  - Name: answer_content
+    ColumnName: answer_content
+    DataType: text
+    ColumnType: html
+  - Name: help_count
+    ColumnName: help_count
+    DataType: int(11)
+    ColumnType: measurement
+    DefaultValue: 0
+  - Name: did_not_help_count
+    ColumnName: did_not_help_count
+    DataType: int(11)
+    ColumnType: measurement
+    DefaultValue: 0
+- TableName: merchant
+  Columns:
+  - Name: name
+    ColumnName: name
+    ColumnDescription: ''
+    ColumnType: label
+    IsIndexed: true
+    DataType: varchar(500)
+  - Name: image_url
+    ColumnName: image_url
+    ColumnDescription: ''
+    ColumnType: label
+    DataType: varchar(500)
+Relations:
+- Subject: faq
+  Relation: belongs_to
+  Object: merchant
