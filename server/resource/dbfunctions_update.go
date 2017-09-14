@@ -69,10 +69,86 @@ func (resource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId stri
 
 }
 
+func UpdateMarketplaces(initConfig *CmsConfig, db *sqlx.DB) {
+
+	s, v, err := squirrel.Select("endpoint", "root_path").From("marketplace").Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+
+	adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
+
+	CheckErr(err, "Failed to create query for marketplace select")
+
+	res, err := db.Queryx(s, v...)
+
+	existingMarketPlaces := make(map[string]Marketplace)
+	for res.Next() {
+		m := make(map[string]interface{})
+		res.MapScan(m)
+		streamName := string(m["endpoint"].([]uint8))
+		rootPath := m["root_path"]
+		rootPathString := ""
+		if rootPath != nil {
+			rootPathString = string(rootPath.([]uint8))
+		}
+		existingMarketPlaces[streamName] = Marketplace{
+			Endpoint: string(m["endpoint"].([]uint8)),
+			RootPath: rootPathString,
+		}
+
+	}
+
+	log.Infof("We have %d existing market places", len(existingMarketPlaces))
+
+	for _, marketplace := range initConfig.Marketplaces {
+
+		log.Infof("Process marketplace [%v]", marketplace.Endpoint)
+
+		schema, err := json.Marshal(marketplace)
+		CheckErr(err, "Failed to marshal marketplace contract")
+
+		_, ok := existingMarketPlaces[marketplace.Endpoint]
+
+		if ok {
+
+			log.Infof("Marketplace [%v] already present in db, updating db values", marketplace.Endpoint)
+
+			s, v, err := squirrel.Update("marketplace").
+					Set("root_path", marketplace.RootPath).
+					Where(squirrel.Eq{"endpoint": marketplace.Endpoint}).
+					Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+
+			_, err = db.Exec(s, v...)
+			CheckErr(err, "Failed to update table for marketplace contract")
+
+		} else {
+			log.Infof("We have a new marketplace contract: %v", marketplace.Endpoint)
+
+			existingMarketPlaces[marketplace.Endpoint] = marketplace
+
+			s, v, err := squirrel.Insert("marketplace").Columns("endpoint", "root_path", "reference_id", "permission", "user_id").
+					Values(marketplace.Endpoint, schema, uuid.NewV4(), auth.DEFAULT_PERMISSION, adminUserId).ToSql()
+
+			_, err = db.Exec(s, v...)
+			CheckErr(err, "Failed to insert into db about marketplace [%v]: %v", marketplace.Endpoint, err)
+
+		}
+
+	}
+
+	allMarketPlaces := make([]Marketplace, 0)
+
+	for _, marketplace := range existingMarketPlaces {
+
+		allMarketPlaces = append(allMarketPlaces, marketplace)
+
+	}
+
+	initConfig.Marketplaces = allMarketPlaces
+
+}
+
 func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 
 	s, v, err := squirrel.Select("stream_name", "stream_contract").From("stream").Where(squirrel.Eq{"deleted_at": nil}).ToSql()
-
 
 	adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
 
@@ -91,7 +167,6 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 		existingStreams[streamName] = contract
 
 	}
-
 
 	for i, stream := range initConfig.Streams {
 		for j, col := range stream.Columns {
@@ -119,7 +194,6 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 
 		log.Infof("Process stream [%v]", stream.StreamName)
 
-
 		schema, err := json.Marshal(stream)
 		CheckErr(err, "Failed to marshal stream contract")
 
@@ -128,7 +202,6 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 		if ok {
 
 			log.Infof("Stream [%v] already present in db, updating db values", stream.StreamName)
-
 
 			s, v, err := squirrel.Update("stream").
 					Set("stream_contract", schema).
@@ -141,11 +214,10 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 		} else {
 			log.Infof("We have a new stream contract: %v", stream.StreamName)
 
-
 			existingStreams[stream.StreamName] = stream
 
 			s, v, err := squirrel.Insert("stream").Columns("stream_name", "stream_contract", "reference_id", "permission", "user_id").
-			Values(stream.StreamName, schema, uuid.NewV4(), auth.DEFAULT_PERMISSION, adminUserId).ToSql()
+					Values(stream.StreamName, schema, uuid.NewV4(), auth.DEFAULT_PERMISSION, adminUserId).ToSql()
 
 			_, err = db.Exec(s, v...)
 			CheckErr(err, "Failed to insert into db about stream [%v]: %v", stream.StreamName, err)
@@ -154,17 +226,13 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 
 	}
 
-
 	allStreams := make([]StreamContract, 0)
 
 	for _, stream := range existingStreams {
 
-
 		allStreams = append(allStreams, stream)
 
-
 	}
-
 
 	initConfig.Streams = allStreams
 
@@ -434,7 +502,6 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
 				}
 
 			} else {
-
 
 				query, args, err := squirrel.Update("world_column").SetMap(mapData).Where(squirrel.Eq{"world_id": worldid}).Where(squirrel.Eq{"column_name": col.ColumnName}).ToSql()
 				CheckErr(err, "Failed to create update query for world_column")

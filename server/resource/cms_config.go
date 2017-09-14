@@ -20,6 +20,7 @@ type CmsConfig struct {
 	Validator                *validator.Validate
 	SubSites                 map[string]SubSiteInformation
 	Streams                  []StreamContract
+	Marketplaces             []Marketplace
 }
 
 type SubSiteInformation struct {

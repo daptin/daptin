@@ -60,7 +60,7 @@ func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 
 	responseAttrs := make(map[string]interface{})
 	responseAttrs["content"] = base64.StdEncoding.EncodeToString(finalString)
-	responseAttrs["name"] = fmt.Sprintf("goms_dump_%v.json", finalName)
+	responseAttrs["name"] 	= fmt.Sprintf("goms_dump_%v.json", finalName)
 	responseAttrs["contentType"] = "application/json"
 	responseAttrs["message"] = "Downloading data"
 
