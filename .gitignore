@@ -1,7 +1,7 @@
 gomsweb/node_modules
 *.iml
 .idea/
-temp.*gocms.json
+temp.*goms.json
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 docker_dir/

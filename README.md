@@ -12,7 +12,7 @@
 ## A BAAS
 
 
-Goms is a compiler that generates Web APIs (more specifically, JSON APIs). Goms combines the best concepts of [the most popular BAAS platforms](http://baas.apievangelist.com/) into a simple run-time tool.
+Goms is a self-hosted BAAS that generates Web APIs (more specifically, JSON APIs) for your data. Goms combines the best concepts of [the most popular BAAS platforms](http://baas.apievangelist.com/) into a simple run-time tool.
 
 
 Goms takes features such as
@@ -50,9 +50,7 @@ However, JSON APIs for data manipulation by themselves weren't enough. Building 
 
 
 
-### State: alpha
-
-## Run it and take the tours before reading on
+## Quick run
 
 ```
 docker run -d -p 8080:8080 goms/goms
@@ -64,12 +62,12 @@ Then open [Goms Dashboard](http://localhost:8080) to sign up and sign-in
 
 
 - Deploy instance of Goms on a server
-- Upload JSON file which describes your entities,
-- or use XLS file to create entities and upload data
-- Become Admin of the instance (until then its a open for access)
+- Upload JSON/YAML/TOML/HCL file which describe your entities
+- or upload XLS file to create entities and upload data
+- Become Admin of the instance (until then its a open for access, that's why you were able to create an account)
 
 
-## What can be done 
+## Use cases
 
 Examples
 
@@ -117,16 +115,32 @@ It will be untrue to say Goms has no competition. These are the possible competi
 - [Scaphold](https://scaphold.io/) - GraphQL Backend As A Service
 
 
-All these products also target to solve the same problem, but differing in the solution pipeline or extent (as an example say database choice or features).
+*Todo*: complete research and fill this table
+
+|                                           | Goms | Cockpit | Contentful | Scaphold | Airtable | graph.cool | fieldbook |
+|-------------------------------------------|------|---------|------------|----------|----------|------------|-----------|
+| JSON API                                  | Yes  | Yes     | Yes        | Yes      | Yes      | Yes        | Yes       |
+| User defined entities                     | Yes  | Yes     | Yes        | Yes      | Yes      | Yes        | Yes       |
+| Dashboard                                 | Yes  | Yes     | Yes        | Yes      | Yes      | Yes        | Yes       |
+| In built analytics on your data           |      |         |            |          |          |            |           |
+| Relations in entities                     |      |         |            |          |          |            |           |
+| Users                                     |      |         |            |          |          |            |           |
+| User groups                               |      |         |            |          |          |            |           |
+| Authentication (In built User Management) |      |         |            |          |          |            |           |
+| Authorization (Roles and Permission)      |      |         |            |          |          |            |           |
+| Asset management                          |      |         |            |          |          |            |           |
+| Revision History/Auditing                 |      |         |            |          |          |            |           |
+| Field data types                          |      |         |            |          |          |            |           |
+| Integrate external API                    |      |         |            |          |          |            |           |
+| Workflows (If this than that)             |      |         |            |          |          |            |           |
+| Cloud store for assets                    |      |         |            |          |          |            |           |
+| Sub sites                                 |      |         |            |          |          |            |           |
+| Marketplace for plugins                   |      |         |            |          |          |            |           |
+| Transformed Streams/Views of your data    |      |         |            |          |          |            |           |
+|                                           |      |         |            |          |          |            |           |
 
 
-### Documentation state
-
-Incomplete, might be confusing.
-
-Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
-
-## Roadmap
+## Road Map
 
 
 * [x] Normalised Db Design from JSON schema upload
@@ -146,87 +160,12 @@ Please suggest changes using issues or [email me](mailto:artpar@gmail.com)
 * [ ] Data conversion/exchange/transformations
 * [x] Live editor for subsites - grapesjs
 * [x] Store connectors for storing big files/subsites - rclone
+* [ ] Market place to allow plugins/extensions to be installed
 
+### Documentation
 
-### Target
+- Checkout the [wiki](https://github.com/artpar/goms/wiki)
 
-## User system
-
-Goms makes two tables for user management
-
-### user
-
-Every user who is interacting with the system will be associated with a user in Goms.
-
-By default a user is ```guest```
-
-### usergroup
-
-User and every other entity in Goms is associated to multiple user groups
-
-
-Each user has his own user group
-
-## Ownership
-
-Every object in the system is owned by someone and belongs to multiple Usergroups.
-
-The person who creates the object is the owner by default
-
-Ownership can be changed (by someone who has permission to "write" on that object)
-
-## Authentication
-
-Every user is either a guest or a known user (logged in via one of the login providers).
-
-## Authorization
-
-Each object in Goms can belong to multiple user groups, where the admin specifies the permission that group users will have for the associated objects.
-
-Permissions are linux filesystem style permission, are 3 digit numbers
-
-- First digit for owners of the object
-- Second digit for users in the groups which that object belongs to (multiple groups)
-- Third digit for everyone else
-
-```
-1 = Execute Only
-2 = Write Only
-3 = Write + Execute
-4 = Read Only
-5 = Read + Execute
-6 = Read + Write
-7 = Read + Write + Execute
-```
-
-Each table also has these permissions, which are picked up from the ```world``` table.
-
-## Entities
-
-Goms work with relational entities. You can create entities to represent your work and the relations with other entities.
-
-All entities are stored in a relational database. Currently the following database system support is targeted
-
-- mysql
-- sqlite
-- postgres
-
-
-## Environment definition
-
-Goms keeps the configuration in database in two tables
-
-- world
-
-Each table being used by Goms will have an entry in ```world``` table. It contains the schema in json as well a default permission column, for new objects in that table.
-
-- world_column
-
-Each column known to Goms will have an entry in world_column table. It also contains the metadata about the column. 
-
-- actions
-
-Actions are defined on entities, have a set of Input Fields, and a set of Outcomes.
 
 ## Tech stack
 
@@ -236,11 +175,3 @@ Backend | FrontEnd | Standards | Frameworks
 [Golang](golang.org) | [BootStrap](http://getbootstrap.com/) | [RAML](raml.org) | [CoPilot Theme](https://copilot.mistergf.io)
 [Api2go](https://github.com/manyminds/api2go) | [BootStrap](http://getbootstrap.com/) | [JsonAPI](jsonapi.org) | [VueJS](https://vuejs.org/v2/guide/)
 [rclone](https://github.com/ncw/rclone) |  [grapesJs](grapesjs.com) | | [Element UI](element.eleme.io)
-
-- Golang
-- JSONAPI
-- VueJS
-- CoPilot theme
-- rclone
-- grapesjs
-- a lot of libraries...

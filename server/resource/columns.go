@@ -79,6 +79,30 @@ var SystemExchanges = []ExchangeContract{}
 
 var SystemActions = []Action{
 	{
+		Name:             "install_marketplace_package",
+		Label:            "Install package from market",
+		OnType:           "marketplace",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "package_name",
+				ColumnName: "package_name",
+				ColumnType: "label",
+				IsNullable: false,
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "marketplace.package.install",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"package_name": "~package_name",
+					"market_reference_id": "$.reference_id",
+				},
+			},
+		},
+	},
+	{
 		Name:             "export_data",
 		Label:            "Export data for backup",
 		OnType:           "world",
@@ -121,7 +145,7 @@ var SystemActions = []Action{
 					"world_reference_id":       "$.reference_id",
 					"execute_middleware_chain": "~execute_middleware_chain",
 					"truncate_before_insert":   "~truncate_before_insert",
-					"dump_file":           "~dump_file",
+					"dump_file":                "~dump_file",
 				},
 			},
 		},
@@ -448,6 +472,32 @@ var SystemActions = []Action{
 }
 
 var StandardTables = []TableInfo{
+	{
+		TableName: "marketplace",
+		IsHidden:  true,
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "name",
+				ColumnName: "name",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+				IsIndexed:  true,
+			},
+			{
+				Name:       "endpoint",
+				ColumnName: "endpoint",
+				DataType:   "varchar(200)",
+				ColumnType: "url",
+			},
+			{
+				Name:         "root_path",
+				ColumnName:   "root_path",
+				DataType:     "varchar(100)",
+				ColumnType:   "label",
+				DefaultValue: "''",
+			},
+		},
+	},
 	{
 		TableName: "json_schema",
 		IsHidden:  true,
@@ -1027,6 +1077,10 @@ var StandardTables = []TableInfo{
 			},
 		},
 	},
+}
+
+var StandardMarketplaces = []Marketplace{
+
 }
 
 var StandardStreams = []StreamContract{
