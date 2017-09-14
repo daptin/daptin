@@ -232,7 +232,7 @@
       setTable() {
         const that = this;
 
-        console.log("Enter tablename: ", that);
+        console.log("Instance View: ", that.$route.params);
 
         that.actionManager = actionManager;
         const worldActions = actionManager.getActions("world");
