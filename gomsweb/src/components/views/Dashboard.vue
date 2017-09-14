@@ -181,6 +181,11 @@
                              class="btn btn-lg btn-app">
                   <i style="font-size: 30px" class="fa fa-3x fa-film black"></i>Data views
                 </router-link>
+                <router-link :to="{name: 'Entity', params:{tablename: 'json_schema'}}"
+                             style="min-width: 120px; height: 90px; font-size: 20px"
+                             class="btn btn-lg btn-app">
+                  <i style="font-size: 30px" class="fa fa-3x fa-puzzle-piece black"></i>Field Json Schema
+                </router-link>
 
               </div>
 

@@ -242,6 +242,7 @@
 
         console.log("setTable for [tableview1]: ", tableName);
         if (that.$refs.tableview1) {
+          console.log("tableview 1 is present")
           that.$refs.tableview1.reloadData(tableName)
         }
 
@@ -252,8 +253,7 @@
     },
     mounted() {
       var that = this;
-
-      console.log("Enter tablename: ", that, that.$route);
+      console.log("Entity view: ", that.$route);
 
       that.actionManager = actionManager;
       const worldActions = actionManager.getActions("world");

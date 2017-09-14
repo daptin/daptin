@@ -78,7 +78,7 @@
 
 
   export default {
-    name: 'AdminView',
+    name: 'RelationView',
     props: {
       tablename: {
         type: String,
@@ -97,6 +97,7 @@
     data() {
       return {
         jsonApi: jsonApi,
+        worldReferenceId: null,
         actionManager: actionManager,
         showAddEdit: false,
         selectedWorldAction: {},
@@ -200,7 +201,11 @@
 
         let all = {};
         console.log("Admin set table -", that.visibleWorlds)
-        console.log("Admin set table -", that.$store, that.selectedTable, that.selectedTable)
+        console.log("Admin set table -", that.$store, that.selectedTable, that.selectedTable);
+
+
+        var world = worldManager.getWorldByName(that.selectedSubTable)
+        this.worldReferenceId = world.id;
 
         tableName = that.selectedSubTable;
         all = jsonApi.one(that.selectedTable, that.selectedInstanceReferenceId).all(that.selectedSubTable + "_id");
@@ -225,7 +230,9 @@
         all.builderStack = [];
 
 
-        that.$refs.tableview2.reloadData(tableName)
+        if (that.$refs.tableview2) {
+          that.$refs.tableview2.reloadData(tableName)
+        }
 
       },
       logout: function () {
