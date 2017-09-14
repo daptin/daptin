@@ -354,17 +354,46 @@
           }
         }
         console.log("start value", startVal);
-        var element = document.getElementById('jsonEditor');
 
         let schema;
 
+        console.log("field json schema", that.schema)
 
         jsonApi.findAll("json_schema", {
           filter: that.schema.inputType
-        }).then(function(e){
+        }).then(function (e) {
+          if (e.length > 0) {
+            var schema = {};
+            try {
+              schema = JSON.parse(e[0].json_schema);
+
+            }catch(e) {
+              console.log("Failed to parse json schema", e)
+              return;
+            }
+            that.useAce = false;
+            setTimeout(function () {
+              var element = document.getElementById('jsonEditor');
+              console.log("schema", schema, element)
+
+              var editor = new JSONEditor(element, {
+                startval: startVal,
+                schema: schema,
+                theme: 'bootstrap3',
+              });
+              editor.on('change', function () {
+                // Do something
+                console.log("Json data updated", editor.getValue());
+                var val = editor.getValue();
+                if (!val) {
+                  that.value = null;
+                } else {
+                  that.value = JSON.stringify(editor.getValue());
+                }
+              });
+            }, 1000)
+          }
           console.log("got json schema", e)
-        }).error(function(e){
-          console.log("json schema failed", e)
         })
 
 

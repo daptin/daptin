@@ -902,6 +902,7 @@
         }
       },
       reload () {
+
         this.loadData()
       },
       refresh () {
