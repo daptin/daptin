@@ -203,7 +203,7 @@ nextFile:
 			return nil, []error{err}
 		}
 
-		jsonFileName := fmt.Sprintf("schema_%v_gocms.%v", entityName, fileType)
+		jsonFileName := fmt.Sprintf("schema_%v_goms.%v", entityName, fileType)
 		ioutil.WriteFile(jsonFileName, jsonStr, 0644)
 
 		go restart()
@@ -223,7 +223,7 @@ var successResponses = []ActionResponse{
 	NewActionResponse("client.redirect", map[string]interface{}{
 		"location": "/",
 		"window":   "self",
-		"delay":    10000,
+		"delay":    15000,
 	}),
 }
 
