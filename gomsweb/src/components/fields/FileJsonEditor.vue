@@ -336,6 +336,10 @@
 
     },
     mounted() {
+      window.ace.require = function(mode) {
+        console.log("ace wanted mode: ", mode)
+        return false;
+      };
       var that = this;
       setTimeout(function () {
         var startVal = that.value;
