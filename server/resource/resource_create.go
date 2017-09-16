@@ -10,6 +10,7 @@ import (
 	"github.com/artpar/goms/server/auth"
 	"time"
 	"fmt"
+	"github.com/araddon/dateparse"
 	"github.com/pkg/errors"
 )
 
@@ -135,21 +136,14 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		if col.ColumnType == "datetime" {
 
 			// 2017-07-13T18:30:00.000Z
-			val, err = time.Parse("2006-01-02T15:04:05.999Z", val.(string))
+			val, err = dateparse.ParseLocal(val.(string))
 			CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
 		} else if col.ColumnType == "date" {
 
 			parsedTime, ok := val.(time.Time)
 			if !ok {
-				val1, err := time.Parse("2006-01-02T15:04:05.999Z", val.(string))
-
+				val, err = dateparse.ParseLocal(val.(string))
 				InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
-				if err != nil {
-					val, err = time.Parse("2006-01-02", val.(string))
-					InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
-				} else {
-					val = val1
-				}
 			} else {
 				val = parsedTime
 			}

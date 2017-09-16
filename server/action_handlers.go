@@ -41,6 +41,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create marketplace package install performer")
 	performers = append(performers, marketplacePackage)
 
+	refreshMarketPlaceHandler, err := resource.NewRefreshMarketplacePackagelistPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create marketplace package refresh performer")
+	performers = append(performers, refreshMarketPlaceHandler)
+
 	restartPerformer, err := resource.NewRestarSystemPerformer(initConfig)
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, restartPerformer)
