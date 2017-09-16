@@ -27,6 +27,22 @@ type MarketPackage struct {
 	Location string
 }
 
+func (mp *MarketplaceService) RefreshRepository() error {
+
+	worktree, err := mp.gitRepo.Worktree()
+
+	if err != nil {
+		return err
+	}
+
+	err = worktree.Pull(&git.PullOptions{
+
+	})
+
+	return err
+
+}
+
 func (mp *MarketplaceService) GetPackage(packageName string) (*MarketPackage) {
 	packageList, err := mp.GetPackageList()
 	if err != nil {

@@ -79,6 +79,22 @@ var SystemExchanges = []ExchangeContract{}
 
 var SystemActions = []Action{
 	{
+		Name:             "refresh_marketplace_packages",
+		Label:            "Refresh marketplace",
+		OnType:           "marketplace",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "marketplace.package.refresh",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+				},
+			},
+		},
+	},
+	{
 		Name:             "generate_random_data",
 		Label:            "Generate random data",
 		OnType:           "world",
