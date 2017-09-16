@@ -129,7 +129,5 @@ html, body, .container-table {
   padding-bottom: 1em;
   height: 4em;
 }
-.input-group input {
-  height: 4em;
-}
+
 </style>

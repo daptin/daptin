@@ -22,7 +22,7 @@ import (
 
 func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 	data := obj.(*api2go.Api2GoModel)
-	log.Infof("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
+	//log.Infof("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
 
 	for _, bf := range dr.ms.BeforeCreate {
 		//log.Infof("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
@@ -88,7 +88,11 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		val, ok := attrs[col.ColumnName]
 
 		if !ok || val == nil {
-			continue
+			if col.DefaultValue != "" {
+				val = col.DefaultValue
+			} else {
+				continue
+			}
 		}
 
 		if col.IsForeignKey {
@@ -239,7 +243,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	}
 	//
 
-	log.Infof("Created entry: %v", createdResource)
+	//log.Infof("Created entry: %v", createdResource)
 
 	userGroupId := dr.GetUserGroupIdByUserId(userId)
 

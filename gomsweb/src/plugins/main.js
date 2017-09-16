@@ -13,6 +13,7 @@ import TableView from "../components/tableview/TableView.vue";
 import SelectOneOrMore from "../components/selectoneormore/SelectOneOrMore.vue";
 import ListView from "../components/listview/ListView.vue";
 import ActionView from "../components/actionview/ActionView.vue";
+import ReclineView from "../components/reclineview/ReclineView.vue";
 
 
 import locale from 'element-ui/lib/locale/lang/en'
@@ -40,6 +41,7 @@ Vue.use(DetailedRow);
 
 Vue.component('custom-actions', CustomActions);
 Vue.component('table-view', TableView);
+Vue.component('recline-view', ReclineView);
 Vue.component('action-view', ActionView);
 Vue.component('list-view', ListView);
 Vue.component('model-form', ModelForm);

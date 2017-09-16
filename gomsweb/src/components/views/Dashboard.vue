@@ -3,16 +3,18 @@
   <div class="content-wrapper">
     <!-- Content Header (Page header) -->
     <section class="content-header">
-      <h1>
-        Dashboard
-      </h1>
       <ol class="breadcrumb">
         <li>
           <a href="javascript:;">
             <i class="fa fa-home"></i>Home </a>
         </li>
         <li v-for="crumb in $route.meta.breadcrumb">
-          {{crumb.label}}
+          <template v-if="crumb.to">
+
+          </template>
+          <template v-else>
+            {{crumb.label}}
+          </template>
         </li>
       </ol>
 
@@ -79,29 +81,31 @@
 
 
         </div>
+      </div>
+      <div class="row">
 
-        <div class="col-md-9">
+        <div class="col-md-12">
 
           <div class="row">
             <div class="col-md-12">
-              <h3>New Entity</h3>
+              <h3>Create</h3>
 
               <div class="row">
 
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-plus black"></i>Upload Schema JSON
                 </router-link>
 
 
                 <router-link
                   :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
-                  style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+                  style="width: 250px; height: 90px; font-size: 20px" class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-file-excel-o black"></i>Upload XLS
                 </router-link>
 
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-upload black"></i>Upload Data JSON
                 </router-link>
 
@@ -111,12 +115,12 @@
               <h3>Backup</h3>
               <div class="row">
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-object-group black"></i>Download schema JSON
                 </router-link>
 
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'export_data'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-cloud-download black"></i>Download dump JSON
                 </router-link>
 
@@ -126,19 +130,19 @@
               <h3>People</h3>
               <div class="row">
                 <router-link :to="{name: 'NewEntity', params: {tablename: 'user'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px"
-                             class="btn btn-lg btn-app">
+
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-user-plus black"></i>Create new user
                 </router-link>
 
                 <router-link :to="{name: 'NewEntity', params:{tablename: 'usergroup'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px"
-                             class="btn btn-lg btn-app">
+
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-users black"></i>Create new user group
                 </router-link>
 
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px" class="btn btn-lg btn-app">
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-expeditedssl black"></i>Become admin
                 </router-link>
 
@@ -147,45 +151,51 @@
 
               <h3>Others</h3>
               <div class="row">
+                <router-link :to="{name: 'Entity', params:{tablename: 'marketplace'}}"
+                             class="btn btn-lg btn-app dashboard_button">
+                  <i style="font-size: 30px" class="fa fa-3x fa-shopping-cart black"></i>Market places
+                </router-link>
+
                 <router-link :to="{name: 'Entity', params:{tablename: 'data_exchange'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px"
-                             class="btn btn-lg btn-app">
+
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-exchange black"></i>Data Exchange
                 </router-link>
 
                 <router-link :to="{name: 'Entity', params:{tablename: 'oauth_token'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px"
-                             class="btn btn-lg btn-app">
+
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-key black"></i>Oauth Tokens
                 </router-link>
 
                 <router-link :to="{name: 'Entity', params:{tablename: 'oauth_connect'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px"
-                             class="btn btn-lg btn-app">
+
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-institution black"></i>Oauth Connections
                 </router-link>
 
                 <router-link :to="{name: 'Entity', params:{tablename: 'cloud_store'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px"
-                             class="btn btn-lg btn-app">
+
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-cloud black"></i>Storage
                 </router-link>
 
                 <router-link :to="{name: 'Entity', params:{tablename: 'site'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px"
-                             class="btn btn-lg btn-app">
+
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-television black"></i>Sub sites
                 </router-link>
                 <router-link :to="{name: 'Entity', params:{tablename: 'stream'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px"
-                             class="btn btn-lg btn-app">
+
+                             class="btn btn-lg btn-app dashboard_button">
                   <i style="font-size: 30px" class="fa fa-3x fa-film black"></i>Data views
                 </router-link>
+
                 <router-link :to="{name: 'Entity', params:{tablename: 'json_schema'}}"
-                             style="min-width: 120px; height: 90px; font-size: 20px"
-                             class="btn btn-lg btn-app">
-                  <i style="font-size: 30px" class="fa fa-3x fa-puzzle-piece black"></i>Field Json Schema
+                             class="btn btn-lg btn-app dashboard_button">
+                  <i style="font-size: 30px" class="fa fa-3x fa-puzzle-piece black"></i>Json Schemas
                 </router-link>
+
 
               </div>
 
@@ -206,6 +216,17 @@
   </div>
 
 </template>
+
+<style>
+  .dashboard_button {
+    width: 230px;
+    height: 90px;
+    font-size: 20px;
+  }
+  .dashboard_button i {
+    color: #534da7;
+  }
+</style>
 
 <script>
   import jsonApi from '../../plugins/jsonapi'

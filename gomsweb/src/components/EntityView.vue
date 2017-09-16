@@ -16,17 +16,24 @@
             <i class="fa fa-home"></i>Home</a>
         </li>
         <li v-for="crumb in $route.meta.breadcrumb">
-          {{crumb.label}}
+          <template v-if="crumb.to">
+
+          </template>
+          <template v-else>
+            {{crumb.label}}
+          </template>
         </li>
       </ol>
 
       <div class="box-tools pull-right">
         <div class="ui icon buttons">
-          <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'"><i
+          <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'; currentViewType = 'table-view';"><i
             class="fa  fa-2x fa-table grey "></i>
           </button>
-          <button class="btn btn-box-tool" @click.prevent="viewMode = 'card'"><i
+          <button class="btn btn-box-tool" @click.prevent="viewMode = 'card'; currentViewType = 'table-view';"><i
             class="fa  fa-2x fa-th-large grey"></i></button>
+          <button class="btn btn-box-tool" @click.prevent="currentViewType = 'recline-view'"><i
+            class="fa  fa-2x fa-area-chart grey"></i></button>
           <router-link v-if="selectedTable" :to="{name: 'NewEntity', params: {tablename: selectedTable}}"
                        class="btn btn-box-tool"
                        @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i></router-link>
@@ -57,9 +64,18 @@
         </div>
       </div>
 
-      <table-view @newRow="newRow()" @editRow="editRow"
-                  :finder="finder" ref="tableview1" :view-mode="viewMode" :json-api="jsonApi"
-                  :json-api-model-name="selectedTable" v-if="selectedTable && !showAddEdit"></table-view>
+      <template v-if="currentViewType == 'table-view'">
+        <table-view @newRow="newRow()" @editRow="editRow"
+                    :finder="finder" ref="tableview1" :view-mode="viewMode" :json-api="jsonApi"
+                    :json-api-model-name="selectedTable" v-if="selectedTable && !showAddEdit"></table-view>
+
+      </template>
+      <template v-else-if="currentViewType == 'recline-view'">
+        <recline-view @newRow="newRow()" @editRow="editRow"
+                      :finder="finder" ref="tableview1" :view-mode="viewMode" :json-api="jsonApi"
+                      :json-api-model-name="selectedTable" v-if="selectedTable && !showAddEdit"></recline-view>
+      </template>
+
 
     </section>
 
@@ -92,11 +108,15 @@
         type: String,
         default: null
       },
-
+      viewType: {
+        type: String,
+        default: 'table-view'
+      }
     },
     data() {
       return {
         jsonApi: jsonApi,
+        currentViewType: null,
         actionManager: actionManager,
         showAddEdit: false,
         selectedWorldAction: {},
@@ -252,7 +272,9 @@
       }
     },
     mounted() {
+
       var that = this;
+      that.currentViewType = that.viewType;
       console.log("Entity view: ", that.$route);
 
       that.actionManager = actionManager;

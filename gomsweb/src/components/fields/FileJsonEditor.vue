@@ -2,7 +2,7 @@
 <template>
   <div class="col-md-12">
     <div id="jsonEditor" v-if="!useAce"></div>
-    <editor ref="aceEditor" :content="value" v-if="useAce" :lang="'json'"
+    <editor ref="aceEditor" :options="options" :content="value" v-if="useAce" :lang="'json'"
             :sync="true"></editor>
   </div>
 </template>
@@ -326,6 +326,13 @@
       return {
         fileList: [],
         useAce: false,
+        options: {
+          fontSize: 18,
+          animatedScroll: true,
+          autoScrollEditorIntoView: true,
+          scrollPastEnd: false,
+          spellcheck: true,
+        },
       }
     },
     components: {
@@ -342,20 +349,6 @@
       var that = this;
       setTimeout(function () {
         var startVal = that.value;
-        if (!startVal) {
-          startVal = "";
-        } else {
-          if (typeof startVal != "string") {
-            startVal = startVal
-          } else {
-            try {
-              var startValNew = JSON.parse(startVal);
-              startVal = startValNew;
-            } catch (e) {
-
-            }
-          }
-        }
         console.log("start value", startVal);
 
         let schema;
@@ -377,7 +370,14 @@
             that.useAce = false;
             setTimeout(function () {
               var element = document.getElementById('jsonEditor');
-              console.log("schema", schema, element)
+              console.log("schema", schema, element);
+
+              try {
+                var startValNew = JSON.parse(startVal);
+                startVal = startValNew;
+              } catch (e) {
+
+              }
 
               var editor = new JSONEditor(element, {
                 startval: startVal,
@@ -403,6 +403,13 @@
         if (schemas[that.schema.inputType]) {
           schema = schemas[that.schema.inputType].schema;
 
+          try {
+            var startValNew = JSON.parse(startVal);
+            startVal = startValNew;
+          } catch (e) {
+
+          }
+
           var editor = new JSONEditor(element, {
             startval: startVal,
             schema: schema,
@@ -420,7 +427,6 @@
           });
         } else {
           schema = {};
-          that.value = JSON.stringify(startVal, null, 2);
           that.useAce = true;
           that.$on('editor-update', function (newValue) {
             that.value = newValue;
