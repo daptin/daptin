@@ -19,7 +19,7 @@ import (
 // - 204 No Content: Update was successful, no fields were changed by the server, return nothing
 func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 	data, ok := obj.(*api2go.Api2GoModel)
-	log.Infof("Update object request: [%v] %v", dr.model.GetTableName(), data.Data)
+	log.Infof("Update object request: [%v]", dr.model.GetTableName(), data.GetID())
 
 	for _, bf := range dr.ms.BeforeUpdate {
 		//log.Infof("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
@@ -28,7 +28,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			data.Data,
 		})
 		if err != nil {
-			log.Errorf("Error from BeforeUpdate middleware: %v", err)
+			log.Errorf("Erroset attributes from BeforeUpdate middleware: %v", err)
 			return nil, err
 		}
 		if len(finalData) == 0 {

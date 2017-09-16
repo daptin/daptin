@@ -18,6 +18,7 @@ type ColumnType struct {
 	Name          string
 	Validations   []string
 	Conformations []string
+	ReclineType   string
 }
 
 func randate() time.Time {
@@ -68,6 +69,8 @@ func (ct ColumnType) Fake() interface{} {
 		return randate().Unix()
 	case "location.latitude":
 		return fake.Latitude()
+	case "location":
+		return fmt.Sprintf("[%v, %v]", fake.Latitude(), fake.Longitude())
 	case "location.longitude":
 		return fake.Longitude()
 	case "location.altitude":
@@ -91,36 +94,55 @@ func (ct ColumnType) Fake() interface{} {
 	}
 }
 
+/**
+"string"
+"number"
+"integer"
+"date"
+"time"
+"date-time"
+"boolean"
+"binary"
+"geo_point"
+ */
+
 var ColumnTypes = []ColumnType{
 	{
 		Name:          "id",
 		BlueprintType: "string",
+		ReclineType:   "string",
 		Validations:   []string{},
 	},
 	{
 		Name:          "alias",
 		BlueprintType: "string",
+		ReclineType:   "string",
 	},
 	{
 		Name:          "date",
 		BlueprintType: "string",
+		ReclineType:   "date",
 	},
 	{
 		Name:          "time",
 		BlueprintType: "string",
+		ReclineType:   "time",
 	},
 	{
 		Name:          "day",
 		BlueprintType: "string",
+		ReclineType:   "string",
 	},
 	{
 		Name:          "month",
 		BlueprintType: "number",
+		ReclineType:   "string",
 		Validations:   []string{"min=1,max=12"},
 	},
 	{
 		Name:          "year",
 		BlueprintType: "number",
+		ReclineType:   "string",
 		Validations:   []string{"min=1900,max=2100"},
 	},
 	{
@@ -131,101 +153,128 @@ var ColumnTypes = []ColumnType{
 	{
 		Name:          "hour",
 		BlueprintType: "number",
+		ReclineType:   "string",
 	},
 	{
 		Name:          "datetime",
 		BlueprintType: "string",
+		ReclineType:   "date-time",
 	},
 	{
 		Name:          "email",
 		BlueprintType: "string",
+		ReclineType:   "string",
 		Validations:   []string{"email"},
 		Conformations: []string{"email"},
 	},
 	{
 		Name:          "namespace",
 		BlueprintType: "string",
+		ReclineType:   "string",
 	},
 	{
 		Name:          "name",
 		BlueprintType: "string",
+		ReclineType:   "string",
 		Validations:   []string{"required"},
 		Conformations: []string{"name"},
 	},
 	{
 		Name:          "encrypted",
+		ReclineType:   "string",
 		BlueprintType: "string",
 	},
 	{
 		Name:          "json",
+		ReclineType:   "string",
 		BlueprintType: "string",
 	},
 	{
 		Name:          "password",
 		BlueprintType: "string",
+		ReclineType:   "string",
 		Validations:   []string{"required"},
 	},
 	{
 		Name:          "value",
+		ReclineType:   "string",
 		BlueprintType: "number",
 	},
 	{
 		Name:          "truefalse",
 		BlueprintType: "boolean",
+		ReclineType:   "boolean",
 	},
 	{
 		Name:          "timestamp",
 		BlueprintType: "timestamp",
+		ReclineType:   "date-time",
+	},
+	{
+		Name:          "location",
+		BlueprintType: "string",
+		ReclineType:   "geo_point",
 	},
 	{
 		Name:          "location.latitude",
-		BlueprintType: "string",
+		BlueprintType: "number",
+		ReclineType:   "number",
 		Validations:   []string{"latitude"},
 	},
 	{
 		Name:          "location.longitude",
-		BlueprintType: "string",
+		BlueprintType: "number",
+		ReclineType:   "number",
 		Validations:   []string{"longitude"},
 	},
 	{
 		Name:          "location.altitude",
 		BlueprintType: "string",
+		ReclineType:   "number",
 	},
 	{
 		Name:          "color",
 		BlueprintType: "string",
+		ReclineType:   "string",
 		Validations:   []string{"iscolor"},
 	},
 	{
 		Name:          "rating.10",
 		BlueprintType: "number",
+		ReclineType:   "string",
 		Validations:   []string{"min=0,max=10"},
 	},
 	{
 		Name:          "measurement",
+		ReclineType:   "number",
 		BlueprintType: "number",
 	},
 	{
 		Name:          "label",
+		ReclineType:   "string",
 		BlueprintType: "string",
 	},
 	{
 		Name:          "content",
+		ReclineType:   "string",
 		BlueprintType: "string",
 	},
 	{
 		Name:          "file",
 		BlueprintType: "string",
+		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 	},
 	{
 		Name:          "url",
 		BlueprintType: "string",
+		ReclineType:   "string",
 		Validations:   []string{"url"},
 	},
 	{
 		Name:          "image",
 		BlueprintType: "string",
+		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 	},
 }

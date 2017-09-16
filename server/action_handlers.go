@@ -33,6 +33,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create generate jwt performer")
 	performers = append(performers, generateJwtPerformer)
 
+	randomDataGenerator, err := resource.NewRandomDataGeneratePerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create random data generator")
+	performers = append(performers, randomDataGenerator)
+
 	marketplacePackage, err := resource.NewMarketplacePackageInstaller(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create marketplace package install performer")
 	performers = append(performers, marketplacePackage)

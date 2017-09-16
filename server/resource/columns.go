@@ -79,6 +79,46 @@ var SystemExchanges = []ExchangeContract{}
 
 var SystemActions = []Action{
 	{
+		Name:             "generate_random_data",
+		Label:            "Generate random data",
+		OnType:           "world",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "Number of records",
+				ColumnName: "count",
+				ColumnType: "measurement",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "generate.random.data",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"count": "~count",
+				},
+			},
+		},
+		Validations: []ColumnTag{
+			{
+				ColumnName: "count",
+				Tags:       "gt=0",
+			},
+		},
+	},
+	//{
+	//
+	//	Name: "update_config",
+	//	Label: "Update configuration",
+	//	OnType: "world",
+	//	InstanceOptional: true,
+	//	InFields: []api2go.ColumnInfo{
+	//		{
+	//			Name: "default_storage",
+	//		},
+	//	},
+	//},
+	{
 		Name:             "install_marketplace_package",
 		Label:            "Install package from market",
 		OnType:           "marketplace",
@@ -96,7 +136,7 @@ var SystemActions = []Action{
 				Type:   "marketplace.package.install",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"package_name": "~package_name",
+					"package_name":        "~package_name",
 					"market_reference_id": "$.reference_id",
 				},
 			},

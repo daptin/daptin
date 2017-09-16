@@ -1,8 +1,8 @@
 hash: 73b7007371e82bcb3c3ff562236bb9b4bb9fd2f07f82fa22cced5203665a7635
-updated: 2017-09-12T02:47:55.094830218+05:30
+updated: 2017-09-15T19:24:09.531420102+05:30
 imports:
 - name: cloud.google.com/go
-  version: 5a9e19d4e1e41a734154e44a2132b358afb49a03
+  version: a0438a757b4fb67653a453baa844ac9630b4a4be
   subpackages:
   - compute/metadata
 - name: github.com/advance512/yaml
@@ -56,7 +56,7 @@ imports:
   - yandex
   - yandex/api
 - name: github.com/aws/aws-sdk-go
-  version: 12b6a0f7b3e676d459a9480e75df7efe576cfcb2
+  version: ad2c5a3ad38848175fca3225d0f7a94c426e4894
   subpackages:
   - aws
   - aws/awserr
@@ -150,7 +150,7 @@ imports:
   subpackages:
   - stack
 - name: github.com/golang/protobuf
-  version: 17ce1425424ab154092bbb43af630bd647f3bb0d
+  version: 11b8df160996e00fd4b55cbaafb3d84ec6d50fa8
   subpackages:
   - proto
 - name: github.com/gonum/blas
@@ -180,7 +180,7 @@ imports:
   subpackages:
   - query
 - name: github.com/hashicorp/hcl
-  version: 8f6b1344a92ff8877cf24a5de9177bf7d0a2a187
+  version: 68e816d1c783414e79bc65b3994d9ab6b0a722ab
   subpackages:
   - hcl/ast
   - hcl/parser
@@ -196,6 +196,10 @@ imports:
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jamiealquiza/envy
   version: 0bbd0e6a316f4aedb2fcb3eaaabd3e89d88d606f
+- name: github.com/jbenet/go-context
+  version: d14ea06fba99483203c19d92cfcd13ebe73135f4
+  subpackages:
+  - io
 - name: github.com/jinzhu/copier
   version: 32e0d0db1dcd4373fb9eb0f9d727b1fe1a723e54
 - name: github.com/jlaffaye/ftp
@@ -207,7 +211,7 @@ imports:
   subpackages:
   - reflectx
 - name: github.com/json-iterator/go
-  version: 6a4ba7bfa9e8d65cfd026267a44165b688352ad7
+  version: eef35e549b016d2a1152628d9cae47677c22d231
 - name: github.com/julienschmidt/httprouter
   version: 975b5c4c7c21c0e3d2764200bf2aa8e34657ae6e
 - name: github.com/kardianos/osext
@@ -235,6 +239,8 @@ imports:
   version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
 - name: github.com/mattn/go-sqlite3
   version: ca5e3819723d8eeaf170ad510e7da1d6d2e94a08
+- name: github.com/mitchellh/go-homedir
+  version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
   version: d0303fe809921458f417bcf828397a65db30a7e4
 - name: github.com/ncw/go-acd
@@ -255,7 +261,7 @@ imports:
 - name: github.com/pkg/sftp
   version: 98203f5a8333288eb3163b7c667d4260fe1333e9
 - name: github.com/pquerna/otp
-  version: 1baa0310d9a661ecba10bbea823ba64bf9253c0b
+  version: c70cbf6932991a11a553d1ee95d657f437e56c8a
   subpackages:
   - hotp
   - totp
@@ -267,6 +273,10 @@ imports:
   version: 7c8316a9cb0a6af865265f899f5de6aadb31a24b
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: github.com/sergi/go-diff
+  version: feef008d51ad2b3778f85d387ccf91735543008d
+  subpackages:
+  - diffmatchpatch
 - name: github.com/sirupsen/logrus
   version: f006c2ac4710855cf0f916dd6b77acf6b048dc6e
 - name: github.com/skratchdot/open-golang
@@ -287,6 +297,12 @@ imports:
   version: 7aff26db30c1be810f9de5038ec5ef96ac41fd7c
 - name: github.com/spf13/viper
   version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
+- name: github.com/src-d/gcfg
+  version: f187355171c936ac84a82793659ebb4936bc1c23
+  subpackages:
+  - scanner
+  - token
+  - types
 - name: github.com/tealeg/xlsx
   version: a06c872a6c402f194e9c817cf30f3840a75f8ffe
 - name: github.com/ugorji/go
@@ -313,7 +329,7 @@ imports:
   - service
   - utils
 - name: golang.org/x/crypto
-  version: 74b34b9dd60829a9fcaf56a59e81c3877a8ecd2c
+  version: b0c9c05bfe149df95eb1d25642162cca051e0466
   subpackages:
   - bcrypt
   - blowfish
@@ -327,9 +343,10 @@ imports:
   - scrypt
   - ssh
   - ssh/agent
+  - ssh/knownhosts
   - ssh/terminal
 - name: golang.org/x/net
-  version: 66aacef3dd8a676686c7ae3716979581e8b03c47
+  version: 859d1a86bb617c0c20d154590c3c5d3fcb670b07
   subpackages:
   - context
   - context/ctxhttp
@@ -337,19 +354,19 @@ imports:
   - html/atom
   - publicsuffix
 - name: golang.org/x/oauth2
-  version: d89af98d7c6bba047c5a2622f36bc14b8766df85
+  version: 13449ad91cb26cb47661c1b080790392170385fd
   subpackages:
   - google
   - internal
   - jws
   - jwt
 - name: golang.org/x/sys
-  version: a5054c7c1385fd50d9394475365355a87a7873ec
+  version: 062cd7e4e68206d8bab9b18396626e855c992658
   subpackages:
   - unix
   - windows
 - name: golang.org/x/text
-  version: bd91bbf73e9a4a801adbfb97133c992678533126
+  version: 1cbadb444a806fd9430d14ad08967ed91da4fa0a
   subpackages:
   - cases
   - collate
@@ -364,7 +381,7 @@ imports:
   subpackages:
   - rate
 - name: google.golang.org/api
-  version: b6a02105ec5a446209e9d38557f0e1ac30cacf82
+  version: 39c3dd417c5a443607650f18e829ad308da08dd2
   subpackages:
   - drive/v2
   - gensupport
@@ -395,6 +412,57 @@ imports:
   version: a6b93000bd219143c56c16e6cb1c4b91da3f224b
 - name: gopkg.in/resty.v0
   version: cf81ed0a604d373be63b4c036c6b05c06520615f
+- name: gopkg.in/src-d/go-billy.v3
+  version: c329b7bc7b9d24905d2bc1b85bfa29f7ae266314
+  subpackages:
+  - helper/chroot
+  - helper/polyfill
+  - osfs
+  - util
+- name: gopkg.in/src-d/go-git.v4
+  version: f9879dd043f84936a1f8acb8a53b74332a7ae135
+  subpackages:
+  - config
+  - internal/revision
+  - plumbing
+  - plumbing/cache
+  - plumbing/filemode
+  - plumbing/format/config
+  - plumbing/format/diff
+  - plumbing/format/gitignore
+  - plumbing/format/idxfile
+  - plumbing/format/index
+  - plumbing/format/objfile
+  - plumbing/format/packfile
+  - plumbing/format/pktline
+  - plumbing/object
+  - plumbing/protocol/packp
+  - plumbing/protocol/packp/capability
+  - plumbing/protocol/packp/sideband
+  - plumbing/revlist
+  - plumbing/storer
+  - plumbing/transport
+  - plumbing/transport/client
+  - plumbing/transport/file
+  - plumbing/transport/git
+  - plumbing/transport/http
+  - plumbing/transport/internal/common
+  - plumbing/transport/server
+  - plumbing/transport/ssh
+  - storage
+  - storage/filesystem
+  - storage/filesystem/internal/dotgit
+  - storage/memory
+  - utils/binary
+  - utils/diff
+  - utils/ioutil
+  - utils/merkletrie
+  - utils/merkletrie/filesystem
+  - utils/merkletrie/index
+  - utils/merkletrie/internal/frame
+  - utils/merkletrie/noder
+- name: gopkg.in/warnings.v0
+  version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - name: gopkg.in/yaml.v2
   version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
 testImports: []

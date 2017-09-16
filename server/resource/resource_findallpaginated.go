@@ -118,6 +118,8 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 
 		colsToAdd := make([]string, 0)
+		wheres := make([]interface{}, 0)
+
 		for _, col := range infos {
 			if col.IsIndexed && col.ColumnType == "name" || col.ColumnType == "label" {
 				colsToAdd = append(colsToAdd, col.ColumnName)
@@ -131,11 +133,12 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 					if len(q) < 1 {
 						continue
 					}
-					colString = append(colString, fmt.Sprintf("%v like '%v%%'", c, q))
+					colString = append(colString, fmt.Sprintf("%v like ?", c))
+					wheres = append(wheres, fmt.Sprint("%", q, "%"))
 				}
 			}
 			if len(colString) > 0 {
-				queryBuilder = queryBuilder.Where("( " + strings.Join(colString, " or ") + ")")
+				queryBuilder = queryBuilder.Where("( " + strings.Join(colString, " or ") + ")", wheres...)
 			}
 		}
 	} else {

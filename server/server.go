@@ -197,9 +197,16 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 		c.String(200, "pong")
 	})
 
-	r.GET("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
-	r.GET("/apispec.raml", CreateApiBlueprintHandler(&initConfig, cruds))
-	r.OPTIONS("/jsmodel/:typename", CreateJsModelHandler(&initConfig))
+	handler := CreateJsModelHandler(&initConfig)
+	blueprintHandler := CreateApiBlueprintHandler(&initConfig, cruds)
+	modelHandler := CreateReclineModelHandler()
+
+	r.GET("/jsmodel/:typename", handler)
+	r.GET("/apispec.raml", blueprintHandler)
+	r.GET("/recline_model", modelHandler)
+	r.OPTIONS("/jsmodel/:typename", handler)
+	r.OPTIONS("/apispec.raml", blueprintHandler)
+	r.OPTIONS("/recline_model", modelHandler)
 
 	actionPerformers := GetActionPerformers(&initConfig, configStore)
 
