@@ -13,9 +13,13 @@
             <i class="fa fa-home"></i>Home</a>
         </li>
         <li v-for="crumb in $route.meta.breadcrumb">
-          {{crumb.label}}
-        </li>
-      </ol>
+          <template v-if="crumb.to">
+            <router-link :to="crumb.to">{{crumb.label}}</router-link>
+          </template>
+          <template v-else>
+            {{crumb.label}}
+          </template>
+        </li>      </ol>
       <div class="pull-right">
         <div class="ui icon buttons">
           <button class="btn btn-box-tool" @click.prevent="editRow()"><i
