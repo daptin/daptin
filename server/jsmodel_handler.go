@@ -17,6 +17,20 @@ func CreateApiBlueprintHandler(initConfig *resource.CmsConfig, cruds map[string]
 	}
 }
 
+func CreateReclineModelHandler() func(*gin.Context) {
+
+	reclineColumnMap := make(map[string]string)
+
+	for _, column := range resource.ColumnTypes {
+		reclineColumnMap[column.Name] = column.ReclineType
+	}
+
+	return func(c *gin.Context) {
+		c.JSON(200, reclineColumnMap)
+	}
+
+}
+
 func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 	tableMap := make(map[string]resource.TableInfo)
 	for _, table := range initConfig.Tables {

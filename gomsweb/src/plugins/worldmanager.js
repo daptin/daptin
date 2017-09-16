@@ -156,6 +156,81 @@ const WorldManager = function () {
     return that.systemActions;
   }
 
+  that.reclineFieldTypeMap = {};
+
+
+  axios({
+    url: appconfig.apiRoot + '/recline_model'
+  }).then(function (res) {
+    console.log("recline field type map", res)
+    that.reclineFieldTypeMap = res.data;
+  });
+
+  that.getReclineModel = function (tableName, callback) {
+    that.getColumnKeys(tableName, function (columnsModel) {
+      var columns = columnsModel.ColumnModel;
+      console.log("build recline model", columns)
+
+
+      var colNames = Object.keys(columns);
+      var reclineModel = [];
+
+      for (var i = 0; i < colNames.length; i++) {
+        let colName = colNames[i];
+        var colType = columns[colName]
+        if (colType.ColumnType == "hidden") {
+          continue;
+        }
+
+
+        var reclineType = that.reclineFieldTypeMap[colType.ColumnType];
+
+        if (!reclineType) {
+
+
+          if (colType.jsonApi == "hasOne") {
+
+            // reclineModel.push({
+            //   id: colName,
+            //   type: 'object',
+            //   label: window.titleCase(colType.ColumnName)
+            // })
+
+          } else if (colType.jsonApi == "hasMany") {
+            //
+            // reclineModel.push({
+            //   id: colName,
+            //   type: 'array',
+            //   label: window.titleCase(colType.ColumnName)
+            // })
+            //
+
+          }
+
+
+
+        } else {
+
+
+          reclineModel.push({
+            id: colName,
+            type: reclineType,
+            label: window.titleCase(colType.ColumnName)
+          })
+
+        }
+
+      }
+
+      console.log("recline model", reclineModel)
+      callback(reclineModel);
+      return reclineModel;
+
+
+    })
+  };
+
+
   that.loadModels = function () {
 
 

@@ -26,21 +26,26 @@
       </ol>
       <div class="box-tools pull-right">
         <div class="ui icon buttons">
-          <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'"><i
+          <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'; currentViewType = 'table-view';"><i
             class="fa  fa-2x fa-table grey "></i>
           </button>
-          <button class="btn btn-box-tool" @click.prevent="viewMode = 'items'"><i
+          <button class="btn btn-box-tool" @click.prevent="viewMode = 'items'; currentViewType = 'table-view';"><i
             class="fa  fa-2x fa-th-large grey"></i>
           </button>
+          <button class="btn btn-box-tool" @click.prevent="currentViewType = 'recline-view'"><i
+            class="fa  fa-2x fa-area-chart grey"></i></button>
+
           <button class="btn btn-box-tool" @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i>
           </button>
           <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh grey"></i>
           </button>
-          <router-link :to="{name: 'Action', params: {actionname: 'add_exchange', tablename: 'world'}, query: {world_id: worldReferenceId}}"
-                       class="btn btn-box-tool"><i
+          <router-link
+            :to="{name: 'Action', params: {actionname: 'add_exchange', tablename: 'world'}, query: {world_id: worldReferenceId}}"
+            class="btn btn-box-tool"><i
             class="fa fa-2x fa-link grey"></i></router-link>
-          <router-link :to="{name: 'Action', params: {actionname: 'export_data', tablename: 'world'}, query: {world_id: worldReferenceId}}"
-                       class="btn btn-box-tool"><i
+          <router-link
+            :to="{name: 'Action', params: {actionname: 'export_data', tablename: 'world'}, query: {world_id: worldReferenceId}}"
+            class="btn btn-box-tool"><i
             class="fa fa-2x fa-cloud-download grey"></i></router-link>
         </div>
       </div>
@@ -57,11 +62,18 @@
       </div>
 
       <div class="col-md-12">
+        <template v-if="currentViewType == 'table-view'">
 
-        <table-view @newRow="newRow()" @editRow="editRow"
-                    v-if="selectedSubTable" :finder="finder"
-                    ref="tableview2" :json-api="jsonApi"
-                    :json-api-model-name="selectedSubTable"></table-view>
+          <table-view @newRow="newRow()" @editRow="editRow"
+                      v-if="selectedSubTable" :finder="finder"
+                      ref="tableview2" :json-api="jsonApi"
+                      :json-api-model-name="selectedSubTable"></table-view>
+        </template>
+        <template v-else-if="currentViewType == 'recline-view'">
+          <recline-view @newRow="newRow()" @editRow="editRow"
+                        :finder="finder" ref="tableview1" :json-api="jsonApi"
+                        :json-api-model-name="selectedSubTable" v-if="selectedSubTable && !showAddEdit"></recline-view>
+        </template>
 
       </div>
     </section>
@@ -92,11 +104,15 @@
         type: String,
         default: null
       },
-
+      viewType: {
+        type: String,
+        default: 'table-view'
+      }
     },
     data() {
       return {
         jsonApi: jsonApi,
+        currentViewType: null,
         worldReferenceId: null,
         actionManager: actionManager,
         showAddEdit: false,
@@ -244,6 +260,7 @@
       var that = this;
 //      that.$store.dispatch("LOAD_WORLDS");
       console.log("Enter tablename: ", that);
+      that.currentViewType = that.viewType;
 
       that.actionManager = actionManager;
       const worldActions = actionManager.getActions("world");
