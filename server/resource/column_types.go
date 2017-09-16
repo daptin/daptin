@@ -38,9 +38,9 @@ func (ct ColumnType) Fake() interface{} {
 	case "alias":
 		return uuid.NewV4().String()
 	case "date":
-		return randate()
+		return randate().Format("2006-01-02")
 	case "time":
-		return randate()
+		return randate().Format("15:04:05")
 	case "day":
 		return fake.Day()
 	case "month":
@@ -52,7 +52,7 @@ func (ct ColumnType) Fake() interface{} {
 	case "hour":
 		return rand.Intn(24)
 	case "datetime":
-		return randate()
+		return randate().Format(time.RFC3339)
 	case "email":
 		return fake.EmailAddress()
 	case "name":
