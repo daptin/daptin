@@ -8,16 +8,16 @@ import (
 	"io"
 )
 
-type MarketplacPackageInstallActionPerformer struct {
+type MarketplacePackageInstallActionPerformer struct {
 	cruds     map[string]*DbResource
 	marketMap map[string]*MarketplaceService
 }
 
-func (d *MarketplacPackageInstallActionPerformer) Name() string {
+func (d *MarketplacePackageInstallActionPerformer) Name() string {
 	return "marketplace.package.install"
 }
 
-func (d *MarketplacPackageInstallActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {
+func (d *MarketplacePackageInstallActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {
 
 	marketReferenceId := inFieldMap["marketplace_id"].(string)
 	marketplaceHandler, ok := d.marketMap[marketReferenceId]
@@ -53,7 +53,7 @@ func (d *MarketplacPackageInstallActionPerformer) DoAction(request ActionRequest
 	return successResponses, nil
 }
 
-func (h *MarketplacPackageInstallActionPerformer) init() {
+func (h *MarketplacePackageInstallActionPerformer) init() {
 
 	markets, err := h.cruds["marketplace"].GetAllMarketplaces()
 	CheckErr(err, "Failed to get market places")
@@ -69,8 +69,9 @@ func (h *MarketplacPackageInstallActionPerformer) init() {
 func NewMarketplacePackageInstaller(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
 	services := make(map[string]*MarketplaceService)
+	initConfig.MarketplaceHandlers = services
 
-	handler := MarketplacPackageInstallActionPerformer{
+	handler := MarketplacePackageInstallActionPerformer{
 		cruds:     cruds,
 		marketMap: services,
 	}

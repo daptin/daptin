@@ -251,7 +251,6 @@
                     case "destroy":
 
                       that.jsonApi.destroy(that.selectedWorld, obj.id).then(function () {
-//                        that.setTable(that.selectedWorld);
                       });
                       break;
                   }
@@ -263,7 +262,7 @@
             function () {
               that.$notify({
                 title: "Failed to fetch data",
-                message: "Check your network"
+                message: "Are you still logged in ?"
               })
             }
           )
