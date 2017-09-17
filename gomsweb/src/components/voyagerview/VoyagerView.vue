@@ -1,7 +1,7 @@
 <template>
   <div class="col-md-12" style="height: 500px;">
 
-    <div class="data-explorer-here">
+    <div class="data-explorer-here" id="data-explorer-here">
 
     </div>
 
@@ -18,7 +18,7 @@
   import axios from 'axios';
   import worldManager from '../../plugins/worldmanager';
 
-  const libVoyager = require('voyager');
+  //  const libVoyager = require('../../../static/js/plugins/voyager/js/lib-voyager');
   const container = document.getElementById("data-explorer-here");
 
 
@@ -193,7 +193,14 @@
             size: 100
           }
         }).then(function (result) {
-          const voyagerInstance = libVoyager.CreateVoyager(container, config, {values: result})
+          var container = document.getElementById("data-explorer-here");
+          var config = {};
+          let data = {values: result};
+          console.log("results", data)
+//          const voyagerInstance = libVoyager.CreateVoyager(container, undefined, undefined)
+
+
+//          voyagerInstance.updateData(data);
         });
 
       }

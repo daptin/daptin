@@ -349,6 +349,9 @@
       var that = this;
       setTimeout(function () {
         var startVal = that.value;
+//        if (!startVal) {
+//          that.value = "";
+//        }
         console.log("start value", startVal);
 
         let schema;
