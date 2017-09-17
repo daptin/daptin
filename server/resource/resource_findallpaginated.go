@@ -61,7 +61,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	}
 
 	if pageSize == 0 {
-		return uint(dr.GetTotalCount()), nil, nil
+		pageSize = 1
 	}
 
 	sortOrder := []string{}
@@ -116,7 +116,6 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	// todo: fix search in findall operation. currently no way to do an " or " query
 	if len(queries) > 0 {
 
-
 		colsToAdd := make([]string, 0)
 		wheres := make([]interface{}, 0)
 
@@ -129,16 +128,17 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		if len(colsToAdd) > 0 {
 			colString := make([]string, 0)
 			for _, q := range queries {
+				if len(q) < 1 {
+					continue
+				}
+
 				for _, c := range colsToAdd {
-					if len(q) < 1 {
-						continue
-					}
 					colString = append(colString, fmt.Sprintf("%v like ?", c))
 					wheres = append(wheres, fmt.Sprint("%", q, "%"))
 				}
 			}
 			if len(colString) > 0 {
-				queryBuilder = queryBuilder.Where("( " + strings.Join(colString, " or ") + ")", wheres...)
+				queryBuilder = queryBuilder.Where("( "+strings.Join(colString, " or ")+")", wheres...)
 			}
 		}
 	} else {
@@ -281,7 +281,6 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	}
 
 	log.Infof("Sql: %v\n", sql1)
-
 
 	stmt, err := dr.db.Preparex(sql1)
 	if err != nil {

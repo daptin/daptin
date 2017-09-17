@@ -81,6 +81,8 @@ export default {
             window.localStorage.setItem('token', token)
           }
 
+
+
           this.$router.push(data.redirect)
         }
       })
