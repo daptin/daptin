@@ -8,6 +8,13 @@ export default {
   SET_USER(state, user) {
     state.user = user
   },
+  SET_LAST_URL(state, route) {
+    if (route) {
+      window.localStorage.setItem("last_route", JSON.stringify(route));
+    } else {
+      window.localStorage.removeItem("last_route");
+    }
+  },
   SET_TOKEN(state, token) {
     window.localStorage.setItem("token", token)
   },
