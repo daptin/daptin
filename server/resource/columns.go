@@ -506,7 +506,7 @@ var SystemActions = []Action{
 		Name:             "add_exchange",
 		Label:            "Add new data exchange",
 		OnType:           "world",
-		InstanceOptional: true,
+		InstanceOptional: false,
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -515,12 +515,30 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 			{
-				Name:         "sheet_id",
-				ColumnName:   "sheet_id",
-				ColumnType:   "alias",
-				IsForeignKey: true,
-				ForeignKeyData: api2go.ForeignKeyData{
-
+				Name:       "sheet_id",
+				ColumnName: "sheet_id",
+				ColumnType: "alias",
+				IsNullable: false,
+			},
+			{
+				Name:       "app_key Key",
+				ColumnName: "app_key",
+				ColumnType: "alias",
+				IsNullable: false,
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "data_exchange",
+				Method: "POST",
+				Attributes: map[string]interface{}{
+					"name":              "!'Export ' + subject.table_name + ' to excel sheet'",
+					"source_attributes": "!JSON.stringify({name: subject.table_name})",
+					"source_type":       "self",
+					"target_type":       "gsheet-append",
+					"options":           "!JSON.stringify({hasHeader: true})",
+					"attributes":        "!JSON.stringify([{SourceColumn: '$self.description', TargetColumn: 'Task description'}])",
+					"target_attributes": "!JSON.stringify({sheetUrl: 'https://content-sheets.googleapis.com/v4/spreadsheets/' + sheet_id + '/values/A1:append', appKey: app_key})",
 				},
 			},
 		},

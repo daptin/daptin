@@ -24,6 +24,7 @@
       <el-button class="bg-yellow" type="submit" v-loading.body="loading" @click.prevent="saveRow()"> Submit
       </el-button>
       <el-button class="bg-red" v-if="!hideCancel" @click="cancel()">Cancel</el-button>
+      <el-button class="bg-orange" v-if="!hideCancel" @click="loadLast()">Load last submission</el-button>
     </div>
   </div>
 
@@ -78,6 +79,20 @@
       }
     },
     methods: {
+      loadLast() {
+        var that = this;
+        var stored = window.localStorage.getItem(this.$route.path)
+        if (stored) {
+          var obj = JSON.parse(stored);
+          var keys = Object.keys(obj);
+          for (var i=0;i<keys.length;i++){
+            var key = keys[i];
+            var val = obj[key];
+            that.model[key] = val;
+          }
+//          that.model = obj;
+        }
+      },
       setRelation(item) {
         console.log("save relation", item);
 
@@ -193,6 +208,7 @@
       saveRow: function () {
         var that = this;
         console.log("save row", this.model);
+        window.localStorage.setItem(that.$route.path, JSON.stringify(this.model))
         this.loading = true;
         setTimeout((function () {
           that.loading = false;
