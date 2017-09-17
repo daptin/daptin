@@ -366,7 +366,11 @@ func NewActionResponse(responseType string, attrs interface{}) ActionResponse {
 
 func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.Api2GoModel, api2go.Request, error) {
 
-	attrs := buildActionContext(outcome.Attributes, inFieldMap).(map[string]interface{})
+	attrInterface, err := buildActionContext(outcome.Attributes, inFieldMap)
+	if err != nil {
+		return nil, api2go.Request{}, err
+	}
+	attrs := attrInterface.(map[string]interface{})
 
 	switch outcome.Type {
 	case "system_json_schema_update":
@@ -388,7 +392,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 			fileName := f["name"].(string)
 			log.Infof("File name: %v", fileName)
 			fileNameParts := strings.Split(fileName, ".")
-			fileFormat := fileNameParts[len(fileNameParts) - 1]
+			fileFormat := fileNameParts[len(fileNameParts)-1]
 			fileContentsBase64 := f["file"].(string)
 			fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
 			if err != nil {
@@ -475,7 +479,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 
 }
 
-func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) interface{} {
+func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) (interface{}, error) {
 
 	vm := goja.New()
 
@@ -484,14 +488,15 @@ func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) inter
 		vm.Set(key, val)
 	}
 	v, err := vm.RunString(unsafe) // Here be dragons (risky code)
+
 	if err != nil {
-		log.Errorf("failed to execute: %v", err)
+		return nil, err
 	}
 
-	return v.Export()
+	return v.Export(), nil
 }
 
-func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]interface{}) interface{} {
+func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]interface{}) (interface{}, error) {
 
 	var data interface{}
 
@@ -511,11 +516,19 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 
 				fieldString := field.(string)
 
-				dataMap[key] = evaluateString(fieldString, inFieldMap)
+				val, err := evaluateString(fieldString, inFieldMap)
+				if err != nil {
+					return nil, err
+				}
+				dataMap[key] = val
 
 			} else if typeOfField == reflect.Map || typeOfField == reflect.Slice || typeOfField == reflect.Array {
 
-				dataMap[key] = buildActionContext(field, inFieldMap)
+				val, err := buildActionContext(field, inFieldMap)
+				if err != nil {
+					return nil, err
+				}
+				dataMap[key] = val
 
 			}
 
@@ -545,10 +558,18 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 
 				outcomeString := outcome.(string)
 
-				outcomes = append(outcomes, evaluateString(outcomeString, inFieldMap))
+				evtStr, err := evaluateString(outcomeString, inFieldMap)
+				if err != nil {
+					return data, err
+				}
+				outcomes = append(outcomes, evtStr)
 
 			} else if outcomeKind == reflect.Map || outcomeKind == reflect.Array || outcomeKind == reflect.Slice {
-				outcomes = append(outcomes, buildActionContext(outcome, inFieldMap))
+				outc, err := buildActionContext(outcome, inFieldMap)
+				if err != nil {
+					return data, err
+				}
+				outcomes = append(outcomes, outc)
 			}
 
 		}
@@ -556,20 +577,23 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 
 	}
 
-	return data
+	return data, nil
 }
 
-func evaluateString(fieldString string, inFieldMap map[string]interface{}) interface{} {
+func evaluateString(fieldString string, inFieldMap map[string]interface{}) (interface{}, error) {
 
 	var val interface{}
 
 	if fieldString == "" {
-		return ""
+		return "", nil
 	}
 
 	if fieldString[0] == '!' {
 
-		res := runUnsafeJavascript(fieldString[1:], inFieldMap)
+		res, err := runUnsafeJavascript(fieldString[1:], inFieldMap)
+		if err != nil {
+			return nil, err
+		}
 		val = res
 
 	} else if fieldString[0] == '~' {
@@ -590,7 +614,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) inter
 			finalValue = finalValue.(map[string]interface{})[fieldPart]
 		}
 		if finalValue == nil {
-			return nil
+			return nil, nil
 		}
 
 		castMap := finalValue.(map[string]interface{})
@@ -621,7 +645,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) inter
 				finalValue = finalValue.(map[string]interface{})[fieldPart]
 			}
 			if finalValue == nil {
-				return nil
+				return nil, nil
 			}
 
 			castMap := finalValue.(map[string]interface{})
@@ -632,7 +656,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) inter
 
 	}
 
-	return val
+	return val, nil
 
 }
 
