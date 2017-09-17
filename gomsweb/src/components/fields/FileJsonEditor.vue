@@ -2,7 +2,7 @@
 <template>
   <div class="col-md-12">
     <div id="jsonEditor" v-if="!useAce"></div>
-    <editor ref="aceEditor" :options="options" :content="value" v-if="useAce" :lang="'json'"
+    <editor ref="aceEditor" :options="options" :content="value" v-if="useAce" :lang="'html'"
             :sync="true"></editor>
   </div>
 </template>
@@ -426,6 +426,9 @@
             }
           });
         } else {
+          if (!that.value) {
+            that.value = "";
+          }
           schema = {};
           that.useAce = true;
           that.$on('editor-update', function (newValue) {

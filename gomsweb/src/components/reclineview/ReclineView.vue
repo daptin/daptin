@@ -36,6 +36,8 @@
 
 
   window._ = _;
+
+
   export default {
     name: 'recline-view',
     props: {
@@ -132,6 +134,33 @@
       },
       createMultiView(dataset, state) {
         var that = this;
+        console.log("that selected world columns", that.selectedWorldColumns);
+        var dateColumns = [];
+        var columnNames = Object.keys(that.selectedWorldColumns);
+        for (var i = 0; i < columnNames.length; i++) {
+          let columnName = columnNames[i];
+
+          if (columnName == "deleted_at") {
+            continue
+          }
+
+
+          if (columnName == "created_at") {
+            continue
+          }
+
+
+          if (columnName == "updated_at") {
+            continue
+          }
+
+
+          var columnType = that.selectedWorldColumns[columnName];
+          if (columnType == "datetime" || columnType == "date" || columnType == "time" || columnType == "timestamp") {
+            dateColumns.push(columnName)
+          }
+        }
+        console.log('date column', dateColumns)
         // remove existing multiview if present
         var reload = false;
         if (that.multiView) {
@@ -144,6 +173,35 @@
         $el.appendTo(that.explorerDiv);
 
         // customize the subviews for the MultiView
+        let timeline = new recline.View.Timeline({
+          model: dataset,
+          state: {
+            startField: dateColumns[0],
+            endField: dateColumns[1],
+          }
+        });
+
+        timeline.convertRecord = function (record, fields) {
+          var attrs = record.attributes;
+          var objTitle = window.chooseTitle(attrs);
+          console.log("convert 1record title", record, objTitle);
+//          return objTitle;
+          return {
+            "startDate": attrs[dateColumns[0]],
+            "endDate": attrs[dateColumns[1]],
+            "headline": objTitle,
+            "text": attrs["description"],
+            "tag": []
+          };
+          var out = this._convertRecord(record);
+          if (out) {
+            out.headline = record.get('height').toString();
+          }
+          console.log("out is ", out);
+          return out;
+        }
+
+
         var views = [
           {
             id: 'grid',
@@ -183,6 +241,11 @@
             view: new recline.View.Map({
               model: dataset
             })
+          },
+          {
+            id: "timeline",
+            label: "Timeline",
+            view: timeline
           }
         ];
 
@@ -215,68 +278,120 @@
         }
         console.log("selectedWorldColumns", that.selectedWorldColumns);
         that.selectedWorldColumns = jsonModel["attributes"];
+        // TODO: init recline here
 
-        setTimeout(function () {
-
-          // TODO: init recline here
-
-          that.jsonApi.builderStack = that.finder;
-          that.jsonApi.get({
-            page: {
-              number: 1,
-              size: 50
-            }
-          }).then(function (result) {
-              that.explorerDiv = $('.data-explorer-here');
-              that.explorerDiv.html("");
+        that.explorerDiv = $('.data-explorer-here');
+        that.explorerDiv.html("");
 
 
-              var options = {
-                enableColumnReorder: false
-              };
+        var options = {
+          enableColumnReorder: false
+        };
+
+        that.createDataset(function (dataset) {
+          that.dataset = dataset;
+          that.multiView = that.createMultiView(that.dataset);
+          that.dataset.fetch();
+          that.dataset.records.bind('all', function (name, obj) {
+            console.log(name, obj);
 
 
-              console.log("recline view init", result);
-              that.createDataset(result, function (dataset) {
-                that.dataset = dataset;
-                that.multiView = that.createMultiView(that.dataset);
-                that.dataset.records.bind('all', function (name, obj) {
-                  console.log(name, obj);
+            switch (name) {
+              case "change":
+                that.saveRow(obj.attributes);
+                break;
+              case "destroy":
 
-
-                  switch (name) {
-                    case "change":
-                      that.saveRow(obj.attributes);
-                      break;
-                    case "destroy":
-
-                      that.jsonApi.destroy(that.selectedWorld, obj.id).then(function () {
-                      });
-                      break;
-                  }
-
+                that.jsonApi.destroy(that.selectedWorld, obj.id).then(function () {
                 });
-
-              });
-            },
-            function () {
-              that.$notify({
-                title: "Failed to fetch data",
-                message: "Are you still logged in ?"
-              })
+                break;
             }
-          )
 
+          });
 
-        }, 16);
+        });
+
       },
-      createDataset(results, callback) {
+      createDataset(callback) {
         var that = this;
         worldManager.getReclineModel(that.jsonApiModelName, function (reclineModel) {
-          console.log("columns", reclineModel)
+          console.log("columns", reclineModel);
+
+
+          recline.Backend = recline.Backend || {};
+          recline.Backend.JsonAPI = recline.Backend.JsonAPI || {};
+          (function (my) {
+            my.__type__ = 'jsonapi';
+            var Deferred = (typeof jQuery !== "undefined" && jQuery.Deferred) || _.Deferred;
+
+            // Fetch data from a Google Docs spreadsheet.
+            //
+            // For details of config options and returned values see the README in
+            // the repo at https://github.com/Recline/backend.gdocs/
+            my.fetch = function (config) {
+              var dfd = new Deferred();
+              console.log("backend fetch ", arguments);
+
+
+              that.jsonApi.builderStack = that.finder;
+              that.jsonApi.get({
+                page: {
+                  number: 1,
+                  size: 100
+                }
+              }).then(function (result) {
+
+                dfd.resolve(result);
+
+              }, function () {
+                that.$notify({
+                  type: "error",
+                  title: "Failed to fetch data",
+                  message: "Are you still logged in ?"
+                });
+                dfd.reject("Failed to fetch data: Are you still logged in ?");
+              })
+
+
+              return dfd.promise();
+            };
+
+            my.query = function (query) {
+              var dfd = new Deferred();
+
+              that.jsonApi.builderStack = that.finder;
+              let {data, errors, meta, links} = that.jsonApi.get({
+                page: {
+                  number: query.from + 1,
+                  size: query.size
+                },
+                filter: query.q
+              }).then(function (result) {
+                dfd.resolve({
+                  total: result.links.total,
+                  hits: result,
+                });
+
+              }, function () {
+                that.$notify({
+                  type: "error",
+                  title: "Failed to fetch data",
+                  message: "Are you still logged in ?"
+                });
+                dfd.reject("Failed to fetch data: Are you still logged in ?");
+              })
+
+              console.log("backend query", arguments)
+              return dfd.promise();
+            }
+
+
+          }(recline.Backend.JsonAPI));
+
+
           var dataset = new recline.Model.Dataset({
-            records: results,
-            fields: reclineModel
+            fields: reclineModel,
+            backend: 'jsonapi'
           });
           console.log("Dataset", dataset);
           callback(dataset);
