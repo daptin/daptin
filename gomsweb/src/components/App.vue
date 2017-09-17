@@ -33,16 +33,32 @@
           console.log(" is not authenticated ");
           if (this.$route.path == "/auth/signin" || this.$route.path == "/auth/signed") {
           } else {
+            this.$store.commit('SET_LAST_URL', this.$route);
             this.$router.push({name: 'SignIn'});
           }
         }
         that.loaded = true;
 
       } else {
+        var that = this;
         console.log("begin load models")
         var promise = worldManager.loadModels();
         promise.then(function () {
           console.log("World loaded, start view");
+
+
+          if (window.localStorage) {
+            var lastRoute = window.localStorage.getItem("last_route");
+            if (lastRoute) {
+              that.$store.commit('SET_LAST_URL', null);
+              console.log("last route is present");
+              that.$router.push(JSON.parse(lastRoute));
+            } else {
+              console.log("no last route present")
+            }
+          }
+
+
           that.loaded = true;
         });
 

@@ -34,6 +34,8 @@
             class="fa  fa-2x fa-th-large grey"></i></button>
           <button class="btn btn-box-tool" @click.prevent="currentViewType = 'recline-view'"><i
             class="fa  fa-2x fa-area-chart grey"></i></button>
+          <button class="btn btn-box-tool" @click.prevent="currentViewType = 'voyager-view'"><i
+            class="fa  fa-2x fa-area-chart grey"></i></button>
           <router-link v-if="selectedTable" :to="{name: 'NewEntity', params: {tablename: selectedTable}}"
                        class="btn btn-box-tool"
                        @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i></router-link>
@@ -74,6 +76,11 @@
         <recline-view @newRow="newRow()" @editRow="editRow"
                       :finder="finder" ref="tableview1" :view-mode="viewMode" :json-api="jsonApi"
                       :json-api-model-name="selectedTable" v-if="selectedTable && !showAddEdit"></recline-view>
+      </template>
+      <template v-else-if="currentViewType == 'voyager-view'">
+        <voyager-view @newRow="newRow()" @editRow="editRow"
+                      :finder="finder" ref="tableview1" :view-mode="viewMode" :json-api="jsonApi"
+                      :json-api-model-name="selectedTable" v-if="selectedTable && !showAddEdit"></voyager-view>
       </template>
 
 

@@ -14,6 +14,7 @@ export default {
 
   selectedTable: null,
   authToken: null,
+  route: null,
   authUser: null,
   selectedSubTable: null,
   selectedAction: null,
