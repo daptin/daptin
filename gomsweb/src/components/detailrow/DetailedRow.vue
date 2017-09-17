@@ -2,7 +2,6 @@
 
 
   <div class="row">
-    <!-- DetailRow -->
     <div class="col-md-12" v-if="!showAll">
       <div class="box">
         <div class="box-header">
@@ -93,7 +92,7 @@
           </el-tab-pane>
 
 
-          <el-tab-pane v-for="relation in relations" :label="relation.label">
+          <el-tab-pane v-for="relation in relations"  :key="relation.name" :label="relation.label">
             <list-view :json-api="jsonApi" :ref="relation.name" class="tab"
                        :data-tab="relation.name"
                        :json-api-model-name="relation.type" :json-api-relation-name="relation.name" @addRow="addRow"

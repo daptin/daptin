@@ -14,7 +14,7 @@ import SelectOneOrMore from "../components/selectoneormore/SelectOneOrMore.vue";
 import ListView from "../components/listview/ListView.vue";
 import ActionView from "../components/actionview/ActionView.vue";
 import ReclineView from "../components/reclineview/ReclineView.vue";
-import VoyagerView from "../components/voyagerview/VoyagerView.vue";
+// import VoyagerView from "../components/voyagerview/VoyagerView.vue";
 
 
 import locale from 'element-ui/lib/locale/lang/en'
@@ -42,7 +42,7 @@ Vue.use(DetailedRow);
 
 Vue.component('custom-actions', CustomActions);
 Vue.component('table-view', TableView);
-Vue.component('voyager-view', VoyagerView);
+// Vue.component('voyager-view', VoyagerView);
 Vue.component('recline-view', ReclineView);
 Vue.component('action-view', ActionView);
 Vue.component('list-view', ListView);
