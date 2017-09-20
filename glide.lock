@@ -1,8 +1,8 @@
 hash: 73b7007371e82bcb3c3ff562236bb9b4bb9fd2f07f82fa22cced5203665a7635
-updated: 2017-09-16T08:12:52.680370139+05:30
+updated: 2017-09-20T07:49:32.651171945+05:30
 imports:
 - name: cloud.google.com/go
-  version: 0b124d8375f8cf5cb1004fa21571940a58c8a0e9
+  version: 38a7def97ebdc2c74a198a4252b7f273fc216929
   subpackages:
   - compute/metadata
 - name: github.com/advance512/yaml
@@ -58,7 +58,7 @@ imports:
   - yandex
   - yandex/api
 - name: github.com/aws/aws-sdk-go
-  version: 8d2831dd9188c8f7a1c9719564d23f879bba0179
+  version: 8c31c1830194d67d74e23a7ba81bb2768849d56c
   subpackages:
   - aws
   - aws/awserr
@@ -152,7 +152,7 @@ imports:
   subpackages:
   - stack
 - name: github.com/golang/protobuf
-  version: 11b8df160996e00fd4b55cbaafb3d84ec6d50fa8
+  version: ae59567b9aab61b50b2590679a62c3c044030b61
   subpackages:
   - proto
 - name: github.com/gonum/blas
@@ -213,7 +213,7 @@ imports:
   subpackages:
   - reflectx
 - name: github.com/json-iterator/go
-  version: 92772579dd0d6dbbca395ebc5db8b559ebcb1798
+  version: fdfe0b9a69118ff692d6e1005e9de7e0cffb7d6b
 - name: github.com/julienschmidt/httprouter
   version: 975b5c4c7c21c0e3d2764200bf2aa8e34657ae6e
 - name: github.com/kardianos/osext
@@ -230,7 +230,7 @@ imports:
 - name: github.com/lann/ps
   version: 62de8c46ede02a7675c4c79c84883eb164cb71e3
 - name: github.com/lib/pq
-  version: e42267488fe361b9dc034be7a6bffef5b195bceb
+  version: 23da1db4f16d9658a86ae9b717c245fc078f10f1
   subpackages:
   - oid
 - name: github.com/looplab/fsm
@@ -308,7 +308,7 @@ imports:
 - name: github.com/tealeg/xlsx
   version: a06c872a6c402f194e9c817cf30f3840a75f8ffe
 - name: github.com/ugorji/go
-  version: 8c0409fcbb70099c748d71f714529204975f6c3f
+  version: 54210f4e076c57f351166f0ed60e67d3fca57a36
   subpackages:
   - codec
 - name: github.com/Unknwon/goconfig
@@ -331,7 +331,7 @@ imports:
   - service
   - utils
 - name: golang.org/x/crypto
-  version: b0c9c05bfe149df95eb1d25642162cca051e0466
+  version: 7d9177d70076375b9a59c8fde23d52d9c4a7ecd5
   subpackages:
   - bcrypt
   - blowfish
@@ -363,7 +363,7 @@ imports:
   - jws
   - jwt
 - name: golang.org/x/sys
-  version: 062cd7e4e68206d8bab9b18396626e855c992658
+  version: b6e1ae21643682ce023deb8d152024597b0e9bb4
   subpackages:
   - unix
   - windows
@@ -383,7 +383,7 @@ imports:
   subpackages:
   - rate
 - name: google.golang.org/api
-  version: 272693b6005d0c0dc1c7933ce47dd51ee50dbedc
+  version: aab106b125917246a672526055e2260b77258755
   subpackages:
   - drive/v2
   - gensupport
