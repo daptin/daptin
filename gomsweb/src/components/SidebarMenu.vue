@@ -1,6 +1,5 @@
 <template>
   <ul class="sidebar-menu">
-    <li class="header">Dashboard </li>
     <li class="pageLink" v-on:click="toggleMenu">
       <router-link :to="{name: 'Dashboard', params: {}}">
         <span class="page">Dashboard</span>

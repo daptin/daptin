@@ -88,68 +88,8 @@
 
           <div class="row">
             <div class="col-md-12">
-              <h3>Create</h3>
 
-              <div class="row">
-
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i style="font-size: 30px" class="fa fa-3x fa-plus black"></i>Upload Schema JSON
-                </router-link>
-
-
-                <router-link
-                  :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
-                  style="width: 250px; height: 90px; font-size: 20px" class="btn btn-lg btn-app dashboard_button">
-                  <i style="font-size: 30px" class="fa fa-3x fa-file-excel-o black"></i>Upload XLS
-                </router-link>
-
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i style="font-size: 30px" class="fa fa-3x fa-upload black"></i>Upload Data JSON
-                </router-link>
-
-
-              </div>
-
-              <h3>Backup</h3>
-              <div class="row">
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i style="font-size: 30px" class="fa fa-3x fa-object-group black"></i>Download schema JSON
-                </router-link>
-
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'export_data'}}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i style="font-size: 30px" class="fa fa-3x fa-cloud-download black"></i>Download dump JSON
-                </router-link>
-
-              </div>
-
-
-              <h3>People</h3>
-              <div class="row">
-                <router-link :to="{name: 'NewEntity', params: {tablename: 'user'}}"
-
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i style="font-size: 30px" class="fa fa-3x fa-user-plus black"></i>Create new user
-                </router-link>
-
-                <router-link :to="{name: 'NewEntity', params:{tablename: 'usergroup'}}"
-
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i style="font-size: 30px" class="fa fa-3x fa-users black"></i>Create new user group
-                </router-link>
-
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i style="font-size: 30px" class="fa fa-3x fa-expeditedssl black"></i>Become admin
-                </router-link>
-
-              </div>
-
-
-              <h3>Others</h3>
+              <h1>&nbsp;</h1>
               <div class="row">
                 <router-link :to="{name: 'Entity', params:{tablename: 'marketplace'}}"
                              class="btn btn-lg btn-app dashboard_button">
@@ -200,6 +140,76 @@
               </div>
 
 
+
+              <h3>People</h3>
+              <div class="row">
+                <router-link :to="{name: 'Action', params: {tablename: 'user', actionname: 'signup'}}"
+
+                             class="btn btn-lg btn-app dashboard_button">
+                  <i style="font-size: 30px" class="fa fa-3x fa-user-plus black"></i>Create new user
+                </router-link>
+
+                <router-link :to="{name: 'NewEntity', params:{tablename: 'usergroup'}}"
+
+                             class="btn btn-lg btn-app dashboard_button">
+                  <i style="font-size: 30px" class="fa fa-3x fa-users black"></i>Create new user group
+                </router-link>
+
+                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}"
+                             class="btn btn-lg btn-app dashboard_button">
+                  <i style="font-size: 30px" class="fa fa-3x fa-expeditedssl black"></i>Become admin
+                </router-link>
+
+              </div>
+
+
+              <h3>Create</h3>
+
+              <div class="row">
+
+                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
+                             class="btn btn-lg btn-app dashboard_button">
+                  <i style="font-size: 30px" class="fa fa-3x fa-plus black "></i>Upload Schema JSON
+                </router-link>
+
+
+                <router-link
+                  :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
+                   class="btn btn-lg btn-app dashboard_button">
+                  <i style="font-size: 30px" class="fa fa-3x fa-file-excel-o black"></i>Upload XLS
+                </router-link>
+
+                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
+                             class="btn btn-lg btn-app dashboard_button">
+                  <i style="font-size: 30px" class="fa fa-3x fa-upload black"></i>Upload Data JSON
+                </router-link>
+
+                <router-link :to="{name : 'NewItem'}"
+                             class="btn btn-lg btn-app dashboard_button">
+                  <i style="font-size: 30px" class="fa fa-3x fa-pencil black"></i>Online designer
+                </router-link>
+
+
+              </div>
+
+              <h3>Backup</h3>
+              <div class="row">
+                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
+                             class="btn btn-lg btn-app dashboard_button">
+                  <i style="font-size: 30px" class="fa fa-3x fa-object-group black"></i>Download schema JSON
+                </router-link>
+
+                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'export_data'}}"
+                             class="btn btn-lg btn-app dashboard_button">
+                  <i style="font-size: 30px" class="fa fa-3x fa-cloud-download black"></i>Download dump JSON
+                </router-link>
+
+              </div>
+
+
+
+
+
             </div>
           </div>
 
@@ -223,6 +233,7 @@
     height: 90px;
     font-size: 20px;
   }
+
   .dashboard_button i {
     color: #534da7;
   }
@@ -272,7 +283,10 @@
         return "#" + window.stringToColor(str)
       },
     },
+    updated() {
+    },
     mounted() {
+//      $(".content").popover();
 
       var that = this;
       that.$route.meta.breadcrumb = [

@@ -28,6 +28,7 @@
     "jwt-decode": "^2.2.0",
     "module": "^1.2.5",
     "moment": "^2.12.0",
+    "quicktype": "^0.9.18",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
     "tether-shepherd": "^1.8.1",

@@ -4,7 +4,6 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/goms/server/resource"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
 	"gopkg.in/gin-gonic/gin.v1"
 	"net/http"
 	"strings"
@@ -31,6 +30,18 @@ func CreateReclineModelHandler() func(*gin.Context) {
 
 }
 
+func CreateMetaHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
+
+	return func(context *gin.Context) {
+
+		query := context.Query("query")
+
+		switch query {
+		case "column_types":
+			context.JSON(200, resource.ColumnManager.ColumnMap)
+		}
+	}
+}
 func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 	tableMap := make(map[string]resource.TableInfo)
 	for _, table := range initConfig.Tables {
@@ -45,7 +56,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 		streamMap[stream.StreamName] = stream
 	}
 
-	worlds, _, err := cruds["world"].GetRowsByWhereClause("world", squirrel.Eq{"deleted_at": nil})
+	worlds, _, err := cruds["world"].GetRowsByWhereClause("world")
 	if err != nil {
 		log.Errorf("Failed to get worlds list")
 	}

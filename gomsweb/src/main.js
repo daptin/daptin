@@ -75,7 +75,7 @@ window.chooseTitle = function (obj) {
     var objModel = jsonApi.modelFor(objType);
     var attrs = objModel.attributes;
     var attrKeys = Object.keys(attrs);
-    for (var i=0;i<attrKeys.length;i++) {
+    for (var i = 0; i < attrKeys.length; i++) {
       if (attrs[attrKeys[i]] == "label") {
         candidates.push(attrKeys[i])
       }
@@ -90,13 +90,13 @@ window.chooseTitle = function (obj) {
 
     var found = keys.indexOf(candidates[i])
 
-    var found = keys.filter(function(k){
+    var found = keys.filter(function (k) {
       return k.indexOf(candidates[i]) > -1;
     });
 
 
     if (found.length > 0) {
-      for (var u=0;u<found.length;u++) {
+      for (var u = 0; u < found.length; u++) {
         var val = obj[found[u]];
         if (typeof val == "string" && val.length > 0) {
           if (isNaN(parseInt(val))) {
@@ -116,7 +116,6 @@ window.chooseTitle = function (obj) {
       }
     }
   }
-
 
 
   for (var i = 0; i < keys.length; i++) {
@@ -151,6 +150,9 @@ window.chooseTitle = function (obj) {
 };
 
 window.titleCase = function (str) {
+  if (!str || !str.replace) {
+    return str
+  }
   // console.log("TitleCase  : [" + str + "]", str)
   if (!str || str.length < 2) {
     return str;

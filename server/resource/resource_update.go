@@ -28,7 +28,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			data.Data,
 		})
 		if err != nil {
-			log.Errorf("Erroset attributes from BeforeUpdate middleware: %v", err)
+			log.Errorf("Error set attributes from BeforeUpdate middleware: %v", err)
 			return nil, err
 		}
 		if len(finalData) == 0 {
@@ -84,10 +84,6 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		}
 
 		if col.ColumnName == "created_at" {
-			continue
-		}
-
-		if col.ColumnName == "deleted_at" {
 			continue
 		}
 
@@ -219,7 +215,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		builder = builder.Set(colsList[i], valsList[i])
 	}
 
-	query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+	query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create update query: %v", err)
 		return NewResponse(nil, nil, 500, nil), err
@@ -255,7 +251,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		log.Infof("[%v][%v] Model was not dirty, not creating an audit row", data.GetTableName(), data.GetID())
 	}
 
-	//query, vals, err = squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+	//query, vals, err = squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": id}).ToSql()
 	//if err != nil {
 	//	log.Errorf("Failed to create select query: %v", err)
 	//	return nil, err
@@ -351,7 +347,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 				}
 
 				//relUpdateQuery, vars, err = squirrel.Update(rel.GetSubject()).
-				//    Set(rel.GetObjectName(), intId).Where(squirrel.Eq{"reference_id": val}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+				//    Set(rel.GetObjectName(), intId).Where(squirrel.Eq{"reference_id": val}).ToSql()
 
 				//if err != nil {
 				//  log.Errorf("Failed to make update query: %v", err)

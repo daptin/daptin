@@ -64,10 +64,6 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 			continue
 		}
 
-		if col.ColumnName == "deleted_at" {
-			continue
-		}
-
 		if col.ColumnName == "reference_id" {
 			continue
 		}
