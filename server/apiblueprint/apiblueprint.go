@@ -36,7 +36,6 @@ func (x *BlueprintWriter) Markdown() string {
 
 var skipColumns = map[string]bool{
 	"id":         true,
-	"deleted_at": true,
 	"permission": true,
 	"status":     true,
 }

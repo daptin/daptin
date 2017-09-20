@@ -35,6 +35,12 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx
 	cruds = make(map[string]*resource.DbResource)
 	for _, table := range tables {
 		log.Infof("Table [%v] Relations: %v", table.TableName)
+
+		if table.TableName == "" {
+			log.Errorf("Table name is empty, not adding to JSON API, as it will create conflict: %v", table)
+			continue
+		}
+
 		for _, r := range table.Relations {
 			log.Infof("Relation :: %v", r.String())
 		}
@@ -52,8 +58,8 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 
 	ts := make([]resource.TableInfo, 0)
 
-	res, err := db.Queryx("select table_name, permission, default_permission, schema_json, is_top_level, is_hidden, is_state_tracking_enabled" +
-			" from world where deleted_at is null and table_name not like '%_has_%' and table_name not like '%_audit' and table_name not in ('world', 'world_column', 'action', 'user', 'usergroup')")
+	res, err := db.Queryx("select table_name, permission, default_permission, world_schema_json, is_top_level, is_hidden, is_state_tracking_enabled" +
+			" from world where table_name not like '%_has_%' and table_name not like '%_audit' and table_name not in ('world', 'world_column', 'action', 'user', 'usergroup')")
 	if err != nil {
 		log.Infof("Failed to select from world table: %v", err)
 		return ts, err
@@ -63,12 +69,12 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 		var table_name string
 		var permission int64
 		var default_permission int64
-		var schema_json string
+		var world_schema_json string
 		var is_top_level bool
 		var is_hidden bool
 		var is_state_tracking_enabled bool
 
-		err = res.Scan(&table_name, &permission, &default_permission, &schema_json, &is_top_level, &is_hidden, &is_state_tracking_enabled)
+		err = res.Scan(&table_name, &permission, &default_permission, &world_schema_json, &is_top_level, &is_hidden, &is_state_tracking_enabled)
 		if err != nil {
 			log.Errorf("Failed to scan json schema from world: %v", err)
 			continue
@@ -76,7 +82,7 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 
 		var t resource.TableInfo
 
-		err = json.Unmarshal([]byte(schema_json), &t)
+		err = json.Unmarshal([]byte(world_schema_json), &t)
 		if err != nil {
 			log.Errorf("Failed to unmarshal json schema: %v", err)
 			continue

@@ -19,6 +19,7 @@ type ColumnType struct {
 	Validations   []string
 	Conformations []string
 	ReclineType   string
+	DataTypes     []string
 }
 
 func randate() time.Time {
@@ -112,53 +113,63 @@ var ColumnTypes = []ColumnType{
 		BlueprintType: "string",
 		ReclineType:   "string",
 		Validations:   []string{},
+		DataTypes:     []string{"varchar(20)", "varchar(10)"},
 	},
 	{
 		Name:          "alias",
 		BlueprintType: "string",
 		ReclineType:   "string",
+		DataTypes:     []string{"varchar(100)", "varchar(20)", "varchar(10)"},
 	},
 	{
 		Name:          "date",
 		BlueprintType: "string",
 		ReclineType:   "date",
+		DataTypes:     []string{"timestamp"},
 	},
 	{
 		Name:          "time",
 		BlueprintType: "string",
 		ReclineType:   "time",
+		DataTypes:     []string{"timestamp"},
 	},
 	{
 		Name:          "day",
 		BlueprintType: "string",
 		ReclineType:   "string",
+		DataTypes:     []string{"varchar(10)"},
 	},
 	{
 		Name:          "month",
 		BlueprintType: "number",
 		ReclineType:   "string",
 		Validations:   []string{"min=1,max=12"},
+		DataTypes:     []string{"int(4)"},
 	},
 	{
 		Name:          "year",
 		BlueprintType: "number",
 		ReclineType:   "string",
 		Validations:   []string{"min=1900,max=2100"},
+		DataTypes:     []string{"int(4)"},
 	},
 	{
 		Name:          "minute",
 		BlueprintType: "number",
 		Validations:   []string{"min=0,max=59"},
+		DataTypes:     []string{"int(4)"},
 	},
 	{
 		Name:          "hour",
 		BlueprintType: "number",
 		ReclineType:   "string",
+		DataTypes:     []string{"int(4)"},
 	},
 	{
 		Name:          "datetime",
 		BlueprintType: "string",
 		ReclineType:   "date-time",
+		DataTypes:     []string{"timestamp"},
 	},
 	{
 		Name:          "email",
@@ -166,11 +177,13 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "string",
 		Validations:   []string{"email"},
 		Conformations: []string{"email"},
+		DataTypes:     []string{"varchar(100)"},
 	},
 	{
 		Name:          "namespace",
 		BlueprintType: "string",
 		ReclineType:   "string",
+		DataTypes:     []string{"varchar(200)"},
 	},
 	{
 		Name:          "name",
@@ -178,104 +191,123 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "string",
 		Validations:   []string{"required"},
 		Conformations: []string{"name"},
+		DataTypes:     []string{"varchar(100)"},
 	},
 	{
 		Name:          "encrypted",
 		ReclineType:   "string",
 		BlueprintType: "string",
+		DataTypes:     []string{"varchar(100)", "varchar(500)", "varchar(500)", "text"},
 	},
 	{
 		Name:          "json",
 		ReclineType:   "string",
 		BlueprintType: "string",
+		DataTypes:     []string{"text", "varchar(100)"},
 	},
 	{
 		Name:          "password",
 		BlueprintType: "string",
 		ReclineType:   "string",
 		Validations:   []string{"required"},
+		DataTypes:     []string{"varchar(200)"},
 	},
 	{
 		Name:          "value",
 		ReclineType:   "string",
 		BlueprintType: "number",
+		DataTypes:     []string{"varchar(100)"},
 	},
 	{
 		Name:          "truefalse",
 		BlueprintType: "boolean",
 		ReclineType:   "boolean",
+		DataTypes:     []string{"boolean"},
 	},
 	{
 		Name:          "timestamp",
 		BlueprintType: "timestamp",
 		ReclineType:   "date-time",
+		DataTypes:     []string{"timestamp"},
 	},
 	{
 		Name:          "location",
 		BlueprintType: "string",
 		ReclineType:   "geo_point",
+		DataTypes:     []string{"varchar(50)"},
 	},
 	{
 		Name:          "location.latitude",
 		BlueprintType: "number",
 		ReclineType:   "number",
 		Validations:   []string{"latitude"},
+		DataTypes:     []string{"float(7,4)"},
 	},
 	{
 		Name:          "location.longitude",
 		BlueprintType: "number",
 		ReclineType:   "number",
 		Validations:   []string{"longitude"},
+		DataTypes:     []string{"float(7,4)"},
 	},
 	{
 		Name:          "location.altitude",
 		BlueprintType: "string",
 		ReclineType:   "number",
+		DataTypes:     []string{"float(7,4)"},
 	},
 	{
 		Name:          "color",
 		BlueprintType: "string",
 		ReclineType:   "string",
 		Validations:   []string{"iscolor"},
+		DataTypes:     []string{"varchar(50)"},
 	},
 	{
 		Name:          "rating.10",
 		BlueprintType: "number",
 		ReclineType:   "string",
 		Validations:   []string{"min=0,max=10"},
+		DataTypes:     []string{"int(4)"},
 	},
 	{
 		Name:          "measurement",
 		ReclineType:   "number",
 		BlueprintType: "number",
+		DataTypes:     []string{"int(10)"},
 	},
 	{
 		Name:          "label",
 		ReclineType:   "string",
 		BlueprintType: "string",
+		DataTypes:     []string{"varchar(100)"},
 	},
 	{
 		Name:          "content",
 		ReclineType:   "string",
 		BlueprintType: "string",
+		DataTypes:     []string{"text"},
 	},
 	{
 		Name:          "file",
 		BlueprintType: "string",
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
+		DataTypes:     []string{"text"},
 	},
 	{
 		Name:          "url",
 		BlueprintType: "string",
 		ReclineType:   "string",
 		Validations:   []string{"url"},
+		DataTypes:     []string{"varchar(500)"},
 	},
 	{
 		Name:          "image",
 		BlueprintType: "string",
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
+		DataTypes:     []string{"text"},
 	},
 }
 

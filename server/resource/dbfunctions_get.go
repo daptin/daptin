@@ -15,7 +15,7 @@ import (
 func GetObjectByWhereClause(objType string, db *sqlx.DB, queries ...squirrel.Eq) ([]map[string]interface{}, error) {
 	result := make([]map[string]interface{}, 0)
 
-	builder := squirrel.Select("*").From(objType).Where(squirrel.Eq{"deleted_at": nil})
+	builder := squirrel.Select("*").From(objType)
 
 	for _, q := range queries {
 		builder = builder.Where(q)
@@ -83,7 +83,7 @@ func GetWorldTableMapBy(col string, db *sqlx.DB) (map[string]map[string]interfac
 
 func GetAdminUserIdAndUserGroupId(db *sqlx.DB) (int64, int64) {
 	var userCount int
-	s, v, err := squirrel.Select("count(*)").From("user").Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+	s, v, err := squirrel.Select("count(*)").From("user").ToSql()
 	err = db.QueryRowx(s, v...).Scan(&userCount)
 	CheckErr(err, "Failed to get user count")
 
@@ -91,21 +91,21 @@ func GetAdminUserIdAndUserGroupId(db *sqlx.DB) (int64, int64) {
 	var userGroupId int64
 
 	if userCount < 2 {
-		s, v, err := squirrel.Select("id").From("user").Where(squirrel.Eq{"deleted_at": nil}).OrderBy("id").Limit(1).ToSql()
+		s, v, err := squirrel.Select("id").From("user").OrderBy("id").Limit(1).ToSql()
 		CheckErr(err, "Failed to create select user sql")
 		err = db.QueryRowx(s, v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
-		s, v, err = squirrel.Select("id").From("usergroup").Where(squirrel.Eq{"deleted_at": nil}).Limit(1).ToSql()
+		s, v, err = squirrel.Select("id").From("usergroup").Limit(1).ToSql()
 		CheckErr(err, "Failed to create user group sql")
 		err = db.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
 	} else {
 
-		s, v, err := squirrel.Select("id").From("user").Where(squirrel.Eq{"deleted_at": nil}).Where(squirrel.NotEq{"email": "guest@cms.go"}).OrderBy("id").Limit(1).ToSql()
+		s, v, err := squirrel.Select("id").From("user").Where(squirrel.NotEq{"email": "guest@cms.go"}).OrderBy("id").Limit(1).ToSql()
 		CheckErr(err, "Failed to create select user sql")
 		err = db.QueryRowx(s, v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
-		s, v, err = squirrel.Select("id").From("usergroup").Where(squirrel.Eq{"deleted_at": nil}).Limit(1).ToSql()
+		s, v, err = squirrel.Select("id").From("usergroup").Limit(1).ToSql()
 		CheckErr(err, "Failed to create user group sql")
 		err = db.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
@@ -197,7 +197,7 @@ func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
 
 	s, v, err := squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s.user_id", "s.reference_id").
 			From("marketplace s").
-			Where(squirrel.Eq{"s.deleted_at": nil}).ToSql()
+			ToSql()
 	if err != nil {
 		return marketPlaces, err
 	}
@@ -226,7 +226,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	s, v, err := squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s.permission", "s.user_id", "s.path").
 			From("site s").
-			Where(squirrel.Eq{"s.deleted_at": nil}).ToSql()
+			ToSql()
 	if err != nil {
 		return sites, err
 	}
@@ -345,7 +345,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 	var expires_in int64
 	var token oauth2.Token
 	s, v, err := squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
-			Where(squirrel.Eq{"deleted_at": nil}).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+	  Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 
 	if err != nil {
 		return nil, err
@@ -381,7 +381,7 @@ func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 	var expires_in int64
 	var token oauth2.Token
 	s, v, err := squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
-			Where(squirrel.Eq{"deleted_at": nil}).Where(squirrel.Eq{"id": id}).ToSql()
+			Where(squirrel.Eq{"id": id}).ToSql()
 
 	if err != nil {
 		return nil, err

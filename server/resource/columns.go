@@ -39,15 +39,6 @@ var StandardColumns = []api2go.ColumnInfo{
 		ColumnType: "datetime",
 	},
 	{
-		Name:           "deleted_at",
-		ColumnName:     "deleted_at",
-		DataType:       "timestamp",
-		ExcludeFromApi: true,
-		IsIndexed:      true,
-		IsNullable:     true,
-		ColumnType:     "datetime",
-	},
-	{
 		Name:       "reference_id",
 		ColumnName: "reference_id",
 		DataType:   "varchar(40)",
@@ -78,6 +69,22 @@ var SystemSmds = []LoopbookFsmDescription{}
 var SystemExchanges = []ExchangeContract{}
 
 var SystemActions = []Action{
+	{
+		Name:             "visit_marketokace_github",
+		Label:            "Go to marketplace",
+		OnType:           "marketplace",
+		InstanceOptional: false,
+		InFields:         []api2go.ColumnInfo{},
+		OutFields: []Outcome{
+			{
+				Type:   "client.redirect",
+				Method: "ACTIONRESPONSE",
+				Attributes: map[string]interface{}{
+					"location": "$subject.endpoint",
+					"window":   "_blank",
+				},},
+		},
+	},
 	{
 		Name:             "refresh_marketplace_packages",
 		Label:            "Refresh marketplace",
@@ -379,9 +386,10 @@ var SystemActions = []Action{
 				Method:    "POST",
 				Reference: "user",
 				Attributes: map[string]interface{}{
-					"name":     "~name",
-					"email":    "~email",
-					"password": "~password",
+					"name":      "~name",
+					"email":     "~email",
+					"password":  "~password",
+					"confirmed": "0",
 				},
 			},
 			{
@@ -633,8 +641,8 @@ var StandardTables = []TableInfo{
 				ColumnType: "name",
 			},
 			{
-				Name:       "schema_json",
-				ColumnName: "schema_json",
+				Name:       "world_schema_json",
+				ColumnName: "world_schema_json",
 				DataType:   "text",
 				IsNullable: false,
 				ColumnType: "json",

@@ -51,7 +51,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	}
 
 	delete(data, "id")
-	delete(data, "deleted_at")
+	//delete(data, "deleted_at")
 
 	infos := dr.model.GetColumns()
 	var a = api2go.NewApi2GoModel(dr.model.GetTableName(), infos, dr.model.GetDefaultPermission(), dr.model.GetRelations())
