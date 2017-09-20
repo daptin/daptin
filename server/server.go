@@ -133,7 +133,6 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	err = resource.UpdateActionTable(&initConfig, db)
 	resource.CheckErr(err, "Failed to update action table")
 
-	CleanUpConfigFiles()
 
 	/// end system initialise
 
@@ -198,10 +197,12 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	})
 
 	handler := CreateJsModelHandler(&initConfig)
+	metaHandler := CreateMetaHandler(&initConfig)
 	blueprintHandler := CreateApiBlueprintHandler(&initConfig, cruds)
 	modelHandler := CreateReclineModelHandler()
 
 	r.GET("/jsmodel/:typename", handler)
+	r.GET("/meta", metaHandler)
 	r.GET("/apispec.raml", blueprintHandler)
 	r.GET("/recline_model", modelHandler)
 	r.OPTIONS("/jsmodel/:typename", handler)
@@ -229,6 +230,8 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	resource.InitialiseColumnManager()
 
 	//r.Run(fmt.Sprintf(":%v", *port))
+	CleanUpConfigFiles()
+
 
 	http.ListenAndServe(fmt.Sprintf(":%v", *port), hostSwitch)
 }

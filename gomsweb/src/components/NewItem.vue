@@ -1,0 +1,205 @@
+<template>
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <ol class="breadcrumb">
+        <li>
+          <a href="javascript:;">
+            <i class="fa fa-home"></i>New item</a>
+        </li>
+      </ol>
+    </section>
+    <section class="content">
+      <div class="box">
+        <div class="box-header">
+          <h1 v-if="!data.TableName">New Table</h1>
+          <h1 v-else>{{data.TableName | titleCase}}</h1>
+        </div>
+        <div class="box-body">
+          <form onsubmit="return false" role="form">
+
+            <div class="row">
+              <div class="form-group">
+                <h3>Name</h3>
+                <input type="text" class="form-control" v-model="data.TableName" name="name"
+                       placeholder="sale_record">
+              </div>
+            </div>
+
+            <div class="row">
+
+              <div class="col-md-6">
+                <div class="box">
+                  <div class="box-header">
+                    <h3 class="box-title">Columns</h3>
+                    <div class="box-tools pull-right">
+                      <button @click="data.Columns.push({})" class="btn btn-primary"><i class="fa fa-plus"></i></button>
+                    </div>
+                  </div>
+
+                  <div class="box-body">
+                    <div class="form-group" v-for="col in data.Columns">
+                      <div class="row">
+                        <div class="col-md-6">
+                          <input type="text" v-model="col.Name" placeholder="name" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                          <select class="form-control" v-model="col.ColumnType">
+                            <option :value="colData.Name" v-for="(colData, colTypeName) in columnTypes">
+                              {{colTypeName | titleCase}}
+                            </option>
+                          </select>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="box">
+                  <div class="box-header">
+                    <h2 class="box-title">Relations</h2>
+                    <div class="box-tools pull-right">
+                      <button @click="data.Relations.push({})" class="btn btn-primary"><i class="fa fa-plus"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="box-body">
+                    <div class="form-group" v-for="relation in data.Relations">
+                      <div class="row">
+                        <div class="col-md-6">
+                          <select class="form-control" v-model="relation.Relation">
+                            <option value="has_one">Has one</option>
+                            <option value="belongs_to">Belongs to</option>
+                            <option value="has_many">Has many</option>
+                            <option value="has_many_and_belongs_to_many">Has many and belongs to many</option>
+                          </select>
+                        </div>
+                        <div class="col-md-6">
+                          <select class="form-control" v-model="relation.Object">
+                            <option :value="world.table_name" v-for="world in relatableWorlds">
+                              {{world.table_name | titleCase}}
+                            </option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </form>
+        </div>
+        <div class="box-footer">
+          <div class="form-group">
+            <button class="btn btn-primary btn-lg" @click="createEntity">Create</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+</template>
+<script>
+
+  import worldManager from '../plugins/worldmanager';
+  import {mapState} from 'vuex';
+  import actionManager from '../plugins/actionmanager'
+
+  var typeMeta = [
+    {
+      name: "entity",
+      label: "Entity"
+    },
+  ];
+
+  export default {
+    computed: {
+      ...mapState(['worlds']),
+      relatableWorlds: function () {
+        return this.worlds.filter(function (e) {
+          return e.table_name.indexOf("_has_") == -1 && e.table_name.indexOf("_audit") == -1;
+        })
+      }
+    },
+    methods: {
+      setup() {
+        console.log("query table name", this.$route.query)
+      },
+      createEntity: function () {
+        var that = this;
+        console.log(this.data);
+        var fileContent = JSON.stringify({
+          Tables: [
+            {
+              TableName: this.data.TableName,
+              Columns: this.data.Columns.map(function (col) {
+                if (!col.Name) {
+                  return null;
+                }
+                col.ColumnName = col.Name;
+                col.DataType = that.columnTypes[col.ColumnType].DataTypes[0]
+                return col;
+              }).filter(function (e) {
+                return !!e;
+              }),
+            }
+          ],
+          Relations: this.data.Relations.map(function (rel) {
+            rel.Subject = that.data.TableName;
+            return rel
+          })
+        });
+        console.log("New table json", fileContent)
+
+        var postData = {
+          "schema_file": [{
+            "name": "faq.json",
+            "file": "data:application/json;base64," + btoa(fileContent),
+            "type": "application/json"
+          }]
+        };
+        actionManager.doAction("world", "upload_system_schema", postData)
+
+
+      }
+    },
+    data() {
+      return {
+        columnTypes: [],
+        data: {
+          TableName: null,
+          Columns: [
+            {
+              Name: 'name',
+              ColumnType: "measurement"
+            }
+          ],
+          Relations: [{
+            Relation: "belongs_to",
+            Object: "user"
+          }, {
+            Relation: "has_many",
+            Object: "usergroup"
+          }]
+        },
+        columnTypes: [{
+          name: "varchar",
+          label: "Small text",
+          description: "For names"
+        }, {}],
+      }
+    },
+    mounted() {
+      console.log("Loaded new meta page");
+      var that = this;
+      that.columnTypes = worldManager.getColumnFieldTypes();
+      console.log("column types", that.columnTypes)
+      that.setup();
+    }
+  }
+
+</script>

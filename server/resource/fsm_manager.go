@@ -25,7 +25,6 @@ func (fsm *fsmManager) getStateMachineInstance(objType string, objId int64, mach
 
   s, v, err := squirrel.Select("current_state", objType+"_smd", "is_state_of_"+objType, "id", "created_at", "permission").
       From(objType + "_state").
-      Where(squirrel.Eq{"deleted_at": nil}).
       Where(squirrel.Eq{"reference_id": machineInstanceId}).
       Where(squirrel.Eq{"is_state_of_" + objType: objId}).ToSql()
 
@@ -74,7 +73,7 @@ type LoopbookFsmDescription struct {
 
 func (fsm *fsmManager) stateMachineRunnerFor(currentState string, typeName string, machineId int64) (*loopfsm.FSM, error) {
 
-  s, v, err := squirrel.Select("initial_state", "events").From("smd").Where(squirrel.Eq{"id": machineId}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  s, v, err := squirrel.Select("initial_state", "events").From("smd").Where(squirrel.Eq{"id": machineId}).ToSql()
   if err != nil {
     return nil, err
   }
@@ -149,7 +148,7 @@ func (fsm *fsmManager) ApplyEvent(subject map[string]interface{}, stateMachineEv
 }
 func ReferenceIdToIntegerId(typeName string, referenceId string, db *sqlx.DB) (int64, error) {
 
-  s, v, err := squirrel.Select("id").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+  s, v, err := squirrel.Select("id").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
   if err != nil {
     return 0, err
   }

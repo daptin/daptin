@@ -71,7 +71,7 @@ func (resource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId stri
 
 func UpdateMarketplaces(initConfig *CmsConfig, db *sqlx.DB) {
 
-	s, v, err := squirrel.Select("endpoint", "root_path").From("marketplace").Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+	s, v, err := squirrel.Select("endpoint", "root_path").From("marketplace").ToSql()
 
 	adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
 
@@ -114,7 +114,7 @@ func UpdateMarketplaces(initConfig *CmsConfig, db *sqlx.DB) {
 			s, v, err := squirrel.Update("marketplace").
 					Set("root_path", marketplace.RootPath).
 					Where(squirrel.Eq{"endpoint": marketplace.Endpoint}).
-					Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+					ToSql()
 
 			_, err = db.Exec(s, v...)
 			CheckErr(err, "Failed to update table for marketplace contract")
@@ -148,7 +148,7 @@ func UpdateMarketplaces(initConfig *CmsConfig, db *sqlx.DB) {
 
 func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 
-	s, v, err := squirrel.Select("stream_name", "stream_contract").From("stream").Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+	s, v, err := squirrel.Select("stream_name", "stream_contract").From("stream").ToSql()
 
 	adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
 
@@ -206,7 +206,7 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 			s, v, err := squirrel.Update("stream").
 					Set("stream_contract", schema).
 					Where(squirrel.Eq{"stream_name": stream.StreamName}).
-					Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+					ToSql()
 
 			_, err = db.Exec(s, v...)
 			CheckErr(err, "Failed to update table for stream contract")
@@ -246,7 +246,7 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
 
 	for _, exchange := range initConfig.ExchangeContracts {
 
-		s, v, err := squirrel.Select("reference_id").From("data_exchange").Where(squirrel.Eq{"name": exchange.Name}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+		s, v, err := squirrel.Select("reference_id").From("data_exchange").Where(squirrel.Eq{"name": exchange.Name}).ToSql()
 
 		if err != nil {
 			log.Errorf("Failed to query existing data exchange: %v", err)
@@ -321,7 +321,7 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
 
 	s, v, err := squirrel.Select("name", "source_attributes", "source_type", "target_attributes",
 		"target_type", "attributes", "options", "oauth_token_id").
-			From("data_exchange").Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+			From("data_exchange").ToSql()
 
 	rows, err := db.Queryx(s, v...)
 	CheckErr(err, "Failed to query existing exchanges")
@@ -455,13 +455,14 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.DB) {
 	}
 }
 
+
 func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
 
 	for _, table := range initConfig.Tables {
 
 		var worldid int
 
-		db.QueryRowx("select id from world where table_name = ? and deleted_at is null", table.TableName).Scan(&worldid)
+		db.QueryRowx("select id from world where table_name = ?", table.TableName).Scan(&worldid)
 		for _, col := range table.Columns {
 			mapData := make(map[string]interface{})
 			mapData["name"] = col.Name
@@ -483,7 +484,7 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
 			mapData["is_auto_increment"] = col.IsAutoIncrement
 
 			var colInfo api2go.ColumnInfo
-			err := db.QueryRowx("select name, is_unique, data_type, is_indexed, permission, column_type, column_name, column_description, is_nullable, default_value, is_primary_key, is_foreign_key, include_in_api, foreign_key_data, is_auto_increment from world_column where world_id = ? and column_name = ? and deleted_at is null", worldid, col.ColumnName).StructScan(&colInfo)
+			err := db.QueryRowx("select name, is_unique, data_type, is_indexed, permission, column_type, column_name, column_description, is_nullable, default_value, is_primary_key, is_foreign_key, include_in_api, foreign_key_data, is_auto_increment from world_column where world_id = ? and column_name = ? ", worldid, col.ColumnName).StructScan(&colInfo)
 			if err != nil {
 				log.Infof("Failed to scan world column: ", err)
 				log.Infof("No existing row for TableColumn[%v][%v]: %v", table.TableName, col.ColumnName, err)
@@ -680,7 +681,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 	var userGroupId int
 	var systemHasNoAdmin = false
 	var userCount int
-	s, v, err := squirrel.Select("count(*)").From("user").Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+	s, v, err := squirrel.Select("count(*)").From("user").ToSql()
 	err = tx.QueryRowx(s, v...).Scan(&userCount)
 	CheckErr(err, "Failed to get user count")
 	//log.Infof("Current user grou")
@@ -719,21 +720,21 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 		//tx.Exec("update usergroup set user_id = ?, usergroup_id = ?", userId, userGroupId)
 	} else if userCount < 2 {
 		systemHasNoAdmin = true
-		s, v, err := squirrel.Select("id").From("user").Where(squirrel.Eq{"deleted_at": nil}).OrderBy("id").Limit(1).ToSql()
+		s, v, err := squirrel.Select("id").From("user").OrderBy("id").Limit(1).ToSql()
 		CheckErr(err, "Failed to create select user sql")
 		err = tx.QueryRowx(s, v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
-		s, v, err = squirrel.Select("id").From("usergroup").Where(squirrel.Eq{"deleted_at": nil}).Limit(1).ToSql()
+		s, v, err = squirrel.Select("id").From("usergroup").Limit(1).ToSql()
 		CheckErr(err, "Failed to create user group sql")
 		err = tx.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
 	} else {
 
-		s, v, err := squirrel.Select("id").From("user").Where(squirrel.Eq{"deleted_at": nil}).Where(squirrel.NotEq{"email": "guest@cms.go"}).OrderBy("id").Limit(1).ToSql()
+		s, v, err := squirrel.Select("id").From("user").Where(squirrel.NotEq{"email": "guest@cms.go"}).OrderBy("id").Limit(1).ToSql()
 		CheckErr(err, "Failed to create select user sql")
 		err = tx.QueryRowx(s, v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
-		s, v, err = squirrel.Select("id").From("usergroup").Where(squirrel.Eq{"deleted_at": nil}).Limit(1).ToSql()
+		s, v, err = squirrel.Select("id").From("usergroup").Limit(1).ToSql()
 		CheckErr(err, "Failed to create user group sql")
 		err = tx.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
@@ -755,12 +756,12 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
 		if cou > 0 {
 
-			//s, v, err = squirrel.Select("default_permission").From("world").Where(squirrel.Eq{"table_name": table.TableName}).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+			//s, v, err = squirrel.Select("default_permission").From("world").Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
 			//CheckErr(err, "Failed to create select default permission sql")
 			log.Infof("Update table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)
 
 			s, v, err = squirrel.Update("world").
-					Set("schema_json", string(schema)).
+					Set("world_schema_json", string(schema)).
 					Set("is_top_level", table.IsTopLevel).
 					Set("is_hidden", table.IsHidden).
 					Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
@@ -775,7 +776,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 		log.Infof("Insert table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)
 
 		s, v, err = squirrel.Insert("world").
-				Columns("table_name", "schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden").
+				Columns("table_name", "world_schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden").
 				Values(table.TableName, string(schema), defaultWorldPermission, refId, defaultWorldPermission, userId, table.IsTopLevel, table.IsHidden).ToSql()
 		_, err = tx.Exec(s, v...)
 		CheckErr(err, "Failed to insert into world table about "+table.TableName)
@@ -783,9 +784,9 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
 	}
 
-	s, v, err = squirrel.Select("schema_json", "permission", "default_permission", "is_top_level", "is_hidden").
+	s, v, err = squirrel.Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden").
 			From("world").
-			Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+			ToSql()
 
 	CheckErr(err, "Failed to scan world table")
 
