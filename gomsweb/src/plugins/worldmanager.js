@@ -85,6 +85,25 @@ const WorldManager = function () {
     })
 
   };
+  that.columnTypes = [];
+
+  axios(appconfig.apiRoot + "/meta?query=column_types", {
+    headers: {
+      "Authorization": "Bearer " + getToken()
+    }
+  }).then(function (r) {
+    if (r.status == 200) {
+      var r = r.data;
+      that.columnTypes = r;
+    } else {
+      console.log("failed to get column types")
+    }
+  })
+
+  that.getColumnFieldTypes = function () {
+    console.log("Get column field types", that.columnTypes)
+    return that.columnTypes;
+  }
 
   that.isStateMachineEnabled = function (typeName) {
     return that.stateMachineEnabled[typeName] == true;
@@ -206,7 +225,6 @@ const WorldManager = function () {
             //
 
           }
-
 
 
         } else {

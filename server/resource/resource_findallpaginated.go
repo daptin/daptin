@@ -10,7 +10,7 @@ import (
 )
 
 func (dr *DbResource) GetTotalCount() uint64 {
-	s, v, err := squirrel.Select("count(*)").From(dr.model.GetName()).Where(squirrel.Eq{"deleted_at": nil}).ToSql()
+	s, v, err := squirrel.Select("count(*)").From(dr.model.GetName()).ToSql()
 	if err != nil {
 		log.Errorf("Failed to generate count query for %v: %v", dr.model.GetName(), err)
 		return 0
@@ -109,7 +109,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		}
 	}
 
-	queryBuilder := squirrel.Select(finalCols...).From(m.GetTableName()).Where(squirrel.Eq{prefix + "deleted_at": nil}).Offset(pageNumber).Limit(pageSize)
+	queryBuilder := squirrel.Select(finalCols...).From(m.GetTableName()).Offset(pageNumber).Limit(pageSize)
 
 	infos := dr.model.GetColumns()
 

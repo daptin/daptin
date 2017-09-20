@@ -10,7 +10,7 @@
         </div>
         <div class="pull-left info">
           <div>
-            <p class="white">{{ user.name }}</p>
+            <p class="black">{{ user.name }}</p>
           </div>
           <a href="javascript:;">
             <i class="fa fa-circle text-success"></i> Online

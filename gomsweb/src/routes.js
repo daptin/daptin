@@ -5,7 +5,7 @@ import NotFoundView from './components/404.vue'
 
 import InstanceView from './components/InstanceView'
 import EntityView from './components/EntityView'
-import NewMeta from './components/NewMeta'
+import NewItem from './components/NewItem'
 import RelationView from './components/RelationView'
 
 import AdminComponent from './components/Admin'
@@ -90,7 +90,7 @@ const routes = [
           {
             path: '/in/meta/new',
             name: 'NewItem',
-            component: NewMeta
+            component: NewItem
           },
           {
             path: '/in/item/:tablename/:refId/:subTable',

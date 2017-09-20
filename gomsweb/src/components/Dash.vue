@@ -233,9 +233,9 @@
     <!-- /.content-wrapper -->
 
     <!-- Main Footer -->
-    <footer class="main-footer">
-      <strong><a href="javascript:">GoMS</a>.</strong> All rights reserved.
-    </footer>
+    <!--<footer class="main-footer">-->
+      <!--<strong><a href="javascript:">GoMS</a>.</strong> All rights reserved.-->
+    <!--</footer>-->
   </div>
   <!-- ./wrapper -->
 </template>

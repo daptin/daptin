@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <div class="row vertical-10p">
+    <div class="row vertical-5p">
       <div class="container">
         <div class="register-logo">
           <a href="javascript:;"><b class="white">Goms</b></a>
