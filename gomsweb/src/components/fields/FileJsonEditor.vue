@@ -45,6 +45,16 @@
 //        }
         console.log("start value", startVal);
 
+        try {
+          console.log("try parse file json", startVal)
+          var t = JSON.parse(startVal);
+          startVal = JSON.stringify(t, null, 2);
+          that.value = startVal;
+        } catch(e) {
+
+        }
+
+
         let schema;
 
         console.log("field json schema", that.schema)
