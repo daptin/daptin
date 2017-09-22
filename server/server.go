@@ -7,7 +7,6 @@ import (
 	"gopkg.in/gin-gonic/gin.v1"
 	"github.com/artpar/goms/server/auth"
 	"github.com/artpar/goms/server/resource"
-	"github.com/jamiealquiza/envy"
 	"net/http"
 	"io/ioutil"
 	"flag"
@@ -22,12 +21,8 @@ var cruds = make(map[string]*resource.DbResource)
 
 func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l net.Listener, ch chan struct{}) {
 	defer wg.Done()
-	var port = flag.String("port", "6336", "GoMS port")
 
 	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
-
-	envy.Parse("GOMS") // looks for GOMS_PORT
-	flag.Parse()
 
 	gin.SetMode(*runtimeMode)
 
@@ -222,8 +217,6 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 	//r.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
 
-	log.Infof("Listening on :%v", *port)
-	//http.ListenAndServe(fmt.Sprintf(":%v", *port), hostSwitch)
 	go func() {
 		err = http.Serve(l, hostSwitch)
 		resource.CheckErr(err, "Failed to listen")

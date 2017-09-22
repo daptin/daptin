@@ -18,6 +18,7 @@ import (
 	"github.com/artpar/goagain"
 	"net"
 	"sync"
+	"github.com/jamiealquiza/envy"
 )
 
 // Save the stream as a global variable
@@ -41,6 +42,11 @@ func main() {
 			"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
 			"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
+	var port = flag.String("port", "6336", "GoMS port")
+	envy.Parse("GOMS") // looks for GOMS_PORT
+	flag.Parse()
+
+
 	var boxStatic, boxRoot http.FileSystem
 	if err != nil {
 		boxStatic = http.Dir("gomsweb/dist/static")
@@ -61,7 +67,7 @@ func main() {
 	if nil != err {
 
 		// Listen on a TCP or a UNIX domain socket (TCP here).
-		l, err = net.Listen("tcp", ":6336")
+		l, err = net.Listen("tcp", fmt.Sprintf(":%v", *port))
 		if nil != err {
 			log.Fatalln(err)
 		}
