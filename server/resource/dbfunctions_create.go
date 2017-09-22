@@ -165,7 +165,6 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 				c.IsNullable = true
 			}
 
-
 			c.IsUnique = false
 			c.IsPrimaryKey = false
 			c.IsAutoIncrement = false
@@ -318,7 +317,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			if noMatch {
 				newTable := TableInfo{
 					TableName: fromTable,
-					Columns: []api2go.ColumnInfo{col},
+					Columns:   []api2go.ColumnInfo{col},
 				}
 				config.Tables = append(config.Tables, newTable)
 				log.Infof("No matching table found: %v", relation)
@@ -565,6 +564,10 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 	}
 
 	columnParams := []string{c.ColumnName, datatype}
+
+	if datatype == "timestamp" && c.DefaultValue == "" {
+		c.IsNullable = true
+	}
 
 	if !c.IsNullable {
 		columnParams = append(columnParams, "not null")
