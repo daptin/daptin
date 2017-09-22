@@ -287,6 +287,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		log.Errorf("Failed to prepare sql: %v", err)
 		return 0, nil, err
 	}
+	defer stmt.Close()
 	rows, err := stmt.Queryx(args...)
 
 	if err != nil {

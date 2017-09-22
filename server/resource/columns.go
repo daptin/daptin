@@ -327,7 +327,7 @@ var SystemActions = []Action{
 	},
 	{
 		Name:             "signup",
-		Label:            "Sign up on Goms",
+		Label:            "Sign up",
 		InstanceOptional: true,
 		OnType:           "user",
 		InFields: []api2go.ColumnInfo{
@@ -430,7 +430,7 @@ var SystemActions = []Action{
 	},
 	{
 		Name:             "signin",
-		Label:            "Sign in to Goms",
+		Label:            "Sign in",
 		InstanceOptional: true,
 		OnType:           "user",
 		InFields: []api2go.ColumnInfo{

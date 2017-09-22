@@ -9,23 +9,20 @@ import (
 	"github.com/artpar/goms/server/resource"
 	"github.com/jamiealquiza/envy"
 	"net/http"
-	"fmt"
 	"io/ioutil"
 	"flag"
 	"github.com/artpar/rclone/fs"
 	"github.com/satori/go.uuid"
 	"github.com/jmoiron/sqlx"
+	"sync"
+	"net"
 )
 
 var cruds = make(map[string]*resource.DbResource)
 
-func Main(boxRoot, boxStatic http.FileSystem) {
-
+func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l net.Listener, ch chan struct{}) {
+	defer wg.Done()
 	var port = flag.String("port", "6336", "GoMS port")
-	var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
-	var connection_string = flag.String("db_connection_string", "test.db", "\n\tSQLite: test.db\n"+
-			"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
-			"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
 	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
 
@@ -35,12 +32,6 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	gin.SetMode(*runtimeMode)
 
 	//configFile := "goms_style.json"
-
-	db, err := GetDbConnection(*db_type, *connection_string)
-	if err != nil {
-		panic(err)
-	}
-
 	/// Start system initialise
 
 	log.Infof("Load config files")
@@ -130,9 +121,8 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	resource.UpdateStreams(&initConfig, db)
 	resource.UpdateMarketplaces(&initConfig, db)
 
-	err = resource.UpdateActionTable(&initConfig, db)
+	err := resource.UpdateActionTable(&initConfig, db)
 	resource.CheckErr(err, "Failed to update action table")
-
 
 	/// end system initialise
 
@@ -232,8 +222,19 @@ func Main(boxRoot, boxStatic http.FileSystem) {
 	//r.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
 
+	log.Infof("Listening on :%v", *port)
+	//http.ListenAndServe(fmt.Sprintf(":%v", *port), hostSwitch)
+	go func() {
+		err = http.Serve(l, hostSwitch)
+		resource.CheckErr(err, "Failed to listen")
+	}()
 
-	http.ListenAndServe(fmt.Sprintf(":%v", *port), hostSwitch)
+	select {
+	case <-ch:
+		return
+	default:
+	}
+
 }
 
 func AddStreamsToApi2Go(api *api2go.API, processors []*resource.StreamProcessor, db *sqlx.DB, middlewareSet *resource.MiddlewareSet, configStore *resource.ConfigStore) {

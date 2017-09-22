@@ -170,6 +170,7 @@ func (c *ConfigStore) GetWebConfig() map[string]string {
 
 	retMap := make(map[string]string)
 	res, err := c.db.Queryx(s, v...)
+	defer res.Close()
 
 	for res.Next() {
 		var name, val string

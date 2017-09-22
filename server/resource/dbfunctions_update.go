@@ -78,7 +78,8 @@ func UpdateMarketplaces(initConfig *CmsConfig, db *sqlx.DB) {
 	CheckErr(err, "Failed to create query for marketplace select")
 
 	res, err := db.Queryx(s, v...)
-
+	CheckErr(err, "Failed to scan market places")
+	defer res.Close()
 	existingMarketPlaces := make(map[string]Marketplace)
 	for res.Next() {
 		m := make(map[string]interface{})
@@ -155,8 +156,12 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 	CheckErr(err, "Failed to create query for stream select")
 
 	res, err := db.Queryx(s, v...)
-
+	CheckErr(err, "Failed to query streams")
+	if err != nil {
+		return
+	}
 	existingStreams := make(map[string]StreamContract)
+	defer res.Close()
 	for res.Next() {
 		m := make(map[string]interface{})
 		res.MapScan(m)
@@ -326,7 +331,9 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
 	rows, err := db.Queryx(s, v...)
 	CheckErr(err, "Failed to query existing exchanges")
 
+
 	if err == nil {
+		defer rows.Close()
 		for ; rows.Next(); {
 
 			var name, source_type, target_type string;
@@ -788,9 +795,15 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 			From("world").
 			ToSql()
 
-	CheckErr(err, "Failed to scan world table")
+	CheckErr(err, "Failed to create query for scan world table")
 
 	res, err := tx.Queryx(s, v...)
+	CheckErr(err, "Failed to scan world tables")
+	if err != nil {
+		return
+	}
+
+	defer res.Close()
 
 	tables := make([]TableInfo, 0)
 	for res.Next() {

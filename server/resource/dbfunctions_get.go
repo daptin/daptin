@@ -27,11 +27,14 @@ func GetObjectByWhereClause(objType string, db *sqlx.DB, queries ...squirrel.Eq)
 	}
 
 	stmt, err := db.Preparex(q)
+	defer stmt.Close()
 	rows, err := stmt.Queryx(v...)
+
 
 	if err != nil {
 		return result, err
 	}
+	defer rows.Close()
 
 	return RowsToMap(rows, objType)
 }
@@ -206,6 +209,7 @@ func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
 	if err != nil {
 		return marketPlaces, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var marketplace Marketplace
@@ -235,6 +239,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 	if err != nil {
 		return sites, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var site SubSite

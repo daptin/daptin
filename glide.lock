@@ -1,8 +1,8 @@
 hash: 73b7007371e82bcb3c3ff562236bb9b4bb9fd2f07f82fa22cced5203665a7635
-updated: 2017-09-20T07:49:32.651171945+05:30
+updated: 2017-09-22T05:36:58.454741197+05:30
 imports:
 - name: cloud.google.com/go
-  version: 38a7def97ebdc2c74a198a4252b7f273fc216929
+  version: 4b5faa47331c50b3f75616de199da5fea9c50bea
   subpackages:
   - compute/metadata
 - name: github.com/advance512/yaml
@@ -24,6 +24,8 @@ imports:
   - gingonic
 - name: github.com/artpar/conform
   version: 0a5d4165efbaf1ca49ccdbdf21cd7a2bf63e7f04
+- name: github.com/artpar/goagain
+  version: f2d5d7b515c4c1b6244ed9260e04c29800350d35
 - name: github.com/artpar/rclone
   version: 0d3a649d4abc430e6c4f24726c7e9337bec6ea4b
   subpackages:
@@ -58,7 +60,7 @@ imports:
   - yandex
   - yandex/api
 - name: github.com/aws/aws-sdk-go
-  version: 8c31c1830194d67d74e23a7ba81bb2768849d56c
+  version: 63b62fd164366013a09181fd43879e284c5c5a86
   subpackages:
   - aws
   - aws/awserr
@@ -88,7 +90,7 @@ imports:
   - service/s3/s3manager
   - service/sts
 - name: github.com/boombuler/barcode
-  version: 45e1f5ec9e3e4bb74da34aee9ae6cb6dec7a30c8
+  version: 1975df17bf0fda5ff5dc801465cef5abc8609c58
   subpackages:
   - qr
   - utils
@@ -110,12 +112,12 @@ imports:
   - parser
   - token
 - name: github.com/dropbox/dropbox-sdk-go-unofficial
-  version: b05850d887adc3fab2e87f337b71b25d4649bf4c
+  version: 3620be11411ddb30351ae33ac2ac34c16e13e66b
   subpackages:
   - dropbox
   - dropbox/async
+  - dropbox/file_properties
   - dropbox/files
-  - dropbox/properties
 - name: github.com/etgryphon/stringUp
   version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
 - name: github.com/fsnotify/fsnotify
@@ -152,7 +154,7 @@ imports:
   subpackages:
   - stack
 - name: github.com/golang/protobuf
-  version: ae59567b9aab61b50b2590679a62c3c044030b61
+  version: 130e6b02ab059e7b717a096f397c5b60111cae74
   subpackages:
   - proto
 - name: github.com/gonum/blas
@@ -213,7 +215,7 @@ imports:
   subpackages:
   - reflectx
 - name: github.com/json-iterator/go
-  version: fdfe0b9a69118ff692d6e1005e9de7e0cffb7d6b
+  version: dbb1ef3f63aa0d9a11eec791f70d4a19981fa068
 - name: github.com/julienschmidt/httprouter
   version: 975b5c4c7c21c0e3d2764200bf2aa8e34657ae6e
 - name: github.com/kardianos/osext
@@ -348,7 +350,7 @@ imports:
   - ssh/knownhosts
   - ssh/terminal
 - name: golang.org/x/net
-  version: 8351a756f30f1297fe94bbf4b767ec589c6ea6d0
+  version: b60f3a92103dfd93dfcb900ec77c6d0643510868
   subpackages:
   - context
   - context/ctxhttp
@@ -363,7 +365,7 @@ imports:
   - jws
   - jwt
 - name: golang.org/x/sys
-  version: b6e1ae21643682ce023deb8d152024597b0e9bb4
+  version: 2320a9c15898af1b1b24f99700d5c1e957f9d8cf
   subpackages:
   - unix
   - windows
@@ -383,7 +385,7 @@ imports:
   subpackages:
   - rate
 - name: google.golang.org/api
-  version: aab106b125917246a672526055e2260b77258755
+  version: 586095a6e4078caf0dc0b64f8545fa8679442013
   subpackages:
   - drive/v2
   - gensupport
@@ -391,7 +393,7 @@ imports:
   - googleapi/internal/uritemplates
   - storage/v1
 - name: google.golang.org/appengine
-  version: d9a072cfa7b9736e44311ef77b3e09d804bfa599
+  version: 24e4144ec923c2374f6b06610c0df16a9222c3d9
   subpackages:
   - internal
   - internal/app_identity

@@ -79,6 +79,7 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 		return nil, err
 	}
 
+
 	for _, bf := range dr.ms.AfterDelete {
 		//log.Infof("Invoke AfterDelete [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		_, err = bf.InterceptAfter(dr, &req, nil)

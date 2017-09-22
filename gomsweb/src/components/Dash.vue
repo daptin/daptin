@@ -12,218 +12,125 @@
         <a href="javascript:" class="sidebar-toggle" data-toggle="offcanvas" role="button">
           <span class="sr-only"> Toggle navigation</span>
         </a>
-        <form class="navbar-form navbar-left" @submit.prevent="setQueryString" role="search">
-          <div class="form-group">
-            <input type="text" class="form-control"  id="navbar-search-input" placeholder="Search">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse-1">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="navbar-collapse collapse" id="navbar-collapse-1" style="height: 1px;">
+          <div class="col-sm-3 col-md-3">
+            <form class="navbar-form" role="search" @submit.prevent="setQueryString">
+              <div class="input-group">
+                <input id="navbar-search-input" type="text" class="form-control" v-model="query" placeholder="Search" name="q">
+                <div class="input-group-btn">
+                  <button class="btn btn-default" type="submit"><i class="fa fa-search"></i></button>
+                  <button class="btn btn-default" @click.prevent="clearSearch" type="clear"><i class="fa fa-times"></i></button>
+                </div>
+              </div>
+            </form>
           </div>
-        </form>
-        <div class="navbar-custom-menu">
-          <ul class="nav navbar-nav">
+          <div class="navbar-custom-menu">
+            <ul class="nav navbar-nav">
 
-            <!-- Notifications: style can be found in dropdown.less -->
-            <li class="dropdown notifications-menu">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                <i class="fa fa-film"></i>
-                <span class="label label-warning">7</span> Tours
-              </a>
-              <ul class="dropdown-menu">
-                <li class="header">You have 7 tours available</li>
-                <li>
-                  <!-- inner menu: contains the actual data -->
-                  <ul class="menu">
-                    <li @click="startTour(1)">
-                      <router-link :to="{name: 'Dashboard'}">
-                        <i class="fa fa-th-list teal"></i> #1 Sidebar and actions
-                      </router-link>
-                    </li>
-                    <li @click="startTour(2)">
-                      <router-link :to="{name: 'Entity', params: {tablename: 'user'}}">
-                        <i class="fa fa-users blue"></i> #2 Users and table view
-                      </router-link>
-                    </li>
-                    <li @click="startTour(3)">
-                      <router-link :to="{name: 'Dashboard'}">
-                        <i class="fa fa-graduation-cap green"></i> #3 Become admin
-                      </router-link>
-                    </li>
-                    <li @click="startTour(4)">
-                      <router-link :to="{name: 'Dashboard'}">
-                        <i class="fa fa-cubes orange"></i> #4 Add features using JSON
-                      </router-link>
-                    </li>
-                    <li @click="startTour(5)">
-                      <router-link :to="{name: 'Dashboard'}">
-                        <i class="fa fa-star fuchsia"></i> #5 What's new after the JSON feature upload ?
-                      </router-link>
-                    </li>
-                    <li @click="startTour(6)">
-                      <router-link :to="{name: 'Dashboard'}">
-                        <i class="fa fa-cubes grey"></i> #6 Actions and chains
-                      </router-link>
-                    </li>
-                    <li @click="startTour(7)">
-                      <router-link :to="{name: 'Dashboard'}">
-                        <i class="fa fa-road maroon"></i> #7 What now ?
-                      </router-link>
-                    </li>
-                  </ul>
-                </li>
-                <li class="footer"><a href="#">View all</a></li>
-              </ul>
-            </li>
-
-            <!-- Messages-->
-            <!--<li class="dropdown messages-menu">-->
-            <!--<a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown">-->
-            <!--<i class="fa fa-envelope-o"></i>-->
-            <!--<span class="label label-success">{{ userInfo.messages | count }}</span>-->
-            <!--</a>-->
-            <!--<ul class="dropdown-menu">-->
-            <!--<li class="header">You have {{ userInfo.messages | count }} message(s)</li>-->
-            <!--<li v-if="userInfo.messages.length > 0">-->
-            <!--&lt;!&ndash; inner menu: contains the messages &ndash;&gt;-->
-            <!--<ul class="menu">-->
-            <!--<li>-->
-            <!--&lt;!&ndash; start message &ndash;&gt;-->
-            <!--<a href="javascript:;">-->
-            <!--&lt;!&ndash; Message title and timestamp &ndash;&gt;-->
-            <!--<h4>-->
-            <!--Support Team-->
-            <!--<small>-->
-            <!--<i class="fa fa-clock-o"></i> 5 mins-->
-            <!--</small>-->
-            <!--</h4>-->
-            <!--&lt;!&ndash; The message &ndash;&gt;-->
-            <!--<p>Why not consider this a test message?</p>-->
-            <!--</a>-->
-            <!--</li>-->
-            <!--&lt;!&ndash; end message &ndash;&gt;-->
-            <!--</ul>-->
-            <!--&lt;!&ndash; /.menu &ndash;&gt;-->
-            <!--</li>-->
-            <!--<li class="footer" v-if="userInfo.messages.length > 0">-->
-            <!--<a href="javascript:;">See All Messages</a>-->
-            <!--</li>-->
-            <!--</ul>-->
-            <!--</li>-->
-            <!-- /.messages-menu -->
-
-            <!-- Notifications Menu -->
-            <!--<li class="dropdown notifications-menu">-->
-            <!--<a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown">-->
-            <!--<i class="fa fa-bell-o"></i>-->
-            <!--<span class="label label-warning">{{ userInfo.notifications | count }}</span>-->
-            <!--</a>-->
-            <!--<ul class="dropdown-menu">-->
-            <!--<li class="header">You have {{ userInfo.notifications | count }} notification(s)</li>-->
-            <!--<li v-if="userInfo.notifications.length > 0">-->
-            <!--&lt;!&ndash; Inner Menu: contains the notifications &ndash;&gt;-->
-            <!--<ul class="menu">-->
-            <!--<li>-->
-            <!--&lt;!&ndash; start notification &ndash;&gt;-->
-            <!--<a href="javascript:;">-->
-            <!--<i class="fa fa-users text-aqua"></i> 5 new members joined today-->
-            <!--</a>-->
-            <!--</li>-->
-            <!--&lt;!&ndash; end notification &ndash;&gt;-->
-            <!--</ul>-->
-            <!--</li>-->
-            <!--<li class="footer" v-if="userInfo.notifications.length > 0">-->
-            <!--<a href="javascript:;">View all</a>-->
-            <!--</li>-->
-            <!--</ul>-->
-            <!--</li>-->
-
-            <!-- Tasks Menu -->
-            <!--<li class="dropdown tasks-menu">-->
-            <!--<a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown">-->
-            <!--<i class="fa fa-flag-o"></i>-->
-            <!--<span class="label label-danger">{{ userInfo.tasks | count }} </span>-->
-            <!--</a>-->
-            <!--<ul class="dropdown-menu">-->
-            <!--<li class="header">You have {{ userInfo.tasks | count }} task(s)</li>-->
-            <!--<li v-if="userInfo.tasks.length > 0">-->
-            <!--&lt;!&ndash; Inner menu: contains the tasks &ndash;&gt;-->
-            <!--<ul class="menu">-->
-            <!--<li>-->
-            <!--&lt;!&ndash; Task item &ndash;&gt;-->
-            <!--<a href="javascript:;">-->
-            <!--&lt;!&ndash; Task title and progress text &ndash;&gt;-->
-            <!--<h3>-->
-            <!--Design some buttons-->
-            <!--<small class="pull-right">20%</small>-->
-            <!--</h3>-->
-            <!--&lt;!&ndash; The progress bar &ndash;&gt;-->
-            <!--<div class="progress xs">-->
-            <!--&lt;!&ndash; Change the css width attribute to simulate progress &ndash;&gt;-->
-            <!--<div class="progress-bar progress-bar-aqua" style="width: 20%" role="progressbar"-->
-            <!--aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">-->
-            <!--<span class="sr-only">20% Complete</span>-->
-            <!--</div>-->
-            <!--</div>-->
-            <!--</a>-->
-            <!--</li>-->
-            <!--&lt;!&ndash; end task item &ndash;&gt;-->
-            <!--</ul>-->
-            <!--</li>-->
-            <!--<li class="footer" v-if="userInfo.tasks.length > 0">-->
-            <!--<a href="javascript:;">View all tasks</a>-->
-            <!--</li>-->
-            <!--</ul>-->
-            <!--</li>-->
-
-            <!-- User Account Menu -->
-
-            <li class="dropdown user user-menu">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-                <img :src="user.picture" class="user-image" alt="User Image">
-                <span class="hidden-xs">{{user.name}}</span>
-              </a>
-              <ul class="dropdown-menu">
-                <!-- User image -->
-                <li class="user-header">
-                  <img :src="user.picture" class="img-circle" alt="User Image">
-
-                  <p>
-                    {{user.name}}
-                    <small></small>
-                  </p>
-                </li>
-                <!-- Menu Body -->
-                <!--<li class="user-body">-->
-                <!--<div class="row">-->
-                <!--<div class="col-xs-4 text-center">-->
-                <!--<a href="#">Followers</a>-->
-                <!--</div>-->
-                <!--<div class="col-xs-4 text-center">-->
-                <!--<a href="#">Sales</a>-->
-                <!--</div>-->
-                <!--<div class="col-xs-4 text-center">-->
-                <!--<a href="#">Friends</a>-->
-                <!--</div>-->
-                <!--</div>-->
-                <!--&lt;!&ndash; /.row &ndash;&gt;-->
-                <!--</li>-->
-                <!-- Menu Footer-->
-                <li class="user-footer">
-                  <!--<div class="pull-left">-->
-                  <!--<a href="#" class="btn btn-default btn-flat">Profile</a>-->
-                  <!--</div>-->
-                  <div class="pull-right">
-                    <router-link :to="{name: 'SignOut'}" class="btn btn-default btn-flat">Sign out</router-link>
-                  </div>
-                </li>
-              </ul>
-            </li>
+              <!-- Notifications: style can be found in dropdown.less -->
+              <li class="dropdown notifications-menu">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                  <i class="fa fa-film"></i>
+                  <span class="label label-warning">7</span> Tours
+                </a>
+                <ul class="dropdown-menu">
+                  <li class="header">You have 7 tours available</li>
+                  <li>
+                    <!-- inner menu: contains the actual data -->
+                    <ul class="menu">
+                      <li @click="startTour(1)">
+                        <router-link :to="{name: 'Dashboard'}">
+                          <i class="fa fa-th-list teal"></i> #1 Sidebar and actions
+                        </router-link>
+                      </li>
+                      <li @click="startTour(2)">
+                        <router-link :to="{name: 'Entity', params: {tablename: 'user'}}">
+                          <i class="fa fa-users blue"></i> #2 Users and table view
+                        </router-link>
+                      </li>
+                      <li @click="startTour(3)">
+                        <router-link :to="{name: 'Dashboard'}">
+                          <i class="fa fa-graduation-cap green"></i> #3 Become admin
+                        </router-link>
+                      </li>
+                      <li @click="startTour(4)">
+                        <router-link :to="{name: 'Dashboard'}">
+                          <i class="fa fa-cubes orange"></i> #4 Add features using JSON
+                        </router-link>
+                      </li>
+                      <li @click="startTour(5)">
+                        <router-link :to="{name: 'Dashboard'}">
+                          <i class="fa fa-star fuchsia"></i> #5 What's new after the JSON feature upload ?
+                        </router-link>
+                      </li>
+                      <li @click="startTour(6)">
+                        <router-link :to="{name: 'Dashboard'}">
+                          <i class="fa fa-cubes grey"></i> #6 Actions and chains
+                        </router-link>
+                      </li>
+                      <li @click="startTour(7)">
+                        <router-link :to="{name: 'Dashboard'}">
+                          <i class="fa fa-road maroon"></i> #7 What now ?
+                        </router-link>
+                      </li>
+                    </ul>
+                  </li>
+                  <li class="footer"><a href="#">View all</a></li>
+                </ul>
+              </li>
 
 
-            <!--<li class="user user-menu">-->
-            <!--<router-link :to="{name: 'SignOut'}" class="dropdown-toggle" data-toggle="dropdown">-->
-            <!--<span class="fa fa-2x fa-sign-out red"></span>-->
-            <!--</router-link>-->
-            <!--</li>-->
-          </ul>
-        </div>
+              <!-- User Account Menu -->
+
+              <li class="dropdown user user-menu">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                  <img :src="user.picture" class="user-image" alt="User Image">
+                  <span class="hidden-xs">{{user.name}}</span>
+                </a>
+                <ul class="dropdown-menu">
+                  <!-- User image -->
+                  <li class="user-header">
+                    <img :src="user.picture" class="img-circle" alt="User Image">
+
+                    <p>
+                      {{user.name}}
+                      <small></small>
+                    </p>
+                  </li>
+
+                  <li class="user-footer">
+
+                    <div class="pull-right">
+                      <router-link :to="{name: 'SignOut'}" class="btn btn-default btn-flat">Sign out</router-link>
+                    </div>
+                  </li>
+                </ul>
+              </li>
+
+
+              <!--<li class="user user-menu">-->
+              <!--<router-link :to="{name: 'SignOut'}" class="dropdown-toggle" data-toggle="dropdown">-->
+              <!--<span class="fa fa-2x fa-sign-out red"></span>-->
+              <!--</router-link>-->
+              <!--</li>-->
+            </ul>
+          </div>
+        </div><!-- /.navbar-collapse -->
+
+        <!--<form class="navbar-form navbar-left" @submit.prevent="setQueryString" role="search">-->
+        <!--<div class="form-group">-->
+        <!--<input type="text" class="form-control"  id="navbar-search-input" placeholder="Search">-->
+        <!--</div>-->
+        <!--</form>-->
+
       </nav>
     </header>
     <!-- Left side column. contains the logo and sidebar -->
@@ -234,7 +141,7 @@
 
     <!-- Main Footer -->
     <!--<footer class="main-footer">-->
-      <!--<strong><a href="javascript:">GoMS</a>.</strong> All rights reserved.-->
+    <!--<strong><a href="javascript:">GoMS</a>.</strong> All rights reserved.-->
     <!--</footer>-->
   </div>
   <!-- ./wrapper -->
@@ -261,6 +168,7 @@
     },
     data: function () {
       return {
+        query: "",
         // section: 'Dash',
         year: new Date().getFullYear(),
         classes: {
@@ -276,7 +184,7 @@
         'isAuthenticated',
         'user'
       ]),
-      demo () {
+      demo() {
         return {
           displayName: faker.name.findName(),
           avatar: faker.image.avatar(),
@@ -304,9 +212,13 @@
       }
     },
     methods: {
+      clearSearch(){
+        $("#navbar-search-input").val("");
+        this.setQuery("");
+      },
       ...mapActions(["setQuery"]),
       setQueryString(query) {
-        console.log("set query", query)
+        console.log("set query", query);
         this.setQuery(query);
         return false;
       },
@@ -703,7 +615,7 @@
 
 
       },
-      changeloading () {
+      changeloading() {
         this.$store.commit('TOGGLE_SEARCHING')
       }
     },
@@ -719,43 +631,50 @@
 
 <style lang="scss">
   .wrapper.fixed_layout {
-    .main-header {
-      position: fixed;
-      width: 100%;
-    }
 
-    .content-wrapper {
-      padding-top: 50px;
-    }
+  .main-header {
+    position: fixed;
+    width: 100%;
+  }
 
-    .main-sidebar {
-      position: fixed;
-      height: 100vh;
-    }
+  .content-wrapper {
+    padding-top: 50px;
+  }
+
+  .main-sidebar {
+    position: fixed;
+    height: 100vh;
+  }
+
   }
 
   .wrapper.hide_logo {
-    @media (max-width: 767px) {
-      .main-header .logo {
-        display: none;
-      }
+
+  @media (max-width: 767px) {
+    .main-header .logo {
+      display: none;
     }
+  }
+
   }
 
   .logo-mini,
   .logo-lg {
     text-align: left;
 
-    img {
-      padding: .4em !important;
-    }
+  img {
+    padding: .4em !important;
+  }
+
   }
 
   .logo-lg {
-    img {
-      display: -webkit-inline-box;
-      width: 25%;
-    }
+
+  img {
+    display: -webkit-inline-box;
+    width: 25%;
+  }
+
   }
 
   .user-panel {
