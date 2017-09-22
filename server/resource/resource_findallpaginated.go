@@ -133,7 +133,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 				}
 
 				for _, c := range colsToAdd {
-					colString = append(colString, fmt.Sprintf("%v like ?", c))
+					colString = append(colString, fmt.Sprintf("%v like ?", prefix+c))
 					wheres = append(wheres, fmt.Sprint("%", q, "%"))
 				}
 			}
