@@ -68,6 +68,7 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 		log.Errorf("Failed to scan action: %", err)
 		return action, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 
@@ -255,6 +256,7 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 		log.Errorf("Failed to get object groups by where clause: %v", err)
 		return s
 	}
+	defer res.Close()
 
 	for res.Next() {
 		var g auth.GroupPermission
@@ -289,6 +291,7 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 		log.Errorf("Failed to query object group by object id [%v][%v] == %v", objType, objectId, err)
 		return s
 	}
+	defer res.Close()
 
 	for res.Next() {
 		var g auth.GroupPermission
@@ -486,6 +489,7 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 	if err != nil {
 		return nil, err
 	}
+	defer row.Close()
 
 	m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), false)
 
@@ -543,6 +547,7 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 	if err != nil {
 		return nil, err
 	}
+	defer row.Close()
 
 	m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), false)
 
@@ -559,6 +564,7 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 	if err != nil {
 		return nil, err
 	}
+	defer row.Close()
 
 	m, err := RowsToMap(row, typeName)
 
@@ -577,6 +583,7 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	if err != nil {
 		return nil, err
 	}
+	defer row.Close()
 
 	//cols, err := row.Columns()
 	//if err != nil {
@@ -612,6 +619,7 @@ func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...sq
 	if err != nil {
 		return nil, err
 	}
+	defer res.Close()
 
 	ret := make([]string, 0)
 	for res.Next() {
@@ -643,6 +651,7 @@ func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...squirrel.Eq
 	if err != nil {
 		return nil, err
 	}
+	defer res.Close()
 
 	ret := make([]int64, 0)
 	for res.Next() {
@@ -688,7 +697,8 @@ func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectC
 		return nil, err
 	}
 
-	return dr.db.QueryRowx(s, q...).SliceScan()
+	rows := dr.db.QueryRowx(s, q...)
+	return rows.SliceScan()
 }
 
 func RowsToMap(rows *sqlx.Rows, typeName string) ([]map[string]interface{}, error) {

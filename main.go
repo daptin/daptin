@@ -3,19 +3,23 @@ package main
 import (
 	"github.com/artpar/goms/server"
 	"github.com/gocraft/health"
-	"github.com/rcrowley/goagain"
+	//"github.com/jpillora/overseer"
 	"log"
 	//"os"
 	"fmt"
-	"net"
 	//"sync"
 	"syscall"
-	"time"
 	"github.com/GeertJohan/go.rice"
 	"net/http"
-	"sync"
 	"os"
+	"github.com/artpar/goms/server/resource"
+	//"github.com/jpillora/overseer"
+	"flag"
+	"github.com/artpar/goagain"
+	"net"
+	"sync"
 )
+
 // Save the stream as a global variable
 var stream = health.NewStream()
 
@@ -28,9 +32,14 @@ func init() {
 func main() {
 	stream.AddSink(&health.WriterSink{os.Stdout})
 	boxStatic1, err := rice.FindBox("gomsweb/dist/static")
-	log.Println("Failed to open dist/static: %v", err)
+	resource.CheckError(err, "Failed to open dist/static")
 	boxRoot1, err := rice.FindBox("gomsweb/dist")
-	log.Println("Failed to open dist: %v", err)
+	resource.CheckErr(err, "Failed to open dist")
+
+	var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
+	var connection_string = flag.String("db_connection_string", "test.db", "\n\tSQLite: test.db\n"+
+			"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
+			"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
 	var boxStatic, boxRoot http.FileSystem
 	if err != nil {
@@ -40,6 +49,9 @@ func main() {
 		boxStatic = boxStatic1.HTTPBox()
 		boxRoot = boxRoot1.HTTPBox()
 	}
+	db, err := server.GetDbConnection(*db_type, *connection_string)
+	resource.CheckError(err, "Failed to connect to database")
+	log.Printf("Connection acquired from database")
 
 	// Inherit a net.Listener from our parent process or listen anew.
 	ch := make(chan struct{})
@@ -49,22 +61,20 @@ func main() {
 	if nil != err {
 
 		// Listen on a TCP or a UNIX domain socket (TCP here).
-		l, err = net.Listen("tcp", "127.0.0.1:48879")
+		l, err = net.Listen("tcp", ":6336")
 		if nil != err {
 			log.Fatalln(err)
 		}
 		log.Println("listening on", l.Addr())
 
 		// Accept connections in a new goroutine.
-		go server.Main(boxRoot, boxStatic)
-		go serve(l, ch, wg)
+		go server.Main(boxRoot, boxStatic, db, wg, l, ch)
 
 	} else {
 
 		// Resume listening and accepting connections in a new goroutine.
 		log.Println("resuming listening on", l.Addr())
-		go server.Main(boxRoot, boxStatic)
-		go serve(l, ch, wg)
+		go server.Main(boxRoot, boxStatic, db, wg, l, ch)
 
 		// If this is the child, send the parent SIGUSR2.  If this is the
 		// parent, send the child SIGQUIT.
@@ -94,36 +104,12 @@ func main() {
 			log.Fatalln(err)
 		}
 	}
+	log.Printf("Why end now ?")
 }
 
-// A very rude server that says hello and then closes your connection.
-func serve(l net.Listener, ch chan struct{}, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for {
-
-		// Break out of the accept loop on the next iteration after the
-		// process was signaled and our channel was closed.
-		select {
-		case <-ch:
-			return
-		default:
-		}
-
-		// Set a deadline so Accept doesn't block forever, which gives
-		// us an opportunity to stop gracefully.
-		l.(*net.TCPListener).SetDeadline(time.Now().Add(100e6))
-
-		c, err := l.Accept()
-		if nil != err {
-			if goagain.IsErrClosing(err) {
-				return
-			}
-			if err.(*net.OpError).Timeout() {
-				continue
-			}
-			log.Fatalln(err)
-		}
-		c.Write([]byte("Hello, world!\n"))
-		c.Close()
-	}
-}
+//func CreateServerProgram(boxRoot, boxStatic http.FileSystem) (func(state overseer.State)) {
+//	return func(state overseer.State) {
+//		go server.Main(boxRoot, boxStatic)
+//		http.Serve(state.Listener, nil)
+//	}
+//}
