@@ -194,6 +194,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 				if err != nil {
 					log.Errorf("Failed to get user group permissions: %v", err)
 				} else {
+					defer rows.Close()
 					//cols, _ := rows.Columns()
 					//log.Infof("Columns: %v", cols)
 					for rows.Next() {
@@ -205,7 +206,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 						}
 						userGroups = append(userGroups, p)
 					}
-					rows.Close()
+
 				}
 			}
 

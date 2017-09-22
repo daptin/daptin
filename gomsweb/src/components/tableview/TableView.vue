@@ -2,9 +2,11 @@
 
 
   <div class="row">
-    <div class="col-md-12">
-      <div class="pull-left"></div>
-      <vuetable-pagination :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
+    <div class="col-md-12" style="min-height: 70px;">
+      <!--<div class="pull-left">-->
+      <!--</div>-->
+        <vuetable-pagination :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
+
     </div>
     <div class="col-md-12">
       <!-- TableView -->

@@ -2,9 +2,10 @@ package resource
 
 import (
 	log "github.com/sirupsen/logrus"
-	"os"
 	"syscall"
 	"time"
+	//"os/exec"
+	//"fmt"
 )
 
 type RestartSystemActionPerformer struct {
@@ -51,6 +52,10 @@ func restart() {
 	log.Infof("Sleeping for 3 seconds before restart")
 	time.Sleep(300 * time.Millisecond)
 	log.Infof("Kill")
-	syscall.Kill(os.Getpid(), syscall.SIGUSR2)
+	log.Infof("Sending %v to %v", syscall.SIGUSR2, syscall.Getpid())
+
+	//exec.Command("kill", "-12", fmt.Sprint(syscall.Getpid())).Output()
+
+	syscall.Kill(syscall.Getpid(), syscall.SIGUSR2)
 
 }

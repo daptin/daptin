@@ -34,16 +34,16 @@ func CheckSystemSecrets(store *resource.ConfigStore) error {
 func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet, configStore *resource.ConfigStore) map[string]*resource.DbResource {
 	cruds = make(map[string]*resource.DbResource)
 	for _, table := range tables {
-		log.Infof("Table [%v] Relations: %v", table.TableName)
+		//log.Infof("Table [%v] Relations: %v", table.TableName)
 
 		if table.TableName == "" {
 			log.Errorf("Table name is empty, not adding to JSON API, as it will create conflict: %v", table)
 			continue
 		}
 
-		for _, r := range table.Relations {
-			log.Infof("Relation :: %v", r.String())
-		}
+		//for _, r := range table.Relations {
+			//log.Infof("Relation :: %v", r.String())
+		//}
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
 
 		res := resource.NewDbResource(model, db, ms, cruds, configStore)
@@ -64,6 +64,7 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 		log.Infof("Failed to select from world table: %v", err)
 		return ts, err
 	}
+	defer res.Close()
 
 	for res.Next() {
 		var table_name string

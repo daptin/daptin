@@ -2,22 +2,33 @@
   <ul class="sidebar-menu">
     <li class="pageLink" v-on:click="toggleMenu">
       <router-link :to="{name: 'Dashboard', params: {}}">
+        <i class="fa fa-map-o"></i>
         <span class="page">Dashboard</span>
       </router-link>
     </li>
+    <li class="treeview">
+      <a href="#">
+        <i class="fa fa-book"></i>
+        <span>Items</span>
+        <span class="pull-right-container">
+          <i class="fa fa-angle-left fa-fw pull-right"></i>
+        </span>
+      </a>
+      <ul class="treeview-menu">
 
-    <li class="header">Items </li>
-
-    <li class="pageLink" v-on:click="toggleMenu" v-for="w in topWorlds"
-        v-if="w.table_name != 'user' && w.table_name != 'usergroup'">
-      <router-link :class="w.table_name + '-link'" :to="{name: 'Entity', params: {tablename: w.table_name}}">
-        <span class="page">{{w.table_name | titleCase}}</span>
-      </router-link>
+        <li class="pageLink" v-on:click="toggleMenu" v-for="w in topWorlds"
+            v-if="w.table_name != 'user' && w.table_name != 'usergroup'">
+          <router-link :class="w.table_name + '-link'" :to="{name: 'Entity', params: {tablename: w.table_name}}">
+            <span class="page">{{w.table_name | titleCase}}</span>
+          </router-link>
+        </li>
+      </ul>
     </li>
 
 
-    <li class="treeview help-support">
+    <li class="treeview">
       <a href="#">
+        <i class="fa fa-users"></i>
         <span>People</span>
         <span class="pull-right-container">
           <i class="fa fa-angle-left fa-fw pull-right"></i>
@@ -26,11 +37,13 @@
       <ul class="treeview-menu">
         <li class="pageLink" v-on:click="toggleMenu">
           <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'user'}}">
+            <i class="fa fa-user"></i>
             <span class="page">User</span>
           </router-link>
         </li>
         <li class="pageLink" v-on:click="toggleMenu">
           <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'usergroup'}}">
+            <i class="fa fa-users"></i>
             <span class="page">User Group</span>
           </router-link>
         </li>
@@ -39,13 +52,13 @@
 
     <li class="treeview help-support">
       <a href="#">
+        <i class="fa fa-keyboard-o"></i>
         <span>Administration</span>
         <span class="pull-right-container">
           <i class="fa fa-angle-left fa-fw pull-right"></i>
         </span>
       </a>
       <ul class="treeview-menu">
-
 
         <li class="pageLink" v-on:click="toggleMenu">
           <router-link :to="{name: 'Entity', params: {tablename: 'world'}}">
@@ -59,6 +72,7 @@
 
     <li class="treeview help-support">
       <a href="#">
+        <i class="fa fa-comment"></i>
         <span>Support</span>
         <span class="pull-right-container">
           <i class="fa fa-angle-left fa-fw pull-right"></i>

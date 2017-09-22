@@ -19,10 +19,12 @@
           <form onsubmit="return false" role="form">
 
             <div class="row">
-              <div class="form-group">
-                <h3>Name</h3>
-                <input type="text" class="form-control" v-model="data.TableName" name="name"
-                       placeholder="sale_record">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <h3>Name</h3>
+                  <input type="text" class="form-control" v-model="data.TableName" name="name"
+                         placeholder="sale_record">
+                </div>
               </div>
             </div>
 
@@ -43,15 +45,18 @@
                         <div class="col-md-6">
                           <input type="text" v-model="col.Name" placeholder="name" class="form-control">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-5">
                           <select class="form-control" v-model="col.ColumnType">
                             <option :value="colData.Name" v-for="(colData, colTypeName) in columnTypes">
                               {{colTypeName | titleCase}}
                             </option>
                           </select>
                         </div>
+                        <div class="col-md-1" style="padding-left: 0px;">
+                          <button @click="removeColumn(col)" class="btn btn-danger btn-sm"><i
+                            class="fa fa-minus"></i></button>
+                        </div>
                       </div>
-
                     </div>
                   </div>
                 </div>
@@ -77,12 +82,16 @@
                             <option value="has_many_and_belongs_to_many">Has many and belongs to many</option>
                           </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-5">
                           <select class="form-control" v-model="relation.Object">
                             <option :value="world.table_name" v-for="world in relatableWorlds">
                               {{world.table_name | titleCase}}
                             </option>
                           </select>
+                        </div>
+                        <div class="col-md-1" style="padding-left: 0px;">
+                          <button @click="removeRelation(relation)" class="btn btn-danger btn-sm"><i
+                            class="fa fa-minus"></i></button>
                         </div>
                       </div>
                     </div>
@@ -126,6 +135,21 @@
       }
     },
     methods: {
+      removeColumn(colData) {
+        console.log("remove columne", colData);
+        let index = this.data.Columns.indexOf(colData);
+        if (index > -1) {
+          this.data.Columns.splice(index, 1);
+        }
+      },
+      removeRelation(relation) {
+        console.log("remove relation", relation);
+        let index = this.data.Relations.indexOf(relation);
+
+        if (index > -1) {
+          this.data.Relations.splice(index, 1);
+        }
+      },
       setup() {
         console.log("query table name", this.$route.query)
       },
@@ -197,6 +221,55 @@
       console.log("Loaded new meta page");
       var that = this;
       that.columnTypes = worldManager.getColumnFieldTypes();
+      let query = this.$route.query;
+      if (query && query.table) {
+        worldManager.getColumnKeys(query.table, function (columns) {
+          var columnModel = columns.ColumnModel;
+          var columnNames = Object.keys(columnModel);
+          var finalColumns = [];
+          var finalRelations = [];
+          that.data.TableName = query.table;
+          for (var i = 0; i < columnNames.length; i++) {
+            var columnName = columnNames[i];
+            if (columnName == "__type") {
+              continue
+            }
+            var model = columnModel[columnName];
+            if (model.IsForeignKey || model.jsonApi) {
+
+              if (model.type.indexOf("_audit") > -1) {
+                continue;
+              }
+
+              var relationType = "has_many";
+              switch (model.jsonApi) {
+                case "hasMany":
+                  relationType = "has_many";
+                  break;
+                case "belongsTo":
+                  relationType = "belongs_to";
+                  break;
+                case "hasOne":
+                  relationType = "has_one";
+                  break;
+              }
+              console.log("add table relations", model);
+              finalRelations.push({
+                Relation: relationType,
+                Subject: query.table,
+                Object: model.type,
+              })
+            } else {
+              console.log("add column", model);
+              finalColumns.push(model);
+            }
+          }
+          that.data.Columns = finalColumns;
+          that.data.Relations = finalRelations;
+          console.log("selected world columns", columns)
+        });
+      }
+      console.log("selected world", query)
       console.log("column types", that.columnTypes)
       that.setup();
     }
