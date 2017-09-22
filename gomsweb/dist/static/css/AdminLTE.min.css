@@ -51,6 +51,10 @@ body {
   background: url('../img/boxed-bg.jpg') repeat fixed
 }
 
+.icon-bar {
+  background: #fff;
+}
+
 .content-wrapper, .right-side, .main-footer {
   -webkit-transition: -webkit-transform .3s ease-in-out, margin .3s ease-in-out;
   -moz-transition: -moz-transform .3s ease-in-out, margin .3s ease-in-out;
@@ -1583,9 +1587,11 @@ a:hover, a:active, a:focus {
 
 .box {
   position: relative;
-  border-radius: 3px;
+  border-radius: 4px;
   background: #fff;
-  border-top: 3px solid #fff;
+  border: 1px solid #ddd;
+  /*border-left: 1px solid #000;*/
+  /*border-right: 1px solid #000;*/
   margin-bottom: 20px;
   width: 100%;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1)

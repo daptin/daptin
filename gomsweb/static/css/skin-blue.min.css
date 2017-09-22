@@ -57,7 +57,8 @@
 }
 
 .skin-blue .content-header {
-  background: transparent
+  background: transparent;
+  margin: 20px;
 }
 
 .skin-blue .wrapper, .skin-blue .main-sidebar, .skin-blue .left-side {

@@ -89,7 +89,6 @@
           <div class="row">
             <div class="col-md-12">
 
-              <h1>&nbsp;</h1>
               <div class="row">
                 <router-link :to="{name: 'Entity', params:{tablename: 'marketplace'}}"
                              class="btn btn-lg btn-app dashboard_button">
