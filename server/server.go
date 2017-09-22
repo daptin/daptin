@@ -9,7 +9,6 @@ import (
 	"github.com/artpar/goms/server/resource"
 	"net/http"
 	"io/ioutil"
-	"flag"
 	"github.com/artpar/rclone/fs"
 	"github.com/satori/go.uuid"
 	"github.com/jmoiron/sqlx"
@@ -21,10 +20,6 @@ var cruds = make(map[string]*resource.DbResource)
 
 func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l net.Listener, ch chan struct{}) {
 	defer wg.Done()
-
-	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
-
-	gin.SetMode(*runtimeMode)
 
 	//configFile := "goms_style.json"
 	/// Start system initialise
