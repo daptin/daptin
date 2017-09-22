@@ -24,11 +24,18 @@ func CheckErr(err error, message ...interface{}) {
 func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 	relations := config.Relations
 	config.Relations = make([]api2go.TableRelation, 0)
-
+	finalRelations := make([]api2go.TableRelation, 0)
 	relationsDone := make(map[string]bool)
 
 	for _, relation := range relations {
 		relationsDone[relation.Hash()] = true
+
+		_, ok := relationsDone[relation.Hash()]
+		if ok {
+			continue
+		} else {
+			finalRelations = append(finalRelations, relation)
+		}
 	}
 
 	newTables := make([]TableInfo, 0)
@@ -46,7 +53,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 				if ok {
 					continue
 				} else {
-					relations = append(relations, rel)
+					finalRelations = append(finalRelations, rel)
 
 					relationsDone[relhash] = true
 				}
@@ -82,10 +89,10 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 					stateTableHasOneDescription := api2go.NewTableRelation(stateTable.TableName, "has_one", "smd")
 					stateTableHasOneDescription.SubjectName = table.TableName + "_status"
 					stateTableHasOneDescription.ObjectName = table.TableName + "_smd"
-					relations = append(relations, stateTableHasOneDescription)
+					finalRelations = append(finalRelations, stateTableHasOneDescription)
 					relationsDone[stateTableHasOneDescription.Hash()] = true
 					relationsDone[stateRelation.Hash()] = true
-					relations = append(relations, stateRelation)
+					finalRelations = append(finalRelations, stateRelation)
 
 				}
 			}
@@ -111,7 +118,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 				stateTableHasOneDescription := api2go.NewTableRelation(stateTable.TableName, "has_one", "smd")
 				stateTableHasOneDescription.SubjectName = table.TableName + "_status"
 				stateTableHasOneDescription.ObjectName = table.TableName + "_smd"
-				relations = append(relations, stateTableHasOneDescription)
+				finalRelations = append(finalRelations, stateTableHasOneDescription)
 				relationsDone[stateTableHasOneDescription.Hash()] = true
 
 				stateRelation := api2go.TableRelation{
@@ -122,7 +129,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 					Relation:    "belongs_to",
 				}
 				relationsDone[stateRelation.Hash()] = true
-				relations = append(relations, stateRelation)
+				finalRelations = append(finalRelations, stateRelation)
 			}
 
 			if table.TableName == "usergroup" {
@@ -130,7 +137,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 			}
 
 			relation := api2go.NewTableRelation(table.TableName, "belongs_to", "user")
-			relations = append(relations, relation)
+			finalRelations = append(finalRelations, relation)
 			relationsDone[relation.Hash()] = true
 
 			if table.TableName == "world_column" {
@@ -140,7 +147,7 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 			relationGroup := api2go.NewTableRelation(table.TableName, "has_many", "usergroup")
 			relationsDone[relationGroup.Hash()] = true
 
-			relations = append(relations, relationGroup)
+			finalRelations = append(finalRelations, relationGroup)
 
 		}
 
@@ -150,12 +157,12 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 	config.Tables = append(config.Tables, newTables...)
 
 	//newRelations := make([]api2go.TableRelation, 0)
-	convertRelationsToColumns(relations, config)
+	convertRelationsToColumns(finalRelations, config)
 	convertRelationsToColumns(StandardRelations, config)
 
 	//config.Tables[stateMachineDescriptionTableIndex] = stateMachineDescriptionTable
 
-	for _, rela := range relations {
+	for _, rela := range finalRelations {
 		log.Infof("All relations: %v", rela.String())
 	}
 }

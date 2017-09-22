@@ -63,7 +63,7 @@ func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields m
 		_, err := d.cruds[tableName].Create(api2go.NewApi2GoModelWithData(tableName, nil, 0, nil, row), req)
 		if err != nil {
 			log.Errorf("Was about to insert this fake object: %v", row)
-			log.Errorf("Failed to direct insert into table [%v] : %v", tableName, err)
+			log.Errorf("Failed to fake insert into table [%v] : %v", tableName, err)
 		}
 	}
 	return responses, nil
