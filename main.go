@@ -19,6 +19,7 @@ import (
 	"net"
 	"sync"
 	"github.com/jamiealquiza/envy"
+	"github.com/gin-gonic/gin"
 )
 
 // Save the stream as a global variable
@@ -43,6 +44,10 @@ func main() {
 			"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
 	var port = flag.String("port", "6336", "GoMS port")
+	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
+
+	gin.SetMode(*runtimeMode)
+
 	envy.Parse("GOMS") // looks for GOMS_PORT
 	flag.Parse()
 
