@@ -74,12 +74,14 @@ func main() {
 		// Listen on a TCP or a UNIX domain socket (TCP here).
 		l, err = net.Listen("tcp", fmt.Sprintf(":%v", *port))
 		if nil != err {
-			log.Fatalln(err)
-		}
-		log.Println("listening on", l.Addr())
+			log.Printf("Failed to listen to port: %v", err)
+		} else {
+			log.Println("listening on", l.Addr())
 
-		// Accept connections in a new goroutine.
-		go server.Main(boxRoot, boxStatic, db, wg, l, ch)
+			// Accept connections in a new goroutine.
+			go server.Main(boxRoot, boxStatic, db, wg, l, ch)
+
+		}
 
 	} else {
 
@@ -110,6 +112,7 @@ func main() {
 	wg.Wait()
 
 	// If we received SIGUSR2, re-exec the parent process.
+	log.Printf("Goms main signal received: %v", sig)
 	if goagain.SIGUSR2 == sig {
 		if err := goagain.Exec(l); nil != err {
 			log.Fatalln(err)
