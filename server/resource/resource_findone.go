@@ -38,6 +38,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		if len(results) != 0 {
 			data = results[0]
 		} else {
+			log.Infof("No results after executing: [%v]", bf.String())
 			data = nil
 		}
 		if err != nil {

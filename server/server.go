@@ -190,6 +190,11 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 	r.OPTIONS("/recline_model", modelHandler)
 
 	actionPerformers := GetActionPerformers(&initConfig, configStore)
+	//actionPerforMap := make(map[string]resource.ActionPerformerInterface)
+	//for _, actionPerformer := range actionPerformers {
+	//	actionPerforMap[actionPerformer.Name()] = actionPerformer
+	//}
+	//initConfig.ActionPerformers = actionPerforMap
 
 	r.POST("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
 	r.GET("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))

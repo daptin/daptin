@@ -37,13 +37,16 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 			return nil, errors.New("No object to act upon")
 		}
 	}
-	uidPtr := req.PlainRequest.Context().Value("user_id")
-	var currentUserReferenceId string
-	var currentUsergroups []auth.GroupPermission
-	if uidPtr != nil {
-		currentUserReferenceId = uidPtr.(string)
-		currentUsergroups = req.PlainRequest.Context().Value("usergroup_id").([]auth.GroupPermission)
+
+
+	user := req.PlainRequest.Context().Value("user")
+	sessionUser := auth.SessionUser{}
+
+	if user != nil {
+		sessionUser = user.(auth.SessionUser)
+
 	}
+
 
 	attrs := data.GetAllAsAttributes()
 
@@ -107,7 +110,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
 				foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.TableName, valString)
 
-				if foreignObjectPermission.CanWrite(currentUserReferenceId, currentUsergroups) {
+				if foreignObjectPermission.CanWrite(sessionUser.UserReferenceId, sessionUser.Groups) {
 					uId = foreignObject["id"]
 				} else {
 					return nil, errors.New(fmt.Sprintf("No write permisssion on object [%v][%v]", col.ForeignKeyData.TableName, valString))
@@ -201,16 +204,11 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	colsList = append(colsList, "created_at")
 	valsList = append(valsList, time.Now())
 
-	var userId uint64
-	userIdInt := req.PlainRequest.Context().Value("user_id_integer")
-	if userIdInt != nil {
-		userId = uint64(userIdInt.(int64))
-	}
 
-	if userId != 0 && dr.model.HasColumn("user_id") && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" {
+	if sessionUser.UserId != 0 && dr.model.HasColumn("user_id") && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" {
 
 		colsList = append(colsList, "user_id")
-		valsList = append(valsList, userId)
+		valsList = append(valsList, sessionUser.UserId)
 	}
 
 	query, vals, err := squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
@@ -235,7 +233,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
 	//log.Infof("Created entry: %v", createdResource)
 
-	userGroupId := dr.GetUserGroupIdByUserId(userId)
+	userGroupId := dr.GetUserGroupIdByUserId(sessionUser.UserId)
 
 	if userGroupId != 0 && dr.model.HasMany("usergroup") {
 		log.Infof("Associate new entity [%v][%v] with usergroup: %v", dr.model.GetTableName(), createdResource["reference_id"], userGroupId)
@@ -252,15 +250,15 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		if err != nil {
 			log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
 		}
-	} else if dr.model.GetName() == "usergroup" && userId != 0 {
+	} else if dr.model.GetName() == "usergroup" && sessionUser.UserId != 0 {
 
-		log.Infof("Associate new usergroup with user: %v", userId)
+		log.Infof("Associate new usergroup with user: %v", sessionUser.UserId)
 		nuuid := uuid.NewV4().String()
 
 		belogsToUserGroupSql, q, err := squirrel.
 		Insert("user_user_id_has_usergroup_usergroup_id").
 				Columns("user_id", "usergroup_id", "reference_id", "permission").
-				Values(userId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
+				Values(sessionUser.UserId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
 		log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 
@@ -270,7 +268,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
 	} else if dr.model.GetName() == "user" {
 
-		log.Infof("Associate new user with user: %v", userId)
+		log.Infof("Associate new user with user: %v", sessionUser.UserId)
 
 		belogsToUserGroupSql, q, err := squirrel.
 		Update("user").

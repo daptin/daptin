@@ -30,7 +30,6 @@ func GetObjectByWhereClause(objType string, db *sqlx.DB, queries ...squirrel.Eq)
 	defer stmt.Close()
 	rows, err := stmt.Queryx(v...)
 
-
 	if err != nil {
 		return result, err
 	}
@@ -216,11 +215,27 @@ func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
 		err = rows.StructScan(&marketplace)
 		if err != nil {
 			log.Errorf("Failed to scan marketplace from db to struct: %v", err)
+			continue
 		}
 		marketPlaces = append(marketPlaces, marketplace)
 	}
 
 	return marketPlaces, nil
+
+}
+func (resource *DbResource) GetMarketplaceByReferenceId(referenceId string) (Marketplace, error) {
+
+	marketPlace := Marketplace{}
+
+	s, v, err := squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s.user_id", "s.reference_id").
+			From("marketplace s").Where(squirrel.Eq{"reference_id": referenceId}).
+			ToSql()
+	if err != nil {
+		return marketPlace, err
+	}
+
+	err = resource.db.QueryRowx(s, v...).StructScan(&marketPlace)
+	return marketPlace, nil
 
 }
 
@@ -350,7 +365,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 	var expires_in int64
 	var token oauth2.Token
 	s, v, err := squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
-	  Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+			Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 
 	if err != nil {
 		return nil, err

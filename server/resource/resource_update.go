@@ -44,19 +44,15 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	}
 	id := data.GetID()
 
-	v := req.PlainRequest.Context().Value("user_id")
 
-	currentUserReferenceId := ""
-	if v != nil {
-		currentUserReferenceId = v.(string)
+	user := req.PlainRequest.Context().Value("user")
+	sessionUser := auth.SessionUser{}
+
+	if user != nil {
+		sessionUser = user.(auth.SessionUser)
+
 	}
 
-	currentUsergroups := make([]auth.GroupPermission, 0)
-
-	t := req.PlainRequest.Context().Value("usergroup_id")
-	if t != nil {
-		currentUsergroups = t.([]auth.GroupPermission)
-	}
 	attrs := data.GetAllAsAttributes()
 
 	if !data.HasVersion() {
@@ -125,7 +121,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 			foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.TableName, valString)
 
-			if foreignObjectPermission.CanWrite(currentUserReferenceId, currentUsergroups) {
+			if foreignObjectPermission.CanWrite(sessionUser.UserReferenceId, sessionUser.Groups) {
 				val = foreignObject["id"]
 			} else {
 				return nil, errors.New(fmt.Sprintf("No write permisssion on object [%v][%v]", col.ForeignKeyData.TableName, valString))

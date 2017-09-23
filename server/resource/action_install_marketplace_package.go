@@ -53,7 +53,7 @@ func (d *MarketplacePackageInstallActionPerformer) DoAction(request ActionReques
 	return successResponses, nil
 }
 
-func (h *MarketplacePackageInstallActionPerformer) init() {
+func (h *MarketplacePackageInstallActionPerformer) refresh() {
 
 	markets, err := h.cruds["marketplace"].GetAllMarketplaces()
 	CheckErr(err, "Failed to get market places")
@@ -76,7 +76,7 @@ func NewMarketplacePackageInstaller(initConfig *CmsConfig, cruds map[string]*DbR
 		marketMap: services,
 	}
 
-	go handler.init()
+	go handler.refresh()
 
 	return &handler, nil
 
