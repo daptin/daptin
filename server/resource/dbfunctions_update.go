@@ -540,7 +540,7 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 
 	for _, action := range initConfig.Actions {
 
-		log.Infof("System init check action: %v@%v", action.Name, action.OnType)
+		log.Infof("System refresh check action: %v@%v", action.Name, action.OnType)
 		world, ok := worldTableMap[action.OnType]
 		if !ok {
 			log.Errorf("Action [%v] defined on unknown type [%v]", action.Name, action.OnType)
@@ -617,9 +617,14 @@ func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbRes
 		log.Errorf("No admin user present")
 	} else {
 		adminUserRefId := adminUser["reference_id"].(string)
-		pr = pr.WithContext(context.WithValue(pr.Context(), "user_id", adminUserRefId))
-		pr = pr.WithContext(context.WithValue(pr.Context(), "user_id_integer", adminUserId))
-		pr = pr.WithContext(context.WithValue(pr.Context(), "usergroup_id", []auth.GroupPermission{}))
+
+		sessionUser := auth.SessionUser{
+			UserId: adminUserId,
+			UserReferenceId: adminUserRefId,
+			Groups: []auth.GroupPermission{},
+		}
+
+		pr = pr.WithContext(context.WithValue(pr.Context(), "user", sessionUser))
 
 	}
 

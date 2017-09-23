@@ -72,7 +72,7 @@
               <h2>Start Tracking</h2>
             </div>
             <div class="col-md-12" v-for="a, k in stateMachines">
-              <button class="btn btn-default" style="width: 100%" @click="addStateMachine(a)">{{a.Label}}</button>
+              <button class="btn btn-default" style="width: 100%" @click="addStateMachine(a)">{{a.label}}</button>
             </div>
           </div>
 
@@ -330,7 +330,7 @@
         console.log("json api model", tableModel);
 
 
-        if (worldManager.isStateMachineEnabled(tableModel)) {
+        if (worldManager.isStateMachineEnabled(tableName)) {
           jsonApi.one(tableName, selectedInstanceId).all(tableName + "_has_state").get({
             page: {
               number: 1,

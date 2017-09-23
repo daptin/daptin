@@ -240,7 +240,7 @@
   "Subject" = "todo"
 }
 
-"StateMachineDescription" = {
+"StateMachineDescriptions" = {
   "Events" = {
     "Dst" = "started"
 

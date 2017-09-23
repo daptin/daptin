@@ -1,13 +1,12 @@
 package resource
 
 import (
-	"fmt"
 	//"golang.org/x/oauth2"
 )
 
 type RefreshMarketplacePackagelistPerformer struct {
 	cruds     map[string]*DbResource
-	marketMap map[string]*MarketplaceService
+	cmsConfig *CmsConfig
 }
 
 func (d *RefreshMarketplacePackagelistPerformer) Name() string {
@@ -17,27 +16,37 @@ func (d *RefreshMarketplacePackagelistPerformer) Name() string {
 func (d *RefreshMarketplacePackagelistPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {
 
 	marketReferenceId := inFieldMap["marketplace_id"].(string)
-	marketplaceHandler, ok := d.marketMap[marketReferenceId]
+	marketplaceHandler, ok := d.cmsConfig.MarketplaceHandlers[marketReferenceId]
 
 	if !ok {
-		return nil, []error{fmt.Errorf("Unknown market")}
-	}
 
+		marketPlace, err := d.cruds["marketplace"].GetMarketplaceByReferenceId(marketReferenceId)
+		if err != nil {
+			return nil, []error{err}
+		}
+
+		handler, err := NewMarketplaceService(marketPlace)
+		d.cmsConfig.MarketplaceHandlers[marketReferenceId] = handler
+		go handler.RefreshRepository()
+		return marketResfreshSuccessResponse, nil
+	}
 	err := marketplaceHandler.RefreshRepository()
-	return  []ActionResponse{
-		NewActionResponse("client.notify", map[string]interface{}{
-			"type":    "success",
-			"message": "Initiating system update.",
-			"title":   "Success",
-		}),
-	}, []error{err}
+	return marketResfreshSuccessResponse, []error{err}
+}
+
+var marketResfreshSuccessResponse = []ActionResponse{
+	NewActionResponse("client.notify", map[string]interface{}{
+		"type":    "success",
+		"message": "Marketplace package list is being refreshed",
+		"title":   "Success",
+	}),
 }
 
 func NewRefreshMarketplacePackagelistPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
 	handler := RefreshMarketplacePackagelistPerformer{
 		cruds:     cruds,
-		marketMap: initConfig.MarketplaceHandlers,
+		cmsConfig: initConfig,
 	}
 	return &handler, nil
 

@@ -70,7 +70,25 @@ var SystemExchanges = []ExchangeContract{}
 
 var SystemActions = []Action{
 	{
-		Name:             "visit_marketokace_github",
+		Name:             "publish_package_to_market",
+		Label:            "Update package list",
+		OnType:           "marketplace",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "market.package.refresh",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+
+				},
+			},
+		},
+	},
+	{
+		Name:             "visit_marketplace_github",
 		Label:            "Go to marketplace",
 		OnType:           "marketplace",
 		InstanceOptional: false,
@@ -1166,6 +1184,20 @@ var StandardMarketplaces = []Marketplace{
 }
 
 var StandardStreams = []StreamContract{
+	{
+		StreamName:     "table",
+		RootEntityName: "world",
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "table_name",
+				ColumnType: "label",
+			},
+			{
+				Name:       "reference_id",
+				ColumnType: "label",
+			},
+		},
+	},
 	{
 		StreamName:     "transformed_user",
 		RootEntityName: "user",
