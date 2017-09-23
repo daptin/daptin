@@ -127,12 +127,11 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 		req.PlainRequest = req.PlainRequest.WithContext(ginContext.Request.Context())
 
-		userid := ginContext.Request.Context().Value("user_id")
-		var userReferenceId string
-		userGroupReferenceIds := make([]auth.GroupPermission, 0)
-		if userid != nil {
-			userReferenceId = userid.(string)
-			userGroupReferenceIds = ginContext.Request.Context().Value("usergroup_id").([]auth.GroupPermission)
+		user := ginContext.Request.Context().Value("user")
+		var sessionUser auth.SessionUser
+
+		if user != nil {
+			sessionUser = user.(auth.SessionUser)
 		}
 
 		var subjectInstance *api2go.Api2GoModel
@@ -151,13 +150,13 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			subjectInstanceMap["__type"] = subjectInstance.GetName()
 			permission := cruds[actionRequest.Type].GetRowPermission(subjectInstanceMap)
 
-			if !permission.CanExecute(userReferenceId, userGroupReferenceIds) {
+			if !permission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
 				ginContext.AbortWithError(403, errors.New("Forbidden"))
 				return
 			}
 		}
 
-		if !cruds["world"].IsUserActionAllowed(userReferenceId, userGroupReferenceIds, actionRequest.Type, actionRequest.Action) {
+		if !cruds["world"].IsUserActionAllowed(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action) {
 			ginContext.AbortWithError(403, errors.New("Forbidden"))
 			return
 		}
@@ -205,8 +204,8 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			return
 		}
 
-		if userReferenceId != "" {
-			user, err := cruds["user"].GetReferenceIdToObject("user", userReferenceId)
+		if sessionUser.UserReferenceId != "" {
+			user, err := cruds["user"].GetReferenceIdToObject("user", sessionUser.UserReferenceId)
 			if err != nil {
 				log.Errorf("Failed to load user: %v", err)
 				return

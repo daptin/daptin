@@ -212,15 +212,26 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 
 			//log.Infof("Group permissions :%v", userGroups)
 
-			newRequest := c.Request.WithContext(context.WithValue(c.Request.Context(), "user_id", referenceId))
-			newRequest = newRequest.WithContext(context.WithValue(newRequest.Context(), "user_id_integer", userId))
-			newRequest = newRequest.WithContext(context.WithValue(newRequest.Context(), "usergroup_id", userGroups))
+			user := SessionUser{
+				UserId: userId,
+				UserReferenceId: referenceId,
+				Groups: userGroups,
+			}
+			ct := c.Request.Context()
+			ct = context.WithValue(ct, "user", user)
+			newRequest := c.Request.WithContext(ct)
 			c.Request = newRequest
 			c.Next()
 
 		}
 	}
 
+}
+
+type SessionUser struct {
+	UserId          int64
+	UserReferenceId string
+	Groups          []GroupPermission
 }
 
 type GroupPermission struct {

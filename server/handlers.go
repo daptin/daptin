@@ -17,8 +17,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 
 	return func(gincontext *gin.Context) {
 
-		currentUserReferenceId := gincontext.Request.Context().Value("user_id").(string)
-		currentUsergroups := gincontext.Request.Context().Value("usergroup_id").([]auth.GroupPermission)
+		sessionUser := gincontext.Request.Context().Value("user").(auth.SessionUser)
 
 		pr := &http.Request{}
 		pr.Method = "GET"
@@ -42,24 +41,24 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 		stateObject := objectStateMachine.Data
 
 		var subjectInstanceModel *api2go.Api2GoModel
-		var stateMachineDescriptionInstance *api2go.Api2GoModel
-
-		for _, included := range objectStateMachine.Includes {
-			casted := included.(*api2go.Api2GoModel)
-			if casted.GetTableName() == typename {
-				subjectInstanceModel = casted
-			} else if casted.GetTableName() == "smd" {
-				stateMachineDescriptionInstance = casted
-			}
-
-		}
+		//var stateMachineDescriptionInstance *api2go.Api2GoModel
+		//
+		//for _, included := range objectStateMachine.Includes {
+		//	casted := included.(*api2go.Api2GoModel)
+		//	if casted.GetTableName() == typename {
+		//		subjectInstanceModel = casted
+		//	} else if casted.GetTableName() == "smd" {
+		//		stateMachineDescriptionInstance = casted
+		//	}
+		//
+		//}
 
 		stateMachineId := objectStateMachine.GetID()
 		eventName := gincontext.Param("eventName")
 
-		stateMachinePermission := cruds["smd"].GetRowPermission(stateMachineDescriptionInstance.GetAllAsAttributes())
+		stateMachinePermission := cruds["smd"].GetRowPermission(objectStateMachine.GetAllAsAttributes())
 
-		if !stateMachinePermission.CanExecute(currentUserReferenceId, currentUsergroups) {
+		if !stateMachinePermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
 			gincontext.AbortWithStatus(403)
 			return
 		}
@@ -90,16 +89,11 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 
 	return func(gincontext *gin.Context) {
 
-		uId := gincontext.Request.Context().Value("user_id")
-		var currentUserReferenceId string
-		currentUsergroups := make([]auth.GroupPermission, 0)
+		user := gincontext.Request.Context().Value("user")
+		var sessionUser auth.SessionUser
 
-		if uId != nil {
-			currentUserReferenceId = uId.(string)
-		}
-		ugId := gincontext.Request.Context().Value("usergroup_id")
-		if ugId != nil {
-			currentUsergroups = ugId.([]auth.GroupPermission)
+		if user != nil {
+			sessionUser = user.(auth.SessionUser)
 		}
 
 		jsBytes, err := ioutil.ReadAll(gincontext.Request.Body)
@@ -118,12 +112,12 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 
 		pr := &http.Request{}
 		pr.Method = "GET"
+		pr = pr.WithContext(gincontext.Request.Context())
 		req := api2go.Request{
 			PlainRequest: pr,
 			QueryParams:  map[string][]string{},
 		}
 
-		pr = pr.WithContext(gincontext.Request.Context())
 		response, err := cruds["smd"].FindOne(stateMachineId, req)
 		if err != nil {
 			gincontext.AbortWithError(400, err)
@@ -134,7 +128,7 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 		stateMachineInstanceProperties := stateMachineInstance.GetAttributes()
 		stateMachinePermission := cruds["smd"].GetRowPermission(stateMachineInstance.GetAllAsAttributes())
 
-		if !stateMachinePermission.CanExecute(currentUserReferenceId, currentUsergroups) {
+		if !stateMachinePermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
 			gincontext.AbortWithStatus(403)
 			return
 		}

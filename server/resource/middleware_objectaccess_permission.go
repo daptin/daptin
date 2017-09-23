@@ -25,18 +25,13 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 
 	returnMap := make([]map[string]interface{}, 0)
 
-	userIdString := req.PlainRequest.Context().Value("user_id")
-	userGroupId := req.PlainRequest.Context().Value("usergroup_id")
+	user := req.PlainRequest.Context().Value("user")
+	sessionUser := auth.SessionUser{}
 
-	currentUserId := ""
-	if userIdString != nil {
-		currentUserId = userIdString.(string)
 
-	}
+	if user != nil {
+		sessionUser = user.(auth.SessionUser)
 
-	currentUserGroupId := []auth.GroupPermission{}
-	if userGroupId != nil {
-		currentUserGroupId = userGroupId.([]auth.GroupPermission)
 	}
 
 	notIncludedMapCache := make(map[string]bool)
@@ -58,7 +53,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 
 		permission := dr.GetRowPermission(result)
 		//log.Infof("Row Permission for [%v] for [%v]", permission, result)
-		if permission.CanRead(currentUserId, currentUserGroupId) {
+		if permission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
 			returnMap = append(returnMap, result)
 		} else {
 			//log.Infof("[ObjectAccessPermissionChecker] Result not to be included: %v", result["reference_id"])
@@ -78,18 +73,13 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 	//var err error
 	//log.Infof("context: %v", context.GetAll(req.PlainRequest))
-	userIdString := req.PlainRequest.Context().Value("user_id")
-	userGroupId := req.PlainRequest.Context().Value("usergroup_id")
 
-	currentUserId := ""
-	if userIdString != nil {
-		currentUserId = userIdString.(string)
+	user := req.PlainRequest.Context().Value("user")
+	sessionUser := auth.SessionUser{}
 
-	}
+	if user != nil {
+		sessionUser = user.(auth.SessionUser)
 
-	currentUserGroupId := []auth.GroupPermission{}
-	if userGroupId != nil {
-		currentUserGroupId = userGroupId.([]auth.GroupPermission)
 	}
 
 	returnMap := make([]map[string]interface{}, 0)
@@ -121,7 +111,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		//log.Infof("Row Permission for [%v] for [%v]", permission, result)
 
 		if req.PlainRequest.Method == "GET" {
-			if permission.CanRead(currentUserId, currentUserGroupId) {
+			if permission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {
@@ -130,7 +120,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 			}
 		} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" || req.PlainRequest.Method == "POST" || req.PlainRequest.Method == "DELETE" {
-			if permission.CanWrite(currentUserId, currentUserGroupId) {
+			if permission.CanWrite(sessionUser.UserReferenceId, sessionUser.Groups) {
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {

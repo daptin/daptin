@@ -24,7 +24,7 @@
           <div class="col-sm-3 col-md-3">
             <form class="navbar-form" role="search" @submit.prevent="setQueryString">
               <div class="input-group">
-                <input id="navbar-search-input" type="text" class="form-control" v-model="query" placeholder="Search" name="q">
+                <input id="navbar-search-input" type="text" class="form-control" placeholder="Search" name="q">
                 <div class="input-group-btn">
                   <button class="btn btn-default" type="submit"><i class="fa fa-search"></i></button>
                   <button class="btn btn-default" @click.prevent="clearSearch" type="clear"><i class="fa fa-times"></i></button>
@@ -212,9 +212,9 @@
       }
     },
     methods: {
-      clearSearch(){
+      clearSearch(e){
         $("#navbar-search-input").val("");
-        this.setQuery("");
+        this.setQueryString(null);
       },
       ...mapActions(["setQuery"]),
       setQueryString(query) {

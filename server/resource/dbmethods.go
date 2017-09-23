@@ -433,7 +433,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where ...squirrel.Eq
 
 }
 
-func (dr *DbResource) GetUserGroupIdByUserId(userId uint64) uint64 {
+func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 
 	s, q, err := squirrel.Select("usergroup_id").From("user_user_id_has_usergroup_usergroup_id").Where(squirrel.NotEq{"usergroup_id": 1}).Where(squirrel.Eq{"user_id": userId}).OrderBy("created_at").Limit(1).ToSql()
 	if err != nil {

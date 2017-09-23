@@ -2,6 +2,7 @@ package resource
 
 import (
 	"gopkg.in/src-d/go-git.v4"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"io/ioutil"
 	"github.com/satori/go.uuid"
@@ -11,7 +12,7 @@ type Marketplace struct {
 	Endpoint    string
 	RootPath    string `db:"root_path"`
 	Permission  int    `json:"-"`
-	UserId      int    `json:"-" db:"user_id"`
+	UserId      *int    `json:"-" db:"user_id"`
 	ReferenceId string `json:"-" db:"reference_id"`
 }
 
@@ -118,7 +119,7 @@ func NewMarketplaceService(marketplace Marketplace) (*MarketplaceService, error)
 	tempDir := os.TempDir()
 
 	tempRepoDir := tempDir + "/" + uuid.NewV4().String()
-
+	log.Infof("Creating directory  [%v] for marketplace [%v]", tempRepoDir, marketplace.Endpoint)
 	l := len(marketplace.RootPath)
 	if l == 0 || marketplace.RootPath[l-1] != '/' {
 		marketplace.RootPath = marketplace.RootPath + "/"

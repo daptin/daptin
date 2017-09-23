@@ -51,9 +51,13 @@ func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields m
 	httpRequest := &http.Request{
 		Method: "POST",
 	}
-	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user_id", userReferenceId))
-	httpRequest = httpRequest.WithContext(context.WithValue(httpRequest.Context(), "user_id_integer", int64(userIdInt)))
-	httpRequest = httpRequest.WithContext(context.WithValue(httpRequest.Context(), "usergroup_id", []auth.GroupPermission{}))
+
+	sessionUser := auth.SessionUser{
+		UserId: userIdInt,
+		UserReferenceId: userReferenceId,
+		Groups: []auth.GroupPermission{},
+	}
+	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
 
 	req := api2go.Request{
 		PlainRequest: httpRequest,
