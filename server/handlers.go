@@ -42,16 +42,14 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 
 		var subjectInstanceModel *api2go.Api2GoModel
 		//var stateMachineDescriptionInstance *api2go.Api2GoModel
-		//
-		//for _, included := range objectStateMachine.Includes {
-		//	casted := included.(*api2go.Api2GoModel)
-		//	if casted.GetTableName() == typename {
-		//		subjectInstanceModel = casted
-		//	} else if casted.GetTableName() == "smd" {
-		//		stateMachineDescriptionInstance = casted
-		//	}
-		//
-		//}
+
+		for _, included := range objectStateMachine.Includes {
+			casted := included.(*api2go.Api2GoModel)
+			if casted.GetTableName() == typename {
+				subjectInstanceModel = casted
+			}
+
+		}
 
 		stateMachineId := objectStateMachine.GetID()
 		eventName := gincontext.Param("eventName")
@@ -69,9 +67,29 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 			return
 		}
 
-		stateObject["current_state"] = nextState
+		stateAudit := objectStateMachine.GetAuditModel()
+		creator, ok := cruds[stateAudit.GetTableName()]
+		if ok {
 
-		s, v, err := squirrel.Update(typename + "_state").Set("current_state", nextState).Where(squirrel.Eq{"reference_id": stateMachineId}).ToSql()
+			newRequest := &http.Request{
+				Method: "POST",
+			}
+			newRequest = newRequest.WithContext(gincontext.Request.Context())
+
+			req := api2go.Request{
+				PlainRequest: newRequest,
+				QueryParams:  map[string][]string{},
+			}
+
+			_, err := creator.Create(stateAudit, req)
+			resource.CheckErr(err, "Failed to create audit for [%v]", objectStateMachine.GetTableName())
+		}
+
+
+		s, v, err := squirrel.Update(typename + "_state").
+		Set("current_state", nextState).
+		Set("version", stateObject["version"].(int64) + 1).
+		Where(squirrel.Eq{"reference_id": stateMachineId}).ToSql()
 
 		_, err = db.Exec(s, v...)
 		if err != nil {
