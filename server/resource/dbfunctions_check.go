@@ -44,6 +44,11 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 		config.Tables[i].IsTopLevel = true
 		existingRelations := config.Tables[i].Relations
 
+
+		userRelation := api2go.NewTableRelation(table.TableName+"_state", "belongs_to", "user")
+		userGroupRelation := api2go.NewTableRelation(table.TableName+"_state", "has_many", "usergroup")
+
+
 		if len(existingRelations) > 0 {
 			log.Infof("Found existing %d relations from db for [%v]", len(existingRelations), config.Tables[i].TableName)
 			for _, rel := range existingRelations {
@@ -68,6 +73,19 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 					ObjectName:  "is_state_of_" + table.TableName,
 					Relation:    "belongs_to",
 				}
+
+
+				if !relationsDone[userRelation.Hash()] {
+					relationsDone[userRelation.Hash()] = true
+					finalRelations = append(finalRelations, userRelation)
+				}
+
+
+				if !relationsDone[userGroupRelation.Hash()] {
+					relationsDone[userGroupRelation.Hash()] = true
+					finalRelations = append(finalRelations, userGroupRelation)
+				}
+
 
 				if !relationsDone[stateRelation.Hash()] {
 
@@ -129,7 +147,11 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 					Relation:    "belongs_to",
 				}
 				relationsDone[stateRelation.Hash()] = true
+				relationsDone[userRelation.Hash()] = true
+				relationsDone[userGroupRelation.Hash()] = true
 				finalRelations = append(finalRelations, stateRelation)
+				finalRelations = append(finalRelations, userRelation)
+				finalRelations = append(finalRelations, userGroupRelation)
 			}
 
 			if table.TableName == "usergroup" {

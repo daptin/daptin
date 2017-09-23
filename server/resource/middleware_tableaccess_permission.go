@@ -24,19 +24,15 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 
 	returnMap := make([]map[string]interface{}, 0)
 
-	userIdString := req.PlainRequest.Context().Value("user_id")
-	userGroupId := req.PlainRequest.Context().Value("usergroup_id")
 
-	currentUserId := ""
-	if userIdString != nil {
-		currentUserId = userIdString.(string)
+	user := req.PlainRequest.Context().Value("user")
+	sessionUser := auth.SessionUser{}
+
+	if user != nil {
+		sessionUser = user.(auth.SessionUser)
 
 	}
 
-	currentUserGroupId := []auth.GroupPermission{}
-	if userGroupId != nil {
-		currentUserGroupId = userGroupId.([]auth.GroupPermission)
-	}
 
 	notIncludedMapCache := make(map[string]bool)
 	includedMapCache := make(map[string]bool)
@@ -57,7 +53,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 
 		permission := dr.GetRowPermission(result)
 		//log.Infof("Row Permission for [%v] for [%v]", permission, result)
-		if permission.CanRead(currentUserId, currentUserGroupId) {
+		if permission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
 			returnMap = append(returnMap, result)
 			includedMapCache[referenceId] = true
 		} else {
@@ -77,35 +73,30 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 
 	//var err error
 	//log.Infof("context: %v", context.GetAll(req.PlainRequest))
-	userIdString := req.PlainRequest.Context().Value("user_id")
-	userGroupId := req.PlainRequest.Context().Value("usergroup_id")
 
-	currentUserId := ""
-	if userIdString != nil {
-		currentUserId = userIdString.(string)
 
-	}
+	user := req.PlainRequest.Context().Value("user")
+	sessionUser := auth.SessionUser{}
 
-	currentUserGroupId := []auth.GroupPermission{}
-	if userGroupId != nil {
-		currentUserGroupId = userGroupId.([]auth.GroupPermission)
+	if user != nil {
+		sessionUser = user.(auth.SessionUser)
+
 	}
 
 	tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
 
 	//log.Infof("[TableAccessPermissionChecker] Permission check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), tableOwnership.Permission)
 	if req.PlainRequest.Method == "GET" {
-		if !tableOwnership.CanRead(currentUserId, currentUserGroupId) {
+		if !tableOwnership.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
 			return nil, ERR_UNAUTHORIZED
 		}
 	} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" || req.PlainRequest.Method == "POST" || req.PlainRequest.Method == "DELETE" {
-		if !tableOwnership.CanWrite(currentUserId, currentUserGroupId) {
+		if !tableOwnership.CanWrite(sessionUser.UserReferenceId, sessionUser.Groups) {
 			return nil, ERR_UNAUTHORIZED
 
 		}
 	} else {
 		return nil, ERR_UNAUTHORIZED
-
 	}
 
 	return results, nil

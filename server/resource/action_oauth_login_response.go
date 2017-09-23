@@ -151,12 +151,17 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 	storeToken["token_type"] = authenticator
 	storeToken["oauth_connect_id"] = authReferenceId
 
+	sessionUser := auth.SessionUser{
+		UserId: user["id"].(int64),
+		UserReferenceId: user["reference_id"].(string),
+		Groups: []auth.GroupPermission{},
+	}
+
+
 	pr := &http.Request{
 		Method: "POST",
 	}
-	pr = pr.WithContext(context.WithValue(ctx, "user_id", user["reference_id"]))
-	pr = pr.WithContext(context.WithValue(pr.Context(), "usergroup_id", []auth.GroupPermission{}))
-	pr = pr.WithContext(context.WithValue(pr.Context(), "user_id_integer", user["id"]))
+	pr = pr.WithContext(context.WithValue(ctx, "user", sessionUser))
 
 	req := api2go.Request{
 		PlainRequest: pr,

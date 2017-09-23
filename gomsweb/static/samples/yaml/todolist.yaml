@@ -1,5 +1,5 @@
 ---
-StateMachineDescription:
+StateMachineDescriptions:
 - Name: task_status
   Label: Task Status
   InitialState: to_be_done
