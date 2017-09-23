@@ -1,0 +1,195 @@
+---
+StateMachineDescription:
+- Name: task_status
+  Label: Task Status
+  InitialState: to_be_done
+  Events:
+  - Name: start
+    Label: Start
+    Src:
+    - to_be_done
+    - delayed
+    Dst: started
+  - Name: delayed
+    Label: Unable to pick up
+    Src:
+    - to_be_done
+    Dst: delayed
+  - Name: ongoing
+    Label: Record progress
+    Src:
+    - started
+    - ongoing
+    Dst: ongoing
+  - Name: interrupted
+    Label: Interrupted
+    Src:
+    - started
+    - ongoing
+    Dst: interrupted
+  - Name: resume
+    Label: Resume from interruption
+    Src:
+    - interrupted
+    Dst: ongoing
+  - Name: completed
+    Label: Mark as completed
+    Src:
+    - ongoing
+    - started
+    Dst: completed
+Tables:
+- TableName: todo
+  Columns:
+  - Name: title
+    DataType: varchar(500)
+    ColumnType: label
+    IsIndexed: true
+  - Name: url
+    DataType: varchar(200)
+    ColumnType: url
+    IsNullable: true
+  - Name: completed
+    DataType: int(1)
+    ColumnType: truefalse
+    DefaultValue: 'false'
+  - Name: schedule
+    DataType: date
+    ColumnType: date
+    IsNullable: true
+  - Name: order
+    columnName: item_order
+    DataType: int(4)
+    ColumnType: measurement
+    DefaultValue: '10'
+  - Name: text
+    DataType: text
+    ColumnType: content
+    IsNullable: true
+  Conformations:
+  - ColumnName: order
+    Tags: numeric
+  validations:
+  - ColumnName: title
+    Tags: required
+- TableName: tag
+  Columns:
+  - Name: label
+    DataType: varchar(100)
+    ColumnType: label
+    IsIndexed: true
+- TableName: project
+  Columns:
+  - Name: name
+    DataType: varchar(200)
+    ColumnType: name
+    IsIndexed: true
+Relations:
+- Subject: todo
+  Relation: has_one
+  Object: project
+- Subject: todo
+  Relation: has_many
+  Object: tag
+Actions:
+- Name: new_task
+  Label: New to do
+  OnType: project
+  InstanceOptional: true
+  InFields:
+  - ColumnName: description
+    Name: Description
+    ColumnType: label
+  - ColumnName: schedule
+    Name: Scheduled at
+    ColumnType: date
+  OutFields:
+  - Type: todo
+    Method: POST
+    Attributes:
+      schedule: "~schedule"
+      title: "~description"
+      project_id: "$.reference_id"
+  - Type: client.notify
+    Method: ACTIONRESPONSE
+    Attributes:
+      type: success
+      message: Created new todo, taking you to it.
+      title: Wait for it
+  - Type: client.redirect
+    Method: ACTIONRESPONSE
+    Attributes:
+      location: "/in/item/todo/$.reference_id"
+      window: self
+      delay: '1000'
+  - Type: client.store.set
+    Method: ACTIONRESPONSE
+    Attributes:
+      value: last_created_todo
+      key: "$.reference_id"
+  - Type: error
+    Method: ACTIONRESPONSE
+    Attributes:
+      message: show this in error notification body
+- Name: completed
+  Label: Completed
+  OnType: todo
+  OutFields:
+  - Type: todo
+    Method: UPDATE
+    Attributes:
+      completed: '1'
+      reference_id: "$.reference_id"
+- Name: new_project
+  Label: New project category
+  OnType: project
+  InstanceOptional: true
+  InFields:
+  - ColumnName: name
+    Name: name
+    ColumnType: label
+  OutFields:
+  - Type: project
+    Method: POST
+    Attributes:
+      name: "~name"
+  - Type: client.redirect
+    Method: ACTIONRESPONSE
+    Attributes:
+      location: "/in/item/project/$.reference_id"
+      window: self
+      delay: '1000'
+- Name: new_data_exchange
+  Label: Sync tasks to Google sheet
+  OnType: data_exchange
+  InFields:
+  - ColumnName: sheetUrl
+    Name: Sheet url
+    ColumnType: url
+  - ColumnName: include_all_columns
+    Name: Include all Columns ?
+    ColumnType: boolean
+    DefaultValue: 'false'
+  OutFields:
+  - Type: data_exchange
+    Method: POST
+    Attributes:
+      schedule: "~schedule"
+      description: "~description"
+      project_id: "$.reference_id"
+Exchanges:
+- Name: Task to excel sheet
+  SourceAttributes:
+    Name: todo
+  SourceType: self
+  TargetAttributes:
+    sheetUrl: https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append
+    appKey: AIzaSyAC2xame4NShrzH9ZJeEpWT5GkySooa0XM
+  TargetType: gsheet-append
+  Attributes:
+  - SourceColumn: "$self.description"
+    TargetColumn: Task description
+  - SourceColumn: self.schedule
+    TargetColumn: Scheduled at
+  Options:
+    hasHeader: true
