@@ -7,7 +7,7 @@ import:
   version: 1.47
 - package: github.com/gocraft/health
 - package: github.com/artpar/api2go
-  version: ^2.2
+  version: ^2.3
 - package: github.com/artpar/api2go-adapter
   subpackages:
   - gingonic
@@ -40,7 +40,7 @@ import:
 - package: github.com/pquerna/otp
   subpackages:
   - totp
-- package: github.com/rcrowley/goagain
+- package: github.com/artpar/goagain
 - package: github.com/satori/go.uuid
   version: ^1.1.0
 - package: github.com/sirupsen/logrus

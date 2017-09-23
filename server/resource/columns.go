@@ -1128,25 +1128,25 @@ var StandardTables = []TableInfo{
 				DataType:   "varchar(100)",
 			},
 			{
-				Name:       "Store type",
+				Name:       "store_type",
 				ColumnName: "store_type",
 				ColumnType: "label",
 				DataType:   "varchar(100)",
 			},
 			{
-				Name:       "Store provider",
+				Name:       "store_provider",
 				ColumnName: "store_provider",
 				ColumnType: "label",
 				DataType:   "varchar(100)",
 			},
 			{
-				Name:       "Root path",
+				Name:       "root_path",
 				ColumnName: "root_path",
 				ColumnType: "label",
 				DataType:   "varchar(1000)",
 			},
 			{
-				Name:       "Store parameters",
+				Name:       "store_parameters",
 				ColumnName: "store_parameters",
 				ColumnType: "json",
 				DataType:   "text",
@@ -1158,19 +1158,19 @@ var StandardTables = []TableInfo{
 		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
-				Name:       "Name",
+				Name:       "name",
 				ColumnName: "name",
 				ColumnType: "label",
 				DataType:   "varchar(100)",
 			},
 			{
-				Name:       "Host name",
+				Name:       "hostname",
 				ColumnName: "hostname",
 				ColumnType: "label",
 				DataType:   "varchar(100)",
 			},
 			{
-				Name:       "Path",
+				Name:       "path",
 				ColumnName: "path",
 				ColumnType: "label",
 				DataType:   "varchar(100)",
