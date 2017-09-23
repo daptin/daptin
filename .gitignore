@@ -16,3 +16,5 @@ main
 vendor/
 dist
 /logs.log
+_*.*
+goms
