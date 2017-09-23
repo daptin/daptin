@@ -1,5 +1,5 @@
-hash: 8bbaf045501c44d064cdb71cc0767f81a3f2745faf49d69e824e6c9cb93a0459
-updated: 2017-09-22T07:06:24.919987072+05:30
+hash: 8b3fd6faa12779a1d2845c2672b0a585eff796a0f3b2e54e790da558fb5c09a2
+updated: 2017-09-23T08:50:30.995855309+05:30
 imports:
 - name: cloud.google.com/go
   version: 4b5faa47331c50b3f75616de199da5fea9c50bea
@@ -14,7 +14,7 @@ imports:
 - name: github.com/araddon/dateparse
   version: e2f3c465e969d5981ef2f7f83e18d266d5df908c
 - name: github.com/artpar/api2go
-  version: 031ea6b87f34e199f89eba417997423bb2eb7d4e
+  version: 2ff6ea3d687b9ff42c69d25fd27d97626d92bb8c
   subpackages:
   - jsonapi
   - routing
@@ -271,8 +271,6 @@ imports:
   - totp
 - name: github.com/PuerkitoBio/goquery
   version: ce645ea5e67a713599b7415f21f0786451fa9554
-- name: github.com/rcrowley/goagain
-  version: f2f192b5d1a96e21dd4026ce67cda85e49659a48
 - name: github.com/rfjakob/eme
   version: 7c8316a9cb0a6af865265f899f5de6aadb31a24b
 - name: github.com/satori/go.uuid

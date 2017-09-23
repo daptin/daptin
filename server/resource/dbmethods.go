@@ -170,18 +170,23 @@ func (dr *DbResource) GetObjectPermission(objectType string, referenceId string)
 }
 
 func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colName string, colValue string) Permission {
+	var perm Permission
 	s, q, err := squirrel.Select("user_id", "permission", "id").From(objectType).Where(squirrel.Eq{colName: colValue}).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
-		return Permission{
-			"", []auth.GroupPermission{}, 0,
+		return perm
 		}
-	}
 
 	m := make(map[string]interface{})
 	err = dr.db.QueryRowx(s, q...).MapScan(m)
+
+	if err != nil {
+		log.Errorf("Failed to scan permission: %v", err)
+		return perm
+	}
+
+
 	//log.Infof("permi map: %v", m)
-	var perm Permission
 	if m["user_id"] != nil {
 
 		user, err := dr.GetIdToReferenceId("user", m["user_id"].(int64))
@@ -194,9 +199,6 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, m["id"].(int64))
 
 	perm.Permission = m["permission"].(int64)
-	if err != nil {
-		log.Errorf("Failed to scan permission: %v", err)
-	}
 
 	//log.Infof("Permission for [%v]: %v", typeName, perm)
 	return perm
