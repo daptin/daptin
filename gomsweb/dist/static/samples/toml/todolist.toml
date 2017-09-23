@@ -1,39 +1,39 @@
-[[StateMachineDescription]]
+[[StateMachineDescriptions]]
 Name = "task_status"
 Label = "Task Status"
 InitialState = "to_be_done"
 
-  [[StateMachineDescription.Events]]
+  [[StateMachineDescriptions.Events]]
   Name = "start"
   Label = "Start"
   Src = ["to_be_done", "delayed"]
   Dst = "started"
 
-  [[StateMachineDescription.Events]]
+  [[StateMachineDescriptions.Events]]
   Name = "delayed"
   Label = "Unable to pick up"
   Src = ["to_be_done"]
   Dst = "delayed"
 
-  [[StateMachineDescription.Events]]
+  [[StateMachineDescriptions.Events]]
   Name = "ongoing"
   Label = "Record progress"
   Src = ["started", "ongoing"]
   Dst = "ongoing"
 
-  [[StateMachineDescription.Events]]
+  [[StateMachineDescriptions.Events]]
   Name = "interrupted"
   Label = "Interrupted"
   Src = ["started", "ongoing"]
   Dst = "interrupted"
 
-  [[StateMachineDescription.Events]]
+  [[StateMachineDescriptions.Events]]
   Name = "resume"
   Label = "Resume from interruption"
   Src = ["interrupted"]
   Dst = "ongoing"
 
-  [[StateMachineDescription.Events]]
+  [[StateMachineDescriptions.Events]]
   Name = "completed"
   Label = "Mark as completed"
   Src = ["ongoing", "started"]
