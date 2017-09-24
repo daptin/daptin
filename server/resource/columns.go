@@ -70,6 +70,24 @@ var SystemExchanges = []ExchangeContract{}
 
 var SystemActions = []Action{
 	{
+		Name: "restart_goms",
+		Label: "Restart system",
+		OnType: "world",
+		InstanceOptional: true,
+		InFields: []api2go.ColumnInfo{
+
+		},
+		OutFields: []Outcome {
+			{
+				Type:   "system_json_schema_update",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"json_schema": "!JSON.parse('[{\"name\":\"empty.json\",\"file\":\"data:application/json;base64,e30K\",\"type\":\"application/json\"}]')",
+				},
+			},
+		},
+	},
+	{
 		Name:             "publish_package_to_market",
 		Label:            "Update package list",
 		OnType:           "marketplace",
