@@ -16,6 +16,7 @@ Goms is a self-hosted BAAS that generates Web APIs (more specifically, JSON APIs
 
 ![Sign up and Sign in](https://github.com/artpar/goms/raw/master/documentation/gifs/signup_and_signin.gif)
 ![Create entity and add item](https://github.com/artpar/goms/raw/master/documentation/gifs/create_entity_and_add.gif)
+![Generate random data to show tables](https://github.com/artpar/goms/raw/master/documentation/gifs/generate_random_show_tables.gif)
 
 Goms takes features such as
 
