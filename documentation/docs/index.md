@@ -4,7 +4,7 @@ For full documentation visit [mkdocs.org](http://mkdocs.org).
 
 ## Index
 
-- Setting up
+- [Setting up](settingup.md)
 - Entities
 - Entity Relations
 - Data storage
