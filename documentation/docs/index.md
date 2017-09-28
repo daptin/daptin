@@ -10,7 +10,8 @@ Goms is a backend designed to serve all your needs. Once you have deployed goms,
 - [Data storage and table structures](data_storage.md)
 - [Actions] (actions.md)
 - [Users and User groups](users_and_usergroups.md)
-- Authentication and Authorization
+- Authentication
+- [Authorization](authorization.md)
 - Auditing
 - State tracking for entities
 - Oauth Connections and tokens
