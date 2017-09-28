@@ -9,4 +9,4 @@ pages:
     - Actions: actions.md
     - Data storage: data_storage.md
     - Marketplace: marketplace.md
-theme: readthedocs
+theme: material
