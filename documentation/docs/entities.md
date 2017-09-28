@@ -29,7 +29,7 @@ Checkout [marketplace documentation](marketplace.md)
 
 # JSON / YAML files
 
-The JSON for oru hypothetical todo entity will look as follows:
+The JSON for our hypothetical todo entity will look as follows:
 
 ```json
     {
@@ -127,10 +127,10 @@ Columns of the entity can be cusomised:
 	ColumnName        string         `column name in the table`
 	ColumnDescription string         `human readable description`
 	ColumnType        string         `column type is a rich type of the column`
-	IsIndexed         bool           `true to add an index on this column`
-	IsUnique          bool           `true to set a unique constraint on this column`
-	IsNullable        bool           `are null values allowed`
-	Permission        uint64         `permission column (check authorization docs)`
+	IsIndexed         boolean        `true to add an index on this column`
+	IsUnique          boolean        `true to set a unique constraint on this column`
+	IsNullable        boolean        `are null values allowed`
+	Permission        uint64          `permission column (check authorization docs)`
 	DataType          string         `the column type inside the database`
 	DefaultValue      string         `default value if any (has to be inside single quotes for static values`
 
