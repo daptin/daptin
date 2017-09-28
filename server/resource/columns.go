@@ -1039,6 +1039,7 @@ var StandardTables = []TableInfo{
 				ColumnName: "redirect_uri",
 				DataType:   "varchar(80)",
 				ColumnType: "url",
+				DefaultValue: "'https://dashboard.devsupport.ai/oauth/response'",
 			},
 			{
 				Name:         "auth_url",

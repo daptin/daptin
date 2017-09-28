@@ -96,7 +96,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		}
 
 		if col.IsForeignKey {
-			log.Infof("Convert reference id to id %v[%v]", col.ForeignKeyData.TableName, val)
+			//log.Infof("Convert reference id to id %v[%v]", col.ForeignKeyData.TableName, val)
 			valString := val.(string)
 			var uId interface{}
 			var err error

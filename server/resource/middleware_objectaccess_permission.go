@@ -6,6 +6,7 @@ import (
 	//"gopkg.in/Masterminds/squirrel.v1"
 
 	"github.com/artpar/goms/server/auth"
+	"strings"
 )
 
 type ObjectAccessPermissionChecker struct {
@@ -89,13 +90,19 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 	for _, result := range results {
 		//log.Infof("Result: %v", result)
-
 		refIdInterface := result["reference_id"]
+		referenceId := refIdInterface.(string)
+
+		if strings.Index(result["__type"].(string), "_has_") > -1 {
+			returnMap = append(returnMap, result)
+			includedMapCache[referenceId] = true
+			continue
+		}
+
 		if refIdInterface == nil {
 			returnMap = append(returnMap, result)
 			continue
 		}
-		referenceId := refIdInterface.(string)
 		_, ok := notIncludedMapCache[referenceId]
 		if ok {
 			continue
@@ -119,7 +126,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 				notIncludedMapCache[referenceId] = true
 
 			}
-		} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" || req.PlainRequest.Method == "POST" || req.PlainRequest.Method == "DELETE" {
+		} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" || req.PlainRequest.Method == "DELETE" {
 			if permission.CanWrite(sessionUser.UserReferenceId, sessionUser.Groups) {
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
