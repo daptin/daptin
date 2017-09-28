@@ -1,17 +1,4 @@
-# Users
-
-Users are native objects in Goms. Every item in goms belongs to one user. A user which is not identified is a guest user.
-
-A user belongs to one or more user groups.
-
-# User groups
-
-User groups is a really powerful concept that helps you manage "who" can interact with goms, and in what ways.
-
-Objects can also belong to one or more user group.
-
-
-# Permission
+# Access Authorization
 
 There are three type of interactions which we want to control
 
@@ -36,7 +23,7 @@ For these changes to take effect a restart is necessary.
 
 ## Instance level permission
 
-Like we saw in the [entity documentation](entity.md), every table has a ```permission``` column.
+Like we saw in the [entity documentation](entities.md), every table has a ```permission``` column.
 
 
 ## Permission column
