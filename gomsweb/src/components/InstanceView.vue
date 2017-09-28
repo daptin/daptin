@@ -81,8 +81,7 @@
             <div class="col-md-12">
               <h2>Actions</h2>
             </div>
-            <div class="col-md-12" v-for="a, k in actions" v-if="a.InstanceRequired">
-              {{a}}
+            <div class="col-md-12" v-for="a, k in actions" v-if="!a.InstanceOptional">
               <button class="btn btn-default" style="width: 100%" @click="doAction(a)">{{a.Label}}</button>
             </div>
           </div>
