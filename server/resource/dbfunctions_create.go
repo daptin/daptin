@@ -174,14 +174,14 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 
 		}
 
-		newRelation := api2go.TableRelation{
-			Subject:    auditTableName,
-			Relation:   "belongs_to",
-			Object:     tableName,
-			ObjectName: "audit_object_id",
-		}
+		//newRelation := api2go.TableRelation{
+		//	Subject:    auditTableName,
+		//	Relation:   "belongs_to",
+		//	Object:     tableName,
+		//	ObjectName: "audit_object_id",
+		//}
 
-		newRelations = append(newRelations, newRelation)
+		//newRelations = append(newRelations, newRelation)
 
 		newTable := TableInfo{
 			TableName:         auditTableName,

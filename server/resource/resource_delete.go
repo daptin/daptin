@@ -8,6 +8,7 @@ import (
 	//"github.com/satori/go.uuid"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"github.com/pkg/errors"
+	"net/http"
 )
 
 // Delete an object
@@ -18,6 +19,7 @@ import (
 
 func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, error) {
 
+	log.Infof("Delete [%v][%v]", dr.model.GetTableName(), id)
 	for _, bf := range dr.ms.BeforeDelete {
 		//log.Infof("[Before][%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
@@ -35,32 +37,239 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 		}
 	}
 
-	itemBeingDeleted, err := dr.FindOne(id, req)
+	data, err := dr.GetReferenceIdToObject(dr.model.GetTableName(), id)
 	if err != nil {
 		return nil, err
 	}
-
-	data := itemBeingDeleted.Result().(*api2go.Api2GoModel)
+	apiModel := api2go.NewApi2GoModelWithData(dr.model.GetTableName(), nil, 0, nil, data)
 
 	m := dr.model
 	//log.Infof("Get all resource type: %v\n", m)
 
-	auditModel := data.GetAuditModel()
-	log.Infof("Object [%v]%v has been changed, trying to audit in %v", data.GetTableName(), data.GetID(), auditModel.GetTableName())
-	if auditModel.GetTableName() != "" {
-		//auditModel.Data["deleted_at"] = time.Now()
-		creator, ok := dr.cruds[auditModel.GetTableName()]
-		if !ok {
-			log.Errorf("No creator for audit type: %v", auditModel.GetTableName())
-		} else {
-			_, err := creator.Create(auditModel, req)
-			if err != nil {
-				log.Errorf("Failed to create audit entry: %v", err)
+	if !EndsWithCheck(apiModel.GetTableName(), "_audit") {
+		auditModel := apiModel.GetAuditModel()
+		log.Infof("Object [%v]%v has been changed, trying to audit in %v", apiModel.GetTableName(), apiModel.GetID(), auditModel.GetTableName())
+		if auditModel.GetTableName() != "" {
+			//auditModel.Data["deleted_at"] = time.Now()
+			creator, ok := dr.cruds[auditModel.GetTableName()]
+			if !ok {
+				log.Errorf("No creator for audit type: %v", auditModel.GetTableName())
 			} else {
-				log.Infof("[%v][%v] Created audit record", auditModel.GetTableName(), data.GetID())
-				//log.Infof("ReferenceId for change: %v", resp.Result())
+				pr := &http.Request{
+					Method: "POST",
+				}
+				pr = pr.WithContext(req.PlainRequest.Context())
+				createRequest := api2go.Request{
+					PlainRequest: pr,
+				}
+				_, err := creator.Create(auditModel, createRequest)
+				if err != nil {
+					log.Errorf("Failed to create audit entry: %v", err)
+				} else {
+					log.Infof("[%v][%v] Created audit record", auditModel.GetTableName(), apiModel.GetID())
+					//log.Infof("ReferenceId for change: %v", resp.Result())
+				}
 			}
 		}
+	}
+
+	parentId := data["id"].(int64)
+	parentReferenceId := data["reference_id"].(string)
+	for _, rel := range dr.model.GetRelations() {
+
+		if EndsWithCheck(rel.GetSubject(), "_audit") || EndsWithCheck(rel.GetObject(), "_audit") {
+			continue
+		}
+
+		if rel.GetSubject() == dr.model.GetTableName() {
+
+			switch rel.Relation {
+			case "has_one":
+				break
+			case "belongs_to":
+				break
+			case "has_many":
+				joinTableName := rel.GetJoinTableName()
+				//columnName := rel.GetSubjectName()
+
+				joinIdQuery, vals, err := squirrel.Select("reference_id").From(joinTableName).Where(squirrel.Eq{rel.GetSubjectName(): parentId}).ToSql()
+				CheckErr(err, "Failed to create query for getting join ids")
+
+				if err == nil {
+
+					res, err := dr.db.Queryx(joinIdQuery, vals...)
+					CheckErr(err, "Failed to query for join ids")
+					if err == nil {
+
+						ids := []string{}
+						for res.Next() {
+							var s string
+							res.Scan(&s)
+							ids = append(ids, s)
+						}
+
+						for _, id := range ids {
+							log.Infof("Delete relation with [%v][%v]", joinTableName, id)
+							_, err = dr.cruds[joinTableName].Delete(id, req)
+							CheckErr(err, "Failed to delete join")
+						}
+
+					}
+
+				}
+
+				break
+			case "has_many_and_belongs_to_many":
+				joinTableName := rel.GetJoinTableName()
+				//columnName := rel.GetSubjectName()
+
+				joinIdQuery, vals, err := squirrel.Select("reference_id").From(joinTableName).Where(squirrel.Eq{rel.GetSubjectName(): parentId}).ToSql()
+				CheckErr(err, "Failed to create query for getting join ids")
+
+				if err == nil {
+
+					res, err := dr.db.Queryx(joinIdQuery, vals...)
+					CheckErr(err, "Failed to query for join ids")
+					if err == nil {
+
+						ids := []string{}
+						for res.Next() {
+							var s string
+							res.Scan(&s)
+							ids = append(ids, s)
+						}
+
+						for _, id := range ids {
+							_, err = dr.cruds[joinTableName].Delete(id, req)
+							CheckErr(err, "Failed to delete join")
+						}
+
+					}
+
+				}
+
+			}
+
+		} else {
+
+			// i am the object
+			// delete subject
+
+			switch rel.Relation {
+			case "has_one":
+
+				pr := &http.Request{
+					Method: "GET",
+				}
+
+				pr = pr.WithContext(req.PlainRequest.Context())
+
+				subRequest := api2go.Request{
+					PlainRequest: pr,
+					QueryParams: map[string][]string{
+						rel.GetObject() + "_id":  {parentReferenceId},
+						rel.GetObject() + "Name": {rel.GetSubjectName()},
+					},
+				}
+
+				_, allRelatedObjects, err := dr.cruds[rel.GetSubject()].PaginatedFindAll(subRequest)
+				CheckErr(err, "Failed to get related objects of: %v", rel.GetSubject())
+
+				results := allRelatedObjects.Result().([]*api2go.Api2GoModel)
+				for _, result := range results {
+					_, err := dr.cruds[rel.GetSubject()].Delete(result.GetID(), req)
+					CheckErr(err, "Failed to delete related object before deleting parent")
+				}
+
+				break
+			case "belongs_to":
+
+				pr := &http.Request{
+					Method: "GET",
+				}
+
+				pr = pr.WithContext(req.PlainRequest.Context())
+
+				subRequest := api2go.Request{
+					PlainRequest: pr,
+					QueryParams: map[string][]string{
+						rel.GetObject() + "_id":  {parentReferenceId},
+						rel.GetObject() + "Name": {rel.GetSubjectName()},
+					},
+				}
+
+				_, allRelatedObjects, err := dr.cruds[rel.GetSubject()].PaginatedFindAll(subRequest)
+				CheckErr(err, "Failed to get related objects of: %v", rel.GetSubject())
+
+				results := allRelatedObjects.Result().([]*api2go.Api2GoModel)
+				for _, result := range results {
+					_, err := dr.cruds[rel.GetSubject()].Delete(result.GetID(), req)
+					CheckErr(err, "Failed to delete related object before deleting parent")
+				}
+
+				break
+			case "has_many":
+				joinTableName := rel.GetJoinTableName()
+
+				//columnName := rel.GetSubjectName()
+
+				joinIdQuery, vals, err := squirrel.Select("reference_id").From(joinTableName).Where(squirrel.Eq{rel.GetObjectName(): parentId}).ToSql()
+				CheckErr(err, "Failed to create query for getting join ids")
+
+				if err == nil {
+
+					res, err := dr.db.Queryx(joinIdQuery, vals...)
+					CheckErr(err, "Failed to query for join ids")
+					if err == nil {
+
+						ids := []string{}
+						for res.Next() {
+							var s string
+							res.Scan(&s)
+							ids = append(ids, s)
+						}
+
+						for _, id := range ids {
+							_, err = dr.cruds[joinTableName].Delete(id, req)
+							CheckErr(err, "Failed to delete join")
+						}
+
+					}
+
+				}
+
+				break
+			case "has_many_and_belongs_to_many":
+				joinTableName := rel.GetJoinTableName()
+				//columnName := rel.GetSubjectName()
+
+				pr := &http.Request{
+					Method: "GET",
+				}
+
+				pr = pr.WithContext(req.PlainRequest.Context())
+
+				subRequest := api2go.Request{
+					PlainRequest: pr,
+					QueryParams: map[string][]string{
+						rel.GetObject() + "_id":  {id},
+						rel.GetObject() + "Name": {rel.GetSubjectName()},
+					},
+				}
+
+				_, allRelatedObjects, err := dr.cruds[joinTableName].PaginatedFindAll(subRequest)
+				CheckErr(err, "Failed to get related objects of: %v", joinTableName)
+
+				results := allRelatedObjects.Result().([]*api2go.Api2GoModel)
+				for _, result := range results {
+					_, err := dr.cruds[joinTableName].Delete(result.GetID(), req)
+					CheckErr(err, "Failed to delete related object before deleting parent")
+				}
+
+			}
+
+		}
+
 	}
 
 	//queryBuilder := squirrel.Update(m.GetTableName()).Set("deleted_at", time.Now()).Where(squirrel.Eq{"reference_id": id})
@@ -78,7 +287,6 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 	if err != nil {
 		return nil, err
 	}
-
 
 	for _, bf := range dr.ms.AfterDelete {
 		//log.Infof("Invoke AfterDelete [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
