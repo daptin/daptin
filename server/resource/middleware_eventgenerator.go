@@ -40,7 +40,7 @@ func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Re
 	var err error = nil
 
 	reqmethod := req.PlainRequest.Method
-	log.Infof("Generate events for objects", reqmethod)
+	//log.Infof("Generate events for objects", reqmethod)
 	switch reqmethod {
 	case "GET":
 		break
@@ -119,7 +119,7 @@ func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 	//errors := []error{}
 
 	reqmethod := req.PlainRequest.Method
-	log.Infof("Request to intercept in middleware exchange: %v", reqmethod)
+	//log.Infof("Request to intercept in middleware exchange: %v", reqmethod)
 	switch reqmethod {
 	case "GET":
 		break
