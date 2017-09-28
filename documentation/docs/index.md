@@ -1,19 +1,22 @@
 # Welcome to GoMS
 
-For full documentation visit [mkdocs.org](http://mkdocs.org).
+Goms is a backend designed to serve all your needs. Once you have deployed goms, all you need to worry about is the frontend to get a complete app.
 
 ## Index
 
 - [Setting up](settingup.md)
-- Entities
-- Entity Relations
-- Data storage
-- Actions
-- Users and User groups
+- [Entities](entities.md)
+- [Entity Relations](entity_relations.md)
+- [Data storage and table structures](data_storage.md)
+- [Actions] (actions.md)
+- [Users and User groups](users_and_usergroups.md)
 - Authentication and Authorization
+- Auditing
+- State tracking for entities
 - Oauth Connections and tokens
-- Storage
+- Storage connectors
 - Sub sites
 - Data streams
-- Json Schemas
+- Json schemas
 - Interacting with third party APIs
+- Marketplace
