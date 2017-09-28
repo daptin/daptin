@@ -15,12 +15,16 @@ Create/Read/Update/Delete (CRUD) APIs are only the most basic apis exposed on th
 - Creating a "row"/"data entry" entry doesnt signify completion of a process or a flow
 - Usually a "set of entities" is to created and not just a single entity (when you create a user, you also want to create a usergroup also and associate the user to usergroup)
 - You could allow user to update only some fields of an entity and not all fields (eg user can change their name, but not email)
-- Changes based on some entity (when you are going thru a project, a new todo should automatically belong to that project)
+- Changes based on some entity (when you are going though a project, a new todo should automatically belong to that project)
 
 
-Actions provide a nice abstraction over the CRUD and handle all of these use cases.
+Actions provide a powerful abstraction over the CRUD and handle all of these use cases.
 
-To quickly understand what actions are, lets see what happened when you "signed up" on Goms. This is how "Sign up" is defined in Goms. We will go through each part of this definition
+To quickly understand what actions are, lets see what happened when you "signed up" on Goms.
+
+Lets take a look at how "Sign up" action is defined in Goms. We will go through each part of this definition
+
+## Action schema
 
 ```golang
 	{
@@ -128,38 +132,40 @@ To quickly understand what actions are, lets see what happened when you "signed 
 	}
 ```
 
-### Name
+
+
+## Action Name
 
 		Name:             "signup",
 
 Name of the action, this should be unique for each actions. Actions are identified by this name
 
-### Label
+## Action Label
 
 		Label:            "Sign up",
 
 Label is humans
 
 
-### OnType
+## OnType
 
 		OnType:           "user",
 
 The primary type of entity on which the action happens. This is used to know where the actions should come up on the UI
 
 
-### InstanceOptional
+## Action instance
 
 		InstanceOptional: true,
 
 If the action requires an "instance" of that type on which the action is defined (more about this below). So "Sign up" is defined on "user" table, but an instance of "user" is not required to initiate the action. This is why the "Sign up" doesnt ask you to select a user (which wouldn't make sense either)
 
 
-### InFields
+## Input fields
 
         InFields: []api2go.ColumnInfo
 
-This is a set of inputs which the user need to fill in to initiate that action. As we see here in case of "Sign up", we ask for for inputs
+This is a set of inputs which the user need to fill in to initiate that action. As we see here in case of "Sign up", we ask for four inputs
 
 - Name
 - Email
@@ -169,7 +175,7 @@ This is a set of inputs which the user need to fill in to initiate that action. 
 Note that the ColumnInfo structure is the same one we used to [define tables](entities.md).
 
 
-### Validations
+## Validations
 
         Validations: []ColumnTag
 
@@ -194,7 +200,7 @@ One of the more interesting validations is cross field check
 
 This tells that the value entered by user in the password field should be equal to the value in passwordConfirm field. And the minimum length should be 8 characters.
 
-### Conformations
+## Conformations
 
 
         Conformations: []ColumnTag
@@ -205,7 +211,7 @@ Conformations help to clean the data before the action is carried out. The frequ
 - Email: email conformation will normalize the email. Things like lowercase + trim
 
 
-### OutFields
+## OutFields
 
 
         OutFields: []Outcome
@@ -234,8 +240,8 @@ This tells us that, the first outcome is of type "user". The outcome is a "New U
 
 The attributes maps the input fields to the fields of our new user.
 
-~name will be the value entered by user in the name field
-~email will be the entered in the email field, and so on
+- ```~name``` will be the value entered by user in the name field
+- ```~email``` will be the entered in the email field, and so on
 
 If we skip the ```~```, like ```"confirmed": "0"``` Then the literal value is used.
 
@@ -243,7 +249,7 @@ If we skip the ```~```, like ```"confirmed": "0"``` Then the literal value is us
 ```Reference: "user",``` We have this to allow the "outcome" to be referenced when evaluating the next outcome. Let us see the other outcomes
 
 
-#### Scripted fields - "!..."
+## Scripted fields - "!..."
 
 			{
 				Type:      "usergroup",
@@ -260,7 +266,7 @@ Goms includes the [otto js engine](https://github.com/robertkrimen/otto). An exc
 ```'Home group for ' + user.name``` becomes "Home group for parth"
 
 
-#### Referencing previous outcomes
+## Referencing previous outcomes
 
 			{
 				Type:      "user_user_id_has_usergroup_usergroup_id",
