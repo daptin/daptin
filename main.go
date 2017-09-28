@@ -39,7 +39,7 @@ func main() {
 	resource.CheckErr(err, "Failed to open dist")
 
 	var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
-	var connection_string = flag.String("db_connection_string", "test.db", "\n\tSQLite: test.db\n"+
+	var connection_string = flag.String("db_connection_string", "goms.db", "\n\tSQLite: test.db\n"+
 			"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
 			"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
