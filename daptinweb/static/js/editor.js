@@ -6,7 +6,7 @@ loadjs([
   'http://localhost:8080/dist/css/grapes.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js'
 
-], 'goms', {
+], 'daptin', {
   success: function() {
     /* foo.js & bar.js loaded */
     console.log("loaded all js")
