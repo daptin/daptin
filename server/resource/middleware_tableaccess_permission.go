@@ -6,7 +6,7 @@ import (
 	//"gopkg.in/Masterminds/squirrel.v1"
 	"errors"
 
-	"github.com/artpar/goms/server/auth"
+	"github.com/artpar/daptin/server/auth"
 )
 
 type TableAccessPermissionChecker struct {

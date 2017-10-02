@@ -7,7 +7,7 @@ import (
 	//"reflect"
 	"github.com/satori/go.uuid"
 	//"strconv"
-	"github.com/artpar/goms/server/auth"
+	"github.com/artpar/daptin/server/auth"
 	"time"
 	"fmt"
 	"github.com/araddon/dateparse"

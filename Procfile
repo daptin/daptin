@@ -1,1 +1,1 @@
-web: bin/goms -port $PORT -runtime release
+web: bin/daptin -port $PORT -runtime release

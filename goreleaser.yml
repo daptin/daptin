@@ -6,7 +6,7 @@ build:
 
   # Name of the binary.
   # Default is the name of the project directory.
-  binary: goms
+  binary: daptin
 
   # Custom build tags.
   # Default is empty

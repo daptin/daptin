@@ -8,7 +8,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/pkg/errors"
 	"fmt"
-	"github.com/artpar/goms/server/columntypes"
+	"github.com/artpar/daptin/server/columntypes"
 	"github.com/artpar/conform"
 	"github.com/gin-gonic/gin/json"
 	"io/ioutil"
@@ -203,7 +203,7 @@ nextFile:
 			return nil, []error{err}
 		}
 
-		jsonFileName := fmt.Sprintf("schema_%v_goms.%v", entityName, fileType)
+		jsonFileName := fmt.Sprintf("schema_%v_daptin.%v", entityName, fileType)
 		ioutil.WriteFile(jsonFileName, jsonStr, 0644)
 
 		go restart()

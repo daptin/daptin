@@ -9,7 +9,7 @@ import (
 	"github.com/artpar/api2go"
 	"fmt"
 	"encoding/json"
-	"github.com/artpar/goms/server/auth"
+	"github.com/artpar/daptin/server/auth"
 	"io/ioutil"
 	"github.com/tealeg/xlsx"
 	"net/http"

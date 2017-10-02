@@ -1,8 +1,8 @@
 {
-  "name": "Goms",
+  "name": "Daptin",
   "description": "Go Management System",
   "keywords": [
-    "goms",
+    "daptin",
     "go",
     "process management"
   ],
@@ -11,10 +11,10 @@
     "node": "6.9.4"
   },
   "scripts": {
-    "heroku-prebuild": "go get golang.org/x/sys/unix && cd goms && npm install && npm run build && cd ..",
+    "heroku-prebuild": "go get golang.org/x/sys/unix && cd daptin && npm install && npm run build && cd ..",
     "heroku-postbuild": "echo This runs afterwards."
   },
-  "mount_dir": "src/github.com/artpar/goms",
-  "website": "http://github.com/artpar/goms",
-  "repository": "http://github.com/artpar/goms"
+  "mount_dir": "src/github.com/artpar/daptin",
+  "website": "http://github.com/artpar/daptin",
+  "repository": "http://github.com/artpar/daptin"
 }

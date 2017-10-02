@@ -7,7 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gin-gonic/gin.v1"
 	"net/http"
-	"github.com/artpar/goms/server/jwt"
+	"github.com/artpar/daptin/server/jwt"
 	"context"
 )
 
