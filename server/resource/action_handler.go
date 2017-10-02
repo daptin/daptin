@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/artpar/goms/server/auth"
+	"github.com/artpar/daptin/server/auth"
 	"github.com/dop251/goja"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gin-gonic/gin.v1"
@@ -56,13 +56,13 @@ type ActionPerformerInterface interface {
 	Name() string
 }
 
-type GomsError struct {
+type DaptinError struct {
 	Message string
 	Code    string
 }
 
-func NewGomsError(str string, code string) GomsError {
-	return GomsError{
+func NewDaptinError(str string, code string) DaptinError {
+	return DaptinError{
 		Message: str,
 		Code:    code,
 	}
@@ -177,7 +177,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			if errs != nil {
 				validationErrors := errs.(validator.ValidationErrors)
 				firstError := validationErrors[0]
-				ginContext.JSON(400, NewGomsError(validation.ColumnName+": "+firstError.Translate(trans), "validation-failed"))
+				ginContext.JSON(400, NewDaptinError(validation.ColumnName+": "+firstError.Translate(trans), "validation-failed"))
 				//ginContext.AbortWithError(400, errors.New(validationErrors[0].Translate(en1)))
 				return
 			}
@@ -398,7 +398,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 				return nil, returnRequest, err
 			}
 
-			jsonFileName := fmt.Sprintf("schema_%v_goms.%v", fileName, fileFormat)
+			jsonFileName := fmt.Sprintf("schema_%v_daptin.%v", fileName, fileFormat)
 			err = ioutil.WriteFile(jsonFileName, fileBytes, 0644)
 			if err != nil {
 				log.Errorf("Failed to write json file: %v", jsonFileName)

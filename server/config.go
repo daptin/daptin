@@ -2,7 +2,7 @@ package server
 
 import (
 	"path/filepath"
-	"github.com/artpar/goms/server/resource"
+	"github.com/artpar/daptin/server/resource"
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -10,7 +10,7 @@ import (
 	"gopkg.in/go-playground/validator.v9"
 )
 
-//import "github.com/artpar/goms/datastore"
+//import "github.com/artpar/daptin/datastore"
 
 func CreateConfigHandler(configStore *resource.ConfigStore) func(context *gin.Context) {
 
@@ -43,7 +43,7 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 	globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
 	globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
 
-	files, err := filepath.Glob("schema_*_goms.*")
+	files, err := filepath.Glob("schema_*_daptin.*")
 	log.Infof("Found files to load: %v", files)
 
 	if err != nil {

@@ -6,7 +6,7 @@ docker-compose down
 testcase=$1
 echo "Running test case $testcase"
 
-host=http://goms:8080
+host=http://daptin:8080
 
 
 rm -rf db_init
@@ -16,11 +16,11 @@ ls -lah db_init
 docker-compose up -d --force-recreate
 
 
-ip=`docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' goms`
+ip=`docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' daptin`
 
 
 until $(curl --output /dev/null --silent --fail http://$ip:8080/api/user); do
-    ip=`docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' goms`
+    ip=`docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' daptin`
     printf '.'
     sleep 5
 done

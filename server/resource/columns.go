@@ -70,7 +70,7 @@ var SystemExchanges = []ExchangeContract{}
 
 var SystemActions = []Action{
 	{
-		Name: "restart_goms",
+		Name: "restart_daptin",
 		Label: "Restart system",
 		OnType: "world",
 		InstanceOptional: true,
@@ -347,7 +347,7 @@ var SystemActions = []Action{
 	},
 	{
 		Name:             "invoke_become_admin",
-		Label:            "Become GoMS admin",
+		Label:            "Become Daptin admin",
 		InstanceOptional: true,
 		OnType:           "world",
 		InFields:         []api2go.ColumnInfo{},

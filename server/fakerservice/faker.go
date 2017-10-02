@@ -1,7 +1,7 @@
 package fakerservice
 
 import (
-  "github.com/artpar/goms/server/resource"
+  "github.com/artpar/daptin/server/resource"
 )
 
 func NewFakeInstance(tableInfo resource.TableInfo) map[string]interface{} {

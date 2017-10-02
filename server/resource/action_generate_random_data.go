@@ -4,7 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/artpar/api2go"
 	"github.com/satori/go.uuid"
-	"github.com/artpar/goms/server/auth"
+	"github.com/artpar/daptin/server/auth"
 	"net/http"
 	"context"
 )
