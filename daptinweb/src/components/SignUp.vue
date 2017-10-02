@@ -3,7 +3,7 @@
     <div class="row vertical-10p">
       <div class="container">
         <div class="register-logo">
-          <a href="javascript:;"><b>Goms</b></a>
+          <a href="javascript:;"><b>Daptin</b></a>
         </div>
 
         <div class="col-md-4 col-sm-offset-4">

@@ -141,7 +141,7 @@
 
     <!-- Main Footer -->
     <!--<footer class="main-footer">-->
-    <!--<strong><a href="javascript:">GoMS</a>.</strong> All rights reserved.-->
+    <!--<strong><a href="javascript:">Daptin</a>.</strong> All rights reserved.-->
     <!--</footer>-->
   </div>
   <!-- ./wrapper -->
@@ -406,7 +406,7 @@
           });
 
           tour.addStep('sidebar', {
-            text: 'That was all about this page. If this is a fresh installation of GoMS, there would probably be only "User" and "Usergroup" available in the sidebar, because these two form the basis for everything else. In another tour we will see how to begin customising GoMS for your needs.',
+            text: 'That was all about this page. If this is a fresh installation of Daptin, there would probably be only "User" and "Usergroup" available in the sidebar, because these two form the basis for everything else. In another tour we will see how to begin customising Daptin for your needs.',
             buttons: [
               {
                 text: 'Back',
@@ -424,7 +424,7 @@
         if (tourId == 3) {
 
           tour.addStep('sidebar', {
-            text: 'Let us visit the actions again, first we need to take ownership of this GoMS instance by becoming admin. This can only be done when there is exactly one user in the system. Until someone takes ownership of GoMS, GoMS is open to everyone.',
+            text: 'Let us visit the actions again, first we need to take ownership of this Daptin instance by becoming admin. This can only be done when there is exactly one user in the system. Until someone takes ownership of Daptin, Daptin is open to everyone.',
             attachTo: '.system-action-list right',
             advanceOn: '.system-action-list click',
             buttons: [
@@ -436,7 +436,7 @@
           });
 
           tour.addStep('sidebar', {
-            text: 'The first thing you would probably do with any GoMS installation is to Become Administrator.  You will see a quick reload of your page. <br><br>Click "Become Admin" to take ownership. ',
+            text: 'The first thing you would probably do with any Daptin installation is to Become Administrator.  You will see a quick reload of your page. <br><br>Click "Become Admin" to take ownership. ',
             attachTo: '.become-admin-button right',
             buttons: [
               {
@@ -452,7 +452,7 @@
 
 
           tour.addStep('sidebar', {
-            text: 'The main purpose of GoMS is to get modified to suit your needs. You can add "New Features" to GoMS using JSON files, which will act like plugins in near future. <br><br>Let us <a class="download-json btn btn-success" href="https://raw.githubusercontent.com/artpar/goms/master/gomsweb/static/samples/blog.json" target="_blank">Download a sample JSON file</a> that I have created for playing around, based on what a "basic blogging system" would look like.',
+            text: 'The main purpose of Daptin is to get modified to suit your needs. You can add "New Features" to Daptin using JSON files, which will act like plugins in near future. <br><br>Let us <a class="download-json btn btn-success" href="https://raw.githubusercontent.com/artpar/daptin/master/daptinweb/static/samples/blog.json" target="_blank">Download a sample JSON file</a> that I have created for playing around, based on what a "basic blogging system" would look like.',
             advanceOn: ".download-json click",
             buttons: []
           });
@@ -497,7 +497,7 @@
 
 
           tour.addStep('sidebar', {
-            text: 'The table is empty, as it should be, because we just added a "Blog" feature to GoMS, but have not used it yet.',
+            text: 'The table is empty, as it should be, because we just added a "Blog" feature to Daptin, but have not used it yet.',
             attachTo: ".vuetable top",
             buttons: [
               {
@@ -508,7 +508,7 @@
           });
 
           tour.addStep('sidebar', {
-            text: 'The table is empty, as it should be, because we just added a "Blog" feature to GoMS, but have not used it yet.',
+            text: 'The table is empty, as it should be, because we just added a "Blog" feature to Daptin, but have not used it yet.',
             attachTo: ".vuetable top",
             buttons: [
               {
@@ -579,7 +579,7 @@
         if (tourId == 7) {
 
           tour.addStep('sidebar', {
-            text: 'If you plan to use GoMS at this stage (pre-alpha release), please do drop me a line so we can build better.',
+            text: 'If you plan to use Daptin at this stage (pre-alpha release), please do drop me a line so we can build better.',
             buttons: [
               {
                 text: 'Next',
@@ -589,7 +589,7 @@
           });
 
           tour.addStep('sidebar', {
-            text: 'You can easily deploy GoMS on any hosting service, or using docker <pre>docker run goms/goms</pre> or run locally. It has no dependency on the internet.',
+            text: 'You can easily deploy Daptin on any hosting service, or using docker <pre>docker run daptin/daptin</pre> or run locally. It has no dependency on the internet.',
             buttons: [
               {
                 text: 'Next',
