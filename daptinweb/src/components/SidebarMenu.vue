@@ -80,15 +80,15 @@
       </a>
       <ul class="treeview-menu">
 
-        <li><a href="https://github.com/artpar/goms/wiki" target="_blank"><span class="fa fa-files-o"></span>
+        <li><a href="https://github.com/artpar/daptin/wiki" target="_blank"><span class="fa fa-files-o"></span>
           Dev help</a></li>
 
 
-        <li><a href="https://github.com/artpar/goms/issues/new" target="_blank"><span class="fa fa-cogs"></span>
+        <li><a href="https://github.com/artpar/daptin/issues/new" target="_blank"><span class="fa fa-cogs"></span>
           File an issue/bug</a></li>
 
 
-        <li><a href="mailto:artpar@gmail.com?subject=GoMS&body=Hi Parth,\n"><span class="fa fa-envelope-o"></span>
+        <li><a href="mailto:artpar@gmail.com?subject=Daptin&body=Hi Parth,\n"><span class="fa fa-envelope-o"></span>
           Email support</a></li>
       </ul>
 
