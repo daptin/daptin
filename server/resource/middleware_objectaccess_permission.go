@@ -5,7 +5,7 @@ import (
 	//log "github.com/sirupsen/logrus"
 	//"gopkg.in/Masterminds/squirrel.v1"
 
-	"github.com/artpar/goms/server/auth"
+	"github.com/artpar/daptin/server/auth"
 	"strings"
 )
 

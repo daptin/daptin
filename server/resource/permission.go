@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/artpar/goms/server/auth"
+	"github.com/artpar/daptin/server/auth"
 )
 
 type Permission struct {

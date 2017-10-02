@@ -5,8 +5,8 @@ import (
 	"github.com/artpar/api2go-adapter/gingonic"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gin-gonic/gin.v1"
-	"github.com/artpar/goms/server/auth"
-	"github.com/artpar/goms/server/resource"
+	"github.com/artpar/daptin/server/auth"
+	"github.com/artpar/daptin/server/resource"
 	"net/http"
 	"io/ioutil"
 	"github.com/artpar/rclone/fs"
@@ -21,7 +21,7 @@ var cruds = make(map[string]*resource.DbResource)
 func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l net.Listener, ch chan struct{}) {
 	defer wg.Done()
 
-	//configFile := "goms_style.json"
+	//configFile := "daptin_style.json"
 	/// Start system initialise
 
 	log.Infof("Load config files")

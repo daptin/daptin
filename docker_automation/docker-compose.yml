@@ -1,23 +1,23 @@
 version: '2'
 
 services:
-  goms:
-    image: goms/goms
-    container_name: goms
+  daptin:
+    image: daptin/daptin
+    container_name: daptin
     restart: always
     ports:
      - "8090:8080"
     command:
     - -db_type=mysql
-    - -db_connection_string=devsuser:devspassword@tcp(gomsmysqldb:3306)/devsupport
+    - -db_connection_string=devsuser:devspassword@tcp(daptinmysqldb:3306)/devsupport
     - -port=8080
     links:
-      - gomsmysqldb:gomsmysqldb
+      - daptinmysqldb:daptinmysqldb
     depends_on:
-        - "gomsmysqldb"
+        - "daptinmysqldb"
     networks:
       - my_net
-  gomsmysqldb:
+  daptinmysqldb:
     image: mysql
     container_name: mysql
     restart: always

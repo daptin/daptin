@@ -1,8 +1,8 @@
 .PHONY: container publish serve serve-container clean
 
-app        := goms
+app        := daptin
 static-app := build/linux-amd64/$(app)
-docker-tag := goms/goms
+docker-tag := daptin/daptin
 
 bin/$(app): *.go
 	go build -o $@

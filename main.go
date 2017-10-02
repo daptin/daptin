@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/artpar/goms/server"
+	"github.com/artpar/daptin/server"
 	"github.com/gocraft/health"
 	//"github.com/jpillora/overseer"
 	"log"
@@ -12,7 +12,7 @@ import (
 	"github.com/GeertJohan/go.rice"
 	"net/http"
 	"os"
-	"github.com/artpar/goms/server/resource"
+	"github.com/artpar/daptin/server/resource"
 	//"github.com/jpillora/overseer"
 	"flag"
 	"github.com/artpar/goagain"
@@ -33,17 +33,17 @@ func init() {
 
 func main() {
 	stream.AddSink(&health.WriterSink{os.Stdout})
-	boxStatic1, err := rice.FindBox("gomsweb/dist/static")
+	boxStatic1, err := rice.FindBox("daptinweb/dist/static")
 	resource.CheckError(err, "Failed to open dist/static")
-	boxRoot1, err := rice.FindBox("gomsweb/dist")
+	boxRoot1, err := rice.FindBox("daptinweb/dist")
 	resource.CheckErr(err, "Failed to open dist")
 
 	var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
-	var connection_string = flag.String("db_connection_string", "goms.db", "\n\tSQLite: test.db\n"+
+	var connection_string = flag.String("db_connection_string", "daptin.db", "\n\tSQLite: test.db\n"+
 			"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
 			"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
-	var port = flag.String("port", "6336", "GoMS port")
+	var port = flag.String("port", "6336", "Daptin port")
 	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
 
 	gin.SetMode(*runtimeMode)
@@ -54,8 +54,8 @@ func main() {
 
 	var boxStatic, boxRoot http.FileSystem
 	if err != nil {
-		boxStatic = http.Dir("gomsweb/dist/static")
-		boxRoot = http.Dir("gomsweb/dist")
+		boxStatic = http.Dir("daptinweb/dist/static")
+		boxRoot = http.Dir("daptinweb/dist")
 	} else {
 		boxStatic = boxStatic1.HTTPBox()
 		boxRoot = boxRoot1.HTTPBox()
@@ -112,7 +112,7 @@ func main() {
 	wg.Wait()
 
 	// If we received SIGUSR2, re-exec the parent process.
-	log.Printf("Goms main signal received: %v", sig)
+	log.Printf("Daptin main signal received: %v", sig)
 	if goagain.SIGUSR2 == sig {
 		if err := goagain.Exec(l); nil != err {
 			log.Fatalln(err)

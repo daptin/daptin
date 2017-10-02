@@ -1,7 +1,7 @@
-gomsweb/node_modules
+daptinweb/node_modules
 *.iml
 .idea/
-temp.*goms.json
+temp.*daptin.json
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 docker_dir/
@@ -10,11 +10,11 @@ rice-box.go
 bin/
 build/
 projectFilesBackup/
-gomsweb/static/samples/devsupport.json
+daptinweb/static/samples/devsupport.json
 main
-!/gomsweb/dist/
+!/daptinweb/dist/
 vendor/
 dist
 /logs.log
 _*.*
-goms
+daptin

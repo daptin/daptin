@@ -2,12 +2,12 @@ package apiblueprint
 
 import (
 	"bytes"
-	"github.com/artpar/goms/server/resource"
+	"github.com/artpar/daptin/server/resource"
 	"github.com/artpar/api2go"
 
 	"fmt"
 	"strings"
-	//"github.com/artpar/goms/server/fakerservice"
+	//"github.com/artpar/daptin/server/fakerservice"
 	"github.com/advance512/yaml"
 )
 
@@ -59,7 +59,7 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 
 	apiDefinition := make(map[string]interface{})
 
-	apiDefinition["title"] = "Goms server"
+	apiDefinition["title"] = "Daptin server"
 	apiDefinition["version"] = "v1"
 	apiDefinition["baseUri"] = fmt.Sprintf("http://%v", config.Hostname)
 	apiDefinition["mediaType"] = "application/json"

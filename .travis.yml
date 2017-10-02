@@ -3,20 +3,20 @@ language: go
 sudo: required
 cache:
   directories:
-    - "goms/node_modules"
+    - "daptin/node_modules"
 
 services:
   - docker
 
 script: go get github.com/GeertJohan/go.rice
  && go get github.com/GeertJohan/go.rice/rice
- && go get github.com/artpar/goms && rice embed-go && go build -o docker_dir/goms && cp -Rf gomsweb/dist docker_dir/static && cp Dockerfile docker_dir/Dockerfile
+ && go get github.com/artpar/daptin && rice embed-go && go build -o docker_dir/daptin && cp -Rf daptinweb/dist docker_dir/static && cp Dockerfile docker_dir/Dockerfile
 
 
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
     docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-    docker push goms/goms;
+    docker push daptin/daptin;
     fi
 
 notifications:

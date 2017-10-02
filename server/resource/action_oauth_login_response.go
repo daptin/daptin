@@ -10,7 +10,7 @@ import (
 	"context"
 	"github.com/artpar/api2go"
 	"net/http"
-	"github.com/artpar/goms/server/auth"
+	"github.com/artpar/daptin/server/auth"
 	"strings"
 	"github.com/pquerna/otp"
 	"time"
@@ -201,8 +201,8 @@ func NewOauthLoginResponseActionPerformer(initConfig *CmsConfig, cruds map[strin
 	secret, err := configStore.GetConfigValueFor("otp.secret", "backend")
 	if err != nil {
 		key, err := totp.Generate(totp.GenerateOpts{
-			Issuer:      "site.goms.com",
-			AccountName: "dummy@site.goms.com",
+			Issuer:      "site.daptin.com",
+			AccountName: "dummy@site.daptin.com",
 			Period:      300,
 			SecretSize:  10,
 		})
