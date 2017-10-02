@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	//"golang.org/x/oauth2"
 	"io/ioutil"
 	"os"
@@ -42,8 +43,9 @@ func (d *MarketplacePackageInstallActionPerformer) DoAction(request ActionReques
 	}
 
 	packageRoot := pack.Location + "/"
-
+	log.Infof("Package root: [%v]", packageRoot)
 	for _, file := range files {
+		log.Infof("Copy schema for installation [%v]", file)
 		err = CopyFile(packageRoot+file.Name(), file.Name())
 		CheckErr(err, "Failed to link file")
 	}

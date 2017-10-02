@@ -48,7 +48,7 @@ func main() {
 
 	gin.SetMode(*runtimeMode)
 
-	envy.Parse("GOMS") // looks for GOMS_PORT
+	envy.Parse("DAPTIN") // looks for GOMS_PORT
 	flag.Parse()
 
 
