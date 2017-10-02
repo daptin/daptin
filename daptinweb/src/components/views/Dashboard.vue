@@ -159,7 +159,7 @@
                   <i class="fa fa-3x fa-expeditedssl black"></i>Become admin
                 </router-link>
 
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'restart_goms'}}"
+                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'restart_daptin'}}"
                              class="btn btn-lg btn-app dashboard_button">
                   <i class="fa fa-3x fa-retweet black"></i>Restart
                 </router-link>
