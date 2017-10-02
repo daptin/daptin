@@ -43,7 +43,7 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 	globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
 	globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
 
-	files, err := filepath.Glob("schema_*_daptin.*")
+	files, err := filepath.Glob("schema_*.*")
 	log.Infof("Found files to load: %v", files)
 
 	if err != nil {
