@@ -3,12 +3,12 @@ rm -rf docker_dir
 mkdir docker_dir
 
 cp main docker_dir/main
-cp -Rf gomsweb/dist docker_dir/static
+cp -Rf daptinweb/dist docker_dir/static
 
 cp Dockerfile docker_dir/Dockerfile
 
 cd docker_dir
-docker build -t goms/goms  .
+docker build -t daptin/daptin  .
 
 cd ..
-docker images | grep goms | grep latest
+docker images | grep daptin | grep latest

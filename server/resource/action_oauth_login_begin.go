@@ -69,8 +69,8 @@ func NewOauthLoginBeginActionPerformer(initConfig *CmsConfig, cruds map[string]*
 	secret, err := configStore.GetConfigValueFor("otp.secret", "backend")
 	if err != nil {
 		key, err := totp.Generate(totp.GenerateOpts{
-			Issuer:      "site.goms.com",
-			AccountName: "dummy@site.goms.com",
+			Issuer:      "site.daptin.com",
+			AccountName: "dummy@site.daptin.com",
 			Period:      300,
 			SecretSize:  10,
 		})

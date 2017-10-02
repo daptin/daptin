@@ -2,7 +2,7 @@ package server
 
 import (
 	"github.com/jmoiron/sqlx"
-	"github.com/artpar/goms/server/resource"
+	"github.com/artpar/daptin/server/resource"
 	log "github.com/sirupsen/logrus"
 	"encoding/json"
 	"path/filepath"
@@ -181,7 +181,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig) resource.MiddlewareSet {
 
 func CleanUpConfigFiles() {
 
-	files, _ := filepath.Glob("schema_*_goms.*")
+	files, _ := filepath.Glob("schema_*_daptin.*")
 	log.Infof("Clean up config files: %v", files)
 
 	for _, fileName := range files {

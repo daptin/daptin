@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/artpar/goms/server/resource"
+	"github.com/artpar/daptin/server/resource"
 	"net/http"
 	log "github.com/sirupsen/logrus"
 	"github.com/jmoiron/sqlx"
