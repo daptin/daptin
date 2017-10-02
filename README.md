@@ -14,9 +14,9 @@
 
 Daptin is a self-hosted BAAS that generates Web APIs (more specifically, JSON APIs) for your data. Daptin combines the best concepts of [the most popular BAAS platforms](http://baas.apievangelist.com/) into a simple run-time tool.
 
-![Sign up and Sign in](https://github.com/artpar/daptin/raw/master/documentation/gifs/signup_and_signin.gif)
-![Create entity and add item](https://github.com/artpar/daptin/raw/master/documentation/gifs/create_entity_and_add.gif)
-![Generate random data to show tables](https://github.com/artpar/daptin/raw/master/documentation/gifs/generate_random_show_tables.gif)
+![Sign up and Sign in](https://github.com/artpar/daptin/raw/master/docs/gifs/signup_and_signin.gif)
+![Create entity and add item](https://github.com/artpar/daptin/raw/master/docs/gifs/create_entity_and_add.gif)
+![Generate random data to show tables](https://github.com/artpar/daptin/raw/master/docs/gifs/generate_random_show_tables.gif)
 
 Daptin takes features such as
 
@@ -165,7 +165,7 @@ It will be untrue to say Daptin has no competition. These are the possible compe
 * [x] Store connectors for storing big files/subsites - rclone
 * [ ] Market place to allow plugins/extensions to be installed
 
-### Documentation
+### docs
 
 - Checkout the [wiki](https://github.com/artpar/daptin/wiki)
 
