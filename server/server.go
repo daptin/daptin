@@ -75,7 +75,8 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 
 			}
 			if len(tableBeingModified.Relations) > 0 {
-				existableTable.Relations = append(existableTable.Relations, tableBeingModified.Relations...)
+				existableTable.AddRelation(tableBeingModified.Relations...)
+				//existableTable.Relations = append(existableTable.Relations, tableBeingModified.Relations...)
 			}
 			existingTables[j] = existableTable
 		}

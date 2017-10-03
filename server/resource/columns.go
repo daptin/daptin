@@ -70,14 +70,14 @@ var SystemExchanges = []ExchangeContract{}
 
 var SystemActions = []Action{
 	{
-		Name: "restart_daptin",
-		Label: "Restart system",
-		OnType: "world",
+		Name:             "restart_daptin",
+		Label:            "Restart system",
+		OnType:           "world",
 		InstanceOptional: true,
 		InFields: []api2go.ColumnInfo{
 
 		},
-		OutFields: []Outcome {
+		OutFields: []Outcome{
 			{
 				Type:   "system_json_schema_update",
 				Method: "EXECUTE",
@@ -1035,11 +1035,11 @@ var StandardTables = []TableInfo{
 				DefaultValue: "'code'",
 			},
 			{
-				Name:       "redirect_uri",
-				ColumnName: "redirect_uri",
-				DataType:   "varchar(80)",
-				ColumnType: "url",
-				DefaultValue: "'https://dashboard.devsupport.ai/oauth/response'",
+				Name:         "redirect_uri",
+				ColumnName:   "redirect_uri",
+				DataType:     "varchar(80)",
+				ColumnType:   "url",
+				DefaultValue: "'/oauth/response'",
 			},
 			{
 				Name:         "auth_url",
@@ -1271,6 +1271,30 @@ type TableInfo struct {
 	IsAuditEnabled         bool   `db:"is_audit_enabled"`
 	Validations            []ColumnTag
 	Conformations          []ColumnTag
+}
+
+func (ti *TableInfo) AddRelation(relations ...api2go.TableRelation) {
+
+	if ti.Relations == nil {
+		ti.Relations = make([]api2go.TableRelation, 0)
+	}
+
+	for _, relation := range relations {
+		exists := false
+		hash := relation.Hash()
+
+		for _, existingRelation := range ti.Relations {
+			if existingRelation.Hash() == hash {
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			ti.Relations = append(ti.Relations, relation)
+		}
+	}
+
 }
 
 type ColumnTag struct {
