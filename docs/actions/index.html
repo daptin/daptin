@@ -1,0 +1,782 @@
+
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      
+      
+      
+      
+        <link rel="shortcut icon" href="../assets/images/favicon.png">
+      
+      <meta name="generator" content="mkdocs-0.16.3, mkdocs-material-1.10.1">
+    
+    
+      
+        <title>Actions - Daptin</title>
+      
+    
+    
+      <script src="../assets/javascripts/modernizr-e826f8942a.js"></script>
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/application-a20f419c8e.css">
+      
+    
+    
+      
+        
+        
+        
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
+        <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
+      
+      <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    
+    
+    
+  </head>
+  
+  
+  
+  
+    <body>
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="drawer">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="search">
+    <label class="md-overlay" data-md-component="overlay" for="drawer"></label>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <a href=".." title="Daptin" class="md-header-nav__button md-logo">
+          
+            <i class="md-icon md-icon--home"></i>
+          
+        </a>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button" for="drawer"></label>
+      </div>
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <span class="md-flex__ellipsis md-header-nav__title">
+          
+            
+              
+            
+            Actions
+          
+        </span>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <label class="md-icon md-icon--search md-header-nav__button" for="search"></label>
+          
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="search"></label>
+  <div class="md-search__inner">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" required placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query">
+      <label class="md-icon md-search__icon" for="search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset">&#xE5CD;</button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result" data-md-lang-search="" data-md-lang-tokenizer="[\s\-]+">
+          <div class="md-search-result__meta" data-md-lang-result-none="No matching documents" data-md-lang-result-one="1 matching document" data-md-lang-result-other="# matching documents">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+      </div>
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+      
+      <main class="md-main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="drawer">
+    <div class="md-nav__button md-logo">
+      
+        <i class="md-icon md-icon--home"></i>
+      
+    </div>
+    Daptin
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href=".." title="Home" class="md-nav__link">
+      Home
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../settingup/" title="Setting up" class="md-nav__link">
+      Setting up
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../entities/" title="Entities" class="md-nav__link">
+      Entities
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../entity_relations/" title="Entity Relations" class="md-nav__link">
+      Entity Relations
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../users_and_usergroups/" title="Users and groups" class="md-nav__link">
+      Users and groups
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../authorization/" title="Authorization" class="md-nav__link">
+      Authorization
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        Actions
+      </label>
+    
+    <a href="./" title="Actions" class="md-nav__link md-nav__link--active">
+      Actions
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-are-actions-and-why-do-i-need-this" title="What are actions and why do I need this" class="md-nav__link">
+    What are actions and why do I need this
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#action-schema" title="Action schema" class="md-nav__link">
+    Action schema
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#action-name" title="Action Name" class="md-nav__link">
+    Action Name
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#action-label" title="Action Label" class="md-nav__link">
+    Action Label
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ontype" title="OnType" class="md-nav__link">
+    OnType
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#action-instance" title="Action instance" class="md-nav__link">
+    Action instance
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#input-fields" title="Input fields" class="md-nav__link">
+    Input fields
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validations" title="Validations" class="md-nav__link">
+    Validations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conformations" title="Conformations" class="md-nav__link">
+    Conformations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outfields" title="OutFields" class="md-nav__link">
+    OutFields
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scripted-fields-" title="Scripted fields - "!..."" class="md-nav__link">
+    Scripted fields - "!..."
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referencing-previous-outcomes" title="Referencing previous outcomes" class="md-nav__link">
+    Referencing previous outcomes
+  </a>
+  
+</li>
+      
+      
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../data_storage/" title="Data storage" class="md-nav__link">
+      Data storage
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../marketplace/" title="Marketplace" class="md-nav__link">
+      Marketplace
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-are-actions-and-why-do-i-need-this" title="What are actions and why do I need this" class="md-nav__link">
+    What are actions and why do I need this
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#action-schema" title="Action schema" class="md-nav__link">
+    Action schema
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#action-name" title="Action Name" class="md-nav__link">
+    Action Name
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#action-label" title="Action Label" class="md-nav__link">
+    Action Label
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ontype" title="OnType" class="md-nav__link">
+    OnType
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#action-instance" title="Action instance" class="md-nav__link">
+    Action instance
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#input-fields" title="Input fields" class="md-nav__link">
+    Input fields
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validations" title="Validations" class="md-nav__link">
+    Validations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conformations" title="Conformations" class="md-nav__link">
+    Conformations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outfields" title="OutFields" class="md-nav__link">
+    OutFields
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scripted-fields-" title="Scripted fields - "!..."" class="md-nav__link">
+    Scripted fields - "!..."
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referencing-previous-outcomes" title="Referencing previous outcomes" class="md-nav__link">
+    Referencing previous outcomes
+  </a>
+  
+</li>
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <h1 id="actions">Actions</h1>
+<p>Actions are the most useful things in Daptin and we will see that everything you have done in Daptin was as action itself.</p>
+<p>Actions can be thought of as follows:</p>
+<ul>
+<li>A set of inputs</li>
+<li>A set of outcomes based on the inputs</li>
+</ul>
+<h2 id="what-are-actions-and-why-do-i-need-this">What are actions and why do I need this</h2>
+<p>Create/Read/Update/Delete (CRUD) APIs are only the most basic apis exposed on the database, and you would rarely want to make those API available to your end user. Reasons could be multiple</p>
+<ul>
+<li>The end user doesn't (immediately) owe the data they create</li>
+<li>Creating a "row"/"data entry" entry doesnt signify completion of a process or a flow</li>
+<li>Usually a "set of entities" is to created and not just a single entity (when you create a user, you also want to create a usergroup also and associate the user to usergroup)</li>
+<li>You could allow user to update only some fields of an entity and not all fields (eg user can change their name, but not email)</li>
+<li>Changes based on some entity (when you are going though a project, a new todo should automatically belong to that project)</li>
+</ul>
+<p>Actions provide a powerful abstraction over the CRUD and handle all of these use cases.</p>
+<p>To quickly understand what actions are, lets see what happened when you "signed up" on Daptin.</p>
+<p>Lets take a look at how "Sign up" action is defined in Daptin. We will go through each part of this definition</p>
+<h2 id="action-schema">Action schema</h2>
+<pre><code class="golang">    {
+        Name:             &quot;signup&quot;,
+        Label:            &quot;Sign up&quot;,
+        InstanceOptional: true,
+        OnType:           &quot;user&quot;,
+        InFields: []api2go.ColumnInfo{
+            {
+                Name:       &quot;name&quot;,
+                ColumnName: &quot;name&quot;,
+                ColumnType: &quot;label&quot;,
+                IsNullable: false,
+            },
+            {
+                Name:       &quot;email&quot;,
+                ColumnName: &quot;email&quot;,
+                ColumnType: &quot;email&quot;,
+                IsNullable: false,
+            },
+            {
+                Name:       &quot;password&quot;,
+                ColumnName: &quot;password&quot;,
+                ColumnType: &quot;password&quot;,
+                IsNullable: false,
+            },
+            {
+                Name:       &quot;Password Confirm&quot;,
+                ColumnName: &quot;passwordConfirm&quot;,
+                ColumnType: &quot;password&quot;,
+                IsNullable: false,
+            },
+        },
+        Validations: []ColumnTag{
+            {
+                ColumnName: &quot;email&quot;,
+                Tags:       &quot;email&quot;,
+            },
+            {
+                ColumnName: &quot;name&quot;,
+                Tags:       &quot;required&quot;,
+            },
+            {
+                ColumnName: &quot;password&quot;,
+                Tags:       &quot;eqfield=InnerStructField[passwordConfirm],min=8&quot;,
+            },
+        },
+        Conformations: []ColumnTag{
+            {
+                ColumnName: &quot;email&quot;,
+                Tags:       &quot;email&quot;,
+            },
+            {
+                ColumnName: &quot;name&quot;,
+                Tags:       &quot;trim&quot;,
+            },
+        },
+        OutFields: []Outcome{
+            {
+                Type:      &quot;user&quot;,
+                Method:    &quot;POST&quot;,
+                Reference: &quot;user&quot;,
+                Attributes: map[string]interface{}{
+                    &quot;name&quot;:      &quot;~name&quot;,
+                    &quot;email&quot;:     &quot;~email&quot;,
+                    &quot;password&quot;:  &quot;~password&quot;,
+                    &quot;confirmed&quot;: &quot;0&quot;,
+                },
+            },
+            {
+                Type:      &quot;usergroup&quot;,
+                Method:    &quot;POST&quot;,
+                Reference: &quot;usergroup&quot;,
+                Attributes: map[string]interface{}{
+                    &quot;name&quot;: &quot;!'Home group for ' + user.name&quot;,
+                },
+            },
+            {
+                Type:      &quot;user_user_id_has_usergroup_usergroup_id&quot;,
+                Method:    &quot;POST&quot;,
+                Reference: &quot;user_usergroup&quot;,
+                Attributes: map[string]interface{}{
+                    &quot;user_id&quot;:      &quot;$user.reference_id&quot;,
+                    &quot;usergroup_id&quot;: &quot;$usergroup.reference_id&quot;,
+                },
+            },
+            {
+                Type:   &quot;client.notify&quot;,
+                Method: &quot;ACTIONRESPONSE&quot;,
+                Attributes: map[string]interface{}{
+                    &quot;type&quot;:    &quot;success&quot;,
+                    &quot;title&quot;:   &quot;Success&quot;,
+                    &quot;message&quot;: &quot;Signup Successful&quot;,
+                },
+            },
+            {
+                Type:   &quot;client.redirect&quot;,
+                Method: &quot;ACTIONRESPONSE&quot;,
+                Attributes: map[string]interface{}{
+                    &quot;location&quot;: &quot;/auth/signin&quot;,
+                    &quot;window&quot;:   &quot;self&quot;,
+                },
+            },
+        },
+    }
+</code></pre>
+
+<h2 id="action-name">Action Name</h2>
+<pre><code>    Name:             "signup",
+</code></pre>
+<p>Name of the action, this should be unique for each actions. Actions are identified by this name</p>
+<h2 id="action-label">Action Label</h2>
+<pre><code>    Label:            "Sign up",
+</code></pre>
+<p>Label is humans</p>
+<h2 id="ontype">OnType</h2>
+<pre><code>    OnType:           "user",
+</code></pre>
+<p>The primary type of entity on which the action happens. This is used to know where the actions should come up on the UI</p>
+<h2 id="action-instance">Action instance</h2>
+<pre><code>    InstanceOptional: true,
+</code></pre>
+<p>If the action requires an "instance" of that type on which the action is defined (more about this below). So "Sign up" is defined on "user" table, but an instance of "user" is not required to initiate the action. This is why the "Sign up" doesnt ask you to select a user (which wouldn't make sense either)</p>
+<h2 id="input-fields">Input fields</h2>
+<pre><code>    InFields: []api2go.ColumnInfo
+</code></pre>
+<p>This is a set of inputs which the user need to fill in to initiate that action. As we see here in case of "Sign up", we ask for four inputs</p>
+<ul>
+<li>Name</li>
+<li>Email</li>
+<li>Password</li>
+<li>Confirm password</li>
+</ul>
+<p>Note that the ColumnInfo structure is the same one we used to <a href="../entities/">define tables</a>.</p>
+<h2 id="validations">Validations</h2>
+<pre><code>    Validations: []ColumnTag
+</code></pre>
+<p>Validations validate the user input and rejects if some validation fails</p>
+<pre><code>        {
+            ColumnName: "email",
+            Tags:       "email",
+        },
+</code></pre>
+<p>This tells that the "email" input should actually be an email.</p>
+<p>One of the more interesting validations is cross field check</p>
+<pre><code>        {
+            ColumnName: "password",
+            Tags:       "eqfield=InnerStructField[passwordConfirm],min=8",
+        },
+</code></pre>
+<p>This tells that the value entered by user in the password field should be equal to the value in passwordConfirm field. And the minimum length should be 8 characters.</p>
+<h2 id="conformations">Conformations</h2>
+<pre><code>    Conformations: []ColumnTag
+</code></pre>
+<p>Conformations help to clean the data before the action is carried out. The frequently one used are <code>trim</code> and <code>email</code>.</p>
+<ul>
+<li>Trim: trim removes white spaces, which are sometimes accidently introduced when entering data</li>
+<li>Email: email conformation will normalize the email. Things like lowercase + trim</li>
+</ul>
+<h2 id="outfields">OutFields</h2>
+<pre><code>    OutFields: []Outcome
+</code></pre>
+<p>OutFields are the list of outcomes which the action will result in. The outcomes are evaluated in a top to bottom manner, and the result of one outcome is accessible when evaluating the next outcome.</p>
+<p>We have defined three outcomes in our "Sign Up" action.</p>
+<ul>
+<li>Create a user<pre><code>    {
+        Type:      "user",
+        Method:    "POST",
+        Reference: "user",
+        Attributes: map[string]interface{}{
+            "name":      "~name",
+            "email":     "~email",
+            "password":  "~password",
+            "confirmed": "0",
+        },
+    },
+</code></pre>
+</li>
+</ul>
+<p>This tells us that, the first outcome is of type "user". The outcome is a "New User" (POST). It could alternatively have been a Update/Find/Delete operation.</p>
+<p>The attributes maps the input fields to the fields of our new user.</p>
+<ul>
+<li><code>~name</code> will be the value entered by user in the name field</li>
+<li><code>~email</code> will be the entered in the email field, and so on</li>
+</ul>
+<p>If we skip the <code>~</code>, like <code>"confirmed": "0"</code> Then the literal value is used.</p>
+<p><code>Reference: "user",</code> We have this to allow the "outcome" to be referenced when evaluating the next outcome. Let us see the other outcomes</p>
+<h2 id="scripted-fields-">Scripted fields - "!..."</h2>
+<pre><code>        {
+            Type:      "usergroup",
+            Method:    "POST",
+            Reference: "usergroup",
+            Attributes: map[string]interface{}{
+                "name": "!'Home group for ' + user.name",
+            },
+        },
+</code></pre>
+<p>Daptin includes the <a href="https://github.com/robertkrimen/otto">otto js engine</a>. An exclamation mark tell daptin to evaluate the rest of the string as Javascript.</p>
+<p><code>'Home group for ' + user.name</code> becomes "Home group for parth"</p>
+<h2 id="referencing-previous-outcomes">Referencing previous outcomes</h2>
+<pre><code>        {
+            Type:      "user_user_id_has_usergroup_usergroup_id",
+            Method:    "POST",
+            Reference: "user_usergroup",
+            Attributes: map[string]interface{}{
+                "user_id":      "$user.reference_id",
+                "usergroup_id": "$usergroup.reference_id",
+            },
+        },
+</code></pre>
+<p>the <code>$</code> sign is to refer the previous outcomes. Here this outcome adds the newly created user to the newly created usergroup.</p>
+                
+                  
+                
+              
+              
+                
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+        
+          <a href="../authorization/" title="Authorization" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Authorization
+              </span>
+            </div>
+          </a>
+        
+        
+          <a href="../data_storage/" title="Data storage" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Data storage
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        powered by
+        <a href="http://www.mkdocs.org" title="MkDocs">MkDocs</a>
+        and
+        <a href="http://squidfunk.github.io/mkdocs-material/" title="Material for MkDocs">
+          Material for MkDocs</a>
+      </div>
+      
+        
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../assets/javascripts/application-f3ab9e5ff8.js"></script>
+      
+      
+      <script>app.initialize({url:{base:".."}})</script>
+      
+    
+    
+      
+    
+  </body>
+</html>
