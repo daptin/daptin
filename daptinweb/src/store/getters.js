@@ -70,7 +70,7 @@ export default {
         const attrs = model["attributes"];
         const keys = Object.keys(attrs);
         if (keys.indexOf(state.selectedTable + "_id") > -1) {
-          return w.is_top_level == 0;
+          return w.is_top_level == 0 && w.is_join_table == 0;
         }
         return false;
       }

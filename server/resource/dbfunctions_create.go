@@ -103,8 +103,9 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
 			}
 		}
 
-		initConfig.Tables[i].AddRelation(relations...)
-		//initConfig.Tables[i].Relations = relations
+		//initConfig.Tables[i].AddRelation(relations...)
+		// reset relations
+		initConfig.Tables[i].Relations = relations
 	}
 }
 
@@ -333,8 +334,10 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			targetTable := relation.GetObject()
 
 			newTable := TableInfo{
-				TableName: relation.GetJoinTableName(),
-				Columns:   make([]api2go.ColumnInfo, 0),
+				TableName:   relation.GetJoinTableName(),
+				Columns:     make([]api2go.ColumnInfo, 0),
+				IsJoinTable: true,
+				IsTopLevel:  false,
 			}
 
 			col1 := api2go.ColumnInfo{
