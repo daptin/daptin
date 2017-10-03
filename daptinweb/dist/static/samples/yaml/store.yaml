@@ -1,0 +1,75 @@
+---
+Tables:
+- TableName: inventory
+  Columns:
+  - Name: name
+    DataType: varchar(100)
+    ColumnType: label
+    IsIndexed: true
+  - Name: description
+    DataType: text
+    ColumnType: label
+  - Name: line_items
+    DataType: int(11)
+    ColumnType: measurement
+  Conformations:
+  - ColumnName: order
+    Tags: numeric
+  Validations:
+  - ColumnName: title
+    Tags: required
+- TableName: sale
+  Columns:
+  - Name: is_returned
+    DataType: bool
+    ColumnType: truefalse
+    DefaultValue: '0'
+Relations:
+- Subject: inventory
+  Relation: has_many
+  Object: sale
+Actions:
+- Name: new_purchase
+  Label: Purchase
+  OnType: inventory
+  InstanceOptional: false
+  InFields: []
+  OutFields:
+  - Type: sale
+    Method: POST
+    Reference: sale
+    Attributes: {}
+  - Type: inventory
+    Method: UPDATE
+    Attributes:
+      line_items: "!subject.line_items - 1"
+      reference_id: "$.reference_id"
+  - Type: inventory_inventory_id_has_sale_sale_id
+    Method: POST
+    Reference: inventory_sale
+    Attributes:
+      sale_id: "$sale.reference_id"
+      inventory_id: "$.reference_id"
+  - Type: client.notify
+    Method: ACTIONRESPONSE
+    Attributes:
+      type: success
+      message: You have purchased a new item
+      title: Wait for it
+  - Type: client.redirect
+    Method: ACTIONRESPONSE
+    Attributes:
+      location: "/in/item/sale/$sale.reference_id"
+      window: self
+      delay: '1000'
+- Name: return
+  Label: Return item
+  OnType: sale
+  InstanceOptional: false
+  OutFields:
+  - Type: sale
+    Method: UPDATE
+    Attributes:
+      is_returned: '1'
+      reference_id: "$.reference_id"
+Exchanges: []
