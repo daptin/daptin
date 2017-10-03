@@ -1,0 +1,620 @@
+
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      
+      
+      
+      
+        <link rel="shortcut icon" href="../assets/images/favicon.png">
+      
+      <meta name="generator" content="mkdocs-0.16.3, mkdocs-material-1.10.1">
+    
+    
+      
+        <title>Entity Relations - Daptin</title>
+      
+    
+    
+      <script src="../assets/javascripts/modernizr-e826f8942a.js"></script>
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/application-a20f419c8e.css">
+      
+    
+    
+      
+        
+        
+        
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
+        <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
+      
+      <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    
+    
+    
+  </head>
+  
+  
+  
+  
+    <body>
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="drawer">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="search">
+    <label class="md-overlay" data-md-component="overlay" for="drawer"></label>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <a href=".." title="Daptin" class="md-header-nav__button md-logo">
+          
+            <i class="md-icon md-icon--home"></i>
+          
+        </a>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button" for="drawer"></label>
+      </div>
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <span class="md-flex__ellipsis md-header-nav__title">
+          
+            
+              
+            
+            Entity Relations
+          
+        </span>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <label class="md-icon md-icon--search md-header-nav__button" for="search"></label>
+          
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="search"></label>
+  <div class="md-search__inner">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" required placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query">
+      <label class="md-icon md-search__icon" for="search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset">&#xE5CD;</button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result" data-md-lang-search="" data-md-lang-tokenizer="[\s\-]+">
+          <div class="md-search-result__meta" data-md-lang-result-none="No matching documents" data-md-lang-result-one="1 matching document" data-md-lang-result-other="# matching documents">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+      </div>
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+      
+      <main class="md-main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="drawer">
+    <div class="md-nav__button md-logo">
+      
+        <i class="md-icon md-icon--home"></i>
+      
+    </div>
+    Daptin
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href=".." title="Home" class="md-nav__link">
+      Home
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../settingup/" title="Setting up" class="md-nav__link">
+      Setting up
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../entities/" title="Entities" class="md-nav__link">
+      Entities
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        Entity Relations
+      </label>
+    
+    <a href="./" title="Entity Relations" class="md-nav__link md-nav__link--active">
+      Entity Relations
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#specfying-relations-using-jsonyaml-upload" title="Specfying relations using JSON/YAML upload" class="md-nav__link">
+    Specfying relations using JSON/YAML upload
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#relations-types" title="Relations types" class="md-nav__link">
+    Relations types
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-relations-for-every-entity" title="Basic relations for every entity" class="md-nav__link">
+    Basic relations for every entity
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#more-than-1-relation-between-two-entities" title="More than 1 relation between two entities" class="md-nav__link">
+    More than 1 relation between two entities
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#database-table-structure-behind-the-scene" title="Database table structure behind the scene" class="md-nav__link">
+    Database table structure behind the scene
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#belongs-to" title="belongs to" class="md-nav__link">
+    belongs to
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#has-one" title="has one" class="md-nav__link">
+    has one
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#has-many" title="has many" class="md-nav__link">
+    has many
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+      
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../users_and_usergroups/" title="Users and groups" class="md-nav__link">
+      Users and groups
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../authorization/" title="Authorization" class="md-nav__link">
+      Authorization
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../actions/" title="Actions" class="md-nav__link">
+      Actions
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../data_storage/" title="Data storage" class="md-nav__link">
+      Data storage
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../marketplace/" title="Marketplace" class="md-nav__link">
+      Marketplace
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#specfying-relations-using-jsonyaml-upload" title="Specfying relations using JSON/YAML upload" class="md-nav__link">
+    Specfying relations using JSON/YAML upload
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#relations-types" title="Relations types" class="md-nav__link">
+    Relations types
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-relations-for-every-entity" title="Basic relations for every entity" class="md-nav__link">
+    Basic relations for every entity
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#more-than-1-relation-between-two-entities" title="More than 1 relation between two entities" class="md-nav__link">
+    More than 1 relation between two entities
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#database-table-structure-behind-the-scene" title="Database table structure behind the scene" class="md-nav__link">
+    Database table structure behind the scene
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#belongs-to" title="belongs to" class="md-nav__link">
+    belongs to
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#has-one" title="has one" class="md-nav__link">
+    has one
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#has-many" title="has many" class="md-nav__link">
+    has many
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <h1 id="entity-relations">Entity relations</h1>
+<p>A data oriented system with no relational knowledge of the data is next to an Excel sheet. Specifying relations in your data is the most important thing after creating your entities.</p>
+<h2 id="specfying-relations-using-jsonyaml-upload">Specfying relations using JSON/YAML upload</h2>
+<p>When uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.</p>
+<p>Continuing with our example of todos, lets say we want to group todo's in "projects" and each todo can belong to only a single project.</p>
+<p>Lets design a "project" entity:</p>
+<pre><code class="yaml">- TableName: project
+  Columns:
+  - Name: name
+    DataType: varchar(200)
+    ColumnType: name
+    IsIndexed: true
+</code></pre>
+
+<p>A very simple table with just a name column. Now we can tell daptin about the relation between todos and projects</p>
+<pre><code class="yaml">Relations:
+- Subject: todo
+  Relation: has_one
+  Object: project
+</code></pre>
+
+<p>This tells daptin that todo "has_one" project.</p>
+<h2 id="relations-types">Relations types</h2>
+<p>Any entity can be associated to any other entity (or to itself) as one of the follows</p>
+<ul>
+<li>belongs_to - a non-nullable relation, single object</li>
+<li>has_one - a nullable relation, single object</li>
+<li>has_many - a nullable realtion, many objects</li>
+</ul>
+<h3 id="basic-relations-for-every-entity">Basic relations for every entity</h3>
+<p>Every entity created on daptin has atleast two relations</p>
+<ul>
+<li>belongs to "user"</li>
+<li>has many "usergroup"</li>
+</ul>
+<p>To understand why these two relations will always exist, checkout <a href="../authorization/">daptin authorization model</a></p>
+<h3 id="more-than-1-relation-between-two-entities">More than 1 relation between two entities</h3>
+<p>There can definitely be a scenario where two entities are related in more then 1 way. Consider the following example</p>
+<ul>
+<li>A blog entity</li>
+<li>A post entity</li>
+<li>Blog as many posts (blog has many posts)</li>
+<li>Each blog as a "highlighted post" (blog has one "highlighted post"</li>
+</ul>
+<p>To achieve the above scenario, our schema would look like as follows</p>
+<pre><code class="yaml">Tables:
+- TableName: blog
+  Columns:
+  - Name: title
+    DataType: varchar(500)
+    ColumnType: label
+  - Name: view_count
+    DataType: int(11)
+    ColumnType: measurement
+- TableName: post
+  Columns:
+  - Name: title
+    DataType: varchar(200)
+    ColumnType: label
+  - Name: body
+    DataType: text
+    ColumnType: content
+- TableName: comment
+  Columns:
+  - Name: body
+    DataType: text
+    ColumnType: content
+  - Name: likes_count
+    ColumnName: likes_count
+    DataType: int(11)
+    ColumnType: measurement
+Relations:
+- Subject: comment
+  Relation: belongs_to
+  Object: post
+- Subject: post
+  Relation: belongs_to
+  Object: blog                   // this is our post belongs to blog relation
+- Subject: blog
+  Relation: has_one
+  Object: post
+  ObjectName: current_post
+  SubjectName: current_post_of   // this is our highlighted post relation
+</code></pre>
+
+<p>Notice the "SubjectName" and "ObjectName" keys which helps to name our relations more intuitively.</p>
+<h2 id="database-table-structure-behind-the-scene">Database table structure behind the scene</h2>
+<h3 id="belongs-to">belongs to</h3>
+<ul>
+<li>A column is added to the subject entity, which refers to the Object entity, set to non nullable</li>
+</ul>
+<h3 id="has-one">has one</h3>
+<ul>
+<li>Same as above, but nullable</li>
+</ul>
+<h3 id="has-many">has many</h3>
+<ul>
+<li>A join table is created</li>
+</ul>
+                
+                  
+                
+              
+              
+                
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+        
+          <a href="../entities/" title="Entities" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Entities
+              </span>
+            </div>
+          </a>
+        
+        
+          <a href="../users_and_usergroups/" title="Users and groups" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Users and groups
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        powered by
+        <a href="http://www.mkdocs.org" title="MkDocs">MkDocs</a>
+        and
+        <a href="http://squidfunk.github.io/mkdocs-material/" title="Material for MkDocs">
+          Material for MkDocs</a>
+      </div>
+      
+        
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../assets/javascripts/application-f3ab9e5ff8.js"></script>
+      
+      
+      <script>app.initialize({url:{base:".."}})</script>
+      
+    
+    
+      
+    
+  </body>
+</html>
