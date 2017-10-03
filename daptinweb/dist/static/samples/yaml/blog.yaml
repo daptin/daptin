@@ -1,0 +1,116 @@
+---
+StateMachineDescriptions:
+- Name: publish_status
+  Label: Publish Status
+  InitialState: draft
+  Events:
+  - Name: mark_as_edited
+    Label: Mark as edited
+    Src:
+    - draft
+    - ready-to-publish
+    Dst: ready-to-publish
+  - Name: publish
+    Label: Publish
+    Src:
+    - draft
+    - ready-to-publish
+    Dst: published
+  - Name: delete
+    Label: Delete
+    Src:
+    - draft
+    - ready-to-publish
+    - published
+    Dst: deleted
+Tables:
+- TableName: blog
+  Columns:
+  - Name: title
+    DataType: varchar(500)
+    ColumnType: label
+  - Name: view_count
+    DataType: int(11)
+    ColumnType: measurement
+- TableName: post
+  Columns:
+  - Name: title
+    DataType: varchar(200)
+    ColumnType: label
+  - Name: body
+    DataType: text
+    ColumnType: content
+- TableName: comment
+  Columns:
+  - Name: body
+    DataType: text
+    ColumnType: content
+  - Name: likes_count
+    ColumnName: likes_count
+    DataType: int(11)
+    ColumnType: measurement
+Relations:
+- Subject: comment
+  Relation: belongs_to
+  Object: post
+- Subject: post
+  Relation: belongs_to
+  Object: blog
+- Subject: blog
+  Relation: has_one
+  Object: post
+  ObjectName: current_post
+  SubjectName: current_post_of
+Actions:
+- Name: comment
+  Label: Leave a comment
+  OnType: post
+  InFields:
+  - ColumnName: name
+    Name: Author Name
+    ColumnType: label
+  - ColumnName: comment
+    Name: Your comment
+    ColumnType: content
+  - ColumnName: like
+    Name: Rating
+    ColumnType: rating
+  OutFields:
+  - Method: POST
+    Type: comment
+    Attributes:
+      body: "~comment"
+      post_id: "$.reference_id"
+      likes_count: "~like"
+- Name: post
+  Label: Create a new post
+  OnType: blog
+  InFields:
+  - ColumnName: title
+    Name: Post title
+    ColumnType: label
+  - ColumnName: body
+    Name: Blog
+    ColumnType: content
+  OutFields:
+  - Type: post
+    Method: POST
+    Attributes:
+      title: "~title"
+      body: "~body"
+      blog_id: "$.reference_id"
+Exchanges:
+- Name: Blog to excel sheet sync
+  SourceAttributes:
+    Name: blog
+  SourceType: self
+  TargetAttributes:
+    sheetUrl: https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append
+  TargetType: gsheet-append
+  Attributes:
+  - SourceColumn: "$blog.title"
+    TargetColumn: Blog title
+  - SourceColumn: "$blog.view_count"
+    TargetColumn: View count
+  Options:
+    hasHeader: true
