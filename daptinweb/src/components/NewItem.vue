@@ -43,16 +43,17 @@
                     <div class="form-group" v-for="col in data.Columns">
                       <div class="row">
                         <div class="col-md-6">
-                          <input type="text" v-model="col.Name" placeholder="name" class="form-control">
+                          <input type="text" v-model="col.Name" placeholder="name" class="form-control"
+                                 :disabled="col.ReadOnly">
                         </div>
                         <div class="col-md-5">
-                          <select class="form-control" v-model="col.ColumnType">
+                          <select class="form-control" v-model="col.ColumnType" :disabled="col.ReadOnly">
                             <option :value="colData.Name" v-for="(colData, colTypeName) in columnTypes">
                               {{colTypeName | titleCase}}
                             </option>
                           </select>
                         </div>
-                        <div class="col-md-1" style="padding-left: 0px;">
+                        <div class="col-md-1" style="padding-left: 0px;" v-if="!col.ReadOnly">
                           <button @click="removeColumn(col)" class="btn btn-danger btn-sm"><i
                             class="fa fa-minus"></i></button>
                         </div>
@@ -75,7 +76,7 @@
                     <div class="form-group" v-for="relation in data.Relations">
                       <div class="row">
                         <div class="col-md-6">
-                          <select class="form-control" v-model="relation.Relation">
+                          <select class="form-control" v-model="relation.Relation" :disabled="relation.ReadOnly">
                             <option value="has_one">Has one</option>
                             <option value="belongs_to">Belongs to</option>
                             <option value="has_many">Has many</option>
@@ -83,13 +84,13 @@
                           </select>
                         </div>
                         <div class="col-md-5">
-                          <select class="form-control" v-model="relation.Object">
+                          <select class="form-control" v-model="relation.Object" :disabled="relation.ReadOnly">
                             <option :value="world.table_name" v-for="world in relatableWorlds">
                               {{world.table_name | titleCase}}
                             </option>
                           </select>
                         </div>
-                        <div class="col-md-1" style="padding-left: 0px;">
+                        <div class="col-md-1" style="padding-left: 0px;" v-if="!relation.ReadOnly">
                           <button @click="removeRelation(relation)" class="btn btn-danger btn-sm"><i
                             class="fa fa-minus"></i></button>
                         </div>
@@ -168,20 +169,22 @@
                 col.DataType = that.columnTypes[col.ColumnType].DataTypes[0]
                 return col;
               }).filter(function (e) {
-                return !!e;
+                return !!e && !e.ReadOnly;
               }),
             }
           ],
           Relations: this.data.Relations.map(function (rel) {
             rel.Subject = that.data.TableName;
             return rel
+          }).filter(function (e) {
+            return !!e && !e.ReadOnly
           })
         });
         console.log("New table json", fileContent)
 
         var postData = {
           "schema_file": [{
-            "name": "faq.json",
+            "name": this.data.TableName + ".json",
             "file": "data:application/json;base64," + btoa(fileContent),
             "type": "application/json"
           }]
@@ -253,14 +256,18 @@
                   relationType = "has_one";
                   break;
               }
+
+
               console.log("add table relations", model);
               finalRelations.push({
                 Relation: relationType,
                 Subject: query.table,
                 Object: model.type,
+                ReadOnly: true,
               })
             } else {
               console.log("add column", model);
+              model.ReadOnly = true
               finalColumns.push(model);
             }
           }

@@ -77,7 +77,10 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 		}
 
 		globalInitConfig.Tables = append(globalInitConfig.Tables, initConfig.Tables...)
-		globalInitConfig.Relations = append(globalInitConfig.Relations, initConfig.Relations...)
+
+		//globalInitConfig.Relations = append(globalInitConfig.Relations, initConfig.Relations...)
+		globalInitConfig.AddRelations(initConfig.Relations...)
+
 		globalInitConfig.Imports = append(globalInitConfig.Imports, initConfig.Imports...)
 		globalInitConfig.Streams = append(globalInitConfig.Streams, initConfig.Streams...)
 		globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, initConfig.Marketplaces...)

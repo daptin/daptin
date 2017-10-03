@@ -92,7 +92,7 @@
           </el-tab-pane>
 
 
-          <el-tab-pane v-for="relation in relations"  :key="relation.name" :label="relation.label">
+          <el-tab-pane v-for="relation in relations" :key="relation.name" :label="relation.label">
             <list-view :json-api="jsonApi" :ref="relation.name" class="tab"
                        :data-tab="relation.name"
                        :json-api-model-name="relation.type" :json-api-relation-name="relation.name" @addRow="addRow"
@@ -139,7 +139,7 @@
         default: false
       }
     },
-    data () {
+    data() {
       return {
         meta: {},
         metaMap: {},
@@ -154,7 +154,7 @@
         truefalse: []
       }
     },
-    created () {
+    created() {
     },
     computed: {},
     methods: {
@@ -380,7 +380,7 @@
 
       }
     }, // end: methods
-    created () {
+    created() {
 //      JSONEditor.defaults.options.theme = 'bootstrap';
 
       this.init();
@@ -393,7 +393,11 @@
 
 //            var element = document.getElementById(field.name)
 //            var element = jQuery("#" + field.name).find(".description")[0];
-            field.formattedValue = JSON.stringify(JSON.parse(field.originalValue), null, 4);
+            try {
+              field.formattedValue = JSON.stringify(JSON.parse(field.originalValue), null, 4);
+            } catch (e) {
+              console.log("Value is not proper json")
+            }
           }
         }
       }, 400)
