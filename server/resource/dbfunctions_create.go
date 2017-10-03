@@ -90,7 +90,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
 				if err != nil {
 					//log.Infof("Failed to create foreign key [%v], probably it exists: %v", err, keyName)
 				} else {
-					log.Infof("Key created [%v][%v]", table.TableName, keyName)
+					log.Infof("Key created [%v][%v]", keyName, table.TableName)
 				}
 			}
 		}
@@ -103,7 +103,8 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
 			}
 		}
 
-		initConfig.Tables[i].Relations = relations
+		initConfig.Tables[i].AddRelation(relations...)
+		//initConfig.Tables[i].Relations = relations
 	}
 }
 
@@ -258,11 +259,12 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			continue
 		}
 		log.Infof("Register relation [%v]", relation.String())
-		config.Relations = append(config.Relations, relation)
+		//config.Relations = append(config.Relations, relation)
+		config.AddRelations(relation)
 		existingRelationMap[relation.Hash()] = true
 
 		relation2 := relation.GetRelation()
-		log.Infof("Relation to table [%v]", relation.String())
+		//log.Infof("Relation to table [%v]", relation.String())
 		if relation2 == "belongs_to" || relation2 == "has_one" {
 			fromTable := relation.Subject
 			targetTable := relation.Object
@@ -288,6 +290,8 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			}
 
 			noMatch := true
+
+			// there are going to be 2 tables sometimes which will be marked as "not top tables", so we cannot break after first match
 			for i, t := range config.Tables {
 				if t.TableName == fromTable {
 					noMatch = false
@@ -362,7 +366,8 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			}
 
 			newTable.Columns = append(newTable.Columns, col2)
-			newTable.Relations = append(newTable.Relations, relation)
+			newTable.AddRelation(relation)
+			//newTable.Relations = append(newTable.Relations, relation)
 			log.Infof("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
 			log.Infof("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
 
@@ -449,7 +454,8 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			}
 
 			newTable.Columns = append(newTable.Columns, col2)
-			newTable.Relations = append(newTable.Relations, relation)
+			newTable.AddRelation(relation)
+			//newTable.Relations = append(newTable.Relations, relation)
 			log.Infof("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
 			log.Infof("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
 
@@ -515,7 +521,8 @@ func CreateTable(tableInfo *TableInfo, db *sqlx.DB) {
 
 	createTableQuery := MakeCreateTableQuery(tableInfo, db.DriverName())
 
-	log.Infof("Create table query\n%v", createTableQuery)
+	log.Infof("Create table query")
+	log.Print(createTableQuery)
 	_, err := db.Exec(createTableQuery)
 	if err != nil {
 		log.Errorf("Failed to create table: %v", err)
