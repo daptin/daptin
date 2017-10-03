@@ -25,7 +25,7 @@ The following 5 columns are present in every table
 
 
 
-## world table
+## World table
 
 The ```world``` table holds the structure for all the entities and relations (including for itself).
 
