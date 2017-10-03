@@ -17,17 +17,17 @@ Along with the fields mentioned above, we might want certain validations and con
 
 Once we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this:
 
-# Online entity designer
+## Online entity designer
 
 The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it.
 
 ![Entity designer](images/create_entity.png)
 
-# Market place
+## Market place
 
 Checkout [marketplace documentation](marketplace.md)
 
-# JSON / YAML files
+## JSON / YAML files
 
 The JSON for our hypothetical todo entity will look as follows:
 
@@ -119,7 +119,7 @@ Tags: required
 
 You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.
 
-### Column specifications
+## Column specifications
 
 Columns of the entity can be cusomised:
 
@@ -134,7 +134,7 @@ Columns of the entity can be cusomised:
 	DataType          string         `the column type inside the database`
 	DefaultValue      string         `default value if any (has to be inside single quotes for static values`
 
-### Column types
+## Column types
 
 Daptin supports a variety of rich data types, which helps it to automatically make intelligent decisions and validations. Here is a list of all column types and what should they be used for
 
@@ -195,7 +195,7 @@ Daptin supports a variety of rich data types, which helps it to automatically ma
 	 url:
 		 Urls/links
 
-### Validations
+## Validations
 
 Daptin uses the excellent [go-playground/validator](https://github.com/go-playground/validator) library to extensive validations
 
@@ -205,7 +205,7 @@ It has the following unique features:
 - Slice, Array and Map diving, which allows any or all levels of a multidimensional field to be validated.
 
 
-### Conformations
+## Conformations
 
 Daptin uses the excellent [leebenson/conform](https://github.com/leebenson/conform) library to apply conformations on data before storing them in the database
 

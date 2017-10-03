@@ -169,9 +169,92 @@
       
     
     
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        Entities
+      </label>
+    
     <a href="./" title="Entities" class="md-nav__link md-nav__link--active">
       Entities
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#online-entity-designer" title="Online entity designer" class="md-nav__link">
+    Online entity designer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#market-place" title="Market place" class="md-nav__link">
+    Market place
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#json-yaml-files" title="JSON / YAML files" class="md-nav__link">
+    JSON / YAML files
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#column-specifications" title="Column specifications" class="md-nav__link">
+    Column specifications
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#column-types" title="Column types" class="md-nav__link">
+    Column types
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validations" title="Validations" class="md-nav__link">
+    Validations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conformations" title="Conformations" class="md-nav__link">
+    Conformations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#excel-file-upload" title="Excel file upload" class="md-nav__link">
+    Excel file upload
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#restart" title="Restart" class="md-nav__link">
+    Restart
+  </a>
+  
+</li>
+      
+      
+      
+    </ul>
+  
+</nav>
     
   </li>
 
@@ -265,6 +348,76 @@
     
   
   
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#online-entity-designer" title="Online entity designer" class="md-nav__link">
+    Online entity designer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#market-place" title="Market place" class="md-nav__link">
+    Market place
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#json-yaml-files" title="JSON / YAML files" class="md-nav__link">
+    JSON / YAML files
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#column-specifications" title="Column specifications" class="md-nav__link">
+    Column specifications
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#column-types" title="Column types" class="md-nav__link">
+    Column types
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validations" title="Validations" class="md-nav__link">
+    Validations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conformations" title="Conformations" class="md-nav__link">
+    Conformations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#excel-file-upload" title="Excel file upload" class="md-nav__link">
+    Excel file upload
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#restart" title="Restart" class="md-nav__link">
+    Restart
+  </a>
+  
+</li>
+      
+      
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -290,12 +443,12 @@
 <li>order has to be numeric</li>
 </ul>
 <p>Once we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this:</p>
-<h1 id="online-entity-designer">Online entity designer</h1>
+<h2 id="online-entity-designer">Online entity designer</h2>
 <p>The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it.</p>
 <p><img alt="Entity designer" src="../images/create_entity.png" /></p>
-<h1 id="market-place">Market place</h1>
+<h2 id="market-place">Market place</h2>
 <p>Checkout <a href="../marketplace/">marketplace documentation</a></p>
-<h1 id="json-yaml-files">JSON / YAML files</h1>
+<h2 id="json-yaml-files">JSON / YAML files</h2>
 <p>The JSON for our hypothetical todo entity will look as follows:</p>
 <pre><code class="json">    {
         &quot;Tables&quot;: [{
@@ -381,7 +534,7 @@ Tags: required
 </code></pre>
 
 <p>You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.</p>
-<h3 id="column-specifications">Column specifications</h3>
+<h2 id="column-specifications">Column specifications</h2>
 <p>Columns of the entity can be cusomised:</p>
 <pre><code>Name              string         `human readable name, can be skipped`
 ColumnName        string         `column name in the table`
@@ -394,7 +547,7 @@ Permission        uint64          `permission column (check authorization docs)`
 DataType          string         `the column type inside the database`
 DefaultValue      string         `default value if any (has to be inside single quotes for static values`
 </code></pre>
-<h3 id="column-types">Column types</h3>
+<h2 id="column-types">Column types</h2>
 <p>Daptin supports a variety of rich data types, which helps it to automatically make intelligent decisions and validations. Here is a list of all column types and what should they be used for</p>
 <pre><code> id:
      an identity column, mostly for internal purposes
@@ -453,14 +606,14 @@ DefaultValue      string         `default value if any (has to be inside single 
  url:
      Urls/links
 </code></pre>
-<h3 id="validations">Validations</h3>
+<h2 id="validations">Validations</h2>
 <p>Daptin uses the excellent <a href="https://github.com/go-playground/validator">go-playground/validator</a> library to extensive validations</p>
 <p>It has the following unique features:</p>
 <ul>
 <li>Cross Field and Cross Struct validations by using validation tags or custom validators.</li>
 <li>Slice, Array and Map diving, which allows any or all levels of a multidimensional field to be validated.</li>
 </ul>
-<h3 id="conformations">Conformations</h3>
+<h2 id="conformations">Conformations</h2>
 <p>Daptin uses the excellent <a href="https://github.com/leebenson/conform">leebenson/conform</a> library to apply conformations on data before storing them in the database</p>
 <ul>
 <li>Conform- keep user input in check (go, golang)</li>
