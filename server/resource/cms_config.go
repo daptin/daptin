@@ -24,6 +24,29 @@ type CmsConfig struct {
 	Marketplaces             []Marketplace
 }
 
+func (ti *CmsConfig) AddRelations(relations ...api2go.TableRelation) {
+	if ti.Relations == nil {
+		ti.Relations = make([]api2go.TableRelation, 0)
+	}
+
+	for _, relation := range relations {
+		exists := false
+		hash := relation.Hash()
+
+		for _, existingRelation := range ti.Relations {
+			if existingRelation.Hash() == hash {
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			ti.Relations = append(ti.Relations, relation)
+		}
+	}
+
+}
+
 type SubSiteInformation struct {
 	SubSite    SubSite
 	CloudStore CloudStore

@@ -5,6 +5,7 @@ import (
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
 	"github.com/jmoiron/sqlx"
+	"github.com/alexeyco/simpletable"
 )
 
 func InfoErr(err error, message string) {
@@ -28,12 +29,12 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 	relationsDone := make(map[string]bool)
 
 	for _, relation := range relations {
-		relationsDone[relation.Hash()] = true
 
 		_, ok := relationsDone[relation.Hash()]
 		if ok {
 			continue
 		} else {
+			relationsDone[relation.Hash()] = true
 			finalRelations = append(finalRelations, relation)
 		}
 	}
@@ -44,10 +45,8 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 		config.Tables[i].IsTopLevel = true
 		existingRelations := config.Tables[i].Relations
 
-
 		userRelation := api2go.NewTableRelation(table.TableName+"_state", "belongs_to", "user")
 		userGroupRelation := api2go.NewTableRelation(table.TableName+"_state", "has_many", "usergroup")
-
 
 		if len(existingRelations) > 0 {
 			log.Infof("Found existing %d relations from db for [%v]", len(existingRelations), config.Tables[i].TableName)
@@ -74,18 +73,15 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 					Relation:    "belongs_to",
 				}
 
-
 				if !relationsDone[userRelation.Hash()] {
 					relationsDone[userRelation.Hash()] = true
 					finalRelations = append(finalRelations, userRelation)
 				}
 
-
 				if !relationsDone[userGroupRelation.Hash()] {
 					relationsDone[userGroupRelation.Hash()] = true
 					finalRelations = append(finalRelations, userGroupRelation)
 				}
-
 
 				if !relationsDone[stateRelation.Hash()] {
 
@@ -184,9 +180,50 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
 	//config.Tables[stateMachineDescriptionTableIndex] = stateMachineDescriptionTable
 
-	for _, rela := range finalRelations {
-		log.Infof("All relations: %v", rela.String())
+	//for _, rela := range finalRelations {
+	//	log.Infof("All relations: %v", rela.String())
+	//}
+	PrintRelations(finalRelations)
+}
+func PrintRelations(relations []api2go.TableRelation) {
+	table := simpletable.New()
+
+	header := simpletable.Header{
+		Cells: []*simpletable.Cell{
+			{
+				Text: "Subject",
+			},
+			{
+				Text: "Relation",
+			},
+			{
+				Text: "Object",
+			},
+		},
 	}
+	table.Header = &header
+
+	body := simpletable.Body{
+		Cells: make([][]*simpletable.Cell, 0),
+	}
+
+	for _, relation := range relations {
+		row := make([]*simpletable.Cell, 0)
+
+		row = append(row, &simpletable.Cell{
+			Text: relation.Subject,
+		}, &simpletable.Cell{
+			Text: relation.Relation,
+		}, &simpletable.Cell{
+			Text: relation.Object,
+		})
+
+		body.Cells = append(body.Cells, row)
+	}
+
+	table.Body = &body
+	table.Println()
+
 }
 
 func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB) {
@@ -256,9 +293,11 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 	if tableInfo.TableName == "todo" {
 		log.Infof("special break")
 	}
-	for col := range columnsWeWant {
-		log.Infof("Column: [%v]%v @ %v - %v", tableInfo.TableName, col, colInfoMap[col].ColumnType, colInfoMap[col].DataType)
-	}
+
+	PrintTableInfo(tableInfo)
+	//for col := range columnsWeWant {
+	//	log.Infof("Column: [%v]%v @ %v - %v", tableInfo.TableName, col, colInfoMap[col].ColumnType, colInfoMap[col].DataType)
+	//}
 
 	s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
 	//log.Infof("Sql: %v", s)
@@ -300,4 +339,42 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 			}
 		}
 	}
+}
+func PrintTableInfo(info *TableInfo) {
+
+	table := simpletable.New()
+
+	table.Header = &simpletable.Header{
+		Cells: []*simpletable.Cell{
+			{
+				Text: "Column name",
+			},
+			{
+				Text: "Column type",
+			},
+			{
+				Text: "Data type",
+			},
+		},
+	}
+	tableBody := simpletable.Body{
+		Cells: make([][]*simpletable.Cell, 0),
+	}
+
+	for _, col := range info.Columns {
+		tableRow := make([]*simpletable.Cell, 0)
+
+		tableRow = append(tableRow, &simpletable.Cell{
+			Text: col.ColumnName,
+		}, &simpletable.Cell{
+			Text: col.ColumnType,
+		}, &simpletable.Cell{
+			Text: col.DataType,
+		})
+		tableBody.Cells = append(tableBody.Cells, tableRow)
+	}
+
+	table.Body = &tableBody
+	table.Println()
+
 }
