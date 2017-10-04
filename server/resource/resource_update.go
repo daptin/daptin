@@ -226,7 +226,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	if data.IsDirty() {
 
 		auditModel := data.GetAuditModel()
-		log.Infof("Object [%v]%v has been changed, trying to audit in %v", data.GetTableName(), data.GetID(), auditModel.GetTableName())
+		log.Infof("Object [%v][%v] has been changed, trying to audit in %v", data.GetTableName(), data.GetID(), auditModel.GetTableName())
 		if auditModel.GetTableName() != "" {
 			creator, ok := dr.cruds[auditModel.GetTableName()]
 			if !ok {

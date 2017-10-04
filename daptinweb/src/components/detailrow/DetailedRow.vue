@@ -92,11 +92,11 @@
           </el-tab-pane>
 
 
-          <el-tab-pane v-for="relation in relations" :key="relation.name" :label="relation.label">
+          <el-tab-pane v-for="relation in relations" v-if="!relation.failed" :key="relation.name" :label="relation.label">
             <list-view :json-api="jsonApi" :ref="relation.name" class="tab"
                        :data-tab="relation.name"
                        :json-api-model-name="relation.type" :json-api-relation-name="relation.name" @addRow="addRow"
-                       :autoload="true"
+                       :autoload="true" @onLoadFailure="loadFailed(relation)"
                        :finder="relation.finder"></list-view>
           </el-tab-pane>
 
@@ -158,6 +158,10 @@
     },
     computed: {},
     methods: {
+      loadFailed: function(relation) {
+        console.log("relation not loaded", relation);
+        relation.failed = true;
+      },
       getRelationByName: function (name) {
         for (var i = 0; i < this.relations.length; i++) {
           if (this.relations[i].name == name) {
@@ -303,6 +307,7 @@
                   finder: finder,
                   label: item.label,
                   type: item.type,
+                  failed: false,
                   jsonModelAttrs: that.jsonApi.modelFor(columnName),
                 });
               } else {
@@ -312,6 +317,7 @@
                   title: item.title,
                   finder: finder,
                   label: item.label,
+                  failed: false,
                   type: item.type,
                   jsonModelAttrs: that.jsonApi.modelFor(columnName),
                 });
@@ -410,4 +416,4 @@
       }
     },
   }
-</script>s
+</script>

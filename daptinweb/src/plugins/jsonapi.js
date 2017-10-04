@@ -13,23 +13,27 @@ const jsonapi = new JsonApi({
 
 jsonapi.replaceMiddleware('errors', {
   name: 'nothing-to-see-here',
-  error: function (payload) {
-    // console.log("errors", payload);
+  error: function (response) {
+    console.log("errors", response);
 
-    if (payload.status === 401) {
+    if (response.status === 401) {
       Notification.error({
         "title": "Failed",
-        "message": payload.data
+        "message": response.data
       });
       unsetToken();
       return;
     }
 
+    if (response.status == 500) {
+      return {};
+    }
 
-    for (var i = 0; i < payload.data.errors.length; i++) {
+
+    for (var i = 0; i < response.data.errors.length; i++) {
       Notification.error({
         "title": "Failed",
-        "message": payload.data.errors[i].title
+        "message": response.data.errors[i].title
       })
     }
     return {errors: []}
