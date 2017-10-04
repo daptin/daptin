@@ -15,13 +15,13 @@ The following 5 columns are present in every table
 
 | ColumnName   | ColumnType  | DataType    | Attributes                                           |
 |--------------|-------------|-------------|------------------------------------------------------|
-| id           | id          | int64       | primary key  Auto increment Never exposed externally |
-| version      | integer     | int64       | get incremented every time a change is made          |
+| id           | id          | int(11)       | primary key  Auto increment Never exposed externally |
+| version      | integer     | int(11)       | get incremented every time a change is made          |
 | created_at   | timestamp   | timestamp   | the timestamp when the row was created               |
 | updated_at   | timestamp   | timestamp   | the timestamp when the row was last updated          |
 | reference_id | alias       | varchar(40) | The id exposed in APIs                               |
 | permission   | integer     | int(4)      | Permissions - check Authorization documentation      |
-| user_id      | foreign key | int64       | the owner of this object                             |
+| user_id      | foreign key | int(11)       | the owner of this object                             |
 
 
 
