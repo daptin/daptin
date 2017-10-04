@@ -2,9 +2,9 @@
   <div :class="['vuecard', 'row', css.tableClass]">
 
     <div v-cloak class="vuecard-body">
-      <div class="col-md-4" v-for="(item, index) in tableData">
+      <div class="col-md-4" v-for="(item, index) in tableData" >
         <div @dblclick="onRowDoubleClicked(item, $event)" :item-index="index" @click="onRowClicked(item, $event)"
-             :render="onRowChanged(item)" :class="[onRowClass(item, index), 'box']">
+             :render="onRowChanged(item)" :class="[onRowClass(item, index), 'box']" style="min-height: 250px">
           <div class="box-header">
             <div class="box-title">
               <span class="bold">{{item | chooseTitle | titleCase }}</span>

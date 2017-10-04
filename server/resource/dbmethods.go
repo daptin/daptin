@@ -337,7 +337,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 
 			_, err = dbResource.db.Exec(q, v...)
 			if err != nil {
-				log.Errorf("Failed to execute become admin update query: %v", err)
+				log.Errorf("	Failed to execute become admin update query: %v", err)
 				continue
 			}
 
@@ -345,7 +345,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 
 	}
 
-	_, err := dbResource.db.Exec("update world set permission = ?, default_permission = ? ", auth.DEFAULT_PERMISSION, auth.DEFAULT_PERMISSION)
+	_, err := dbResource.db.Exec("update world set permission = ?, default_permission = ? where table_name not like '%_audit'", auth.DEFAULT_PERMISSION, auth.DEFAULT_PERMISSION)
 	if err != nil {
 		log.Errorf("Failed to update world permissions: %v", err)
 	}
