@@ -16,21 +16,21 @@ import (
 
 func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []auth.GroupPermission, typeName string, actionName string) bool {
 
-	worldId, err := dr.GetIdByWhereClause("world", squirrel.Eq{"table_name": typeName})
-	if err != nil {
-		return false
-	}
+	//worldId, err := dr.GetIdByWhereClause("world", squirrel.Eq{"table_name": typeName})
+	//if err != nil {
+	//	return false
+	//}
 
-	if len(worldId) < 1 {
-		log.Errorf("Failed to get world [%v][%]: %v", typeName, actionName, err)
-		return false
-	}
+	//if len(worldId) < 1 {
+	//	log.Errorf("Failed to get world [%v][%]: %v", typeName, actionName, err)
+	//	return false
+	//}
 
-	permission, err := dr.GetActionPermissionByName(worldId[0], actionName)
-	if err != nil {
-		log.Errorf("Failed to get action permission [%v][%]: %v", typeName, actionName, err)
-		return false
-	}
+	permission := dr.GetObjectPermissionByWhereClause("world", "table_name", typeName)
+	//if err != nil {
+	//	log.Errorf("Failed to get action permission [%v][%]: %v", typeName, actionName, err)
+	//	return false
+	//}
 
 	return permission.CanExecute(userReferenceId, userGroups)
 
@@ -175,7 +175,7 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
 		return perm
-		}
+	}
 
 	m := make(map[string]interface{})
 	err = dr.db.QueryRowx(s, q...).MapScan(m)
@@ -184,7 +184,6 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 		log.Errorf("Failed to scan permission: %v", err)
 		return perm
 	}
-
 
 	//log.Infof("permi map: %v", m)
 	if m["user_id"] != nil {
@@ -329,7 +328,10 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 	for _, crud := range dbResource.cruds {
 
 		if crud.model.HasColumn("user_id") {
-			q, v, err := squirrel.Update(crud.model.GetName()).Set("user_id", userId).ToSql()
+			q, v, err := squirrel.Update(crud.model.GetName()).
+					Set("user_id", userId).
+					Set("permission", auth.DEFAULT_PERMISSION).
+					ToSql()
 			if err != nil {
 				log.Errorf("Failed to create query to update: %v == %v", crud.model.GetName(), err)
 				continue
@@ -345,9 +347,20 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 
 	}
 
-	_, err := dbResource.db.Exec("update world set permission = ?, default_permission = ? where table_name not like '%_audit'", auth.DEFAULT_PERMISSION, auth.DEFAULT_PERMISSION)
+	_, err := dbResource.db.Exec("update world set permission = ?, default_permission = ? where table_name not like '%_audit'",
+		auth.DEFAULT_PERMISSION, auth.DEFAULT_PERMISSION)
 	if err != nil {
 		log.Errorf("Failed to update world permissions: %v", err)
+	}
+
+	_, err = dbResource.db.Exec("update world set permission = ?, default_permission = ? where table_name like '%_audit'", 444, 222)
+	if err != nil {
+		log.Errorf("Failed to update audit permissions: %v", err)
+	}
+
+	_, err = dbResource.db.Exec("update action set permission = ?", 750)
+	if err != nil {
+		log.Errorf("Failed to update audit permissions: %v", err)
 	}
 
 	return true

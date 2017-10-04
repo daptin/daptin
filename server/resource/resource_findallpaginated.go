@@ -30,7 +30,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		_, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{})
 		if err != nil {
 			log.Infof("Error from BeforeFindAll middleware [%v]: %v", bf.String(), err)
-			return 0, nil, err
+			return 0, NewResponse(nil, err, 400, nil), err
 		}
 	}
 	log.Infof("Request [%v]: %v", dr.model.GetName(), req.QueryParams)

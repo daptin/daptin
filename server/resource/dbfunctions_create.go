@@ -525,7 +525,7 @@ func CreateTable(tableInfo *TableInfo, db *sqlx.DB) {
 	createTableQuery := MakeCreateTableQuery(tableInfo, db.DriverName())
 
 	log.Infof("Create table query")
-	log.Print(createTableQuery)
+	log.Printf(createTableQuery)
 	_, err := db.Exec(createTableQuery)
 	if err != nil {
 		log.Errorf("Failed to create table: %v", err)
