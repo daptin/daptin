@@ -1,4 +1,5 @@
 ---
+Tables:
 - TableName: merchant
   Columns:
   - Name: name

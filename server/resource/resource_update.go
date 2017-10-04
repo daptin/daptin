@@ -44,7 +44,6 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	}
 	id := data.GetID()
 
-
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := auth.SessionUser{}
 
@@ -233,7 +232,14 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			if !ok {
 				log.Errorf("No creator for audit type: %v", auditModel.GetTableName())
 			} else {
-				_, err := creator.Create(auditModel, req)
+				pr := &http.Request{
+					Method: "POST",
+				}
+				pr = pr.WithContext(req.Context)
+				auditCreateRequest := api2go.Request{
+					PlainRequest: pr,
+				}
+				_, err := creator.Create(auditModel, auditCreateRequest)
 				if err != nil {
 					log.Errorf("Failed to create audit entry: %v", err)
 				} else {
