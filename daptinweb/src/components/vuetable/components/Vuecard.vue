@@ -25,8 +25,7 @@
                       v-html="tablePagination.from + index">
                   </dd>
                   <dd v-if="extractName(field.name) == '__handle'" :class="['vuecard-handle', field.dataClass]"
-                      v-html="renderIconTag(['handle-icon', css.handleIcon])"
-                  ></dd>
+                      v-html="renderIconTag(['handle-icon', css.handleIcon])"></dd>
                   <dd v-if="extractName(field.name) == '__checkbox'" :class="['vuecard-checkboxes', field.dataClass]">
                     <input type="checkbox"
                            @change="toggleCheckbox(item, field.name, $event)"

@@ -38,7 +38,6 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		}
 	}
 
-
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := auth.SessionUser{}
 
@@ -46,7 +45,6 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		sessionUser = user.(auth.SessionUser)
 
 	}
-
 
 	attrs := data.GetAllAsAttributes()
 
@@ -204,7 +202,6 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	colsList = append(colsList, "created_at")
 	valsList = append(valsList, time.Now())
 
-
 	if sessionUser.UserId != 0 && dr.model.HasColumn("user_id") && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" {
 
 		colsList = append(colsList, "user_id")
@@ -266,7 +263,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
 		}
 
-	} else if dr.model.GetName() == "user" {
+	} else if dr.model.GetName() == "user" && sessionUser.UserId != 0 {
 
 		log.Infof("Associate new user with user: %v", sessionUser.UserId)
 

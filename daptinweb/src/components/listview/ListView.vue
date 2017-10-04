@@ -108,7 +108,7 @@
         required: false,
       }
     },
-    data () {
+    data() {
       return {
         selectedWorld: null,
         selectedWorldColumns: [],
@@ -136,11 +136,11 @@
       cancel() {
         this.showAddEdit = false;
       },
-      onPaginationData (paginationData) {
+      onPaginationData(paginationData) {
         // console.log("set pagifnation method", paginationData, this.$refs.pagination)
         this.$refs.pagination.setPaginationData(paginationData)
       },
-      onChangePage (page) {
+      onChangePage(page) {
         // console.log("cnage pge", page);
         this.$refs.vuetable.changePage(page)
       },
@@ -161,12 +161,14 @@
       },
       success(data) {
         var that = this;
-        // console.log("data loaded", arguments)
+        console.log("data loaded", arguments)
         that.tableData = data;
+        that.$emit("onLoadSuccess", this.jsonApiRelationName, data)
       },
       failed() {
         this.tableData = [];
-        // console.log("data load failed", arguments)
+        console.log("data load failed", arguments)
+        this.$emit("onLoadFailure")
       }
     },
     mounted() {
