@@ -48,7 +48,7 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 
 	if !EndsWithCheck(apiModel.GetTableName(), "_audit") {
 		auditModel := apiModel.GetAuditModel()
-		log.Infof("Object [%v]%v has been changed, trying to audit in %v", apiModel.GetTableName(), apiModel.GetID(), auditModel.GetTableName())
+		log.Infof("Object [%v][%v] has been changed, trying to audit in %v", apiModel.GetTableName(), apiModel.GetID(), auditModel.GetTableName())
 		if auditModel.GetTableName() != "" {
 			//auditModel.Data["deleted_at"] = time.Now()
 			creator, ok := dr.cruds[auditModel.GetTableName()]

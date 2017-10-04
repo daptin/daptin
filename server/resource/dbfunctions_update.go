@@ -331,7 +331,6 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
 	rows, err := db.Queryx(s, v...)
 	CheckErr(err, "Failed to query existing exchanges")
 
-
 	if err == nil {
 		defer rows.Close()
 		for ; rows.Next(); {
@@ -461,7 +460,6 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.DB) {
 
 	}
 }
-
 
 func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
 
@@ -619,9 +617,9 @@ func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbRes
 		adminUserRefId := adminUser["reference_id"].(string)
 
 		sessionUser := auth.SessionUser{
-			UserId: adminUserId,
+			UserId:          adminUserId,
 			UserReferenceId: adminUserRefId,
-			Groups: []auth.GroupPermission{},
+			Groups:          []auth.GroupPermission{},
 		}
 
 		pr = pr.WithContext(context.WithValue(pr.Context(), "user", sessionUser))
@@ -701,7 +699,10 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 		systemHasNoAdmin = true
 		u2 := uuid.NewV4().String()
 
-		s, v, err := squirrel.Insert("user").Columns("name", "email", "reference_id", "permission").Values("guest", "guest@cms.go", u2, auth.DEFAULT_PERMISSION).ToSql()
+		s, v, err := squirrel.Insert("user").
+				Columns("name", "email", "reference_id", "permission").
+				Values("guest", "guest@cms.go", u2, auth.DEFAULT_PERMISSION).ToSql()
+
 		CheckErr(err, "Failed to create insert sql")
 		_, err = tx.Exec(s, v...)
 		CheckErr(err, "Failed to insert user")
@@ -712,7 +713,10 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 		CheckErr(err, "Failed to select user for world update")
 
 		u1 := uuid.NewV4().String()
-		s, v, err = squirrel.Insert("usergroup").Columns("name", "reference_id", "permission").Values("guest group", u1, auth.DEFAULT_PERMISSION).ToSql()
+		s, v, err = squirrel.Insert("usergroup").
+				Columns("name", "reference_id", "permission").
+				Values("guest group", u1, auth.DEFAULT_PERMISSION).ToSql()
+
 		CheckErr(err, "Failed to create insert usergroup sql")
 		_, err = tx.Exec(s, v...)
 		CheckErr(err, "Failed to insert usergroup")
@@ -752,13 +756,13 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 		CheckErr(err, "Failed to user group")
 	}
 
-	defaultWorldPermission := int64(750)
+	defaultWorldPermission := auth.DEFAULT_PERMISSION
 
 	if systemHasNoAdmin {
 		defaultWorldPermission = 777
 	}
 
-	for i, table := range initConfig.Tables {
+	for _, table := range initConfig.Tables {
 		refId := uuid.NewV4().String()
 		schema, err := json.Marshal(table)
 
@@ -782,17 +786,25 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 			_, err := tx.Exec(s, v...)
 			CheckErr(err, fmt.Sprintf("Failed to update json schema for table [%v]: %v", table.TableName, err))
 
-			continue
+		} else {
+
+			if table.Permission == 0 {
+				table.Permission = defaultWorldPermission
+			}
+			if table.DefaultPermission == 0 {
+				table.DefaultPermission = defaultWorldPermission
+			}
+
+			log.Infof("Insert table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)
+
+			s, v, err = squirrel.Insert("world").
+					Columns("table_name", "world_schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden").
+					Values(table.TableName, string(schema), table.Permission, refId, table.DefaultPermission, userId, table.IsTopLevel, table.IsHidden).ToSql()
+			_, err = tx.Exec(s, v...)
+			CheckErr(err, "Failed to insert into world table about "+table.TableName)
+			//initConfig.Tables[i].DefaultPermission = defaultWorldPermission
+
 		}
-
-		log.Infof("Insert table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)
-
-		s, v, err = squirrel.Insert("world").
-				Columns("table_name", "world_schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden").
-				Values(table.TableName, string(schema), defaultWorldPermission, refId, defaultWorldPermission, userId, table.IsTopLevel, table.IsHidden).ToSql()
-		_, err = tx.Exec(s, v...)
-		CheckErr(err, "Failed to insert into world table about "+table.TableName)
-		initConfig.Tables[i].DefaultPermission = defaultWorldPermission
 
 	}
 
