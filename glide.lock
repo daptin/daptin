@@ -1,5 +1,5 @@
-hash: 8b3fd6faa12779a1d2845c2672b0a585eff796a0f3b2e54e790da558fb5c09a2
-updated: 2017-09-23T08:50:30.995855309+05:30
+hash: cf475696802d5a5c2ac1c8d1328040285ce3b2c983b4ca07ce7e2df98036b099
+updated: 2017-10-04T11:26:12.860108673+05:30
 imports:
 - name: cloud.google.com/go
   version: 4b5faa47331c50b3f75616de199da5fea9c50bea
@@ -9,6 +9,8 @@ imports:
   version: e401b2b026855a4fa8e7014d553ae5bdfccb21cd
 - name: github.com/ahl5esoft/golang-underscore
   version: 4c4738d8de61796a6f759d2813f4ec3ae97baf89
+- name: github.com/alexeyco/simpletable
+  version: 0c9ae9b651f22981c147564942371852a9a6f629
 - name: github.com/andybalholm/cascadia
   version: 349dd0209470eabd9514242c688c403c0926d266
 - name: github.com/araddon/dateparse

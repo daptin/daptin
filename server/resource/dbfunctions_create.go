@@ -20,7 +20,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.DB) {
 				log.Infof("Create unique index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
-					log.Infof("Table[%v] Column[%v]: Failed to create unique index: %v", table.TableName, column.ColumnName, err)
+					//log.Infof("Table[%v] Column[%v]: Failed to create unique index: %v", table.TableName, column.ColumnName, err)
 				}
 			}
 		}
@@ -189,7 +189,7 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 			TableName:         auditTableName,
 			Columns:           columnsCopy,
 			IsHidden:          true,
-			DefaultPermission: 222,
+			DefaultPermission: 444,
 			Permission:        222,
 		}
 
