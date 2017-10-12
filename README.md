@@ -17,10 +17,6 @@
 
 ---
 
-
-# Daptin
-
-
  [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) [![Slack Status](https://slack.yourdomain.com/badge.svg)](https://yourdomain.com)
 
 
