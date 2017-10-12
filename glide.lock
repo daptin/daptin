@@ -1,5 +1,5 @@
-hash: cf475696802d5a5c2ac1c8d1328040285ce3b2c983b4ca07ce7e2df98036b099
-updated: 2017-10-04T11:26:12.860108673+05:30
+hash: d9dbe8fc6d0e42293a420af4bb058275d379f386573deab655f7a6449402dfed
+updated: 2017-10-12T19:44:55.86307626+05:30
 imports:
 - name: cloud.google.com/go
   version: 4b5faa47331c50b3f75616de199da5fea9c50bea
@@ -16,7 +16,7 @@ imports:
 - name: github.com/araddon/dateparse
   version: e2f3c465e969d5981ef2f7f83e18d266d5df908c
 - name: github.com/artpar/api2go
-  version: 2ff6ea3d687b9ff42c69d25fd27d97626d92bb8c
+  version: 8397b04ffa49727530dd43aba46d88786d466235
   subpackages:
   - jsonapi
   - routing
@@ -124,8 +124,6 @@ imports:
   version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
-- name: github.com/gedex/inflector
-  version: 16278e9db8130ac7ec405dc174cfb94344f16325
 - name: github.com/GeertJohan/go.rice
   version: c02ca9a983da5807ddf7d796784928f5be4afd09
   subpackages:

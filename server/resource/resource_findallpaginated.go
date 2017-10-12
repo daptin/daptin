@@ -33,7 +33,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 			return 0, NewResponse(nil, err, 400, nil), err
 		}
 	}
-	log.Infof("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
+	//log.Infof("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
 
 	pageNumber := uint64(0)
 	if len(req.QueryParams["page[number]"]) > 0 {
