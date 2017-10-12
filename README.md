@@ -6,7 +6,8 @@
 # Daptin
 
 
- [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) [![Build Status](https://travis-ci.org/artpar/daptin.svg?branch=master)](https://travis-ci.org/artpar/daptin) [![Build Status](https://semaphoreci.com/api/v1/artpar/daptin/branches/master/badge.svg)](https://semaphoreci.com/artpar/daptin)
+ [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) [![Build Status](https://travis-ci.org/artpar/daptin.svg?branch=master)](https://travis-ci.org/artpar/daptin) [![Build Status](https://semaphoreci.com/api/v1/artpar/daptin/branches/master/badge.svg)](https://semaphoreci.com/artpar/daptin) [![Slack Status](https://slack.yourdomain.com/badge.svg)](https://yourdomain.com)
+
 
 
 ## A BAAS
@@ -19,6 +20,12 @@ Daptin is a self-hosted BAAS that generates Web APIs (more specifically, JSON AP
 ![Generate random data to show tables](https://github.com/artpar/daptin/raw/master/docs_markdown/gifs/generate_random_show_tables.gif)
 
 Daptin takes features such as
+
+
+
+
+
+
 
 - Entity names
 - Relations between entities

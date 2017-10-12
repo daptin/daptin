@@ -193,6 +193,8 @@
             size: 100
           }
         }).then(function (result) {
+//          console.log("result for voyager ")
+          result =  result.data;
           var container = document.getElementById("data-explorer-here");
           var config = {};
           let data = {values: result};

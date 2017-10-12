@@ -232,6 +232,16 @@
         var tableName;
 
         let world = worldManager.getWorldByName(that.selectedTable);
+
+        if (!world) {
+          that.$notify({
+            type: "error",
+            title: "Error",
+            message: "We dont yet know about anything like " + window.titleCase(that.selectedTable)
+          });
+          return
+        }
+
         this.worldReferenceId = world.id;
 
         let all = {};

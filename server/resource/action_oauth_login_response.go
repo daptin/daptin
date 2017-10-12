@@ -171,7 +171,7 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 	//gorillaContext.Set(pr, "usergroup_id", []auth.GroupPermission{})
 	//gorillaContext.Set(pr, "user_id_integer", user["id"])
 
-	model := api2go.NewApi2GoModelWithData("oauth_token", nil, auth.DEFAULT_PERMISSION, nil, storeToken)
+	model := api2go.NewApi2GoModelWithData("oauth_token", nil, auth.DEFAULT_PERMISSION.IntValue(), nil, storeToken)
 
 	_, err = d.cruds["oauth_token"].Create(model, req)
 	if err != nil {

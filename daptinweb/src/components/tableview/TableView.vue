@@ -282,6 +282,12 @@
         let jsonModel = that.jsonApi.modelFor(tableName);
         if (!jsonModel) {
           console.error("Failed to find json api model for ", tableName);
+          that.$notify({
+            type: "error",
+            message: "This is out of reach.",
+            title: "Unauthorized"
+          });
+          return
         }
         console.log("selectedWorldColumns", that.selectedWorldColumns)
         that.selectedWorldColumns = jsonModel["attributes"];

@@ -274,6 +274,7 @@ const WorldManager = function () {
                 page: {number: 1, size: 500},
                 include: ['world_column']
               }).then(function (res) {
+                res = res.data;
                 that.worlds = res;
                 store.commit("SET_WORLDS", res)
                 console.log("Get all worlds result", res)
@@ -303,6 +304,7 @@ const WorldManager = function () {
               jsonApi.findAll('stream', {
                 page: {number: 1, size: 500},
               }).then(function (res) {
+                res = res.data;
                 that.streams = res;
                 store.commit("SET_STREAMS", res);
                 console.log("Get all streams result", res);

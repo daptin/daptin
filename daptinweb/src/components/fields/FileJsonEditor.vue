@@ -62,6 +62,7 @@
         jsonApi.findAll("json_schema", {
           filter: that.schema.inputType
         }).then(function (e) {
+          e = e.data;
           if (e.length > 0) {
             var schema = {};
             try {

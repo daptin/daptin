@@ -420,7 +420,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 				Method: "EXECUTE",
 			},
 		}
-		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION, nil, attrs)
+		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, attrs)
 
 		return model, returnRequest, nil
 
@@ -437,13 +437,13 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 				Method: "ACTIONRESPONSE",
 			},
 		}
-		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION, nil, attrs)
+		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, attrs)
 
 		return model, returnRequest, nil
 
 	case "POST":
 
-		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION, nil, attrs)
+		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, attrs)
 
 		req := api2go.Request{
 			PlainRequest: &http.Request{
@@ -453,7 +453,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 		return model, req, nil
 	case "UPDATE":
 
-		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION, nil, attrs)
+		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, attrs)
 
 		req := api2go.Request{
 			PlainRequest: &http.Request{
@@ -463,7 +463,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 		return model, req, nil
 	default:
 
-		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION, nil, attrs)
+		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, attrs)
 
 		req := api2go.Request{
 			PlainRequest: &http.Request{

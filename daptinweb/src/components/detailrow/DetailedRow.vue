@@ -9,9 +9,18 @@
             {{model | chooseTitle | titleCase}}
           </div>
           <div class="box-tools pull-right">
-            <router-link :to="{name: 'Instance', params: {tablename: jsonApiModelName, refId: model.reference_id}}">
-              <span class="fa fa-2x fa-external-link"></span>
-            </router-link>
+
+            <div class="ui icon buttons">
+              <button @click="initiateDelete" type="button" class="btn btn-box-tool">
+                <span class="fa fa-2x fa-times red"></span>
+              </button>
+
+              <router-link type="button" class="btn btn-box-tool"
+                           :to="{name: 'Instance', params: {tablename: jsonApiModelName, refId: model.reference_id}}">
+                <span class="fa fa-2x fa-external-link"></span>
+              </router-link>
+            </div>
+
           </div>
 
         </div>
@@ -92,9 +101,10 @@
           </el-tab-pane>
 
 
-          <el-tab-pane v-for="relation in relations" v-if="!relation.failed" :key="relation.name" :label="relation.label">
+          <el-tab-pane v-for="relation in relations" v-if="!relation.failed" :key="relation.name"
+                       :label="relation.label">
             <list-view :json-api="jsonApi" :ref="relation.name" class="tab"
-                       :data-tab="relation.name"
+                       :data-tab="relation.name" @onDeleteRow="initiateDelete"
                        :json-api-model-name="relation.type" :json-api-relation-name="relation.name" @addRow="addRow"
                        :autoload="true" @onLoadFailure="loadFailed(relation)"
                        :finder="relation.finder"></list-view>
@@ -158,7 +168,16 @@
     },
     computed: {},
     methods: {
-      loadFailed: function(relation) {
+      initiateDelete: function(){
+
+        if (!this.showAll){
+          console.log("not the parent")
+          this.$emit("deleteRow", this.model)
+        } else {
+          console.log("start to delete this row", this.model, this.showAll)
+        }
+      },
+      loadFailed: function (relation) {
         console.log("relation not loaded", relation);
         relation.failed = true;
       },
@@ -169,6 +188,9 @@
           }
         }
         return null;
+      },
+      deleteRow: function(colName, rowToDelete){
+        console.log("call to delete row", arguments);
       },
       addRow: function (colName, newRow) {
         var relation = this.getRelationByName(colName);
@@ -188,7 +210,7 @@
             && newRowTypeAttributes.ColumnModel[that.jsonApiModelName + "_id"]["jsonApi"] === "hasOne") {
             newRow.data[that.jsonApiModelName + "_id"] = {
               type: that.jsonApiModelName,
-              id: that.model["id"]
+               id: that.model["id"]
             };
           }
 
@@ -308,7 +330,7 @@
                   label: item.label,
                   type: item.type,
                   failed: false,
-                  jsonModelAttrs: that.jsonApi.modelFor(columnName),
+                  jsonModelAttrs: that.jsonApi.modelFor(item.type),
                 });
               } else {
 
@@ -319,7 +341,7 @@
                   label: item.label,
                   failed: false,
                   type: item.type,
-                  jsonModelAttrs: that.jsonApi.modelFor(columnName),
+                  jsonModelAttrs: that.jsonApi.modelFor(item.type),
                 });
               }
 
