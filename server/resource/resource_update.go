@@ -32,7 +32,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			return nil, err
 		}
 		if len(finalData) == 0 {
-			return nil, errors.New("Failed to updated this object")
+			return nil, fmt.Errorf("Failed to updated this object because of [%v]", bf.String())
 		}
 		res := finalData[0]
 		data.Data = res
@@ -120,7 +120,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 			foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.TableName, valString)
 
-			if foreignObjectPermission.CanWrite(sessionUser.UserReferenceId, sessionUser.Groups) {
+			if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 				val = foreignObject["id"]
 			} else {
 				return nil, errors.New(fmt.Sprintf("No write permisssion on object [%v][%v]", col.ForeignKeyData.TableName, valString))
@@ -294,9 +294,14 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 					obj[rel.GetObjectName()] = item[rel.GetObjectName()]
 					obj[rel.GetSubjectName()] = updatedResource["reference_id"]
 
-					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, auth.DEFAULT_PERMISSION, nil, obj)
-
-					_, err := dr.cruds[rel.GetJoinTableName()].Create(modl, req)
+					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, auth.DEFAULT_PERMISSION.IntValue(), nil, obj)
+					pr := &http.Request{
+						Method: "POST",
+					}
+					pr = pr.WithContext(req.PlainRequest.Context())
+					_, err := dr.cruds[rel.GetJoinTableName()].Create(modl, api2go.Request{
+						PlainRequest: pr,
+					})
 					if err != nil {
 						log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
 						continue
@@ -336,7 +341,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 						log.Infof("Failed to get object by reference id: %v", err)
 						continue
 					}
-					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, auth.DEFAULT_PERMISSION, nil, updateForeignRow)
+					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, auth.DEFAULT_PERMISSION.IntValue(), nil, updateForeignRow)
 
 					model.SetAttributes(map[string]interface{}{
 						rel.GetObjectName(): updatedResource["reference_id"].(string),
@@ -370,7 +375,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 					updateForeignRow, err = dr.GetReferenceIdToObject(rel.GetSubject(), valMap[rel.GetSubjectName()].(string))
 					updateForeignRow[rel.GetSubjectName()] = updatedResource["reference_id"].(string)
 
-					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, auth.DEFAULT_PERMISSION, nil, updateForeignRow)
+					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, auth.DEFAULT_PERMISSION.IntValue(), nil, updateForeignRow)
 
 					_, err := dr.cruds[rel.GetSubject()].Update(model, req)
 					if err != nil {
@@ -389,7 +394,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 					updateObject[rel.GetSubjectName()] = obj[rel.GetSubjectName()]
 					updateObject[rel.GetObjectName()] = updatedResource["reference_id"].(string)
 
-					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, auth.DEFAULT_PERMISSION, nil, updateObject)
+					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, auth.DEFAULT_PERMISSION.IntValue(), nil, updateObject)
 
 					pre := &http.Request{
 						Method: "POST",
@@ -415,7 +420,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 					obj[rel.GetSubjectName()] = val
 					obj[rel.GetObjectName()] = updatedResource["id"]
 
-					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, auth.DEFAULT_PERMISSION, nil, obj)
+					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, auth.DEFAULT_PERMISSION.IntValue(), nil, obj)
 					pre := &http.Request{
 						Method: "POST",
 					}

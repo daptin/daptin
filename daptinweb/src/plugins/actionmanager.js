@@ -154,7 +154,7 @@ const ActionManager = function () {
         if (res.response.data.Message) {
           Notification.error(res.response.data.Message)
         } else {
-          Notification.error("Action " + actionName + " failed.")
+          Notification.error("I failed to " + window.titleCase(actionName))
         }
       })
 

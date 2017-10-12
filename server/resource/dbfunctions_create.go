@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"strings"
 	"github.com/jinzhu/copier"
+	"github.com/artpar/daptin/server/auth"
 )
 
 func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.DB) {
@@ -190,7 +191,7 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 			Columns:           columnsCopy,
 			IsHidden:          true,
 			DefaultPermission: 444,
-			Permission:        222,
+			Permission:        auth.NewPermission(auth.Create, auth.Create, auth.Create).IntValue(),
 		}
 
 		config.Tables = append(config.Tables, newTable)

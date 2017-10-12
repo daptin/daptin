@@ -1,4 +1,4 @@
-import  JsonApi from "devour-client"
+import JsonApi from "devour-client"
 import {Notification} from "element-ui"
 import appConfig from "../plugins/appconfig"
 import {getToken, unsetToken} from '../utils/auth'
@@ -26,6 +26,24 @@ jsonapi.replaceMiddleware('errors', {
     }
 
     if (response.status == 500) {
+      if (response.data.errors) {
+        var error = response.data.errors[0];
+        if (error.title != 'Unauthorized') {
+          Notification.error({
+            "title": "Failed",
+            "message": error.title
+          })
+        }
+      }
+      return {};
+    }
+
+    if (!response.data.errors) {
+      Notification.error({
+        "title": "Fail",
+        "message": "Massive"
+      })
+      console.log("we dont know about this entity");
       return {};
     }
 
@@ -52,7 +70,7 @@ jsonapi.insertMiddlewareBefore("HEADER", {
 
 jsonapi.insertMiddlewareBefore('HEADER', {
   name: 'insert-query',
-  req: function(payload) {
+  req: function (payload) {
     var query = $("#navbar-search-input").val();
 
     if (query && query.length > 2) {
@@ -66,17 +84,17 @@ jsonapi.insertMiddlewareBefore('HEADER', {
 jsonapi.insertMiddlewareAfter('response', {
   name: 'track-request',
   req: function (payload) {
-    // console.log("request initiate", payload);
-    if (payload.config.method !== 'GET' && payload.config.method !== 'OPTIONS') {
-
+    console.log("request initiate", payload);
+    let requestMethod = payload.config.method.toUpperCase();
+    if (requestMethod !== 'GET' && requestMethod !== 'OPTIONS') {
 
       // console.log("Create request complete: ", payload, payload.status / 100);
       if (parseInt(payload.status / 100) === 2) {
         let action = "Created ";
 
-        if (payload.config.method === "DELETE") {
+        if (requestMethod === "DELETE") {
           action = "Deleted "
-        } else if (payload.config.method === "PUT" || payload.config.method === "PATCH") {
+        } else if (requestMethod === "PUT" || requestMethod === "PATCH") {
           action = "Updated "
         }
 
