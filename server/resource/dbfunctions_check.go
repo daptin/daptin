@@ -180,8 +180,8 @@ func CheckRelations(config *CmsConfig, db *sqlx.DB) {
 
 	//config.Tables[stateMachineDescriptionTableIndex] = stateMachineDescriptionTable
 
-	//for _, rela := range finalRelations {
-	//	log.Infof("All relations: %v", rela.String())
+	//for _, relation := range finalRelations {
+	//	log.Infof("All relations: %v", relation.String())
 	//}
 	PrintRelations(finalRelations)
 }

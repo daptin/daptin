@@ -235,7 +235,7 @@ func (resource *DbResource) GetMarketplaceByReferenceId(referenceId string) (Mar
 	}
 
 	err = resource.db.QueryRowx(s, v...).StructScan(&marketPlace)
-	return marketPlace, nil
+	return marketPlace, err
 
 }
 

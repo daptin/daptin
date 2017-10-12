@@ -49,7 +49,7 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 		" join world w on w.id = a.world_id"+
 		" where w.table_name = ? ", typeName)
 	if err != nil {
-		log.Errorf("Failed to scan action: %", err)
+		log.Errorf("Failed to scan action: %v", err)
 		return action, err
 	}
 	defer rows.Close()
@@ -247,7 +247,7 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 		var g auth.GroupPermission
 		err = res.StructScan(&g)
 		if err != nil {
-			log.Errorf("Failed to scan group permisison : %v", err)
+			log.Errorf("Failed to scan group permission : %v", err)
 		}
 		s = append(s, g)
 	}
@@ -285,7 +285,7 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 		var g auth.GroupPermission
 		err = res.StructScan(&g)
 		if err != nil {
-			log.Errorf("Failed to scan group permisison : %v", err)
+			log.Errorf("Failed to scan group permission : %v", err)
 		}
 		s = append(s, g)
 	}
@@ -438,7 +438,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where ...squirrel.Eq
 
 	m1, include, err := dr.ResultToArrayOfMap(rows, dr.cruds[typeName].model.GetColumnMap(), true)
 
-	return m1, include, nil
+	return m1, include, err
 
 }
 
