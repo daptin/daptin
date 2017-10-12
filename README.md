@@ -1,12 +1,27 @@
 
-<a href="#">
-    <img src="https://github.com/artpar/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" title="Daptin" align="right" height="50" />
-</a>
+
+<p align="center">
+  <img src="https://github.com/artpar/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" title="Daptin" height="140" />
+  <h3 align="center">Daptin</h3>
+  <p align="center">Deliver backends for app faster and scalable</p>
+  <p align="center">
+    <a href="https://github.com/artpar/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/artpar/daptin.svg?style=flat-square"></a>
+    <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
+    <a href="https://travis-ci.org/artpar/daptin"><img alt="Travis" src="https://img.shields.io/travis/artpar/daptin.svg?style=flat-square"></a>
+    <a href="https://codecov.io/gh/artpar/daptin"><img alt="Codecov branch" src="https://img.shields.io/codecov/c/github/artpar/daptin/master.svg?style=flat-square"></a>
+    <a href="https://goreportcard.com/report/github.com/artpar/daptin"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/artpar/daptin?style=flat-square"></a>
+    <a href="http://godoc.org/github.com/artpar/daptin"><img alt="Go Doc" src="https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square"></a>
+    <a href="https://semaphoreci.com/artpar/daptin"><img alt="Go Doc" src="https://semaphoreci.com/api/v1/artpar/daptin/branches/master/badge.svg"></a>
+  </p>
+</p>
+
+---
+
 
 # Daptin
 
 
- [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) [![Build Status](https://travis-ci.org/artpar/daptin.svg?branch=master)](https://travis-ci.org/artpar/daptin) [![Build Status](https://semaphoreci.com/api/v1/artpar/daptin/branches/master/badge.svg)](https://semaphoreci.com/artpar/daptin) [![Slack Status](https://slack.yourdomain.com/badge.svg)](https://yourdomain.com)
+ [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) [![Slack Status](https://slack.yourdomain.com/badge.svg)](https://yourdomain.com)
 
 
 
