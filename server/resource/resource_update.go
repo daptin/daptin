@@ -5,11 +5,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	//"reflect"
 	"errors"
+	"fmt"
 	"github.com/artpar/daptin/server/auth"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
 	"time"
-	"fmt"
 )
 
 // Update an object
@@ -348,7 +348,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 					_, err := dr.cruds[rel.GetSubject()].Update(model, req)
 					if err != nil {
-						log.Errorf("Failed to update [%v][%v]: %V", rel.GetObject(), )
+						log.Errorf("Failed to update [%v][%v]: %v", rel.GetObject(), updatedResource["reference_id"], err)
 					}
 				}
 
@@ -378,7 +378,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 					_, err := dr.cruds[rel.GetSubject()].Update(model, req)
 					if err != nil {
-						log.Errorf("Failed to update [%v][%v]: %V", rel.GetObject(), )
+						log.Errorf("Failed to update [%v][%v]: %V", rel.GetObject())
 					}
 				}
 
@@ -410,7 +410,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 						continue
 					}
 				}
-				break;
+				break
 
 			case "has_many_and_belongs_to_many":
 				values := val.([]map[string]interface{})

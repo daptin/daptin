@@ -2,9 +2,9 @@ package resource
 
 import (
 	"encoding/base64"
-	log "github.com/sirupsen/logrus"
-	"github.com/gin-gonic/gin/json"
 	"fmt"
+	"github.com/gin-gonic/gin/json"
+	log "github.com/sirupsen/logrus"
 )
 
 type ExportDataPerformer struct {
@@ -35,7 +35,7 @@ func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 
 		objects, err := d.cruds[tableName].GetAllRawObjects(tableName)
 		if err != nil {
-			log.Errorf("Failed to get all objects of type [%v] : %v", tableName)
+			log.Errorf("Failed to get all objects of type [%v] : %v", tableName, err)
 		}
 
 		result[tableName] = objects
@@ -60,7 +60,7 @@ func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 
 	responseAttrs := make(map[string]interface{})
 	responseAttrs["content"] = base64.StdEncoding.EncodeToString(finalString)
-	responseAttrs["name"] 	= fmt.Sprintf("daptin_dump_%v.json", finalName)
+	responseAttrs["name"] = fmt.Sprintf("daptin_dump_%v.json", finalName)
 	responseAttrs["contentType"] = "application/json"
 	responseAttrs["message"] = "Downloading data"
 

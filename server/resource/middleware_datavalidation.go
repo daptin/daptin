@@ -5,12 +5,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"strings"
 	//"github.com/go-playground/validator"
-	"gopkg.in/go-playground/validator.v9"
-	"github.com/go-playground/universal-translator"
-	"github.com/go-playground/locales/en"
-	"github.com/pkg/errors"
-	"github.com/artpar/conform"
 	"fmt"
+	"github.com/artpar/conform"
+	"github.com/go-playground/locales/en"
+	"github.com/go-playground/universal-translator"
+	"github.com/pkg/errors"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 type DataValidationMiddleware struct {
@@ -43,8 +43,8 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 	case "update":
 		fallthrough
 	case "patch":
-		validations := dvm.tableInfoMap[dr.model.GetName()].Validations;
-		conformations := dvm.tableInfoMap[dr.model.GetName()].Conformations;
+		validations := dvm.tableInfoMap[dr.model.GetName()].Validations
+		conformations := dvm.tableInfoMap[dr.model.GetName()].Conformations
 
 		//log.Infof("We have %d objects to validate", len(objects))
 

@@ -1,16 +1,16 @@
 package fieldtypes
 
 import (
-	"net"
-	"strconv"
-	"regexp"
+	"encoding/json"
 	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"net"
+	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
-	"sort"
-	"encoding/json"
 )
 
 type EntityType int
@@ -82,7 +82,7 @@ func (t EntityType) MarshalJSON() ([]byte, error) {
 }
 
 const (
-	DateTime    EntityType = iota
+	DateTime EntityType = iota
 	Id
 	Time
 	Date
@@ -553,7 +553,7 @@ func checkStringsAgainstDetector(d []string, detect DataTypeDetector) (ok bool, 
 	case "regex":
 		reg := detect.Attributes["regex"].(string)
 
-		detectorFunction = (func(reg string) (func(string) (bool, interface{})) {
+		detectorFunction = (func(reg string) func(string) (bool, interface{}) {
 			compiled, err := regexp.Compile(reg)
 			if err != nil {
 				log.Errorf("Failed to compile string as regex: %v", err)
@@ -570,15 +570,15 @@ func checkStringsAgainstDetector(d []string, detect DataTypeDetector) (ok bool, 
 	case "regex-list":
 		reg := detect.Attributes["regex"].([]string)
 
-		detectorFunction = (func(reg []string) (func(string) (bool, interface{})) {
+		detectorFunction = (func(reg []string) func(string) (bool, interface{}) {
 			compiledRegexs := make([]*regexp.Regexp, 0)
 
 			for _, r := range reg {
 				c, e := regexp.Compile(r)
 				log.Errorf("Failed to compile string as regex: %v", e)
-				return func(s string) (bool, interface{}) {
-					return false, nil
-				}
+				//return func(s string) (bool, interface{}) {
+				//	return false, nil
+				//}
 				compiledRegexs = append(compiledRegexs, c)
 			}
 
@@ -667,15 +667,15 @@ func DetectType(d []string) (entityType EntityType, hasHeaders bool, err error) 
 }
 
 var nameMap = map[EntityType][]string{
-	Id:        []string{"id"},
-	Money:     []string{"price", "income", "amount", "wage", "cost", "sale", "profit", "asset", "marketvalue"},
-	Latitude:  []string{"lat", "latitude"},
-	Longitude: []string{"lon", "long", "longitude"},
-	City:      []string{"city"},
-	Country:   []string{"country"},
-	State:     []string{"state"},
-	Continent: []string{"continent"},
-	Pincode:   []string{"pincode", "zipcode"},
+	Id:        {"id"},
+	Money:     {"price", "income", "amount", "wage", "cost", "sale", "profit", "asset", "marketvalue"},
+	Latitude:  {"lat", "latitude"},
+	Longitude: {"lon", "long", "longitude"},
+	City:      {"city"},
+	Country:   {"country"},
+	State:     {"state"},
+	Continent: {"continent"},
+	Pincode:   {"pincode", "zipcode"},
 }
 
 func columnTypeFromName(name string) EntityType {

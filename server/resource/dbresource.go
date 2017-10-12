@@ -11,7 +11,7 @@ type DbResource struct {
 	db           *sqlx.DB
 	cruds        map[string]*DbResource
 	ms           *MiddlewareSet
-	configStore *ConfigStore
+	configStore  *ConfigStore
 	contextCache map[string]interface{}
 }
 
@@ -23,7 +23,7 @@ func NewDbResource(model *api2go.Api2GoModel, db *sqlx.DB, ms *MiddlewareSet, cr
 		model:        model,
 		db:           db,
 		ms:           ms,
-		configStore: configStore,
+		configStore:  configStore,
 		cruds:        cruds,
 		contextCache: make(map[string]interface{}),
 	}

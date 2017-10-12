@@ -3,17 +3,17 @@ package server
 import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/gin-gonic/gin.v1"
 	"github.com/artpar/daptin/server/auth"
 	"github.com/artpar/daptin/server/resource"
-	"net/http"
-	"io/ioutil"
 	"github.com/artpar/rclone/fs"
-	"github.com/satori/go.uuid"
 	"github.com/jmoiron/sqlx"
-	"sync"
+	"github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/gin-gonic/gin.v1"
+	"io/ioutil"
 	"net"
+	"net/http"
+	"sync"
 )
 
 var cruds = make(map[string]*resource.DbResource)

@@ -75,9 +75,7 @@ var SystemActions = []Action{
 		Label:            "Restart system",
 		OnType:           "world",
 		InstanceOptional: true,
-		InFields: []api2go.ColumnInfo{
-
-		},
+		InFields:         []api2go.ColumnInfo{},
 		OutFields: []Outcome{
 			{
 				Type:   "system_json_schema_update",
@@ -93,16 +91,12 @@ var SystemActions = []Action{
 		Label:            "Update package list",
 		OnType:           "marketplace",
 		InstanceOptional: false,
-		InFields: []api2go.ColumnInfo{
-
-		},
+		InFields:         []api2go.ColumnInfo{},
 		OutFields: []Outcome{
 			{
-				Type:   "market.package.refresh",
-				Method: "EXECUTE",
-				Attributes: map[string]interface{}{
-
-				},
+				Type:       "market.package.refresh",
+				Method:     "EXECUTE",
+				Attributes: map[string]interface{}{},
 			},
 		},
 	},
@@ -119,7 +113,7 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"location": "$subject.endpoint",
 					"window":   "_blank",
-				},},
+				}},
 		},
 	},
 	{
@@ -127,14 +121,12 @@ var SystemActions = []Action{
 		Label:            "Refresh marketplace",
 		OnType:           "marketplace",
 		InstanceOptional: false,
-		InFields: []api2go.ColumnInfo{
-		},
+		InFields:         []api2go.ColumnInfo{},
 		OutFields: []Outcome{
 			{
-				Type:   "marketplace.package.refresh",
-				Method: "EXECUTE",
-				Attributes: map[string]interface{}{
-				},
+				Type:       "marketplace.package.refresh",
+				Method:     "EXECUTE",
+				Attributes: map[string]interface{}{},
 			},
 		},
 	},
@@ -207,8 +199,7 @@ var SystemActions = []Action{
 		Label:            "Export data for backup",
 		OnType:           "world",
 		InstanceOptional: true,
-		InFields: []api2go.ColumnInfo{
-		},
+		InFields:         []api2go.ColumnInfo{},
 		OutFields: []Outcome{
 			{
 				Type:   "__data_export",
@@ -496,11 +487,10 @@ var SystemActions = []Action{
 		},
 	},
 	{
-		Name:   "oauth.login.begin",
-		Label:  "Authenticate via OAuth",
-		OnType: "oauth_connect",
-		InFields: []api2go.ColumnInfo{
-		},
+		Name:     "oauth.login.begin",
+		Label:    "Authenticate via OAuth",
+		OnType:   "oauth_connect",
+		InFields: []api2go.ColumnInfo{},
 		OutFields: []Outcome{
 			{
 				Type:   "oauth.client.redirect",
@@ -1199,9 +1189,7 @@ var StandardTables = []TableInfo{
 	},
 }
 
-var StandardMarketplaces = []Marketplace{
-
-}
+var StandardMarketplaces = []Marketplace{}
 
 var StandardStreams = []StreamContract{
 	{
@@ -1259,11 +1247,11 @@ var StandardStreams = []StreamContract{
 type TableInfo struct {
 	TableName              string `db:"table_name"`
 	TableId                int
-	DefaultPermission      int64  `db:"default_permission"`
+	DefaultPermission      int64 `db:"default_permission"`
 	Columns                []api2go.ColumnInfo
 	StateMachines          []LoopbookFsmDescription
 	Relations              []api2go.TableRelation
-	IsTopLevel             bool   `db:"is_top_level"`
+	IsTopLevel             bool `db:"is_top_level"`
 	Permission             int64
 	UserId                 uint64 `db:"user_id"`
 	IsHidden               bool   `db:"is_hidden"`

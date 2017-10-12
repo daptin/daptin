@@ -1,11 +1,11 @@
 package resource
 
 import (
-	log "github.com/sirupsen/logrus"
-	"github.com/pkg/errors"
 	"fmt"
-	"gopkg.in/resty.v0"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
+	"gopkg.in/resty.v0"
 	"strings"
 )
 

@@ -1,13 +1,13 @@
 package server
 
 import (
-	"path/filepath"
-	"github.com/artpar/daptin/server/resource"
 	"github.com/artpar/api2go"
+	"github.com/artpar/daptin/server/resource"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gopkg.in/gin-gonic/gin.v1"
 	"gopkg.in/go-playground/validator.v9"
+	"path/filepath"
 )
 
 //import "github.com/artpar/daptin/datastore"

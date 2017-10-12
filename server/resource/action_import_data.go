@@ -2,9 +2,9 @@ package resource
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	log "github.com/sirupsen/logrus"
 	"strings"
-	"encoding/json"
 )
 
 type ImportDataPerformer struct {

@@ -1,15 +1,15 @@
 package server
 
 import (
-	"github.com/jmoiron/sqlx"
-	"github.com/artpar/daptin/server/resource"
-	log "github.com/sirupsen/logrus"
 	"encoding/json"
-	"path/filepath"
-	"os"
 	"github.com/artpar/api2go"
-	"strings"
+	"github.com/artpar/daptin/server/resource"
+	"github.com/jmoiron/sqlx"
 	"github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 func CheckSystemSecrets(store *resource.ConfigStore) error {
@@ -42,7 +42,7 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx
 		}
 
 		//for _, r := range table.Relations {
-			//log.Infof("Relation :: %v", r.String())
+		//log.Infof("Relation :: %v", r.String())
 		//}
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
 
@@ -59,7 +59,7 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 	ts := make([]resource.TableInfo, 0)
 
 	res, err := db.Queryx("select table_name, permission, default_permission, world_schema_json, is_top_level, is_hidden, is_state_tracking_enabled" +
-			" from world where table_name not like '%_has_%' and table_name not like '%_audit' and table_name not in ('world', 'world_column', 'action', 'user', 'usergroup')")
+		" from world where table_name not like '%_has_%' and table_name not like '%_audit' and table_name not in ('world', 'world_column', 'action', 'user', 'usergroup')")
 	if err != nil {
 		log.Infof("Failed to select from world table: %v", err)
 		return ts, err
