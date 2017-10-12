@@ -1,18 +1,18 @@
 package resource
 
 import (
-	"gopkg.in/src-d/go-git.v4"
-	log "github.com/sirupsen/logrus"
-	"os"
-	"io/ioutil"
 	"github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/src-d/go-git.v4"
+	"io/ioutil"
+	"os"
 )
 
 type Marketplace struct {
 	Endpoint    string
 	RootPath    string `db:"root_path"`
 	Permission  int    `json:"-"`
-	UserId      *int    `json:"-" db:"user_id"`
+	UserId      *int   `json:"-" db:"user_id"`
 	ReferenceId string `json:"-" db:"reference_id"`
 }
 
@@ -36,15 +36,13 @@ func (mp *MarketplaceService) RefreshRepository() error {
 		return err
 	}
 
-	err = worktree.Pull(&git.PullOptions{
-
-	})
+	err = worktree.Pull(&git.PullOptions{})
 
 	return err
 
 }
 
-func (mp *MarketplaceService) GetPackage(packageName string) (*MarketPackage) {
+func (mp *MarketplaceService) GetPackage(packageName string) *MarketPackage {
 	packageList, err := mp.GetPackageList()
 	if err != nil {
 		return nil
@@ -61,7 +59,7 @@ func (mp *MarketplaceService) GetPackage(packageName string) (*MarketPackage) {
 
 }
 
-func (mp *MarketplaceService) PackageExists(packageName string) (bool) {
+func (mp *MarketplaceService) PackageExists(packageName string) bool {
 
 	packageList, err := mp.GetPackageList()
 	if err != nil {

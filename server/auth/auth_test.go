@@ -1,11 +1,9 @@
 package auth
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
-
-
 
 func TestAllPermission(t *testing.T) {
 

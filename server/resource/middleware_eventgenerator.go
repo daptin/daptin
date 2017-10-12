@@ -1,10 +1,10 @@
 package resource
 
 import (
+	"context"
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
 	"strings"
-	"context"
 )
 
 type eventHandlerMiddleware struct {

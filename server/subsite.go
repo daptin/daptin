@@ -1,24 +1,24 @@
 package server
 
 import (
-	"github.com/artpar/daptin/server/resource"
-	"net/http"
-	log "github.com/sirupsen/logrus"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/artpar/rclone/fs/all" // import all fs
-	"github.com/PuerkitoBio/goquery"
-	"net/url"
-	"fmt"
-	"gopkg.in/gin-gonic/gin.v1"
-	"strings"
-	"github.com/satori/go.uuid"
-	"io/ioutil"
-	"github.com/julienschmidt/httprouter"
 	"context"
 	"encoding/json"
-	"github.com/artpar/rclone/fs"
+	"fmt"
+	"github.com/PuerkitoBio/goquery"
+	"github.com/artpar/daptin/server/resource"
 	"github.com/artpar/rclone/cmd"
+	"github.com/artpar/rclone/fs"
+	_ "github.com/artpar/rclone/fs/all" // import all fs
+	"github.com/jmoiron/sqlx"
+	"github.com/julienschmidt/httprouter"
+	"github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/gin-gonic/gin.v1"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
+	"strings"
 )
 
 type HostSwitch struct {
@@ -30,7 +30,7 @@ type JsonApiError struct {
 	Message string
 }
 
-func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*resource.DbResource) (HostSwitch) {
+func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*resource.DbResource) HostSwitch {
 
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
@@ -164,9 +164,9 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type GrapeSaveRequest struct {
-	Css    string `json:"gjs-css"`
+	Css    string       `json:"gjs-css"`
 	Assets []GrapeAsset `json:"gjs-assets"`
-	Html   string `json:"gjs-html"`
+	Html   string       `json:"gjs-html"`
 }
 
 func CreateSubSiteSaveContentHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, db *sqlx.DB) func(context *gin.Context) {
@@ -183,7 +183,7 @@ func CreateSubSiteSaveContentHandler(initConfig *resource.CmsConfig, cruds map[s
 
 		query, err := url.ParseQuery(string(s))
 		if err != nil {
-			log.Errorf("Failed to parse query", err)
+			log.Errorf("Failed to parse query: [%v]", err)
 			context.AbortWithStatus(400)
 			return
 		}
@@ -211,7 +211,7 @@ func CreateSubSiteSaveContentHandler(initConfig *resource.CmsConfig, cruds map[s
 
 		err = json.Unmarshal([]byte(query.Get("gjs-assets")), &assetsList)
 		if err != nil {
-			log.Errorf("Failed to unmarshal asset list from post body", err)
+			log.Errorf("Failed to unmarshal asset list from post body: %v", err)
 			context.AbortWithStatus(400)
 			return
 		}
@@ -230,8 +230,8 @@ func CreateSubSiteSaveContentHandler(initConfig *resource.CmsConfig, cruds map[s
 		htmlString, err = htmlDocument.Html()
 		if err != nil {
 			log.Errorf("Failed to convert to html document: %v", err)
-			return
 			context.AbortWithStatus(400)
+			return
 		}
 
 		referrer, _ := url.Parse(context.GetHeader("Referer"))
@@ -453,8 +453,8 @@ type GrapeAsset struct {
 	Src           string `json:"src"`
 	Type          string `json:"type"`
 	UnitDimension string `json:"unitDim"`
-	Height        int `json:"height"`
-	Width         int `json:"width"`
+	Height        int    `json:"height"`
+	Width         int    `json:"width"`
 }
 
 func NewImageGrapeAsset(src string) GrapeAsset {

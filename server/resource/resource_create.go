@@ -7,11 +7,11 @@ import (
 	//"reflect"
 	"github.com/satori/go.uuid"
 	//"strconv"
-	"github.com/artpar/daptin/server/auth"
-	"time"
 	"fmt"
 	"github.com/araddon/dateparse"
+	"github.com/artpar/daptin/server/auth"
 	"github.com/pkg/errors"
+	"time"
 )
 
 // Create a new object. Newly created object/struct must be in Responder.
@@ -237,9 +237,9 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		nuuid := uuid.NewV4().String()
 
 		belogsToUserGroupSql, q, err := squirrel.
-		Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
-				Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
-				Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
+			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
+			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
+			Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
 		log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
@@ -253,9 +253,9 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		nuuid := uuid.NewV4().String()
 
 		belogsToUserGroupSql, q, err := squirrel.
-		Insert("user_user_id_has_usergroup_usergroup_id").
-				Columns("user_id", "usergroup_id", "reference_id", "permission").
-				Values(sessionUser.UserId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
+			Insert("user_user_id_has_usergroup_usergroup_id").
+			Columns("user_id", "usergroup_id", "reference_id", "permission").
+			Values(sessionUser.UserId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
 		log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 
@@ -269,9 +269,9 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		log.Infof("Associate new user with user: %v", adminUserId)
 
 		belogsToUserGroupSql, q, err := squirrel.
-		Update("user").
-				Set("user_id", adminUserId).
-				Where(squirrel.Eq{"id": createdResource["id"]}).ToSql()
+			Update("user").
+			Set("user_id", adminUserId).
+			Where(squirrel.Eq{"id": createdResource["id"]}).ToSql()
 
 		log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)

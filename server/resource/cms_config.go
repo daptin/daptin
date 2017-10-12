@@ -5,8 +5,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
-	"time"
 	"gopkg.in/go-playground/validator.v9"
+	"time"
 )
 
 type CmsConfig struct {
@@ -167,11 +167,11 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 	var val string
 
 	s, v, err := squirrel.Select("value").
-			From(settingsTableName).
-			Where(squirrel.Eq{"name": key}).
-			Where(squirrel.Eq{"configstate": "enabled"}).
-			Where(squirrel.Eq{"configenv": c.defaultEnv}).
-			Where(squirrel.Eq{"configtype": configtype}).ToSql()
+		From(settingsTableName).
+		Where(squirrel.Eq{"name": key}).
+		Where(squirrel.Eq{"configstate": "enabled"}).
+		Where(squirrel.Eq{"configenv": c.defaultEnv}).
+		Where(squirrel.Eq{"configtype": configtype}).ToSql()
 
 	CheckErr(err, "Failed to create config select query")
 
@@ -185,10 +185,10 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 func (c *ConfigStore) GetWebConfig() map[string]string {
 
 	s, v, err := squirrel.Select("name", "value").
-			From(settingsTableName).
-			Where(squirrel.Eq{"configtype": "web"}).
-			Where(squirrel.Eq{"configstate": "enabled"}).
-			Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
+		From(settingsTableName).
+		Where(squirrel.Eq{"configtype": "web"}).
+		Where(squirrel.Eq{"configstate": "enabled"}).
+		Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
 
 	CheckErr(err, "Failed to create config select query")
 
@@ -210,11 +210,11 @@ func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype strin
 	var previousValue string
 
 	s, v, err := squirrel.Select("value").
-			From(settingsTableName).
-			Where(squirrel.Eq{"name": key}).
-			Where(squirrel.Eq{"configstate": "enabled"}).
-			Where(squirrel.Eq{"configtype": configtype}).
-			Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
+		From(settingsTableName).
+		Where(squirrel.Eq{"name": key}).
+		Where(squirrel.Eq{"configstate": "enabled"}).
+		Where(squirrel.Eq{"configtype": configtype}).
+		Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
 
 	CheckErr(err, "Failed to create config select query")
 
@@ -224,8 +224,8 @@ func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype strin
 
 		// row doesnt exist
 		s, v, err := squirrel.Insert(settingsTableName).
-				Columns("name", "configstate", "configtype", "configenv", "value").
-				Values(key, "enabled", configtype, c.defaultEnv, val).ToSql()
+			Columns("name", "configstate", "configtype", "configenv", "value").
+			Values(key, "enabled", configtype, c.defaultEnv, val).ToSql()
 
 		CheckErr(err, "Failed to create config insert query")
 
@@ -237,12 +237,12 @@ func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype strin
 		// row already exists
 
 		s, v, err := squirrel.Update(settingsTableName).
-				Set("value", val).
-				Set("previous_value", previousValue).
-				Where(squirrel.Eq{"name": key}).
-				Where(squirrel.Eq{"configstate": "enabled"}).
-				Where(squirrel.Eq{"configtype": configtype}).
-				Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
+			Set("value", val).
+			Set("previous_value", previousValue).
+			Where(squirrel.Eq{"name": key}).
+			Where(squirrel.Eq{"configstate": "enabled"}).
+			Where(squirrel.Eq{"configtype": configtype}).
+			Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
 
 		CheckErr(err, "Failed to create config insert query")
 

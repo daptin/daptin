@@ -1,18 +1,18 @@
 package resource
 
 import (
+	"encoding/base64"
+	"fmt"
+	"github.com/artpar/api2go"
+	"github.com/artpar/conform"
+	"github.com/artpar/daptin/server/columntypes"
+	"github.com/gin-gonic/gin/json"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/tealeg/xlsx"
-	"encoding/base64"
-	"strings"
-	"github.com/artpar/api2go"
-	"github.com/pkg/errors"
-	"fmt"
-	"github.com/artpar/daptin/server/columntypes"
-	"github.com/artpar/conform"
-	"github.com/gin-gonic/gin/json"
 	"io/ioutil"
 	"strconv"
+	"strings"
 )
 
 type UploadFileToEntityPerformer struct {
@@ -97,7 +97,7 @@ func (d *UploadFileToEntityPerformer) DoAction(request ActionRequest, inFields m
 
 	entityName := inFields["entity_name"].(string)
 	parts := strings.Split(entityName, ".")
-	fileType := parts[len(parts) - 1]
+	fileType := parts[len(parts)-1]
 
 	table := TableInfo{}
 	table.TableName = SmallSnakeCaseText(entityName)

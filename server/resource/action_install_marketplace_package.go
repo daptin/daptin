@@ -4,9 +4,9 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	//"golang.org/x/oauth2"
+	"io"
 	"io/ioutil"
 	"os"
-	"io"
 )
 
 type MarketplacePackageInstallActionPerformer struct {

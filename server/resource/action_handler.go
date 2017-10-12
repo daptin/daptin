@@ -15,13 +15,13 @@ import (
 	"encoding/hex"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"reflect"
 	"regexp"
+	"strings"
 
+	"github.com/artpar/conform"
 	english "github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
-	"github.com/artpar/conform"
 	"gopkg.in/go-playground/validator.v9"
 	en2 "gopkg.in/go-playground/validator.v9/translations/en"
 )
@@ -474,7 +474,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 
 	}
 
-	return nil, api2go.Request{}, errors.New(fmt.Sprintf("Unidentified outcome: %v", outcome.Type))
+	//return nil, api2go.Request{}, errors.New(fmt.Sprintf("Unidentified outcome: %v", outcome.Type))
 
 }
 

@@ -2,8 +2,8 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
-	log "github.com/sirupsen/logrus"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // FindOne returns an object by its ID
@@ -15,7 +15,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
 			{
 				"reference_id": referenceId,
-				"__type": dr.model.GetName(),
+				"__type":       dr.model.GetName(),
 			},
 		})
 		if err != nil {
@@ -61,7 +61,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	for _, inc := range include {
 		p, ok := inc["permission"].(int64)
 		if !ok {
-			log.Errorf("Failed to convert [%v] to permission: %v", ok)
+			log.Errorf("Failed to convert [%v] to permission: %v", inc["permission"], ok)
 			continue
 		}
 		incType := inc["__type"].(string)
