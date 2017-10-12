@@ -7,7 +7,6 @@ import (
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/oauth2"
-	"strings"
 	"time"
 )
 
