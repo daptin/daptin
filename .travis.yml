@@ -1,9 +1,19 @@
 language: go
 
+go:
+  - 1.8.x
+  - tip
+
 sudo: required
 cache:
   directories:
     - "daptin/node_modules"
+
+before_install:
+  - go get -t -v ./...
+
+script:
+  - go test -race -coverprofile=coverage.txt -covermode=atomic
 
 services:
   - docker
@@ -18,6 +28,7 @@ after_success:
     docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
     docker push daptin/daptin;
     fi
+  - bash <(curl -s https://codecov.io/bash)
 
 notifications:
   email: false
