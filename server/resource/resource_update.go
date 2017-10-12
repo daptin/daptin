@@ -122,7 +122,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 					if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 						val = foreignObject["id"]
 					} else {
-						return nil, errors.New(fmt.Sprintf("No write permisssion on object [%v][%v]", col.ForeignKeyData.TableName, valString))
+						return nil, errors.New(fmt.Sprintf("No write permission on object [%v][%v]", col.ForeignKeyData.TableName, valString))
 					}
 				}
 			}
@@ -378,7 +378,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 					_, err := dr.cruds[rel.GetSubject()].Update(model, req)
 					if err != nil {
-						log.Errorf("Failed to update [%v][%v]: %V", rel.GetObject())
+						log.Errorf("Failed to update [%v][%v]: %v", rel.GetObject(),updatedResource["reference_id"], err)
 					}
 				}
 

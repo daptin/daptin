@@ -22,7 +22,7 @@ type CorsMiddleware struct {
 	// Reject non CORS requests if true. See CorsInfo.IsCors.
 	RejectNonCorsRequests bool
 
-	// Function excecuted for every CORS requests to validate the Origin. (Required)
+	// Function executed for every CORS requests to validate the Origin. (Required)
 	// Must return true if valid, false if invalid.
 	// For instance: simple equality, regexp, DB lookup, ...
 	OriginValidator func(origin string, request *http.Request) bool

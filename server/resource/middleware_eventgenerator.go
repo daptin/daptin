@@ -37,7 +37,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 
 func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, objects []map[string]interface{}) ([]map[string]interface{}, error) {
 
-	var err error = nil
+	var err error
 
 	reqmethod := req.PlainRequest.Method
 	//log.Infof("Generate events for objects", reqmethod)
@@ -63,16 +63,17 @@ func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Re
 
 }
 
-type ExchangeMiddleware struct {
+type exchangeMiddleware struct {
 	cmsConfig   *CmsConfig
 	exchangeMap map[string][]ExchangeContract
 	cruds       *map[string]*DbResource
 }
 
-func (em *ExchangeMiddleware) String() string {
-	return "ExchangeMiddleware"
+func (em *exchangeMiddleware) String() string {
+	return "exchangeMiddleware"
 }
 
+// Creates a new exchange middleware which is responsible for calling external apis on data updates
 func NewExchangeMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) DatabaseRequestInterceptor {
 
 	exchangeMap := make(map[string][]ExchangeContract)
@@ -104,17 +105,19 @@ func NewExchangeMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) 
 
 	}
 
-	return &ExchangeMiddleware{
+	return &exchangeMiddleware{
 		cmsConfig:   cmsConfig,
 		exchangeMap: exchangeMap,
 		cruds:       cruds,
 	}
 }
 
-func (em *ExchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, objects []map[string]interface{}) ([]map[string]interface{}, error) {
+// Intercept before does nothing for exchange middleware and the calls are made only if data update was successful
+func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, objects []map[string]interface{}) ([]map[string]interface{}, error) {
 	return nil, nil
 }
-func (em *ExchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
+// Called after the data changes are complete, resposible for calling the external api.
+func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
 
 	//errors := []error{}
 
