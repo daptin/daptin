@@ -20,15 +20,12 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 
 	if results == nil || len(results) < 1 {
 		return results, nil
-	} else {
-		return results, nil
 	}
 
 	returnMap := make([]map[string]interface{}, 0)
 
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := auth.SessionUser{}
-
 
 	if user != nil {
 		sessionUser = user.(auth.SessionUser)
@@ -114,11 +111,11 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		}
 
 		permission := dr.GetRowPermission(result)
-		//log.Infof("[ObjectAccessPermissionChecker] Permission check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.Permission)
+		//log.Infof("[ObjectAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.PermissionInstance)
 		//log.Infof("Row Permission for [%v] for [%v]", permission, result)
 
 		if req.PlainRequest.Method == "GET" {
-			if permission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
+			if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {
@@ -126,8 +123,16 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 				notIncludedMapCache[referenceId] = true
 
 			}
-		} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" || req.PlainRequest.Method == "DELETE" {
-			if permission.CanWrite(sessionUser.UserReferenceId, sessionUser.Groups) {
+		} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" {
+			if permission.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups) {
+				returnMap = append(returnMap, result)
+				includedMapCache[referenceId] = true
+			} else {
+				//log.Infof("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
+				notIncludedMapCache[referenceId] = true
+			}
+		} else if req.PlainRequest.Method == "DELETE" {
+			if permission.CanDelete(sessionUser.UserReferenceId, sessionUser.Groups) {
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {

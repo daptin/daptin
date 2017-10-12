@@ -91,6 +91,7 @@
           size: 20,
           query: query
         }).then(function (data) {
+          data = data.data;
           console.log("remote method response", data)
           delete data["links"]
           for (var i = 0; i < data.length; i++) {

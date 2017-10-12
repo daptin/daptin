@@ -174,6 +174,10 @@
           }
         }
 
+        if (columnMeta.ColumnName == "default_permission" || columnMeta.ColumnName == "permission") {
+          return "permissionInput";
+        }
+
         switch (inputType) {
           case "truefalse":
             inputType = "checkbox";

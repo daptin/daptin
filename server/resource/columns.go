@@ -347,7 +347,7 @@ var SystemActions = []Action{
 		},
 	},
 	{
-		Name:             "invoke_become_admin",
+		Name:             "become_administrator",
 		Label:            "Become Daptin admin",
 		InstanceOptional: true,
 		OnType:           "world",

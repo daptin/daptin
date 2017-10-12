@@ -448,6 +448,7 @@
         )
       },
       loadSuccess (response) {
+        response = response.data;
 //        console.log("load success", response);
         this.emit1('load-success', response);
 

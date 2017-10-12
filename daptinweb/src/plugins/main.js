@@ -26,9 +26,11 @@ import "../components/vuetable/vuetable.css";
 
 // Register my awesome field
 import fileUpload from "../components/fields/FileUpload.vue";
+import permissionField from "../components/fields/PermissionField.vue";
 import jsonEditor from "../components/fields/FileJsonEditor.vue";
 import dateSelect from "../components/fields/DateSelect.vue";
 Vue.component("fieldFileUpload", fileUpload);
+Vue.component('fieldPermissionInput', permissionField);
 Vue.component("fieldSelectOneOrMore", SelectOneOrMore);
 Vue.component("fieldDateSelect", dateSelect);
 Vue.component("fieldJsonEditor", jsonEditor);

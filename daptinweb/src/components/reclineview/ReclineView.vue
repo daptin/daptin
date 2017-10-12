@@ -340,8 +340,9 @@
                   size: 100
                 }
               }).then(function (result) {
-
-                dfd.resolve(result);
+//                result = result.data;
+//                console.log("recline view result data", result)
+                dfd.resolve([]);
 
               }, function () {
                 that.$notify({
@@ -367,9 +368,10 @@
                 },
                 filter: query.q
               }).then(function (result) {
+                console.log("here ")
                 dfd.resolve({
                   total: result.links.total,
-                  hits: result,
+                  hits: result.data,
                 });
 
               }, function () {
