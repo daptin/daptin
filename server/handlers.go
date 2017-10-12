@@ -163,7 +163,7 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 		newStateMachine["current_state"] = stateMachineInstanceProperties["initial_state"]
 		newStateMachine[typename+"_smd"] = stateMachineInstanceProperties["reference_id"]
 		newStateMachine["is_state_of_"+typename] = subjectInstanceModel["reference_id"]
-		newStateMachine["permission"] = "750"
+		newStateMachine["permission"] = auth.NewPermission(auth.None, auth.Read | auth.Execute, auth.Create | auth.Execute).IntValue()
 
 		req.PlainRequest.Method = "POST"
 
