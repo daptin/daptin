@@ -168,8 +168,8 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 			var objectName string
 			/**
-				api2go give us two params for each relationship
-				<entityName> -> the name of the column which is used to reference, usually <entity>_id but you name it something for special relations in the config
+			api2go give us two params for each relationship
+			<entityName> -> the name of the column which is used to reference, usually <entity>_id but you name it something for special relations in the config
 			*/
 			if !ok {
 				objectName = rel.GetObjectName()
@@ -211,8 +211,8 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 			var subjectName string
 			/**
-				api2go give us two params for each relationship
-				<entityName> -> the name of the column which is used to reference, usually <entity>_id but you name it something for special relations in the config
+			api2go give us two params for each relationship
+			<entityName> -> the name of the column which is used to reference, usually <entity>_id but you name it something for special relations in the config
 			*/
 			if !ok {
 				subjectName = rel.GetSubjectName()

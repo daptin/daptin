@@ -6,8 +6,8 @@ import (
 	//sq "gopkg.in/Masterminds/squirrel.v1"
 	//"reflect"
 	//"github.com/satori/go.uuid"
-	"gopkg.in/Masterminds/squirrel.v1"
 	"github.com/pkg/errors"
+	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
 )
 

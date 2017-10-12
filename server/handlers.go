@@ -1,16 +1,16 @@
 package server
 
 import (
+	"encoding/json"
 	"github.com/artpar/api2go"
+	"github.com/artpar/daptin/server/auth"
+	"github.com/artpar/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/Masterminds/squirrel.v1"
 	"gopkg.in/gin-gonic/gin.v1"
 	"io/ioutil"
-	log "github.com/sirupsen/logrus"
-	"github.com/artpar/daptin/server/resource"
-	"github.com/artpar/daptin/server/auth"
-	"encoding/json"
 	"net/http"
-	"gopkg.in/Masterminds/squirrel.v1"
 )
 
 func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmManager, cruds map[string]*resource.DbResource, db *sqlx.DB) func(context *gin.Context) {
@@ -85,11 +85,10 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 			resource.CheckErr(err, "Failed to create audit for [%v]", objectStateMachine.GetTableName())
 		}
 
-
-		s, v, err := squirrel.Update(typename + "_state").
-		Set("current_state", nextState).
-		Set("version", stateObject["version"].(int64) + 1).
-		Where(squirrel.Eq{"reference_id": stateMachineId}).ToSql()
+		s, v, err := squirrel.Update(typename+"_state").
+			Set("current_state", nextState).
+			Set("version", stateObject["version"].(int64)+1).
+			Where(squirrel.Eq{"reference_id": stateMachineId}).ToSql()
 
 		_, err = db.Exec(s, v...)
 		if err != nil {
@@ -163,7 +162,7 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 		newStateMachine["current_state"] = stateMachineInstanceProperties["initial_state"]
 		newStateMachine[typename+"_smd"] = stateMachineInstanceProperties["reference_id"]
 		newStateMachine["is_state_of_"+typename] = subjectInstanceModel["reference_id"]
-		newStateMachine["permission"] = auth.NewPermission(auth.None, auth.Read | auth.Execute, auth.Create | auth.Execute).IntValue()
+		newStateMachine["permission"] = auth.NewPermission(auth.None, auth.Read|auth.Execute, auth.Create|auth.Execute).IntValue()
 
 		req.PlainRequest.Method = "POST"
 

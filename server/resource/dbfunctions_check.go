@@ -2,10 +2,10 @@ package resource
 
 import (
 	"fmt"
-	"github.com/artpar/api2go"
-	log "github.com/sirupsen/logrus"
-	"github.com/jmoiron/sqlx"
 	"github.com/alexeyco/simpletable"
+	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
+	log "github.com/sirupsen/logrus"
 )
 
 func InfoErr(err error, message string) {

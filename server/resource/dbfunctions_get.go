@@ -1,15 +1,15 @@
 package resource
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
-	"fmt"
-	"strings"
 	"golang.org/x/oauth2"
-	"time"
-	"encoding/json"
+	"gopkg.in/Masterminds/squirrel.v1"
 	"strconv"
+	"strings"
+	"time"
 )
 
 func GetObjectByWhereClause(objType string, db *sqlx.DB, queries ...squirrel.Eq) ([]map[string]interface{}, error) {
@@ -198,8 +198,8 @@ func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
 	marketPlaces := []Marketplace{}
 
 	s, v, err := squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s.user_id", "s.reference_id").
-			From("marketplace s").
-			ToSql()
+		From("marketplace s").
+		ToSql()
 	if err != nil {
 		return marketPlaces, err
 	}
@@ -228,8 +228,8 @@ func (resource *DbResource) GetMarketplaceByReferenceId(referenceId string) (Mar
 	marketPlace := Marketplace{}
 
 	s, v, err := squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s.user_id", "s.reference_id").
-			From("marketplace s").Where(squirrel.Eq{"reference_id": referenceId}).
-			ToSql()
+		From("marketplace s").Where(squirrel.Eq{"reference_id": referenceId}).
+		ToSql()
 	if err != nil {
 		return marketPlace, err
 	}
@@ -244,8 +244,8 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 	sites := []SubSite{}
 
 	s, v, err := squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s.permission", "s.user_id", "s.path").
-			From("site s").
-			ToSql()
+		From("site s").
+		ToSql()
 	if err != nil {
 		return sites, err
 	}
@@ -274,10 +274,10 @@ func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Conf
 	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
 	s, v, err := squirrel.
-	Select("oc.client_id", "oc.client_secret", "oc.redirect_uri", "oc.auth_url", "oc.token_url", "oc.scope").
-			From("oauth_token ot").Join("oauth_connect oc").
-			JoinClause("on oc.id = ot.oauth_connect_id").
-			Where(squirrel.Eq{"ot.deleted_at": nil}).Where(squirrel.Eq{"ot.id": id}).ToSql()
+		Select("oc.client_id", "oc.client_secret", "oc.redirect_uri", "oc.auth_url", "oc.token_url", "oc.scope").
+		From("oauth_token ot").Join("oauth_connect oc").
+		JoinClause("on oc.id = ot.oauth_connect_id").
+		Where(squirrel.Eq{"ot.deleted_at": nil}).Where(squirrel.Eq{"ot.id": id}).ToSql()
 
 	if err != nil {
 		return nil, err
@@ -319,10 +319,10 @@ func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId st
 	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
 	s, v, err := squirrel.
-	Select("oc.client_id", "oc.client_secret", "oc.redirect_uri", "oc.auth_url", "oc.token_url", "oc.scope").
-			From("oauth_token ot").Join("oauth_connect oc").
-			JoinClause("on oc.id = ot.oauth_connect_id").
-			Where(squirrel.Eq{"ot.deleted_at": nil}).Where(squirrel.Eq{"ot.reference_id": referenceId}).ToSql()
+		Select("oc.client_id", "oc.client_secret", "oc.redirect_uri", "oc.auth_url", "oc.token_url", "oc.scope").
+		From("oauth_token ot").Join("oauth_connect oc").
+		JoinClause("on oc.id = ot.oauth_connect_id").
+		Where(squirrel.Eq{"ot.deleted_at": nil}).Where(squirrel.Eq{"ot.reference_id": referenceId}).ToSql()
 
 	if err != nil {
 		return nil, err
@@ -365,7 +365,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 	var expires_in int64
 	var token oauth2.Token
 	s, v, err := squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
-			Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+		Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 
 	if err != nil {
 		return nil, err
@@ -401,7 +401,7 @@ func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 	var expires_in int64
 	var token oauth2.Token
 	s, v, err := squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
-			Where(squirrel.Eq{"id": id}).ToSql()
+		Where(squirrel.Eq{"id": id}).ToSql()
 
 	if err != nil {
 		return nil, err

@@ -1,9 +1,9 @@
 package server
 
 import (
+	"gopkg.in/gin-gonic/gin.v1"
 	"net/http"
 	"net/url"
-	"gopkg.in/gin-gonic/gin.v1"
 )
 
 // Possible improvements:

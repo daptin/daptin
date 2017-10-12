@@ -1,21 +1,21 @@
 package resource
 
 import (
-	"github.com/artpar/rclone/cmd"
 	"encoding/base64"
-	log "github.com/sirupsen/logrus"
+	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
-	"io/ioutil"
 	"github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
+	"io/ioutil"
 	//"os"
-	"path/filepath"
-	"strings"
-	"github.com/gin-gonic/gin/json"
 	"archive/zip"
+	"context"
+	"github.com/gin-gonic/gin/json"
+	"github.com/pkg/errors"
 	"io"
 	"os"
-	"context"
-	"github.com/pkg/errors"
+	"path/filepath"
+	"strings"
 )
 
 type FileUploadActionPerformer struct {

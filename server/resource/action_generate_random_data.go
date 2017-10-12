@@ -1,12 +1,12 @@
 package resource
 
 import (
-	log "github.com/sirupsen/logrus"
-	"github.com/artpar/api2go"
-	"github.com/satori/go.uuid"
-	"github.com/artpar/daptin/server/auth"
-	"net/http"
 	"context"
+	"github.com/artpar/api2go"
+	"github.com/artpar/daptin/server/auth"
+	"github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
+	"net/http"
 )
 
 type RandomDataGeneratePerformer struct {
@@ -53,9 +53,9 @@ func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields m
 	}
 
 	sessionUser := auth.SessionUser{
-		UserId: userIdInt,
+		UserId:          userIdInt,
 		UserReferenceId: userReferenceId,
-		Groups: []auth.GroupPermission{},
+		Groups:          []auth.GroupPermission{},
 	}
 	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
 
@@ -90,7 +90,7 @@ func GetFakeRow(columns []api2go.ColumnInfo) map[string]interface{} {
 			}
 		}
 
-		if (isStandardColumn) {
+		if isStandardColumn {
 			continue
 		}
 
