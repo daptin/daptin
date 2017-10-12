@@ -272,8 +272,8 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 	}
 
 	res, err := dr.db.Queryx(
-		fmt.Sprintf("select ug.reference_id as referenceid, uug.permission " +
-			"from usergroup ug " +
+		fmt.Sprintf("select ug.reference_id as referenceid, uug.permission "+
+				"from usergroup ug "+
 				"join %s_%s_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id and uug.%s_id = ?", objType, objType, objType), objectId)
 	if err != nil {
 		log.Errorf("Failed to query object group by object id [%v][%v] == %v", objType, objectId, err)
@@ -341,13 +341,15 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 	}
 
 	_, err = dbResource.db.Exec("update world set permission = ?, default_permission = ? where table_name like '%_audit'",
-		auth.NewPermission(auth.Read, auth.Read, auth.Read).IntValue(),
-		auth.NewPermission(auth.Create, auth.Create, auth.Create).IntValue())
+		auth.NewPermission(auth.Create, auth.Create, auth.Create).IntValue(),
+		auth.NewPermission(auth.Read, auth.Read, auth.Read).IntValue())
 	if err != nil {
 		log.Errorf("Failed to update audit permissions: %v", err)
 	}
 
-	_, err = dbResource.db.Exec("update action set permission = ?", 750)
+	_, err = dbResource.db.Exec("update action set permission = ?", auth.NewPermission(auth.None, auth.Read|auth.Execute, auth.Create|auth.Execute).IntValue())
+	_, err = dbResource.db.Exec("update action set permission = ? where action_name in 'signin'", auth.NewPermission(auth.Peek|auth.Execute, auth.Read|auth.Execute, auth.Create|auth.Execute).IntValue())
+
 	if err != nil {
 		log.Errorf("Failed to update audit permissions: %v", err)
 	}
@@ -603,6 +605,9 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	}
 
 	//log.Infof("Have to return first of %d results", len(results))
+	if len(results) == 0 {
+		return nil, fmt.Errorf("No such object [%v][%v]", typeName, referenceId)
+	}
 
 	return results[0], err
 }

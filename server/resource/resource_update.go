@@ -67,162 +67,161 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	allColumns := dr.model.GetColumns()
 	log.Infof("Update object request with changes: %v", allChanges)
 
-	dataToInsert := make(map[string]interface{})
+	//dataToInsert := make(map[string]interface{})
 
-	colsList := []string{}
-	valsList := []interface{}{}
-	for _, col := range allColumns {
+	if len(allChanges) > 0 {
+		colsList := []string{}
+		valsList := []interface{}{}
+		for _, col := range allColumns {
 
-		//log.Infof("Add column: %v", col.ColumnName)
-		if col.IsAutoIncrement {
-			continue
-		}
-
-		if col.ColumnName == "created_at" {
-			continue
-		}
-
-		if col.ColumnName == "reference_id" {
-			continue
-		}
-
-		if col.ColumnName == "updated_at" {
-			continue
-		}
-
-		if col.ColumnName == "version" {
-			continue
-		}
-
-		change, ok := allChanges[col.ColumnName]
-		if !ok {
-			continue
-		}
-
-		//log.Infof("Check column: [%v]  (%v) => (%v) ", col.ColumnName, change.OldValue, change.NewValue)
-
-		var val interface{}
-		val = change.NewValue
-		if col.IsForeignKey {
-
-			if val == "" {
+			//log.Infof("Add column: %v", col.ColumnName)
+			if col.IsAutoIncrement {
 				continue
 			}
 
-			log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.TableName, val)
-
-			valString := val.(string)
-
-			foreignObject, err := dr.GetReferenceIdToObject(col.ForeignKeyData.TableName, valString)
-			if err != nil {
-				return nil, err
-			}
-
-			foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.TableName, valString)
-
-			if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
-				val = foreignObject["id"]
-			} else {
-				return nil, errors.New(fmt.Sprintf("No write permisssion on object [%v][%v]", col.ForeignKeyData.TableName, valString))
-			}
-
-		}
-		var err error
-
-		if col.ColumnType == "password" {
-			val, err = BcryptHashString(val.(string))
-			if err != nil {
-				log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
+			if col.ColumnName == "created_at" {
 				continue
 			}
-		} else if col.ColumnType == "datetime" {
-			parsedTime, ok := val.(time.Time)
+
+			if col.ColumnName == "reference_id" {
+				continue
+			}
+
+			if col.ColumnName == "updated_at" {
+				continue
+			}
+
+			if col.ColumnName == "version" {
+				continue
+			}
+
+			change, ok := allChanges[col.ColumnName]
 			if !ok {
-				val, err = time.Parse("2006-01-02T15:04:05.999Z", val.(string))
-				CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
-			} else {
-				val = parsedTime
+				continue
 			}
-			// 2017-07-13T18:30:00.000Z
 
-		} else if col.ColumnType == "encrypted" {
+			//log.Infof("Check column: [%v]  (%v) => (%v) ", col.ColumnName, change.OldValue, change.NewValue)
 
-			secret, err := dr.configStore.GetConfigValueFor("encryption.secret", "backend")
-			if err != nil {
-				log.Error("Failed to get secret from config: %v", err)
-				val = ""
-			} else {
-				val, err = Encrypt([]byte(secret), val.(string))
-				if err != nil {
-					log.Errorf("Failed to convert string to encrypted value, not storing the value: %v", err)
-					val = ""
+			var val interface{}
+			val = change.NewValue
+			if col.IsForeignKey {
+
+				log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.TableName, val)
+
+				if val != nil && val != "" {
+
+					valString := val.(string)
+
+					foreignObject, err := dr.GetReferenceIdToObject(col.ForeignKeyData.TableName, valString)
+					if err != nil {
+						return nil, err
+					}
+
+					foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.TableName, valString)
+
+					if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+						val = foreignObject["id"]
+					} else {
+						return nil, errors.New(fmt.Sprintf("No write permisssion on object [%v][%v]", col.ForeignKeyData.TableName, valString))
+					}
 				}
 			}
-		} else if col.ColumnType == "date" {
+			var err error
 
-			// 2017-07-13T18:30:00.000Z
-
-			parsedTime, ok := val.(time.Time)
-			if !ok {
-				val1, err := time.Parse("2006-01-02T15:04:05.999Z", val.(string))
-
-				InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
+			if col.ColumnType == "password" {
+				val, err = BcryptHashString(val.(string))
 				if err != nil {
-					val, err = time.Parse("2006-01-02", val.(string))
-					InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
+					log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
+					continue
+				}
+			} else if col.ColumnType == "datetime" {
+				parsedTime, ok := val.(time.Time)
+				if !ok {
+					val, err = time.Parse("2006-01-02T15:04:05.999Z", val.(string))
+					CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
 				} else {
-					val = val1
+					val = parsedTime
 				}
-			} else {
-				val = parsedTime
+				// 2017-07-13T18:30:00.000Z
+
+			} else if col.ColumnType == "encrypted" {
+
+				secret, err := dr.configStore.GetConfigValueFor("encryption.secret", "backend")
+				if err != nil {
+					log.Error("Failed to get secret from config: %v", err)
+					val = ""
+				} else {
+					val, err = Encrypt([]byte(secret), val.(string))
+					if err != nil {
+						log.Errorf("Failed to convert string to encrypted value, not storing the value: %v", err)
+						val = ""
+					}
+				}
+			} else if col.ColumnType == "date" {
+
+				// 2017-07-13T18:30:00.000Z
+
+				parsedTime, ok := val.(time.Time)
+				if !ok {
+					val1, err := time.Parse("2006-01-02T15:04:05.999Z", val.(string))
+
+					InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
+					if err != nil {
+						val, err = time.Parse("2006-01-02", val.(string))
+						InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
+					} else {
+						val = val1
+					}
+				} else {
+					val = parsedTime
+				}
+
+			} else if col.ColumnType == "time" {
+				parsedTime, ok := val.(time.Time)
+				if !ok {
+					val, err = time.Parse("15:04:05", val.(string))
+					CheckErr(err, fmt.Sprintf("Failed to parse string as time [%v]", val))
+				} else {
+					val = parsedTime
+				}
+				// 2017-07-13T18:30:00.000Z
+
 			}
 
-		} else if col.ColumnType == "time" {
-			parsedTime, ok := val.(time.Time)
-			if !ok {
-				val, err = time.Parse("15:04:05", val.(string))
-				CheckErr(err, fmt.Sprintf("Failed to parse string as time [%v]", val))
-			} else {
-				val = parsedTime
+			if ok {
+				//dataToInsert[col.ColumnName] = val
+				colsList = append(colsList, col.ColumnName)
+				valsList = append(valsList, val)
 			}
-			// 2017-07-13T18:30:00.000Z
 
 		}
 
-		if ok {
-			dataToInsert[col.ColumnName] = val
-			colsList = append(colsList, col.ColumnName)
-			valsList = append(valsList, val)
+		colsList = append(colsList, "updated_at")
+		valsList = append(valsList, time.Now())
+
+		colsList = append(colsList, "version")
+		valsList = append(valsList, data.GetNextVersion())
+
+		builder := squirrel.Update(dr.model.GetName())
+
+		for i := range colsList {
+			//log.Infof("cols to set: %v == %v", colsList[i], valsList[i])
+			builder = builder.Set(colsList[i], valsList[i])
 		}
 
+		query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).ToSql()
+		if err != nil {
+			log.Errorf("Failed to create update query: %v", err)
+			return NewResponse(nil, nil, 500, nil), err
+		}
+
+		//log.Infof("Update query: %v == %v", query, vals)
+		_, err = dr.db.Exec(query, vals...)
+		if err != nil {
+			log.Errorf("Failed to execute update query: %v", err)
+			return NewResponse(nil, nil, 500, nil), err
+		}
 	}
-
-	colsList = append(colsList, "updated_at")
-	valsList = append(valsList, time.Now())
-
-	colsList = append(colsList, "version")
-	valsList = append(valsList, data.GetNextVersion())
-
-	builder := squirrel.Update(dr.model.GetName())
-
-	for i := range colsList {
-		//log.Infof("cols to set: %v == %v", colsList[i], valsList[i])
-		builder = builder.Set(colsList[i], valsList[i])
-	}
-
-	query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).ToSql()
-	if err != nil {
-		log.Errorf("Failed to create update query: %v", err)
-		return NewResponse(nil, nil, 500, nil), err
-	}
-
-	//log.Infof("Update query: %v == %v", query, vals)
-	_, err = dr.db.Exec(query, vals...)
-	if err != nil {
-		log.Errorf("Failed to execute update query: %v", err)
-		return NewResponse(nil, nil, 500, nil), err
-	}
-
 	if data.IsDirty() {
 
 		auditModel := data.GetAuditModel()
@@ -449,6 +448,59 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		}
 	}
 	//
+
+	for relationName, deleteRelations := range data.DeleteIncludes {
+
+		referencedRelation := api2go.TableRelation{}
+		referencedTypeName := ""
+		for _, relation := range dr.model.GetRelations() {
+
+			if relation.GetSubject() == dr.model.GetTableName() && relation.GetObjectName() == relationName {
+				referencedRelation = relation
+				referencedTypeName = relation.GetObject()
+				break
+			} else if relation.GetObject() == dr.model.GetTableName() && relation.GetSubjectName() == relationName {
+				referencedRelation = relation
+				referencedTypeName = relation.GetSubject()
+				break
+			}
+		}
+
+		if referencedRelation.GetRelation() == "" {
+			continue
+		}
+		for _, id := range deleteRelations {
+
+			otherObjectPermission := dr.GetObjectPermission(referencedTypeName, id)
+
+			if otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+
+				otherObjectId, err := dr.GetReferenceIdToId(referencedTypeName, id)
+
+				if err != nil {
+					log.Errorf("Referenced object not found: %v", err)
+					continue
+				}
+
+				joinReference, _, err := dr.GetRowsByWhereClause(referencedRelation.GetJoinTableName(), squirrel.Eq{relationName: otherObjectId})
+				if err != nil {
+					log.Errorf("Referenced relation found: %v", err)
+					continue
+				}
+
+				joinReferenceObject := joinReference[0]
+
+				_, err = dr.cruds[referencedRelation.GetJoinTableName()].Delete(joinReferenceObject["reference_id"].(string), req)
+				if err != nil {
+					log.Errorf("Failed to delete relation [%v][%v]: %v", referencedRelation.GetSubject(), referencedRelation.GetObjectName(), err)
+				}
+			} else {
+				log.Errorf("Not allowed to delete relation [%v][%v]: %v", referencedRelation.GetSubject(), referencedRelation.GetObjectName(), err)
+			}
+
+		}
+		log.Infof("Delete to relation: %v", deleteRelations)
+	}
 
 	for _, bf := range dr.ms.AfterUpdate {
 		//log.Infof("Invoke AfterUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())

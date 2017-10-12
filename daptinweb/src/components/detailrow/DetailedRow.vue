@@ -168,9 +168,9 @@
     },
     computed: {},
     methods: {
-      initiateDelete: function(){
+      initiateDelete: function () {
 
-        if (!this.showAll){
+        if (!this.showAll) {
           console.log("not the parent")
           this.$emit("deleteRow", this.model)
         } else {
@@ -189,7 +189,7 @@
         }
         return null;
       },
-      deleteRow: function(colName, rowToDelete){
+      deleteRow: function (colName, rowToDelete) {
         console.log("call to delete row", arguments);
       },
       addRow: function (colName, newRow) {
@@ -210,7 +210,7 @@
             && newRowTypeAttributes.ColumnModel[that.jsonApiModelName + "_id"]["jsonApi"] === "hasOne") {
             newRow.data[that.jsonApiModelName + "_id"] = {
               type: that.jsonApiModelName,
-               id: that.model["id"]
+              id: that.model["id"]
             };
           }
 
@@ -319,30 +319,37 @@
               builderStack.builderStack = [];
               // console.log("finder: ", finder)
 
+              try {
+                let relationJsonApiModel = that.jsonApi.modelFor(item.type);
 
-              if (item.type == "user" || item.type == "usergroup") {
+
+                if (item.type == "user" || item.type == "usergroup") {
 
 
-                that.relations.push({
-                  name: columnName,
-                  title: item.title,
-                  finder: finder,
-                  label: item.label,
-                  type: item.type,
-                  failed: false,
-                  jsonModelAttrs: that.jsonApi.modelFor(item.type),
-                });
-              } else {
+                  that.relations.push({
+                    name: columnName,
+                    title: item.title,
+                    finder: finder,
+                    label: item.label,
+                    type: item.type,
+                    failed: false,
+                    jsonModelAttrs: relationJsonApiModel,
+                  });
+                } else {
 
-                that.relations.unshift({
-                  name: columnName,
-                  title: item.title,
-                  finder: finder,
-                  label: item.label,
-                  failed: false,
-                  type: item.type,
-                  jsonModelAttrs: that.jsonApi.modelFor(item.type),
-                });
+                  that.relations.unshift({
+                    name: columnName,
+                    title: item.title,
+                    finder: finder,
+                    label: item.label,
+                    failed: false,
+                    type: item.type,
+                    jsonModelAttrs: relationJsonApiModel,
+                  });
+
+                }
+              } catch (e) {
+                console.log("Model for ", item.type, "not found")
               }
 
 
