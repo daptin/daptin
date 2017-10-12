@@ -154,7 +154,7 @@
                   <i class="fa fa-3x fa-users black"></i>Create new user group
                 </router-link>
 
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'invoke_become_admin'}}"
+                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'become_administrator'}}"
                              class="btn btn-lg btn-app dashboard_button">
                   <i class="fa fa-3x fa-expeditedssl black"></i>Become admin
                 </router-link>
