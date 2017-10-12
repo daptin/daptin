@@ -62,4 +62,3 @@ build:
   # Default is both hooks empty.
   hooks:
     pre: rice embed-go
-    post: ./clean.sh
