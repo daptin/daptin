@@ -24,9 +24,9 @@ type StateMachineInstance struct {
 func (fsm *fsmManager) getStateMachineInstance(objType string, objId int64, machineInstanceId string) (StateMachineInstance, error) {
 
 	s, v, err := squirrel.Select("current_state", objType+"_smd", "is_state_of_"+objType, "id", "created_at", "permission").
-		From(objType + "_state").
-		Where(squirrel.Eq{"reference_id": machineInstanceId}).
-		Where(squirrel.Eq{"is_state_of_" + objType: objId}).ToSql()
+			From(objType + "_state").
+			Where(squirrel.Eq{"reference_id": machineInstanceId}).
+			Where(squirrel.Eq{"is_state_of_" + objType: objId}).ToSql()
 
 	var res StateMachineInstance
 	if err != nil {
@@ -60,7 +60,7 @@ type LoopbackEventDesc struct {
 	Src []string
 
 	// Dst is the destination state that the FSM will be in if the transition
-	// succeds.
+	// succeeds.
 	Dst string
 }
 
@@ -140,9 +140,9 @@ func (fsm *fsmManager) ApplyEvent(subject map[string]interface{}, stateMachineEv
 		return nextState, err
 	} else {
 		return stateMachineInstance.CurrestState,
-			errors.New(fmt.Sprintf("Cannot apply event %s at this state [%v]",
-				stateMachineEvent.GetEventName(), stateMachineInstance.CurrestState),
-			)
+				errors.New(fmt.Sprintf("Cannot apply event %s at this state [%v]",
+					stateMachineEvent.GetEventName(), stateMachineInstance.CurrestState),
+				)
 	}
 
 }

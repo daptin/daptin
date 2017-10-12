@@ -194,6 +194,9 @@ func (c *ConfigStore) GetWebConfig() map[string]string {
 
 	retMap := make(map[string]string)
 	res, err := c.db.Queryx(s, v...)
+	if err != nil {
+		log.Errorf("Failed to get web config map: %v", err)
+	}
 	defer res.Close()
 
 	for res.Next() {

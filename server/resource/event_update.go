@@ -1,5 +1,5 @@
 package resource
 
-func NewUpdateEventHandler() DatabaseRequestInterceptor {
-	return &eventHandlerMiddleware{}
-}
+//func NewUpdateEventHandler() DatabaseRequestInterceptor {
+//	return &eventHandlerMiddleware{}
+//}

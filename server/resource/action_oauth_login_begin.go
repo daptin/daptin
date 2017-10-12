@@ -37,13 +37,13 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
 
 	authConnectorData := inFieldMap["subject"].(map[string]interface{})
 
-	redirectUri := authConnectorData["redirect_uri"].(string)
-
-	if strings.Index(redirectUri, "?") > -1 {
-		redirectUri = redirectUri + "&authenticator=" + authConnectorData["name"].(string)
-	} else {
-		redirectUri = redirectUri + "?authenticator=" + authConnectorData["name"].(string)
-	}
+	//redirectUri := authConnectorData["redirect_uri"].(string)
+	//
+	//if strings.Index(redirectUri, "?") > -1 {
+	//	redirectUri = redirectUri + "&authenticator=" + authConnectorData["name"].(string)
+	//} else {
+	//	redirectUri = redirectUri + "?authenticator=" + authConnectorData["name"].(string)
+	//}
 
 	conf, _, err := GetOauthConnectionDescription(authConnectorData["name"].(string), d.cruds["oauth_connect"])
 	CheckErr(err, "Failed to get oauth.conf from authenticator name")
