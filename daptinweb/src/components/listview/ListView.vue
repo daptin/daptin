@@ -125,13 +125,21 @@
         var that = this;
         console.log("Delete row from list view", rowToDelete, that.finder);
 
-        that.jsonApi.builderStack = that.finder;
-        var top = that.jsonApi.builderStack.pop();
+        that.jsonApi.builderStack = [];
+
+        for (var i = 0; i < that.finder.length - 1; i++) {
+          that.jsonApi.builderStack.push(that.finder[i])
+        }
+
+        var top = that.finder[that.finder.length-1];
+
         that.jsonApi.relationships().all(top.model).destroy([{
           "type": rowToDelete["__type"],
           "id": rowToDelete["id"]
         }]).then(
-          that.success,
+          function(e){
+            that.reloadData();
+          },
           that.failed
         )
 

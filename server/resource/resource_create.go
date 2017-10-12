@@ -30,7 +30,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		data.Data["__type"] = dr.model.GetName()
 		responseData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{data.Data})
 		if err != nil {
-			log.Warnf("Error from before create middleware: %v", err)
+			log.Warnf("Error from before create middleware [%v]: %v", bf.String(), err)
 			return nil, err
 		}
 		if responseData == nil {
@@ -263,13 +263,14 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
 		}
 
-	} else if dr.model.GetName() == "user" && sessionUser.UserId != 0 {
+	} else if dr.model.GetName() == "user" {
 
-		log.Infof("Associate new user with user: %v", sessionUser.UserId)
+		adminUserId, _ := GetAdminUserIdAndUserGroupId(dr.db)
+		log.Infof("Associate new user with user: %v", adminUserId)
 
 		belogsToUserGroupSql, q, err := squirrel.
 		Update("user").
-				Set("user_id", createdResource["id"]).
+				Set("user_id", adminUserId).
 				Where(squirrel.Eq{"id": createdResource["id"]}).ToSql()
 
 		log.Infof("Query: %v", belogsToUserGroupSql)

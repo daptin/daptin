@@ -51,8 +51,17 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 
 		permission := dr.GetRowPermission(result)
 		//log.Infof("Row Permission for [%v] for [%v]", permission, result)
-		if permission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
+
+		if req.PlainRequest.Method == "GET" {
+			if permission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
+				returnMap = append(returnMap, result)
+				includedMapCache[referenceId] = true
+			} else {
+				notIncludedMapCache[referenceId] = true
+			}
+		} else if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
 			returnMap = append(returnMap, result)
+			includedMapCache[referenceId] = true
 		} else {
 			//log.Infof("[ObjectAccessPermissionChecker] Result not to be included: %v", result["reference_id"])
 			notIncludedMapCache[referenceId] = true

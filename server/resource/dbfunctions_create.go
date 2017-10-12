@@ -190,7 +190,7 @@ func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
 			TableName:         auditTableName,
 			Columns:           columnsCopy,
 			IsHidden:          true,
-			DefaultPermission: 444,
+			DefaultPermission: auth.NewPermission(auth.Read, auth.Read, auth.Read).IntValue(),
 			Permission:        auth.NewPermission(auth.Create, auth.Create, auth.Create).IntValue(),
 		}
 
