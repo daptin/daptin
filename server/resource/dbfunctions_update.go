@@ -656,7 +656,7 @@ func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbRes
 
 			importSuccess = true
 			for _, row := range data {
-				model := api2go.NewApi2GoModelWithData(importFile.Entity, nil, auth.DEFAULT_PERMISSION, nil, row)
+				model := api2go.NewApi2GoModelWithData(importFile.Entity, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, row)
 				_, err := cruds[importFile.Entity].Create(model, req)
 				if err != nil {
 					log.Errorf("Failed to import row from data file: %v", err)
@@ -727,7 +727,9 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 		CheckErr(err, "Failed to user group")
 
 		refIf := uuid.NewV4().String()
-		s, v, err = squirrel.Insert("user_user_id_has_usergroup_usergroup_id").Columns("user_id", "usergroup_id", "permission", "reference_id").Values(userId, userGroupId, auth.DEFAULT_PERMISSION, refIf).ToSql()
+		s, v, err = squirrel.Insert("user_user_id_has_usergroup_usergroup_id").
+				Columns("user_id", "usergroup_id", "permission", "reference_id").
+				Values(userId, userGroupId, auth.DEFAULT_PERMISSION, refIf).ToSql()
 		CheckErr(err, "Failed to create insert user has usergroup sql ")
 		_, err = tx.Exec(s, v...)
 		CheckErr(err, "Failed to insert user has usergroup")
@@ -759,7 +761,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 	defaultWorldPermission := auth.DEFAULT_PERMISSION
 
 	if systemHasNoAdmin {
-		defaultWorldPermission = 777
+		defaultWorldPermission = auth.NewPermission(auth.CRUD | auth.Execute, auth.CRUD | auth.Execute, auth.CRUD | auth.Execute)
 	}
 
 	for _, table := range initConfig.Tables {
@@ -789,10 +791,10 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 		} else {
 
 			if table.Permission == 0 {
-				table.Permission = defaultWorldPermission
+				table.Permission = defaultWorldPermission.IntValue()
 			}
 			if table.DefaultPermission == 0 {
-				table.DefaultPermission = defaultWorldPermission
+				table.DefaultPermission = defaultWorldPermission.IntValue()
 			}
 
 			log.Infof("Insert table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)

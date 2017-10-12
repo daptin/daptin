@@ -6,7 +6,7 @@
 
     <div class="box-header">
       <div class="box-title">
-        <span style="font-weight: 600; font-size: 35px;"> {{jsonApiModelName | titleCase}} </span>
+        <!--<span style="font-weight: 600; font-size: 35px;"> {{jsonApiModelName | titleCase}} </span>-->
       </div>
       <div class="box-tools">
         <div class="ui icon buttons">
@@ -58,7 +58,7 @@
 
       <div class="col-md-12" v-for="item in tableData">
         <detailed-table-row :show-all="false" :model="item" :json-api="jsonApi"
-                            :json-api-model-name="jsonApiModelName"
+                            :json-api-model-name="jsonApiModelName" @deleteRow="deleteRow"
                             :key="item.id">
         </detailed-table-row>
       </div>
@@ -121,7 +121,21 @@
       }
     },
     methods: {
+      deleteRow(rowToDelete) {
+        var that = this;
+        console.log("Delete row from list view", rowToDelete, that.finder);
 
+        that.jsonApi.builderStack = that.finder;
+        var top = that.jsonApi.builderStack.pop();
+        that.jsonApi.relationships().all(top.model).destroy([{
+          "type": rowToDelete["__type"],
+          "id": rowToDelete["id"]
+        }]).then(
+          that.success,
+          that.failed
+        )
+
+      },
       saveRow(obj) {
         var that = this;
         var res = {data: obj, type: this.jsonApiModelName};
@@ -160,6 +174,7 @@
         )
       },
       success(data) {
+        data = data.data;
         var that = this;
         console.log("data loaded", arguments)
         that.tableData = data;

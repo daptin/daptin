@@ -18,7 +18,7 @@
     "axios": "^0.15.3",
     "babel-runtime": "^5.8.0",
     "chart.js": "2.3.0",
-    "devour-client": "^1.4.3",
+    "devour-client": "^2.0.5",
     "element-ui": "^1.3.6",
     "fs": "0.0.1-security",
     "hideseek": "^0.7.0",

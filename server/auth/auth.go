@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"github.com/artpar/api2go"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -9,9 +8,11 @@ import (
 	"net/http"
 	"github.com/artpar/daptin/server/jwt"
 	"context"
+	"github.com/artpar/api2go"
+	"strings"
+	"fmt"
+	"database/sql/driver"
 )
-
-const DEFAULT_PERMISSION int64 = 750
 
 type CmsUser interface {
 	GetName() string
@@ -42,8 +43,141 @@ func (c *cmsUser) IsLoggedIn() bool {
 	return c.isLoggedIn
 }
 
-func GetUser(req *http.Request) *CmsUser {
+type AuthPermission int64
+
+const None AuthPermission = iota
+
+const (
+	Peek          AuthPermission = 1 << iota
+	ReadStrict
+	CreateStrict
+	UpdateStrict
+	DeleteStrict
+	ExecuteStrict
+	ReferStrict
+)
+
+const (
+	Read    = ReadStrict | Peek
+	Refer   = ReferStrict | Read
+	Create  = CreateStrict | Read
+	Update  = UpdateStrict | Read
+	Delete  = DeleteStrict | Read
+	Execute = ExecuteStrict | Peek
+	CRUD    = Read | Create | Update | Delete | Refer
+)
+
+type ObjectPermission struct {
+	OwnerPermission AuthPermission
+	GroupPermission AuthPermission
+	GuestPermission AuthPermission
+}
+
+func (op *ObjectPermission) Scan(value interface{}) error {
+
+	newOp := ParsePermission(value.(int64))
+	op.GroupPermission = newOp.GroupPermission
+	op.OwnerPermission = newOp.OwnerPermission
+	op.GuestPermission = newOp.GuestPermission
 	return nil
+}
+func (op ObjectPermission) Value() (driver.Value, error) {
+	return op.IntValue(), nil
+}
+
+var DEFAULT_PERMISSION ObjectPermission = NewPermission(Peek|Execute, Read, CRUD|Execute)
+
+func (op ObjectPermission) OwnerCan(a AuthPermission) bool {
+	return op.OwnerPermission&a == a
+}
+
+func (op ObjectPermission) GroupCan(a AuthPermission) bool {
+	return op.GroupPermission&a == a
+}
+
+func (op ObjectPermission) GuestCan(a AuthPermission) bool {
+	return op.GuestPermission&a == a
+}
+
+func (al ObjectPermission) IntValue() int64 {
+	return int64(al.OwnerPermission)*1000*1000 + int64(al.GroupPermission)*1000 + int64(al.GuestPermission)
+}
+
+func ParsePermission(p int64) ObjectPermission {
+	al := ObjectPermission{}
+	al.GuestPermission = AuthPermission(p % 1000)
+	p = p / 1000
+	al.GroupPermission = AuthPermission(p % 1000)
+	p = p / 1000
+	al.OwnerPermission = AuthPermission(p % 1000)
+	return al
+}
+
+func NewPermission(guest AuthPermission, group AuthPermission, owner AuthPermission) ObjectPermission {
+	al := ObjectPermission{}
+	al.GuestPermission = guest
+	al.GroupPermission = group
+	al.OwnerPermission = owner
+	return al
+}
+
+func (al ObjectPermission) String() string {
+	return fmt.Sprintf("Owner[%v], Group[%v], Guest[%v]", al.OwnerPermission, al.GroupPermission, al.GuestPermission)
+}
+
+func (a AuthPermission) String() string {
+
+	vals := []string{}
+
+	if a == None {
+		vals = append(vals, "Can None")
+		return "Can Do None"
+	}
+
+	if Peek&a == Peek {
+		vals = append(vals, "Can Peek")
+	}
+	if ReadStrict&a == ReadStrict {
+		vals = append(vals, "Can ReadStrict")
+	}
+	if CreateStrict&a == CreateStrict {
+		vals = append(vals, "Can CreateStrict")
+	}
+	if UpdateStrict&a == UpdateStrict {
+		vals = append(vals, "Can UpdateStrict")
+	}
+	if DeleteStrict&a == DeleteStrict {
+		vals = append(vals, "Can DeleteStrict")
+	}
+	if ExecuteStrict&a == ExecuteStrict {
+		vals = append(vals, "Can ExecuteStrict")
+	}
+	if ReferStrict&a == ReferStrict {
+		vals = append(vals, "Can ReferStrict")
+	}
+	if Read&a == Read {
+		vals = append(vals, "Can Read")
+	}
+	if Create&a == Create {
+		vals = append(vals, "Can Create")
+	}
+	if Update&a == Update {
+		vals = append(vals, "Can Update")
+	}
+	if Delete&a == Delete {
+		vals = append(vals, "Can Delete")
+	}
+	if Execute&a == Execute {
+		vals = append(vals, "Can Execute")
+	}
+	if Refer&a == Refer {
+		vals = append(vals, "Can Refer")
+	}
+	if CRUD&a == CRUD {
+		vals = append(vals, "Can CRUD")
+	}
+
+	return strings.Join(vals, ", ")
 }
 
 type AuthMiddleWare struct {
@@ -152,7 +286,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 				mapData["name"] = name
 				mapData["email"] = email
 
-				newUser := api2go.NewApi2GoModelWithData("user", nil, DEFAULT_PERMISSION, nil, mapData)
+				newUser := api2go.NewApi2GoModelWithData("user", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
 
 				req := api2go.Request{
 					PlainRequest: &http.Request{
@@ -171,7 +305,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 				mapData = make(map[string]interface{})
 				mapData["name"] = "Home group of " + name
 
-				newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, DEFAULT_PERMISSION, nil, mapData)
+				newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
 
 				resp, err = a.userGroupCrud.Create(newUserGroup, req)
 				if err != nil {
@@ -184,7 +318,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 				mapData["user_id"] = referenceId
 				mapData["usergroup_id"] = userGroupId
 
-				newUserUserGroup := api2go.NewApi2GoModelWithData("user_user_id_has_usergroup_usergroup_id", nil, DEFAULT_PERMISSION, nil, mapData)
+				newUserUserGroup := api2go.NewApi2GoModelWithData("user_user_id_has_usergroup_usergroup_id", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
 
 				uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req)
 				log.Infof("Userug: %v", uug)
@@ -213,9 +347,9 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 			//log.Infof("Group permissions :%v", userGroups)
 
 			user := SessionUser{
-				UserId: userId,
+				UserId:          userId,
 				UserReferenceId: referenceId,
-				Groups: userGroups,
+				Groups:          userGroups,
 			}
 			ct := c.Request.Context()
 			ct = context.WithValue(ct, "user", user)
@@ -236,5 +370,5 @@ type SessionUser struct {
 
 type GroupPermission struct {
 	ReferenceId string
-	Permission  int64
+	Permission  ObjectPermission
 }

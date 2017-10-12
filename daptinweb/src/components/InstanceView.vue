@@ -266,6 +266,7 @@
         that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", selectedInstanceId);
         console.log("Get instance: ", tableName, selectedInstanceId);
         jsonApi.find(tableName, selectedInstanceId).then(function (res) {
+          res = res.data;
           console.log("got object", res);
           that.$store.commit("SET_SELECTED_ROW", res);
         }, function (err) {
