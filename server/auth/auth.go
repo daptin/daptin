@@ -48,7 +48,7 @@ type AuthPermission int64
 const None AuthPermission = iota
 
 const (
-	Peek AuthPermission = 1 << iota
+	Peek          AuthPermission = 1 << iota
 	ReadStrict
 	CreateStrict
 	UpdateStrict
@@ -321,6 +321,9 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 				newUserUserGroup := api2go.NewApi2GoModelWithData("user_user_id_has_usergroup_usergroup_id", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
 
 				uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req)
+				if err != nil {
+					log.Errorf("Failed to create user-usergroup relation: %v", err)
+				}
 				log.Infof("Userug: %v", uug)
 
 			} else {

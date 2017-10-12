@@ -1,7 +1,8 @@
 package resource
 
 import (
-//"golang.org/x/oauth2"
+	//"golang.org/x/oauth2"
+	log "github.com/sirupsen/logrus"
 )
 
 type RefreshMarketplacePackagelistPerformer struct {
@@ -26,6 +27,9 @@ func (d *RefreshMarketplacePackagelistPerformer) DoAction(request ActionRequest,
 		}
 
 		handler, err := NewMarketplaceService(marketPlace)
+		if err != nil {
+			log.Errorf("Failed to create new market place service")
+		}
 		d.cmsConfig.MarketplaceHandlers[marketReferenceId] = handler
 		go handler.RefreshRepository()
 		return marketResfreshSuccessResponse, nil

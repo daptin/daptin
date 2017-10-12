@@ -6,11 +6,13 @@ import (
 	"github.com/kniren/gota/dataframe"
 )
 
+// StreamProcess handles the Read operations, and applies transformations on the data the create a new view
 type StreamProcessor struct {
 	cruds    map[string]*DbResource
 	contract StreamContract
 }
 
+// Stream contract defines column mappings and transformations. Also includes the query params which are to be used in the first place
 type StreamContract struct {
 	StreamName      string
 	RootEntityName  string
@@ -20,34 +22,46 @@ type StreamContract struct {
 	QueryParams     map[string][]string
 }
 
+// A Transformation is the representation of column data changing its values according to the attribute map
 type Transformation struct {
 	Operation  string
 	Attributes map[string]interface{}
 }
 
+// Get the contract
 func (dr *StreamProcessor) GetContract() StreamContract {
 	return dr.contract
 }
 
+// FindOne implementation in accordance with JSONAPI
+// FindOne is not implemented for streams
 func (dr *StreamProcessor) FindOne(ID string, req api2go.Request) (api2go.Responder, error) {
 	return nil, fmt.Errorf("not implemented")
 
 }
 
+// Create implementation in accordance with JSONAPI
+// Create is not implemented for streams
 func (dr *StreamProcessor) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 	return nil, fmt.Errorf("not implemented")
 
 }
 
+// Delete implementation in accordance with JSONAPI
+// Delete is not implemented for streams
 func (dr *StreamProcessor) Delete(id string, req api2go.Request) (api2go.Responder, error) {
 
 	return nil, fmt.Errorf("not implemented")
 }
 
+// Update implementation in accordance with JSONAPI
+// Update is not implemented for streams
 func (dr *StreamProcessor) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
+// FindAll implementation in accordance with JSONAPI
+// FindAll does the initial query to the database and applites the transformation contract on the result rows
 func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint, response api2go.Responder, err error) {
 
 	contract := dr.contract
@@ -102,6 +116,7 @@ func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint
 	return totalCount, newResponder, nil
 }
 
+// Creates a new stream processor which will apply the given contract
 func NewStreamProcessor(stream StreamContract, cruds map[string]*DbResource) *StreamProcessor {
 	return &StreamProcessor{
 		cruds:    cruds,
