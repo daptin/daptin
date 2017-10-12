@@ -1,9 +1,9 @@
 package fieldtypes
 
 import (
-	"time"
 	"errors"
 	"sort"
+	"time"
 	//"fmt"
 	//	"log"
 	//	"fmt"

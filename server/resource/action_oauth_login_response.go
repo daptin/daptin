@@ -1,18 +1,18 @@
 package resource
 
 import (
-	"fmt"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-	"github.com/pquerna/otp/totp"
-	"gopkg.in/Masterminds/squirrel.v1"
-	"golang.org/x/oauth2"
 	"context"
+	"fmt"
 	"github.com/artpar/api2go"
-	"net/http"
 	"github.com/artpar/daptin/server/auth"
-	"strings"
+	"github.com/pkg/errors"
 	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
+	"gopkg.in/Masterminds/squirrel.v1"
+	"net/http"
+	"strings"
 	"time"
 )
 
@@ -152,11 +152,10 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 	storeToken["oauth_connect_id"] = authReferenceId
 
 	sessionUser := auth.SessionUser{
-		UserId: user["id"].(int64),
+		UserId:          user["id"].(int64),
 		UserReferenceId: user["reference_id"].(string),
-		Groups: []auth.GroupPermission{},
+		Groups:          []auth.GroupPermission{},
 	}
-
 
 	pr := &http.Request{
 		Method: "POST",

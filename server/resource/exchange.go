@@ -1,11 +1,11 @@
 package resource
 
 import (
-	log "github.com/sirupsen/logrus"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	//"bytes"
-	"encoding/json"
 	"bytes"
+	"encoding/json"
 	"golang.org/x/oauth2"
 )
 
@@ -25,10 +25,10 @@ type ColumnMapping []ColumnMap
 type ExchangeContract struct {
 	Name             string
 	SourceAttributes map[string]interface{} `db:"source_attributes"`
-	SourceType       string `db:"source_type"`
+	SourceType       string                 `db:"source_type"`
 	TargetAttributes map[string]interface{} `db:"target_attributes"`
-	TargetType       string `db:"target_type"`
-	Attributes       []ColumnMap `db:"attributes"`
+	TargetType       string                 `db:"target_type"`
+	Attributes       []ColumnMap            `db:"attributes"`
 	Options          map[string]interface{}
 	ReferenceId      string `db:"reference_id"`
 	OauthTokenId     *int64 `db:"oauth_token_id"`
@@ -64,7 +64,6 @@ func (ec *ExchangeExecution) Execute(inFields map[string]interface{}, data []map
 	case "self":
 		log.Errorf("self in target, not yet implemented")
 		return errors.New("self in target, not yet implemented")
-		break
 	default:
 		handler, err = NewRestExchangeHandler(ec.ExchangeContract, ec.oauthToken, ec.oauthConfig)
 		if err != nil {
@@ -91,7 +90,7 @@ func (ec *ExchangeExecution) Execute(inFields map[string]interface{}, data []map
 	return nil
 }
 
-func NewExchangeExecution(exchange ExchangeContract, oauthToken *oauth2.Token, oauthConfig *oauth2.Config) (*ExchangeExecution) {
+func NewExchangeExecution(exchange ExchangeContract, oauthToken *oauth2.Token, oauthConfig *oauth2.Config) *ExchangeExecution {
 
 	return &ExchangeExecution{
 		ExchangeContract: exchange,

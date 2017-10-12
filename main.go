@@ -8,18 +8,18 @@ import (
 	//"os"
 	"fmt"
 	//"sync"
-	"syscall"
 	"github.com/GeertJohan/go.rice"
+	"github.com/artpar/daptin/server/resource"
 	"net/http"
 	"os"
-	"github.com/artpar/daptin/server/resource"
+	"syscall"
 	//"github.com/jpillora/overseer"
 	"flag"
 	"github.com/artpar/goagain"
+	"github.com/gin-gonic/gin"
+	"github.com/jamiealquiza/envy"
 	"net"
 	"sync"
-	"github.com/jamiealquiza/envy"
-	"github.com/gin-gonic/gin"
 )
 
 // Save the stream as a global variable
@@ -40,8 +40,8 @@ func main() {
 
 	var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
 	var connection_string = flag.String("db_connection_string", "daptin.db", "\n\tSQLite: test.db\n"+
-			"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
-			"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
+		"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
+		"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
 	var port = flag.String("port", "6336", "Daptin port")
 	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
@@ -50,7 +50,6 @@ func main() {
 
 	envy.Parse("DAPTIN") // looks for GOMS_PORT
 	flag.Parse()
-
 
 	var boxStatic, boxRoot http.FileSystem
 	if err != nil {

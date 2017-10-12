@@ -2,12 +2,12 @@ package server
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/artpar/daptin/server/apiblueprint"
 	"github.com/artpar/daptin/server/resource"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gin-gonic/gin.v1"
 	"net/http"
 	"strings"
-	"github.com/artpar/daptin/server/apiblueprint"
 )
 
 func CreateApiBlueprintHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(ctx *gin.Context) {

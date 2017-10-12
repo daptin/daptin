@@ -1,17 +1,17 @@
 package auth
 
 import (
+	"context"
+	"database/sql/driver"
+	"fmt"
+	"github.com/artpar/api2go"
+	"github.com/artpar/daptin/server/jwt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gin-gonic/gin.v1"
 	"net/http"
-	"github.com/artpar/daptin/server/jwt"
-	"context"
-	"github.com/artpar/api2go"
 	"strings"
-	"fmt"
-	"database/sql/driver"
 )
 
 type CmsUser interface {
@@ -48,7 +48,7 @@ type AuthPermission int64
 const None AuthPermission = iota
 
 const (
-	Peek          AuthPermission = 1 << iota
+	Peek AuthPermission = 1 << iota
 	ReadStrict
 	CreateStrict
 	UpdateStrict

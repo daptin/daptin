@@ -1,9 +1,9 @@
 package resource
 
 import (
+	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/kniren/gota/dataframe"
-	"fmt"
 )
 
 type StreamProcessor struct {

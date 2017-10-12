@@ -1,4 +1,5 @@
 package resource
+
 //
 //import (
 //	"fmt"

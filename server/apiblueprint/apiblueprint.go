@@ -2,8 +2,8 @@ package apiblueprint
 
 import (
 	"bytes"
-	"github.com/artpar/daptin/server/resource"
 	"github.com/artpar/api2go"
+	"github.com/artpar/daptin/server/resource"
 
 	"fmt"
 	"strings"

@@ -1,12 +1,12 @@
 package resource
 
 import (
+	"fmt"
 	"github.com/icrowley/fake"
 	"github.com/satori/go.uuid"
-	"time"
-	"math/rand"
-	"fmt"
 	validator2 "gopkg.in/go-playground/validator.v9"
+	"math/rand"
+	"time"
 )
 
 type Faker interface {
@@ -105,7 +105,7 @@ func (ct ColumnType) Fake() interface{} {
 "boolean"
 "binary"
 "geo_point"
- */
+*/
 
 var ColumnTypes = []ColumnType{
 	{
