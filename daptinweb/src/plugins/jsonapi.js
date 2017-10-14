@@ -7,7 +7,8 @@ import {mapState} from 'vuex';
 
 const jsonapi = new JsonApi({
   apiUrl: appConfig.apiRoot + '/api',
-  pluralize: false
+  pluralize: false,
+  logger: false
 });
 
 
@@ -15,7 +16,7 @@ jsonapi.replaceMiddleware('errors', {
   name: 'nothing-to-see-here',
   error: function (response) {
     console.log("errors", response);
-
+    response = response.response;
     if (response.status === 401) {
       Notification.error({
         "title": "Failed",
