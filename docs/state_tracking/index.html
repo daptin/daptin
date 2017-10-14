@@ -16,7 +16,7 @@
     
     
       
-        <title>Data storage - Daptin</title>
+        <title>State tracking - Daptin</title>
       
     
     
@@ -74,7 +74,7 @@
             
               
             
-            Data storage
+            State tracking
           
         </span>
       </div>
@@ -219,54 +219,11 @@
       
       
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
-    
-      
-    
-    
-      <label class="md-nav__link md-nav__link--active" for="toc">
-        Data storage
-      </label>
-    
-    <a href="./" title="Data storage" class="md-nav__link md-nav__link--active">
+  <li class="md-nav__item">
+    <a href="../data_storage/" title="Data storage" class="md-nav__link">
       Data storage
     </a>
-    
-      
-<nav class="md-nav md-nav--secondary">
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="toc">Table of contents</label>
-    <ul class="md-nav__list" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#standard-columns" title="Standard columns" class="md-nav__link">
-    Standard columns
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#world-table" title="World table" class="md-nav__link">
-    World table
-  </a>
-  
-</li>
-      
-      
-      
-    </ul>
-  
-</nav>
-    
   </li>
 
     
@@ -334,11 +291,54 @@
       
       
 
+  
 
-  <li class="md-nav__item">
-    <a href="../state_tracking/" title="State tracking" class="md-nav__link">
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        State tracking
+      </label>
+    
+    <a href="./" title="State tracking" class="md-nav__link md-nav__link--active">
       State tracking
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#state-machine" title="State machine" class="md-nav__link">
+    State machine
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enabling-state-tracking-for-entity" title="Enabling state tracking for entity" class="md-nav__link">
+    Enabling state tracking for entity
+  </a>
+  
+</li>
+      
+      
+      
+    </ul>
+  
+</nav>
+    
   </li>
 
     
@@ -399,15 +399,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#standard-columns" title="Standard columns" class="md-nav__link">
-    Standard columns
+  <a href="#state-machine" title="State machine" class="md-nav__link">
+    State machine
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#world-table" title="World table" class="md-nav__link">
-    World table
+  <a href="#enabling-state-tracking-for-entity" title="Enabling state tracking for entity" class="md-nav__link">
+    Enabling state tracking for entity
   </a>
   
 </li>
@@ -427,76 +427,84 @@
               
                 
                 
-                <h1 id="data-storage">Data storage</h1>
-<p>Daptin relies on a relational database for all data persistence requirements. As covered in the <a href="../settingup/">setting up guide</a> currently the following relational database are supported:</p>
+                <h1 id="state-tracking-for-entities">State tracking for entities</h1>
+<p>Tracking the status of things is one of the most common operation in most business flows. Daptin has a native support for state tracking and allows a lot of convienent features.</p>
+<h2 id="state-machine">State machine</h2>
+<p>A state machine is a description of "states" which the object can be in, and list of all valid transactions from one state to another. Lets begin with an example:</p>
+<p>The following JSON defines a state machine which has (a hypothetical state machine for tracking todos):</p>
 <ul>
-<li>MySQL</li>
-<li>PostgreSQL</li>
-<li>SQLite</li>
+<li>Initial state: to_be_done</li>
+<li>List of valid states: to_be_done, delayed, started, ongoing, interrupted, completed</li>
+<li>List of valid transitions, giving name to each event</li>
 </ul>
-<p>This document goes into the detail of how the database is used and what are the tables created.</p>
-<h2 id="standard-columns">Standard columns</h2>
-<p>The following 5 columns are present in every table</p>
-<table>
-<thead>
-<tr>
-<th>ColumnName</th>
-<th>ColumnType</th>
-<th>DataType</th>
-<th>Attributes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>id</td>
-<td>id</td>
-<td>int(11)</td>
-<td>primary key  Auto increment Never exposed externally</td>
-</tr>
-<tr>
-<td>version</td>
-<td>integer</td>
-<td>int(11)</td>
-<td>get incremented every time a change is made</td>
-</tr>
-<tr>
-<td>created_at</td>
-<td>timestamp</td>
-<td>timestamp</td>
-<td>the timestamp when the row was created</td>
-</tr>
-<tr>
-<td>updated_at</td>
-<td>timestamp</td>
-<td>timestamp</td>
-<td>the timestamp when the row was last updated</td>
-</tr>
-<tr>
-<td>reference_id</td>
-<td>alias</td>
-<td>varchar(40)</td>
-<td>The id exposed in APIs</td>
-</tr>
-<tr>
-<td>permission</td>
-<td>integer</td>
-<td>int(4)</td>
-<td>Permissions - check Authorization documentation</td>
-</tr>
-<tr>
-<td>user_id</td>
-<td>foreign key</td>
-<td>int(11)</td>
-<td>the owner of this object</td>
-</tr>
-</tbody>
-</table>
-<p>Other columns are created based on the schema. </p>
-<p>The <code>id</code> column is completely for internal purposes and is never exposed in an JSON API.
-Every row of data inherently belongs to one user. This is the user who created that row. The associated user can be changed later.</p>
-<h2 id="world-table">World table</h2>
-<p>The <code>world</code> table holds the structure for all the entities and relations (including for itself).</p>
-<p>Each row contains the schema for the table in a "world_schema_json" column.</p>
+<pre><code class="json">        {
+        &quot;Name&quot;: &quot;task_status&quot;,
+        &quot;Label&quot;: &quot;Task Status&quot;,
+        &quot;InitialState&quot;: &quot;to_be_done&quot;,
+        &quot;Events&quot;: [{
+                &quot;Name&quot;: &quot;start&quot;,
+                &quot;Label&quot;: &quot;Start&quot;,
+                &quot;Src&quot;: [
+                    &quot;to_be_done&quot;,
+                    &quot;delayed&quot;
+                ],
+                &quot;Dst&quot;: &quot;started&quot;
+            },
+            {
+                &quot;Name&quot;: &quot;delayed&quot;,
+                &quot;Label&quot;: &quot;Unable to pick up&quot;,
+                &quot;Src&quot;: [
+                    &quot;to_be_done&quot;
+                ],
+                &quot;Dst&quot;: &quot;delayed&quot;
+            },
+            {
+                &quot;Name&quot;: &quot;ongoing&quot;,
+                &quot;Label&quot;: &quot;Record progress&quot;,
+                &quot;Src&quot;: [
+                    &quot;started&quot;,
+                    &quot;ongoing&quot;
+                ],
+                &quot;Dst&quot;: &quot;ongoing&quot;
+            },
+            {
+                &quot;Name&quot;: &quot;interrupted&quot;,
+                &quot;Label&quot;: &quot;Interrupted&quot;,
+                &quot;Src&quot;: [
+                    &quot;started&quot;,
+                    &quot;ongoing&quot;
+                ],
+                &quot;Dst&quot;: &quot;interrupted&quot;
+            },
+            {
+                &quot;Name&quot;: &quot;resume&quot;,
+                &quot;Label&quot;: &quot;Resume from interruption&quot;,
+                &quot;Src&quot;: [
+                    &quot;interrupted&quot;
+                ],
+                &quot;Dst&quot;: &quot;ongoing&quot;
+            },
+            {
+                &quot;Name&quot;: &quot;completed&quot;,
+                &quot;Label&quot;: &quot;Mark as completed&quot;,
+                &quot;Src&quot;: [
+                    &quot;ongoing&quot;,
+                    &quot;started&quot;
+                ],
+                &quot;Dst&quot;: &quot;completed&quot;
+            }
+        ]
+    }
+
+</code></pre>
+
+<p>State machines can be uploaded to Daptin just like entities and actions. A JSON/YAML file with a <code>StateMachineDescriptions</code> top level key can contain an array of state machine descriptions.</p>
+<h2 id="enabling-state-tracking-for-entity">Enabling state tracking for entity</h2>
+<p>First we need to tell goms that an entity is trackable. To do this, go to the world table page and edit the corresponding entity. Check the "Is state tracking enabled" checkbox.</p>
+<p>This "is_state_tracking_enabled" options tells daptin to create the associated state table for the entity. Even though we have not yet specified which state machines are available for this entity.</p>
+<p>To make a state machine available for an entity, go to the "SMD" tab of the entity and add the state machine by searching it by name.</p>
+<p>It would not make a lot of sense if the above state machine was allowed for all type of entities. Also since state of the objects in maintained in a separate table</p>
+<p><img alt="Entity designer" src="../gifs/enable_state_machine_for_todo.gif" /></p>
                 
                   
                 
@@ -515,7 +523,7 @@ Every row of data inherently belongs to one user. This is the user who created t
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../actions/" title="Actions" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../data_conformation/" title="Data conformations" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -524,19 +532,19 @@ Every row of data inherently belongs to one user. This is the user who created t
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Actions
+                Data conformations
               </span>
             </div>
           </a>
         
         
-          <a href="../marketplace/" title="Marketplace" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../streams/" title="Data Streams" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Marketplace
+                Data Streams
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">
