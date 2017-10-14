@@ -223,20 +223,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#validations" title="Validations" class="md-nav__link">
-    Validations
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#conformations" title="Conformations" class="md-nav__link">
-    Conformations
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#excel-file-upload" title="Excel file upload" class="md-nav__link">
     Excel file upload
   </a>
@@ -331,6 +317,102 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../auditing/" title="Data Auditing" class="md-nav__link">
+      Data Auditing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../authentication/" title="Authentication" class="md-nav__link">
+      Authentication
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../data_validation/" title="Data validation" class="md-nav__link">
+      Data validation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../data_conformation/" title="Data conformations" class="md-nav__link">
+      Data conformations
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../state_tracking/" title="State tracking" class="md-nav__link">
+      State tracking
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../streams/" title="Data Streams" class="md-nav__link">
+      Data Streams
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../permissions/" title="Permission model" class="md-nav__link">
+      Permission model
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../oauth_connection/" title="OAuth Connections" class="md-nav__link">
+      OAuth Connections
+    </a>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -387,20 +469,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#validations" title="Validations" class="md-nav__link">
-    Validations
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#conformations" title="Conformations" class="md-nav__link">
-    Conformations
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#excel-file-upload" title="Excel file upload" class="md-nav__link">
     Excel file upload
   </a>
@@ -430,13 +498,16 @@
                 
                 
                 <h1 id="entites">Entites</h1>
-<p>Entities are the foundation for daptin. Everything else in daptin work on one or more entities. To define an entity, we specify the fields which belong to an entity and its relations with other entities. A collection of entities and their relations will be called a schema.</p>
-<p>Lets imagine we were creating a todo application and wanted to track the follwing for each todo item
-- the todo text - lets call this "title"
-- a description - a longer text, which may or may not be empty
-- a deadline date - a date field to capture the deadline
-- completed - a true/false field, which captures if the todo is done
-- order - a field to store the priority of each todo</p>
+<p>Entities are the foundation for daptin. Everything in daptin work on one or more entities. To define an entity, we specify the fields and its relations with other entities. A collection of entities and their relations will be called a schema.</p>
+<p>Multiple schema json files can be uploaded, and changes are merged accordingly.</p>
+<p>Lets imagine we were creating a todo application and wanted to keep a track the following for each todo item</p>
+<ul>
+<li>the todo text - lets call this "title"</li>
+<li>a description - a longer text, which may or may not be empty</li>
+<li>a deadline date - a date field to capture the deadline</li>
+<li>completed - a true/false field, which captures if the todo is done</li>
+<li>order - a field to store the priority of each todo</li>
+</ul>
 <p>Along with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo</p>
 <ul>
 <li>title cannot be empty</li>
@@ -444,11 +515,12 @@
 </ul>
 <p>Once we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this:</p>
 <h2 id="online-entity-designer">Online entity designer</h2>
-<p>The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it.</p>
+<p>The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it. This is a basic designer and more advanced features to customise every aspect of the entity will be added later.</p>
 <p><img alt="Entity designer" src="../images/create_entity.png" /></p>
 <h2 id="market-place">Market place</h2>
 <p>Checkout <a href="../marketplace/">marketplace documentation</a></p>
 <h2 id="json-yaml-files">JSON / YAML files</h2>
+<p>JSON/YAML files are the primary way to create new entites in daptin. The above two ways ultimatele create a JSON file or fetch from the market.</p>
 <p>The JSON for our hypothetical todo entity will look as follows:</p>
 <pre><code class="json">    {
         &quot;Tables&quot;: [{
@@ -496,6 +568,12 @@
 ]}
 </code></pre>
 
+<ul>
+<li>Name: Name is a human readable name</li>
+<li>Column Name: Name of the column in the table</li>
+<li>Column Type: The type of the column. Daptin supports a variety of types and these allow daptin to give you useful options in future (eg for viewing a timeline, a date/datetime column is required)</li>
+<li>Default value: Columns can have default values, which is used a new row is created and no value for that column is specified.</li>
+</ul>
 <p>While the same description in YAML will look as follows</p>
 <pre><code class="yaml">Tables:
 - TableName: todo
@@ -536,92 +614,222 @@ Tags: required
 <p>You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.</p>
 <h2 id="column-specifications">Column specifications</h2>
 <p>Columns of the entity can be cusomised:</p>
-<pre><code>Name              string         `human readable name, can be skipped`
-ColumnName        string         `column name in the table`
-ColumnDescription string         `human readable description`
-ColumnType        string         `column type is a rich type of the column`
-IsIndexed         boolean        `true to add an index on this column`
-IsUnique          boolean        `true to set a unique constraint on this column`
-IsNullable        boolean        `are null values allowed`
-Permission        uint64          `permission column (check authorization docs)`
-DataType          string         `the column type inside the database`
-DefaultValue      string         `default value if any (has to be inside single quotes for static values`
-</code></pre>
+<table>
+<thead>
+<tr>
+<th>Property Name</th>
+<th>Property Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>string</td>
+<td>human readable name, can be skipped</td>
+</tr>
+<tr>
+<td>ColumnName</td>
+<td>string</td>
+<td>column name in the table</td>
+</tr>
+<tr>
+<td>ColumnDescription</td>
+<td>string</td>
+<td>human readable description</td>
+</tr>
+<tr>
+<td>ColumnType</td>
+<td>string</td>
+<td>column type is a rich type of the column</td>
+</tr>
+<tr>
+<td>IsIndexed</td>
+<td>boolean</td>
+<td>true to add an index on this column</td>
+</tr>
+<tr>
+<td>IsUnique</td>
+<td>boolean</td>
+<td>true to set a unique constraint on this column</td>
+</tr>
+<tr>
+<td>IsNullable</td>
+<td>boolean</td>
+<td>are null values allowed</td>
+</tr>
+<tr>
+<td>Permission</td>
+<td>uint64</td>
+<td>permission column (check authorization docs)</td>
+</tr>
+<tr>
+<td>DataType</td>
+<td>string</td>
+<td>the column type inside the database</td>
+</tr>
+<tr>
+<td>DefaultValue</td>
+<td>string</td>
+<td>default value if any (has to be inside single quotes for static values</td>
+</tr>
+</tbody>
+</table>
 <h2 id="column-types">Column types</h2>
 <p>Daptin supports a variety of rich data types, which helps it to automatically make intelligent decisions and validations. Here is a list of all column types and what should they be used for</p>
-<pre><code> id:
-     an identity column, mostly for internal purposes
- alias:
-     a foreign key column
- date:
-     full date, no time
- time:
-     time/time interval, no date
- day:
-     day of the month - 1 to 31
- month:
-     month of the year - 1 to 12
- year:
-     Year
- minute:
-     minute of the hour - 0 to 59
- hour:
-     hour of the dat - 0 - 23
- datetime:
-     date + time (not stored as timestamp, served at date time string)
- email:
-     email
- name:
-     column to be used as name of the entity
- json:
-     JSON data
- password:
-     password - are bcrypted with cost 11
- value:
-     value is enumeration type
- truefalse:
-     boolean
- timestamp:
-     timestamp (stored as timestamp, served as timestamp)
- location.latitude:
-     only latitude
- location:
-     latitude + longitude in geoJson format
- location.longitude:
-     only longitude
- location.altitude:
-     only altitude
- color:
-     hex color string (#ABCDE1)
- rating.10:
-     rating on a scale of 10
- measurement:
-     numeric column
- label:
-     a label for the entity, similar to name but can be more than one
- content:
-     larger contents - texts/html/json/yaml
- file:
-     uploads, connect storage for using this
- url:
-     Urls/links
-</code></pre>
-<h2 id="validations">Validations</h2>
-<p>Daptin uses the excellent <a href="https://github.com/go-playground/validator">go-playground/validator</a> library to extensive validations</p>
-<p>It has the following unique features:</p>
-<ul>
-<li>Cross Field and Cross Struct validations by using validation tags or custom validators.</li>
-<li>Slice, Array and Map diving, which allows any or all levels of a multidimensional field to be validated.</li>
-</ul>
-<h2 id="conformations">Conformations</h2>
-<p>Daptin uses the excellent <a href="https://github.com/leebenson/conform">leebenson/conform</a> library to apply conformations on data before storing them in the database</p>
-<ul>
-<li>Conform- keep user input in check (go, golang)</li>
-<li>Trim, sanitize, and modify struct string fields in place, based on tags.</li>
-</ul>
-<p>Use it for names, e-mail addresses, URL slugs, or any other form field where formatting matters.</p>
-<p>Conform doesn't attempt any kind of validation on your fields.</p>
+<table>
+<thead>
+<tr>
+<th>Type Name</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>an identity column, mostly for internal purposes</td>
+<td>1</td>
+</tr>
+<tr>
+<td>alias</td>
+<td>a foreign key column</td>
+<td>uuid v4</td>
+</tr>
+<tr>
+<td>date</td>
+<td>full date, no time</td>
+<td>2017-12-30</td>
+</tr>
+<tr>
+<td>time</td>
+<td>time/time interval, no date</td>
+<td>12:34:54</td>
+</tr>
+<tr>
+<td>day</td>
+<td>day of the month</td>
+<td>1 to 31</td>
+</tr>
+<tr>
+<td>month</td>
+<td>month of the year</td>
+<td>1 to 12</td>
+</tr>
+<tr>
+<td>year</td>
+<td>Year</td>
+<td>2017</td>
+</tr>
+<tr>
+<td>minute</td>
+<td>minute of the hour</td>
+<td>0 to 59</td>
+</tr>
+<tr>
+<td>hour</td>
+<td>hour of the dat</td>
+<td>0 - 23</td>
+</tr>
+<tr>
+<td>datetime</td>
+<td>date + time (not stored as timestamp, served at date time string)</td>
+<td>2017-12-30T12:34:54</td>
+</tr>
+<tr>
+<td>email</td>
+<td>email</td>
+<td>test@domain.com</td>
+</tr>
+<tr>
+<td>name</td>
+<td>column to be used as name of the entity</td>
+<td>daptin</td>
+</tr>
+<tr>
+<td>json</td>
+<td>JSON data</td>
+<td><code>{}</code></td>
+</tr>
+<tr>
+<td>password</td>
+<td>password - are bcrypted with cost 11</td>
+<td>$2a$11$z/VlxycDgZ...</td>
+</tr>
+<tr>
+<td>value</td>
+<td>value is enumeration type</td>
+<td>completed</td>
+</tr>
+<tr>
+<td>truefalse</td>
+<td>boolean</td>
+<td>1</td>
+</tr>
+<tr>
+<td>timestamp</td>
+<td>timestamp (stored as timestamp, served as timestamp)</td>
+<td>123123123</td>
+</tr>
+<tr>
+<td>location.latitude</td>
+<td>only latitude</td>
+<td>34.2938</td>
+</tr>
+<tr>
+<td>location</td>
+<td>latitude + longitude in geoJson format</td>
+<td>[34.223,64.123]</td>
+</tr>
+<tr>
+<td>location.longitude</td>
+<td>only longitude</td>
+<td>64.123</td>
+</tr>
+<tr>
+<td>location.altitude</td>
+<td>only altitude</td>
+<td>34</td>
+</tr>
+<tr>
+<td>color</td>
+<td>hex color string</td>
+<td>#ABCDE1</td>
+</tr>
+<tr>
+<td>rating.10</td>
+<td>rating on a scale of 10</td>
+<td>8</td>
+</tr>
+<tr>
+<td>measurement</td>
+<td>numeric column</td>
+<td>534</td>
+</tr>
+<tr>
+<td>label</td>
+<td>a label for the entity, similar to name but can be more than one</td>
+<td>red</td>
+</tr>
+<tr>
+<td>content</td>
+<td>larger contents - texts/html/json/yaml</td>
+<td>very long text</td>
+</tr>
+<tr>
+<td>file</td>
+<td>uploads, connect storage for using this</td>
+<td></td>
+</tr>
+<tr>
+<td>url</td>
+<td>Urls/links</td>
+<td>http://docs.dapt.in</td>
+</tr>
+</tbody>
+</table>
 <h2 id="excel-file-upload">Excel file upload</h2>
+<p>Excel upload provides an easy way to create entities. This takes away the complexity of writing each column type. Daptin uses a combination of rules to identify columns and their types based on the data in the excel.</p>
 <p>You can upload data from XLS. Daptin will take care of going through your XLS file and identifying column types. This is one of the easiest and fastest ways to create entities and uploading data in daptin. You can specify relations among entities later from the online designer.</p>
 <h2 id="restart">Restart</h2>
 <p>Daptin relies on self restarts to configure new entities and apis. As soon as you upload a schema file, daptin will write the file to disk, and restart itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.</p>

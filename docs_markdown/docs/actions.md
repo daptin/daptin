@@ -23,6 +23,7 @@ Actions provide a powerful abstraction over the CRUD and handle all of these use
 To quickly understand what actions are, lets see what happened when you "signed up" on Daptin.
 
 Lets take a look at how "Sign up" action is defined in Daptin. We will go through each part of this definition
+An action is performed on an entity. Lets also remember that ```world``` is an entity itself.
 
 ## Action schema
 
@@ -82,12 +83,12 @@ Lets take a look at how "Sign up" action is defined in Daptin. We will go throug
 				Tags:       "trim",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: {
 			{
 				Type:      "user",
 				Method:    "POST",
 				Reference: "user",
-				Attributes: map[string]interface{}{
+				Attributes: {
 					"name":      "~name",
 					"email":     "~email",
 					"password":  "~password",
@@ -98,7 +99,7 @@ Lets take a look at how "Sign up" action is defined in Daptin. We will go throug
 				Type:      "usergroup",
 				Method:    "POST",
 				Reference: "usergroup",
-				Attributes: map[string]interface{}{
+				Attributes: {
 					"name": "!'Home group for ' + user.name",
 				},
 			},
@@ -106,7 +107,7 @@ Lets take a look at how "Sign up" action is defined in Daptin. We will go throug
 				Type:      "user_user_id_has_usergroup_usergroup_id",
 				Method:    "POST",
 				Reference: "user_usergroup",
-				Attributes: map[string]interface{}{
+				Attributes: {
 					"user_id":      "$user.reference_id",
 					"usergroup_id": "$usergroup.reference_id",
 				},
@@ -114,7 +115,7 @@ Lets take a look at how "Sign up" action is defined in Daptin. We will go throug
 			{
 				Type:   "client.notify",
 				Method: "ACTIONRESPONSE",
-				Attributes: map[string]interface{}{
+				Attributes: {
 					"type":    "success",
 					"title":   "Success",
 					"message": "Signup Successful",
@@ -123,7 +124,7 @@ Lets take a look at how "Sign up" action is defined in Daptin. We will go throug
 			{
 				Type:   "client.redirect",
 				Method: "ACTIONRESPONSE",
-				Attributes: map[string]interface{}{
+				Attributes: {
 					"location": "/auth/signin",
 					"window":   "self",
 				},
@@ -144,7 +145,7 @@ Name of the action, this should be unique for each actions. Actions are identifi
 
 		Label:            "Sign up",
 
-Label is humans
+Label is for humans
 
 
 ## OnType
@@ -182,7 +183,7 @@ Note that the ColumnInfo structure is the same one we used to [define tables](en
 Validations validate the user input and rejects if some validation fails
 
 
-            {
+      {
 				ColumnName: "email",
 				Tags:       "email",
 			},
