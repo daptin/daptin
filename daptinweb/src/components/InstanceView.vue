@@ -119,7 +119,7 @@
               <div class="box-body">
                 <div class="col-md-12" v-for="action in state.possibleActions">
                   <button @click="doEvent(state, action)" class="btn btn-primary btn-xs btn-flat"
-                          style="width: 100%">{{action.label}}
+                          style="width: 100%; border-radius: 5px; margin: 5px;">{{action.label}}
                   </button>
                 </div>
               </div>
@@ -338,6 +338,7 @@
               size: 20
             }
           }).then(function (states) {
+            states = states.data;
             console.log("states", states);
             states.map(function (e) {
               e.smd = e[tableName + "_smd"];
