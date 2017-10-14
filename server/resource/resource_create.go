@@ -9,7 +9,7 @@ import (
 	//"strconv"
 	"fmt"
 	"github.com/araddon/dateparse"
-	"github.com/artpar/daptin/server/auth"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/pkg/errors"
 	"time"
 )

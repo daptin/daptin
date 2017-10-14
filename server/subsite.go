@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/artpar/daptin/server/resource"
+	"github.com/daptin/daptin/server/resource"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
 	_ "github.com/artpar/rclone/fs/all" // import all fs

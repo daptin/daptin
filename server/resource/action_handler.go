@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/artpar/daptin/server/auth"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/dop251/goja"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gin-gonic/gin.v1"
