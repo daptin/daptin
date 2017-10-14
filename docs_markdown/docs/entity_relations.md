@@ -34,28 +34,32 @@ This tells daptin that todo "has_one" project.
 
 Any entity can be associated to any other entity (or to itself) as one of the follows
 
-- belongs_to - a non-nullable relation, single object
-- has_one - a nullable relation, single object
-- has_many - a nullable realtion, many objects
+Relation Name | Relation Descriptio | Can be empty 
+--- | --- | ---
+belongs_to | a single object relation | No
+has_one | a single object relation | Yes
+has_many | many related objects | Yes
 
-### Basic relations for every entity
+### Default relations
 
-Every entity created on daptin has atleast two relations
+Every entity created on daptin has at least two relations
 
-- belongs to "user"
-- has many "usergroup"
+Relation Type | Related Entity 
+--- | ---
+belongs | user
+has many | usergroup
 
 To understand why these two relations will always exist, checkout [daptin authorization model](authorization.md)
 
 
 ### More than 1 relation between two entities
 
-There can definitely be a scenario where two entities are related in more then 1 way. Consider the following example
+There can be a scenario where two entities are related in more then 1 way. Consider the following example
 
 - A blog entity
 - A post entity
-- Blog as many posts (blog has many posts)
-- Each blog as a "highlighted post" (blog has one "highlighted post"
+- Blog has many posts
+- Each blog can have a "highlighted post" (blog has one "highlighted post")
 
 To achieve the above scenario, our schema would look like as follows
 

@@ -224,6 +224,27 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#entity-level-permission-check" title="Entity level permission check" class="md-nav__link">
+    Entity level permission check
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#object-level-permission-check" title="Object level permission check" class="md-nav__link">
+    Object level permission check
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#order-of-permission-check" title="Order of permission check" class="md-nav__link">
+    Order of permission check
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#access-flow" title="Access flow" class="md-nav__link">
     Access flow
   </a>
@@ -296,6 +317,102 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../auditing/" title="Data Auditing" class="md-nav__link">
+      Data Auditing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../authentication/" title="Authentication" class="md-nav__link">
+      Authentication
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../data_validation/" title="Data validation" class="md-nav__link">
+      Data validation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../data_conformation/" title="Data conformations" class="md-nav__link">
+      Data conformations
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../state_tracking/" title="State tracking" class="md-nav__link">
+      State tracking
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../streams/" title="Data Streams" class="md-nav__link">
+      Data Streams
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../permissions/" title="Permission model" class="md-nav__link">
+      Permission model
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../oauth_connection/" title="OAuth Connections" class="md-nav__link">
+      OAuth Connections
+    </a>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -315,6 +432,27 @@
   
     <label class="md-nav__title" for="toc">Table of contents</label>
     <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#entity-level-permission-check" title="Entity level permission check" class="md-nav__link">
+    Entity level permission check
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#object-level-permission-check" title="Object level permission check" class="md-nav__link">
+    Object level permission check
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#order-of-permission-check" title="Order of permission check" class="md-nav__link">
+    Order of permission check
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#access-flow" title="Access flow" class="md-nav__link">
@@ -360,46 +498,94 @@
                 
                 
                 <h1 id="access-authorization">Access Authorization</h1>
-<p>There are three type of interactions which we want to control</p>
+<p>Authorization is the part where daptin decides if the caller has enough permission to execute the call. Currently daptin has the following permissions.</p>
+<h2 id="entity-level-permission-check">Entity level permission check</h2>
+<p>The world table has the list of all entities. Consider the scenario where we created a todo list. The world table would have a row to represent this entity</p>
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Permission</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>todo</td>
+<td>112000006</td>
+</tr>
+</tbody>
+</table>
+<p>Here:</p>
 <ul>
-<li>Read access</li>
-<li>Write access - this includes creating/updating/deleting</li>
-<li>Actions - this includes actions which can be performed on the objects</li>
+<li>112 is for owners, which basically means 64 + 32 + 16 = Refer/Execute/Delete</li>
+<li>000 is for group users, no permission allowed in this case</li>
+<li>006 is for guest users, which is 2 + 4 = Read/Create</li>
+</ul>
+<h2 id="object-level-permission-check">Object level permission check</h2>
+<p>Once the call clears the entity level check, an object level permission check is applied. This happens in cases where the action is going to affect/read an existing row. The permission is stored in the same way. Each table has a permission column which stores the permission in <code>OOOGGGXXX</code> format.</p>
+<h2 id="order-of-permission-check">Order of permission check</h2>
+<p>The permission is checked in order of:</p>
+<ul>
+<li>Check if the user is owner, if yes, check if permission allows the current action, if yes do action</li>
+<li>Check if the user belongs to a group to which this object also belongs, if yes, check if permisison allows the current action, if yes do action</li>
+<li>User is guest, check if guest permission allows this actions, if yes do action, if no, unauthorized</li>
+</ul>
+<p>Things to note here:</p>
+<ul>
+<li>There is no negative permission (this may be introduced in the future)</li>
+<li>eg, you cannot say owner is 'not allowed' to read but read by guest is allowed. </li>
+<li>Permission check is done in a hierarchy type order</li>
 </ul>
 <h2 id="access-flow">Access flow</h2>
-<p>Every "intercation" in daptin goes through two levels of access</p>
+<p>Every "interaction" in daptin goes through two levels of access. Each level has a <code>before</code> and <code>after</code> check.</p>
 <ul>
-<li>Entity level access: does the user invoking the interaction has the appropriate permission to invoke this (So for sign up, the user table need to be writable by guests, for sign in the user table needs to be readable by guests)</li>
+<li>Entity level access: does the user invoking the interaction has the appropriate permission to invoke this (So for sign up, the user table need to be writable by guests, for sign in the user table needs to be peakable by guests)</li>
 <li>Instance level access: this is the second level, even if a user has access to "user" entity, not all "user" rows would be accessible by them</li>
 </ul>
+<p>So the actual checks happen in following order:</p>
+<ul>
+<li>"Before check" for entity</li>
+<li>"Before check" for instance</li>
+<li>"After check" for instance</li>
+<li>"After check" for entity</li>
+</ul>
+<p>Each of these checks can filter out objects where the user does not have enough permission.</p>
 <h2 id="entity-level-permission">Entity level permission</h2>
 <p>Entity level permission are set in the world table and can be updated from dashboard. This can be done by updating the "permission" column for the entity.</p>
 <p>For these changes to take effect a restart is necessary.</p>
 <h2 id="instance-level-permission">Instance level permission</h2>
-<p>Like we saw in the <a href="../entities/">entity documentation</a>, every table has a <code>permission</code> column.</p>
+<p>Like we saw in the <a href="../entities/">entity documentation</a>, every table has a <code>permission</code> column. No restart is necessary for changes in these permission.</p>
 <h2 id="permission-column">Permission column</h2>
-<p>The permission column contains a three digit number, which decides the access for guests, user groups and owner</p>
-<p>Permission model is completely based on linux file system permission. No need to worry if you are not aware of that. Here is a brief overview</p>
-<p>The three digits can be represented as follows:</p>
-<p><code>U G W</code></p>
+<p>The permission column contains a nine digit number, which decides the access for guests (the world), user groups and owner</p>
+<p>The nine digits can be represented as follows:</p>
+<p><code>UUUGGGWWW</code></p>
+<p>Each entity has a permission field which is added by daptin. The permission field is a 9 digit number, in the following format</p>
+<p>The first three digits(UUU) represent the permission for the owner.
+The next three digits(GGG) represent the permission for the group.
+The last three digits(WWW)  represent the permission for guest users.</p>
 <p>U = User
 G = Group
 W = World</p>
-<p>4 = Readable
-2 = Writable
-1 = Execute action
-0 = No permission</p>
+<ul>
+<li>Peek - 1</li>
+<li>Read - 2</li>
+<li>Create - 4</li>
+<li>Update - 8</li>
+<li>Delete - 16</li>
+<li>Execute - 32</li>
+<li>Refer - 64</li>
+</ul>
 <p>Here is another way of looking at it:</p>
 <p>Permissions:</p>
-<p>400 read by owner
-040 read by group
-004 read by anybody (other)
-200 write by owner
-020 write by group
-002 write by anybody
-100 execute by owner
-010 execute by group
-001 execute by anybody</p>
+<p>002,000,000 read by owner
+000,020,000 read by group
+000,000,002 read by anybody (other)
+004,000,000 write by owner
+000,004,000 write by group
+000,000,004 write by anybody
+032,000,000 execute by owner
+000,032,000 execute by group
+000,000,032 execute by anybody</p>
 <p>To get a combination, just add them up.</p>
 <p>For example, to get</p>
 <ul>
@@ -407,7 +593,7 @@ W = World</p>
 <li>read, execute, by group</li>
 <li>execute by anybody</li>
 </ul>
-<p>you would add 400+200+100+040+010+001 to give 751.</p>
+<p>you would add (002 + 004 + 032),(002 + 032),(032) to give 038034032.</p>
                 
                   
                 

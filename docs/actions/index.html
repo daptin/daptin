@@ -352,6 +352,102 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../auditing/" title="Data Auditing" class="md-nav__link">
+      Data Auditing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../authentication/" title="Authentication" class="md-nav__link">
+      Authentication
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../data_validation/" title="Data validation" class="md-nav__link">
+      Data validation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../data_conformation/" title="Data conformations" class="md-nav__link">
+      Data conformations
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../state_tracking/" title="State tracking" class="md-nav__link">
+      State tracking
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../streams/" title="Data Streams" class="md-nav__link">
+      Data Streams
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../permissions/" title="Permission model" class="md-nav__link">
+      Permission model
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../oauth_connection/" title="OAuth Connections" class="md-nav__link">
+      OAuth Connections
+    </a>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -489,7 +585,8 @@
 </ul>
 <p>Actions provide a powerful abstraction over the CRUD and handle all of these use cases.</p>
 <p>To quickly understand what actions are, lets see what happened when you "signed up" on Daptin.</p>
-<p>Lets take a look at how "Sign up" action is defined in Daptin. We will go through each part of this definition</p>
+<p>Lets take a look at how "Sign up" action is defined in Daptin. We will go through each part of this definition
+An action is performed on an entity. Lets also remember that <code>world</code> is an entity itself.</p>
 <h2 id="action-schema">Action schema</h2>
 <pre><code class="golang">    {
         Name:             &quot;signup&quot;,
@@ -546,12 +643,12 @@
                 Tags:       &quot;trim&quot;,
             },
         },
-        OutFields: []Outcome{
+        OutFields: {
             {
                 Type:      &quot;user&quot;,
                 Method:    &quot;POST&quot;,
                 Reference: &quot;user&quot;,
-                Attributes: map[string]interface{}{
+                Attributes: {
                     &quot;name&quot;:      &quot;~name&quot;,
                     &quot;email&quot;:     &quot;~email&quot;,
                     &quot;password&quot;:  &quot;~password&quot;,
@@ -562,7 +659,7 @@
                 Type:      &quot;usergroup&quot;,
                 Method:    &quot;POST&quot;,
                 Reference: &quot;usergroup&quot;,
-                Attributes: map[string]interface{}{
+                Attributes: {
                     &quot;name&quot;: &quot;!'Home group for ' + user.name&quot;,
                 },
             },
@@ -570,7 +667,7 @@
                 Type:      &quot;user_user_id_has_usergroup_usergroup_id&quot;,
                 Method:    &quot;POST&quot;,
                 Reference: &quot;user_usergroup&quot;,
-                Attributes: map[string]interface{}{
+                Attributes: {
                     &quot;user_id&quot;:      &quot;$user.reference_id&quot;,
                     &quot;usergroup_id&quot;: &quot;$usergroup.reference_id&quot;,
                 },
@@ -578,7 +675,7 @@
             {
                 Type:   &quot;client.notify&quot;,
                 Method: &quot;ACTIONRESPONSE&quot;,
-                Attributes: map[string]interface{}{
+                Attributes: {
                     &quot;type&quot;:    &quot;success&quot;,
                     &quot;title&quot;:   &quot;Success&quot;,
                     &quot;message&quot;: &quot;Signup Successful&quot;,
@@ -587,7 +684,7 @@
             {
                 Type:   &quot;client.redirect&quot;,
                 Method: &quot;ACTIONRESPONSE&quot;,
-                Attributes: map[string]interface{}{
+                Attributes: {
                     &quot;location&quot;: &quot;/auth/signin&quot;,
                     &quot;window&quot;:   &quot;self&quot;,
                 },
@@ -603,7 +700,7 @@
 <h2 id="action-label">Action Label</h2>
 <pre><code>    Label:            "Sign up",
 </code></pre>
-<p>Label is humans</p>
+<p>Label is for humans</p>
 <h2 id="ontype">OnType</h2>
 <pre><code>    OnType:           "user",
 </code></pre>
@@ -627,7 +724,7 @@
 <pre><code>    Validations: []ColumnTag
 </code></pre>
 <p>Validations validate the user input and rejects if some validation fails</p>
-<pre><code>        {
+<pre><code>  {
             ColumnName: "email",
             Tags:       "email",
         },

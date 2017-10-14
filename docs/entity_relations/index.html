@@ -215,8 +215,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#basic-relations-for-every-entity" title="Basic relations for every entity" class="md-nav__link">
-    Basic relations for every entity
+  <a href="#default-relations" title="Default relations" class="md-nav__link">
+    Default relations
   </a>
   
 </li>
@@ -336,6 +336,102 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../auditing/" title="Data Auditing" class="md-nav__link">
+      Data Auditing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../authentication/" title="Authentication" class="md-nav__link">
+      Authentication
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../data_validation/" title="Data validation" class="md-nav__link">
+      Data validation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../data_conformation/" title="Data conformations" class="md-nav__link">
+      Data conformations
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../state_tracking/" title="State tracking" class="md-nav__link">
+      State tracking
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../streams/" title="Data Streams" class="md-nav__link">
+      Data Streams
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../permissions/" title="Permission model" class="md-nav__link">
+      Permission model
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../oauth_connection/" title="OAuth Connections" class="md-nav__link">
+      OAuth Connections
+    </a>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -372,8 +468,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#basic-relations-for-every-entity" title="Basic relations for every entity" class="md-nav__link">
-    Basic relations for every entity
+  <a href="#default-relations" title="Default relations" class="md-nav__link">
+    Default relations
   </a>
   
 </li>
@@ -463,25 +559,60 @@
 <p>This tells daptin that todo "has_one" project.</p>
 <h2 id="relations-types">Relations types</h2>
 <p>Any entity can be associated to any other entity (or to itself) as one of the follows</p>
-<ul>
-<li>belongs_to - a non-nullable relation, single object</li>
-<li>has_one - a nullable relation, single object</li>
-<li>has_many - a nullable realtion, many objects</li>
-</ul>
-<h3 id="basic-relations-for-every-entity">Basic relations for every entity</h3>
-<p>Every entity created on daptin has atleast two relations</p>
-<ul>
-<li>belongs to "user"</li>
-<li>has many "usergroup"</li>
-</ul>
+<table>
+<thead>
+<tr>
+<th>Relation Name</th>
+<th>Relation Descriptio</th>
+<th>Can be empty</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>belongs_to</td>
+<td>a single object relation</td>
+<td>No</td>
+</tr>
+<tr>
+<td>has_one</td>
+<td>a single object relation</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>has_many</td>
+<td>many related objects</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h3 id="default-relations">Default relations</h3>
+<p>Every entity created on daptin has at least two relations</p>
+<table>
+<thead>
+<tr>
+<th>Relation Type</th>
+<th>Related Entity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>belongs</td>
+<td>user</td>
+</tr>
+<tr>
+<td>has many</td>
+<td>usergroup</td>
+</tr>
+</tbody>
+</table>
 <p>To understand why these two relations will always exist, checkout <a href="../authorization/">daptin authorization model</a></p>
 <h3 id="more-than-1-relation-between-two-entities">More than 1 relation between two entities</h3>
-<p>There can definitely be a scenario where two entities are related in more then 1 way. Consider the following example</p>
+<p>There can be a scenario where two entities are related in more then 1 way. Consider the following example</p>
 <ul>
 <li>A blog entity</li>
 <li>A post entity</li>
-<li>Blog as many posts (blog has many posts)</li>
-<li>Each blog as a "highlighted post" (blog has one "highlighted post"</li>
+<li>Blog has many posts</li>
+<li>Each blog can have a "highlighted post" (blog has one "highlighted post")</li>
 </ul>
 <p>To achieve the above scenario, our schema would look like as follows</p>
 <pre><code class="yaml">Tables:
