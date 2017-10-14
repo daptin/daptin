@@ -9,4 +9,12 @@ pages:
     - Actions: actions.md
     - Data storage: data_storage.md
     - Marketplace: marketplace.md
+    - Data Auditing: auditing.md
+    - Authentication: authentication.md
+    - Data validation: data_validation.md
+    - Data conformations: data_conformation.md
+    - State tracking: state_tracking.md
+    - Data Streams: streams.md
+    - Permission model: permissions.md
+    - OAuth Connections: oauth_connection.md
 theme: material

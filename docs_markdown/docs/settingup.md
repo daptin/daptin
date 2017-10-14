@@ -4,13 +4,15 @@ You can setup daptin on any machine/server of your choice.
 
 ## Native binary
 
-Daptin is available as a native binary for almost all systems. You can fetch the lastest binary from the releases
+Daptin is available as a native binary. You can fetch the lastest binary from the releases
 
 [https://github.com/daptin/daptin/releases](https://github.com/daptin/daptin/releases)
 
+To start daptin, execute ```./daptin``` which will create a local sqlite database and start listening on port 6336. To change the database or port, read below.
+
 ## Docker
 
-A docker image is also available which can be deployed on any docker compatible host
+A docker image is also available which can be deployed on any docker compatible hosting provider (aws, gce, linode, digitalocean, azure)
 
 [https://hub.docker.com/r/daptin/daptin/](https://hub.docker.com/r/daptin/daptin/)
 
@@ -18,13 +20,13 @@ To start daptin using docker
 
 ```docker run daptin/daptin```
 
-## Data storage
+## Database and data persistence
 
-Daptin can use one of the following database for persistence
+Daptin can use one of the following database for data persistence
 
 - Mysql
 - Postgres
-- SQLite
+- SQLite [Default]
 
 If nothing specified, a sqlite database is created on the local file system and is used for all purposes. (uploads/blobs are not stored in database)
 
@@ -54,6 +56,6 @@ Daptin will listen on port 6336 by default. You can change it by using the follo
 
 ## Restart
 
-Daptin relies on self restarts to configure new entities and apis. As soon as you upload a schema file, daptin will write the file to disk, and restart itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.
+Daptin relies on self restarts to configure new entities and apis and changes to the other parts of the ststem. As soon as you upload a schema file, daptin will write the file to disk, and restart itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.
 
 You can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.
