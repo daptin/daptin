@@ -14,7 +14,7 @@
     "heroku-prebuild": "go get golang.org/x/sys/unix && cd daptin && npm install && npm run build && cd ..",
     "heroku-postbuild": "echo This runs afterwards."
   },
-  "mount_dir": "src/github.com/artpar/daptin",
-  "website": "http://github.com/artpar/daptin",
-  "repository": "http://github.com/artpar/daptin"
+  "mount_dir": "src/github.com/daptin/daptin",
+  "website": "http://github.com/daptin/daptin",
+  "repository": "http://github.com/daptin/daptin"
 }

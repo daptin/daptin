@@ -1,6 +1,6 @@
 package server
 
-import "github.com/artpar/daptin/server/resource"
+import "github.com/daptin/daptin/server/resource"
 
 func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore) []resource.ActionPerformerInterface {
 	performers := make([]resource.ActionPerformerInterface, 0)

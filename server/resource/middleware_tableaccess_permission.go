@@ -6,7 +6,7 @@ import (
 	//"gopkg.in/Masterminds/squirrel.v1"
 	"errors"
 
-	"github.com/artpar/daptin/server/auth"
+	"github.com/daptin/daptin/server/auth"
 )
 
 // The TableAccessPermissionChecker middleware is resposible for entity level authorization check, before and after the changes

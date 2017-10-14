@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/artpar/daptin/server/auth"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"

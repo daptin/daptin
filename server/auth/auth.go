@@ -5,7 +5,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/artpar/daptin/server/jwt"
+	"github.com/daptin/daptin/server/jwt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"

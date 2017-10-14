@@ -1,17 +1,17 @@
 
 
 <p align="center">
-  <img src="https://github.com/artpar/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" title="Daptin" height="140" />
+  <img src="https://github.com/daptin/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" title="Daptin" height="140" />
   <h3 align="center">Daptin</h3>
   <p align="center">Deliver backends for app faster and scalable</p>
   <p align="center">
-    <a href="https://github.com/artpar/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/artpar/daptin.svg?style=flat-square"></a>
+    <a href="https://github.com/daptin/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/daptin/daptin.svg?style=flat-square"></a>
     <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
-    <a href="https://travis-ci.org/artpar/daptin"><img alt="Travis" src="https://img.shields.io/travis/artpar/daptin.svg?style=flat-square"></a>
-    <a href="https://codecov.io/gh/artpar/daptin"><img alt="Codecov branch" src="https://img.shields.io/codecov/c/github/artpar/daptin/master.svg?style=flat-square"></a>
-    <a href="https://goreportcard.com/report/github.com/artpar/daptin"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/artpar/daptin?style=flat-square"></a>
-    <a href="http://godoc.org/github.com/artpar/daptin"><img alt="Go Doc" src="https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square"></a>
-    <a href="https://semaphoreci.com/artpar/daptin"><img alt="Go Doc" src="https://semaphoreci.com/api/v1/artpar/daptin/branches/master/badge.svg"></a>
+    <a href="https://travis-ci.org/daptin/daptin"><img alt="Travis" src="https://img.shields.io/travis/daptin/daptin.svg?style=flat-square"></a>
+    <a href="https://codecov.io/gh/daptin/daptin"><img alt="Codecov branch" src="https://img.shields.io/codecov/c/github/daptin/daptin/master.svg?style=flat-square"></a>
+    <a href="https://goreportcard.com/report/github.com/daptin/daptin"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/daptin/daptin?style=flat-square"></a>
+    <a href="http://godoc.org/github.com/daptin/daptin"><img alt="Go Doc" src="https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square"></a>
+    <a href="https://semaphoreci.com/daptin/daptin"><img alt="Go Doc" src="https://semaphoreci.com/api/v1/daptin/daptin/branches/master/badge.svg"></a>
   </p>
 </p>
 
@@ -26,9 +26,9 @@
 
 Daptin is a self-hosted BAAS that generates Web APIs (more specifically, JSON APIs) for your data. Daptin combines the best concepts of [the most popular BAAS platforms](http://baas.apievangelist.com/) into a simple run-time tool.
 
-![Sign up and Sign in](https://github.com/artpar/daptin/raw/master/docs_markdown/gifs/signup_and_signin.gif)
-![Create entity and add item](https://github.com/artpar/daptin/raw/master/docs_markdown/gifs/create_entity_and_add.gif)
-![Generate random data to show tables](https://github.com/artpar/daptin/raw/master/docs_markdown/gifs/generate_random_show_tables.gif)
+![Sign up and Sign in](https://github.com/daptin/daptin/raw/master/docs_markdown/gifs/signup_and_signin.gif)
+![Create entity and add item](https://github.com/daptin/daptin/raw/master/docs_markdown/gifs/create_entity_and_add.gif)
+![Generate random data to show tables](https://github.com/daptin/daptin/raw/master/docs_markdown/gifs/generate_random_show_tables.gif)
 
 Daptin takes features such as
 
@@ -185,7 +185,7 @@ It will be untrue to say Daptin has no competition. These are the possible compe
 
 ### docs
 
-- Checkout the [wiki](https://github.com/artpar/daptin/wiki)
+- Checkout the [wiki](https://github.com/daptin/daptin/wiki)
 
 
 ## Tech stack

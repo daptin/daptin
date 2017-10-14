@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/conform"
-	"github.com/artpar/daptin/server/columntypes"
+	"github.com/daptin/daptin/server/columntypes"
 	"github.com/gin-gonic/gin/json"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"

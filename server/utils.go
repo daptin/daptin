@@ -3,7 +3,7 @@ package server
 import (
 	"encoding/json"
 	"github.com/artpar/api2go"
-	"github.com/artpar/daptin/server/resource"
+	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"

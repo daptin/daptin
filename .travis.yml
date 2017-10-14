@@ -17,7 +17,7 @@ services:
 
 script: go get github.com/GeertJohan/go.rice
  && go get github.com/GeertJohan/go.rice/rice
- && go get github.com/artpar/daptin && rice embed-go && go build -o docker_dir/daptin && cp -Rf daptinweb/dist docker_dir/static && cp Dockerfile docker_dir/Dockerfile
+ && go get github.com/daptin/daptin && rice embed-go && go build -o docker_dir/daptin && cp -Rf daptinweb/dist docker_dir/static && cp Dockerfile docker_dir/Dockerfile
 
 
 after_success:

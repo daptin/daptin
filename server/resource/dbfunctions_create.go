@@ -3,7 +3,7 @@ package resource
 import (
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/artpar/daptin/server/auth"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/jinzhu/copier"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
