@@ -2,7 +2,7 @@ package server
 
 import (
 	"github.com/artpar/api2go"
-	"github.com/artpar/daptin/server/resource"
+	"github.com/daptin/daptin/server/resource"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gopkg.in/gin-gonic/gin.v1"
@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-//import "github.com/artpar/daptin/datastore"
+//import "github.com/daptin/daptin/datastore"
 
 func CreateConfigHandler(configStore *resource.ConfigStore) func(context *gin.Context) {
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/artpar/daptin/server"
+	"github.com/daptin/daptin/server"
 	"github.com/gocraft/health"
 	//"github.com/jpillora/overseer"
 	"log"
@@ -9,7 +9,7 @@ import (
 	"fmt"
 	//"sync"
 	"github.com/GeertJohan/go.rice"
-	"github.com/artpar/daptin/server/resource"
+	"github.com/daptin/daptin/server/resource"
 	"net/http"
 	"os"
 	"syscall"

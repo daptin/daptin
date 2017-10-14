@@ -6,7 +6,7 @@ import (
 	//"reflect"
 	"errors"
 	"fmt"
-	"github.com/artpar/daptin/server/auth"
+	"github.com/daptin/daptin/server/auth"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
 	"time"

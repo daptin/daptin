@@ -1,4 +1,4 @@
-package: github.com/artpar/daptin
+package: github.com/daptin/daptin
 import:
 - package: github.com/GeertJohan/go.rice
   subpackages:

@@ -2,8 +2,8 @@ package server
 
 import (
 	"github.com/artpar/api2go"
-	"github.com/artpar/daptin/server/apiblueprint"
-	"github.com/artpar/daptin/server/resource"
+	"github.com/daptin/daptin/server/apiblueprint"
+	"github.com/daptin/daptin/server/resource"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gin-gonic/gin.v1"
 	"net/http"
