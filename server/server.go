@@ -3,8 +3,8 @@ package server
 import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
-	"github.com/artpar/daptin/server/auth"
-	"github.com/artpar/daptin/server/resource"
+	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/resource"
 	"github.com/artpar/rclone/fs"
 	"github.com/jmoiron/sqlx"
 	"github.com/satori/go.uuid"

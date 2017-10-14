@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/artpar/daptin/server/auth"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/pkg/errors"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"

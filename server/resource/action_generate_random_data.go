@@ -3,7 +3,7 @@ package resource
 import (
 	"context"
 	"github.com/artpar/api2go"
-	"github.com/artpar/daptin/server/auth"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"net/http"

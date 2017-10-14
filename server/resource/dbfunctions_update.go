@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/artpar/daptin/server/auth"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/jmoiron/sqlx"
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"

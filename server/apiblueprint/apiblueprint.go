@@ -3,11 +3,11 @@ package apiblueprint
 import (
 	"bytes"
 	"github.com/artpar/api2go"
-	"github.com/artpar/daptin/server/resource"
+	"github.com/daptin/daptin/server/resource"
 
 	"fmt"
 	"strings"
-	//"github.com/artpar/daptin/server/fakerservice"
+	//"github.com/daptin/daptin/server/fakerservice"
 	"github.com/advance512/yaml"
 )
 

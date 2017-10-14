@@ -6,7 +6,7 @@ You can setup daptin on any machine/server of your choice.
 
 Daptin is available as a native binary for almost all systems. You can fetch the lastest binary from the releases
 
-[https://github.com/artpar/daptin/releases](https://github.com/artpar/daptin/releases)
+[https://github.com/daptin/daptin/releases](https://github.com/daptin/daptin/releases)
 
 ## Docker
 
