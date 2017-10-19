@@ -3,7 +3,7 @@
 <p align="center">
   <img src="https://github.com/daptin/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" title="Daptin" height="140" />
   <h3 align="center">Daptin</h3>
-  <p align="center">Deliver backends for app faster and scalable</p>
+  <p align="center">Backend for your next application, faster</p>
   <p align="center">
     <a href="https://github.com/daptin/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/daptin/daptin.svg?style=flat-square"></a>
     <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
@@ -21,31 +21,34 @@
 
 
 
-## Daptin - Ready to use adaptable backend
+## Daptin - Adaptable backend
 
 
-Daptin is a self-hosted BAAS (Backend as a service) that generates Web APIs (more specifically, JSON APIs) for your data. Daptin combines the best concepts of [the most popular BAAS platforms](http://baas.apievangelist.com/) into a simple run-time tool.
+Daptin is a fully loaded backend server. Expose JSON APIs for your data.
 
 ![Sign up and Sign in](https://github.com/daptin/daptin/raw/master/docs_markdown/gifs/signup_and_signin.gif)
 ![Create entity and add item](https://github.com/daptin/daptin/raw/master/docs_markdown/gifs/create_entity_and_add.gif)
 ![Generate random data to show tables](https://github.com/daptin/daptin/raw/master/docs_markdown/gifs/generate_random_show_tables.gif)
 
-Daptin can help you by
+Daptin get you
 
-- Reducing the time you spend to create CURD Apis
-- Provide a consistent API for all your data
-- Allow complete control over who can do what
-- Extend the system using Actions and Streams
-- Allow your developers to focus on building a frontend
-- Eases your frontend development by allowing you to use any JSONAPI client (available for all major languages and platforms)
+- [JSON](http://jsonapi.org) based CRUD+eX APIs for all your entities
+- Integrated authentication and authorization with user management
+- Detailed access control for data
+- Extensible system with useful integrations (eg sync data updates to 3rd party api)
+- [Client libraries](http://jsonapi.org/implementations/) to consume JSON API seamlessly
 
-Since Daptin generates JSON API compliant web apis, they can work with many popular languages right out of the box using standard JSON clients, and can be used without a framework because they are just JSON rest APIs. Daptin also enables a number of key capabilities on top of Web APIs, in particular Sub site hosting (SSH) without the need to run separate server, an events-actions-outcomes framework, and data-as-objects (instead of just strings).
+Daptin generates JSON API compliant APIs. Daptin also enables a number of key capabilities on top of Web APIs, in particular
+
+- Sub site hosting (SSH) without the need to run separate server
+- an events-actions-outcomes framework to extend system
+- Data-as-objects (instead of just strings)
 
 Compared to building JSON APIs directly, Daptin provides extra APIs that makes writing fast frontend apps simpler.
 
-APIs like user signup and registration, create, read, write, update for all entities, and actions with multiple outcome chains, make fast, powerful frontends easy to create, while still maintaining 100% compatibility with common standards.
 
-The user experience is also tuned, and comes with fully featured dashboard and various site designs baked in to bootstrap.
+## How can I use it
+
 
 
 ## Why Daptin?
