@@ -32,7 +32,7 @@ Daptin is a fully loaded backend server. Expose JSON APIs for your data.
 
 Daptin get you
 
-- [JSON](http://jsonapi.org) based CRUD+eX APIs for all your entities
+- [JSON](http://jsonapi.org) based CRUD+eXecute APIs for all your entities
 - Integrated authentication and authorization with user management
 - Detailed access control for data
 - Extensible system with useful integrations (eg sync data updates to 3rd party api)
