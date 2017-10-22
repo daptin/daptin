@@ -38,6 +38,9 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 	for _, result := range results {
 		//log.Infof("Result: %v", result)
 
+		if result == nil {
+			continue
+		}
 		referenceId := result["reference_id"].(string)
 		_, ok := notIncludedMapCache[referenceId]
 		if ok {
