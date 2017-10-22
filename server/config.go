@@ -54,6 +54,7 @@ func loadConfigFiles() (resource.CmsConfig, []error) {
 	for _, fileName := range files {
 		log.Infof("Process file: %v", fileName)
 
+
 		viper.SetConfigFile(fileName)
 
 		err = viper.ReadInConfig()
