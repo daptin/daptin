@@ -33,6 +33,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create generate jwt performer")
 	performers = append(performers, generateJwtPerformer)
 
+	NewNetworkRequestPerformer, err := resource.NewNetworkRequestPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create generate network request performer")
+	performers = append(performers, NewNetworkRequestPerformer)
+
 	randomDataGenerator, err := resource.NewRandomDataGeneratePerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create random data generator")
 	performers = append(performers, randomDataGenerator)

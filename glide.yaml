@@ -56,5 +56,5 @@ import:
   version: ^9.5.0
   subpackages:
   - translations/en
-- package: gopkg.in/resty.v0
-  version: ^0.13.0
+- package: gopkg.in/resty.v1
+  version: ^1.0.0
