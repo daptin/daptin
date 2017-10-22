@@ -24,7 +24,7 @@
                 :api-mode="true"
                 :query-params="{ sort: 'sort', page: 'page[number]', perPage: 'page[size]' }"
                 :load-on-start="autoload">
-        <template slot="actions" scope="props">
+        <template slot="actions" slot-scope="props">
           <div class="custom-actions">
 
             <button class="btn btn-box-tool"
@@ -77,7 +77,7 @@
                :api-mode="true"
                :query-params="{ sort: 'sort', page: 'page[number]', perPage: 'page[size]' }"
                :load-on-start="autoload">
-        <template slot="actions" scope="props">
+        <template slot="actions" slot-scope="props">
           <div class="custom-actions">
 
             <button class="btn btn-box-tool"

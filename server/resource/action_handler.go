@@ -88,6 +88,9 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 	actionHandlerMap := make(map[string]ActionPerformerInterface)
 
 	for _, actionPerformer := range actionPerformers {
+		if actionPerformer == nil {
+			continue
+		}
 		actionHandlerMap[actionPerformer.Name()] = actionPerformer
 	}
 
@@ -147,6 +150,12 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			subjectInstance = referencedObject.Result().(*api2go.Api2GoModel)
 
 			subjectInstanceMap = subjectInstance.Data
+
+			if subjectInstanceMap == nil {
+				ginContext.AbortWithError(403, errors.New("Forbidden"))
+				return
+			}
+
 			subjectInstanceMap["__type"] = subjectInstance.GetName()
 			permission := cruds[actionRequest.Type].GetRowPermission(subjectInstanceMap)
 
@@ -281,7 +290,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
 					//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
 				} else {
-					responses1, errors1 := performer.DoAction(actionRequest, inFieldMap)
+					responses1, errors1 := performer.DoAction(actionRequest, model.Data)
 					responses = append(responses, responses1...)
 					if errors1 != nil && len(errors1) > 0 {
 						err = errors1[0]

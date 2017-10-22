@@ -1,5 +1,5 @@
-hash: d9dbe8fc6d0e42293a420af4bb058275d379f386573deab655f7a6449402dfed
-updated: 2017-10-12T19:44:55.86307626+05:30
+hash: 1f3b5ce943ba2f356355518f97a151b1da59d1eae2cfb1bd210b8a6aaaa1e89e
+updated: 2017-10-22T00:41:43.452289062+05:30
 imports:
 - name: cloud.google.com/go
   version: 4b5faa47331c50b3f75616de199da5fea9c50bea
@@ -101,7 +101,7 @@ imports:
 - name: github.com/daaku/go.zipexe
   version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
 - name: github.com/dgrijalva/jwt-go
-  version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
+  version: dbeaa9332f19a944acb5736b4456cfcc02140e29
 - name: github.com/dlclark/regexp2
   version: 487489b64fb796de2e55f4e8a4ad1e145f80e957
   subpackages:
@@ -139,7 +139,7 @@ imports:
 - name: github.com/go-ini/ini
   version: c787282c39ac1fc618827141a1f762240def08a3
 - name: github.com/go-playground/locales
-  version: b860c92274dfb72f517b8b4c11c6d9f2f8cc9d91
+  version: e4cbcb5d0652150d40ad0646651076b6bd2be4f6
   subpackages:
   - currency
   - en
@@ -412,8 +412,8 @@ imports:
   - translations/en
 - name: gopkg.in/Masterminds/squirrel.v1
   version: a6b93000bd219143c56c16e6cb1c4b91da3f224b
-- name: gopkg.in/resty.v0
-  version: cf81ed0a604d373be63b4c036c6b05c06520615f
+- name: gopkg.in/resty.v1
+  version: 9ac9c42358f7c3c69ac9f8610e8790d7c338e85d
 - name: gopkg.in/src-d/go-billy.v3
   version: c329b7bc7b9d24905d2bc1b85bfa29f7ae266314
   subpackages:
