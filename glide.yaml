@@ -56,5 +56,5 @@ import:
   version: ^9.5.0
   subpackages:
   - translations/en
-- package: gopkg.in/resty.v1
-  version: ^1.0.0
+- package: github.com/artpar/resty
+  version: ^1.0.1

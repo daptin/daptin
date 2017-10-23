@@ -2,7 +2,7 @@ package resource
 
 import (
 	"strings"
-	"gopkg.in/resty.v1"
+	"github.com/artpar/resty"
 	"fmt"
 	"encoding/json"
 )
@@ -63,9 +63,10 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 	if !isMethodPresent {
 		return nil, []error{fmt.Errorf("Http Request method not present")}
 	}
-	methodString := strings.ToLower(method.(string))
+	methodString := strings.ToUpper(method.(string))
 
 	client := resty.R()
+	resty.DetectContentType(false)
 
 	if isBody {
 		client.SetBody(bodyMap)
@@ -79,18 +80,18 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 	var response *resty.Response
 	var err error
 
-	switch methodString {
-	case "get":
-		response, err = client.Get(urlString)
-	case "post":
-		response, err = client.Post(urlString)
-	case "put":
-		response, err = client.Put(urlString)
-	case "patch":
-		response, err = client.Patch(urlString)
-	case "delete":
-		response, err = client.Delete(urlString)
-	}
+	//switch methodString {
+	//case "get":
+	//	response, err = client.Get(urlString)
+	//case "post":
+	//	response, err = client.Post(urlString)
+	//case "put":
+	//	response, err = client.Put(urlString)
+	//case "patch":
+	//	response, err = client.Patch(urlString)
+	//case "delete":
+	response, err = client.Execute(methodString, urlString)
+	//}
 	responseMap := make(map[string]interface{})
 
 	responseHeaders := response.Header()

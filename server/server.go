@@ -203,8 +203,8 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 	r.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
 	r.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
 
-	r.GET("/site/content", CreateSubSiteContentHandler(&initConfig, cruds, db))
-	r.POST("/site/content", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
+	r.POST("/site/content/load", CreateSubSiteContentHandler(&initConfig, cruds, db))
+	r.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
 	r.NoRoute(func(c *gin.Context) {
 		file, err := boxRoot.Open("index.html")
