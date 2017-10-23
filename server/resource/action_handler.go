@@ -232,7 +232,8 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 	OutFields:
 		for _, outcome := range action.OutFields {
 			var res api2go.Responder
-
+			var responses1 []ActionResponse
+			var errors1 []error
 			var actionResponse ActionResponse
 
 			model, request, err := BuildOutcome(inFieldMap, outcome)
@@ -290,7 +291,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
 					//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
 				} else {
-					responses1, errors1 := performer.DoAction(actionRequest, model.Data)
+					responses1, errors1 = performer.DoAction(actionRequest, model.Data)
 					responses = append(responses, responses1...)
 					if errors1 != nil && len(errors1) > 0 {
 						err = errors1[0]
@@ -325,6 +326,15 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				if outcome.Reference == "" {
 					inFieldMap["subject"] = inFieldMap[outcome.Reference]
 				}
+			}
+
+			if len(responses1) > 0 {
+				lst := make([]interface{}, 0)
+				for i, res := range responses1 {
+					inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = res.Attributes
+					lst = append(lst, res.Attributes)
+				}
+				inFieldMap[outcome.Reference] = lst
 			}
 
 			if err != nil {
@@ -631,7 +641,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 
 	} else {
 
-		rex := regexp.MustCompile(`\$([a-zA-Z0-9_]+)?(\.[a-zA-Z0-9_]+)+`)
+		rex := regexp.MustCompile(`\$([a-zA-Z0-9_\[\]]+)?(\.[a-zA-Z0-9_]+)+`)
 		matches := rex.FindAllStringSubmatch(fieldString, -1)
 
 		for _, match := range matches {
