@@ -180,12 +180,19 @@ func CreateSubSiteSaveContentHandler(initConfig *resource.CmsConfig, cruds map[s
 	return func(context *gin.Context) {
 
 		//var grapeSaveRequest GrapeSaveRequest
-		//s, _ := context.GetRawData()
+		s, _ := context.GetRawData()
 		//err := context.Bind(&grapeSaveRequest)
 		//if err != nil {
 		//	log.Errorf("Failed to create html document from html string: %v", err)
 		//}
 		//log.Infof("%s",string(s))
+
+		requestJson := make(map[string]interface{})
+		err := json.Unmarshal(s, &requestJson)
+		if err != nil {
+			context.AbortWithError(403, err)
+			return
+		}
 
 		//queryString := string(s)
 		//query, err := url.ParseQuery(queryString)
@@ -194,7 +201,7 @@ func CreateSubSiteSaveContentHandler(initConfig *resource.CmsConfig, cruds map[s
 		//	context.AbortWithStatus(400)
 		//	return
 		//}
-		action := context.Request.FormValue("action")
+		//action := context.Request.FormValue("action")
 
 		referrer, _ := url.Parse(context.GetHeader("Referer"))
 		subsite, ok := GetSubSiteFromContext(context, initConfig.SubSites)
@@ -216,83 +223,95 @@ func CreateSubSiteSaveContentHandler(initConfig *resource.CmsConfig, cruds map[s
 			return
 		}
 
-		if action == "store" {
+		//if action == "store" {
 
-			cssString := context.Request.FormValue("gjs-css")
-			htmlString := context.Request.FormValue("gjs-html")
+		cssString := requestJson["gjs-css"]
+		htmlString := requestJson["gjs-html"]
 
-			htmlDocument, err := goquery.NewDocumentFromReader(strings.NewReader(htmlString))
-			if err != nil {
-				log.Errorf("Failed to create html document from html string: %v", err)
-				context.AbortWithStatus(400)
-				return
-			}
-
-			if len(cssString) > 0 {
-				htmlDocument.Find("head").Append(fmt.Sprintf("<style>\n%s\n</style>", cssString))
-			}
-
-			assetsList := make([]GrapeAsset, 0)
-
-			assets := context.Request.FormValue("gjs-assets")
-
-			err = json.Unmarshal([]byte(assets), &assetsList)
-			if len(assets) > 1 {
-
-				if err != nil {
-					log.Errorf("Failed to unmarshal asset list from post body: %v", err)
-					context.AbortWithStatus(400)
-					return
-				}
-			}
-			for _, asset := range assetsList {
-				switch asset.Type {
-				case "image":
-					//htmlDocument.Find("head").Append("<")
-				case "script":
-					htmlDocument.Find("head").Append(fmt.Sprintf("<script src='%s'></script>", asset.Src))
-				case "style":
-					htmlDocument.Find("head").Append(fmt.Sprintf("<link rel='stylesheet' href='%s'></script>", asset.Src))
-				}
-			}
-
-			htmlString, err = htmlDocument.Html()
-			if err != nil {
-				log.Errorf("Failed to convert to html document: %v", err)
-				context.AbortWithStatus(400)
-				return
-			}
-
-			log.Infof("Writing contents to file: %v", fullpath)
-			err = ioutil.WriteFile(fullpath, []byte(htmlString), 0644)
-			if !ok {
-				log.Errorf("Invalid subsite: %v", context.GetHeader("Referer"))
-				context.AbortWithStatus(400)
-				return
-			}
-
-		} else if action == "load" {
-			keys := strings.Split(context.Request.FormValue("keys"), ",")
-			log.Infof("Keys to load", keys)
-
-			responseMap := make(map[string]interface{})
-			for _, key := range keys {
-
-				switch key {
-				case "gjs-html":
-					htmlDoc, err := ioutil.ReadFile(fullpath)
-					if err != nil {
-						context.AbortWithError(403, err)
-						return
-					}
-					responseMap[key] = string(htmlDoc)
-
-				}
-
-			}
-			context.AbortWithStatusJSON(200, responseMap)
-
+		htmlDocument, err := goquery.NewDocumentFromReader(strings.NewReader(htmlString.(string)))
+		if err != nil {
+			log.Errorf("Failed to create html document from html string: %v", err)
+			context.AbortWithStatus(400)
+			return
 		}
+
+		if len(cssString.(string)) > 0 {
+			htmlDocument.Find("head").Append(fmt.Sprintf("<style>\n%s\n</style>", cssString))
+		}
+
+		assetsList := make([]GrapeAsset, 0)
+
+		//assets := requestJson["gjs-assets"].(string)
+
+		err = json.Unmarshal([]byte(requestJson["gjs-assets"].(string)), &assetsList)
+		//
+		//for _, asset := range assets {
+		//	assetItem := GrapeAsset{
+		//		Src           : asset["src"].(string),
+		//		Type          : asset["type"].(string),
+		//		UnitDimension  : asset["unitDim"].(string),
+		//		Height         : asset["height"].(int),
+		//		Width          : asset["width"].(int),
+		//	}
+		//	assetsList = append(assetsList, assetItem)
+		//}
+
+		//if len(assets) > 1 {
+		//
+		//	if err != nil {
+		//		log.Errorf("Failed to unmarshal asset list from post body: %v", err)
+		//		context.AbortWithStatus(400)
+		//		return
+		//	}
+		//}
+		for _, asset := range assetsList {
+			switch asset.Type {
+			case "image":
+				//htmlDocument.Find("head").Append("<")
+			case "script":
+				htmlDocument.Find("head").Append(fmt.Sprintf("<script src='%s'></script>", asset.Src))
+			case "style":
+				htmlDocument.Find("head").Append(fmt.Sprintf("<link rel='stylesheet' href='%s'></script>", asset.Src))
+			}
+		}
+
+		htmlString, err = htmlDocument.Html()
+		if err != nil {
+			log.Errorf("Failed to convert to html document: %v", err)
+			context.AbortWithStatus(400)
+			return
+		}
+
+		log.Infof("Writing contents to file: %v", fullpath)
+		err = ioutil.WriteFile(fullpath, []byte(htmlString.(string)), 0644)
+		if !ok {
+			log.Errorf("Invalid subsite: %v", context.GetHeader("Referer"))
+			context.AbortWithStatus(400)
+			return
+		}
+		//
+		//} else if action == "load" {
+		//	keys := strings.Split(context.Request.FormValue("keys"), ",")
+		//	log.Infof("Keys to load", keys)
+		//
+		//	responseMap := make(map[string]interface{})
+		//	for _, key := range keys {
+		//
+		//		switch key {
+		//		case "gjs-html":
+		//			htmlDoc, err := ioutil.ReadFile(fullpath)
+		//			if err != nil {
+		//				context.AbortWithError(403, err)
+		//				return
+		//			}
+		//			responseMap[key] = string(htmlDoc)
+		//
+		//		}
+		//
+		//	}
+			context.AbortWithStatusJSON(200, requestJson)
+		//
+		//}
 
 	}
 
@@ -435,6 +454,25 @@ func CreateSubSiteContentHandler(initConfig *resource.CmsConfig, cruds map[strin
 			srcPath := s.AttrOr("src", "")
 			if len(srcPath) > 0 {
 				scriptPaths = append(scriptPaths, srcPath)
+			}
+		})
+
+		imagePaths := make([]string, 0)
+		doc.Find("img").Each(func(i int, s *goquery.Selection) {
+			// For each item found, get the band and title
+
+			txt := s.Text()
+
+			if strings.TrimSpace(txt) != "" {
+				return
+			}
+
+			srcPath := s.AttrOr("src", "")
+			//styleValue := s.AttrOr("style", "")
+			//width := styleValue
+			//height := s.AttrOr("height", "")
+			if len(srcPath) > 0 {
+				imagePaths = append(imagePaths, srcPath)
 			}
 		})
 
