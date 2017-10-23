@@ -86,7 +86,6 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 	sourceDirectoryName := uuid.NewV4().String()
 	tempDirectoryPath, err := ioutil.TempDir("", sourceDirectoryName)
 	log.Infof("Temp directory for this upload: %v", tempDirectoryPath)
-	targetStorageDetails := inFields["subject"].(map[string]interface{})
 
 	//defer os.RemoveAll(tempDirectoryPath) // clean up
 
@@ -113,15 +112,15 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 
 	}
 
-	targetInformation := inFields["subject"]
-	targetInformationMap := targetInformation.(map[string]interface{})
-	rootPath := targetInformationMap["root_path"].(string)
+	//targetInformation := inFields["subject"]
+	//targetInformationMap := targetInformation.(map[string]interface{})
+	rootPath := inFields["root_path"].(string)
 	args := []string{
 		tempDirectoryPath,
 		rootPath,
 	}
 
-	oauthTokenId1 := targetStorageDetails["oauth_token_id"]
+	oauthTokenId1 := inFields["oauth_token_id"]
 	if oauthTokenId1 == nil {
 		log.Errorf("No oauth token set for target store")
 		return nil, []error{errors.New("No auth token set for this store")}
@@ -146,9 +145,9 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to marshal access token to json")
 
-	storeProvider := targetStorageDetails["store_provider"].(string)
+	storeProvider := inFields["store_provider"].(string)
 	fs.ConfigFileSet(storeProvider, "client_id", oauthConf.ClientID)
-	fs.ConfigFileSet(storeProvider, "type", targetInformationMap["store_provider"].(string))
+	fs.ConfigFileSet(storeProvider, "type", inFields["store_provider"].(string))
 	fs.ConfigFileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
 	fs.ConfigFileSet(storeProvider, "token", string(jsonToken))
 	fs.ConfigFileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
