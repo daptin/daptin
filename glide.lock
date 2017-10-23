@@ -1,5 +1,5 @@
-hash: 5df2c182069cc3c0fa33d168f0e1ef94ccef33ba8cf6822fe0ed160a751373bd
-updated: 2017-10-23T18:35:06.610645631+05:30
+hash: 770109b56b4d795a3b63b6778b12603259ae2c05ff0f418e768f7a34efb9de14
+updated: 2017-10-24T04:23:17.658825572+05:30
 imports:
 - name: cloud.google.com/go
   version: 4b5faa47331c50b3f75616de199da5fea9c50bea
@@ -272,7 +272,7 @@ imports:
   - hotp
   - totp
 - name: github.com/PuerkitoBio/goquery
-  version: ce645ea5e67a713599b7415f21f0786451fa9554
+  version: e1271ee34c6a305e38566ecd27ae374944907ee9
 - name: github.com/rfjakob/eme
   version: 7c8316a9cb0a6af865265f899f5de6aadb31a24b
 - name: github.com/satori/go.uuid
