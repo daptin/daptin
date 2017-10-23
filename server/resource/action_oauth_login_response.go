@@ -110,7 +110,7 @@ func mapToOauthConfig(authConnectorData map[string]interface{}, secret string) (
 func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {
 
 	state := inFieldMap["state"].(string)
-	user := inFieldMap["user"].(map[string]interface{})
+	//user := inFieldMap["user"].(map[string]interface{})
 
 	ok, err := totp.ValidateCustom(state, d.otpKey, time.Now().UTC(), totp.ValidateOpts{
 		Period:    300,
@@ -152,8 +152,8 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 	storeToken["oauth_connect_id"] = authReferenceId
 
 	sessionUser := auth.SessionUser{
-		UserId:          user["id"].(int64),
-		UserReferenceId: user["reference_id"].(string),
+		UserId:          inFieldMap["user_id"].(int64),
+		UserReferenceId: inFieldMap["user_reference_id"].(string),
 		Groups:          []auth.GroupPermission{},
 	}
 

@@ -34,7 +34,7 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
 		return nil, []error{err}
 	}
 
-	authConnectorData := inFieldMap["subject"].(map[string]interface{})
+	authConnectorData := inFieldMap["authenticator"].(string)
 
 	//redirectUri := authConnectorData["redirect_uri"].(string)
 	//
@@ -44,7 +44,7 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
 	//	redirectUri = redirectUri + "?authenticator=" + authConnectorData["name"].(string)
 	//}
 
-	conf, _, err := GetOauthConnectionDescription(authConnectorData["name"].(string), d.cruds["oauth_connect"])
+	conf, _, err := GetOauthConnectionDescription(authConnectorData, d.cruds["oauth_connect"])
 	CheckErr(err, "Failed to get oauth.conf from authenticator name")
 
 	// Redirect user to consent page to ask for permission

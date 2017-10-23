@@ -260,6 +260,9 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"file": "~file",
+					"oauth_token_id": "$.oauth_token_id",
+					"store_provider": "$.store_provider",
+					"root_path": "$.root_path",
 				},
 			},
 		},
@@ -349,6 +352,7 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"user_id": "$user.id",
+					"user": "$user",
 				},
 			},
 		},
@@ -533,6 +537,10 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"authenticator": "~authenticator",
+					"user_id": "~user.id",
+					"user_reference_id": "~user.reference_id",
+					"state": "~state",
+					"code": "~code",
 				},
 			},
 		},
