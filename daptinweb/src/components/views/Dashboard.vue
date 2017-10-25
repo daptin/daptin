@@ -39,9 +39,9 @@
             </div>
             <div class="box-body no-padding">
               <ul class="nav nav-pills nav-stacked">
-                <li v-for="action in worlds" v-if="action.instanceOptional">
-                  <router-link :to="{name: 'Action', params: {tablename: action.onType, actionname: action.name}}">
-                    {{action.label}}
+                <li v-for="action in worlds" v-if="action.InstanceOptional">
+                  <router-link :to="{name: 'Action', params: {tablename: action.OnType, actionname: action.Name}}">
+                    {{action.Label}}
                   </router-link>
                 </li>
 
@@ -54,40 +54,40 @@
         </div>
       </div>
 
-      <div class="row">
-        <div class="col-md-3" v-for="(worlds, tableName) in actionGroups" v-if="worlds.length > 0">
+      <!--<div class="row">-->
+        <!--<div class="col-md-3" v-for="(worlds, tableName) in actionGroups" v-if="worlds.length > 0">-->
 
-          <div class="box box-solid collapsed-box">
-            <div class="box-header with-border">
-              <h3 class="box-title">{{tableName | titleCase}}</h3>
+          <!--<div class="box box-solid collapsed-box">-->
+            <!--<div class="box-header with-border">-->
+              <!--<h3 class="box-title">{{tableName | titleCase}}</h3>-->
 
-              <div class="box-tools">
-                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
-                </button>
-              </div>
-            </div>
-            <div class="box-body no-padding">
-              <ul class="nav nav-pills nav-stacked">
-                <li v-for="world in worlds">
-                  <router-link :to="{name: 'Action', params: {tablename: world.onType, actionname: world.name}}">
-                    {{world.label}}
-                  </router-link>
-                </li>
+              <!--<div class="box-tools">-->
+                <!--<button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>-->
+                <!--</button>-->
+              <!--</div>-->
+            <!--</div>-->
+            <!--<div class="box-body no-padding">-->
+              <!--<ul class="nav nav-pills nav-stacked">-->
+                <!--<li v-for="world in worlds">-->
+                  <!--<router-link :to="{name: 'Action', params: {tablename: world.OnType, actionname: world.Name}}">-->
+                    <!--{{world.Label}}-->
+                  <!--</router-link>-->
+                <!--</li>-->
 
-              </ul>
-            </div>
-            <!-- /.box-body -->
-          </div>
+              <!--</ul>-->
+            <!--</div>-->
+            <!--&lt;!&ndash; /.box-body &ndash;&gt;-->
+          <!--</div>-->
 
 
-        </div>
-      </div>
+        <!--</div>-->
+      <!--</div>-->
       <div class="row">
 
         <div class="col-md-12">
 
           <div class="row">
-            <div class="col-md-12">
+            <div class="col-md-10">
 
               <div class="row">
                 <router-link :to="{name: 'Entity', params:{tablename: 'marketplace'}}"
@@ -311,7 +311,7 @@
           size: 200,
         }
       }).then(function (worlds) {
-
+        worlds = worlds.data;
         var actionGroups = {
           "System": [],
           "User": []
@@ -321,7 +321,7 @@
           var tableName = worlds[i].table_name;
           var actions = actionManager.getActions(tableName);
 
-//          console.log("actions for ", tableName, actions)
+          console.log("actions for ", tableName, actions)
           if (!actions) {
             continue
           }
@@ -329,7 +329,7 @@
           for (var j = 0; j < actionKeys.length; j++) {
             var action = actions[actionKeys[j]];
 //            console.log("dashboard action", action)
-            var onType = action.onType;
+            var onType = action.OnType;
             var onWorld = worldManager.getWorldByName(onType)
 //            console.log("on world", onWorld)
 
