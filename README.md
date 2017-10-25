@@ -1,10 +1,7 @@
 
+# Daptin
 
-<p align="center">
-  <img src="https://github.com/daptin/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" title="Daptin" height="140" />
-  <h3 align="center">Daptin</h3>
-  <p align="center">Backend for your next application, faster</p>
-  <p align="center">
+<p align="left">
     <a href="https://github.com/daptin/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/daptin/daptin.svg?style=flat-square"></a>
     <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
     <a href="https://travis-ci.org/daptin/daptin"><img alt="Travis" src="https://img.shields.io/travis/daptin/daptin.svg?style=flat-square"></a>
@@ -12,42 +9,47 @@
     <a href="https://goreportcard.com/report/github.com/daptin/daptin"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/daptin/daptin?style=flat-square"></a>
     <a href="http://godoc.org/github.com/daptin/daptin"><img alt="Go Doc" src="https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square"></a>
     <a href='https://semaphoreci.com/artpar/daptin-2'> <img src='https://semaphoreci.com/api/v1/artpar/daptin-2/branches/master/badge.svg' alt='Build Status'></a>
-  </p>
 </p>
+  <p align="left">
 
----
+  <img src="https://github.com/daptin/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" title="Daptin" height="140" />
+    </p>
 
- [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) [![Slack Status](https://img.shields.io/badge/slack-chat-orange.svg)](https://daptin.slack.com)
-
-
-
-## Daptin - Adaptable backend
-
-
+## What is Daptin?
 Daptin is a fully loaded backend server. Expose JSON APIs for your data.
+
+## Installation
+
+**Deploy**
+
+ [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+
+**Docker**
+
+```
+docker run -d -p 8080:8080 daptin/daptin
+```
+
+## Usage
 
 ![Sign up and Sign in](https://github.com/daptin/daptin/raw/master/docs_markdown/gifs/signup_and_signin.gif)
 ![Create entity and add item](https://github.com/daptin/daptin/raw/master/docs_markdown/gifs/create_entity_and_add.gif)
 ![Generate random data to show tables](https://github.com/daptin/daptin/raw/master/docs_markdown/gifs/generate_random_show_tables.gif)
 
-Daptin get you
+Daptin will provide
 
 - [JSON](http://jsonapi.org) based CRUD+eXecute APIs for all your entities
 - Integrated authentication and authorization with user management
-- Detailed access control for data
+- Access control for data
 - Extensible system with useful integrations (eg sync data updates to 3rd party api)
 - [Client libraries](http://jsonapi.org/implementations/) to consume JSON API seamlessly
 
-Daptin generates JSON API compliant APIs. Daptin also enables a number of key capabilities on top of Web APIs, in particular
 
 - Sub site hosting (SSH) without the need to run separate server
-- an events-actions-outcomes framework to extend system
+- An events-actions-outcomes framework to extend system
 - Data-as-objects (instead of just strings)
 
-Compared to building JSON APIs directly, Daptin provides extra APIs that makes writing fast frontend apps simpler.
-
-
-## How can I use it
+Compared to building JSON APIs directly, Daptin provides APIs that makes writing fast frontend apps simpler.
 
 
 
@@ -64,14 +66,6 @@ A component system around JSON APIs offered a solution to both problems, allowin
 
 However, JSON APIs for data manipulation by themselves weren't enough. Building apps required a lot of custom actions, workflows, data integrity, event subscription, integration with external services that were previously locked up inside of traditional web frameworks. Daptin was built to pull these features out of traditional frameworks and bring them to the fast emerging JSON API standard in an automated way.
 
-
-## Quick run
-
-```
-docker run -d -p 8080:8080 daptin/daptin
-```
-
-Then open [Daptin Dashboard](http://localhost:8080) to sign up and sign-in
 
 ## Getting started
 
@@ -94,21 +88,6 @@ Cooking Recipe | Has many Ingredients | Get Slack notification when anyone adds 
 Wedding | has many people called "attendees" | Send everyone SMS on updates to wedding party schedule | Calender changes with every attendees calender | Build a UI using React
 
 
-## How can you use Daptin
-
-- Daptin uses a SQL database and works like a very high level framework/management system
-- Daptin asks you to define your domain entities along with their relations in the way you want to organise them.
-- Daptin takes the responsibility of giving you following:
-
-  - A responsive dashboard to interact with the system, tested on desktop browsers and mobile browsers
-  - A in-built event framework which you can hook into
-  - User notifications - Email/Sms/Messengers/Dashboard
-  - Actions - Which can be hooked to events, and have multiple outcomes
-  - A status tracking system (Visually design a state machine and make it available for any kind of object)
-
-
-Daptin is a platform which can be customised using Schema files, which describe your requirements and processes.
-
 ## Tech Goals
 
 - Zero config start (sqlite db for fresh install, mysql/postgres is recommanded for serious use)
@@ -122,7 +101,7 @@ Daptin is a platform which can be customised using Schema files, which describe 
 
 ## Competitor products
 
-It will be untrue to say Daptin has no competition. These are the possible competing products:
+These are the competition:
 
 - [Directus](https://getdirectus.com/) - Directus is an API-driven content management framework for custom databases. It decouples content for use in apps, websites, or any other data-driven projects.
 - [Cockpit](https://getcockpit.com/) - An API-driven CMS
