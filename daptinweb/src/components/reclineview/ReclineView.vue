@@ -145,11 +145,6 @@
           }
 
 
-          if (columnName == "created_at") {
-            continue
-          }
-
-
           if (columnName == "updated_at") {
             continue
           }
@@ -157,7 +152,13 @@
 
           var columnType = that.selectedWorldColumns[columnName];
           if (columnType == "datetime" || columnType == "date" || columnType == "time" || columnType == "timestamp") {
-            dateColumns.push(columnName)
+
+            if (columnName == "created_at") {
+              dateColumns.push(columnName)
+            } else {
+              dateColumns.unshift(columnName)
+            }
+
           }
         }
         console.log('date column', dateColumns)

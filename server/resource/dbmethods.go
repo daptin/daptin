@@ -45,9 +45,9 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 	action := make([]Action, 0)
 
 	rows, err := dr.db.Queryx("select a.action_name as name, w.table_name as ontype, a.label, action_schema as action_schema,"+
-		" a.instance_optional as instance_optional, a.reference_id as referenceid from action a"+
-		" join world w on w.id = a.world_id"+
-		" where w.table_name = ? ", typeName)
+			" a.instance_optional as instance_optional, a.reference_id as referenceid from action a"+
+			" join world w on w.id = a.world_id"+
+			" where w.table_name = ? ", typeName)
 	if err != nil {
 		log.Errorf("Failed to scan action: %v", err)
 		return action, err
@@ -108,14 +108,14 @@ func (dr *DbResource) GetObjectPermission(objectType string, referenceId string)
 	var err error
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = squirrel.
-			Select("permission", "id").
-			From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
-			ToSql()
+		Select("permission", "id").
+				From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
+				ToSql()
 	} else {
 		selectQuery, queryParameters, err = squirrel.
-			Select("user_id", "permission", "id").
-			From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
-			ToSql()
+		Select("user_id", "permission", "id").
+				From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
+				ToSql()
 
 	}
 
@@ -273,8 +273,8 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 
 	res, err := dr.db.Queryx(
 		fmt.Sprintf("select ug.reference_id as referenceid, uug.permission "+
-			"from usergroup ug "+
-			"join %s_%s_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id and uug.%s_id = ?", objType, objType, objType), objectId)
+				"from usergroup ug "+
+				"join %s_%s_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id and uug.%s_id = ?", objType, objType, objType), objectId)
 	if err != nil {
 		log.Errorf("Failed to query object group by object id [%v][%v] == %v", objType, objectId, err)
 		return s
@@ -316,9 +316,9 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 
 		if crud.model.HasColumn("user_id") {
 			q, v, err := squirrel.Update(crud.model.GetName()).
-				Set("user_id", userId).
-				Set("permission", auth.DEFAULT_PERMISSION).
-				ToSql()
+					Set("user_id", userId).
+					Set("permission", auth.DEFAULT_PERMISSION).
+					ToSql()
 			if err != nil {
 				log.Errorf("Failed to create query to update: %v == %v", crud.model.GetName(), err)
 				continue
