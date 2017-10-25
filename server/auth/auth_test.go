@@ -9,9 +9,13 @@ func TestAllPermission(t *testing.T) {
 
 	perm1 := NewPermission(Read, Read|Create|Update, CRUD)
 	perm2 := NewPermission(Create|Read|Refer, Read|Update|Execute, Create|Read|Refer|Update)
+	perm3 := NewPermission(None, Read | Execute, CRUD | Execute)
+	perm4 := NewPermission(Read, Read | Execute, CRUD | Execute)
+	perm5 := NewPermission(Peek | ExecuteStrict, Read | Execute, CRUD | Execute)
 
 	tperm1 := ParsePermission(perm1.IntValue())
 	tperm2 := ParsePermission(perm2.IntValue())
+	//tperm2 := ParsePermission(perm3.IntValue())
 
 	if perm1 == perm2 {
 		t.Errorf("Permission should not be equal")
@@ -26,6 +30,9 @@ func TestAllPermission(t *testing.T) {
 	}
 	fmt.Printf("Perm 1: %v == %v == %v\n", perm1, perm1.IntValue(), tperm1.IntValue())
 	fmt.Printf("Perm 2: %v == %v == %v\n", perm2, perm2.IntValue(), tperm2.IntValue())
+	fmt.Printf("Perm 3: %v == %v\n", perm3, perm3.IntValue())
+	fmt.Printf("Perm 4: %v == %v\n", perm4, perm4.IntValue())
+	fmt.Printf("Perm 5: %v == %v\n", perm5, perm5.IntValue())
 
 }
 
