@@ -41,7 +41,7 @@ jsonapi.replaceMiddleware('errors', {
 
     if (!response.data.errors) {
       Notification.error({
-        "title": "Fail",
+        "title": "Warn",
         "message": "Massive"
       })
       console.log("we dont know about this entity");
