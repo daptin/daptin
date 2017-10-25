@@ -34,7 +34,7 @@ docker run -d -p 8080:8080 daptin/daptin
 
 ![Sign up and Sign in](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/signup_and_signin.gif)
 ![Create entity and add item](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/create_entity_and_add.gif)
-![Generate random data to show tables](https://raw.githubusercontent.comdaptin/daptin/master/docs_markdown/docs/gifs/generate_random_show_tables.gif)
+![Generate random data to show tables](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/generate_random_show_tables.gif)
 
 Daptin will provide
 
