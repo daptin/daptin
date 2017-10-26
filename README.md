@@ -32,49 +32,60 @@ docker run -d -p 8080:8080 daptin/daptin
 
 ## Usage
 
-```json
-{
-    "Tables": [{
-            "TableName": "inventory",
-            "Columns": [{
-                "Name": "name",
-                "dataType": "varchar(100)",
-                "ColumnType": "label",
-                "IsIndexed": true
-            }, {
-                "Name": "description",
-                "DataType": "text",
-                "ColumnType": "label"
-            }, {
-                "Name": "line_items",
-                "DataType": "int(11)",
-                "ColumnType": "measurement"
-            }],
-            "Conformations": [{
-                "ColumnName": "order",
-                "Tags": "numeric"
-            }],
-            "Validations": [{
-                "ColumnName": "title",
-                "Tags": "required"
-            }]
-        },
-        {
-            "TableName": "sale",
-            "Columns": [{
-                "Name": "is_returned",
-                "DataType": "bool",
-                "ColumnType": "truefalse",
-                "DefaultValue": "0"
-            }]
-        }
-    ],
-    "Relations": [{
-        "Subject": "inventory",
-        "Relation": "has_many",
-        "Object": "sale"
-    }]
-}
+```yaml
+Tables:
+- TableName: todo
+  Columns:
+  - Name: title
+    DataType: varchar(500)
+    ColumnType: label
+    IsIndexed: true
+  - Name: url
+    DataType: varchar(200)
+    ColumnType: url
+    IsNullable: true
+  - Name: completed
+    DataType: int(1)
+    ColumnType: truefalse
+    DefaultValue: 'false'
+  - Name: schedule
+    DataType: date
+    ColumnType: date
+    IsNullable: true
+  - Name: order
+    columnName: item_order
+    DataType: int(4)
+    ColumnType: measurement
+    DefaultValue: '10'
+  - Name: text
+    DataType: text
+    ColumnType: content
+    IsNullable: true
+  Conformations:
+  - ColumnName: order
+    Tags: numeric
+  validations:
+  - ColumnName: title
+    Tags: required
+- TableName: tag
+  Columns:
+  - Name: label
+    DataType: varchar(100)
+    ColumnType: label
+    IsIndexed: true
+- TableName: project
+  Columns:
+  - Name: name
+    DataType: varchar(200)
+    ColumnType: name
+    IsIndexed: true
+Relations:
+- Subject: todo
+  Relation: has_one
+  Object: project
+- Subject: todo
+  Relation: has_many
+  Object: tag
 ```
 
 ![Sign up and Sign in](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/signup_and_signin.gif)
