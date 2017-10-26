@@ -32,6 +32,51 @@ docker run -d -p 8080:8080 daptin/daptin
 
 ## Usage
 
+```json
+{
+    "Tables": [{
+            "TableName": "inventory",
+            "Columns": [{
+                "Name": "name",
+                "dataType": "varchar(100)",
+                "ColumnType": "label",
+                "IsIndexed": true
+            }, {
+                "Name": "description",
+                "DataType": "text",
+                "ColumnType": "label"
+            }, {
+                "Name": "line_items",
+                "DataType": "int(11)",
+                "ColumnType": "measurement"
+            }],
+            "Conformations": [{
+                "ColumnName": "order",
+                "Tags": "numeric"
+            }],
+            "Validations": [{
+                "ColumnName": "title",
+                "Tags": "required"
+            }]
+        },
+        {
+            "TableName": "sale",
+            "Columns": [{
+                "Name": "is_returned",
+                "DataType": "bool",
+                "ColumnType": "truefalse",
+                "DefaultValue": "0"
+            }]
+        }
+    ],
+    "Relations": [{
+        "Subject": "inventory",
+        "Relation": "has_many",
+        "Object": "sale"
+    }]
+}
+```
+
 ![Sign up and Sign in](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/signup_and_signin.gif)
 ![Create entity and add item](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/create_entity_and_add.gif)
 ![Generate random data to show tables](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/generate_random_show_tables.gif)
