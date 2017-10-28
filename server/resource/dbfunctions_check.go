@@ -22,7 +22,7 @@ func CheckErr(err error, message ...interface{}) {
 	}
 }
 
-func CheckRelations(config *CmsConfig, db *sqlx.DB) {
+func CheckRelations(config *CmsConfig) {
 	relations := config.Relations
 	config.Relations = make([]api2go.TableRelation, 0)
 	finalRelations := make([]api2go.TableRelation, 0)
@@ -226,12 +226,12 @@ func PrintRelations(relations []api2go.TableRelation) {
 
 }
 
-func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB) {
+func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB, tx *sqlx.Tx) {
 
 	tables := []TableInfo{}
 
 	for _, table := range initConfig.Tables {
-		CheckTable(&table, db)
+		CheckTable(&table, db, tx)
 		tables = append(tables, table)
 	}
 	initConfig.Tables = tables
@@ -266,7 +266,7 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
 	return columnsWeWant, colInfoMap
 }
 
-func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
+func CheckTable(tableInfo *TableInfo, db *sqlx.DB, tx *sqlx.Tx) {
 
 	finalColumns := make(map[string]api2go.ColumnInfo, 0)
 	finalColumnsList := make([]api2go.ColumnInfo, 0)
@@ -304,7 +304,7 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 	columns, err := db.QueryRowx(s).Columns()
 	if err != nil {
 		log.Infof("Failed to select * from %v: %v", tableInfo.TableName, err)
-		CreateTable(tableInfo, db)
+		CreateTable(tableInfo, tx)
 		return
 	}
 
@@ -331,9 +331,9 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB) {
 				continue
 			}
 
-			query := alterTableAddColumn(tableInfo.TableName, &info, db.DriverName())
+			query := alterTableAddColumn(tableInfo.TableName, &info, tx.DriverName())
 			log.Infof("Alter query: %v", query)
-			_, err := db.Exec(query)
+			_, err := tx.Exec(query)
 			if err != nil {
 				log.Errorf("Failed to add column [%s] to table [%v]: %v", col, tableInfo.TableName, err)
 			}
