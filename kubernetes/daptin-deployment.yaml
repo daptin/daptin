@@ -1,23 +1,22 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: daptin-daptin
+  name: daptin-testing
   labels:
-    app: daptin
+    app: daptin-testing
 spec:
   ports:
-    - port: 3306
+    - port: 8080
   selector:
     app: daptin
     tier: daptin
-  clusterIP: None
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: daptin-daptin
+  name: daptin-testing
   labels:
-    app: daptin
+    app: daptin-testing
 spec:
   strategy:
     type: Recreate
@@ -25,12 +24,12 @@ spec:
     metadata:
       labels:
         app: daptin
-        tier: daptin
+        tier: testing
     spec:
       containers:
       - image: daptin/daptin:latest
         name: daptin
-        args: ['-db_type', 'mysql', '-db_connection_string', 'root:set_your_mysql_password@tcp(mysql-server:3306)/example']
+        args: []
         ports:
-        - containerPort: 6336
+        - containerPort: 8080
           name: daptin
