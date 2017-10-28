@@ -18,7 +18,7 @@ func (d *BecomeAdminActionPerformer) DoAction(request ActionRequest, inFieldMap 
 	if !d.cruds["world"].CanBecomeAdmin() {
 		return nil, []error{errors.New("Unauthorized")}
 	}
-	u := inFieldMap["user"]
+ 	u := inFieldMap["user"]
 	if u == nil {
 		return nil, []error{errors.New("Unauthorized")}
 	}
