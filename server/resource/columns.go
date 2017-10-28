@@ -341,8 +341,8 @@ var SystemActions = []Action{
 		},
 	},
 	{
-		Name:             "become_administrator",
-		Label:            "Become Daptin admin",
+		Name:             "become_an_administrator",
+		Label:            "Become Daptin Administrator",
 		InstanceOptional: true,
 		OnType:           "world",
 		InFields:         []api2go.ColumnInfo{},
@@ -352,7 +352,7 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"user_id": "$user.id",
-					"user": "$user",
+					"user": "~user",
 				},
 			},
 		},
