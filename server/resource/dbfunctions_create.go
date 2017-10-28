@@ -10,7 +10,8 @@ import (
 	"strings"
 )
 
-func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.DB) {
+func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
+	log.Infof("Create constraints")
 	for _, table := range initConfig.Tables {
 
 		for _, column := range table.Columns {
@@ -49,7 +50,8 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.DB) {
 	}
 }
 
-func CreateIndexes(initConfig *CmsConfig, db *sqlx.DB) {
+func CreateIndexes(initConfig *CmsConfig, db *sqlx.Tx) {
+	log.Infof("Create indexes")
 	for _, table := range initConfig.Tables {
 		for _, column := range table.Columns {
 
@@ -74,7 +76,8 @@ func CreateIndexes(initConfig *CmsConfig, db *sqlx.DB) {
 	}
 }
 
-func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
+func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
+	log.Infof("Create relations")
 
 	for i, table := range initConfig.Tables {
 		for _, column := range table.Columns {
@@ -110,7 +113,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.DB) {
 	}
 }
 
-func CheckAuditTables(config *CmsConfig, db *sqlx.DB) {
+func CheckAuditTables(config *CmsConfig) {
 
 	newRelations := make([]api2go.TableRelation, 0)
 
@@ -521,12 +524,12 @@ func alterTableAddColumn(tableName string, colInfo *api2go.ColumnInfo, sqlDriver
 	return sq
 }
 
-func CreateTable(tableInfo *TableInfo, db *sqlx.DB) {
+func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) {
 
 	createTableQuery := MakeCreateTableQuery(tableInfo, db.DriverName())
 
 	log.Infof("Create table query")
-	log.Printf(createTableQuery)
+	log.Println(createTableQuery)
 	_, err := db.Exec(createTableQuery)
 	if err != nil {
 		log.Errorf("Failed to create table: %v", err)
