@@ -96,17 +96,24 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 	fs.Config.LogLevel = 200
 	fs.Config.StatsLogLevel = 200
 
-	resource.CheckRelations(&initConfig, db)
-	resource.CheckAuditTables(&initConfig, db)
+	resource.CheckRelations(&initConfig)
+	resource.CheckAuditTables(&initConfig)
 
 	//AddStateMachines(&initConfig, db)
 
-	resource.CheckAllTableStatus(&initConfig, db)
-	resource.CreateRelations(&initConfig, db)
-	resource.CreateUniqueConstraints(&initConfig, db)
-	resource.CreateIndexes(&initConfig, db)
-	resource.UpdateWorldTable(&initConfig, db)
-	resource.UpdateWorldColumnTable(&initConfig, db)
+	tx, errb := db.Beginx()
+	//_, errb := db.Exec("begin")
+	resource.CheckError(errb, "Failed to begin transaction")
+
+	resource.CheckAllTableStatus(&initConfig, db, tx)
+	resource.CreateRelations(&initConfig, tx)
+	resource.CreateUniqueConstraints(&initConfig, tx)
+	resource.CreateIndexes(&initConfig, tx)
+	resource.UpdateWorldTable(&initConfig, tx)
+	resource.UpdateWorldColumnTable(&initConfig, tx)
+	errc := tx.Commit()
+	resource.CheckErr(errc, "Failed to commit transaction")
+
 	resource.UpdateStateMachineDescriptions(&initConfig, db)
 	resource.UpdateExchanges(&initConfig, db)
 	resource.UpdateStreams(&initConfig, db)

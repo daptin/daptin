@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"github.com/alexeyco/simpletable"
 )
 
 func (resource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken string, expiresIn int64) error {
@@ -30,9 +31,9 @@ func (resource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken str
 	}
 
 	s, v, err := squirrel.Update("oauth_token").
-		Set("access_token", accessToken).
-		Set("expires_in", expiresIn).
-		Where(squirrel.Eq{"id": id}).ToSql()
+			Set("access_token", accessToken).
+			Set("expires_in", expiresIn).
+			Where(squirrel.Eq{"id": id}).ToSql()
 
 	if err != nil {
 		return err
@@ -56,9 +57,9 @@ func (resource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId stri
 	}
 
 	s, v, err := squirrel.Update("oauth_token").
-		Set("access_token", accessToken).
-		Set("expires_in", expiresIn).
-		Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+			Set("access_token", accessToken).
+			Set("expires_in", expiresIn).
+			Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 
 	if err != nil {
 		return err
@@ -113,9 +114,9 @@ func UpdateMarketplaces(initConfig *CmsConfig, db *sqlx.DB) {
 			log.Infof("Marketplace [%v] already present in db, updating db values", marketplace.Endpoint)
 
 			s, v, err := squirrel.Update("marketplace").
-				Set("root_path", marketplace.RootPath).
-				Where(squirrel.Eq{"endpoint": marketplace.Endpoint}).
-				ToSql()
+					Set("root_path", marketplace.RootPath).
+					Where(squirrel.Eq{"endpoint": marketplace.Endpoint}).
+					ToSql()
 
 			_, err = db.Exec(s, v...)
 			CheckErr(err, "Failed to update table for marketplace contract")
@@ -126,7 +127,7 @@ func UpdateMarketplaces(initConfig *CmsConfig, db *sqlx.DB) {
 			existingMarketPlaces[marketplace.Endpoint] = marketplace
 
 			s, v, err := squirrel.Insert("marketplace").Columns("endpoint", "root_path", "reference_id", "permission", "user_id").
-				Values(marketplace.Endpoint, schema, uuid.NewV4(), auth.DEFAULT_PERMISSION, adminUserId).ToSql()
+					Values(marketplace.Endpoint, schema, uuid.NewV4(), auth.DEFAULT_PERMISSION, adminUserId).ToSql()
 
 			_, err = db.Exec(s, v...)
 			CheckErr(err, "Failed to insert into db about marketplace [%v]: %v", marketplace.Endpoint, err)
@@ -209,9 +210,9 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 			log.Infof("Stream [%v] already present in db, updating db values", stream.StreamName)
 
 			s, v, err := squirrel.Update("stream").
-				Set("stream_contract", schema).
-				Where(squirrel.Eq{"stream_name": stream.StreamName}).
-				ToSql()
+					Set("stream_contract", schema).
+					Where(squirrel.Eq{"stream_name": stream.StreamName}).
+					ToSql()
 
 			_, err = db.Exec(s, v...)
 			CheckErr(err, "Failed to update table for stream contract")
@@ -222,7 +223,7 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 			existingStreams[stream.StreamName] = stream
 
 			s, v, err := squirrel.Insert("stream").Columns("stream_name", "stream_contract", "reference_id", "permission", "user_id").
-				Values(stream.StreamName, schema, uuid.NewV4(), auth.DEFAULT_PERMISSION, adminUserId).ToSql()
+					Values(stream.StreamName, schema, uuid.NewV4(), auth.DEFAULT_PERMISSION, adminUserId).ToSql()
 
 			_, err = db.Exec(s, v...)
 			CheckErr(err, "Failed to insert into db about stream [%v]: %v", stream.StreamName, err)
@@ -279,17 +280,17 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
 			CheckErr(err, "Failed to marshal target attrs to json")
 
 			s, v, err = squirrel.
-				Update("data_exchange").
-				Set("source_attributes", sourceAttrsJson).
-				Set("source_type", exchange.SourceType).
-				Set("target_attributes", targetAttrsJson).
-				Set("target_type", exchange.TargetType).
-				Set("attributes", attrsJson).
-				Set("options", optionsJson).
-				Set("updated_at", time.Now()).
-				Set("user_id", adminId).
-				Where(squirrel.Eq{"reference_id": referenceId}).
-				ToSql()
+			Update("data_exchange").
+					Set("source_attributes", sourceAttrsJson).
+					Set("source_type", exchange.SourceType).
+					Set("target_attributes", targetAttrsJson).
+					Set("target_type", exchange.TargetType).
+					Set("attributes", attrsJson).
+					Set("options", optionsJson).
+					Set("updated_at", time.Now()).
+					Set("user_id", adminId).
+					Where(squirrel.Eq{"reference_id": referenceId}).
+					ToSql()
 
 			_, err = db.Exec(s, v...)
 
@@ -307,12 +308,12 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
 			CheckErr(err, "Failed to marshal target attributes to json")
 
 			s, v, err = squirrel.
-				Insert("data_exchange").
-				Columns("permission", "name", "source_attributes", "source_type", "target_attributes", "target_type",
-					"attributes", "options", "created_at", "user_id", "reference_id").
-				Values(auth.DEFAULT_PERMISSION, exchange.Name, sourceAttrsJson, exchange.SourceType, targetAttrsJson, exchange.TargetType,
-					attrsJson, optionsJson, time.Now(), adminId, uuid.NewV4().String()).
-				ToSql()
+			Insert("data_exchange").
+					Columns("permission", "name", "source_attributes", "source_type", "target_attributes", "target_type",
+				"attributes", "options", "created_at", "user_id", "reference_id").
+					Values(auth.DEFAULT_PERMISSION, exchange.Name, sourceAttrsJson, exchange.SourceType, targetAttrsJson, exchange.TargetType,
+				attrsJson, optionsJson, time.Now(), adminId, uuid.NewV4().String()).
+					ToSql()
 
 			_, err = db.Exec(s, v...)
 
@@ -326,7 +327,7 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
 
 	s, v, err := squirrel.Select("name", "source_attributes", "source_type", "target_attributes",
 		"target_type", "attributes", "options", "oauth_token_id").
-		From("data_exchange").ToSql()
+			From("data_exchange").ToSql()
 
 	rows, err := db.Queryx(s, v...)
 	CheckErr(err, "Failed to query existing exchanges")
@@ -461,7 +462,7 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.DB) {
 	}
 }
 
-func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
+func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.Tx) {
 
 	for _, table := range initConfig.Tables {
 
@@ -491,8 +492,8 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
 			var colInfo api2go.ColumnInfo
 			err := db.QueryRowx("select name, is_unique, data_type, is_indexed, permission, column_type, column_name, column_description, is_nullable, default_value, is_primary_key, is_foreign_key, include_in_api, foreign_key_data, is_auto_increment from world_column where world_id = ? and column_name = ? ", worldid, col.ColumnName).StructScan(&colInfo)
 			if err != nil {
-				log.Infof("Failed to scan world column: ", err)
-				log.Infof("No existing row for TableColumn[%v][%v]: %v", table.TableName, col.ColumnName, err)
+				//log.Infof("Failed to scan world column: ", err)
+				//log.Infof("No existing row for TableColumn[%v][%v]: %v", table.TableName, col.ColumnName, err)
 
 				query, args, err := squirrel.Insert("world_column").SetMap(mapData).ToSql()
 				if err != nil {
@@ -500,7 +501,7 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.DB) {
 					continue
 				}
 
-				log.Infof("Query for insert: %v", query)
+				//log.Infof("Query for insert: %v", query)
 
 				_, err = db.Exec(query, args...)
 				if err != nil {
@@ -560,10 +561,10 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 			actionJson, err := json.Marshal(action)
 			CheckErr(err, "Failed to marshal infields")
 			s, v, err := squirrel.Update("action").
-				Set("label", action.Label).
-				Set("world_id", worldId).
-				Set("action_schema", actionJson).
-				Set("instance_optional", action.InstanceOptional).Where(squirrel.Eq{"action_name": action.Name}).ToSql()
+					Set("label", action.Label).
+					Set("world_id", worldId).
+					Set("action_schema", actionJson).
+					Set("instance_optional", action.InstanceOptional).Where(squirrel.Eq{"action_name": action.Name}).ToSql()
 
 			_, err = db.Exec(s, v...)
 			if err != nil {
@@ -680,10 +681,11 @@ func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbRes
 
 }
 
-func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
+func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 
 	tx := db
 	var err error
+	log.Infof("Start table check")
 
 	//tx.Queryx("SET FOREIGN_KEY_CHECKS=0;")
 
@@ -700,8 +702,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 		u2 := uuid.NewV4().String()
 
 		s, v, err := squirrel.Insert("user").
-			Columns("name", "email", "reference_id", "permission").
-			Values("guest", "guest@cms.go", u2, auth.DEFAULT_PERMISSION).ToSql()
+				Columns("name", "email", "reference_id", "permission").
+				Values("guest", "guest@cms.go", u2, auth.DEFAULT_PERMISSION).ToSql()
 
 		CheckErr(err, "Failed to create insert sql")
 		_, err = tx.Exec(s, v...)
@@ -714,8 +716,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
 		u1 := uuid.NewV4().String()
 		s, v, err = squirrel.Insert("usergroup").
-			Columns("name", "reference_id", "permission").
-			Values("guest group", u1, auth.DEFAULT_PERMISSION).ToSql()
+				Columns("name", "reference_id", "permission").
+				Values("guest group", u1, auth.DEFAULT_PERMISSION).ToSql()
 
 		CheckErr(err, "Failed to create insert usergroup sql")
 		_, err = tx.Exec(s, v...)
@@ -728,8 +730,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 
 		refIf := uuid.NewV4().String()
 		s, v, err = squirrel.Insert("user_user_id_has_usergroup_usergroup_id").
-			Columns("user_id", "usergroup_id", "permission", "reference_id").
-			Values(userId, userGroupId, auth.DEFAULT_PERMISSION, refIf).ToSql()
+				Columns("user_id", "usergroup_id", "permission", "reference_id").
+				Values(userId, userGroupId, auth.DEFAULT_PERMISSION, refIf).ToSql()
 		CheckErr(err, "Failed to create insert user has usergroup sql ")
 		_, err = tx.Exec(s, v...)
 		CheckErr(err, "Failed to insert user has usergroup")
@@ -764,7 +766,29 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 		defaultWorldPermission = auth.NewPermission(auth.CRUD|auth.Execute, auth.CRUD|auth.Execute, auth.CRUD|auth.Execute)
 	}
 
+	st := simpletable.New()
+	st.Header = &simpletable.Header{
+		[]*simpletable.Cell{
+			{
+				Text: "TableName",
+			},
+			{
+				Text: "Is Top Level",
+			},
+			{
+				Text: "Is Hidden",
+			},
+			{
+				Text: "Table Exists",
+			},
+		},
+	}
+
+	stBody := &simpletable.Body{
+		Cells: make([][]*simpletable.Cell, 0),
+	}
 	for _, table := range initConfig.Tables {
+
 		refId := uuid.NewV4().String()
 		schema, err := json.Marshal(table)
 
@@ -772,17 +796,32 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 		s, v, err := squirrel.Select("count(*)").From("world").Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
 		tx.QueryRowx(s, v...).Scan(&cou)
 
+		stBody.Cells = append(stBody.Cells, []*simpletable.Cell{
+			{
+				Text: table.TableName,
+			},
+			{
+				Text: fmt.Sprintf("%v", table.IsTopLevel),
+			},
+			{
+				Text: fmt.Sprintf("%v", table.IsHidden),
+			},
+			{
+				Text: fmt.Sprintf("%v", cou),
+			},
+		})
+
 		if cou > 0 {
 
 			//s, v, err = squirrel.Select("default_permission").From("world").Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
 			//CheckErr(err, "Failed to create select default permission sql")
-			log.Infof("Update table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)
+			//log.Infof("Update table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)
 
 			s, v, err = squirrel.Update("world").
-				Set("world_schema_json", string(schema)).
-				Set("is_top_level", table.IsTopLevel).
-				Set("is_hidden", table.IsHidden).
-				Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
+					Set("world_schema_json", string(schema)).
+					Set("is_top_level", table.IsTopLevel).
+					Set("is_hidden", table.IsHidden).
+					Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
 			CheckErr(err, "Failed to create update default permission sql")
 
 			_, err := tx.Exec(s, v...)
@@ -797,11 +836,12 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 				table.DefaultPermission = defaultWorldPermission.IntValue()
 			}
 
-			log.Infof("Insert table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)
+			log.Infof("Insert table data (IsTopLevel[%v], IsHidden[%v]) [%v]", table.IsTopLevel, table.IsHidden, table.TableName)
+
 
 			s, v, err = squirrel.Insert("world").
-				Columns("table_name", "world_schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden").
-				Values(table.TableName, string(schema), table.Permission, refId, table.DefaultPermission, userId, table.IsTopLevel, table.IsHidden).ToSql()
+					Columns("table_name", "world_schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden").
+					Values(table.TableName, string(schema), table.Permission, refId, table.DefaultPermission, userId, table.IsTopLevel, table.IsHidden).ToSql()
 			_, err = tx.Exec(s, v...)
 			CheckErr(err, "Failed to insert into world table about "+table.TableName)
 			//initConfig.Tables[i].DefaultPermission = defaultWorldPermission
@@ -809,10 +849,12 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.DB) {
 		}
 
 	}
+	st.Body = stBody
+	st.Print()
 
 	s, v, err = squirrel.Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden").
-		From("world").
-		ToSql()
+			From("world").
+			ToSql()
 
 	CheckErr(err, "Failed to create query for scan world table")
 
