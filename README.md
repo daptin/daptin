@@ -16,19 +16,125 @@
     </p>
 
 ## What is Daptin?
-Daptin is a fully loaded backend server. Expose JSON APIs for your data.
+Daptin is a way to serve RESTful API from a MySQL/PostgreSQL/SQLite Database.
 
 ## Installation
 
-**Deploy**
+### Cloud
 
  [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
-**Docker**
+### Docker
 
 ```
 docker run -d -p 8080:8080 daptin/daptin
 ```
+
+### Native
+
+```./daptin```
+
+
+
+## Database connection properties
+
+Connection details to be provided in arguments or environment variables
+
+## JSON API Structure
+
+### Response Structure
+
+```
+{
+    "data": [
+        {
+            "type": "tableName",
+            "attributes": {
+                "col1": "",
+                "col2": "",
+            },
+            "id": "",
+        }
+    ],
+    "included": [
+        {
+            "type": "tableName",
+            "attributes": {},
+            "id": "",
+        },
+        .
+        .
+    ],
+    "links": {
+        "current_page": 1,
+        "from": 0,
+        "last_page": 100,
+        "per_page": 50,
+        "to": 50,
+        "total": 5000
+    }
+}
+```
+
+### Querying
+
+Fetch all rows from a table
+
+```/api/{tableName}```
+
+---
+Fetch single row from table by id
+
+```/api/{tableName}/{id}```
+
+---
+Fetch related rows using a foreign key relation
+
+```/api/{tableName}/{id}/{relationName}```
+
+---
+### Pagination
+
+Number, default 1
+
+```?page[number]=1```
+
+---
+
+Size, default 50
+
+```?page[size]=200```
+
+---
+
+### Column Selection
+
+```?fields=column1,column2```
+
+----------------------------
+
+### Sorting
+
+```?sort=col1,-col2```
+
+---------------------
+
+### Filtering
+
+```?filter=query_text```
+
+Queries the indexed columns
+
+---
+
+## Client SDK
+
+[JSONAPI clients list](http://jsonapi.org/implementations/)
+
+
+## RAML specification for APIs
+
+Available at ```<host>/apispec.raml``` You can use it to generate clients for any platform.
 
 ## Usage
 
@@ -53,7 +159,7 @@ Tables:
     ColumnType: date
     IsNullable: true
   - Name: order
-    columnName: item_order
+    ColumnName: item_order
     DataType: int(4)
     ColumnType: measurement
     DefaultValue: '10'
@@ -87,6 +193,8 @@ Relations:
   Relation: has_many
   Object: tag
 ```
+
+## Web Dashboard
 
 ![Sign up and Sign in](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/signup_and_signin.gif)
 ![Create entity and add item](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/create_entity_and_add.gif)
@@ -132,18 +240,6 @@ However, JSON APIs for data manipulation by themselves weren't enough. Building 
 - Become Admin of the instance (until then its a open for access, that's why you were able to create an account)
 
 
-## Use cases
-
-Examples
-
-Define your own entities | Define relations | Subscribe to events | Sync changes with other systems | Deploy back end server
---- | --- | --- | --- | ---
-Todo | Belongs to project | Send SMS if deadline is today | Update a Google Sheet when todo updated | Build an android app
-Todo | Has current status | Update manager when employee updates a todo | SMS when todo is marked complete | Build an Electron app
-Cooking Recipe | Has many Ingredients | Get Slack notification when anyone adds new Recipe | Get recipe from Google sheets | Build a quick angular app 
-Wedding | has many people called "attendees" | Send everyone SMS on updates to wedding party schedule | Calender changes with every attendees calender | Build a UI using React
-
-
 ## Tech Goals
 
 - Zero config start (sqlite db for fresh install, mysql/postgres is recommanded for serious use)
@@ -153,41 +249,6 @@ Wedding | has many people called "attendees" | Send everyone SMS on updates to w
 - Try to piggyback on used/known standards
 - Runnable on all types on devices
 - Cross platform app using [qt](https://github.com/therecipe/qt) (very long term goal. A responsive website for now.)
-
-
-## Competitor products
-
-These are the competition:
-
-- [Directus](https://getdirectus.com/) - Directus is an API-driven content management framework for custom databases. It decouples content for use in apps, websites, or any other data-driven projects.
-- [Cockpit](https://getcockpit.com/) - An API-driven CMS
-- [Contentful](https://www.contentful.com/) - Contentful is the essential content management infrastructure for projects of any size, with its flexible APIs and global CDN.
-- [Scaphold](https://scaphold.io/) - GraphQL Backend As A Service
-
-
-*Todo*: complete research and fill this table
-
-|                                           | Daptin | Cockpit | Contentful | Scaphold | Airtable | graph.cool | fieldbook |
-|-------------------------------------------|------|---------|------------|----------|----------|------------|-----------|
-| JSON API                                  | Yes  | Yes     | Yes        | Yes      | Yes      | Yes        | Yes       |
-| User defined entities                     | Yes  | Yes     | Yes        | Yes      | Yes      | Yes        | Yes       |
-| Dashboard                                 | Yes  | Yes     | Yes        | Yes      | Yes      | Yes        | Yes       |
-| In built analytics on your data           |      |         |            |          |          |            |           |
-| Relations in entities                     |      |         |            |          |          |            |           |
-| Users                                     |      |         |            |          |          |            |           |
-| User groups                               |      |         |            |          |          |            |           |
-| Authentication (In built User Management) |      |         |            |          |          |            |           |
-| Authorization (Roles and Permission)      |      |         |            |          |          |            |           |
-| Asset management                          |      |         |            |          |          |            |           |
-| Revision History/Auditing                 |      |         |            |          |          |            |           |
-| Field data types                          |      |         |            |          |          |            |           |
-| Integrate external API                    |      |         |            |          |          |            |           |
-| Workflows (If this than that)             |      |         |            |          |          |            |           |
-| Cloud store for assets                    |      |         |            |          |          |            |           |
-| Sub sites                                 |      |         |            |          |          |            |           |
-| Marketplace for plugins                   |      |         |            |          |          |            |           |
-| Transformed Streams/Views of your data    |      |         |            |          |          |            |           |
-|                                           |      |         |            |          |          |            |           |
 
 
 ## Road Map
