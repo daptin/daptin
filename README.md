@@ -78,54 +78,26 @@ Connection details to be provided in arguments or environment variables
 
 ### Querying
 
-Fetch all rows from a table
 
-```/api/{tableName}```
-
----
-Fetch single row from table by id
-
-```/api/{tableName}/{id}```
+| all rows from a table | single row from table by id | related rows using a foreign key relation |
+|-----------------------|-----------------------------|-------------------------------------------|
+| /api/{tableName}      | /api/{tableName}/{id}       | /api/{tableName}/{id}/{relationName}      |
+|                       |                             |                                           |
 
 ---
-Fetch related rows using a foreign key relation
+### paginated
 
-```/api/{tableName}/{id}/{relationName}```
 
----
-### Pagination
+| Number          | Size            |
+|-----------------|-----------------|
+| ?page[number]=1 | ?page[size]=200 |
 
-Number, default 1
 
-```?page[number]=1```
+### project, sort, filter
 
----
-
-Size, default 50
-
-```?page[size]=200```
-
----
-
-### Column Selection
-
-```?fields=column1,column2```
-
-----------------------------
-
-### Sorting
-
-```?sort=col1,-col2```
-
----------------------
-
-### Filtering
-
-```?filter=query_text```
-
-Queries the indexed columns
-
----
+| Column projection       | Sorting          | Filtering          |
+|-------------------------|------------------|--------------------|
+| ?fields=column1,column2 | ?sort=col1,-col2 | ?filter=query_text |
 
 ## Client SDK
 
