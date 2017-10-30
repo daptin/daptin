@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: daptin-testing
+  name: testing
   labels:
     app: daptin-testing
 spec:
@@ -9,12 +9,12 @@ spec:
     - port: 8080
   selector:
     app: daptin
-    tier: daptin
+    tier: testing
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: daptin-testing
+  name: daptin-daptin
   labels:
     app: daptin-testing
 spec:
@@ -29,7 +29,7 @@ spec:
       containers:
       - image: daptin/daptin:latest
         name: daptin
-        args: []
+        args: ['-db_type', 'mysql', '-db_connection_string', 'testingmysqluser:testingmysqlpassword@tcp(100.70.180.186:3306)/daptin']
         ports:
         - containerPort: 8080
           name: daptin
