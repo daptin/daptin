@@ -10,7 +10,7 @@ import RelationView from './components/RelationView'
 
 import AdminComponent from './components/Admin'
 // import AdminView from './components/AdminApp'
-import SignInComponent from './components/SignIn'
+import  SignInComponent from './components/SignIn'
 import SignedInComponent from './components/SignedIn'
 import SignOutComponent from './components/SignOut'
 import OauthResponseComponent from './components/OauthResponse'
