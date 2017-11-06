@@ -2,13 +2,13 @@
     "docs": [
         {
             "location": "/", 
-            "text": "Welcome to Daptin\n\n\nDaptin is a backend designed to serve all your needs. Once you have deployed daptin, all you need to worry about is the frontend to get a complete app.\n\n\nIndex\n\n\nSetting up\n\n\n\n\nSetting up\n\n\nEntities\n\n\nEntity Relations\n\n\nMarketplace\n\n\n\n\nData\n\n\n\n\nData storage and table structures\n\n\nAuditing\n\n\nData validations\n\n\nData conformations\n\n\nState tracking for entities\n\n\n\n\nActions and streams\n\n\n\n\nActions\n\n\nData Streams\n\n\n\n\nAuthentication and Authorization\n\n\n\n\nUsers and User groups\n\n\nAuthentication\n\n\nAuthorization\n\n\nPermissions\n\n\n\n\nExternal apis and integrations\n\n\n\n\nOauth Connections\n\n\nOauth tokens\n\n\nInteracting with third party APIs\n\n\nStorage connectors\n\n\n\n\nSubsites, Marketplace\n\n\n\n\nSub sites\n\n\nJson schemas", 
+            "text": "Introduction\n\n\nDaptin is a single command to take care of your data API.\n\n\nIndex\n\n\nSetting up\n\n\n\n\nSetting up\n\n\nEntities\n\n\nEntity Relations\n\n\nMarketplace\n\n\n\n\nData\n\n\n\n\nData storage and table structures\n\n\nAuditing\n\n\nData validations\n\n\nData conformations\n\n\nState tracking for entities\n\n\n\n\nActions and streams\n\n\n\n\nActions\n\n\nData Streams\n\n\n\n\nAuthentication and Authorization\n\n\n\n\nUsers and User groups\n\n\nAuthentication\n\n\nAuthorization\n\n\nPermissions\n\n\n\n\nExternal apis and integrations\n\n\n\n\nOauth Connections\n\n\nOauth tokens\n\n\nInteracting with third party APIs\n\n\nStorage connectors\n\n\n\n\nSubsites, Marketplace\n\n\n\n\nSub sites\n\n\nJson schemas", 
             "title": "Home"
         }, 
         {
-            "location": "/#welcome-to-daptin", 
-            "text": "Daptin is a backend designed to serve all your needs. Once you have deployed daptin, all you need to worry about is the frontend to get a complete app.", 
-            "title": "Welcome to Daptin"
+            "location": "/#introduction", 
+            "text": "Daptin is a single command to take care of your data API.", 
+            "title": "Introduction"
         }, 
         {
             "location": "/#index", 

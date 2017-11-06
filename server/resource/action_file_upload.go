@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"github.com/artpar/api2go"
 )
 
 type FileUploadActionPerformer struct {
@@ -79,7 +80,7 @@ func EndsWithCheck(str string, endsWith string) bool {
 
 }
 
-func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) ([]ActionResponse, []error) {
+func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -123,14 +124,14 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 	oauthTokenId1 := inFields["oauth_token_id"]
 	if oauthTokenId1 == nil {
 		log.Errorf("No oauth token set for target store")
-		return nil, []error{errors.New("No auth token set for this store")}
+		return nil, nil, []error{errors.New("No auth token set for this store")}
 	}
 	oauthTokenId := oauthTokenId1.(string)
 	token, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
 	oauthConf, err := d.cruds["oauth_token"].GetOauthDescriptionByTokenReferenceId(oauthTokenId)
 	if err != nil {
 		log.Errorf("Failed to get oauth token for store sync: %v", err)
-		return nil, []error{err}
+		return nil, nil, []error{err}
 	}
 
 	if !token.Valid() {
@@ -172,7 +173,7 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 	actionResponse := NewActionResponse("client.notify", restartAttrs)
 	responses = append(responses, actionResponse)
 
-	return responses, nil
+	return nil, responses, nil
 }
 
 func NewFileUploadActionPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {

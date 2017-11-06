@@ -6,6 +6,7 @@ import (
 	"time"
 	//"os/exec"
 	//"fmt"
+	"github.com/artpar/api2go"
 )
 
 type RestartSystemActionPerformer struct {
@@ -16,7 +17,7 @@ func (d *RestartSystemActionPerformer) Name() string {
 	return "__restart"
 }
 
-func (d *RestartSystemActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) ([]ActionResponse, []error) {
+func (d *RestartSystemActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -37,7 +38,7 @@ func (d *RestartSystemActionPerformer) DoAction(request ActionRequest, inFields 
 
 	go restart()
 
-	return responses, nil
+	return nil, responses, nil
 }
 
 func NewRestarSystemPerformer(initConfig *CmsConfig) (ActionPerformerInterface, error) {

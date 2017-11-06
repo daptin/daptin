@@ -173,7 +173,7 @@ This is a set of inputs which the user need to fill in to initiate that action. 
 - Password
 - Confirm password
 
-Note that the ColumnInfo structure is the same one we used to [define tables](entities.md).
+Note that the ColumnInfo structure is the same one we used to [define tables](/setting-up/entities.md).
 
 
 ## Validations

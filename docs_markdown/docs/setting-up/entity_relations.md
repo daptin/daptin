@@ -2,7 +2,7 @@
 
 A data oriented system with no relational knowledge of the data is next to an Excel sheet. Specifying relations in your data is the most important thing after creating your entities.
 
-## Specfying relations using JSON/YAML upload
+## Relations in JSON/YAML schema
 
 When uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.
 
@@ -40,7 +40,7 @@ belongs_to | a single object relation | No
 has_one | a single object relation | Yes
 has_many | many related objects | Yes
 
-### Default relations
+## Default relations
 
 Every entity created on daptin has at least two relations
 
@@ -49,10 +49,10 @@ Relation Type | Related Entity
 belongs | user
 has many | usergroup
 
-To understand why these two relations will always exist, checkout [daptin authorization model](authorization.md)
+To understand why these two relations will always exist, checkout [daptin authorization model](/auth/authorization.md)
 
 
-### More than 1 relation between two entities
+## Multiple relation
 
 There can be a scenario where two entities are related in more then 1 way. Consider the following example
 
@@ -107,7 +107,7 @@ Relations:
 Notice the "SubjectName" and "ObjectName" keys which helps to name our relations more intuitively.
 
 
-## Database table structure behind the scene
+## SQL constraints
 
 ### belongs to
 

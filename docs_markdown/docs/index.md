@@ -1,42 +1,40 @@
-# Welcome to Daptin
+# Introduction
 
-Daptin is a backend designed to serve all your needs. Once you have deployed daptin, all you need to worry about is the frontend to get a complete app.
+Daptin is a single command to export JSON API from a SQL Database
 
-## Index
+## Setting up
+- [Setting up](setting-up/settingup.md)
+- [Entities](setting-up/entities.md)
+- [Entity Relations](setting-up/entity_relations.md)
+- [Marketplace](setting-up/marketplace.md)
 
-### Setting up
-- [Setting up](settingup.md)
-- [Entities](entities.md)
-- [Entity Relations](entity_relations.md)
-- [Marketplace](marketplace.md)
+## Data
 
-### Data
+- [Data storage and table structures](data-modeling/data_storage.md)
+- [Auditing](data-modeling/auditing.md)
+- [Data validations](data-modeling/data_validation.md)
+- [Data conformations](data-modeling/data_conformation.md)
+- [State tracking for entities](data-modeling/state_tracking.md)
 
-- [Data storage and table structures](data_storage.md)
-- [Auditing](auditing.md)
-- [Data validations](data_validation.md)
-- [Data conformations](data_conformation.md)
-- [State tracking for entities](state_tracking.md)
+## Actions and streams
 
-### Actions and streams
+- [Actions](actions-streams/actions.md)
+- [Data Streams](actions-streams/streams.md)
 
-- [Actions](actions.md)
-- [Data Streams](streams.md)
+## Authentication and Authorization
+- [Users and User groups](auth/users_and_usergroups.md)
+- [Authentication](auth/authentication.md)
+- [Authorization](auth/authorization.md)
+- [Permissions](auth/permissions.md)
 
-### Authentication and Authorization
-- [Users and User groups](users_and_usergroups.md)
-- [Authentication](authentication.md)
-- [Authorization](authorization.md)
-- [Permissions](permissions.md)
+## External apis and integrations
 
-### External apis and integrations
-
-- [Oauth Connections](oauth_connection.md)
+- [Oauth Connections](extend/oauth_connection.md)
 - Oauth tokens
 - Interacting with third party APIs
 - Storage connectors
 
-### Subsites, Marketplace
+## Subsites, Marketplace
 
 - Sub sites
 - Json schemas

@@ -5,6 +5,7 @@ import (
 	"github.com/artpar/resty"
 	"fmt"
 	"encoding/json"
+	"github.com/artpar/api2go"
 )
 
 type NetworkRequestActionPerformer struct {
@@ -15,7 +16,7 @@ func (d *NetworkRequestActionPerformer) Name() string {
 	return "$network.request"
 }
 
-func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {
+func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder,  []ActionResponse, []error) {
 
 	headers, isHeader := inFieldMap["Headers"]
 	headerMap := make(map[string]string)
@@ -32,7 +33,7 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 	if isUrlPresent {
 		urlString = url.(string)
 	} else {
-		return nil, []error{fmt.Errorf("URL not present in action attributes")}
+		return nil, nil, []error{fmt.Errorf("URL not present in action attributes")}
 	}
 
 	body, isBody := inFieldMap["Body"]
@@ -61,7 +62,7 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 
 	method, isMethodPresent := inFieldMap["Method"]
 	if !isMethodPresent {
-		return nil, []error{fmt.Errorf("Http Request method not present")}
+		return nil, nil, []error{fmt.Errorf("Http Request method not present")}
 	}
 	methodString := strings.ToUpper(method.(string))
 
@@ -105,7 +106,7 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 	}
 	responseMap["headers"] = responseHeaders
 
-	return []ActionResponse{{
+	return nil, []ActionResponse{{
 		ResponseType: request.Type,
 		Attributes:   responseMap,
 	}}, []error{err}

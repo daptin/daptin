@@ -5,7 +5,7 @@
     <section class="content-header">
       <ol class="breadcrumb">
         <li>
-          <a href="javascript:;">
+          <a href="javascript:">
             <i class="fa fa-home"></i>Home </a>
         </li>
         <li v-for="crumb in $route.meta.breadcrumb">
@@ -55,32 +55,32 @@
       </div>
 
       <!--<div class="row">-->
-        <!--<div class="col-md-3" v-for="(worlds, tableName) in actionGroups" v-if="worlds.length > 0">-->
+      <!--<div class="col-md-3" v-for="(worlds, tableName) in actionGroups" v-if="worlds.length > 0">-->
 
-          <!--<div class="box box-solid collapsed-box">-->
-            <!--<div class="box-header with-border">-->
-              <!--<h3 class="box-title">{{tableName | titleCase}}</h3>-->
+      <!--<div class="box box-solid collapsed-box">-->
+      <!--<div class="box-header with-border">-->
+      <!--<h3 class="box-title">{{tableName | titleCase}}</h3>-->
 
-              <!--<div class="box-tools">-->
-                <!--<button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>-->
-                <!--</button>-->
-              <!--</div>-->
-            <!--</div>-->
-            <!--<div class="box-body no-padding">-->
-              <!--<ul class="nav nav-pills nav-stacked">-->
-                <!--<li v-for="world in worlds">-->
-                  <!--<router-link :to="{name: 'Action', params: {tablename: world.OnType, actionname: world.Name}}">-->
-                    <!--{{world.Label}}-->
-                  <!--</router-link>-->
-                <!--</li>-->
+      <!--<div class="box-tools">-->
+      <!--<button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>-->
+      <!--</button>-->
+      <!--</div>-->
+      <!--</div>-->
+      <!--<div class="box-body no-padding">-->
+      <!--<ul class="nav nav-pills nav-stacked">-->
+      <!--<li v-for="world in worlds">-->
+      <!--<router-link :to="{name: 'Action', params: {tablename: world.OnType, actionname: world.Name}}">-->
+      <!--{{world.Label}}-->
+      <!--</router-link>-->
+      <!--</li>-->
 
-              <!--</ul>-->
-            <!--</div>-->
-            <!--&lt;!&ndash; /.box-body &ndash;&gt;-->
-          <!--</div>-->
+      <!--</ul>-->
+      <!--</div>-->
+      <!--&lt;!&ndash; /.box-body &ndash;&gt;-->
+      <!--</div>-->
 
 
-        <!--</div>-->
+      <!--</div>-->
       <!--</div>-->
       <div class="row">
 
@@ -135,11 +135,7 @@
                   <i class="fa fa-3x fa-puzzle-piece black"></i>Json Schemas
                 </router-link>
 
-                <a href=""
-
-
               </div>
-
 
 
               <h3>People</h3>
@@ -156,8 +152,9 @@
                   <i class="fa fa-3x fa-users black"></i>Create new user group
                 </router-link>
 
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'become_an_administrator'}}"
-                             class="btn btn-lg btn-app dashboard_button">
+                <router-link
+                  :to="{name : 'Action', params: {tablename: 'world', actionname: 'become_an_administrator'}}"
+                  class="btn btn-lg btn-app dashboard_button">
                   <i class="fa fa-3x fa-expeditedssl black"></i>Become admin
                 </router-link>
 
@@ -181,7 +178,7 @@
 
                 <router-link
                   :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
-                   class="btn btn-lg btn-app dashboard_button">
+                  class="btn btn-lg btn-app dashboard_button">
                   <i class="fa fa-3x fa-file-excel-o black"></i>Upload XLS
                 </router-link>
 
@@ -207,13 +204,10 @@
 
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'export_data'}}"
                              class="btn btn-lg btn-app dashboard_button">
-                  <i  class="fa fa-3x fa-cloud-download black"></i>Download dump JSON
+                  <i class="fa fa-3x fa-cloud-download black"></i>Download dump JSON
                 </router-link>
 
               </div>
-
-
-
 
 
             </div>
@@ -260,8 +254,8 @@
         worldActions: {},
         actionGroups: {},
         generateRandomNumbers(numbers, max, min) {
-          var a = []
-          for (var i = 0; i < numbers; i++) {
+          let a = [];
+          for (let i = 0; i < numbers; i++) {
             a.push(Math.floor(Math.random() * (max - min + 1)) + max)
           }
           return a
@@ -271,15 +265,15 @@
     computed: {
       sortedWorldActions: function () {
 
-        console.log("return sorted world actions", this.worldActions)
-        var keys = Object.keys(this.worldActions);
+        console.log("return sorted world actions", this.worldActions);
+        let keys = Object.keys(this.worldActions);
 
         keys.sort();
 
-        var res = {};
+        let res = {};
 
 
-        for (var key in keys) {
+        for (let key in keys) {
           res[key] = this.worldActions[key];
         }
 
@@ -298,13 +292,13 @@
     mounted() {
 //      $(".content").popover();
 
-      var that = this;
+      let that = this;
       that.$route.meta.breadcrumb = [
         {
           label: 'Dashboard'
         }
       ];
-      var newWorldActions = {};
+      let newWorldActions = {};
       jsonApi.all("world").get({
         page: {
           number: 1,
@@ -312,25 +306,25 @@
         }
       }).then(function (worlds) {
         worlds = worlds.data;
-        var actionGroups = {
+        let actionGroups = {
           "System": [],
           "User": []
         };
         console.log("worlds in dashboard", worlds);
-        for (var i = 0; i < worlds.length; i++) {
-          var tableName = worlds[i].table_name;
-          var actions = actionManager.getActions(tableName);
+        for (let i = 0; i < worlds.length; i++) {
+          let tableName = worlds[i].table_name;
+          let actions = actionManager.getActions(tableName);
 
-          console.log("actions for ", tableName, actions)
           if (!actions) {
             continue
           }
-          var actionKeys = Object.keys(actions);
-          for (var j = 0; j < actionKeys.length; j++) {
-            var action = actions[actionKeys[j]];
+          console.log("actions for ", tableName, actions);
+          let actionKeys = Object.keys(actions);
+          for (let j = 0; j < actionKeys.length; j++) {
+            let action = actions[actionKeys[j]];
 //            console.log("dashboard action", action)
-            var onType = action.OnType;
-            var onWorld = worldManager.getWorldByName(onType)
+            let onType = action.OnType;
+            let onWorld = worldManager.getWorldByName(onType);
 //            console.log("on world", onWorld)
 
             if (onWorld.is_hidden == "1") {
