@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin/json"
 	log "github.com/sirupsen/logrus"
+	"github.com/artpar/api2go"
 )
 
 type ExportDataPerformer struct {
@@ -16,7 +17,7 @@ func (d *ExportDataPerformer) Name() string {
 	return "__data_export"
 }
 
-func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) ([]ActionResponse, []error) {
+func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -68,7 +69,7 @@ func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 
 	responses = append(responses, actionResponse)
 
-	return responses, nil
+	return nil, responses, nil
 }
 
 func NewExportDataPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {

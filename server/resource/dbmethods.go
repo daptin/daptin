@@ -436,7 +436,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where ...squirrel.Eq
 	}
 	defer rows.Close()
 
-	m1, include, err := dr.ResultToArrayOfMap(rows, dr.cruds[typeName].model.GetColumnMap(), true)
+	m1, include, err := dr.ResultToArrayOfMap(rows, dr.cruds[typeName].model.GetColumnMap(), map[string]bool{"*": true})
 
 	return m1, include, err
 
@@ -471,7 +471,7 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 
 	rows, err := dr.db.Queryx(s, q...)
 	defer rows.Close()
-	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.cruds[typeName].model.GetColumnMap(), true)
+	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.cruds[typeName].model.GetColumnMap(), map[string]bool{"*": true})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -500,7 +500,7 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 	}
 	defer row.Close()
 
-	m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), false)
+	m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), nil)
 
 	if len(m) == 0 {
 		log.Infof("No result found for [%v][%v]", typeName, id)
@@ -558,7 +558,7 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 	}
 	defer row.Close()
 
-	m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), false)
+	m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), nil)
 
 	return m, err
 }
@@ -599,7 +599,7 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	//  return nil, err
 	//}
 
-	results, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), false)
+	results, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -738,7 +738,7 @@ func RowsToMap(rows *sqlx.Rows, typeName string) ([]map[string]interface{}, erro
 
 }
 
-func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]api2go.ColumnInfo, includeNextLevel bool) ([]map[string]interface{}, [][]map[string]interface{}, error) {
+func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]api2go.ColumnInfo, includedRelationMap map[string]bool) ([]map[string]interface{}, [][]map[string]interface{}, error) {
 
 	//finalArray := make([]map[string]interface{}, 0)
 
@@ -794,7 +794,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				continue
 			}
 
-			if includeNextLevel {
+			if includedRelationMap != nil && (includedRelationMap[typeName] || includedRelationMap["*"]) {
 				obj, err := dr.GetIdToObject(typeName, i)
 				obj["__type"] = typeName
 

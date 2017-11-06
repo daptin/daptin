@@ -16,7 +16,7 @@ jsonapi.replaceMiddleware('errors', {
   name: 'nothing-to-see-here',
   error: function (response) {
     console.log("errors", response);
-    response = response.response;
+    response = response.response.data.errors[0];
     if (response.status === 401) {
       Notification.error({
         "title": "Failed",
@@ -27,15 +27,10 @@ jsonapi.replaceMiddleware('errors', {
     }
 
     if (response.status == 500) {
-      if (response.data.errors) {
-        var error = response.data.errors[0];
-        if (error.title != 'Unauthorized') {
-          Notification.error({
-            "title": "Failed",
-            "message": error.title
-          })
-        }
-      }
+      Notification.error({
+        "title": "Failed",
+        "message": response.title
+      })
       return {};
     }
 

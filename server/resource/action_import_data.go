@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	log "github.com/sirupsen/logrus"
 	"strings"
+	"github.com/artpar/api2go"
 )
 
 type ImportDataPerformer struct {
@@ -16,7 +17,7 @@ func (d *ImportDataPerformer) Name() string {
 	return "__data_import"
 }
 
-func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) ([]ActionResponse, []error) {
+func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -120,7 +121,7 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 			}
 		}
 	}
-	return responses, nil
+	return nil, responses, nil
 }
 
 func NewImportDataPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {

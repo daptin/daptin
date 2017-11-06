@@ -8,6 +8,7 @@ import (
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/oauth2"
 	"time"
+	"github.com/artpar/api2go"
 )
 
 type OauthLoginBeginActionPerformer struct {
@@ -21,7 +22,7 @@ func (d *OauthLoginBeginActionPerformer) Name() string {
 	return "oauth.client.redirect"
 }
 
-func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {
+func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	state, err := totp.GenerateCodeCustom(d.otpKey, time.Now(), totp.ValidateOpts{
 		Period:    300,
@@ -31,7 +32,7 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
 	})
 	if err != nil {
 		log.Errorf("Failed to generate code: %v", err)
-		return nil, []error{err}
+		return nil, nil, []error{err}
 	}
 
 	authConnectorData := inFieldMap["authenticator"].(string)
@@ -58,9 +59,13 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
 	responseAttrs["window"] = "self"
 	responseAttrs["delay"] = 0
 
+	setStateResponse := NewActionResponse("client.store.set", map[string]interface{}{
+		"key":   "secret",
+		"value": state,
+	})
 	actionResponse := NewActionResponse("client.redirect", responseAttrs)
 
-	return []ActionResponse{actionResponse}, nil
+	return nil, []ActionResponse{setStateResponse, actionResponse}, nil
 }
 
 func NewOauthLoginBeginActionPerformer(initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {

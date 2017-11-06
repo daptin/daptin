@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/pkg/errors"
+	"github.com/artpar/api2go"
 )
 
 type BecomeAdminActionPerformer struct {
@@ -13,14 +14,14 @@ func (d *BecomeAdminActionPerformer) Name() string {
 	return "__become_admin"
 }
 
-func (d *BecomeAdminActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {
+func (d *BecomeAdminActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	if !d.cruds["world"].CanBecomeAdmin() {
-		return nil, []error{errors.New("Unauthorized")}
+		return nil, nil, []error{errors.New("Unauthorized")}
 	}
  	u := inFieldMap["user"]
 	if u == nil {
-		return nil, []error{errors.New("Unauthorized")}
+		return nil, nil, []error{errors.New("Unauthorized")}
 	}
 	user := u.(map[string]interface{})
 
@@ -36,7 +37,7 @@ func (d *BecomeAdminActionPerformer) DoAction(request ActionRequest, inFieldMap 
 
 	go restart()
 
-	return []ActionResponse{actionResponse}, nil
+	return nil, []ActionResponse{actionResponse}, nil
 }
 
 func NewBecomeAdminPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {

@@ -617,7 +617,7 @@ func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbRes
 	} else {
 		adminUserRefId := adminUser["reference_id"].(string)
 
-		sessionUser := auth.SessionUser{
+		sessionUser := &auth.SessionUser{
 			UserId:          adminUserId,
 			UserReferenceId: adminUserRefId,
 			Groups:          []auth.GroupPermission{},

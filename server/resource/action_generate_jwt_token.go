@@ -8,6 +8,7 @@ import (
 	"gopkg.in/Masterminds/squirrel.v1"
 	"strings"
 	"time"
+	"github.com/artpar/api2go"
 )
 
 type GenerateJwtTokenActionPerformer struct {
@@ -19,7 +20,7 @@ func (d *GenerateJwtTokenActionPerformer) Name() string {
 	return "jwt.token"
 }
 
-func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {
+func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -57,7 +58,7 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 			fmt.Printf("%v %v", tokenString, err)
 			if err != nil {
 				log.Errorf("Failed to sign string: %v", err)
-				return nil, []error{err}
+				return nil, nil, []error{err}
 			}
 
 			responseAttrs = make(map[string]interface{})
@@ -90,7 +91,7 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 
 	}
 
-	return responses, nil
+	return nil, responses, nil
 }
 
 func NewGenerateJwtTokenPerformer(configStore *ConfigStore, cruds map[string]*DbResource) (ActionPerformerInterface, error) {

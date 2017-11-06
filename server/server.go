@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"github.com/daptin/daptin/server/websockets"
 )
 
 var cruds = make(map[string]*resource.DbResource)
@@ -212,6 +213,9 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 
 	r.POST("/site/content/load", CreateSubSiteContentHandler(&initConfig, cruds, db))
 	r.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
+
+	websocketServer := websockets.NewServer("/live")
+	go websocketServer.Listen(r)
 
 	r.NoRoute(func(c *gin.Context) {
 		file, err := boxRoot.Open("index.html")

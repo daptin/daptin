@@ -45,10 +45,10 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	id := data.GetID()
 
 	user := req.PlainRequest.Context().Value("user")
-	sessionUser := auth.SessionUser{}
+	sessionUser := &auth.SessionUser{}
 
 	if user != nil {
-		sessionUser = user.(auth.SessionUser)
+		sessionUser = user.(*auth.SessionUser)
 
 	}
 
@@ -124,6 +124,8 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 					} else {
 						return nil, errors.New(fmt.Sprintf("No write permission on object [%v][%v]", col.ForeignKeyData.TableName, valString))
 					}
+				} else {
+					ok = false
 				}
 			}
 			var err error
