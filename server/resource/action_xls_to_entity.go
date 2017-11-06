@@ -88,7 +88,7 @@ var EntityTypeToColumnTypeMap = map[fieldtypes.EntityType]string{
 	fieldtypes.Namespace:   "namespace",
 }
 
-func (d *UploadFileToEntityPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) ([]ActionResponse, []error) {
+func (d *UploadFileToEntityPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	//actions := make([]ActionResponse, 0)
 	log.Infof("Do action: %v", d.Name())
@@ -200,16 +200,16 @@ nextFile:
 		jsonStr, err := json.Marshal(allSt)
 		if err != nil {
 			log.Errorf("Failed to convert table to json string")
-			return nil, []error{err}
+			return nil, nil, []error{err}
 		}
 
 		jsonFileName := fmt.Sprintf("schema_%v_daptin.%v", entityName, fileType)
 		ioutil.WriteFile(jsonFileName, jsonStr, 0644)
 
 		go restart()
-		return successResponses, nil
+		return nil, successResponses, nil
 	} else {
-		return failedResponses, nil
+		return nil, failedResponses, nil
 	}
 
 }

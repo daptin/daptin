@@ -52,7 +52,7 @@ func CreateGetActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cru
 }
 
 type ActionPerformerInterface interface {
-	DoAction(request ActionRequest, inFields map[string]interface{}) ([]ActionResponse, []error)
+	DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error)
 	Name() string
 }
 
@@ -131,10 +131,10 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 		req.PlainRequest = req.PlainRequest.WithContext(ginContext.Request.Context())
 
 		user := ginContext.Request.Context().Value("user")
-		var sessionUser auth.SessionUser
+		sessionUser := &auth.SessionUser{}
 
 		if user != nil {
-			sessionUser = user.(auth.SessionUser)
+			sessionUser = user.(*auth.SessionUser)
 		}
 
 		var subjectInstance *api2go.Api2GoModel
@@ -291,7 +291,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
 					//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
 				} else {
-					responses1, errors1 = performer.DoAction(actionRequest, model.Data)
+					res, responses1, errors1 = performer.DoAction(actionRequest, model.Data)
 					responses = append(responses, responses1...)
 					if errors1 != nil && len(errors1) > 0 {
 						err = errors1[0]
@@ -334,7 +334,9 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = res.Attributes
 					lst = append(lst, res.Attributes)
 				}
-				inFieldMap[outcome.Reference] = lst
+				if res == nil || res.Result() == nil {
+					inFieldMap[outcome.Reference] = lst
+				}
 			}
 
 			if err != nil {

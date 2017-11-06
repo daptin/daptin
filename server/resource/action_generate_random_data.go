@@ -19,11 +19,11 @@ func (d *RandomDataGeneratePerformer) Name() string {
 	return "generate.random.data"
 }
 
-func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields map[string]interface{}) ([]ActionResponse, []error) {
+func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
-	subjectInstance := inFields["subject"].(map[string]interface{})
+	//subjectInstance := inFields["subject"].(map[string]interface{})
 	user := inFields["user"]
 	userReferenceId := ""
 	//userIdInt := uint64(1)
@@ -36,7 +36,7 @@ func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields m
 	if err != nil {
 		log.Errorf("Failed to get user id from user reference id: %v", err)
 	}
-	tableName := subjectInstance["table_name"].(string)
+	tableName := inFields["table_name"].(string)
 
 	count := int(inFields["count"].(float64))
 
@@ -52,7 +52,7 @@ func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields m
 		Method: "POST",
 	}
 
-	sessionUser := auth.SessionUser{
+	sessionUser := &auth.SessionUser{
 		UserId:          userIdInt,
 		UserReferenceId: userReferenceId,
 		Groups:          []auth.GroupPermission{},
@@ -70,7 +70,7 @@ func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields m
 			log.Errorf("Failed to fake insert into table [%v] : %v", tableName, err)
 		}
 	}
-	return responses, nil
+	return nil, responses, nil
 }
 
 func GetFakeRow(columns []api2go.ColumnInfo) map[string]interface{} {

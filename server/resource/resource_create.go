@@ -39,10 +39,10 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	}
 
 	user := req.PlainRequest.Context().Value("user")
-	sessionUser := auth.SessionUser{}
+	sessionUser := &auth.SessionUser{}
 
 	if user != nil {
-		sessionUser = user.(auth.SessionUser)
+		sessionUser = user.(*auth.SessionUser)
 
 	}
 
@@ -111,7 +111,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 				if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 					uId = foreignObject["id"]
 				} else {
-					return nil, errors.New(fmt.Sprintf("No write permission on object [%v][%v]", col.ForeignKeyData.TableName, valString))
+					ok = false
 				}
 
 			}

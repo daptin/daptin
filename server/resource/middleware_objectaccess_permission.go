@@ -25,10 +25,10 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 	returnMap := make([]map[string]interface{}, 0)
 
 	user := req.PlainRequest.Context().Value("user")
-	sessionUser := auth.SessionUser{}
+	sessionUser := &auth.SessionUser{}
 
 	if user != nil {
-		sessionUser = user.(auth.SessionUser)
+		sessionUser = user.(*auth.SessionUser)
 
 	}
 
@@ -85,10 +85,10 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 	//log.Infof("context: %v", context.GetAll(req.PlainRequest))
 
 	user := req.PlainRequest.Context().Value("user")
-	sessionUser := auth.SessionUser{}
+	sessionUser := &auth.SessionUser{}
 
 	if user != nil {
-		sessionUser = user.(auth.SessionUser)
+		sessionUser = user.(*auth.SessionUser)
 
 	}
 
@@ -122,7 +122,11 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 			continue
 		}
 
-		permission := dr.GetRowPermission(result)
+		originalRowReference := map[string]interface{}{
+			"reference_id": result["reference_id"],
+			"__type":       result["__type"],
+		}
+		permission := dr.GetRowPermission(originalRowReference)
 		//log.Infof("[ObjectAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.PermissionInstance)
 		//log.Infof("Row Permission for [%v] for [%v]", permission, result)
 

@@ -94,9 +94,11 @@ var SystemActions = []Action{
 		InFields:         []api2go.ColumnInfo{},
 		OutFields: []Outcome{
 			{
-				Type:       "market.package.refresh",
-				Method:     "EXECUTE",
-				Attributes: map[string]interface{}{},
+				Type:   "marketplace.package.publish",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"marketplace_id": "$.reference_id",
+				},
 			},
 		},
 	},
@@ -147,7 +149,8 @@ var SystemActions = []Action{
 				Type:   "generate.random.data",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"count": "~count",
+					"count":      "~count",
+					"table_name": "$.table_name",
 				},
 			},
 		},
@@ -206,6 +209,7 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"world_reference_id": "$.reference_id",
+					"subject":            "$",
 				},
 			},
 		},
@@ -237,6 +241,8 @@ var SystemActions = []Action{
 					"execute_middleware_chain": "~execute_middleware_chain",
 					"truncate_before_insert":   "~truncate_before_insert",
 					"dump_file":                "~dump_file",
+					"subject":                  "$",
+					"user":                     "~user",
 				},
 			},
 		},
@@ -259,10 +265,10 @@ var SystemActions = []Action{
 				Type:   "__external_file_upload",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"file": "~file",
+					"file":           "~file",
 					"oauth_token_id": "$.oauth_token_id",
 					"store_provider": "$.store_provider",
-					"root_path": "$.root_path",
+					"root_path":      "$.root_path",
 				},
 			},
 		},
@@ -352,7 +358,7 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"user_id": "$user.id",
-					"user": "~user",
+					"user":    "~user",
 				},
 			},
 		},
@@ -533,14 +539,24 @@ var SystemActions = []Action{
 		},
 		OutFields: []Outcome{
 			{
-				Type:   "oauth.login.response",
-				Method: "EXECUTE",
+				Type:      "oauth.login.response",
+				Method:    "EXECUTE",
+				Reference: "auth",
+				Attributes: map[string]interface{}{
+					"authenticator":     "~authenticator",
+					"user_id":           "~user.id",
+					"user_reference_id": "~user.reference_id",
+					"state":             "~state",
+					"code":              "~code",
+				},
+			},
+			{
+				Type:      "oauth.profile.exchange",
+				Method:    "EXECUTE",
+				Reference: "auth",
 				Attributes: map[string]interface{}{
 					"authenticator": "~authenticator",
-					"user_id": "~user.id",
-					"user_reference_id": "~user.reference_id",
-					"state": "~state",
-					"code": "~code",
+					"token":         "~auth.access_token",
 				},
 			},
 		},
@@ -1054,6 +1070,13 @@ var StandardTables = []TableInfo{
 				DefaultValue: "'https://accounts.google.com/o/oauth2/token'",
 				ColumnType:   "url",
 			},
+			{
+				Name:         "allow_login",
+				ColumnName:   "allow_login",
+				DataType:     "boolean",
+				DefaultValue: "false",
+				ColumnType:   "truefalse",
+			},
 		},
 	},
 	{
@@ -1255,11 +1278,11 @@ var StandardStreams = []StreamContract{
 type TableInfo struct {
 	TableName              string `db:"table_name"`
 	TableId                int
-	DefaultPermission      int64 `db:"default_permission"`
+	DefaultPermission      int64  `db:"default_permission"`
 	Columns                []api2go.ColumnInfo
 	StateMachines          []LoopbookFsmDescription
 	Relations              []api2go.TableRelation
-	IsTopLevel             bool `db:"is_top_level"`
+	IsTopLevel             bool   `db:"is_top_level"`
 	Permission             int64
 	UserId                 uint64 `db:"user_id"`
 	IsHidden               bool   `db:"is_hidden"`

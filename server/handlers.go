@@ -17,7 +17,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 
 	return func(gincontext *gin.Context) {
 
-		sessionUser := gincontext.Request.Context().Value("user").(auth.SessionUser)
+		sessionUser := gincontext.Request.Context().Value("user").(*auth.SessionUser)
 
 		pr := &http.Request{}
 		pr.Method = "GET"
@@ -107,10 +107,10 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 	return func(gincontext *gin.Context) {
 
 		user := gincontext.Request.Context().Value("user")
-		var sessionUser auth.SessionUser
+		var sessionUser *auth.SessionUser
 
 		if user != nil {
-			sessionUser = user.(auth.SessionUser)
+			sessionUser = user.(*auth.SessionUser)
 		}
 
 		jsBytes, err := ioutil.ReadAll(gincontext.Request.Body)

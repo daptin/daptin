@@ -230,6 +230,10 @@ func InitJwtMiddleware(secret []byte) {
 		// Important to avoid security issues described here: https://auth0.com/blog/2015/03/31/critical-vulnerabilities-in-json-web-token-libraries/
 		SigningMethod: jwt.SigningMethodHS256,
 		UserProperty:  "user",
+		Extractor: jwtmiddleware.FromFirst(
+			jwtmiddleware.FromAuthHeader,
+			jwtmiddleware.FromParameter("token"),
+		),
 	})
 }
 
@@ -349,7 +353,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 
 			//log.Infof("Group permissions :%v", userGroups)
 
-			user := SessionUser{
+			user := &SessionUser{
 				UserId:          userId,
 				UserReferenceId: referenceId,
 				Groups:          userGroups,
