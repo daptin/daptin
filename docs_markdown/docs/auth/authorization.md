@@ -60,7 +60,7 @@ For these changes to take effect a restart is necessary.
 
 ## Instance level permission
 
-Like we saw in the [entity documentation](entities.md), every table has a ```permission``` column. No restart is necessary for changes in these permission.
+Like we saw in the [entity documentation](/setting-up/entities.md), every table has a ```permission``` column. No restart is necessary for changes in these permission.
 
 ## Permission column
 

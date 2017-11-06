@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"github.com/artpar/api2go"
 )
 
 type MarketplacePackageInstallActionPerformer struct {
@@ -18,28 +19,28 @@ func (d *MarketplacePackageInstallActionPerformer) Name() string {
 	return "marketplace.package.install"
 }
 
-func (d *MarketplacePackageInstallActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {
+func (d *MarketplacePackageInstallActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	marketReferenceId := inFieldMap["marketplace_id"].(string)
 	marketplaceHandler, ok := d.marketMap[marketReferenceId]
 
 	if !ok {
-		return nil, []error{fmt.Errorf("Unknown market")}
+		return nil, nil, []error{fmt.Errorf("Unknown market")}
 	}
 
 	packageName := inFieldMap["package_name"].(string)
 	if !marketplaceHandler.PackageExists(packageName) {
-		return nil, []error{fmt.Errorf("Invalid package name: %v", packageName)}
+		return nil, nil, []error{fmt.Errorf("Invalid package name: %v", packageName)}
 	}
 
 	pack := marketplaceHandler.GetPackage(packageName)
 	if pack == nil {
-		return nil, []error{fmt.Errorf("Invalid package name: %v", packageName)}
+		return nil, nil, []error{fmt.Errorf("Invalid package name: %v", packageName)}
 	}
 
 	files, err := ioutil.ReadDir(pack.Location)
 	if err != nil {
-		return nil, []error{err}
+		return nil, nil, []error{err}
 	}
 
 	packageRoot := pack.Location + "/"
@@ -52,7 +53,7 @@ func (d *MarketplacePackageInstallActionPerformer) DoAction(request ActionReques
 
 	go restart()
 
-	return successResponses, nil
+	return nil, successResponses, nil
 }
 
 func (h *MarketplacePackageInstallActionPerformer) refresh() {

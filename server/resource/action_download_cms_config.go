@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	log "github.com/sirupsen/logrus"
+	"github.com/artpar/api2go"
 )
 
 type DownloadCmsConfigActionPerformer struct {
@@ -14,7 +15,7 @@ func (d *DownloadCmsConfigActionPerformer) Name() string {
 	return "__download_cms_config"
 }
 
-func (d *DownloadCmsConfigActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) ([]ActionResponse, []error) {
+func (d *DownloadCmsConfigActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -22,7 +23,7 @@ func (d *DownloadCmsConfigActionPerformer) DoAction(request ActionRequest, inFie
 
 	responses = append(responses, actionResponse)
 
-	return responses, nil
+	return nil, responses, nil
 }
 
 func NewDownloadCmsConfigPerformer(initConfig *CmsConfig) (ActionPerformerInterface, error) {

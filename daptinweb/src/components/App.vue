@@ -9,6 +9,7 @@
 <script>
   import {setToken, checkSecret, extractInfoFromHash} from '../utils/auth'
   import worldManager from "../plugins/worldmanager"
+  import actionManager from "../plugins/actionmanager"
 
   export default {
     name: 'App',
@@ -22,12 +23,27 @@
       var that = this;
       if (!this.$store.getters.isAuthenticated) {
 
-        const {token, secret} = extractInfoFromHash();
-        console.log("check token", token);
+        const {code, token, secret} = extractInfoFromHash();
+        console.log("check token", token, code, secret);
         if (token && checkSecret(secret)) {
           setToken(token);
           this.$router.go('/');
           window.location = "/";
+          return;
+        } else if (code && checkSecret(secret)) {
+          console.log("got code in param", code);
+
+          var query = this.$route.query;
+          actionManager.doAction("oauth_token", "oauth.login.response", this.$route.query).then(function () {
+            console.log("oauth login response", arguments)
+          }, function () {
+            that.$notify.error({
+              message: "Failed to validate connection"
+            });
+            that.$router.push({
+              name: "Dashboard"
+            })
+          });
           return;
         } else {
           console.log(" is not authenticated ");

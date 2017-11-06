@@ -89,6 +89,10 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 			tokenSource := oauthConf.TokenSource(ctx, token)
 			token, err = tokenSource.Token()
 			resource.CheckErr(err, "Failed to get new access token")
+			if token == nil {
+				log.Errorf("We have no token to get the site from storage: %v", cloudStore.ReferenceId)
+				continue
+			}
 			err = cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
 			resource.CheckErr(err, "failed to update access token")
 		}
@@ -309,7 +313,7 @@ func CreateSubSiteSaveContentHandler(initConfig *resource.CmsConfig, cruds map[s
 		//		}
 		//
 		//	}
-			context.AbortWithStatusJSON(200, requestJson)
+		context.AbortWithStatusJSON(200, requestJson)
 		//
 		//}
 

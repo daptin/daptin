@@ -107,7 +107,7 @@ func mapToOauthConfig(authConnectorData map[string]interface{}, secret string) (
 	return conf, nil
 }
 
-func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {
+func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	state := inFieldMap["state"].(string)
 	//user := inFieldMap["user"].(map[string]interface{})
@@ -120,7 +120,7 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 	})
 	if !ok {
 		log.Errorf("Failed to validate otp key")
-		return nil, []error{errors.New("No ongoing authentication")}
+		return nil, nil, []error{errors.New("No ongoing authentication")}
 	}
 
 	authenticator := inFieldMap["authenticator"].(string)
@@ -129,14 +129,14 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 	conf, authReferenceId, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"])
 
 	if err != nil {
-		return nil, []error{err}
+		return nil, nil, []error{err}
 	}
 
 	ctx := context.Background()
 	token, err := conf.Exchange(ctx, code)
 	if err != nil {
 		log.Errorf("Failed to exchange code for token: %v", err)
-		return nil, []error{err}
+		return nil, nil, []error{err}
 	}
 
 	storeToken := make(map[string]interface{})
@@ -151,10 +151,14 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 	storeToken["token_type"] = authenticator
 	storeToken["oauth_connect_id"] = authReferenceId
 
-	sessionUser := auth.SessionUser{
-		UserId:          inFieldMap["user_id"].(int64),
-		UserReferenceId: inFieldMap["user_reference_id"].(string),
-		Groups:          []auth.GroupPermission{},
+	sessionUser := &auth.SessionUser{0, "", nil}
+
+	if inFieldMap["user_id"] != nil {
+		sessionUser = &auth.SessionUser{
+			UserId:          inFieldMap["user_id"].(int64),
+			UserReferenceId: inFieldMap["user_reference_id"].(string),
+			Groups:          []auth.GroupPermission{},
+		}
 	}
 
 	pr := &http.Request{
@@ -175,7 +179,7 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 	_, err = d.cruds["oauth_token"].Create(model, req)
 	if err != nil {
 		log.Errorf("Failed to store oauth token: %v", err)
-		return nil, []error{err}
+		return nil, nil, []error{err}
 	}
 
 	responseAttrs := make(map[string]interface{})
@@ -186,13 +190,26 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 
 	actionResponse := NewActionResponse("client.notify", responseAttrs)
 
+	setStateResponse := NewActionResponse("client.store.set", map[string]interface{}{
+		"key":   "token",
+		"value": token.AccessToken,
+	})
+
 	redirectAttrs := make(map[string]interface{})
 	redirectAttrs["delay"] = 0
 	redirectAttrs["location"] = "/in/item/oauth_token"
 	redirectAttrs["window"] = "self"
 	redirectResponse := NewActionResponse("client.redirect", redirectAttrs)
 
-	return []ActionResponse{actionResponse, redirectResponse}, nil
+	modelResponse := NewResponse(nil, &api2go.Api2GoModel{
+		Data: map[string]interface{}{
+			"access_token":  token.AccessToken,
+			"refresh_token": token.RefreshToken,
+			"expiry":        token.Expiry,
+		},
+	}, 0, nil)
+
+	return modelResponse, []ActionResponse{setStateResponse, actionResponse, redirectResponse}, nil
 }
 
 func NewOauthLoginResponseActionPerformer(initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {

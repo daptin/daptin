@@ -29,6 +29,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create oauth2 response handler")
 	performers = append(performers, oauth2response)
 
+	oauthProfileExchangePerformer, err := resource.NewOuathProfileExchangePerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create oauth2 profile exchange handler")
+	performers = append(performers, oauthProfileExchangePerformer)
+
 	generateJwtPerformer, err := resource.NewGenerateJwtTokenPerformer(configStore, cruds)
 	resource.CheckErr(err, "Failed to create generate jwt performer")
 	performers = append(performers, generateJwtPerformer)

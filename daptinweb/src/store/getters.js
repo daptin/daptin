@@ -12,7 +12,6 @@ export default {
     var x = JSON.parse(window.localStorage.getItem("user"));
     console.log("Auth check", x)
     if (!x || !x.exp || new Date(x.exp * 1000) < new Date()) {
-      window.localStorage.clear();
       return false;
     }
     return !!window.localStorage.getItem("token")

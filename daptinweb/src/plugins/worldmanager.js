@@ -248,11 +248,25 @@ const WorldManager = function () {
     })
   };
 
+  that.loadModel = function (modelName) {
+    var promise = new Promise(function (resolve, reject) {
+
+      that.modelLoader(modelName, function (columnKeys) {
+        jsonApi.define(modelName, that.GetJsonApiModel(columnKeys.ColumnModel));
+        resolve();
+      });
+
+    });
+
+    return promise;
+
+  }
 
   that.loadModels = function () {
 
 
     var promise = new Promise(function (resolve, reject) {
+
 
       // do a thing, possibly async, then…
       that.modelLoader("user", function (columnKeys) {

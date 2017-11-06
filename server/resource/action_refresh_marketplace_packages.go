@@ -3,6 +3,7 @@ package resource
 import (
 	//"golang.org/x/oauth2"
 	log "github.com/sirupsen/logrus"
+	"github.com/artpar/api2go"
 )
 
 type RefreshMarketplacePackagelistPerformer struct {
@@ -14,7 +15,7 @@ func (d *RefreshMarketplacePackagelistPerformer) Name() string {
 	return "marketplace.package.refresh"
 }
 
-func (d *RefreshMarketplacePackagelistPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) ([]ActionResponse, []error) {
+func (d *RefreshMarketplacePackagelistPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	marketReferenceId := inFieldMap["marketplace_id"].(string)
 	marketplaceHandler, ok := d.cmsConfig.MarketplaceHandlers[marketReferenceId]
@@ -23,7 +24,7 @@ func (d *RefreshMarketplacePackagelistPerformer) DoAction(request ActionRequest,
 
 		marketPlace, err := d.cruds["marketplace"].GetMarketplaceByReferenceId(marketReferenceId)
 		if err != nil {
-			return nil, []error{err}
+			return nil, nil, []error{err}
 		}
 
 		handler, err := NewMarketplaceService(marketPlace)
@@ -32,10 +33,10 @@ func (d *RefreshMarketplacePackagelistPerformer) DoAction(request ActionRequest,
 		}
 		d.cmsConfig.MarketplaceHandlers[marketReferenceId] = handler
 		go handler.RefreshRepository()
-		return marketResfreshSuccessResponse, nil
+		return nil, marketResfreshSuccessResponse, nil
 	}
 	err := marketplaceHandler.RefreshRepository()
-	return marketResfreshSuccessResponse, []error{err}
+	return nil, marketResfreshSuccessResponse, []error{err}
 }
 
 var marketResfreshSuccessResponse = []ActionResponse{
