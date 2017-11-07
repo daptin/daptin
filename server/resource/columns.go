@@ -128,7 +128,9 @@ var SystemActions = []Action{
 			{
 				Type:       "marketplace.package.refresh",
 				Method:     "EXECUTE",
-				Attributes: map[string]interface{}{},
+				Attributes: map[string]interface{}{
+					"marketplace_id": "$.reference_id",
+				},
 			},
 		},
 	},
@@ -192,7 +194,7 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"package_name":        "~package_name",
-					"market_reference_id": "$.reference_id",
+					"marketplace_id": "$.reference_id",
 				},
 			},
 		},
