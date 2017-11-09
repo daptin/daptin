@@ -120,18 +120,18 @@ func (s *Server) Listen(router *gin.Engine) {
 			log.Println("Added new client")
 			s.clients[c.id] = c
 			log.Println("Now", len(s.clients), "clients connected.")
-			s.sendPastMessages(c)
+			//s.sendPastMessages(c)
 
 			// del a client
 		case c := <-s.delCh:
 			log.Println("Delete client")
 			delete(s.clients, c.id)
 
-			// broadcast message for all clients
-		case msg := <-s.sendAllCh:
-			log.Println("Send all:", msg)
-			s.messages = append(s.messages, msg)
-			s.sendAll(msg)
+		//	// broadcast message for all clients
+		//case msg := <-s.sendAllCh:
+		//	log.Println("Send all:", msg)
+		//	s.messages = append(s.messages, msg)
+		//	s.sendAll(msg)
 
 		case err := <-s.errCh:
 			log.Println("Error:", err.Error())
