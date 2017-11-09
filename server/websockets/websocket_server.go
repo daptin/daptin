@@ -8,8 +8,13 @@ import (
 	"fmt"
 )
 
+type WebSocketPayload struct {
+	Method  string  `json:"method"`
+	Path    string  `json:"path"`
+	Payload Message `json:"payload"`
+}
+
 type Message struct {
-	Method     string                 `json:"method"`
 	Id         string                 `json:"id"`
 	Type       string                 `json:"type"`
 	Attributes map[string]interface{} `json:"attributes"`
@@ -22,32 +27,26 @@ func (self *Message) String() string {
 // Chat server.
 type Server struct {
 	pattern   string
-	messages  []*Message
 	clients   map[int]*Client
 	addCh     chan *Client
 	delCh     chan *Client
-	sendAllCh chan *Message
 	doneCh    chan bool
 	errCh     chan error
 }
 
 // Create new chat server.
 func NewServer(pattern string) *Server {
-	messages := []*Message{}
 	clients := make(map[int]*Client)
 	addCh := make(chan *Client)
 	delCh := make(chan *Client)
-	sendAllCh := make(chan *Message)
 	doneCh := make(chan bool)
 	errCh := make(chan error)
 
 	return &Server{
 		pattern,
-		messages,
 		clients,
 		addCh,
 		delCh,
-		sendAllCh,
 		doneCh,
 		errCh,
 	}
@@ -67,10 +66,6 @@ func (s *Server) Del(c *Client) {
 	s.delCh <- c
 }
 
-func (s *Server) SendAll(msg *Message) {
-	s.sendAllCh <- msg
-}
-
 func (s *Server) Done() {
 	s.doneCh <- true
 }
@@ -79,13 +74,7 @@ func (s *Server) Err(err error) {
 	s.errCh <- err
 }
 
-func (s *Server) sendPastMessages(c *Client) {
-	for _, msg := range s.messages {
-		c.Write(msg)
-	}
-}
-
-func (s *Server) sendAll(msg *Message) {
+func (s *Server) sendAll(msg *WebSocketPayload) {
 	for _, c := range s.clients {
 		c.Write(msg)
 	}
