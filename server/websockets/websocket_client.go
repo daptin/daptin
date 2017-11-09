@@ -17,7 +17,7 @@ type Client struct {
 	id     int
 	ws     *websocket.Conn
 	server *Server
-	ch     chan *Message
+	ch     chan *WebSocketPayload
 	doneCh chan bool
 	user   *auth.SessionUser
 }
@@ -34,17 +34,22 @@ func NewClient(ws *websocket.Conn, server *Server) *Client {
 	}
 
 	maxId++
-	ch := make(chan *Message, channelBufSize)
+	ch := make(chan *WebSocketPayload, channelBufSize)
 	doneCh := make(chan bool)
 
-	return &Client{maxId, ws, server, ch, doneCh, ws.Request().Context().Value("user").(*auth.SessionUser)}
+	u := ws.Request().Context().Value("user")
+	if u == nil {
+		panic("Unauthorized")
+	}
+	user := u.(*auth.SessionUser)
+	return &Client{maxId, ws, server, ch, doneCh, user}
 }
 
 func (c *Client) Conn() *websocket.Conn {
 	return c.ws
 }
 
-func (c *Client) Write(msg *Message) {
+func (c *Client) Write(msg *WebSocketPayload) {
 	select {
 	case c.ch <- msg:
 	default:
@@ -98,14 +103,15 @@ func (c *Client) listenRead() {
 
 			// read data from websocket connection
 		default:
-			var msg Message
+			var msg WebSocketPayload
 			err := websocket.JSON.Receive(c.ws, &msg)
 			if err == io.EOF {
 				c.doneCh <- true
 			} else if err != nil {
 				c.server.Err(err)
 			} else {
-				c.server.SendAll(&msg)
+				// everything went well, we have the message here
+				// TODO: process the incoming message
 			}
 		}
 	}
