@@ -12,8 +12,6 @@ rice embed-go
 go build  -ldflags '-linkmode external -extldflags -static -w' main.go
 rice append --exec main
 
-
-
 rm -rf docker_dir
 mkdir docker_dir
 
