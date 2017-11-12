@@ -1,0 +1,13 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: daptin-test
+spec:
+  rules:
+  - host: testing.dapt.in
+    http:
+      paths:
+      - backend:
+          serviceName: daptin-testing
+          servicePort: 8080
+
