@@ -151,6 +151,18 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 			parsedTime, ok := val.(time.Time)
 			if !ok {
 				val, err = dateparse.ParseLocal(val.(string))
+
+
+				if err != nil {
+
+					floatVal, ok := val.(float64)
+					if ok {
+						val = time.Unix(int64(floatVal), 0)
+						err = nil
+					}
+				}
+
+
 				InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
 			} else {
 				val = parsedTime
@@ -160,6 +172,18 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
 			// 2017-07-13T18:30:00.000Z
 			val, err = time.Parse("15:04:05", val.(string))
+
+
+			if err != nil {
+
+				floatVal, ok := val.(float64)
+				if ok {
+					val = time.Unix(int64(floatVal), 0)
+					err = nil
+				}
+			}
+
+
 			CheckErr(err, fmt.Sprintf("Failed to parse string as time [%v]", val))
 		}
 
