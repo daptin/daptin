@@ -139,8 +139,18 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			} else if col.ColumnType == "datetime" {
 				parsedTime, ok := val.(time.Time)
 				if !ok {
-					val, err = time.Parse("2006-01-02T15:04:05.999Z", val.(string))
-					CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
+					valString, ok := val.(string)
+					if ok {
+
+						val, err = time.Parse("2006-01-02T15:04:05.999Z", valString)
+						CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
+					} else {
+						floatVal, ok := val.(float64)
+						if ok {
+							val = time.Unix(int64(floatVal), 0)
+							err = nil
+						}
+					}
 				} else {
 					val = parsedTime
 				}
@@ -165,14 +175,24 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 				parsedTime, ok := val.(time.Time)
 				if !ok {
-					val1, err := time.Parse("2006-01-02T15:04:05.999Z", val.(string))
+					valString, ok := val.(string)
+					if ok {
 
-					InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
-					if err != nil {
-						val, err = time.Parse("2006-01-02", val.(string))
+						val1, err := time.Parse("2006-01-02T15:04:05.999Z", valString)
+
 						InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
+						if err != nil {
+							val, err = time.Parse("2006-01-02", val.(string))
+							InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
+						} else {
+							val = val1
+						}
 					} else {
-						val = val1
+						floatVal, ok := val.(float64)
+						if ok {
+							val = time.Unix(int64(floatVal), 0)
+							err = nil
+						}
 					}
 				} else {
 					val = parsedTime
@@ -181,8 +201,17 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			} else if col.ColumnType == "time" {
 				parsedTime, ok := val.(time.Time)
 				if !ok {
-					val, err = time.Parse("15:04:05", val.(string))
-					CheckErr(err, fmt.Sprintf("Failed to parse string as time [%v]", val))
+					valString, ok := val.(string)
+					if ok {
+						val, err = time.Parse("15:04:05", valString)
+						CheckErr(err, fmt.Sprintf("Failed to parse string as time [%v]", val))
+					} else {
+						floatVal, ok := val.(float64)
+						if ok {
+							val = time.Unix(int64(floatVal), 0)
+							err = nil
+						}
+					}
 				} else {
 					val = parsedTime
 				}
@@ -380,7 +409,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 					_, err := dr.cruds[rel.GetSubject()].Update(model, req)
 					if err != nil {
-						log.Errorf("Failed to update [%v][%v]: %v", rel.GetObject(),updatedResource["reference_id"], err)
+						log.Errorf("Failed to update [%v][%v]: %v", rel.GetObject(), updatedResource["reference_id"], err)
 					}
 				}
 
