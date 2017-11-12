@@ -133,10 +133,12 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		if col.ColumnType == "datetime" {
 
 			// 2017-07-13T18:30:00.000Z
-			val, err = dateparse.ParseLocal(val.(string))
+			valString, ok := val.(string)
+			if ok {
+				val, err = dateparse.ParseLocal(valString)
 
-			if err != nil {
-
+				CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
+			}  else {
 				floatVal, ok := val.(float64)
 				if ok {
 					val = time.Unix(int64(floatVal), 0)
@@ -144,26 +146,22 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 				}
 			}
 
-			CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
-
 		} else if col.ColumnType == "date" {
 
 			parsedTime, ok := val.(time.Time)
 			if !ok {
-				val, err = dateparse.ParseLocal(val.(string))
 
-
-				if err != nil {
-
+				valString, ok := val.(string)
+				if ok {
+					val, err = dateparse.ParseLocal(valString)
+					InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
+				} else {
 					floatVal, ok := val.(float64)
 					if ok {
 						val = time.Unix(int64(floatVal), 0)
-						err = nil
 					}
 				}
 
-
-				InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
 			} else {
 				val = parsedTime
 			}
@@ -171,10 +169,12 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		} else if col.ColumnType == "time" {
 
 			// 2017-07-13T18:30:00.000Z
-			val, err = time.Parse("15:04:05", val.(string))
+			valString, ok := val.(string)
+			if ok {
+				val, err = time.Parse("15:04:05", valString)
 
-
-			if err != nil {
+				CheckErr(err, fmt.Sprintf("Failed to parse string as time [%v]", val))
+			} else {
 
 				floatVal, ok := val.(float64)
 				if ok {
@@ -183,8 +183,6 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 				}
 			}
 
-
-			CheckErr(err, fmt.Sprintf("Failed to parse string as time [%v]", val))
 		}
 
 		if col.ColumnType == "measurement" {
