@@ -127,7 +127,7 @@
           }
         }
 
-        if (columnMeta.ColumnType == "json") {
+        if (["json", "yaml"].indexOf(columnMeta.ColumnType) > -1) {
           console.log("get text input type for json ", this.model)
           return columnMeta.ColumnName
         }
@@ -195,6 +195,9 @@
             inputType = "textArea";
             break;
           case "json":
+            inputType = "jsonEditor";
+            break;
+          case "yaml":
             inputType = "jsonEditor";
             break;
           case "html":
