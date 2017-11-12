@@ -134,7 +134,18 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
 			// 2017-07-13T18:30:00.000Z
 			val, err = dateparse.ParseLocal(val.(string))
+
+			if err != nil {
+
+				floatVal, ok := val.(float64)
+				if ok {
+					val = time.Unix(int64(floatVal), 0)
+					err = nil
+				}
+			}
+
 			CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
+
 		} else if col.ColumnType == "date" {
 
 			parsedTime, ok := val.(time.Time)
@@ -237,7 +248,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		nuuid := uuid.NewV4().String()
 
 		belogsToUserGroupSql, q, err := squirrel.
-			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
