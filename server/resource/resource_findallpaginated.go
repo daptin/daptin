@@ -309,6 +309,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	defer rows.Close()
 
 	results, includes, err := dr.ResultToArrayOfMap(rows, dr.model.GetColumnMap(), includedRelations)
+	log.Infof("Found: %d results", len(results))
 	//log.Infof("Results: %v", results)
 
 	if err != nil {
