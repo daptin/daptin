@@ -292,7 +292,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		return 0, nil, err
 	}
 
-	log.Infof("Sql: %v\n", sql1)
+	log.Infof("Sql: %v == %v", sql1, args)
 
 	stmt, err := dr.db.Preparex(sql1)
 	if err != nil {
