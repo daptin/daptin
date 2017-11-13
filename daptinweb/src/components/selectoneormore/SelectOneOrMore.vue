@@ -28,14 +28,14 @@
         </el-select>
       </div>
       <div class="ui section" v-if="selectedItem">
-        Selected: {{selectedItem | chooseTitle | titleCase }}
+        <p> Selected: {{selectedItem | chooseTitle | titleCase }}</p>
       </div>
 
 
     </div>
     <div class="box-footer">
       <button v-if="selectedItem != null" @click.prevent="addObject"
-              class="btn"> Add {{schema.name | titleCase}}
+              class="btn btn-primary"> Add {{schema.name | titleCase}}
       </button>
     </div>
   </div>
@@ -67,7 +67,7 @@
       }
     },
     methods: {
-      formatValueToModel(obj){
+      formatValueToModel(obj) {
         console.log("formatValueToModel", arguments)
         return {
           id: obj.id,

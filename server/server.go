@@ -172,7 +172,8 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 
 	hostSwitch := CreateSubSites(&initConfig, db, cruds)
 
-	hostSwitch.handlerMap["default"] = r
+	hostSwitch.handlerMap["api"] = r
+	hostSwitch.handlerMap["dashboard"] = r
 	go resource.ImportDataFiles(&initConfig, db, cruds)
 
 	authMiddleware.SetUserCrud(cruds["user"])
