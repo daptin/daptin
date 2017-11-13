@@ -165,7 +165,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		handler := hs.handlerMap["default"]
+		handler := hs.handlerMap["dashboard"]
 		handler.ServeHTTP(w, r)
 
 		// Handle host names for which no handler is registered
