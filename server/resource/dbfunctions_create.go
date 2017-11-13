@@ -171,6 +171,11 @@ func CheckAuditTables(config *CmsConfig) {
 				c.IsNullable = true
 			}
 
+			if c.IsForeignKey {
+				c.IsForeignKey = false
+				c.ForeignKeyData = api2go.ForeignKeyData{}
+			}
+
 			c.IsUnique = false
 			c.IsPrimaryKey = false
 			c.IsAutoIncrement = false

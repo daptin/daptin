@@ -29,7 +29,7 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 			},
 		})
 		if err != nil {
-			log.Errorf("Error from BeforeDelete middleware: %v", err)
+			log.Errorf("Error from BeforeDelete[%v] middleware: %v", bf.String(), err)
 			return nil, err
 		}
 		if r == nil || len(r) == 0 {
