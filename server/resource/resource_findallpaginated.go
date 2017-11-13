@@ -60,22 +60,17 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		}
 	}
 
-
 	includedRelations := make(map[string]bool, 0)
 	if len(req.QueryParams["included_relations"]) > 0 {
-		included := req.QueryParams["page[size]"][0]
+		included := req.QueryParams["included_relations"][0]
 		includedRelationsList := strings.Split(included, ",")
 		for _, incl := range includedRelationsList {
 			includedRelations[incl] = true
 		}
-		if err != nil {
-			log.Errorf("Invalid parameter value: %v", req.QueryParams["page[size]"])
-		}
+
 	} else {
 		includedRelations = nil
 	}
-
-
 
 	if pageSize == 0 {
 		pageSize = 1
