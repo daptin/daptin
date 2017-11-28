@@ -821,6 +821,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 					Set("world_schema_json", string(schema)).
 					Set("is_top_level", table.IsTopLevel).
 					Set("is_hidden", table.IsHidden).
+					Set("default_order", table.DefaultOrder).
 					Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
 			CheckErr(err, "Failed to create update default permission sql")
 
@@ -840,8 +841,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 
 
 			s, v, err = squirrel.Insert("world").
-					Columns("table_name", "world_schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden").
-					Values(table.TableName, string(schema), table.Permission, refId, table.DefaultPermission, userId, table.IsTopLevel, table.IsHidden).ToSql()
+					Columns("table_name", "world_schema_json", "permission", "reference_id", "default_permission", "user_id", "is_top_level", "is_hidden", "default_order").
+					Values(table.TableName, string(schema), table.Permission, refId, table.DefaultPermission, userId, table.IsTopLevel, table.IsHidden, table.DefaultOrder).ToSql()
 			_, err = tx.Exec(s, v...)
 			CheckErr(err, "Failed to insert into world table about "+table.TableName)
 			//initConfig.Tables[i].DefaultPermission = defaultWorldPermission
