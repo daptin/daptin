@@ -79,6 +79,8 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	sortOrder := []string{}
 	if len(req.QueryParams["sort"]) > 0 {
 		sortOrder = req.QueryParams["sort"]
+	} else if dr.tableInfo.DefaultOrder != "" {
+		sortOrder = strings.Split(dr.tableInfo.DefaultOrder, ",")
 	}
 
 	queries := []string{}

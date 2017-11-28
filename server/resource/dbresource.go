@@ -9,6 +9,7 @@ import (
 type DbResource struct {
 	model        *api2go.Api2GoModel
 	db           *sqlx.DB
+	tableInfo TableInfo
 	cruds        map[string]*DbResource
 	ms           *MiddlewareSet
 	configStore  *ConfigStore

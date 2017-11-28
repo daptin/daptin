@@ -1,0 +1,8 @@
+FROM golang:1.8
+
+RUN curl https://glide.sh/get | sh
+RUN go env
+RUN glide install
+RUN go get github.com/GeertJohan/go.rice
+RUN go get github.com/GeertJohan/go.rice/rice
+RUN go build  -ldflags '-linkmode external -extldflags -static -w' main.go
