@@ -126,8 +126,8 @@ var SystemActions = []Action{
 		InFields:         []api2go.ColumnInfo{},
 		OutFields: []Outcome{
 			{
-				Type:       "marketplace.package.refresh",
-				Method:     "EXECUTE",
+				Type:   "marketplace.package.refresh",
+				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"marketplace_id": "$.reference_id",
 				},
@@ -193,7 +193,7 @@ var SystemActions = []Action{
 				Type:   "marketplace.package.install",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"package_name":        "~package_name",
+					"package_name":   "~package_name",
 					"marketplace_id": "$.reference_id",
 				},
 			},
@@ -740,6 +740,14 @@ var StandardTables = []TableInfo{
 				IsNullable:   false,
 				DefaultValue: "false",
 				ColumnType:   "truefalse",
+			},
+			{
+				Name:         "default_order",
+				ColumnName:   "default_order",
+				DataType:     "string",
+				IsNullable:   true,
+				DefaultValue: "'+id'",
+				ColumnType:   "value",
 			},
 		},
 	},
@@ -1293,6 +1301,7 @@ type TableInfo struct {
 	IsAuditEnabled         bool   `db:"is_audit_enabled"`
 	Validations            []ColumnTag
 	Conformations          []ColumnTag
+	DefaultOrder           string
 }
 
 func (ti *TableInfo) AddRelation(relations ...api2go.TableRelation) {
