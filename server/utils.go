@@ -58,7 +58,8 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 
 	ts := make([]resource.TableInfo, 0)
 
-	res, err := db.Queryx("select table_name, permission, default_permission, world_schema_json, is_top_level, is_hidden, is_state_tracking_enabled" +
+	res, err := db.Queryx("select table_name, permission, default_permission, " +
+		"world_schema_json, is_top_level, is_hidden, is_state_tracking_enabled, default_order" +
 		" from world where table_name not like '%_has_%' and table_name not like '%_audit' and table_name not in ('world', 'world_column', 'action', 'user', 'usergroup')")
 	if err != nil {
 		log.Infof("Failed to select from world table: %v", err)
@@ -71,11 +72,12 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 		var permission int64
 		var default_permission int64
 		var world_schema_json string
+		var default_order *string
 		var is_top_level bool
 		var is_hidden bool
 		var is_state_tracking_enabled bool
 
-		err = res.Scan(&table_name, &permission, &default_permission, &world_schema_json, &is_top_level, &is_hidden, &is_state_tracking_enabled)
+		err = res.Scan(&table_name, &permission, &default_permission, &world_schema_json, &is_top_level, &is_hidden, &is_state_tracking_enabled, &default_order)
 		if err != nil {
 			log.Errorf("Failed to scan json schema from world: %v", err)
 			continue
@@ -95,6 +97,9 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 		t.IsHidden = is_hidden
 		t.IsTopLevel = is_top_level
 		t.IsStateTrackingEnabled = is_state_tracking_enabled
+		if default_order != nil {
+			t.DefaultOrder = *default_order
+		}
 		ts = append(ts, t)
 
 	}

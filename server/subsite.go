@@ -165,7 +165,12 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		handler := hs.handlerMap["dashboard"]
+		handler, ok := hs.handlerMap["dashboard"]
+		if !ok {
+			log.Errorf("Failed to find default route")
+
+			return
+		}
 		handler.ServeHTTP(w, r)
 
 		// Handle host names for which no handler is registered
