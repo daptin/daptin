@@ -32,8 +32,21 @@ docker run -d -p 8080:8080 daptin/daptin
 
 ### Native
 
-```./daptin```
 
+#### SQLite
+```
+./daptin -db_type sqlite3 -db_connection_string daptin.db
+```
+
+#### MySQL
+```
+./daptin -db_type mysql -db_connection_string '<username>:<password>@tcp(<hostname>:<port>)/<db_name>'
+```
+
+#### PostgreSQL
+```
+./daptin -db_type postgres -db_connection_string 'host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable'
+```
 
 
 ## Database connection properties
