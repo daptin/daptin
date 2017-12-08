@@ -155,7 +155,7 @@ Tables:
   Conformations:
   - ColumnName: order
     Tags: numeric
-  validations:
+  Validations:
   - ColumnName: title
     Tags: required
 - TableName: tag
