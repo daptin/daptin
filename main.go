@@ -53,7 +53,7 @@ func main() {
 
 	var boxStatic, boxRoot http.FileSystem
 	if err != nil {
-		boxStatic = http.Dir("daptinweb/dist/static")
+		boxStatic = http.Dir("dapwtinweb/dist/static")
 		boxRoot = http.Dir("daptinweb/dist")
 	} else {
 		boxStatic = boxStatic1.HTTPBox()
