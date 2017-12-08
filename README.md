@@ -268,8 +268,8 @@ However, JSON APIs for data manipulation by themselves weren't enough. Building 
 ## Tech stack
 
 
-Backend | FrontEnd | Standards | Frameworks
+Backend | Frontend | Standards | Frameworks
 ---|---|---|---
 [Golang](golang.org) | [BootStrap](http://getbootstrap.com/) | [RAML](raml.org) | [CoPilot Theme](https://copilot.mistergf.io)
-[Api2go](https://github.com/manyminds/api2go) | [BootStrap](http://getbootstrap.com/) | [JsonAPI](jsonapi.org) | [VueJS](https://vuejs.org/v2/guide/)
+[Api2go](https://github.com/manyminds/api2go) |  | [JsonAPI](jsonapi.org) | [VueJS](https://vuejs.org/v2/guide/)
 [rclone](https://github.com/ncw/rclone) |  [grapesJs](grapesjs.com) | | [Element UI](element.eleme.io)
