@@ -182,6 +182,7 @@
         )
       },
       success(data) {
+        this.onPaginationData(data.links);
         data = data.data;
         var that = this;
         console.log("data loaded", arguments)

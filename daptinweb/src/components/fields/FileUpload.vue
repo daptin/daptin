@@ -58,14 +58,14 @@
         }
       },
       processFile: function (file, filelist) {
-        console.log("provided schema", this.schema, file.raw)
+        console.log("provided schema", this.schema, file.raw);
 
         let expectedFileType = this.schema.inputType;
-        if (expectedFileType != "*") {
+        if (expectedFileType !== "*") {
           var allTypes = expectedFileType.split("|");
 
           var fileName = file.raw.name;
-          var fileNameParts = fileName.split(".")
+          var fileNameParts = fileName.split(".");
           var fileExtension = "";
           if (fileNameParts.length > 1) {
             fileExtension = fileNameParts[fileNameParts.length - 1];

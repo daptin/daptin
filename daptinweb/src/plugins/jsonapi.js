@@ -30,7 +30,7 @@ jsonapi.replaceMiddleware('errors', {
       Notification.error({
         "title": "Failed",
         "message": response.title
-      })
+      });
       return {};
     }
 
@@ -38,7 +38,7 @@ jsonapi.replaceMiddleware('errors', {
       Notification.error({
         "title": "Warn",
         "message": "Massive"
-      })
+      });
       console.log("we dont know about this entity");
       return {};
     }
