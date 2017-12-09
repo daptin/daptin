@@ -32,8 +32,21 @@ docker run -d -p 8080:8080 daptin/daptin
 
 ### Native
 
-```./daptin```
 
+#### SQLite
+```
+./daptin -db_type sqlite3 -db_connection_string daptin.db
+```
+
+#### MySQL
+```
+./daptin -db_type mysql -db_connection_string '<username>:<password>@tcp(<hostname>:<port>)/<db_name>'
+```
+
+#### PostgreSQL
+```
+./daptin -db_type postgres -db_connection_string 'host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable'
+```
 
 
 ## Database connection properties
@@ -142,7 +155,7 @@ Tables:
   Conformations:
   - ColumnName: order
     Tags: numeric
-  validations:
+  Validations:
   - ColumnName: title
     Tags: required
 - TableName: tag
@@ -255,8 +268,8 @@ However, JSON APIs for data manipulation by themselves weren't enough. Building 
 ## Tech stack
 
 
-Backend | FrontEnd | Standards | Frameworks
+Backend | Frontend | Standards | Frameworks
 ---|---|---|---
 [Golang](golang.org) | [BootStrap](http://getbootstrap.com/) | [RAML](raml.org) | [CoPilot Theme](https://copilot.mistergf.io)
-[Api2go](https://github.com/manyminds/api2go) | [BootStrap](http://getbootstrap.com/) | [JsonAPI](jsonapi.org) | [VueJS](https://vuejs.org/v2/guide/)
+[Api2go](https://github.com/manyminds/api2go) |  | [JsonAPI](jsonapi.org) | [VueJS](https://vuejs.org/v2/guide/)
 [rclone](https://github.com/ncw/rclone) |  [grapesJs](grapesjs.com) | | [Element UI](element.eleme.io)
