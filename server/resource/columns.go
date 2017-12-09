@@ -744,7 +744,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:         "default_order",
 				ColumnName:   "default_order",
-				DataType:     "string",
+				DataType:     "varchar(100)",
 				IsNullable:   true,
 				DefaultValue: "'+id'",
 				ColumnType:   "value",
