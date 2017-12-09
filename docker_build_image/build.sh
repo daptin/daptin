@@ -1,0 +1,1 @@
+docker build -t daptin_build_env .

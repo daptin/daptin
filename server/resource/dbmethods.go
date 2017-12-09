@@ -344,11 +344,11 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 		auth.NewPermission(auth.Create, auth.Create, auth.Create).IntValue(),
 		auth.NewPermission(auth.Read, auth.Read, auth.Read).IntValue())
 	if err != nil {
-		log.Errorf("Failed to update audit permissions: %v", err)
+		log.Errorf("Failed to world update audit permissions: %v", err)
 	}
 
 	_, err = dbResource.db.Exec("update action set permission = ?", auth.NewPermission(auth.None, auth.Read|auth.Execute, auth.Create|auth.Execute).IntValue())
-	_, err = dbResource.db.Exec("update action set permission = ? where action_name in 'signin'", auth.NewPermission(auth.Peek|auth.Execute, auth.Read|auth.Execute, auth.Create|auth.Execute).IntValue())
+	_, err = dbResource.db.Exec("update action set permission = ? where action_name in ('signin')", auth.NewPermission(auth.Peek|auth.Execute, auth.Read|auth.Execute, auth.Create|auth.Execute).IntValue())
 
 	if err != nil {
 		log.Errorf("Failed to update audit permissions: %v", err)
