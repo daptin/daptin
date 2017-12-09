@@ -72,6 +72,7 @@
                edit-row-component="model-form"
                @vuetable:cell-clicked="onCellClicked"
                pagination-path="links"
+               data-path="data"
                :css="css.table"
                :json-api-model-name="jsonApiModelName"
                @pagination-data="onPaginationData"
