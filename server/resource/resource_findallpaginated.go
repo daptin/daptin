@@ -22,6 +22,20 @@ func (dr *DbResource) GetTotalCount() uint64 {
 	return count
 }
 
+func (dr *DbResource) GetTotalCountBySelectBuilder(builder squirrel.SelectBuilder) uint64 {
+
+	s, v, err := builder.ToSql()
+	if err != nil {
+		log.Errorf("Failed to generate count query for %v: %v", dr.model.GetName(), err)
+		return 0
+	}
+
+	var count uint64
+	dr.db.QueryRowx(s, v...).Scan(&count)
+	//log.Infof("Count: [%v] %v", dr.model.GetTableName(), count)
+	return count
+}
+
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
 func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, response api2go.Responder, err error) {
 
@@ -124,6 +138,9 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	}
 
 	queryBuilder := squirrel.Select(finalCols...).From(m.GetTableName()).Offset(pageNumber).Limit(pageSize)
+	countQueryBuilder := squirrel.Select("count(*)").From(m.GetTableName()).Offset(pageNumber).Limit(pageSize)
+
+	//whereClauses := make([][]interface{}, 0)
 
 	infos := dr.model.GetColumns()
 
@@ -153,6 +170,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 			}
 			if len(colString) > 0 {
 				queryBuilder = queryBuilder.Where("( "+strings.Join(colString, " or ")+")", wheres...)
+				countQueryBuilder = countQueryBuilder.Where("( "+strings.Join(colString, " or ")+")", wheres...)
 			}
 		}
 	} else {
@@ -205,16 +223,19 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 					continue
 				}
 				queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
+				countQueryBuilder = countQueryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
 				break
 
 			case "belongs_to":
 				queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
+				countQueryBuilder = countQueryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
 				break
 
 			case "has_many":
 				wh := squirrel.Eq{}
 				wh[rel.GetObject()+".id"] = ids
 				queryBuilder = queryBuilder.Join(rel.GetJoinString()).Where(wh)
+				countQueryBuilder = countQueryBuilder.Join(rel.GetJoinString()).Where(wh)
 
 			}
 
@@ -245,6 +266,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 					continue
 				}
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
+				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
 				break
 
 			case "belongs_to":
@@ -261,6 +283,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 				}
 
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubject() + ".id": ids})
+				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubject() + ".id": ids})
 				break
 			case "has_many":
 				subjectId := req.QueryParams[rel.GetSubject()+"_id"]
@@ -269,6 +292,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 				}
 				//log.Infof("Has many [%v] : [%v] === %v", dr.model.GetName(), subjectId, req.QueryParams)
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
+				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
 
 			}
 
@@ -283,12 +307,20 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		//log.Infof("Sort order: %v", so)
 		if so[0] == '-' {
 			queryBuilder = queryBuilder.OrderBy(prefix + so[1:] + " desc")
+			countQueryBuilder = countQueryBuilder.OrderBy(prefix + so[1:] + " desc")
 		} else {
-			queryBuilder = queryBuilder.OrderBy(prefix + so + " asc")
+			if so[0] == '+' {
+				queryBuilder = queryBuilder.OrderBy(prefix + so[1:] + " asc")
+				countQueryBuilder = countQueryBuilder.OrderBy(prefix + so[1:] + " asc")
+			} else {
+				queryBuilder = queryBuilder.OrderBy(prefix + so + " asc")
+				countQueryBuilder = countQueryBuilder.OrderBy(prefix + so + " asc")
+			}
 		}
 	}
 
 	sql1, args, err := queryBuilder.ToSql()
+
 	if err != nil {
 		log.Infof("Error: %v", err)
 		return 0, nil, err
@@ -368,17 +400,17 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		result = append(result, a)
 	}
 
-	total1 := dr.GetTotalCount()
+	total1 := dr.GetTotalCountBySelectBuilder(countQueryBuilder)
 	total := total1
 	if total < pageSize {
-		total = pageSize
+		// total = pageSize
 	}
 	if pageNumber < pageSize {
 		pageNumber = pageSize
 	}
 	//log.Infof("Offset, limit: %v, %v", pageNumber, pageSize)
 
-	return uint(dr.GetTotalCount()), NewResponse(nil, result, 200, &api2go.Pagination{
+	return uint(total1), NewResponse(nil, result, 200, &api2go.Pagination{
 		Next:        map[string]string{"limit": fmt.Sprintf("%v", pageSize), "offset": fmt.Sprintf("%v", pageSize+pageNumber)},
 		Prev:        map[string]string{"limit": fmt.Sprintf("%v", pageSize), "offset": fmt.Sprintf("%v", pageNumber-pageSize)},
 		First:       map[string]string{},
