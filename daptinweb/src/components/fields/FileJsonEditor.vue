@@ -1,7 +1,7 @@
 <!-- FileUpload.vue -->
 <template>
   <div class="col-md-12">
-    <div id="jsonEditor" v-if="!useAce"></div>
+    <div id="jsonEditor" style="width: 80%; height: 600px;" v-if="!useAce"></div>
     <editor ref="aceEditor" :options="options" :content="value" v-if="useAce" :lang="'markdown'"
             :sync="true"></editor>
   </div>
@@ -13,6 +13,9 @@
   import 'brace/theme/chrome'
   import 'brace/mode/markdown'
   import jsonApi from '../../plugins/jsonapi';
+  import Jsoneditor from 'jsoneditor';
+
+  require("jsoneditor/dist/jsoneditor.min.css");
 
   export default {
     mixins: [abstractField],
@@ -34,7 +37,7 @@
     },
     mounted() {
       window.ace.require = function (mode) {
-        console.log("ace wanted mode: ", mode)
+        console.log("ace wanted mode: ", mode);
         return false;
       };
       var that = this;
@@ -50,7 +53,7 @@
           var t = JSON.parse(startVal);
           startVal = JSON.stringify(t, null, 2);
           that.value = startVal;
-        } catch(e) {
+        } catch (e) {
 
         }
 
@@ -105,31 +108,49 @@
         })
 
 
-        if (false) {
-          schema = schemas[that.schema.inputType].schema;
-
+        console.log("this is new")
+        if (true) {
           try {
-            var startValNew = JSON.parse(startVal);
-            startVal = startValNew;
+            var container = document.getElementById("jsonEditor");
+            var editor = new Jsoneditor(container, {});
+            var json = JSON.parse(startVal);
+            editor.set(json);
+            editor.onChange = function() {
+              console.log("value on change", arguments)
+            }
+            return;
           } catch (e) {
-
+            console.log("Failed to init json editor", e)
           }
 
-          var editor = new JSONEditor(element, {
-            startval: startVal,
-            schema: schema,
-            theme: 'bootstrap3'
-          });
-          editor.on('change', function () {
-            // Do something
-            console.log("Json data updated", editor.getValue());
-            var val = editor.getValue();
-            if (!val) {
-              that.value = null;
-            } else {
-              that.value = JSON.stringify(editor.getValue());
-            }
-          });
+
+        }
+
+        if (false) {
+//          schema = schemas[that.schema.inputType].schema;
+//
+//          try {
+//            var startValNew = JSON.parse(startVal);
+//            startVal = startValNew;
+//          } catch (e) {
+//
+//          }
+//
+//          var editor = new JSONEditor(element, {
+//            startval: startVal,
+//            schema: schema,
+//            theme: 'bootstrap3'
+//          });
+//          editor.on('change', function () {
+//            // Do something
+//            console.log("Json data updated", editor.getValue());
+//            var val = editor.getValue();
+//            if (!val) {
+//              that.value = null;
+//            } else {
+//              that.value = JSON.stringify(editor.getValue());
+//            }
+//          });
         } else {
           if (!that.value) {
             that.value = "";

@@ -25,6 +25,7 @@
     "http-server": "^0.9.0",
     "jquery": "^2.2.2",
     "js-cookie": "^2.1.4",
+    "jsoneditor": "^5.11.0",
     "jwt-decode": "^2.2.0",
     "module": "^1.2.5",
     "moment": "^2.12.0",
