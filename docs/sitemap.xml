@@ -4,135 +4,135 @@
     
     <url>
      <loc>/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/settingup/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/setting-up/settingup/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/entities/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/setting-up/entities/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/entity_relations/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/setting-up/entity_relations/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/users_and_usergroups/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/auth/users_and_usergroups/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/authorization/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/auth/authorization/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/actions/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/auth/authentication/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/data_storage/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/actions-streams/actions/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/marketplace/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/data-modeling/data_storage/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/auditing/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/setting-up/marketplace/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/authentication/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/data-modeling/auditing/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/data_validation/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/data-modeling/data_validation/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/data_conformation/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/data-modeling/data_conformation/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/state_tracking/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/data-modeling/state_tracking/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/streams/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/actions-streams/streams/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/permissions/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/auth/permissions/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
     <url>
-     <loc>/oauth_connection/</loc>
-     <lastmod>2017-11-05</lastmod>
+     <loc>/extend/oauth_connection/</loc>
+     <lastmod>2017-12-12</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
