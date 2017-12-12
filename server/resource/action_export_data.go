@@ -21,26 +21,25 @@ func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 
 	responses := make([]ActionResponse, 0)
 
-	subjectInstance, ok := inFields["subject"]
+	tableName, ok := inFields["table_name"]
 
 	finalName := "complete"
 
 	var finalString []byte
 	result := make(map[string]interface{})
 
-	if ok && subjectInstance != nil {
+	if ok {
 
-		subjectMap := subjectInstance.(map[string]interface{})
-		tableName := subjectMap["table_name"].(string)
-		log.Infof("Export data for table: %v", tableName)
+		tableNameStr := tableName.(string)
+		log.Infof("Export data for table: %v", tableNameStr)
 
-		objects, err := d.cruds[tableName].GetAllRawObjects(tableName)
+		objects, err := d.cruds[tableNameStr].GetAllRawObjects(tableNameStr)
 		if err != nil {
-			log.Errorf("Failed to get all objects of type [%v] : %v", tableName, err)
+			log.Errorf("Failed to get all objects of type [%v] : %v", tableNameStr, err)
 		}
 
-		result[tableName] = objects
-		finalName = tableName
+		result[tableNameStr] = objects
+		finalName = tableNameStr
 	} else {
 
 		for _, tableInfo := range d.cmsConfig.Tables {
