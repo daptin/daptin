@@ -211,7 +211,7 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"world_reference_id": "$.reference_id",
-					"subject":            "$",
+					"table_name":         "$.table_name",
 				},
 			},
 		},
