@@ -1,4 +1,20 @@
 site_name: Daptin
 pages:
     - Home: index.md
-theme: windmill
+    - Setting up: setting-up/settingup.md
+    - Entities: setting-up/entities.md
+    - Entity Relations: setting-up/entity_relations.md
+    - Users and groups: auth/users_and_usergroups.md
+    - Authorization: auth/authorization.md
+    - Authentication: auth/authentication.md
+    - Actions: actions-streams/actions.md
+    - Data storage: data-modeling/data_storage.md
+    - Marketplace: setting-up/marketplace.md
+    - Data Auditing: data-modeling/auditing.md
+    - Data validation: data-modeling/data_validation.md
+    - Data conformations: data-modeling/data_conformation.md
+    - State tracking: data-modeling/state_tracking.md
+    - Data Streams: actions-streams/streams.md
+    - Permission model: auth/permissions.md
+    - OAuth Connections: extend/oauth_connection.md
+theme: readthedocs
