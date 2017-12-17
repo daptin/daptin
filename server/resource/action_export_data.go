@@ -28,7 +28,7 @@ func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 	var finalString []byte
 	result := make(map[string]interface{})
 
-	if ok {
+	if ok && tableName != nil {
 
 		tableNameStr := tableName.(string)
 		log.Infof("Export data for table: %v", tableNameStr)
