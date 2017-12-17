@@ -1,0 +1,489 @@
+{
+    "docs": [
+        {
+            "location": "/",
+            "text": "Introduction\n\n\nDaptin is a ready-to-deploy API first backend. Create new JSON APIs within minutes for your next mobile or web application. Use it as a middleware or a controller. Host static websites or use the JSON apis to create dynamic sites on top.\n\n\n\n\nUse existing XLS to define and import data\n\n\nCreate relations across your data\n\n\nComponent based architecture to encourage maximum reuse\n\n\n\n\nSetting up\n\n\n\n\nSetting up\n\n\nEntities\n\n\nEntity Relations\n\n\nMarketplace\n\n\n\n\nData\n\n\n\n\nData storage and table structures\n\n\nAuditing\n\n\nData validations\n\n\nData conformations\n\n\nState tracking for entities\n\n\n\n\nActions and streams\n\n\n\n\nActions\n\n\nData Streams\n\n\n\n\nAuthentication and Authorization\n\n\n\n\nUsers and User groups\n\n\nAuthentication\n\n\nAuthorization\n\n\nPermissions\n\n\n\n\nExternal apis and integrations\n\n\n\n\nOauth Connections\n\n\nOauth tokens\n\n\nInteracting with third party APIs\n\n\nStorage connectors\n\n\n\n\nSubsites, Marketplace\n\n\n\n\nSub sites\n\n\nJson schemas",
+            "title": "Home"
+        },
+        {
+            "location": "/#introduction",
+            "text": "Daptin is a ready-to-deploy API first backend. Create new JSON APIs within minutes for your next mobile or web application. Use it as a middleware or a controller. Host static websites or use the JSON apis to create dynamic sites on top.   Use existing XLS to define and import data  Create relations across your data  Component based architecture to encourage maximum reuse",
+            "title": "Introduction"
+        },
+        {
+            "location": "/#setting-up",
+            "text": "Setting up  Entities  Entity Relations  Marketplace",
+            "title": "Setting up"
+        },
+        {
+            "location": "/#data",
+            "text": "Data storage and table structures  Auditing  Data validations  Data conformations  State tracking for entities",
+            "title": "Data"
+        },
+        {
+            "location": "/#actions-and-streams",
+            "text": "Actions  Data Streams",
+            "title": "Actions and streams"
+        },
+        {
+            "location": "/#authentication-and-authorization",
+            "text": "Users and User groups  Authentication  Authorization  Permissions",
+            "title": "Authentication and Authorization"
+        },
+        {
+            "location": "/#external-apis-and-integrations",
+            "text": "Oauth Connections  Oauth tokens  Interacting with third party APIs  Storage connectors",
+            "title": "External apis and integrations"
+        },
+        {
+            "location": "/#subsites-marketplace",
+            "text": "Sub sites  Json schemas",
+            "title": "Subsites, Marketplace"
+        },
+        {
+            "location": "/setting-up/settingup/",
+            "text": "Setting up Daptin\n\n\nYou can setup daptin on any machine/server of your choice.\n\n\nNative binary\n\n\nDaptin is available as a native binary. You can fetch the lastest binary from the releases\n\n\nhttps://github.com/daptin/daptin/releases\n\n\nTo start daptin, execute \n./daptin\n which will create a local sqlite database and start listening on port 6336. To change the database or port, read below.\n\n\nDocker\n\n\nA docker image is also available which can be deployed on any docker compatible hosting provider (aws, gce, linode, digitalocean, azure)\n\n\nhttps://hub.docker.com/r/daptin/daptin/\n\n\nTo start daptin using docker\n\n\ndocker run daptin/daptin\n\n\nDatabase and data persistence\n\n\nDaptin can use one of the following database for data persistence\n\n\n\n\nMysql\n\n\nPostgres\n\n\nSQLite [Default]\n\n\n\n\nIf nothing specified, a sqlite database is created on the local file system and is used for all purposes. (uploads/blobs are not stored in database)\n\n\nYou can customise the database connection properties when starting daptin\n\n\nmysql\n\n\nTo use mysql, start daptin as follows\n\n\n./daptin -db_type=mysql -db_connection_string='<username>:<password>@tcp(<hostname>:<port>)/<db_name>'\n\n\npostgres\n\n\n./daptin -db_type=postgres -db_connection_string='host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable'\n\n\nsqlite\n\n\nBy default a \"daptin.db\" file is created to store data\n\n\n./daptin -db_type=sqlite -db_connection_string=db_file_name.db\n\n\nPort\n\n\nDaptin will listen on port 6336 by default. You can change it by using the following argument\n\n\n-port=8080\n\n\nRestart\n\n\nDaptin relies on self restarts to configure new entities and apis and changes to the other parts of the ststem. As soon as you upload a schema file, daptin will write the file to disk, and restart itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.\n\n\nYou can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.",
+            "title": "Setting up"
+        },
+        {
+            "location": "/setting-up/settingup/#setting-up-daptin",
+            "text": "You can setup daptin on any machine/server of your choice.",
+            "title": "Setting up Daptin"
+        },
+        {
+            "location": "/setting-up/settingup/#native-binary",
+            "text": "Daptin is available as a native binary. You can fetch the lastest binary from the releases  https://github.com/daptin/daptin/releases  To start daptin, execute  ./daptin  which will create a local sqlite database and start listening on port 6336. To change the database or port, read below.",
+            "title": "Native binary"
+        },
+        {
+            "location": "/setting-up/settingup/#docker",
+            "text": "A docker image is also available which can be deployed on any docker compatible hosting provider (aws, gce, linode, digitalocean, azure)  https://hub.docker.com/r/daptin/daptin/  To start daptin using docker  docker run daptin/daptin",
+            "title": "Docker"
+        },
+        {
+            "location": "/setting-up/settingup/#database-and-data-persistence",
+            "text": "Daptin can use one of the following database for data persistence   Mysql  Postgres  SQLite [Default]   If nothing specified, a sqlite database is created on the local file system and is used for all purposes. (uploads/blobs are not stored in database)  You can customise the database connection properties when starting daptin",
+            "title": "Database and data persistence"
+        },
+        {
+            "location": "/setting-up/settingup/#mysql",
+            "text": "To use mysql, start daptin as follows  ./daptin -db_type=mysql -db_connection_string='<username>:<password>@tcp(<hostname>:<port>)/<db_name>'",
+            "title": "mysql"
+        },
+        {
+            "location": "/setting-up/settingup/#postgres",
+            "text": "./daptin -db_type=postgres -db_connection_string='host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable'",
+            "title": "postgres"
+        },
+        {
+            "location": "/setting-up/settingup/#sqlite",
+            "text": "By default a \"daptin.db\" file is created to store data  ./daptin -db_type=sqlite -db_connection_string=db_file_name.db",
+            "title": "sqlite"
+        },
+        {
+            "location": "/setting-up/settingup/#port",
+            "text": "Daptin will listen on port 6336 by default. You can change it by using the following argument  -port=8080",
+            "title": "Port"
+        },
+        {
+            "location": "/setting-up/settingup/#restart",
+            "text": "Daptin relies on self restarts to configure new entities and apis and changes to the other parts of the ststem. As soon as you upload a schema file, daptin will write the file to disk, and restart itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.  You can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.",
+            "title": "Restart"
+        },
+        {
+            "location": "/setting-up/entities/",
+            "text": "Entites\n\n\nEntities are the foundation for daptin. Everything in daptin work on one or more entities. To define an entity, we specify the fields and its relations with other entities. A collection of entities and their relations will be called a schema.\n\n\nMultiple schema json files can be uploaded, and changes are merged accordingly.\n\n\nLets imagine we were creating a todo application and wanted to keep a track the following for each todo item\n\n\n\n\nthe todo text - lets call this \"title\"\n\n\na description - a longer text, which may or may not be empty\n\n\na deadline date - a date field to capture the deadline\n\n\ncompleted - a true/false field, which captures if the todo is done\n\n\norder - a field to store the priority of each todo\n\n\n\n\nAlong with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo\n\n\n\n\ntitle cannot be empty\n\n\norder has to be numeric\n\n\n\n\nOnce we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this:\n\n\nOnline entity designer\n\n\nThe entity designer is accessible from dashboard using the \"Online designer\" button. Here you can set the name, add columns and relations and create it. This is a basic designer and more advanced features to customise every aspect of the entity will be added later.\n\n\n\n\nMarket place\n\n\nCheckout \nmarketplace documentation\n\n\nJSON / YAML files\n\n\nJSON/YAML files are the primary way to create new entites in daptin. The above two ways ultimatele create a JSON file or fetch from the market.\n\n\nThe JSON for our hypothetical todo entity will look as follows:\n\n\n    {\n        \"Tables\": [{\n            \"TableName\": \"todo\",\n            \"Columns\": [{\n                    \"Name\": \"title\",\n                    \"DataType\": \"varchar(500)\",\n                    \"ColumnType\": \"label\",\n                    \"IsIndexed\": true\n                },\n                {\n                    \"Name\": \"completed\",\n                    \"DataType\": \"int(1)\",\n                    \"ColumnType\": \"truefalse\",\n                    \"DefaultValue\": \"false\"\n                },\n                {\n                    \"Name\": \"deadline\",\n                    \"DataType\": \"date\",\n                    \"ColumnType\": \"date\",\n                    \"IsNullable\": true\n                },\n                {\n                    \"Name\": \"order\",\n                    \"ColumnName\": \"item_order\",\n                    \"DataType\": \"int(4)\",\n                    \"ColumnType\": \"measurement\",\n                    \"DefaultValue\": \"10\"\n                },\n                {\n                    \"Name\": \"text\",\n                    \"DataType\": \"text\",\n                    \"ColumnType\": \"content\",\n                    \"IsNullable\": true\n                }\n            ],\n            \"Conformations\": [{\n                \"ColumnName\": \"order\",\n                \"Tags\": \"numeric\"\n            }],\n            \"validations\": [{\n                \"ColumnName\": \"title\",\n                \"Tags\": \"required\"\n            }]\n]}\n\n\n\n\n\n\nName: Name is a human readable name\n\n\nColumn Name: Name of the column in the table\n\n\nColumn Type: The type of the column. Daptin supports a variety of types and these allow daptin to give you useful options in future (eg for viewing a timeline, a date/datetime column is required)\n\n\nDefault value: Columns can have default values, which is used a new row is created and no value for that column is specified.\n\n\n\n\nWhile the same description in YAML will look as follows\n\n\nTables:\n- TableName: todo\n  Columns:\n  - Name: title\n    DataType: varchar(500)\n    ColumnType: label\n    IsIndexed: true\n  - Name: url\n    DataType: varchar(200)\n    ColumnType: url\n    IsNullable: true\n  - Name: completed\n    DataType: int(1)\n    ColumnType: truefalse\n    DefaultValue: 'false'\n  - Name: schedule\n    DataType: date\n    ColumnType: date\n    IsNullable: true\n  - Name: order\n    ColumnName: item_order\n    DataType: int(4)\n    ColumnType: measurement\n    DefaultValue: '10'\n  - Name: text\n    DataType: text\n    ColumnType: content\n    IsNullable: true\n  Conformations:\n  - ColumnName: order\n    Tags: numeric\n  Validations:\n  - ColumnName: title\nTags: required\n\n\n\n\nYou can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.\n\n\nColumn specifications\n\n\nColumns of the entity can be cusomised:\n\n\n\n\n\n\n\n\nProperty Name\n\n\nProperty Type\n\n\nDescription\n\n\n\n\n\n\n\n\n\n\nName\n\n\nstring\n\n\nhuman readable name, can be skipped\n\n\n\n\n\n\nColumnName\n\n\nstring\n\n\ncolumn name in the table\n\n\n\n\n\n\nColumnDescription\n\n\nstring\n\n\nhuman readable description\n\n\n\n\n\n\nColumnType\n\n\nstring\n\n\ncolumn type is a rich type of the column\n\n\n\n\n\n\nIsIndexed\n\n\nboolean\n\n\ntrue to add an index on this column\n\n\n\n\n\n\nIsUnique\n\n\nboolean\n\n\ntrue to set a unique constraint on this column\n\n\n\n\n\n\nIsNullable\n\n\nboolean\n\n\nare null values allowed\n\n\n\n\n\n\nPermission\n\n\nuint64\n\n\npermission column (check authorization docs)\n\n\n\n\n\n\nDataType\n\n\nstring\n\n\nthe column type inside the database\n\n\n\n\n\n\nDefaultValue\n\n\nstring\n\n\ndefault value if any (has to be inside single quotes for static values\n\n\n\n\n\n\n\n\nColumn types\n\n\nDaptin supports a variety of rich data types, which helps it to automatically make intelligent decisions and validations. Here is a list of all column types and what should they be used for\n\n\n\n\n\n\n\n\nType Name\n\n\nDescription\n\n\nExample\n\n\n\n\n\n\n\n\n\n\nid\n\n\nan identity column, mostly for internal purposes\n\n\n1\n\n\n\n\n\n\nalias\n\n\na foreign key column\n\n\nuuid v4\n\n\n\n\n\n\ndate\n\n\nfull date, no time\n\n\n2017-12-30\n\n\n\n\n\n\ntime\n\n\ntime/time interval, no date\n\n\n12:34:54\n\n\n\n\n\n\nday\n\n\nday of the month\n\n\n1 to 31\n\n\n\n\n\n\nmonth\n\n\nmonth of the year\n\n\n1 to 12\n\n\n\n\n\n\nyear\n\n\nYear\n\n\n2017\n\n\n\n\n\n\nminute\n\n\nminute of the hour\n\n\n0 to 59\n\n\n\n\n\n\nhour\n\n\nhour of the dat\n\n\n0 - 23\n\n\n\n\n\n\ndatetime\n\n\ndate + time (not stored as timestamp, served at date time string)\n\n\n2017-12-30T12:34:54\n\n\n\n\n\n\nemail\n\n\nemail\n\n\ntest@domain.com\n\n\n\n\n\n\nname\n\n\ncolumn to be used as name of the entity\n\n\ndaptin\n\n\n\n\n\n\njson\n\n\nJSON data\n\n\n{}\n\n\n\n\n\n\npassword\n\n\npassword - are bcrypted with cost 11\n\n\n$2a$11$z/VlxycDgZ...\n\n\n\n\n\n\nvalue\n\n\nvalue is enumeration type\n\n\ncompleted\n\n\n\n\n\n\ntruefalse\n\n\nboolean\n\n\n1\n\n\n\n\n\n\ntimestamp\n\n\ntimestamp (stored as timestamp, served as timestamp)\n\n\n123123123\n\n\n\n\n\n\nlocation.latitude\n\n\nonly latitude\n\n\n34.2938\n\n\n\n\n\n\nlocation\n\n\nlatitude + longitude in geoJson format\n\n\n[34.223,64.123]\n\n\n\n\n\n\nlocation.longitude\n\n\nonly longitude\n\n\n64.123\n\n\n\n\n\n\nlocation.altitude\n\n\nonly altitude\n\n\n34\n\n\n\n\n\n\ncolor\n\n\nhex color string\n\n\n#ABCDE1\n\n\n\n\n\n\nrating.10\n\n\nrating on a scale of 10\n\n\n8\n\n\n\n\n\n\nmeasurement\n\n\nnumeric column\n\n\n534\n\n\n\n\n\n\nlabel\n\n\na label for the entity, similar to name but can be more than one\n\n\nred\n\n\n\n\n\n\ncontent\n\n\nlarger contents - texts/html/json/yaml\n\n\nvery long text\n\n\n\n\n\n\nfile\n\n\nuploads, connect storage for using this\n\n\n\n\n\n\n\n\nurl\n\n\nUrls/links\n\n\nhttp://docs.dapt.in\n\n\n\n\n\n\n\n\nExcel file upload\n\n\nExcel upload provides an easy way to create entities. This takes away the complexity of writing each column type. Daptin uses a combination of rules to identify columns and their types based on the data in the excel.\n\n\nYou can upload data from XLS. Daptin will take care of going through your XLS file and identifying column types. This is one of the easiest and fastest ways to create entities and uploading data in daptin. You can specify relations among entities later from the online designer.\n\n\nRestart\n\n\nDaptin relies on self restarts to configure new entities and apis. As soon as you upload a schema file, daptin will write the file to disk, and restart itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.\n\n\nYou can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.",
+            "title": "Entities"
+        },
+        {
+            "location": "/setting-up/entities/#entites",
+            "text": "Entities are the foundation for daptin. Everything in daptin work on one or more entities. To define an entity, we specify the fields and its relations with other entities. A collection of entities and their relations will be called a schema.  Multiple schema json files can be uploaded, and changes are merged accordingly.  Lets imagine we were creating a todo application and wanted to keep a track the following for each todo item   the todo text - lets call this \"title\"  a description - a longer text, which may or may not be empty  a deadline date - a date field to capture the deadline  completed - a true/false field, which captures if the todo is done  order - a field to store the priority of each todo   Along with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo   title cannot be empty  order has to be numeric   Once we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this:",
+            "title": "Entites"
+        },
+        {
+            "location": "/setting-up/entities/#online-entity-designer",
+            "text": "The entity designer is accessible from dashboard using the \"Online designer\" button. Here you can set the name, add columns and relations and create it. This is a basic designer and more advanced features to customise every aspect of the entity will be added later.",
+            "title": "Online entity designer"
+        },
+        {
+            "location": "/setting-up/entities/#market-place",
+            "text": "Checkout  marketplace documentation",
+            "title": "Market place"
+        },
+        {
+            "location": "/setting-up/entities/#json-yaml-files",
+            "text": "JSON/YAML files are the primary way to create new entites in daptin. The above two ways ultimatele create a JSON file or fetch from the market.  The JSON for our hypothetical todo entity will look as follows:      {\n        \"Tables\": [{\n            \"TableName\": \"todo\",\n            \"Columns\": [{\n                    \"Name\": \"title\",\n                    \"DataType\": \"varchar(500)\",\n                    \"ColumnType\": \"label\",\n                    \"IsIndexed\": true\n                },\n                {\n                    \"Name\": \"completed\",\n                    \"DataType\": \"int(1)\",\n                    \"ColumnType\": \"truefalse\",\n                    \"DefaultValue\": \"false\"\n                },\n                {\n                    \"Name\": \"deadline\",\n                    \"DataType\": \"date\",\n                    \"ColumnType\": \"date\",\n                    \"IsNullable\": true\n                },\n                {\n                    \"Name\": \"order\",\n                    \"ColumnName\": \"item_order\",\n                    \"DataType\": \"int(4)\",\n                    \"ColumnType\": \"measurement\",\n                    \"DefaultValue\": \"10\"\n                },\n                {\n                    \"Name\": \"text\",\n                    \"DataType\": \"text\",\n                    \"ColumnType\": \"content\",\n                    \"IsNullable\": true\n                }\n            ],\n            \"Conformations\": [{\n                \"ColumnName\": \"order\",\n                \"Tags\": \"numeric\"\n            }],\n            \"validations\": [{\n                \"ColumnName\": \"title\",\n                \"Tags\": \"required\"\n            }]\n]}   Name: Name is a human readable name  Column Name: Name of the column in the table  Column Type: The type of the column. Daptin supports a variety of types and these allow daptin to give you useful options in future (eg for viewing a timeline, a date/datetime column is required)  Default value: Columns can have default values, which is used a new row is created and no value for that column is specified.   While the same description in YAML will look as follows  Tables:\n- TableName: todo\n  Columns:\n  - Name: title\n    DataType: varchar(500)\n    ColumnType: label\n    IsIndexed: true\n  - Name: url\n    DataType: varchar(200)\n    ColumnType: url\n    IsNullable: true\n  - Name: completed\n    DataType: int(1)\n    ColumnType: truefalse\n    DefaultValue: 'false'\n  - Name: schedule\n    DataType: date\n    ColumnType: date\n    IsNullable: true\n  - Name: order\n    ColumnName: item_order\n    DataType: int(4)\n    ColumnType: measurement\n    DefaultValue: '10'\n  - Name: text\n    DataType: text\n    ColumnType: content\n    IsNullable: true\n  Conformations:\n  - ColumnName: order\n    Tags: numeric\n  Validations:\n  - ColumnName: title\nTags: required  You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.",
+            "title": "JSON / YAML files"
+        },
+        {
+            "location": "/setting-up/entities/#column-specifications",
+            "text": "Columns of the entity can be cusomised:     Property Name  Property Type  Description      Name  string  human readable name, can be skipped    ColumnName  string  column name in the table    ColumnDescription  string  human readable description    ColumnType  string  column type is a rich type of the column    IsIndexed  boolean  true to add an index on this column    IsUnique  boolean  true to set a unique constraint on this column    IsNullable  boolean  are null values allowed    Permission  uint64  permission column (check authorization docs)    DataType  string  the column type inside the database    DefaultValue  string  default value if any (has to be inside single quotes for static values",
+            "title": "Column specifications"
+        },
+        {
+            "location": "/setting-up/entities/#column-types",
+            "text": "Daptin supports a variety of rich data types, which helps it to automatically make intelligent decisions and validations. Here is a list of all column types and what should they be used for     Type Name  Description  Example      id  an identity column, mostly for internal purposes  1    alias  a foreign key column  uuid v4    date  full date, no time  2017-12-30    time  time/time interval, no date  12:34:54    day  day of the month  1 to 31    month  month of the year  1 to 12    year  Year  2017    minute  minute of the hour  0 to 59    hour  hour of the dat  0 - 23    datetime  date + time (not stored as timestamp, served at date time string)  2017-12-30T12:34:54    email  email  test@domain.com    name  column to be used as name of the entity  daptin    json  JSON data  {}    password  password - are bcrypted with cost 11  $2a$11$z/VlxycDgZ...    value  value is enumeration type  completed    truefalse  boolean  1    timestamp  timestamp (stored as timestamp, served as timestamp)  123123123    location.latitude  only latitude  34.2938    location  latitude + longitude in geoJson format  [34.223,64.123]    location.longitude  only longitude  64.123    location.altitude  only altitude  34    color  hex color string  #ABCDE1    rating.10  rating on a scale of 10  8    measurement  numeric column  534    label  a label for the entity, similar to name but can be more than one  red    content  larger contents - texts/html/json/yaml  very long text    file  uploads, connect storage for using this     url  Urls/links  http://docs.dapt.in",
+            "title": "Column types"
+        },
+        {
+            "location": "/setting-up/entities/#excel-file-upload",
+            "text": "Excel upload provides an easy way to create entities. This takes away the complexity of writing each column type. Daptin uses a combination of rules to identify columns and their types based on the data in the excel.  You can upload data from XLS. Daptin will take care of going through your XLS file and identifying column types. This is one of the easiest and fastest ways to create entities and uploading data in daptin. You can specify relations among entities later from the online designer.",
+            "title": "Excel file upload"
+        },
+        {
+            "location": "/setting-up/entities/#restart",
+            "text": "Daptin relies on self restarts to configure new entities and apis. As soon as you upload a schema file, daptin will write the file to disk, and restart itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.  You can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.",
+            "title": "Restart"
+        },
+        {
+            "location": "/setting-up/entity_relations/",
+            "text": "Entity relations\n\n\nA data oriented system with no relational knowledge of the data is next to an Excel sheet. Specifying relations in your data is the most important thing after creating your entities.\n\n\nRelations in JSON/YAML schema\n\n\nWhen uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.\n\n\nContinuing with our example of todos, lets say we want to group todo's in \"projects\" and each todo can belong to only a single project.\n\n\nLets design a \"project\" entity:\n\n\n- TableName: project\n  Columns:\n  - Name: name\n    DataType: varchar(200)\n    ColumnType: name\n    IsIndexed: true\n\n\n\n\nA very simple table with just a name column. Now we can tell daptin about the relation between todos and projects\n\n\nRelations:\n- Subject: todo\n  Relation: has_one\n  Object: project\n\n\n\n\nThis tells daptin that todo \"has_one\" project.\n\n\nRelations types\n\n\nAny entity can be associated to any other entity (or to itself) as one of the follows\n\n\n\n\n\n\n\n\nRelation Name\n\n\nRelation Descriptio\n\n\nCan be empty\n\n\n\n\n\n\n\n\n\n\nbelongs_to\n\n\na single object relation\n\n\nNo\n\n\n\n\n\n\nhas_one\n\n\na single object relation\n\n\nYes\n\n\n\n\n\n\nhas_many\n\n\nmany related objects\n\n\nYes\n\n\n\n\n\n\n\n\nDefault relations\n\n\nEvery entity created on daptin has at least two relations\n\n\n\n\n\n\n\n\nRelation Type\n\n\nRelated Entity\n\n\n\n\n\n\n\n\n\n\nbelongs\n\n\nuser\n\n\n\n\n\n\nhas many\n\n\nusergroup\n\n\n\n\n\n\n\n\nTo understand why these two relations will always exist, checkout \ndaptin authorization model\n\n\nMultiple relation\n\n\nThere can be a scenario where two entities are related in more then 1 way. Consider the following example\n\n\n\n\nA blog entity\n\n\nA post entity\n\n\nBlog has many posts\n\n\nEach blog can have a \"highlighted post\" (blog has one \"highlighted post\")\n\n\n\n\nTo achieve the above scenario, our schema would look like as follows\n\n\nTables:\n- TableName: blog\n  Columns:\n  - Name: title\n    DataType: varchar(500)\n    ColumnType: label\n  - Name: view_count\n    DataType: int(11)\n    ColumnType: measurement\n- TableName: post\n  Columns:\n  - Name: title\n    DataType: varchar(200)\n    ColumnType: label\n  - Name: body\n    DataType: text\n    ColumnType: content\n- TableName: comment\n  Columns:\n  - Name: body\n    DataType: text\n    ColumnType: content\n  - Name: likes_count\n    ColumnName: likes_count\n    DataType: int(11)\n    ColumnType: measurement\nRelations:\n- Subject: comment\n  Relation: belongs_to\n  Object: post\n- Subject: post\n  Relation: belongs_to\n  Object: blog                   // this is our post belongs to blog relation\n- Subject: blog\n  Relation: has_one\n  Object: post\n  ObjectName: current_post\n  SubjectName: current_post_of   // this is our highlighted post relation\n\n\n\n\nNotice the \"SubjectName\" and \"ObjectName\" keys which helps to name our relations more intuitively.\n\n\nSQL constraints\n\n\nbelongs to\n\n\n\n\nA column is added to the subject entity, which refers to the Object entity, set to non nullable\n\n\n\n\nhas one\n\n\n\n\nSame as above, but nullable\n\n\n\n\nhas many\n\n\n\n\nA join table is created",
+            "title": "Entity Relations"
+        },
+        {
+            "location": "/setting-up/entity_relations/#entity-relations",
+            "text": "A data oriented system with no relational knowledge of the data is next to an Excel sheet. Specifying relations in your data is the most important thing after creating your entities.",
+            "title": "Entity relations"
+        },
+        {
+            "location": "/setting-up/entity_relations/#relations-in-jsonyaml-schema",
+            "text": "When uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.  Continuing with our example of todos, lets say we want to group todo's in \"projects\" and each todo can belong to only a single project.  Lets design a \"project\" entity:  - TableName: project\n  Columns:\n  - Name: name\n    DataType: varchar(200)\n    ColumnType: name\n    IsIndexed: true  A very simple table with just a name column. Now we can tell daptin about the relation between todos and projects  Relations:\n- Subject: todo\n  Relation: has_one\n  Object: project  This tells daptin that todo \"has_one\" project.",
+            "title": "Relations in JSON/YAML schema"
+        },
+        {
+            "location": "/setting-up/entity_relations/#relations-types",
+            "text": "Any entity can be associated to any other entity (or to itself) as one of the follows     Relation Name  Relation Descriptio  Can be empty      belongs_to  a single object relation  No    has_one  a single object relation  Yes    has_many  many related objects  Yes",
+            "title": "Relations types"
+        },
+        {
+            "location": "/setting-up/entity_relations/#default-relations",
+            "text": "Every entity created on daptin has at least two relations     Relation Type  Related Entity      belongs  user    has many  usergroup     To understand why these two relations will always exist, checkout  daptin authorization model",
+            "title": "Default relations"
+        },
+        {
+            "location": "/setting-up/entity_relations/#multiple-relation",
+            "text": "There can be a scenario where two entities are related in more then 1 way. Consider the following example   A blog entity  A post entity  Blog has many posts  Each blog can have a \"highlighted post\" (blog has one \"highlighted post\")   To achieve the above scenario, our schema would look like as follows  Tables:\n- TableName: blog\n  Columns:\n  - Name: title\n    DataType: varchar(500)\n    ColumnType: label\n  - Name: view_count\n    DataType: int(11)\n    ColumnType: measurement\n- TableName: post\n  Columns:\n  - Name: title\n    DataType: varchar(200)\n    ColumnType: label\n  - Name: body\n    DataType: text\n    ColumnType: content\n- TableName: comment\n  Columns:\n  - Name: body\n    DataType: text\n    ColumnType: content\n  - Name: likes_count\n    ColumnName: likes_count\n    DataType: int(11)\n    ColumnType: measurement\nRelations:\n- Subject: comment\n  Relation: belongs_to\n  Object: post\n- Subject: post\n  Relation: belongs_to\n  Object: blog                   // this is our post belongs to blog relation\n- Subject: blog\n  Relation: has_one\n  Object: post\n  ObjectName: current_post\n  SubjectName: current_post_of   // this is our highlighted post relation  Notice the \"SubjectName\" and \"ObjectName\" keys which helps to name our relations more intuitively.",
+            "title": "Multiple relation"
+        },
+        {
+            "location": "/setting-up/entity_relations/#sql-constraints",
+            "text": "",
+            "title": "SQL constraints"
+        },
+        {
+            "location": "/setting-up/entity_relations/#belongs-to",
+            "text": "A column is added to the subject entity, which refers to the Object entity, set to non nullable",
+            "title": "belongs to"
+        },
+        {
+            "location": "/setting-up/entity_relations/#has-one",
+            "text": "Same as above, but nullable",
+            "title": "has one"
+        },
+        {
+            "location": "/setting-up/entity_relations/#has-many",
+            "text": "A join table is created",
+            "title": "has many"
+        },
+        {
+            "location": "/auth/users_and_usergroups/",
+            "text": "User Management\n\n\nDaptin natively manages users and usergroups so that it has no dependency on external user management services. Though it can be integrated with such services.\n\n\nUsers\n\n\nUsers are native objects in Daptin. Every item in daptin belongs to one user. A user which is not identified is a guest user. User identification is based on the JWT token in the \nAuthorization\n header\n\n\nBy default each user has one usergroup. A user can belong more user groups.\n\n\nUser groups\n\n\nUser groups is a group concept that helps you manage \"who\" can interact with daptin, and in what ways.\n\n\nUsers and Objects belong to one or more user group.",
+            "title": "Users and groups"
+        },
+        {
+            "location": "/auth/users_and_usergroups/#user-management",
+            "text": "Daptin natively manages users and usergroups so that it has no dependency on external user management services. Though it can be integrated with such services.",
+            "title": "User Management"
+        },
+        {
+            "location": "/auth/users_and_usergroups/#users",
+            "text": "Users are native objects in Daptin. Every item in daptin belongs to one user. A user which is not identified is a guest user. User identification is based on the JWT token in the  Authorization  header  By default each user has one usergroup. A user can belong more user groups.",
+            "title": "Users"
+        },
+        {
+            "location": "/auth/users_and_usergroups/#user-groups",
+            "text": "User groups is a group concept that helps you manage \"who\" can interact with daptin, and in what ways.  Users and Objects belong to one or more user group.",
+            "title": "User groups"
+        },
+        {
+            "location": "/auth/authorization/",
+            "text": "Access Authorization\n\n\nAuthorization is the part where daptin decides if the caller has enough permission to execute the call. Currently daptin has the following permissions.\n\n\nEntity level permission check\n\n\nThe world table has the list of all entities. Consider the scenario where we created a todo list. The world table would have a row to represent this entity\n\n\n\n\n\n\n\n\nEntity\n\n\nPermission\n\n\n\n\n\n\n\n\n\n\ntodo\n\n\n112000006\n\n\n\n\n\n\n\n\nHere:\n\n\n\n\n112 is for owners, which basically means 64 + 32 + 16 = Refer/Execute/Delete\n\n\n000 is for group users, no permission allowed in this case\n\n\n006 is for guest users, which is 2 + 4 = Read/Create\n\n\n\n\nObject level permission check\n\n\nOnce the call clears the entity level check, an object level permission check is applied. This happens in cases where the action is going to affect/read an existing row. The permission is stored in the same way. Each table has a permission column which stores the permission in \nOOOGGGXXX\n format.\n\n\nOrder of permission check\n\n\nThe permission is checked in order of:\n\n\n\n\nCheck if the user is owner, if yes, check if permission allows the current action, if yes do action\n\n\nCheck if the user belongs to a group to which this object also belongs, if yes, check if permisison allows the current action, if yes do action\n\n\nUser is guest, check if guest permission allows this actions, if yes do action, if no, unauthorized\n\n\n\n\nThings to note here:\n\n\n\n\nThere is no negative permission (this may be introduced in the future)\n\n\neg, you cannot say owner is 'not allowed' to read but read by guest is allowed. \n\n\nPermission check is done in a hierarchy type order\n\n\n\n\nAccess flow\n\n\nEvery \"interaction\" in daptin goes through two levels of access. Each level has a \nbefore\n and \nafter\n check.\n\n\n\n\nEntity level access: does the user invoking the interaction has the appropriate permission to invoke this (So for sign up, the user table need to be writable by guests, for sign in the user table needs to be peakable by guests)\n\n\nInstance level access: this is the second level, even if a user has access to \"user\" entity, not all \"user\" rows would be accessible by them\n\n\n\n\nSo the actual checks happen in following order:\n\n\n\n\n\"Before check\" for entity\n\n\n\"Before check\" for instance\n\n\n\"After check\" for instance\n\n\n\"After check\" for entity\n\n\n\n\nEach of these checks can filter out objects where the user does not have enough permission.\n\n\nEntity level permission\n\n\nEntity level permission are set in the world table and can be updated from dashboard. This can be done by updating the \"permission\" column for the entity.\n\n\nFor these changes to take effect a restart is necessary.\n\n\nInstance level permission\n\n\nLike we saw in the \nentity documentation\n, every table has a \npermission\n column. No restart is necessary for changes in these permission.\n\n\nPermission column\n\n\nThe permission column contains a nine digit number, which decides the access for guests (the world), user groups and owner\n\n\nThe nine digits can be represented as follows:\n\n\nUUUGGGWWW\n\n\nEach entity has a permission field which is added by daptin. The permission field is a 9 digit number, in the following format\n\n\nThe first three digits(UUU) represent the permission for the owner.\nThe next three digits(GGG) represent the permission for the group.\nThe last three digits(WWW)  represent the permission for guest users.\n\n\nU = User\nG = Group\nW = World\n\n\n\n\nPeek - 1\n\n\nRead - 2\n\n\nCreate - 4\n\n\nUpdate - 8\n\n\nDelete - 16\n\n\nExecute - 32\n\n\nRefer - 64\n\n\n\n\nHere is another way of looking at it:\n\n\nPermissions:\n\n\n002,000,000 read by owner\n000,020,000 read by group\n000,000,002 read by anybody (other)\n004,000,000 write by owner\n000,004,000 write by group\n000,000,004 write by anybody\n032,000,000 execute by owner\n000,032,000 execute by group\n000,000,032 execute by anybody\n\n\nTo get a combination, just add them up.\n\n\nFor example, to get\n\n\n\n\nread, write, execute by owner\n\n\nread, execute, by group\n\n\nexecute by anybody\n\n\n\n\nyou would add (002 + 004 + 032),(002 + 032),(032) to give 038034032.",
+            "title": "Authorization"
+        },
+        {
+            "location": "/auth/authorization/#access-authorization",
+            "text": "Authorization is the part where daptin decides if the caller has enough permission to execute the call. Currently daptin has the following permissions.",
+            "title": "Access Authorization"
+        },
+        {
+            "location": "/auth/authorization/#entity-level-permission-check",
+            "text": "The world table has the list of all entities. Consider the scenario where we created a todo list. The world table would have a row to represent this entity     Entity  Permission      todo  112000006     Here:   112 is for owners, which basically means 64 + 32 + 16 = Refer/Execute/Delete  000 is for group users, no permission allowed in this case  006 is for guest users, which is 2 + 4 = Read/Create",
+            "title": "Entity level permission check"
+        },
+        {
+            "location": "/auth/authorization/#object-level-permission-check",
+            "text": "Once the call clears the entity level check, an object level permission check is applied. This happens in cases where the action is going to affect/read an existing row. The permission is stored in the same way. Each table has a permission column which stores the permission in  OOOGGGXXX  format.",
+            "title": "Object level permission check"
+        },
+        {
+            "location": "/auth/authorization/#order-of-permission-check",
+            "text": "The permission is checked in order of:   Check if the user is owner, if yes, check if permission allows the current action, if yes do action  Check if the user belongs to a group to which this object also belongs, if yes, check if permisison allows the current action, if yes do action  User is guest, check if guest permission allows this actions, if yes do action, if no, unauthorized   Things to note here:   There is no negative permission (this may be introduced in the future)  eg, you cannot say owner is 'not allowed' to read but read by guest is allowed.   Permission check is done in a hierarchy type order",
+            "title": "Order of permission check"
+        },
+        {
+            "location": "/auth/authorization/#access-flow",
+            "text": "Every \"interaction\" in daptin goes through two levels of access. Each level has a  before  and  after  check.   Entity level access: does the user invoking the interaction has the appropriate permission to invoke this (So for sign up, the user table need to be writable by guests, for sign in the user table needs to be peakable by guests)  Instance level access: this is the second level, even if a user has access to \"user\" entity, not all \"user\" rows would be accessible by them   So the actual checks happen in following order:   \"Before check\" for entity  \"Before check\" for instance  \"After check\" for instance  \"After check\" for entity   Each of these checks can filter out objects where the user does not have enough permission.",
+            "title": "Access flow"
+        },
+        {
+            "location": "/auth/authorization/#entity-level-permission",
+            "text": "Entity level permission are set in the world table and can be updated from dashboard. This can be done by updating the \"permission\" column for the entity.  For these changes to take effect a restart is necessary.",
+            "title": "Entity level permission"
+        },
+        {
+            "location": "/auth/authorization/#instance-level-permission",
+            "text": "Like we saw in the  entity documentation , every table has a  permission  column. No restart is necessary for changes in these permission.",
+            "title": "Instance level permission"
+        },
+        {
+            "location": "/auth/authorization/#permission-column",
+            "text": "The permission column contains a nine digit number, which decides the access for guests (the world), user groups and owner  The nine digits can be represented as follows:  UUUGGGWWW  Each entity has a permission field which is added by daptin. The permission field is a 9 digit number, in the following format  The first three digits(UUU) represent the permission for the owner.\nThe next three digits(GGG) represent the permission for the group.\nThe last three digits(WWW)  represent the permission for guest users.  U = User\nG = Group\nW = World   Peek - 1  Read - 2  Create - 4  Update - 8  Delete - 16  Execute - 32  Refer - 64   Here is another way of looking at it:  Permissions:  002,000,000 read by owner\n000,020,000 read by group\n000,000,002 read by anybody (other)\n004,000,000 write by owner\n000,004,000 write by group\n000,000,004 write by anybody\n032,000,000 execute by owner\n000,032,000 execute by group\n000,000,032 execute by anybody  To get a combination, just add them up.  For example, to get   read, write, execute by owner  read, execute, by group  execute by anybody   you would add (002 + 004 + 032),(002 + 032),(032) to give 038034032.",
+            "title": "Permission column"
+        },
+        {
+            "location": "/auth/authentication/",
+            "text": "Authentication\n\n\nDaptin maintains its own user accounts and usergroups as well. Users are identified by \nemail\n which is a unique key in the \nuser\n entity. Passwords are stored using bcrypt with a cost of 11. Password field has a column_type \npassword\n which makes daptin to bcrypt it before storing, and password fields are never returned in any JSONAPI call.\n\n\nAuthentication token\n\n\nThe authentication token is a JWT token issued by daptin on sign in action. Users can create new actions to allow other means of generating JWT token. It is as simple as adding another outcome to an action.\n\n\nServer side\n\n\nDaptin uses oAuth2 based authentication strategy. HTTP calls are checked for \nAuthorization\n header, and if present, validates the token as a JWT token.\n\n\nThe JWT token contains the issuer info (Daptin in this case) plus basic user profile (email). The JWT token has a one hour expiry from the time of issue.\n\n\nIf the token is absent or invalid, the user is considered as a guest. Guests also have certain permissions. Checkout the \nAuthorization docs\n for details. \n\n\nClient side\n\n\nOn the client side, for dashboard, the token is stored in local storage. The local storage is cleared on logout or if the server responds with a 401 Unauthorized status.\n\n\nAuthentication using other systems\n\n\nThere is planned road map to allow user logins via external oauth2 servers as well (login via google/facebook/twitter... and so on). This feature is not complete yet. Documentation will be updated to reflect changes.\n\n\nSign Up\n\n\nSign up is an action on user entity. Sign up takes four inputs:\n\n\n\n\nName\n\n\nEmail\n\n\nPassword\n\n\nPasswordConfirm\n\n\n\n\nWhen the user initates a Sign up action, the following things happen\n\n\n\n\nCheck if guests can initiate sign in action\n\n\nCheck if guests can create a new user (create permission)\n\n\nCreate a new user row\n\n\nCheck if guests can create a new usergroup (create permission)\n\n\nCreate a new usergroup row\n\n\nAssociate the user to the usergroup (refer permission)\n\n\n\n\nThis means that every user has his own dedicated usergrou by default. \n\n\nSign In\n\n\nSign In is also an action on user entity. Sign in takes two inputs:\n\n\n\n\nEmail\n\n\nPassword\n\n\n\n\nWhen the user initiates Sign in action, the following things happen:\n\n\n\n\nCheck if guests can peek users table (Peek permission)\n\n\nCheck if guests can peek the particular user (Peek Permission)\n\n\nMatch if the provided password bcrypted matches the stored bcrypted password\n\n\nIf true, issue a JWT token, which is used for future calls\n\n\n\n\nThe main outcome of the Sign In action is the jwt token, which is to be used in the \nAuthorization\n header of following calls.",
+            "title": "Authentication"
+        },
+        {
+            "location": "/auth/authentication/#authentication",
+            "text": "Daptin maintains its own user accounts and usergroups as well. Users are identified by  email  which is a unique key in the  user  entity. Passwords are stored using bcrypt with a cost of 11. Password field has a column_type  password  which makes daptin to bcrypt it before storing, and password fields are never returned in any JSONAPI call.",
+            "title": "Authentication"
+        },
+        {
+            "location": "/auth/authentication/#authentication-token",
+            "text": "The authentication token is a JWT token issued by daptin on sign in action. Users can create new actions to allow other means of generating JWT token. It is as simple as adding another outcome to an action.",
+            "title": "Authentication token"
+        },
+        {
+            "location": "/auth/authentication/#server-side",
+            "text": "Daptin uses oAuth2 based authentication strategy. HTTP calls are checked for  Authorization  header, and if present, validates the token as a JWT token.  The JWT token contains the issuer info (Daptin in this case) plus basic user profile (email). The JWT token has a one hour expiry from the time of issue.  If the token is absent or invalid, the user is considered as a guest. Guests also have certain permissions. Checkout the  Authorization docs  for details.",
+            "title": "Server side"
+        },
+        {
+            "location": "/auth/authentication/#client-side",
+            "text": "On the client side, for dashboard, the token is stored in local storage. The local storage is cleared on logout or if the server responds with a 401 Unauthorized status.",
+            "title": "Client side"
+        },
+        {
+            "location": "/auth/authentication/#authentication-using-other-systems",
+            "text": "There is planned road map to allow user logins via external oauth2 servers as well (login via google/facebook/twitter... and so on). This feature is not complete yet. Documentation will be updated to reflect changes.",
+            "title": "Authentication using other systems"
+        },
+        {
+            "location": "/auth/authentication/#sign-up",
+            "text": "Sign up is an action on user entity. Sign up takes four inputs:   Name  Email  Password  PasswordConfirm   When the user initates a Sign up action, the following things happen   Check if guests can initiate sign in action  Check if guests can create a new user (create permission)  Create a new user row  Check if guests can create a new usergroup (create permission)  Create a new usergroup row  Associate the user to the usergroup (refer permission)   This means that every user has his own dedicated usergrou by default.",
+            "title": "Sign Up"
+        },
+        {
+            "location": "/auth/authentication/#sign-in",
+            "text": "Sign In is also an action on user entity. Sign in takes two inputs:   Email  Password   When the user initiates Sign in action, the following things happen:   Check if guests can peek users table (Peek permission)  Check if guests can peek the particular user (Peek Permission)  Match if the provided password bcrypted matches the stored bcrypted password  If true, issue a JWT token, which is used for future calls   The main outcome of the Sign In action is the jwt token, which is to be used in the  Authorization  header of following calls.",
+            "title": "Sign In"
+        },
+        {
+            "location": "/actions-streams/actions/",
+            "text": "Actions\n\n\nActions are the most useful things in Daptin and we will see that everything you have done in Daptin was as action itself.\n\n\nActions can be thought of as follows:\n\n\n\n\nA set of inputs\n\n\nA set of outcomes based on the inputs\n\n\n\n\nWhat are actions and why do I need this\n\n\nCreate/Read/Update/Delete (CRUD) APIs are only the most basic apis exposed on the database, and you would rarely want to make those API available to your end user. Reasons could be multiple\n\n\n\n\nThe end user doesn't (immediately) owe the data they create\n\n\nCreating a \"row\"/\"data entry\" entry doesnt signify completion of a process or a flow\n\n\nUsually a \"set of entities\" is to created and not just a single entity (when you create a user, you also want to create a usergroup also and associate the user to usergroup)\n\n\nYou could allow user to update only some fields of an entity and not all fields (eg user can change their name, but not email)\n\n\nChanges based on some entity (when you are going though a project, a new todo should automatically belong to that project)\n\n\n\n\nActions provide a powerful abstraction over the CRUD and handle all of these use cases.\n\n\nTo quickly understand what actions are, lets see what happened when you \"signed up\" on Daptin.\n\n\nLets take a look at how \"Sign up\" action is defined in Daptin. We will go through each part of this definition\nAn action is performed on an entity. Lets also remember that \nworld\n is an entity itself.\n\n\nAction schema\n\n\n    {\n        Name:             \"signup\",\n        Label:            \"Sign up\",\n        InstanceOptional: true,\n        OnType:           \"user\",\n        InFields: []api2go.ColumnInfo{\n            {\n                Name:       \"name\",\n                ColumnName: \"name\",\n                ColumnType: \"label\",\n                IsNullable: false,\n            },\n            {\n                Name:       \"email\",\n                ColumnName: \"email\",\n                ColumnType: \"email\",\n                IsNullable: false,\n            },\n            {\n                Name:       \"password\",\n                ColumnName: \"password\",\n                ColumnType: \"password\",\n                IsNullable: false,\n            },\n            {\n                Name:       \"Password Confirm\",\n                ColumnName: \"passwordConfirm\",\n                ColumnType: \"password\",\n                IsNullable: false,\n            },\n        },\n        Validations: []ColumnTag{\n            {\n                ColumnName: \"email\",\n                Tags:       \"email\",\n            },\n            {\n                ColumnName: \"name\",\n                Tags:       \"required\",\n            },\n            {\n                ColumnName: \"password\",\n                Tags:       \"eqfield=InnerStructField[passwordConfirm],min=8\",\n            },\n        },\n        Conformations: []ColumnTag{\n            {\n                ColumnName: \"email\",\n                Tags:       \"email\",\n            },\n            {\n                ColumnName: \"name\",\n                Tags:       \"trim\",\n            },\n        },\n        OutFields: {\n            {\n                Type:      \"user\",\n                Method:    \"POST\",\n                Reference: \"user\",\n                Attributes: {\n                    \"name\":      \"~name\",\n                    \"email\":     \"~email\",\n                    \"password\":  \"~password\",\n                    \"confirmed\": \"0\",\n                },\n            },\n            {\n                Type:      \"usergroup\",\n                Method:    \"POST\",\n                Reference: \"usergroup\",\n                Attributes: {\n                    \"name\": \"!'Home group for ' + user.name\",\n                },\n            },\n            {\n                Type:      \"user_user_id_has_usergroup_usergroup_id\",\n                Method:    \"POST\",\n                Reference: \"user_usergroup\",\n                Attributes: {\n                    \"user_id\":      \"$user.reference_id\",\n                    \"usergroup_id\": \"$usergroup.reference_id\",\n                },\n            },\n            {\n                Type:   \"client.notify\",\n                Method: \"ACTIONRESPONSE\",\n                Attributes: {\n                    \"type\":    \"success\",\n                    \"title\":   \"Success\",\n                    \"message\": \"Signup Successful\",\n                },\n            },\n            {\n                Type:   \"client.redirect\",\n                Method: \"ACTIONRESPONSE\",\n                Attributes: {\n                    \"location\": \"/auth/signin\",\n                    \"window\":   \"self\",\n                },\n            },\n        },\n    }\n\n\n\n\nAction Name\n\n\n    Name:             \"signup\",\n\n\n\nName of the action, this should be unique for each actions. Actions are identified by this name\n\n\nAction Label\n\n\n    Label:            \"Sign up\",\n\n\n\nLabel is for humans\n\n\nOnType\n\n\n    OnType:           \"user\",\n\n\n\nThe primary type of entity on which the action happens. This is used to know where the actions should come up on the UI\n\n\nAction instance\n\n\n    InstanceOptional: true,\n\n\n\nIf the action requires an \"instance\" of that type on which the action is defined (more about this below). So \"Sign up\" is defined on \"user\" table, but an instance of \"user\" is not required to initiate the action. This is why the \"Sign up\" doesnt ask you to select a user (which wouldn't make sense either)\n\n\nInput fields\n\n\n    InFields: []api2go.ColumnInfo\n\n\n\nThis is a set of inputs which the user need to fill in to initiate that action. As we see here in case of \"Sign up\", we ask for four inputs\n\n\n\n\nName\n\n\nEmail\n\n\nPassword\n\n\nConfirm password\n\n\n\n\nNote that the ColumnInfo structure is the same one we used to \ndefine tables\n.\n\n\nValidations\n\n\n    Validations: []ColumnTag\n\n\n\nValidations validate the user input and rejects if some validation fails\n\n\n  {\n            ColumnName: \"email\",\n            Tags:       \"email\",\n        },\n\n\n\nThis tells that the \"email\" input should actually be an email.\n\n\nOne of the more interesting validations is cross field check\n\n\n        {\n            ColumnName: \"password\",\n            Tags:       \"eqfield=InnerStructField[passwordConfirm],min=8\",\n        },\n\n\n\nThis tells that the value entered by user in the password field should be equal to the value in passwordConfirm field. And the minimum length should be 8 characters.\n\n\nConformations\n\n\n    Conformations: []ColumnTag\n\n\n\nConformations help to clean the data before the action is carried out. The frequently one used are \ntrim\n and \nemail\n.\n\n\n\n\nTrim: trim removes white spaces, which are sometimes accidently introduced when entering data\n\n\nEmail: email conformation will normalize the email. Things like lowercase + trim\n\n\n\n\nOutFields\n\n\n    OutFields: []Outcome\n\n\n\nOutFields are the list of outcomes which the action will result in. The outcomes are evaluated in a top to bottom manner, and the result of one outcome is accessible when evaluating the next outcome.\n\n\nWe have defined three outcomes in our \"Sign Up\" action.\n\n\n\n\nCreate a user\n    {\n        Type:      \"user\",\n        Method:    \"POST\",\n        Reference: \"user\",\n        Attributes: map[string]interface{}{\n            \"name\":      \"~name\",\n            \"email\":     \"~email\",\n            \"password\":  \"~password\",\n            \"confirmed\": \"0\",\n        },\n    },\n\n\n\n\n\n\n\nThis tells us that, the first outcome is of type \"user\". The outcome is a \"New User\" (POST). It could alternatively have been a Update/Find/Delete operation.\n\n\nThe attributes maps the input fields to the fields of our new user.\n\n\n\n\n~name\n will be the value entered by user in the name field\n\n\n~email\n will be the entered in the email field, and so on\n\n\n\n\nIf we skip the \n~\n, like \n\"confirmed\": \"0\"\n Then the literal value is used.\n\n\nReference: \"user\",\n We have this to allow the \"outcome\" to be referenced when evaluating the next outcome. Let us see the other outcomes\n\n\nScripted fields - \"!...\"\n\n\n        {\n            Type:      \"usergroup\",\n            Method:    \"POST\",\n            Reference: \"usergroup\",\n            Attributes: map[string]interface{}{\n                \"name\": \"!'Home group for ' + user.name\",\n            },\n        },\n\n\n\nDaptin includes the \notto js engine\n. An exclamation mark tell daptin to evaluate the rest of the string as Javascript.\n\n\n'Home group for ' + user.name\n becomes \"Home group for parth\"\n\n\nReferencing previous outcomes\n\n\n        {\n            Type:      \"user_user_id_has_usergroup_usergroup_id\",\n            Method:    \"POST\",\n            Reference: \"user_usergroup\",\n            Attributes: map[string]interface{}{\n                \"user_id\":      \"$user.reference_id\",\n                \"usergroup_id\": \"$usergroup.reference_id\",\n            },\n        },\n\n\n\nthe \n$\n sign is to refer the previous outcomes. Here this outcome adds the newly created user to the newly created usergroup.",
+            "title": "Actions"
+        },
+        {
+            "location": "/actions-streams/actions/#actions",
+            "text": "Actions are the most useful things in Daptin and we will see that everything you have done in Daptin was as action itself.  Actions can be thought of as follows:   A set of inputs  A set of outcomes based on the inputs",
+            "title": "Actions"
+        },
+        {
+            "location": "/actions-streams/actions/#what-are-actions-and-why-do-i-need-this",
+            "text": "Create/Read/Update/Delete (CRUD) APIs are only the most basic apis exposed on the database, and you would rarely want to make those API available to your end user. Reasons could be multiple   The end user doesn't (immediately) owe the data they create  Creating a \"row\"/\"data entry\" entry doesnt signify completion of a process or a flow  Usually a \"set of entities\" is to created and not just a single entity (when you create a user, you also want to create a usergroup also and associate the user to usergroup)  You could allow user to update only some fields of an entity and not all fields (eg user can change their name, but not email)  Changes based on some entity (when you are going though a project, a new todo should automatically belong to that project)   Actions provide a powerful abstraction over the CRUD and handle all of these use cases.  To quickly understand what actions are, lets see what happened when you \"signed up\" on Daptin.  Lets take a look at how \"Sign up\" action is defined in Daptin. We will go through each part of this definition\nAn action is performed on an entity. Lets also remember that  world  is an entity itself.",
+            "title": "What are actions and why do I need this"
+        },
+        {
+            "location": "/actions-streams/actions/#action-schema",
+            "text": "{\n        Name:             \"signup\",\n        Label:            \"Sign up\",\n        InstanceOptional: true,\n        OnType:           \"user\",\n        InFields: []api2go.ColumnInfo{\n            {\n                Name:       \"name\",\n                ColumnName: \"name\",\n                ColumnType: \"label\",\n                IsNullable: false,\n            },\n            {\n                Name:       \"email\",\n                ColumnName: \"email\",\n                ColumnType: \"email\",\n                IsNullable: false,\n            },\n            {\n                Name:       \"password\",\n                ColumnName: \"password\",\n                ColumnType: \"password\",\n                IsNullable: false,\n            },\n            {\n                Name:       \"Password Confirm\",\n                ColumnName: \"passwordConfirm\",\n                ColumnType: \"password\",\n                IsNullable: false,\n            },\n        },\n        Validations: []ColumnTag{\n            {\n                ColumnName: \"email\",\n                Tags:       \"email\",\n            },\n            {\n                ColumnName: \"name\",\n                Tags:       \"required\",\n            },\n            {\n                ColumnName: \"password\",\n                Tags:       \"eqfield=InnerStructField[passwordConfirm],min=8\",\n            },\n        },\n        Conformations: []ColumnTag{\n            {\n                ColumnName: \"email\",\n                Tags:       \"email\",\n            },\n            {\n                ColumnName: \"name\",\n                Tags:       \"trim\",\n            },\n        },\n        OutFields: {\n            {\n                Type:      \"user\",\n                Method:    \"POST\",\n                Reference: \"user\",\n                Attributes: {\n                    \"name\":      \"~name\",\n                    \"email\":     \"~email\",\n                    \"password\":  \"~password\",\n                    \"confirmed\": \"0\",\n                },\n            },\n            {\n                Type:      \"usergroup\",\n                Method:    \"POST\",\n                Reference: \"usergroup\",\n                Attributes: {\n                    \"name\": \"!'Home group for ' + user.name\",\n                },\n            },\n            {\n                Type:      \"user_user_id_has_usergroup_usergroup_id\",\n                Method:    \"POST\",\n                Reference: \"user_usergroup\",\n                Attributes: {\n                    \"user_id\":      \"$user.reference_id\",\n                    \"usergroup_id\": \"$usergroup.reference_id\",\n                },\n            },\n            {\n                Type:   \"client.notify\",\n                Method: \"ACTIONRESPONSE\",\n                Attributes: {\n                    \"type\":    \"success\",\n                    \"title\":   \"Success\",\n                    \"message\": \"Signup Successful\",\n                },\n            },\n            {\n                Type:   \"client.redirect\",\n                Method: \"ACTIONRESPONSE\",\n                Attributes: {\n                    \"location\": \"/auth/signin\",\n                    \"window\":   \"self\",\n                },\n            },\n        },\n    }",
+            "title": "Action schema"
+        },
+        {
+            "location": "/actions-streams/actions/#action-name",
+            "text": "Name:             \"signup\",  Name of the action, this should be unique for each actions. Actions are identified by this name",
+            "title": "Action Name"
+        },
+        {
+            "location": "/actions-streams/actions/#action-label",
+            "text": "Label:            \"Sign up\",  Label is for humans",
+            "title": "Action Label"
+        },
+        {
+            "location": "/actions-streams/actions/#ontype",
+            "text": "OnType:           \"user\",  The primary type of entity on which the action happens. This is used to know where the actions should come up on the UI",
+            "title": "OnType"
+        },
+        {
+            "location": "/actions-streams/actions/#action-instance",
+            "text": "InstanceOptional: true,  If the action requires an \"instance\" of that type on which the action is defined (more about this below). So \"Sign up\" is defined on \"user\" table, but an instance of \"user\" is not required to initiate the action. This is why the \"Sign up\" doesnt ask you to select a user (which wouldn't make sense either)",
+            "title": "Action instance"
+        },
+        {
+            "location": "/actions-streams/actions/#input-fields",
+            "text": "InFields: []api2go.ColumnInfo  This is a set of inputs which the user need to fill in to initiate that action. As we see here in case of \"Sign up\", we ask for four inputs   Name  Email  Password  Confirm password   Note that the ColumnInfo structure is the same one we used to  define tables .",
+            "title": "Input fields"
+        },
+        {
+            "location": "/actions-streams/actions/#validations",
+            "text": "Validations: []ColumnTag  Validations validate the user input and rejects if some validation fails    {\n            ColumnName: \"email\",\n            Tags:       \"email\",\n        },  This tells that the \"email\" input should actually be an email.  One of the more interesting validations is cross field check          {\n            ColumnName: \"password\",\n            Tags:       \"eqfield=InnerStructField[passwordConfirm],min=8\",\n        },  This tells that the value entered by user in the password field should be equal to the value in passwordConfirm field. And the minimum length should be 8 characters.",
+            "title": "Validations"
+        },
+        {
+            "location": "/actions-streams/actions/#conformations",
+            "text": "Conformations: []ColumnTag  Conformations help to clean the data before the action is carried out. The frequently one used are  trim  and  email .   Trim: trim removes white spaces, which are sometimes accidently introduced when entering data  Email: email conformation will normalize the email. Things like lowercase + trim",
+            "title": "Conformations"
+        },
+        {
+            "location": "/actions-streams/actions/#outfields",
+            "text": "OutFields: []Outcome  OutFields are the list of outcomes which the action will result in. The outcomes are evaluated in a top to bottom manner, and the result of one outcome is accessible when evaluating the next outcome.  We have defined three outcomes in our \"Sign Up\" action.   Create a user     {\n        Type:      \"user\",\n        Method:    \"POST\",\n        Reference: \"user\",\n        Attributes: map[string]interface{}{\n            \"name\":      \"~name\",\n            \"email\":     \"~email\",\n            \"password\":  \"~password\",\n            \"confirmed\": \"0\",\n        },\n    },    This tells us that, the first outcome is of type \"user\". The outcome is a \"New User\" (POST). It could alternatively have been a Update/Find/Delete operation.  The attributes maps the input fields to the fields of our new user.   ~name  will be the value entered by user in the name field  ~email  will be the entered in the email field, and so on   If we skip the  ~ , like  \"confirmed\": \"0\"  Then the literal value is used.  Reference: \"user\",  We have this to allow the \"outcome\" to be referenced when evaluating the next outcome. Let us see the other outcomes",
+            "title": "OutFields"
+        },
+        {
+            "location": "/actions-streams/actions/#scripted-fields-",
+            "text": "{\n            Type:      \"usergroup\",\n            Method:    \"POST\",\n            Reference: \"usergroup\",\n            Attributes: map[string]interface{}{\n                \"name\": \"!'Home group for ' + user.name\",\n            },\n        },  Daptin includes the  otto js engine . An exclamation mark tell daptin to evaluate the rest of the string as Javascript.  'Home group for ' + user.name  becomes \"Home group for parth\"",
+            "title": "Scripted fields - \"!...\""
+        },
+        {
+            "location": "/actions-streams/actions/#referencing-previous-outcomes",
+            "text": "{\n            Type:      \"user_user_id_has_usergroup_usergroup_id\",\n            Method:    \"POST\",\n            Reference: \"user_usergroup\",\n            Attributes: map[string]interface{}{\n                \"user_id\":      \"$user.reference_id\",\n                \"usergroup_id\": \"$usergroup.reference_id\",\n            },\n        },  the  $  sign is to refer the previous outcomes. Here this outcome adds the newly created user to the newly created usergroup.",
+            "title": "Referencing previous outcomes"
+        },
+        {
+            "location": "/data-modeling/data_storage/",
+            "text": "Data storage\n\n\nDaptin relies on a relational database for all data persistence requirements. As covered in the \nsetting up guide\n currently the following relational database are supported:\n\n\n\n\nMySQL\n\n\nPostgreSQL\n\n\nSQLite\n\n\n\n\nThis document goes into the detail of how the database is used and what are the tables created.\n\n\nStandard columns\n\n\nThe following 5 columns are present in every table\n\n\n\n\n\n\n\n\nColumnName\n\n\nColumnType\n\n\nDataType\n\n\nAttributes\n\n\n\n\n\n\n\n\n\n\nid\n\n\nid\n\n\nint(11)\n\n\nprimary key  Auto increment Never exposed externally\n\n\n\n\n\n\nversion\n\n\ninteger\n\n\nint(11)\n\n\nget incremented every time a change is made\n\n\n\n\n\n\ncreated_at\n\n\ntimestamp\n\n\ntimestamp\n\n\nthe timestamp when the row was created\n\n\n\n\n\n\nupdated_at\n\n\ntimestamp\n\n\ntimestamp\n\n\nthe timestamp when the row was last updated\n\n\n\n\n\n\nreference_id\n\n\nalias\n\n\nvarchar(40)\n\n\nThe id exposed in APIs\n\n\n\n\n\n\npermission\n\n\ninteger\n\n\nint(4)\n\n\nPermissions - check Authorization documentation\n\n\n\n\n\n\nuser_id\n\n\nforeign key\n\n\nint(11)\n\n\nthe owner of this object\n\n\n\n\n\n\n\n\nOther columns are created based on the schema. \n\n\nThe \nid\n column is completely for internal purposes and is never exposed in an JSON API.\nEvery row of data inherently belongs to one user. This is the user who created that row. The associated user can be changed later.\n\n\nWorld table\n\n\nThe \nworld\n table holds the structure for all the entities and relations (including for itself).\n\n\nEach row contains the schema for the table in a \"world_schema_json\" column.",
+            "title": "Data storage"
+        },
+        {
+            "location": "/data-modeling/data_storage/#data-storage",
+            "text": "Daptin relies on a relational database for all data persistence requirements. As covered in the  setting up guide  currently the following relational database are supported:   MySQL  PostgreSQL  SQLite   This document goes into the detail of how the database is used and what are the tables created.",
+            "title": "Data storage"
+        },
+        {
+            "location": "/data-modeling/data_storage/#standard-columns",
+            "text": "The following 5 columns are present in every table     ColumnName  ColumnType  DataType  Attributes      id  id  int(11)  primary key  Auto increment Never exposed externally    version  integer  int(11)  get incremented every time a change is made    created_at  timestamp  timestamp  the timestamp when the row was created    updated_at  timestamp  timestamp  the timestamp when the row was last updated    reference_id  alias  varchar(40)  The id exposed in APIs    permission  integer  int(4)  Permissions - check Authorization documentation    user_id  foreign key  int(11)  the owner of this object     Other columns are created based on the schema.   The  id  column is completely for internal purposes and is never exposed in an JSON API.\nEvery row of data inherently belongs to one user. This is the user who created that row. The associated user can be changed later.",
+            "title": "Standard columns"
+        },
+        {
+            "location": "/data-modeling/data_storage/#world-table",
+            "text": "The  world  table holds the structure for all the entities and relations (including for itself).  Each row contains the schema for the table in a \"world_schema_json\" column.",
+            "title": "World table"
+        },
+        {
+            "location": "/setting-up/marketplace/",
+            "text": "Marketplace\n\n\nDocumentation not ready yet",
+            "title": "Marketplace"
+        },
+        {
+            "location": "/setting-up/marketplace/#marketplace",
+            "text": "Documentation not ready yet",
+            "title": "Marketplace"
+        },
+        {
+            "location": "/data-modeling/auditing/",
+            "text": "Data Audits\n\n\nAll changes in daptin are recorded and history is maintained in audit tables. Audit table are entities just like regular entities. All Patch/Put/Delete calls to daptin will create an entry if the audit table if the entity is changed.\n\n\nAudit tables\n\n\nFor any entity named \nx\n, another tables \nx_audit\n is added by daptin. The audit table will contain all the columns which are present in the original table, plus an extra column \nis_audit_of\n is added, which contains the ID of the original row. The \nis_audit_of\n is a foreign key column to the parent tables \nid\n column.\n\n\nAudit row\n\n\nEach row in the audit table is the copy of the original row just before it is being modified. The audit rows can be accessed just like any other relation.\n\n\nAudit table permissions\n\n\nBy default, everyone has the access to create audit row, and noone has the access to update or delete them. These permissions can be changed, but it is not recommanded at present.\n\n\n\n\n\n\n\n\nType\n\n\nPermission\n\n\n\n\n\n\n\n\n\n\nAudit table permission\n\n\n007007007\n\n\n\n\n\n\nAudit object permission\n\n\n003003003",
+            "title": "Data Auditing"
+        },
+        {
+            "location": "/data-modeling/auditing/#data-audits",
+            "text": "All changes in daptin are recorded and history is maintained in audit tables. Audit table are entities just like regular entities. All Patch/Put/Delete calls to daptin will create an entry if the audit table if the entity is changed.",
+            "title": "Data Audits"
+        },
+        {
+            "location": "/data-modeling/auditing/#audit-tables",
+            "text": "For any entity named  x , another tables  x_audit  is added by daptin. The audit table will contain all the columns which are present in the original table, plus an extra column  is_audit_of  is added, which contains the ID of the original row. The  is_audit_of  is a foreign key column to the parent tables  id  column.",
+            "title": "Audit tables"
+        },
+        {
+            "location": "/data-modeling/auditing/#audit-row",
+            "text": "Each row in the audit table is the copy of the original row just before it is being modified. The audit rows can be accessed just like any other relation.",
+            "title": "Audit row"
+        },
+        {
+            "location": "/data-modeling/auditing/#audit-table-permissions",
+            "text": "By default, everyone has the access to create audit row, and noone has the access to update or delete them. These permissions can be changed, but it is not recommanded at present.     Type  Permission      Audit table permission  007007007    Audit object permission  003003003",
+            "title": "Audit table permissions"
+        },
+        {
+            "location": "/data-modeling/data_validation/",
+            "text": "Data validation\n\n\nDaptin uses the excellent \ngo-playground/validator\n library to provide extensive validations when creating and updating data.\n\n\nIt gives us the following unique features:\n\n\n\n\nCross Field and Cross Struct validations by using validation tags or custom validators.\n\n\nSlice, Array and Map diving, which allows any or all levels of a multidimensional field to be validated.",
+            "title": "Data validation"
+        },
+        {
+            "location": "/data-modeling/data_validation/#data-validation",
+            "text": "Daptin uses the excellent  go-playground/validator  library to provide extensive validations when creating and updating data.  It gives us the following unique features:   Cross Field and Cross Struct validations by using validation tags or custom validators.  Slice, Array and Map diving, which allows any or all levels of a multidimensional field to be validated.",
+            "title": "Data validation"
+        },
+        {
+            "location": "/data-modeling/data_conformation/",
+            "text": "Data conformations\n\n\nDaptin uses the excellent \nleebenson/conform\n library to apply conformations on data before storing them in the database\n\n\n\n\nConform: keep user input in check (go, golang)\n\n\nTrim, sanitize, and modify struct string fields in place, based on tags.\n\n\n\n\nUse it for names, e-mail addresses, URL slugs, or any other form field where formatting matters.\n\n\nConform doesn't attempt any kind of validation on your fields.",
+            "title": "Data conformations"
+        },
+        {
+            "location": "/data-modeling/data_conformation/#data-conformations",
+            "text": "Daptin uses the excellent  leebenson/conform  library to apply conformations on data before storing them in the database   Conform: keep user input in check (go, golang)  Trim, sanitize, and modify struct string fields in place, based on tags.   Use it for names, e-mail addresses, URL slugs, or any other form field where formatting matters.  Conform doesn't attempt any kind of validation on your fields.",
+            "title": "Data conformations"
+        },
+        {
+            "location": "/data-modeling/state_tracking/",
+            "text": "State tracking for entities\n\n\nTracking the status of things is one of the most common operation in most business flows. Daptin has a native support for state tracking and allows a lot of convienent features.\n\n\nState machine\n\n\nA state machine is a description of \"states\" which the object can be in, and list of all valid transactions from one state to another. Lets begin with an example:\n\n\nThe following JSON defines a state machine which has (a hypothetical state machine for tracking todos):\n\n\n\n\nInitial state: to_be_done\n\n\nList of valid states: to_be_done, delayed, started, ongoing, interrupted, completed\n\n\nList of valid transitions, giving name to each event\n\n\n\n\n        {\n        \"Name\": \"task_status\",\n        \"Label\": \"Task Status\",\n        \"InitialState\": \"to_be_done\",\n        \"Events\": [{\n                \"Name\": \"start\",\n                \"Label\": \"Start\",\n                \"Src\": [\n                    \"to_be_done\",\n                    \"delayed\"\n                ],\n                \"Dst\": \"started\"\n            },\n            {\n                \"Name\": \"delayed\",\n                \"Label\": \"Unable to pick up\",\n                \"Src\": [\n                    \"to_be_done\"\n                ],\n                \"Dst\": \"delayed\"\n            },\n            {\n                \"Name\": \"ongoing\",\n                \"Label\": \"Record progress\",\n                \"Src\": [\n                    \"started\",\n                    \"ongoing\"\n                ],\n                \"Dst\": \"ongoing\"\n            },\n            {\n                \"Name\": \"interrupted\",\n                \"Label\": \"Interrupted\",\n                \"Src\": [\n                    \"started\",\n                    \"ongoing\"\n                ],\n                \"Dst\": \"interrupted\"\n            },\n            {\n                \"Name\": \"resume\",\n                \"Label\": \"Resume from interruption\",\n                \"Src\": [\n                    \"interrupted\"\n                ],\n                \"Dst\": \"ongoing\"\n            },\n            {\n                \"Name\": \"completed\",\n                \"Label\": \"Mark as completed\",\n                \"Src\": [\n                    \"ongoing\",\n                    \"started\"\n                ],\n                \"Dst\": \"completed\"\n            }\n        ]\n    }\n\n\n\n\n\nState machines can be uploaded to Daptin just like entities and actions. A JSON/YAML file with a \nStateMachineDescriptions\n top level key can contain an array of state machine descriptions.\n\n\nEnabling state tracking for entity\n\n\nFirst we need to tell goms that an entity is trackable. To do this, go to the world table page and edit the corresponding entity. Check the \"Is state tracking enabled\" checkbox.\n\n\nThis \"is_state_tracking_enabled\" options tells daptin to create the associated state table for the entity. Even though we have not yet specified which state machines are available for this entity.\n\n\nTo make a state machine available for an entity, go to the \"SMD\" tab of the entity and add the state machine by searching it by name.\n\n\nIt would not make a lot of sense if the above state machine was allowed for all type of entities. Also since state of the objects in maintained in a separate table",
+            "title": "State tracking"
+        },
+        {
+            "location": "/data-modeling/state_tracking/#state-tracking-for-entities",
+            "text": "Tracking the status of things is one of the most common operation in most business flows. Daptin has a native support for state tracking and allows a lot of convienent features.",
+            "title": "State tracking for entities"
+        },
+        {
+            "location": "/data-modeling/state_tracking/#state-machine",
+            "text": "A state machine is a description of \"states\" which the object can be in, and list of all valid transactions from one state to another. Lets begin with an example:  The following JSON defines a state machine which has (a hypothetical state machine for tracking todos):   Initial state: to_be_done  List of valid states: to_be_done, delayed, started, ongoing, interrupted, completed  List of valid transitions, giving name to each event           {\n        \"Name\": \"task_status\",\n        \"Label\": \"Task Status\",\n        \"InitialState\": \"to_be_done\",\n        \"Events\": [{\n                \"Name\": \"start\",\n                \"Label\": \"Start\",\n                \"Src\": [\n                    \"to_be_done\",\n                    \"delayed\"\n                ],\n                \"Dst\": \"started\"\n            },\n            {\n                \"Name\": \"delayed\",\n                \"Label\": \"Unable to pick up\",\n                \"Src\": [\n                    \"to_be_done\"\n                ],\n                \"Dst\": \"delayed\"\n            },\n            {\n                \"Name\": \"ongoing\",\n                \"Label\": \"Record progress\",\n                \"Src\": [\n                    \"started\",\n                    \"ongoing\"\n                ],\n                \"Dst\": \"ongoing\"\n            },\n            {\n                \"Name\": \"interrupted\",\n                \"Label\": \"Interrupted\",\n                \"Src\": [\n                    \"started\",\n                    \"ongoing\"\n                ],\n                \"Dst\": \"interrupted\"\n            },\n            {\n                \"Name\": \"resume\",\n                \"Label\": \"Resume from interruption\",\n                \"Src\": [\n                    \"interrupted\"\n                ],\n                \"Dst\": \"ongoing\"\n            },\n            {\n                \"Name\": \"completed\",\n                \"Label\": \"Mark as completed\",\n                \"Src\": [\n                    \"ongoing\",\n                    \"started\"\n                ],\n                \"Dst\": \"completed\"\n            }\n        ]\n    }  State machines can be uploaded to Daptin just like entities and actions. A JSON/YAML file with a  StateMachineDescriptions  top level key can contain an array of state machine descriptions.",
+            "title": "State machine"
+        },
+        {
+            "location": "/data-modeling/state_tracking/#enabling-state-tracking-for-entity",
+            "text": "First we need to tell goms that an entity is trackable. To do this, go to the world table page and edit the corresponding entity. Check the \"Is state tracking enabled\" checkbox.  This \"is_state_tracking_enabled\" options tells daptin to create the associated state table for the entity. Even though we have not yet specified which state machines are available for this entity.  To make a state machine available for an entity, go to the \"SMD\" tab of the entity and add the state machine by searching it by name.  It would not make a lot of sense if the above state machine was allowed for all type of entities. Also since state of the objects in maintained in a separate table",
+            "title": "Enabling state tracking for entity"
+        },
+        {
+            "location": "/actions-streams/streams/",
+            "text": "Streams\n\n\nStreams are complimentary to \nactions\n. Think of streams as views in SQL. A stream is basically one entity + set of transformations and filters on the entity. Streams are read-only and exposed with similar semantics of that of entities. Daptin will expose JSONAPI for each stream just like it does for entities.\n\n\nHere is an example of a stream which exposes list of completed todos only\n\n\n{\n        StreamName:     \"transformed_user\",\n        RootEntityName: \"todo\",\n        Columns: []api2go.ColumnInfo{          // List of columns in this stream\n            {\n                Name:       \"transformed_todo_title\",  \n                ColumnType: \"label\",\n            },\n            {\n                Name:       \"completed_on\",\n                ColumnType: \"datetime\",\n            },\n        },\n        QueryParams: QueryParams{\n            \"Filter\": \"completed=true\",\n            \"Select\": \"title,deadline\",\n        },\n        Transformations: []Transformation{\n            {\n                Operation: \"select\",\n                Attributes: map[string]interface{}{\n                    \"columns\": []string{\"title\", \"deadline\"},\n                },\n            },\n            {\n                Operation: \"rename\",\n                Attributes: map[string]interface{}{\n                    \"oldName\": \"title\",\n                    \"newName\": \"transformed_todo_title\",\n                },\n            },\n            {\n                Operation: \"rename\",\n                Attributes: map[string]interface{}{\n                    \"oldName\": \"deadline\",\n                    \"newName\": \"completed_on\",\n                },\n            },\n        },\n}   \n\n\n\n\nDaptin uses the library \nkniren/gota\n to systematically specific list of transformations which are applied to the original data stream.",
+            "title": "Data Streams"
+        },
+        {
+            "location": "/actions-streams/streams/#streams",
+            "text": "Streams are complimentary to  actions . Think of streams as views in SQL. A stream is basically one entity + set of transformations and filters on the entity. Streams are read-only and exposed with similar semantics of that of entities. Daptin will expose JSONAPI for each stream just like it does for entities.  Here is an example of a stream which exposes list of completed todos only  {\n        StreamName:     \"transformed_user\",\n        RootEntityName: \"todo\",\n        Columns: []api2go.ColumnInfo{          // List of columns in this stream\n            {\n                Name:       \"transformed_todo_title\",  \n                ColumnType: \"label\",\n            },\n            {\n                Name:       \"completed_on\",\n                ColumnType: \"datetime\",\n            },\n        },\n        QueryParams: QueryParams{\n            \"Filter\": \"completed=true\",\n            \"Select\": \"title,deadline\",\n        },\n        Transformations: []Transformation{\n            {\n                Operation: \"select\",\n                Attributes: map[string]interface{}{\n                    \"columns\": []string{\"title\", \"deadline\"},\n                },\n            },\n            {\n                Operation: \"rename\",\n                Attributes: map[string]interface{}{\n                    \"oldName\": \"title\",\n                    \"newName\": \"transformed_todo_title\",\n                },\n            },\n            {\n                Operation: \"rename\",\n                Attributes: map[string]interface{}{\n                    \"oldName\": \"deadline\",\n                    \"newName\": \"completed_on\",\n                },\n            },\n        },\n}     Daptin uses the library  kniren/gota  to systematically specific list of transformations which are applied to the original data stream.",
+            "title": "Streams"
+        },
+        {
+            "location": "/auth/permissions/",
+            "text": "Permission model\n\n\nThe world table contains to relevant columns:\n\n\n\n\nPermission: defines the entity level permission\n\n\nDefault permission: defines the default permission for a new object of this entity type\n\n\n\n\nThe default permission for an object is picked from the default permission setting, and can be changed after the object creation (if the permission allows so).",
+            "title": "Permission model"
+        },
+        {
+            "location": "/auth/permissions/#permission-model",
+            "text": "The world table contains to relevant columns:   Permission: defines the entity level permission  Default permission: defines the default permission for a new object of this entity type   The default permission for an object is picked from the default permission setting, and can be changed after the object creation (if the permission allows so).",
+            "title": "Permission model"
+        },
+        {
+            "location": "/extend/oauth_connection/",
+            "text": "OAuth Connections\n\n\nDaptin is natively aware of oauth2 flows and can seamlessly handle both oauth tokens and refresh tokens (if provided).\n\n\nTo begin using oauth involved flows (eg GoogleDrive as data storage) first goms need to be told about oauth integration.",
+            "title": "OAuth Connections"
+        },
+        {
+            "location": "/extend/oauth_connection/#oauth-connections",
+            "text": "Daptin is natively aware of oauth2 flows and can seamlessly handle both oauth tokens and refresh tokens (if provided).  To begin using oauth involved flows (eg GoogleDrive as data storage) first goms need to be told about oauth integration.",
+            "title": "OAuth Connections"
+        }
+    ]
+}

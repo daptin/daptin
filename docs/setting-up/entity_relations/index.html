@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>Entity Relations - Daptin</title>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/highlight.css">
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Entity Relations";
+    var mkdocs_page_input_path = "setting-up/entity_relations.md";
+    var mkdocs_page_url = "/setting-up/entity_relations/";
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js"></script>
+  <script src="../../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../../js/highlight.pack.js"></script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Daptin</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+	<ul class="current">
+	  
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../..">Home</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../settingup/">Setting up</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../entities/">Entities</a>
+	    </li>
+          
+            <li class="toctree-l1 current">
+		
+    <a class="current" href="./">Entity Relations</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l2"><a href="#entity-relations">Entity relations</a></li>
+    
+        <ul>
+        
+            <li><a class="toctree-l3" href="#relations-in-jsonyaml-schema">Relations in JSON/YAML schema</a></li>
+        
+            <li><a class="toctree-l3" href="#relations-types">Relations types</a></li>
+        
+            <li><a class="toctree-l3" href="#default-relations">Default relations</a></li>
+        
+            <li><a class="toctree-l3" href="#multiple-relation">Multiple relation</a></li>
+        
+            <li><a class="toctree-l3" href="#sql-constraints">SQL constraints</a></li>
+        
+        </ul>
+    
+
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/users_and_usergroups/">Users and groups</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/authorization/">Authorization</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/authentication/">Authentication</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../actions-streams/actions/">Actions</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/data_storage/">Data storage</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../marketplace/">Marketplace</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/auditing/">Data Auditing</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/data_validation/">Data validation</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/data_conformation/">Data conformations</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/state_tracking/">State tracking</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../actions-streams/streams/">Data Streams</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/permissions/">Permission model</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../extend/oauth_connection/">OAuth Connections</a>
+	    </li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Daptin</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Entity Relations</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="entity-relations">Entity relations</h1>
+<p>A data oriented system with no relational knowledge of the data is next to an Excel sheet. Specifying relations in your data is the most important thing after creating your entities.</p>
+<h2 id="relations-in-jsonyaml-schema">Relations in JSON/YAML schema</h2>
+<p>When uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.</p>
+<p>Continuing with our example of todos, lets say we want to group todo's in "projects" and each todo can belong to only a single project.</p>
+<p>Lets design a "project" entity:</p>
+<pre><code class="yaml">- TableName: project
+  Columns:
+  - Name: name
+    DataType: varchar(200)
+    ColumnType: name
+    IsIndexed: true
+</code></pre>
+
+<p>A very simple table with just a name column. Now we can tell daptin about the relation between todos and projects</p>
+<pre><code class="yaml">Relations:
+- Subject: todo
+  Relation: has_one
+  Object: project
+</code></pre>
+
+<p>This tells daptin that todo "has_one" project.</p>
+<h2 id="relations-types">Relations types</h2>
+<p>Any entity can be associated to any other entity (or to itself) as one of the follows</p>
+<table>
+<thead>
+<tr>
+<th>Relation Name</th>
+<th>Relation Descriptio</th>
+<th>Can be empty</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>belongs_to</td>
+<td>a single object relation</td>
+<td>No</td>
+</tr>
+<tr>
+<td>has_one</td>
+<td>a single object relation</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>has_many</td>
+<td>many related objects</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h2 id="default-relations">Default relations</h2>
+<p>Every entity created on daptin has at least two relations</p>
+<table>
+<thead>
+<tr>
+<th>Relation Type</th>
+<th>Related Entity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>belongs</td>
+<td>user</td>
+</tr>
+<tr>
+<td>has many</td>
+<td>usergroup</td>
+</tr>
+</tbody>
+</table>
+<p>To understand why these two relations will always exist, checkout <a href="../../auth/authorization/">daptin authorization model</a></p>
+<h2 id="multiple-relation">Multiple relation</h2>
+<p>There can be a scenario where two entities are related in more then 1 way. Consider the following example</p>
+<ul>
+<li>A blog entity</li>
+<li>A post entity</li>
+<li>Blog has many posts</li>
+<li>Each blog can have a "highlighted post" (blog has one "highlighted post")</li>
+</ul>
+<p>To achieve the above scenario, our schema would look like as follows</p>
+<pre><code class="yaml">Tables:
+- TableName: blog
+  Columns:
+  - Name: title
+    DataType: varchar(500)
+    ColumnType: label
+  - Name: view_count
+    DataType: int(11)
+    ColumnType: measurement
+- TableName: post
+  Columns:
+  - Name: title
+    DataType: varchar(200)
+    ColumnType: label
+  - Name: body
+    DataType: text
+    ColumnType: content
+- TableName: comment
+  Columns:
+  - Name: body
+    DataType: text
+    ColumnType: content
+  - Name: likes_count
+    ColumnName: likes_count
+    DataType: int(11)
+    ColumnType: measurement
+Relations:
+- Subject: comment
+  Relation: belongs_to
+  Object: post
+- Subject: post
+  Relation: belongs_to
+  Object: blog                   // this is our post belongs to blog relation
+- Subject: blog
+  Relation: has_one
+  Object: post
+  ObjectName: current_post
+  SubjectName: current_post_of   // this is our highlighted post relation
+</code></pre>
+
+<p>Notice the "SubjectName" and "ObjectName" keys which helps to name our relations more intuitively.</p>
+<h2 id="sql-constraints">SQL constraints</h2>
+<h3 id="belongs-to">belongs to</h3>
+<ul>
+<li>A column is added to the subject entity, which refers to the Object entity, set to non nullable</li>
+</ul>
+<h3 id="has-one">has one</h3>
+<ul>
+<li>Same as above, but nullable</li>
+</ul>
+<h3 id="has-many">has many</h3>
+<ul>
+<li>A join table is created</li>
+</ul>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../../auth/users_and_usergroups/" class="btn btn-neutral float-right" title="Users and groups">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="../entities/" class="btn btn-neutral" title="Entities"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+      
+        <span><a href="../entities/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../../auth/users_and_usergroups/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/require.js"></script>
+      <script src="../../search/search.js"></script>
+
+</body>
+</html>
