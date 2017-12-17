@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>Data storage - Daptin</title>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/highlight.css">
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Data storage";
+    var mkdocs_page_input_path = "data-modeling/data_storage.md";
+    var mkdocs_page_url = "/data-modeling/data_storage/";
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js"></script>
+  <script src="../../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../../js/highlight.pack.js"></script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Daptin</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+	<ul class="current">
+	  
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../..">Home</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/settingup/">Setting up</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/entities/">Entities</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/entity_relations/">Entity Relations</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/users_and_usergroups/">Users and groups</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/authorization/">Authorization</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/authentication/">Authentication</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../actions-streams/actions/">Actions</a>
+	    </li>
+          
+            <li class="toctree-l1 current">
+		
+    <a class="current" href="./">Data storage</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l2"><a href="#data-storage">Data storage</a></li>
+    
+        <ul>
+        
+            <li><a class="toctree-l3" href="#standard-columns">Standard columns</a></li>
+        
+            <li><a class="toctree-l3" href="#world-table">World table</a></li>
+        
+        </ul>
+    
+
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/marketplace/">Marketplace</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../auditing/">Data Auditing</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../data_validation/">Data validation</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../data_conformation/">Data conformations</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../state_tracking/">State tracking</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../actions-streams/streams/">Data Streams</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/permissions/">Permission model</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../extend/oauth_connection/">OAuth Connections</a>
+	    </li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Daptin</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Data storage</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="data-storage">Data storage</h1>
+<p>Daptin relies on a relational database for all data persistence requirements. As covered in the <a href="../../setting-up/settingup/">setting up guide</a> currently the following relational database are supported:</p>
+<ul>
+<li>MySQL</li>
+<li>PostgreSQL</li>
+<li>SQLite</li>
+</ul>
+<p>This document goes into the detail of how the database is used and what are the tables created.</p>
+<h2 id="standard-columns">Standard columns</h2>
+<p>The following 5 columns are present in every table</p>
+<table>
+<thead>
+<tr>
+<th>ColumnName</th>
+<th>ColumnType</th>
+<th>DataType</th>
+<th>Attributes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>id</td>
+<td>int(11)</td>
+<td>primary key  Auto increment Never exposed externally</td>
+</tr>
+<tr>
+<td>version</td>
+<td>integer</td>
+<td>int(11)</td>
+<td>get incremented every time a change is made</td>
+</tr>
+<tr>
+<td>created_at</td>
+<td>timestamp</td>
+<td>timestamp</td>
+<td>the timestamp when the row was created</td>
+</tr>
+<tr>
+<td>updated_at</td>
+<td>timestamp</td>
+<td>timestamp</td>
+<td>the timestamp when the row was last updated</td>
+</tr>
+<tr>
+<td>reference_id</td>
+<td>alias</td>
+<td>varchar(40)</td>
+<td>The id exposed in APIs</td>
+</tr>
+<tr>
+<td>permission</td>
+<td>integer</td>
+<td>int(4)</td>
+<td>Permissions - check Authorization documentation</td>
+</tr>
+<tr>
+<td>user_id</td>
+<td>foreign key</td>
+<td>int(11)</td>
+<td>the owner of this object</td>
+</tr>
+</tbody>
+</table>
+<p>Other columns are created based on the schema. </p>
+<p>The <code>id</code> column is completely for internal purposes and is never exposed in an JSON API.
+Every row of data inherently belongs to one user. This is the user who created that row. The associated user can be changed later.</p>
+<h2 id="world-table">World table</h2>
+<p>The <code>world</code> table holds the structure for all the entities and relations (including for itself).</p>
+<p>Each row contains the schema for the table in a "world_schema_json" column.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../../setting-up/marketplace/" class="btn btn-neutral float-right" title="Marketplace">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="../../actions-streams/actions/" class="btn btn-neutral" title="Actions"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+      
+        <span><a href="../../actions-streams/actions/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../../setting-up/marketplace/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/require.js"></script>
+      <script src="../../search/search.js"></script>
+
+</body>
+</html>

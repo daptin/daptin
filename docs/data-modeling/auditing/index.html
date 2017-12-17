@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>Data Auditing - Daptin</title>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/highlight.css">
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Data Auditing";
+    var mkdocs_page_input_path = "data-modeling/auditing.md";
+    var mkdocs_page_url = "/data-modeling/auditing/";
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js"></script>
+  <script src="../../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../../js/highlight.pack.js"></script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Daptin</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+	<ul class="current">
+	  
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../..">Home</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/settingup/">Setting up</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/entities/">Entities</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/entity_relations/">Entity Relations</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/users_and_usergroups/">Users and groups</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/authorization/">Authorization</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/authentication/">Authentication</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../actions-streams/actions/">Actions</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../data_storage/">Data storage</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/marketplace/">Marketplace</a>
+	    </li>
+          
+            <li class="toctree-l1 current">
+		
+    <a class="current" href="./">Data Auditing</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l2"><a href="#data-audits">Data Audits</a></li>
+    
+        <ul>
+        
+            <li><a class="toctree-l3" href="#audit-tables">Audit tables</a></li>
+        
+            <li><a class="toctree-l3" href="#audit-row">Audit row</a></li>
+        
+            <li><a class="toctree-l3" href="#audit-table-permissions">Audit table permissions</a></li>
+        
+        </ul>
+    
+
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../data_validation/">Data validation</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../data_conformation/">Data conformations</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../state_tracking/">State tracking</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../actions-streams/streams/">Data Streams</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/permissions/">Permission model</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../extend/oauth_connection/">OAuth Connections</a>
+	    </li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Daptin</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Data Auditing</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="data-audits">Data Audits</h1>
+<p>All changes in daptin are recorded and history is maintained in audit tables. Audit table are entities just like regular entities. All Patch/Put/Delete calls to daptin will create an entry if the audit table if the entity is changed.</p>
+<h2 id="audit-tables">Audit tables</h2>
+<p>For any entity named <code>x</code>, another tables <code>x_audit</code> is added by daptin. The audit table will contain all the columns which are present in the original table, plus an extra column <code>is_audit_of</code> is added, which contains the ID of the original row. The <code>is_audit_of</code> is a foreign key column to the parent tables <code>id</code> column.</p>
+<h2 id="audit-row">Audit row</h2>
+<p>Each row in the audit table is the copy of the original row just before it is being modified. The audit rows can be accessed just like any other relation.</p>
+<h2 id="audit-table-permissions">Audit table permissions</h2>
+<p>By default, everyone has the access to create audit row, and noone has the access to update or delete them. These permissions can be changed, but it is not recommanded at present.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Permission</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Audit table permission</td>
+<td>007007007</td>
+</tr>
+<tr>
+<td>Audit object permission</td>
+<td>003003003</td>
+</tr>
+</tbody>
+</table>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../data_validation/" class="btn btn-neutral float-right" title="Data validation">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="../../setting-up/marketplace/" class="btn btn-neutral" title="Marketplace"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+      
+        <span><a href="../../setting-up/marketplace/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../data_validation/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/require.js"></script>
+      <script src="../../search/search.js"></script>
+
+</body>
+</html>
