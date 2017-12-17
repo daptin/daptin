@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>Entities - Daptin</title>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/highlight.css">
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Entities";
+    var mkdocs_page_input_path = "setting-up/entities.md";
+    var mkdocs_page_url = "/setting-up/entities/";
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js"></script>
+  <script src="../../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../../js/highlight.pack.js"></script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Daptin</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+	<ul class="current">
+	  
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../..">Home</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../settingup/">Setting up</a>
+	    </li>
+          
+            <li class="toctree-l1 current">
+		
+    <a class="current" href="./">Entities</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l2"><a href="#entites">Entites</a></li>
+    
+        <ul>
+        
+            <li><a class="toctree-l3" href="#online-entity-designer">Online entity designer</a></li>
+        
+            <li><a class="toctree-l3" href="#market-place">Market place</a></li>
+        
+            <li><a class="toctree-l3" href="#json-yaml-files">JSON / YAML files</a></li>
+        
+            <li><a class="toctree-l3" href="#column-specifications">Column specifications</a></li>
+        
+            <li><a class="toctree-l3" href="#column-types">Column types</a></li>
+        
+            <li><a class="toctree-l3" href="#excel-file-upload">Excel file upload</a></li>
+        
+            <li><a class="toctree-l3" href="#restart">Restart</a></li>
+        
+        </ul>
+    
+
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../entity_relations/">Entity Relations</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/users_and_usergroups/">Users and groups</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/authorization/">Authorization</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/authentication/">Authentication</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../actions-streams/actions/">Actions</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/data_storage/">Data storage</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../marketplace/">Marketplace</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/auditing/">Data Auditing</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/data_validation/">Data validation</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/data_conformation/">Data conformations</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/state_tracking/">State tracking</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../actions-streams/streams/">Data Streams</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/permissions/">Permission model</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../extend/oauth_connection/">OAuth Connections</a>
+	    </li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Daptin</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Entities</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="entites">Entites</h1>
+<p>Entities are the foundation for daptin. Everything in daptin work on one or more entities. To define an entity, we specify the fields and its relations with other entities. A collection of entities and their relations will be called a schema.</p>
+<p>Multiple schema json files can be uploaded, and changes are merged accordingly.</p>
+<p>Lets imagine we were creating a todo application and wanted to keep a track the following for each todo item</p>
+<ul>
+<li>the todo text - lets call this "title"</li>
+<li>a description - a longer text, which may or may not be empty</li>
+<li>a deadline date - a date field to capture the deadline</li>
+<li>completed - a true/false field, which captures if the todo is done</li>
+<li>order - a field to store the priority of each todo</li>
+</ul>
+<p>Along with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo</p>
+<ul>
+<li>title cannot be empty</li>
+<li>order has to be numeric</li>
+</ul>
+<p>Once we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this:</p>
+<h2 id="online-entity-designer">Online entity designer</h2>
+<p>The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it. This is a basic designer and more advanced features to customise every aspect of the entity will be added later.</p>
+<p><img alt="Entity designer" src="../images/create_entity.png" /></p>
+<h2 id="market-place">Market place</h2>
+<p>Checkout <a href="../marketplace/">marketplace documentation</a></p>
+<h2 id="json-yaml-files">JSON / YAML files</h2>
+<p>JSON/YAML files are the primary way to create new entites in daptin. The above two ways ultimatele create a JSON file or fetch from the market.</p>
+<p>The JSON for our hypothetical todo entity will look as follows:</p>
+<pre><code class="json">    {
+        &quot;Tables&quot;: [{
+            &quot;TableName&quot;: &quot;todo&quot;,
+            &quot;Columns&quot;: [{
+                    &quot;Name&quot;: &quot;title&quot;,
+                    &quot;DataType&quot;: &quot;varchar(500)&quot;,
+                    &quot;ColumnType&quot;: &quot;label&quot;,
+                    &quot;IsIndexed&quot;: true
+                },
+                {
+                    &quot;Name&quot;: &quot;completed&quot;,
+                    &quot;DataType&quot;: &quot;int(1)&quot;,
+                    &quot;ColumnType&quot;: &quot;truefalse&quot;,
+                    &quot;DefaultValue&quot;: &quot;false&quot;
+                },
+                {
+                    &quot;Name&quot;: &quot;deadline&quot;,
+                    &quot;DataType&quot;: &quot;date&quot;,
+                    &quot;ColumnType&quot;: &quot;date&quot;,
+                    &quot;IsNullable&quot;: true
+                },
+                {
+                    &quot;Name&quot;: &quot;order&quot;,
+                    &quot;ColumnName&quot;: &quot;item_order&quot;,
+                    &quot;DataType&quot;: &quot;int(4)&quot;,
+                    &quot;ColumnType&quot;: &quot;measurement&quot;,
+                    &quot;DefaultValue&quot;: &quot;10&quot;
+                },
+                {
+                    &quot;Name&quot;: &quot;text&quot;,
+                    &quot;DataType&quot;: &quot;text&quot;,
+                    &quot;ColumnType&quot;: &quot;content&quot;,
+                    &quot;IsNullable&quot;: true
+                }
+            ],
+            &quot;Conformations&quot;: [{
+                &quot;ColumnName&quot;: &quot;order&quot;,
+                &quot;Tags&quot;: &quot;numeric&quot;
+            }],
+            &quot;validations&quot;: [{
+                &quot;ColumnName&quot;: &quot;title&quot;,
+                &quot;Tags&quot;: &quot;required&quot;
+            }]
+]}
+</code></pre>
+
+<ul>
+<li>Name: Name is a human readable name</li>
+<li>Column Name: Name of the column in the table</li>
+<li>Column Type: The type of the column. Daptin supports a variety of types and these allow daptin to give you useful options in future (eg for viewing a timeline, a date/datetime column is required)</li>
+<li>Default value: Columns can have default values, which is used a new row is created and no value for that column is specified.</li>
+</ul>
+<p>While the same description in YAML will look as follows</p>
+<pre><code class="yaml">Tables:
+- TableName: todo
+  Columns:
+  - Name: title
+    DataType: varchar(500)
+    ColumnType: label
+    IsIndexed: true
+  - Name: url
+    DataType: varchar(200)
+    ColumnType: url
+    IsNullable: true
+  - Name: completed
+    DataType: int(1)
+    ColumnType: truefalse
+    DefaultValue: 'false'
+  - Name: schedule
+    DataType: date
+    ColumnType: date
+    IsNullable: true
+  - Name: order
+    ColumnName: item_order
+    DataType: int(4)
+    ColumnType: measurement
+    DefaultValue: '10'
+  - Name: text
+    DataType: text
+    ColumnType: content
+    IsNullable: true
+  Conformations:
+  - ColumnName: order
+    Tags: numeric
+  Validations:
+  - ColumnName: title
+Tags: required
+</code></pre>
+
+<p>You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.</p>
+<h2 id="column-specifications">Column specifications</h2>
+<p>Columns of the entity can be cusomised:</p>
+<table>
+<thead>
+<tr>
+<th>Property Name</th>
+<th>Property Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>string</td>
+<td>human readable name, can be skipped</td>
+</tr>
+<tr>
+<td>ColumnName</td>
+<td>string</td>
+<td>column name in the table</td>
+</tr>
+<tr>
+<td>ColumnDescription</td>
+<td>string</td>
+<td>human readable description</td>
+</tr>
+<tr>
+<td>ColumnType</td>
+<td>string</td>
+<td>column type is a rich type of the column</td>
+</tr>
+<tr>
+<td>IsIndexed</td>
+<td>boolean</td>
+<td>true to add an index on this column</td>
+</tr>
+<tr>
+<td>IsUnique</td>
+<td>boolean</td>
+<td>true to set a unique constraint on this column</td>
+</tr>
+<tr>
+<td>IsNullable</td>
+<td>boolean</td>
+<td>are null values allowed</td>
+</tr>
+<tr>
+<td>Permission</td>
+<td>uint64</td>
+<td>permission column (check authorization docs)</td>
+</tr>
+<tr>
+<td>DataType</td>
+<td>string</td>
+<td>the column type inside the database</td>
+</tr>
+<tr>
+<td>DefaultValue</td>
+<td>string</td>
+<td>default value if any (has to be inside single quotes for static values</td>
+</tr>
+</tbody>
+</table>
+<h2 id="column-types">Column types</h2>
+<p>Daptin supports a variety of rich data types, which helps it to automatically make intelligent decisions and validations. Here is a list of all column types and what should they be used for</p>
+<table>
+<thead>
+<tr>
+<th>Type Name</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>an identity column, mostly for internal purposes</td>
+<td>1</td>
+</tr>
+<tr>
+<td>alias</td>
+<td>a foreign key column</td>
+<td>uuid v4</td>
+</tr>
+<tr>
+<td>date</td>
+<td>full date, no time</td>
+<td>2017-12-30</td>
+</tr>
+<tr>
+<td>time</td>
+<td>time/time interval, no date</td>
+<td>12:34:54</td>
+</tr>
+<tr>
+<td>day</td>
+<td>day of the month</td>
+<td>1 to 31</td>
+</tr>
+<tr>
+<td>month</td>
+<td>month of the year</td>
+<td>1 to 12</td>
+</tr>
+<tr>
+<td>year</td>
+<td>Year</td>
+<td>2017</td>
+</tr>
+<tr>
+<td>minute</td>
+<td>minute of the hour</td>
+<td>0 to 59</td>
+</tr>
+<tr>
+<td>hour</td>
+<td>hour of the dat</td>
+<td>0 - 23</td>
+</tr>
+<tr>
+<td>datetime</td>
+<td>date + time (not stored as timestamp, served at date time string)</td>
+<td>2017-12-30T12:34:54</td>
+</tr>
+<tr>
+<td>email</td>
+<td>email</td>
+<td>test@domain.com</td>
+</tr>
+<tr>
+<td>name</td>
+<td>column to be used as name of the entity</td>
+<td>daptin</td>
+</tr>
+<tr>
+<td>json</td>
+<td>JSON data</td>
+<td><code>{}</code></td>
+</tr>
+<tr>
+<td>password</td>
+<td>password - are bcrypted with cost 11</td>
+<td>$2a$11$z/VlxycDgZ...</td>
+</tr>
+<tr>
+<td>value</td>
+<td>value is enumeration type</td>
+<td>completed</td>
+</tr>
+<tr>
+<td>truefalse</td>
+<td>boolean</td>
+<td>1</td>
+</tr>
+<tr>
+<td>timestamp</td>
+<td>timestamp (stored as timestamp, served as timestamp)</td>
+<td>123123123</td>
+</tr>
+<tr>
+<td>location.latitude</td>
+<td>only latitude</td>
+<td>34.2938</td>
+</tr>
+<tr>
+<td>location</td>
+<td>latitude + longitude in geoJson format</td>
+<td>[34.223,64.123]</td>
+</tr>
+<tr>
+<td>location.longitude</td>
+<td>only longitude</td>
+<td>64.123</td>
+</tr>
+<tr>
+<td>location.altitude</td>
+<td>only altitude</td>
+<td>34</td>
+</tr>
+<tr>
+<td>color</td>
+<td>hex color string</td>
+<td>#ABCDE1</td>
+</tr>
+<tr>
+<td>rating.10</td>
+<td>rating on a scale of 10</td>
+<td>8</td>
+</tr>
+<tr>
+<td>measurement</td>
+<td>numeric column</td>
+<td>534</td>
+</tr>
+<tr>
+<td>label</td>
+<td>a label for the entity, similar to name but can be more than one</td>
+<td>red</td>
+</tr>
+<tr>
+<td>content</td>
+<td>larger contents - texts/html/json/yaml</td>
+<td>very long text</td>
+</tr>
+<tr>
+<td>file</td>
+<td>uploads, connect storage for using this</td>
+<td></td>
+</tr>
+<tr>
+<td>url</td>
+<td>Urls/links</td>
+<td>http://docs.dapt.in</td>
+</tr>
+</tbody>
+</table>
+<h2 id="excel-file-upload">Excel file upload</h2>
+<p>Excel upload provides an easy way to create entities. This takes away the complexity of writing each column type. Daptin uses a combination of rules to identify columns and their types based on the data in the excel.</p>
+<p>You can upload data from XLS. Daptin will take care of going through your XLS file and identifying column types. This is one of the easiest and fastest ways to create entities and uploading data in daptin. You can specify relations among entities later from the online designer.</p>
+<h2 id="restart">Restart</h2>
+<p>Daptin relies on self restarts to configure new entities and apis. As soon as you upload a schema file, daptin will write the file to disk, and restart itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.</p>
+<p>You can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../entity_relations/" class="btn btn-neutral float-right" title="Entity Relations">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="../settingup/" class="btn btn-neutral" title="Setting up"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+      
+        <span><a href="../settingup/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../entity_relations/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/require.js"></script>
+      <script src="../../search/search.js"></script>
+
+</body>
+</html>
