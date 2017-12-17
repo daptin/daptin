@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>Authorization - Daptin</title>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/highlight.css">
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Authorization";
+    var mkdocs_page_input_path = "auth/authorization.md";
+    var mkdocs_page_url = "/auth/authorization/";
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js"></script>
+  <script src="../../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../../js/highlight.pack.js"></script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Daptin</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+	<ul class="current">
+	  
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../..">Home</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/settingup/">Setting up</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/entities/">Entities</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/entity_relations/">Entity Relations</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../users_and_usergroups/">Users and groups</a>
+	    </li>
+          
+            <li class="toctree-l1 current">
+		
+    <a class="current" href="./">Authorization</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l2"><a href="#access-authorization">Access Authorization</a></li>
+    
+        <ul>
+        
+            <li><a class="toctree-l3" href="#entity-level-permission-check">Entity level permission check</a></li>
+        
+            <li><a class="toctree-l3" href="#object-level-permission-check">Object level permission check</a></li>
+        
+            <li><a class="toctree-l3" href="#order-of-permission-check">Order of permission check</a></li>
+        
+            <li><a class="toctree-l3" href="#access-flow">Access flow</a></li>
+        
+            <li><a class="toctree-l3" href="#entity-level-permission">Entity level permission</a></li>
+        
+            <li><a class="toctree-l3" href="#instance-level-permission">Instance level permission</a></li>
+        
+            <li><a class="toctree-l3" href="#permission-column">Permission column</a></li>
+        
+        </ul>
+    
+
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../authentication/">Authentication</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../actions-streams/actions/">Actions</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/data_storage/">Data storage</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/marketplace/">Marketplace</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/auditing/">Data Auditing</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/data_validation/">Data validation</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/data_conformation/">Data conformations</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/state_tracking/">State tracking</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../actions-streams/streams/">Data Streams</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../permissions/">Permission model</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../extend/oauth_connection/">OAuth Connections</a>
+	    </li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Daptin</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Authorization</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="access-authorization">Access Authorization</h1>
+<p>Authorization is the part where daptin decides if the caller has enough permission to execute the call. Currently daptin has the following permissions.</p>
+<h2 id="entity-level-permission-check">Entity level permission check</h2>
+<p>The world table has the list of all entities. Consider the scenario where we created a todo list. The world table would have a row to represent this entity</p>
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Permission</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>todo</td>
+<td>112000006</td>
+</tr>
+</tbody>
+</table>
+<p>Here:</p>
+<ul>
+<li>112 is for owners, which basically means 64 + 32 + 16 = Refer/Execute/Delete</li>
+<li>000 is for group users, no permission allowed in this case</li>
+<li>006 is for guest users, which is 2 + 4 = Read/Create</li>
+</ul>
+<h2 id="object-level-permission-check">Object level permission check</h2>
+<p>Once the call clears the entity level check, an object level permission check is applied. This happens in cases where the action is going to affect/read an existing row. The permission is stored in the same way. Each table has a permission column which stores the permission in <code>OOOGGGXXX</code> format.</p>
+<h2 id="order-of-permission-check">Order of permission check</h2>
+<p>The permission is checked in order of:</p>
+<ul>
+<li>Check if the user is owner, if yes, check if permission allows the current action, if yes do action</li>
+<li>Check if the user belongs to a group to which this object also belongs, if yes, check if permisison allows the current action, if yes do action</li>
+<li>User is guest, check if guest permission allows this actions, if yes do action, if no, unauthorized</li>
+</ul>
+<p>Things to note here:</p>
+<ul>
+<li>There is no negative permission (this may be introduced in the future)</li>
+<li>eg, you cannot say owner is 'not allowed' to read but read by guest is allowed. </li>
+<li>Permission check is done in a hierarchy type order</li>
+</ul>
+<h2 id="access-flow">Access flow</h2>
+<p>Every "interaction" in daptin goes through two levels of access. Each level has a <code>before</code> and <code>after</code> check.</p>
+<ul>
+<li>Entity level access: does the user invoking the interaction has the appropriate permission to invoke this (So for sign up, the user table need to be writable by guests, for sign in the user table needs to be peakable by guests)</li>
+<li>Instance level access: this is the second level, even if a user has access to "user" entity, not all "user" rows would be accessible by them</li>
+</ul>
+<p>So the actual checks happen in following order:</p>
+<ul>
+<li>"Before check" for entity</li>
+<li>"Before check" for instance</li>
+<li>"After check" for instance</li>
+<li>"After check" for entity</li>
+</ul>
+<p>Each of these checks can filter out objects where the user does not have enough permission.</p>
+<h2 id="entity-level-permission">Entity level permission</h2>
+<p>Entity level permission are set in the world table and can be updated from dashboard. This can be done by updating the "permission" column for the entity.</p>
+<p>For these changes to take effect a restart is necessary.</p>
+<h2 id="instance-level-permission">Instance level permission</h2>
+<p>Like we saw in the <a href="../../setting-up/entities/">entity documentation</a>, every table has a <code>permission</code> column. No restart is necessary for changes in these permission.</p>
+<h2 id="permission-column">Permission column</h2>
+<p>The permission column contains a nine digit number, which decides the access for guests (the world), user groups and owner</p>
+<p>The nine digits can be represented as follows:</p>
+<p><code>UUUGGGWWW</code></p>
+<p>Each entity has a permission field which is added by daptin. The permission field is a 9 digit number, in the following format</p>
+<p>The first three digits(UUU) represent the permission for the owner.
+The next three digits(GGG) represent the permission for the group.
+The last three digits(WWW)  represent the permission for guest users.</p>
+<p>U = User
+G = Group
+W = World</p>
+<ul>
+<li>Peek - 1</li>
+<li>Read - 2</li>
+<li>Create - 4</li>
+<li>Update - 8</li>
+<li>Delete - 16</li>
+<li>Execute - 32</li>
+<li>Refer - 64</li>
+</ul>
+<p>Here is another way of looking at it:</p>
+<p>Permissions:</p>
+<p>002,000,000 read by owner
+000,020,000 read by group
+000,000,002 read by anybody (other)
+004,000,000 write by owner
+000,004,000 write by group
+000,000,004 write by anybody
+032,000,000 execute by owner
+000,032,000 execute by group
+000,000,032 execute by anybody</p>
+<p>To get a combination, just add them up.</p>
+<p>For example, to get</p>
+<ul>
+<li>read, write, execute by owner</li>
+<li>read, execute, by group</li>
+<li>execute by anybody</li>
+</ul>
+<p>you would add (002 + 004 + 032),(002 + 032),(032) to give 038034032.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../authentication/" class="btn btn-neutral float-right" title="Authentication">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="../users_and_usergroups/" class="btn btn-neutral" title="Users and groups"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+      
+        <span><a href="../users_and_usergroups/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../authentication/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/require.js"></script>
+      <script src="../../search/search.js"></script>
+
+</body>
+</html>
