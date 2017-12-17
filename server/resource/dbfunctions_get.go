@@ -121,8 +121,8 @@ type SubSite struct {
 	Hostname     string
 	Path         string `db:"path"`
 	CloudStoreId *int64 `db:"cloud_store_id"`
-	Permission   int
-	UserId       int64  `db:"user_id"`
+	Permission   *int
+	UserId       *int64  `db:"user_id"`
 }
 
 type CloudStore struct {
