@@ -12,7 +12,7 @@
 
       <ol class="breadcrumb">
         <li>
-          <a href="javascript:;">
+          <a href="javascript:">
             <i class="fa fa-home"></i>Home</a>
         </li>
         <li v-for="crumb in $route.meta.breadcrumb">
@@ -139,13 +139,13 @@
     },
     methods: {
       hideModel() {
-        console.log("Call to hide model")
+        console.log("Call to hide model");
         $('#uploadJson').modal('hide all');
       },
       doAction(action) {
         console.log("set action", action);
 
-        this.$store.commit("SET_SELECTED_ACTION", action)
+        this.$store.commit("SET_SELECTED_ACTION", action);
         this.rowBeingEdited = true;
         this.showAddEdit = true;
       },
@@ -154,7 +154,7 @@
       },
       handleCommand(command) {
         if (command == "load-restart") {
-          window.location.reload()
+          window.location.reload();
           return;
         }
 
@@ -245,8 +245,8 @@
         this.worldReferenceId = world.id;
 
         let all = {};
-        console.log("Admin set table -", that.visibleWorlds)
-        console.log("Admin set table -", that.$store, that.selectedTable, that.selectedTable)
+        console.log("Admin set table -", that.visibleWorlds);
+        console.log("Admin set table -", that.$store, that.selectedTable, that.selectedTable);
 
         all = jsonApi.all(that.selectedTable);
         tableName = that.selectedTable;
@@ -283,7 +283,7 @@
 
         console.log("setTable for [tableview1]: ", tableName);
         if (that.$refs.tableview1) {
-          console.log("tableview 1 is present")
+          console.log("tableview 1 is present");
           that.$refs.tableview1.reloadData(tableName)
         }
 
@@ -300,7 +300,7 @@
 
       that.actionManager = actionManager;
       const worldActions = actionManager.getActions("world");
-      console.log("world actions", worldActions)
+      console.log("world actions", worldActions);
 
       that.addExchangeAction = actionManager.getActionModel("world", "add-exchange");
 
@@ -364,24 +364,6 @@
         this.showAddEdit = false;
         this.setTable();
       },
-      '$route.params.refId': function (to, from) {
-        var that = this;
-        console.log("refId changed in tablename path", arguments);
-        this.showAddEdit = false;
-
-
-        if (!to) {
-          this.$store.commit("SET_SELECTED_ROW", null);
-          that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", null)
-        } else {
-          jsonApi.one(that.selectedTable, to).get().then(function (r) {
-            console.log("TableName SET_SELECTED_ROW", r);
-            that.$store.commit("SET_SELECTED_ROW", r);
-            that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", r["id"])
-          });
-        }
-        this.setTable();
-      },
       '$route.params.subTable': function (to, from) {
         this.showAddEdit = false;
         console.log("TableName SubTable changed", arguments);
@@ -389,7 +371,7 @@
         this.setTable();
       },
       '$route.name': function () {
-        if (this.$route.name == "NewEntity") {
+        if (this.$route.name === "NewEntity") {
           this.showAddEdit = true;
           this.rowBeingEdited = {};
         } else {
@@ -398,8 +380,8 @@
       },
       'showAddEdit': function (newVal) {
         if (!newVal) {
-          if (this.$route.name == "NewEntity") {
-            console.log("triggr back")
+          if (this.$route.name === "NewEntity") {
+            console.log("triggr back");
             window.history.back();
           }
         }

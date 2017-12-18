@@ -387,7 +387,7 @@
       '$route.params.tablename': function (to, from) {
         var that = this;
 
-        console.log("tablename page, path changed: ", arguments, this.$route.params.refId);
+        console.log("tablename, path changed: ", arguments, this.$route.params.refId);
         this.$store.commit("SET_SELECTED_TABLE", to);
         this.$store.commit("SET_SELECTED_SUB_TABLE", null);
         that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", this.$route.params.refId);
@@ -403,7 +403,7 @@
       '$route.params.refId': function (to, from) {
         var that = this;
 
-        console.log("tablename page, path changed: ", arguments, this.$route.params.refId);
+        console.log("refId page, path changed: ", arguments, this.$route.params.refId);
         this.$store.commit("SET_SELECTED_TABLE", to);
         this.$store.commit("SET_SELECTED_SUB_TABLE", null);
         that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", this.$route.params.refId);

@@ -49,7 +49,7 @@
         console.log("start value", startVal);
 
         try {
-          console.log("try parse file json", startVal)
+          console.log("try parse file json", startVal);
           var t = JSON.parse(startVal);
           startVal = JSON.stringify(t, null, 2);
           that.value = startVal;
@@ -60,7 +60,7 @@
 
         let schema;
 
-        console.log("field json schema", that.schema)
+        console.log("field json schema", that.schema);
 
         jsonApi.findAll("json_schema", {
           filter: that.schema.inputType
@@ -72,7 +72,7 @@
               schema = JSON.parse(e[0].json_schema);
 
             } catch (e) {
-              console.log("Failed to parse json schema", e)
+              console.log("Failed to parse json schema", e);
               return;
             }
             that.useAce = false;
@@ -105,19 +105,20 @@
             }, 1000)
           }
           console.log("got json schema", e)
-        })
+        });
 
 
-        console.log("this is new")
+        console.log("this is new");
         if (true) {
           try {
             var container = document.getElementById("jsonEditor");
-            var editor = new Jsoneditor(container, {});
+            var editor = new Jsoneditor(container, {
+              onChange: function () {
+                that.value = JSON.stringify(editor.get());
+              }
+            });
             var json = JSON.parse(startVal);
             editor.set(json);
-            editor.onChange = function() {
-              console.log("value on change", arguments)
-            }
             return;
           } catch (e) {
             console.log("Failed to init json editor", e)
@@ -158,6 +159,7 @@
           schema = {};
           that.useAce = true;
           that.$on('editor-update', function (newValue) {
+            console.log("Value  updated", newValue);
             that.value = newValue;
           });
         }

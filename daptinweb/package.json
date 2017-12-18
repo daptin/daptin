@@ -32,6 +32,7 @@
     "quicktype": "^0.9.18",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
+    "ejs": "2.5.5",
     "tether-shepherd": "^1.8.1",
     "underscore": "^1.8.3",
     "vue": "^2.2.2",
