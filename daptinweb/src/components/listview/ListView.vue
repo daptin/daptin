@@ -9,6 +9,7 @@
         <!--<span style="font-weight: 600; font-size: 35px;"> {{jsonApiModelName | titleCase}} </span>-->
       </div>
       <div class="box-tools">
+
         <div class="ui icon buttons">
 
           <button type="button" class="btn btn-box-tool" @click="reloadData()">
@@ -22,6 +23,7 @@
               <i class="fa fa-2x fa-plus green"></i>
             </span>
           </button>
+          <vuetable-pagination style="margin: 0px" :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
         </div>
       </div>
     </div>
@@ -57,7 +59,7 @@
 
 
       <div class="col-md-12" v-for="item in tableData">
-        <detailed-table-row :show-all="false" :model="item" :json-api="jsonApi"
+        <detailed-table-row :show-all="false" :model="item" :json-api="jsonApi" ref="vuetable"
                             :json-api-model-name="jsonApiModelName" @deleteRow="deleteRow"
                             :key="item.id">
         </detailed-table-row>
@@ -118,6 +120,27 @@
         selectedRow: {},
         displayData: [],
         showAddEdit: false,
+        css: {
+          table: {
+            tableClass: 'table table-striped table-bordered',
+            ascendingIcon: 'fa fa-sort-alpha-desc',
+            descendingIcon: 'fa fa-sort-alpha-asc',
+            handleIcon: 'fa fa-wrench'
+          },
+          pagination: {
+            wrapperClass: "pagination pull-right",
+            activeClass: "btn-primary",
+            disabledClass: "disabled",
+            pageClass: "btn btn-border",
+            linkClass: "btn btn-border",
+            icons: {
+              first: "fa fa-backward",
+              prev: "fa fa-chevron-left",
+              next: "fa fa-chevron-right",
+              last: "fa fa-forward"
+            }
+          }
+        }
       }
     },
     methods: {
@@ -131,13 +154,13 @@
           that.jsonApi.builderStack.push(that.finder[i])
         }
 
-        var top = that.finder[that.finder.length-1];
+        var top = that.finder[that.finder.length - 1];
 
         that.jsonApi.relationships().all(top.model).destroy([{
           "type": rowToDelete["__type"],
           "id": rowToDelete["id"]
         }]).then(
-          function(e){
+          function (e) {
             that.reloadData();
           },
           that.failed
@@ -145,12 +168,12 @@
 
       },
       saveRow(obj) {
-        var that = this;
-        var res = {data: obj, type: this.jsonApiModelName};
-        this.$emit("addRow", this.jsonApiRelationName, res)
+        const that = this;
+        const res = {data: obj, type: this.jsonApiModelName};
+        this.$emit("addRow", this.jsonApiRelationName, res);
         this.showAddEdit = false;
         setTimeout(function () {
-          console.log("reload data")
+          console.log("reload data");
           that.reloadData();
         }, 1000);
       },
@@ -159,16 +182,26 @@
         this.showAddEdit = false;
       },
       onPaginationData(paginationData) {
-        // console.log("set pagifnation method", paginationData, this.$refs.pagination)
+        console.log("set pagifnation method", paginationData, this.$refs.pagination);
         this.$refs.pagination.setPaginationData(paginationData)
       },
       onChangePage(page) {
-        // console.log("cnage pge", page);
-        this.$refs.vuetable.changePage(page)
+        var that = this;
+        console.log("cnage pge", page);
+        that.jsonApi.builderStack = that.finder;
+        that.jsonApi.get({
+          page: {
+            number: page,
+            size: 10,
+          }
+        }).then(
+          that.success,
+          that.failed
+        )
       },
       reloadData() {
-        var that = this;
-        // console.log("reload data", that.selectedWorld, that.finder)
+        const that = this;
+        console.log("reload data", that.selectedWorld, that.finder);
 
         that.jsonApi.builderStack = that.finder;
         that.jsonApi.get({
@@ -182,21 +215,21 @@
         )
       },
       success(data) {
+        console.log("data loaded", data.links, data.data);
         this.onPaginationData(data.links);
         data = data.data;
-        var that = this;
-        console.log("data loaded", arguments)
+        const that = this;
         that.tableData = data;
         that.$emit("onLoadSuccess", this.jsonApiRelationName, data)
       },
       failed() {
         this.tableData = [];
-        console.log("data load failed", arguments)
+        console.log("data load failed", arguments);
         this.$emit("onLoadFailure")
       }
     },
-    mounted() {
-      var that = this;
+    mounted: function () {
+      const that = this;
       // console.log("this json api name ", that.jsonApiModelName)
       worldManager.getColumnKeys(that.jsonApiModelName, function (cols) {
         // console.log("mounted list vuew", cols);
@@ -205,7 +238,7 @@
 
 
         that.selectedWorld = that.jsonApiModelName;
-        that.selectedWorldColumns = Object.keys(that.meta)
+        that.selectedWorldColumns = Object.keys(that.meta);
 
         if (that.autoload) {
           that.reloadData()
