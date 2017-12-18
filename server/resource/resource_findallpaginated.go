@@ -25,6 +25,7 @@ func (dr *DbResource) GetTotalCount() uint64 {
 func (dr *DbResource) GetTotalCountBySelectBuilder(builder squirrel.SelectBuilder) uint64 {
 
 	s, v, err := builder.ToSql()
+	log.Infof("Count query: %v == %v", s, v)
 	if err != nil {
 		log.Errorf("Failed to generate count query for %v: %v", dr.model.GetName(), err)
 		return 0
