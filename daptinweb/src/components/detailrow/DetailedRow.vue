@@ -51,8 +51,6 @@
     <template v-if="showAll">
       <div class="col-md-12">
         <el-tabs>
-
-
           <el-tab-pane label="Overview">
             <div class="col-md-6">
               <div class="box">
