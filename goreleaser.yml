@@ -60,4 +60,4 @@ build:
   # generator or whatever you want.
   # Default is both hooks empty.
   hooks:
-    post: rice embed-go
+    pre: rice embed-go
