@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
 
-# cd daptinweb
-# npm run build
-# cd ..
+cd daptinweb
+npm run build
+cd ..
 echo "start go get"
 # glide install
 echo "finish go get"
 go get github.com/artpar/goagain
-# export GOPATH=/media/artpar/ddrive/workspace/newgocode
+export GOPATH=/media/artpar/ddrive/workspace/newgocode
 rm -rf rice-box.go
 rice embed-go
 go build  -ldflags '-linkmode external -extldflags -static -w' main.go
