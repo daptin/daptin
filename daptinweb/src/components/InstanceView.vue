@@ -25,6 +25,9 @@
           <button class="btn btn-box-tool" @click.prevent="editRow()"><i
             class="fa fa-3x fa-pencil-square primary"></i>
           </button>
+          <button class="btn btn-box-tool" @click.prevent="refreshRow()"><i
+            class="fa fa-3x fa-refresh primary"></i>
+          </button>
         </div>
       </div>
     </section>
@@ -91,7 +94,7 @@
               <h2>Related</h2>
             </div>
             <div class="col-md-12" v-for="world in visibleWorlds">
-              <router-link v-if="selectedInstanceReferenceId" style="width: 100%" class="btn btn-default"
+              <router-link v-if="selectedInstanceReferenceId" style=" width: 100%" class="btn btn-default"
                            :to="{name: 'Relation', params: {tablename: selectedTable, refId: selectedInstanceReferenceId, subTable: world.table_name}}">
                 {{world.table_name | titleCase}}
               </router-link>
@@ -163,6 +166,19 @@
         this.$store.commit("SET_SELECTED_ACTION", null);
         this.showAddEdit = true;
         this.rowBeingEdited = this.selectedRow;
+      },
+      refreshRow() {
+        var that = this;
+        let tableName = that.$route.params.tablename;
+        let selectedInstanceId = that.$route.params.refId;
+
+        jsonApi.find(tableName, selectedInstanceId).then(function (res) {
+          res = res.data;
+          console.log("got object", res);
+          that.$store.commit("SET_SELECTED_ROW", res);
+        }, function (err) {
+          console.log("Errors", err)
+        });
       },
       doEvent(action, event) {
         var that = this;
