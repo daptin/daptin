@@ -16,6 +16,40 @@ func CreateApiBlueprintHandler(initConfig *resource.CmsConfig, cruds map[string]
 	}
 }
 
+type ErrorResponse struct {
+	Message string
+}
+
+func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
+
+	return func(c *gin.Context) {
+
+		typeName := c.Param("typename")
+
+		aggReq := resource.AggregationRequest{}
+
+		aggReq.RootEntity = c.Query("root")
+		aggReq.Filter = c.QueryArray("root")
+		aggReq.GroupBy = c.QueryArray("root")
+		aggReq.Join = c.QueryArray("root")
+		aggReq.ProjectColumn = c.QueryArray("root")
+		aggReq.TimeSample = resource.TimeStamp(c.Query("root"))
+		aggReq.TimeFrom = c.Query("from")
+		aggReq.TimeTo = c.Query("to")
+
+		aggResponse, err := cruds[typeName].DataStats(aggReq)
+
+		if err != nil {
+			c.JSON(500, resource.NewDaptinError("Failed to query stats", "query failed"))
+			return
+		}
+
+		c.JSON(200, aggResponse)
+
+	}
+
+}
+
 func CreateReclineModelHandler() func(*gin.Context) {
 
 	reclineColumnMap := make(map[string]string)
