@@ -12,6 +12,7 @@
 
         <div class="ui icon buttons">
 
+          <vuetable-pagination style="margin: 0px" :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
           <button type="button" class="btn btn-box-tool" @click="reloadData()">
             <span>
               <i class="fa fa-2x fa-refresh yellow"></i>
@@ -23,7 +24,6 @@
               <i class="fa fa-2x fa-plus green"></i>
             </span>
           </button>
-          <vuetable-pagination style="margin: 0px" :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
         </div>
       </div>
     </div>

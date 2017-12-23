@@ -18,7 +18,7 @@ func CheckErr(err error, message ...interface{}) {
 	if err != nil {
 		args := message[1:]
 		args = append(args, err)
-		log.Errorf(message[0].(string) + ": %v", args)
+		log.Errorf(message[0].(string)+": %v", args)
 	}
 }
 
