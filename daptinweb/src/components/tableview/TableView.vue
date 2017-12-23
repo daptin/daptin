@@ -5,6 +5,7 @@
     <div class="col-md-12" style="min-height: 70px;">
       <!--<div class="pull-left">-->
       <!--</div>-->
+
         <vuetable-pagination :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
 
     </div>
@@ -229,7 +230,7 @@
         return value === "1" ? '<span class="fa fa-check"></span>' : '<span class="fa fa-times"></span>'
       },
       onPaginationData (paginationData) {
-//        console.log("set pagifnation method", paginationData, this.$refs.pagination);
+        console.log("set pagifnation method", paginationData, this.$refs.pagination);
         this.$refs.pagination.setPaginationData(paginationData)
       },
       onChangePage (page) {
