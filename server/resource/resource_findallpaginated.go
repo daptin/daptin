@@ -139,7 +139,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	}
 
 	queryBuilder := squirrel.Select(finalCols...).From(m.GetTableName()).Offset(pageNumber).Limit(pageSize)
-	countQueryBuilder := squirrel.Select("count(*)").From(m.GetTableName()).Offset(pageNumber).Limit(pageSize)
+	countQueryBuilder := squirrel.Select("count(*)").From(m.GetTableName()).Offset(0).Limit(1)
 
 	//whereClauses := make([][]interface{}, 0)
 

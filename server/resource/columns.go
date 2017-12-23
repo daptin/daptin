@@ -151,8 +151,10 @@ var SystemActions = []Action{
 				Type:   "generate.random.data",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"count":      "~count",
-					"table_name": "$.table_name",
+					"count":             "~count",
+					"table_name":        "$.table_name",
+					"user_reference_id": "$user.reference_id",
+					"user_id":           "$user.id",
 				},
 			},
 		},
@@ -610,6 +612,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName: "marketplace",
 		IsHidden:  true,
+		Icon:      "fa-shopping-cart",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -635,6 +638,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName: "json_schema",
+		Icon:      "fa-code",
 		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -654,6 +658,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName: "timeline",
+		Icon:      "fa-clock-o",
 		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -683,6 +688,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName: "world",
 		IsHidden:  true,
+		Icon:      "fa-home",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "table_name",
@@ -749,10 +755,19 @@ var StandardTables = []TableInfo{
 				DefaultValue: "'+id'",
 				ColumnType:   "value",
 			},
+			{
+				Name:         "icon",
+				ColumnName:   "icon",
+				DataType:     "varchar(20)",
+				IsNullable:   true,
+				DefaultValue: "'fa-star'",
+				ColumnType:   "label",
+			},
 		},
 	},
 	{
 		TableName: "world_column",
+		Icon:      "fa-sort-amount-desc",
 		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -866,6 +881,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName: "stream",
+		Icon:      "fa-strikethrough",
 		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -887,6 +903,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName: "user",
+		Icon:      "fa-child",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -943,6 +960,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName: "usergroup",
+		Icon:      "fa-users",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -955,6 +973,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName: "action",
+		Icon:      "fa-bolt",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "action_name",
@@ -1302,6 +1321,7 @@ type TableInfo struct {
 	Validations            []ColumnTag
 	Conformations          []ColumnTag
 	DefaultOrder           string
+	Icon                   string
 }
 
 func (ti *TableInfo) AddRelation(relations ...api2go.TableRelation) {
