@@ -7,6 +7,7 @@ import (
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strconv"
 )
 
 type RandomDataGeneratePerformer struct {
@@ -24,14 +25,12 @@ func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields m
 	responses := make([]ActionResponse, 0)
 
 	//subjectInstance := inFields["subject"].(map[string]interface{})
-	user := inFields["user"]
 	userReferenceId := ""
 	//userIdInt := uint64(1)
 	var err error
-
-	userMap := user.(map[string]interface{})
-	userReferenceId = userMap["reference_id"].(string)
-	userIdInt := userMap["id"].(int64)
+	log.Info("%v", inFields)
+	userReferenceId = inFields["user_reference_id"].(string)
+	userIdInt, _ := strconv.ParseInt(inFields["user_id"].(string), 10, 32)
 	//userIdInt, err = d.cruds["user"].GetReferenceIdToId("user", userReferenceId)
 	if err != nil {
 		log.Errorf("Failed to get user id from user reference id: %v", err)
