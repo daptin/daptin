@@ -28,14 +28,14 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 
 		aggReq := resource.AggregationRequest{}
 
-		aggReq.RootEntity = c.Query("root")
-		aggReq.Filter = c.QueryArray("root")
-		aggReq.GroupBy = c.QueryArray("root")
-		aggReq.Join = c.QueryArray("root")
-		aggReq.ProjectColumn = c.QueryArray("root")
-		aggReq.TimeSample = resource.TimeStamp(c.Query("root"))
-		aggReq.TimeFrom = c.Query("from")
-		aggReq.TimeTo = c.Query("to")
+		aggReq.RootEntity = typeName
+		aggReq.Filter = c.QueryArray("filter")
+		aggReq.GroupBy = c.QueryArray("group")
+		aggReq.Join = c.QueryArray("join")
+		aggReq.ProjectColumn = c.QueryArray("column")
+		aggReq.TimeSample = resource.TimeStamp(c.Query("timesample"))
+		aggReq.TimeFrom = c.Query("timefrom")
+		aggReq.TimeTo = c.Query("timeto")
 
 		aggResponse, err := cruds[typeName].DataStats(aggReq)
 

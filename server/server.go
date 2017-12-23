@@ -214,7 +214,7 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
 
 	r.GET("/jsmodel/:typename", handler)
-	r.GET("/api/:typename/stats", statsHandler)
+	r.GET("/stats/:typename", statsHandler)
 	r.GET("/meta", metaHandler)
 	r.GET("/apispec.raml", blueprintHandler)
 	r.GET("/recline_model", modelHandler)

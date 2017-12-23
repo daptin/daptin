@@ -23,6 +23,30 @@
     <!-- Main content -->
     <section class="content">
 
+
+      <div class="row">
+
+        <div class="col-lg-3 col-xs-6" v-for="world in worlds">
+          <!-- small box -->
+          <div class="small-box" style="background-color: #444; color: white;">
+            <div class="inner">
+              <h3>{{world.Count}}</h3>
+
+              <p>{{world.TableName | titleCase}}s </p>
+            </div>
+
+            <div class="icon">
+              <i :class="'fa ' + world.Icon"></i>
+            </div>
+            <router-link :to="{name: 'Entity', params: { tablename: world.TableName}}" class="small-box-footer">
+              <i class="fa fa-arrow-circle-right"></i>
+            </router-link>
+          </div>
+        </div>
+
+
+      </div>
+
       <!-- Main row -->
       <!-- /.row -->
       <div class="row">
@@ -54,34 +78,7 @@
         </div>
       </div>
 
-      <!--<div class="row">-->
-      <!--<div class="col-md-3" v-for="(worlds, tableName) in actionGroups" v-if="worlds.length > 0">-->
 
-      <!--<div class="box box-solid collapsed-box">-->
-      <!--<div class="box-header with-border">-->
-      <!--<h3 class="box-title">{{tableName | titleCase}}</h3>-->
-
-      <!--<div class="box-tools">-->
-      <!--<button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>-->
-      <!--</button>-->
-      <!--</div>-->
-      <!--</div>-->
-      <!--<div class="box-body no-padding">-->
-      <!--<ul class="nav nav-pills nav-stacked">-->
-      <!--<li v-for="world in worlds">-->
-      <!--<router-link :to="{name: 'Action', params: {tablename: world.OnType, actionname: world.Name}}">-->
-      <!--{{world.Label}}-->
-      <!--</router-link>-->
-      <!--</li>-->
-
-      <!--</ul>-->
-      <!--</div>-->
-      <!--&lt;!&ndash; /.box-body &ndash;&gt;-->
-      <!--</div>-->
-
-
-      <!--</div>-->
-      <!--</div>-->
       <div class="row">
 
         <div class="col-md-12">
@@ -247,6 +244,7 @@
   import jsonApi from '../../plugins/jsonapi'
   import actionManager from '../../plugins/actionmanager'
   import worldManager from '../../plugins/worldmanager'
+  import statsManger from '../../plugins/statsmanager'
 
   export default {
     data() {
@@ -259,7 +257,8 @@
             a.push(Math.floor(Math.random() * (max - min + 1)) + max)
           }
           return a
-        }
+        },
+        worlds: [],
       }
     },
     computed: {
@@ -306,6 +305,36 @@
         }
       }).then(function (worlds) {
         worlds = worlds.data;
+        console.log("");
+        that.worlds = worlds.map(function (e) {
+          let parse = JSON.parse(e.world_schema_json);
+          parse.Icon = e.icon;
+          parse.Count = 0;
+          return parse;
+        }).filter(function (e) {
+          console.log("filter ", e);
+          return !e.IsHidden && !e.IsJoinTable && e.TableName.indexOf("_state") == -1;
+        });
+        that.worlds.forEach(function (w) {
+          console.log("call stats", w);
+
+
+          statsManger.getStats(w.TableName, {
+            column: ["count(*)"]
+          }).then(function (stats) {
+            stats = stats.data;
+            console.log("Stats received", stats)
+
+            var rows = stats.Data;
+            var totalCount = rows[0]["count(*)"]
+            w.Count = totalCount;
+
+
+          }, function (error) {
+            console.log("Failed to query stats", error);
+          });
+        });
+
         let actionGroups = {
           "System": [],
           "User": []
