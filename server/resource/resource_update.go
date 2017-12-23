@@ -265,7 +265,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 				pr := &http.Request{
 					Method: "POST",
 				}
-				pr = pr.WithContext(req.Context)
+				pr = pr.WithContext(req.PlainRequest.Context())
 				auditCreateRequest := api2go.Request{
 					PlainRequest: pr,
 				}
