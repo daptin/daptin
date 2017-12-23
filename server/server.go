@@ -60,14 +60,23 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 
 				for _, newColumnDef := range tableBeingModified.Columns {
 					columnAlreadyExist := false
-					for _, existingColumn := range existableTable.Columns {
+					colIndex := -1
+					for i, existingColumn := range existableTable.Columns {
 						if existingColumn.ColumnName == newColumnDef.ColumnName {
 							columnAlreadyExist = true
+							colIndex = i
 							break
 						}
 					}
 					if columnAlreadyExist {
 						//log.Infof("Modifying existing columns[%v][%v] is not supported at present. not sure what would break. and alter query isnt being run currently.", existableTable.TableName, newColumnDef.Name);
+
+						existableTable.Columns[colIndex].DefaultValue = newColumnDef.DefaultValue
+						existableTable.Columns[colIndex].ExcludeFromApi = newColumnDef.ExcludeFromApi
+						existableTable.Columns[colIndex].IsIndexed = newColumnDef.IsIndexed
+						existableTable.Columns[colIndex].IsNullable = newColumnDef.IsNullable
+						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
+
 					} else {
 						existableTable.Columns = append(existableTable.Columns, newColumnDef)
 					}
@@ -76,8 +85,20 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 
 			}
 			if len(tableBeingModified.Relations) > 0 {
-				existableTable.AddRelation(tableBeingModified.Relations...)
-				//existableTable.Relations = append(existableTable.Relations, tableBeingModified.Relations...)
+
+				existingRelations := existableTable.Relations
+				relMap := make(map[string]bool)
+				for _, rel := range existingRelations {
+					relMap[rel.Hash()] = true
+				}
+
+				for _, newRel := range tableBeingModified.Relations {
+
+					_, ok := relMap[newRel.Hash()]
+					if !ok {
+						existableTable.AddRelation(newRel)
+					}
+				}
 			}
 			existingTables[j] = existableTable
 		}
@@ -190,8 +211,10 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 	metaHandler := CreateMetaHandler(&initConfig)
 	blueprintHandler := CreateApiBlueprintHandler(&initConfig, cruds)
 	modelHandler := CreateReclineModelHandler()
+	statsHandler := CreateStatsHandler(&initConfig, cruds)
 
 	r.GET("/jsmodel/:typename", handler)
+	r.GET("/api/:typename/stats", statsHandler)
 	r.GET("/meta", metaHandler)
 	r.GET("/apispec.raml", blueprintHandler)
 	r.GET("/recline_model", modelHandler)
