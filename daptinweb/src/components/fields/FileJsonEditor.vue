@@ -111,15 +111,17 @@
         console.log("this is new");
         if (true) {
           try {
-            var container = document.getElementById("jsonEditor");
-            var editor = new Jsoneditor(container, {
-              onChange: function () {
-                that.value = JSON.stringify(editor.get());
-              }
-            });
             var json = JSON.parse(startVal);
-            editor.set(json);
-            return;
+            if (json instanceof Object) {
+              var container = document.getElementById("jsonEditor");
+              var editor = new Jsoneditor(container, {
+                onChange: function () {
+                  that.value = JSON.stringify(editor.get());
+                }
+              });
+              editor.set(json);
+              return;
+            }
           } catch (e) {
             console.log("Failed to init json editor", e)
           }

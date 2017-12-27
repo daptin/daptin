@@ -11,17 +11,16 @@ import (
 	"archive/zip"
 	"context"
 	"github.com/gin-gonic/gin/json"
-	"github.com/pkg/errors"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"github.com/artpar/api2go"
+	"golang.org/x/oauth2"
 )
 
 type FileUploadActionPerformer struct {
-	cruds     map[string]*DbResource
-	cmsConfig *CmsConfig
+	cruds map[string]*DbResource
 }
 
 func (d *FileUploadActionPerformer) Name() string {
@@ -121,34 +120,37 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 		rootPath,
 	}
 
+	var token *oauth2.Token
+	oauthConf := &oauth2.Config{}
 	oauthTokenId1 := inFields["oauth_token_id"]
 	if oauthTokenId1 == nil {
-		log.Errorf("No oauth token set for target store")
-		return nil, nil, []error{errors.New("No auth token set for this store")}
-	}
-	oauthTokenId := oauthTokenId1.(string)
-	token, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
-	oauthConf, err := d.cruds["oauth_token"].GetOauthDescriptionByTokenReferenceId(oauthTokenId)
-	if err != nil {
-		log.Errorf("Failed to get oauth token for store sync: %v", err)
-		return nil, nil, []error{err}
+		log.Infof("No oauth token set for target store")
+	} else {
+		oauthTokenId := oauthTokenId1.(string)
+		token, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+		if err != nil {
+			log.Infof("Failed to get oauth token for store sync: %v", err)
+		} else {
+			oauthConf, err = d.cruds["oauth_token"].GetOauthDescriptionByTokenReferenceId(oauthTokenId)
+			if !token.Valid() {
+				ctx := context.Background()
+				tokenSource := oauthConf.TokenSource(ctx, token)
+				token, err = tokenSource.Token()
+				CheckErr(err, "Failed to get new access token")
+				err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
+				CheckErr(err, "failed to update access token")
+			}
+		}
 	}
 
-	if !token.Valid() {
-		ctx := context.Background()
-		tokenSource := oauthConf.TokenSource(ctx, token)
-		token, err = tokenSource.Token()
-		CheckErr(err, "Failed to get new access token")
-		err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
-		CheckErr(err, "failed to update access token")
-	}
+
 
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to marshal access token to json")
 
 	storeProvider := inFields["store_provider"].(string)
 	fs.ConfigFileSet(storeProvider, "client_id", oauthConf.ClientID)
-	fs.ConfigFileSet(storeProvider, "type", inFields["store_provider"].(string))
+	fs.ConfigFileSet(storeProvider, "type", storeProvider)
 	fs.ConfigFileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
 	fs.ConfigFileSet(storeProvider, "token", string(jsonToken))
 	fs.ConfigFileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
@@ -176,11 +178,10 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 	return nil, responses, nil
 }
 
-func NewFileUploadActionPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
+func NewFileUploadActionPerformer(cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
 	handler := FileUploadActionPerformer{
-		cmsConfig: initConfig,
-		cruds:     cruds,
+		cruds: cruds,
 	}
 
 	return &handler, nil

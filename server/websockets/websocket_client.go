@@ -112,6 +112,7 @@ func (c *Client) listenRead() {
 			} else {
 				// everything went well, we have the message here
 				// TODO: process the incoming message
+				c.server.messageHandler.MessageFromClient(msg, c.ws.Request())
 			}
 		}
 	}
