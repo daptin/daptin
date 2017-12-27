@@ -9,9 +9,10 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
-	"reflect"
 	"strconv"
 	"strings"
+	"io/ioutil"
+	"encoding/base64"
 )
 
 func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []auth.GroupPermission, typeName string, actionName string) bool {
@@ -45,9 +46,9 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 	action := make([]Action, 0)
 
 	rows, err := dr.db.Queryx("select a.action_name as name, w.table_name as ontype, a.label, action_schema as action_schema,"+
-			" a.instance_optional as instance_optional, a.reference_id as referenceid from action a"+
-			" join world w on w.id = a.world_id"+
-			" where w.table_name = ? ", typeName)
+		" a.instance_optional as instance_optional, a.reference_id as referenceid from action a"+
+		" join world w on w.id = a.world_id"+
+		" where w.table_name = ? ", typeName)
 	if err != nil {
 		log.Errorf("Failed to scan action: %v", err)
 		return action, err
@@ -108,14 +109,14 @@ func (dr *DbResource) GetObjectPermission(objectType string, referenceId string)
 	var err error
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = squirrel.
-		Select("permission", "id").
-				From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
-				ToSql()
+			Select("permission", "id").
+			From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
+			ToSql()
 	} else {
 		selectQuery, queryParameters, err = squirrel.
-		Select("user_id", "permission", "id").
-				From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
-				ToSql()
+			Select("user_id", "permission", "id").
+			From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
+			ToSql()
 
 	}
 
@@ -273,8 +274,8 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 
 	res, err := dr.db.Queryx(
 		fmt.Sprintf("select ug.reference_id as referenceid, uug.permission "+
-				"from usergroup ug "+
-				"join %s_%s_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id and uug.%s_id = ?", objType, objType, objType), objectId)
+			"from usergroup ug "+
+			"join %s_%s_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id and uug.%s_id = ?", objType, objType, objType), objectId)
 	if err != nil {
 		log.Errorf("Failed to query object group by object id [%v][%v] == %v", objType, objectId, err)
 		return s
@@ -316,9 +317,9 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 
 		if crud.model.HasColumn("user_id") {
 			q, v, err := squirrel.Update(crud.model.GetName()).
-					Set("user_id", userId).
-					Set("permission", auth.DEFAULT_PERMISSION).
-					ToSql()
+				Set("user_id", userId).
+				Set("permission", auth.DEFAULT_PERMISSION).
+				ToSql()
 			if err != nil {
 				log.Errorf("Failed to create query to update: %v == %v", crud.model.GetName(), err)
 				continue
@@ -581,12 +582,13 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 }
 
 func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string) (map[string]interface{}, error) {
-	//log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
+	log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
 	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
 		return nil, err
 	}
 
+	log.Infof("Get object by reference id sql: %v", s)
 	row, err := dr.db.Queryx(s, q...)
 
 	if err != nil {
@@ -604,9 +606,9 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 		return nil, err
 	}
 
-	//log.Infof("Have to return first of %d results", len(results))
+	log.Infof("Have to return first of %d results", len(results))
 	if len(results) == 0 {
-		return nil, fmt.Errorf("No such object [%v][%v]", typeName, referenceId)
+		return nil, fmt.Errorf("no such object [%v][%v]", typeName, referenceId)
 	}
 
 	return results[0], err
@@ -757,7 +759,6 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 			columnInfo, ok := columnMap[key]
 			if !ok {
-				//log.Infof("Column not found: %v", key)
 				continue
 			}
 
@@ -769,48 +770,75 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				continue
 			}
 
-			typeName := columnInfo.ForeignKeyData.TableName
-			i, ok := val.(int64)
-			if !ok {
+			namespace := columnInfo.ForeignKeyData.Namespace
+			log.Infof("Resolve foreign key from [%v][%v]", columnInfo.ForeignKeyData.DataSource, namespace)
+			switch columnInfo.ForeignKeyData.DataSource {
+			case "self":
+				referenceIdInt, ok := val.(int64)
+				if !ok {
+					stringIntId := val.(string)
+					referenceIdInt, err = strconv.ParseInt(stringIntId, 10, 64)
+					CheckErr(err, "Failed to convert string id to int id")
+				}
+				refId, err := dr.GetIdToReferenceId(namespace, referenceIdInt)
 
-				si, ok := val.(string)
-				if ok {
-					i, err = strconv.ParseInt(si, 10, 64)
-					if err != nil {
-						log.Errorf("Failed to convert [%v] to int", si)
-						continue
-					}
-				} else {
-					log.Errorf("Id should have been integer [%v]: %v", val, reflect.TypeOf(val))
+				row[key] = refId
+				if err != nil {
+					log.Errorf("Failed to get ref id for [%v][%v]: %v", namespace, val, err)
 					continue
 				}
-			}
 
-			refId, err := dr.GetIdToReferenceId(typeName, i)
+				if includedRelationMap != nil && (includedRelationMap[namespace] || includedRelationMap["*"]) {
+					obj, err := dr.GetIdToObject(namespace, referenceIdInt)
+					obj["__type"] = namespace
 
-			row[key] = refId
-			if err != nil {
-				log.Errorf("Failed to get ref id for [%v][%v]: %v", typeName, val, err)
+					if err != nil {
+						log.Errorf("Failed to get ref object for [%v][%v]: %v", namespace, val, err)
+					} else {
+						localInclude = append(localInclude, obj)
+					}
+				}
+
+			case "cloud_store":
+				referenceStorageInformation := val.(string)
+				log.Infof("Resolve files from cloud store: %v", referenceStorageInformation)
+				foreignFilesList := make([]map[string]interface{}, 0)
+				err := json.Unmarshal([]byte(referenceStorageInformation), &foreignFilesList)
+				CheckErr(err, "Failed to obtain list of file information")
+				if err != nil {
+					continue
+				}
+
+				for _, file := range foreignFilesList {
+					file["src"] = columnInfo.ForeignKeyData.Namespace + "/" + file["name"].(string)
+				}
+
+				row[key] = foreignFilesList
+				log.Infof("set row[%v]  == %v", key, foreignFilesList)
+				if err != nil {
+					log.Errorf("Failed to get ref id for [%v][%v]: %v", namespace, val, err)
+					continue
+				}
+
+				if includedRelationMap != nil && (includedRelationMap[namespace] || includedRelationMap["*"]) {
+
+					resolvedFilesList, err := dr.GetFileFromCloudStore(columnInfo.ForeignKeyData, foreignFilesList)
+					CheckErr(err, "Failed to resolve file from cloud store")
+					for _, file := range resolvedFilesList {
+						file["__type"] = columnInfo.ColumnType
+						localInclude = append(localInclude, file)
+					}
+
+				}
+
+			default:
+				log.Errorf("Undefined data source: %v", columnInfo.ForeignKeyData.DataSource)
 				continue
 			}
-
-			if includedRelationMap != nil && (includedRelationMap[typeName] || includedRelationMap["*"]) {
-				obj, err := dr.GetIdToObject(typeName, i)
-				obj["__type"] = typeName
-
-				if err != nil {
-					log.Errorf("Failed to get ref object for [%v][%v]: %v", typeName, val, err)
-				} else {
-					localInclude = append(localInclude, obj)
-				}
-			}
-
-			//delete(responseArray[i], "id")
 
 		}
 
 		includes = append(includes, localInclude)
-		//finalArray = append(finalArray, row)
 
 	}
 
@@ -827,4 +855,23 @@ func (dr *DbResource) ResultToArrayOfMapRaw(rows *sqlx.Rows, columnMap map[strin
 	}
 
 	return responseArray, nil
+}
+func (resource *DbResource) GetFileFromCloudStore(data api2go.ForeignKeyData, filesList []map[string]interface{}) (resp []map[string]interface{}, err error) {
+
+	cloudStore, err := resource.GetCloudStoreByName(data.Namespace)
+	if err != nil {
+		return resp, err
+	}
+
+	for _, fileItem := range filesList {
+		fileName := fileItem["name"].(string)
+		bytes, err := ioutil.ReadFile(cloudStore.RootPath + "/" + data.KeyName + "/" + fileName, )
+		CheckErr(err, "Failed to read file on storage")
+		if err != nil {
+			continue
+		}
+		fileItem["contents"] = base64.StdEncoding.EncodeToString(bytes)
+
+	}
+	return filesList, nil
 }

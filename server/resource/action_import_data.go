@@ -21,7 +21,7 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 
 	responses := make([]ActionResponse, 0)
 
-	subjectInstance, isSubjected := inFields["subject"]
+	tableName, isSubjected := inFields["table_name"]
 	user, isUserPresent := inFields["user"]
 	userReferenceId := ""
 	userIdInt := uint64(1)
@@ -65,8 +65,9 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 		}
 
 		if isSubjected {
-			subjectInstanceMap := subjectInstance.(map[string]interface{})
-			subjectTableName := subjectInstanceMap["table_name"].(string)
+			//log.Infof("Subject isntance: %v", subjectInstance)
+			//subjectInstanceMap := subjectInstance.(map[string]interface{})
+			subjectTableName := tableName.(string)
 
 			_, ok := imports[subjectTableName]
 			if !ok {

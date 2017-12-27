@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"golang.org/x/oauth2"
 )
 
 type HostSwitch struct {
@@ -78,23 +79,23 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 		oauthTokenId := cloudStore.OAutoTokenId
 
 		token, err := cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
-		oauthConf, err := cruds["oauth_token"].GetOauthDescriptionByTokenReferenceId(oauthTokenId)
+		oauthConf := &oauth2.Config{}
 		if err != nil {
-			log.Errorf("Failed to get oauth token for store sync: %v", err)
-			continue
-		}
-
-		if !token.Valid() {
-			ctx := context.Background()
-			tokenSource := oauthConf.TokenSource(ctx, token)
-			token, err = tokenSource.Token()
-			resource.CheckErr(err, "Failed to get new access token")
-			if token == nil {
-				log.Errorf("We have no token to get the site from storage: %v", cloudStore.ReferenceId)
-				continue
+			log.Infof("Failed to get oauth token for store sync: %v", err)
+		} else {
+			oauthConf, err := cruds["oauth_token"].GetOauthDescriptionByTokenReferenceId(oauthTokenId)
+			if !token.Valid() {
+				ctx := context.Background()
+				tokenSource := oauthConf.TokenSource(ctx, token)
+				token, err = tokenSource.Token()
+				resource.CheckErr(err, "Failed to get new access token")
+				if token == nil {
+					log.Errorf("We have no token to get the site from storage: %v", cloudStore.ReferenceId)
+					continue
+				}
+				err = cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
+				resource.CheckErr(err, "failed to update access token")
 			}
-			err = cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
-			resource.CheckErr(err, "failed to update access token")
 		}
 
 		sourceDirectoryName := uuid.NewV4().String()
