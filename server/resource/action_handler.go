@@ -21,7 +21,7 @@ import (
 
 	"github.com/artpar/conform"
 	english "github.com/go-playground/locales/en"
-	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/universal-translator"
 	"gopkg.in/go-playground/validator.v9"
 	en2 "gopkg.in/go-playground/validator.v9/translations/en"
 )
@@ -173,6 +173,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 		log.Infof("Handle event for action [%v]", actionName)
 
 		action, err := cruds["action"].GetActionByName(actionRequest.Type, actionRequest.Action)
+		CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
 
 		for _, field := range action.InFields {
 			_, ok := actionRequest.Attributes[field.ColumnName]
@@ -530,17 +531,20 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 		for key, field := range outcomeMap {
 
 			typeOfField := reflect.TypeOf(field).Kind()
-			//log.Infof("Outcome attribute [%v] == %v [%v]", key, field, typeOfField)
+			log.Infof("Outcome attribute [%v] == %v [%v]", key, field, typeOfField)
 
 			if typeOfField == reflect.String {
 
 				fieldString := field.(string)
 
 				val, err := evaluateString(fieldString, inFieldMap)
+				//log.Infof("Value of [%v] == [%v]", key, val)
 				if err != nil {
 					return nil, err
 				}
-				dataMap[key] = val
+				if val != nil {
+					dataMap[key] = val
+				}
 
 			} else if typeOfField == reflect.Map || typeOfField == reflect.Slice || typeOfField == reflect.Array {
 
@@ -548,8 +552,9 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 				if err != nil {
 					return nil, err
 				}
-				dataMap[key] = val
-
+				if val != nil {
+					dataMap[key] = val
+				}
 			}
 
 		}

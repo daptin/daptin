@@ -22,6 +22,7 @@ type CmsConfig struct {
 	Streams                  []StreamContract
 	MarketplaceHandlers      map[string]*MarketplaceService `json:"-"`
 	Marketplaces             []Marketplace
+	ActionPerformers         []ActionPerformerInterface
 }
 
 func (ti *CmsConfig) AddRelations(relations ...api2go.TableRelation) {

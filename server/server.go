@@ -76,6 +76,7 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 						existableTable.Columns[colIndex].IsIndexed = newColumnDef.IsIndexed
 						existableTable.Columns[colIndex].IsNullable = newColumnDef.IsNullable
 						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
+						existableTable.Columns[colIndex].Options = newColumnDef.Options
 
 					} else {
 						existableTable.Columns = append(existableTable.Columns, newColumnDef)
@@ -110,8 +111,8 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 			continue
 		}
 		allTables = append(allTables, newTable)
-
 	}
+
 	initConfig.Tables = allTables
 	fs.LoadConfig()
 	fs.Config.DryRun = false
@@ -223,6 +224,7 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 	r.OPTIONS("/recline_model", modelHandler)
 
 	actionPerformers := GetActionPerformers(&initConfig, configStore)
+	initConfig.ActionPerformers = actionPerformers
 	//actionPerforMap := make(map[string]resource.ActionPerformerInterface)
 	//for _, actionPerformer := range actionPerformers {
 	//	actionPerforMap[actionPerformer.Name()] = actionPerformer
@@ -238,7 +240,8 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 	r.POST("/site/content/load", CreateSubSiteContentHandler(&initConfig, cruds, db))
 	r.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
-	websocketServer := websockets.NewServer("/live")
+	webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
+	websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
 	go websocketServer.Listen(r)
 
 	r.NoRoute(func(c *gin.Context) {
@@ -263,6 +266,13 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 		return
 	default:
 	}
+
+}
+
+type WebSocketConnectionHandlerImpl struct {
+}
+
+func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message websockets.WebSocketPayload, request *http.Request) {
 
 }
 

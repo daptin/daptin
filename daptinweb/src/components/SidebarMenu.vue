@@ -136,7 +136,7 @@
       console.log("sidebarmenu visible worlds: ", this.topWorlds)
 
       that.topWorlds = that.worlds.filter(function (w, r) {
-        return w.is_top_level == '1' && w.is_hidden == '0';
+        return w.is_top_level && !w.is_hidden;
       });
 
       setTimeout(function () {
@@ -146,9 +146,10 @@
     },
     watch: {
       'worlds': function () {
-        console.log("got worlds")
+        console.log("got worlds");
+        var that = this;
         that.topWorlds = that.worlds.filter(function (w, r) {
-          return w.is_top_level == '1' && w.is_hidden == '0';
+          return w.is_top_level && !w.is_hidden;
         });
       }
     }
