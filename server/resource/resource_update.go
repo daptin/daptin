@@ -10,6 +10,7 @@ import (
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
 	"time"
+	"github.com/gin-gonic/gin/json"
 )
 
 // Update an object
@@ -19,7 +20,7 @@ import (
 // - 204 No Content: Update was successful, no fields were changed by the server, return nothing
 func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 	data, ok := obj.(*api2go.Api2GoModel)
-	log.Infof("Update object request: [%v]", dr.model.GetTableName(), data.GetID())
+	log.Infof("Update object request: [%v][%v]", dr.model.GetTableName(), data.GetID())
 
 	for _, bf := range dr.ms.BeforeUpdate {
 		//log.Infof("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
@@ -106,27 +107,80 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			val = change.NewValue
 			if col.IsForeignKey {
 
-				log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.TableName, val)
+				log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.Namespace, val)
 
-				if val != nil && val != "" {
+				switch col.ForeignKeyData.DataSource {
+				case "self":
+					if val != nil && val != "" {
 
-					valString := val.(string)
+						valString := val.(string)
 
-					foreignObject, err := dr.GetReferenceIdToObject(col.ForeignKeyData.TableName, valString)
-					if err != nil {
-						return nil, err
-					}
+						foreignObject, err := dr.GetReferenceIdToObject(col.ForeignKeyData.Namespace, valString)
+						if err != nil {
+							return nil, err
+						}
 
-					foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.TableName, valString)
+						foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.Namespace, valString)
 
-					if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
-						val = foreignObject["id"]
+						if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+							val = foreignObject["id"]
+						} else {
+							return nil, errors.New(fmt.Sprintf("No write permission on object [%v][%v]", col.ForeignKeyData.Namespace, valString))
+						}
 					} else {
-						return nil, errors.New(fmt.Sprintf("No write permission on object [%v][%v]", col.ForeignKeyData.TableName, valString))
+						ok = false
 					}
-				} else {
-					ok = false
+
+				case "cloud_store":
+
+					uploadActionPerformer, err := NewFileUploadActionPerformer(dr.cruds)
+					CheckErr(err, "Failed to create upload action performer")
+					log.Infof("created upload action performer")
+					if err != nil {
+						continue
+					}
+
+					actionRequestParameters := make(map[string]interface{})
+					actionRequestParameters["file"] = val
+
+					/**
+					"oauth_token_id": "$.oauth_token_id",
+					"store_provider": "$.store_provider",
+					"root_path":      "$.root_path",
+					 */
+
+					log.Infof("Get cloud store details: %v", col.ForeignKeyData.Namespace)
+					cloudStore, err := dr.GetCloudStoreByName(col.ForeignKeyData.Namespace)
+					CheckErr(err, "Failed to get cloud storage details")
+					if err != nil {
+						continue
+					}
+
+					log.Infof("Cloud storage: %v", cloudStore)
+
+					actionRequestParameters["oauth_token_id"] = cloudStore.OAutoTokenId
+					actionRequestParameters["store_provider"] = cloudStore.StoreProvider
+					actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
+
+					log.Infof("Initiate file upload action")
+					_, _, errs := uploadActionPerformer.DoAction(ActionRequest{}, actionRequestParameters)
+					if errs != nil && len(errs) > 0 {
+						log.Errorf("Failed to upload attachments: %v", errs)
+					}
+
+					files := val.([]interface{})
+					for i := range files {
+						file := files[i].(map[string]interface{})
+						delete(file, "file")
+						files[i] = file
+					}
+					val, err = json.Marshal(files)
+					CheckErr(err, "Failed to marshal file data to column")
+
+				default:
+					CheckErr(errors.New("undefined foreign key"), "Data source: %v", col.ForeignKeyData.DataSource)
 				}
+
 			}
 			var err error
 
@@ -241,6 +295,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		}
 
 		query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).ToSql()
+		log.Infof("Update query: %v", query)
 		if err != nil {
 			log.Errorf("Failed to create update query: %v", err)
 			return NewResponse(nil, nil, 500, nil), err
@@ -481,7 +536,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	//
 
 	for relationName, deleteRelations := range data.DeleteIncludes {
-
+		log.Infof("Delete to many relation: [%v][%v]", relationName, deleteRelations)
 		referencedRelation := api2go.TableRelation{}
 		referencedTypeName := ""
 		for _, relation := range dr.model.GetRelations() {

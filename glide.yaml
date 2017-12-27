@@ -4,15 +4,15 @@ import:
   subpackages:
   - embedded
 - package: github.com/artpar/rclone
-  version: 1.47
+  version: 1.49
 - package: github.com/gocraft/health
 - package: github.com/artpar/api2go
-  version: ^2.3.1
+  version: ^2.3.3
 - package: github.com/artpar/api2go-adapter
   subpackages:
   - gingonic
 - package: github.com/artpar/conform
-  version: ^1.1.1
+  version: ^1.1.2
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/dop251/goja

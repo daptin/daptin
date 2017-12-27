@@ -3,9 +3,9 @@ package websockets
 import (
 	"golang.org/x/net/websocket"
 	log "github.com/sirupsen/logrus"
-	"github.com/daptin/daptin/server/auth"
 	"gopkg.in/gin-gonic/gin.v1"
 	"fmt"
+	"net/http"
 )
 
 type WebSocketPayload struct {
@@ -26,16 +26,17 @@ func (self *Message) String() string {
 
 // Chat server.
 type Server struct {
-	pattern   string
-	clients   map[int]*Client
-	addCh     chan *Client
-	delCh     chan *Client
-	doneCh    chan bool
-	errCh     chan error
+	pattern        string
+	clients        map[int]*Client
+	addCh          chan *Client
+	delCh          chan *Client
+	doneCh         chan bool
+	errCh          chan error
+	messageHandler WebSocketConnectionHandler
 }
 
 // Create new chat server.
-func NewServer(pattern string) *Server {
+func NewServer(pattern string, messageHandler WebSocketConnectionHandler) *Server {
 	clients := make(map[int]*Client)
 	addCh := make(chan *Client)
 	delCh := make(chan *Client)
@@ -43,12 +44,13 @@ func NewServer(pattern string) *Server {
 	errCh := make(chan error)
 
 	return &Server{
-		pattern,
-		clients,
-		addCh,
-		delCh,
-		doneCh,
-		errCh,
+		pattern:        pattern,
+		clients:        clients,
+		addCh:          addCh,
+		delCh:          delCh,
+		doneCh:         doneCh,
+		errCh:          errCh,
+		messageHandler: messageHandler,
 	}
 }
 
@@ -81,9 +83,7 @@ func (s *Server) sendAll(msg *WebSocketPayload) {
 }
 
 type WebSocketConnectionHandler interface {
-	Authorize(username, password string) auth.SessionUser
-	MessageFromClient(message map[string]interface{})
-	MessageToClient(message map[string]interface{})
+	MessageFromClient(message WebSocketPayload, request *http.Request)
 }
 
 // Listen and serve.
@@ -127,11 +127,11 @@ func (s *Server) Listen(router *gin.Engine) {
 			log.Println("Delete client")
 			delete(s.clients, c.id)
 
-		//	// broadcast message for all clients
-		//case msg := <-s.sendAllCh:
-		//	log.Println("Send all:", msg)
-		//	s.messages = append(s.messages, msg)
-		//	s.sendAll(msg)
+			//	// broadcast message for all clients
+			//case msg := <-s.sendAllCh:
+			//	log.Println("Send all:", msg)
+			//	s.messages = append(s.messages, msg)
+			//	s.sendAll(msg)
 
 		case err := <-s.errCh:
 			log.Println("Error:", err.Error())

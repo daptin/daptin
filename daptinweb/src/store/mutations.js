@@ -22,6 +22,7 @@ export default {
     state.actions = actions;
   },
   SET_WORLDS(state, worlds) {
+    console.log("\t\t\tSet worlds: ", worlds)
     state.worlds = worlds;
     state.visibleWorlds = worlds;
   },

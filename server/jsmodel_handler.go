@@ -174,7 +174,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 				continue
 			}
 
-			if col.IsForeignKey {
+			if col.IsForeignKey && col.ForeignKeyData.DataSource == "self" {
 				continue
 			}
 
