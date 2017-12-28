@@ -11,6 +11,7 @@ go get github.com/artpar/goagain
 export GOPATH=/media/artpar/ddrive/workspace/newgocode
 rm -rf rice-box.go
 rice embed-go
+CGO_ENABLED=1
 go build  -ldflags '-linkmode external -extldflags -static -w' main.go
 rice append --exec main
 
