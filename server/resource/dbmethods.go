@@ -830,7 +830,6 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					}
 
 				}
-
 			default:
 				log.Errorf("Undefined data source: %v", columnInfo.ForeignKeyData.DataSource)
 				continue
@@ -864,14 +863,21 @@ func (resource *DbResource) GetFileFromCloudStore(data api2go.ForeignKeyData, fi
 	}
 
 	for _, fileItem := range filesList {
+		newFileItem := make(map[string]interface{})
+
+		for key, val := range fileItem {
+			newFileItem[key] = val
+		}
+
 		fileName := fileItem["name"].(string)
 		bytes, err := ioutil.ReadFile(cloudStore.RootPath + "/" + data.KeyName + "/" + fileName, )
 		CheckErr(err, "Failed to read file on storage")
 		if err != nil {
 			continue
 		}
-		fileItem["contents"] = base64.StdEncoding.EncodeToString(bytes)
-
+		newFileItem["reference_id"] = fileItem["name"]
+		newFileItem["contents"] = base64.StdEncoding.EncodeToString(bytes)
+		resp = append(resp, newFileItem)
 	}
-	return filesList, nil
+	return resp, nil
 }
