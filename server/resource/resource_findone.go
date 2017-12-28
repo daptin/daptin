@@ -30,7 +30,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	log.Infof("Find [%s] by id [%s]", dr.model.GetName(), referenceId)
 
 	data, include, err := dr.GetSingleRowByReferenceId(dr.model.GetName(), referenceId)
-
+	log.Infof("Single row result: %v", data)
 	for _, bf := range dr.ms.AfterFindOne {
 		//log.Infof("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
@@ -62,10 +62,14 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		p, ok := inc["permission"].(int64)
 		if !ok {
 			log.Errorf("Failed to convert [%v] to permission: %v", inc["permission"], ok)
-			continue
+			p = 0
 		}
 		incType := inc["__type"].(string)
-		a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dr.cruds[incType].model.GetColumns(), int64(p), dr.cruds[incType].model.GetRelations(), inc))
+		if BeginsWith(incType, "image.") {
+			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, nil, 0, nil, inc))
+		} else {
+			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dr.cruds[incType].model.GetColumns(), int64(p), dr.cruds[incType].model.GetRelations(), inc))
+		}
 	}
 
 	return NewResponse(nil, a, 200, nil), err

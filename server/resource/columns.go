@@ -245,7 +245,7 @@ var SystemActions = []Action{
 					"execute_middleware_chain": "~execute_middleware_chain",
 					"truncate_before_insert":   "~truncate_before_insert",
 					"dump_file":                "~dump_file",
-					"subject":                  "$",
+					"table_name":               "$.table_name",
 					"user":                     "~user",
 				},
 			},
@@ -714,7 +714,6 @@ var StandardTables = []TableInfo{
 				DefaultValue: "644",
 				ColumnType:   "value",
 			},
-
 			{
 				Name:         "is_top_level",
 				ColumnName:   "is_top_level",

@@ -36,7 +36,7 @@
             </div>
 
             <div class="icon">
-              <i :class="'fa ' + world.Icon"></i>
+              <i style="color: #bbb" :class="'fa ' + world.Icon"></i>
             </div>
             <router-link :to="{name: 'Entity', params: { tablename: world.TableName}}" class="small-box-footer">
               <i class="fa fa-arrow-circle-right"></i>
