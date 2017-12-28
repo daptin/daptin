@@ -101,12 +101,12 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 			if valString == "" {
 				uId = nil
 			} else {
-				foreignObject, err := dr.GetReferenceIdToObject(col.ForeignKeyData.TableName, valString)
+				foreignObject, err := dr.GetReferenceIdToObject(col.ForeignKeyData.Namespace, valString)
 				if err != nil {
 					return nil, err
 				}
 
-				foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.TableName, valString)
+				foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.Namespace, valString)
 
 				if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 					uId = foreignObject["id"]

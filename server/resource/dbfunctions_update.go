@@ -542,7 +542,7 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 
 	for _, action := range initConfig.Actions {
 
-		log.Infof("System refresh check action: %v@%v", action.Name, action.OnType)
+		log.Infof("Check action: %v@%v", action.Name, action.OnType)
 		world, ok := worldTableMap[action.OnType]
 		if !ok {
 			log.Errorf("Action [%v] defined on unknown type [%v]", action.Name, action.OnType)
