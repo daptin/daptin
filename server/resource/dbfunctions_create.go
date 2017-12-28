@@ -82,7 +82,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 	for i, table := range initConfig.Tables {
 		for _, column := range table.Columns {
 			if column.IsForeignKey {
-				keyName := "fk" + GetMD5Hash(table.TableName+"_"+column.ColumnName+"_"+column.ForeignKeyData.TableName+"_"+column.ForeignKeyData.ColumnName+"_fk")
+				keyName := "fk" + GetMD5Hash(table.TableName+"_"+column.ColumnName+"_"+column.ForeignKeyData.Namespace+"_"+column.ForeignKeyData.KeyName+"_fk")
 
 				if db.DriverName() == "sqlite3" {
 					continue
@@ -292,8 +292,8 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				ColumnType:   "alias",
 				IsNullable:   isNullable,
 				ForeignKeyData: api2go.ForeignKeyData{
-					TableName:  targetTable,
-					ColumnName: "id",
+					Namespace:  targetTable,
+					KeyName:    "id",
 					DataSource: "self",
 				},
 				DataType: "int(11)",
@@ -356,8 +356,8 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				IsForeignKey: true,
 				ForeignKeyData: api2go.ForeignKeyData{
 					DataSource: "self",
-					TableName:  fromTable,
-					ColumnName: "id",
+					Namespace:  fromTable,
+					KeyName:    "id",
 				},
 				DataType: "int(11)",
 			}
@@ -370,9 +370,9 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				ColumnType:   "alias",
 				IsForeignKey: true,
 				ForeignKeyData: api2go.ForeignKeyData{
-					TableName:  targetTable,
+					Namespace:  targetTable,
 					DataSource: "self",
-					ColumnName: "id",
+					KeyName:    "id",
 				},
 				DataType: "int(11)",
 			}
@@ -385,47 +385,47 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 
 			config.Tables = append(config.Tables, newTable)
 
-			if targetTable != "usergroup" {
-				stateTable := TableInfo{
-					TableName: newTable.TableName + "_state",
-					Columns: []api2go.ColumnInfo{
-						{
-							ColumnName: "state",
-							Name:       "state",
-							ColumnType: "label",
-							DataType:   "varchar(100)",
-							IsNullable: false,
-						},
-						{
-							ColumnName:   "smd_id",
-							Name:         "smd_id",
-							ColumnType:   "alias",
-							DataType:     "int(11)",
-							IsForeignKey: true,
-							IsNullable:   false,
-							ForeignKeyData: api2go.ForeignKeyData{
-								DataSource: "self",
-								TableName:  "smd",
-								ColumnName: "id",
-							},
-						},
-						{
-							ColumnName:   newTable.TableName + "_id",
-							Name:         newTable.TableName + "_id",
-							ColumnType:   "alias",
-							DataType:     "int(11)",
-							IsForeignKey: true,
-							IsNullable:   false,
-							ForeignKeyData: api2go.ForeignKeyData{
-								DataSource: "self",
-								TableName:  newTable.TableName,
-								ColumnName: "id",
-							},
-						},
-					},
-				}
-				config.Tables = append(config.Tables, stateTable)
-			}
+			//if targetTable != "usergroup" {
+			//	stateTable := TableInfo{
+			//		TableName: newTable.TableName + "_state",
+			//		Columns: []api2go.ColumnInfo{
+			//			{
+			//				ColumnName: "state",
+			//				Name:       "state",
+			//				ColumnType: "label",
+			//				DataType:   "varchar(100)",
+			//				IsNullable: false,
+			//			},
+			//			{
+			//				ColumnName:   "smd_id",
+			//				Name:         "smd_id",
+			//				ColumnType:   "alias",
+			//				DataType:     "int(11)",
+			//				IsForeignKey: true,
+			//				IsNullable:   false,
+			//				ForeignKeyData: api2go.ForeignKeyData{
+			//					DataSource: "self",
+			//					TableName:  "smd",
+			//					ColumnName: "id",
+			//				},
+			//			},
+			//			{
+			//				ColumnName:   newTable.TableName + "_id",
+			//				Name:         newTable.TableName + "_id",
+			//				ColumnType:   "alias",
+			//				DataType:     "int(11)",
+			//				IsForeignKey: true,
+			//				IsNullable:   false,
+			//				ForeignKeyData: api2go.ForeignKeyData{
+			//					DataSource: "self",
+			//					TableName:  newTable.TableName,
+			//					ColumnName: "id",
+			//				},
+			//			},
+			//		},
+			//	}
+			//	config.Tables = append(config.Tables, stateTable)
+			//}
 
 		} else if relation2 == "has_many_and_belongs_to_many" {
 
@@ -443,9 +443,9 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				IsForeignKey: true,
 				ColumnType:   "alias",
 				ForeignKeyData: api2go.ForeignKeyData{
-					TableName:  fromTable,
+					Namespace:  fromTable,
 					DataSource: "self",
-					ColumnName: "id",
+					KeyName:    "id",
 				},
 				DataType: "int(11)",
 			}
@@ -458,8 +458,8 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				ColumnType:   "alias",
 				IsForeignKey: true,
 				ForeignKeyData: api2go.ForeignKeyData{
-					TableName:  targetTable,
-					ColumnName: "id",
+					Namespace:  targetTable,
+					KeyName:    "id",
 					DataSource: "self",
 				},
 				DataType: "int(11)",
@@ -473,48 +473,48 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 
 			config.Tables = append(config.Tables, newTable)
 
-			if targetTable != "usergroup" {
-
-				stateTable := TableInfo{
-					TableName: newTable.TableName + "_state",
-					Columns: []api2go.ColumnInfo{
-						{
-							ColumnName: "state",
-							Name:       "state",
-							ColumnType: "label",
-							DataType:   "varchar(100)",
-							IsNullable: false,
-						},
-						{
-							ColumnName:   "smd_id",
-							Name:         "smd_id",
-							ColumnType:   "alias",
-							IsForeignKey: true,
-							DataType:     "int(11)",
-							IsNullable:   false,
-							ForeignKeyData: api2go.ForeignKeyData{
-								TableName:  "smd",
-								ColumnName: "id",
-								DataSource: "self",
-							},
-						},
-						{
-							ColumnName:   newTable.TableName + "_id",
-							Name:         newTable.TableName + "_id",
-							ColumnType:   "alias",
-							DataType:     "int(11)",
-							IsForeignKey: true,
-							IsNullable:   false,
-							ForeignKeyData: api2go.ForeignKeyData{
-								TableName:  newTable.TableName,
-								ColumnName: "id",
-								DataSource: "self",
-							},
-						},
-					},
-				}
-				config.Tables = append(config.Tables, stateTable)
-			}
+			//if targetTable != "usergroup" {
+			//
+			//	stateTable := TableInfo{
+			//		TableName: newTable.TableName + "_state",
+			//		Columns: []api2go.ColumnInfo{
+			//			{
+			//				ColumnName: "state",
+			//				Name:       "state",
+			//				ColumnType: "label",
+			//				DataType:   "varchar(100)",
+			//				IsNullable: false,
+			//			},
+			//			{
+			//				ColumnName:   "smd_id",
+			//				Name:         "smd_id",
+			//				ColumnType:   "alias",
+			//				IsForeignKey: true,
+			//				DataType:     "int(11)",
+			//				IsNullable:   false,
+			//				ForeignKeyData: api2go.ForeignKeyData{
+			//					TableName:  "smd",
+			//					ColumnName: "id",
+			//					DataSource: "self",
+			//				},
+			//			},
+			//			{
+			//				ColumnName:   newTable.TableName + "_id",
+			//				Name:         newTable.TableName + "_id",
+			//				ColumnType:   "alias",
+			//				DataType:     "int(11)",
+			//				IsForeignKey: true,
+			//				IsNullable:   false,
+			//				ForeignKeyData: api2go.ForeignKeyData{
+			//					TableName:  newTable.TableName,
+			//					ColumnName: "id",
+			//					DataSource: "self",
+			//				},
+			//			},
+			//		},
+			//	}
+			//	config.Tables = append(config.Tables, stateTable)
+			//}
 		} else {
 			log.Errorf("Failed to identify relation type: %v", relation)
 		}

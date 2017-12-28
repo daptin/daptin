@@ -16,9 +16,13 @@ func InfoErr(err error, message string) {
 }
 func CheckErr(err error, message ...interface{}) {
 	if err != nil {
-		args := message[1:]
+		fmtString := message[0].(string)
+		args := make([]interface{}, 0)
+		if len(message) > 1 {
+			args = message[1:]
+		}
 		args = append(args, err)
-		log.Errorf(message[0].(string)+": %v", args)
+		log.Errorf(fmtString+": %v", args)
 	}
 }
 
@@ -42,8 +46,30 @@ func CheckRelations(config *CmsConfig) {
 	newTables := make([]TableInfo, 0)
 
 	for i, table := range config.Tables {
+
 		config.Tables[i].IsTopLevel = true
 		existingRelations := config.Tables[i].Relations
+
+		if table.TableName != "usergroup" &&
+			table.TableName != "world_column" &&
+			!table.IsJoinTable &&
+			!EndsWithCheck(table.TableName, "_audit") {
+			relation := api2go.NewTableRelation(table.TableName, "belongs_to", "user")
+			relationGroup := api2go.NewTableRelation(table.TableName, "has_many", "usergroup")
+
+			if !relationsDone[relation.Hash()] {
+				relationsDone[relation.Hash()] = true
+				config.Tables[i].Relations = append(config.Tables[i].Relations, relation)
+				finalRelations = append(finalRelations, relation)
+			}
+
+			if !relationsDone[relationGroup.Hash()] {
+				relationsDone[relationGroup.Hash()] = true
+				config.Tables[i].Relations = append(config.Tables[i].Relations, relationGroup)
+				finalRelations = append(finalRelations, relationGroup)
+			}
+
+		}
 
 		userRelation := api2go.NewTableRelation(table.TableName+"_state", "belongs_to", "user")
 		userGroupRelation := api2go.NewTableRelation(table.TableName+"_state", "has_many", "usergroup")
@@ -98,8 +124,6 @@ func CheckRelations(config *CmsConfig) {
 						},
 					}
 
-					newTables = append(newTables, stateTable)
-
 					stateTableHasOneDescription := api2go.NewTableRelation(stateTable.TableName, "has_one", "smd")
 					stateTableHasOneDescription.SubjectName = table.TableName + "_status"
 					stateTableHasOneDescription.ObjectName = table.TableName + "_smd"
@@ -107,6 +131,9 @@ func CheckRelations(config *CmsConfig) {
 					relationsDone[stateTableHasOneDescription.Hash()] = true
 					relationsDone[stateRelation.Hash()] = true
 					finalRelations = append(finalRelations, stateRelation)
+
+					stateTable.Relations = []api2go.TableRelation{stateRelation, stateTableHasOneDescription, userRelation, userGroupRelation}
+					newTables = append(newTables, stateTable)
 
 				}
 			}
@@ -127,8 +154,6 @@ func CheckRelations(config *CmsConfig) {
 					},
 				}
 
-				newTables = append(newTables, stateTable)
-
 				stateTableHasOneDescription := api2go.NewTableRelation(stateTable.TableName, "has_one", "smd")
 				stateTableHasOneDescription.SubjectName = table.TableName + "_status"
 				stateTableHasOneDescription.ObjectName = table.TableName + "_smd"
@@ -148,27 +173,13 @@ func CheckRelations(config *CmsConfig) {
 				finalRelations = append(finalRelations, stateRelation)
 				finalRelations = append(finalRelations, userRelation)
 				finalRelations = append(finalRelations, userGroupRelation)
+
+				stateTable.Relations = []api2go.TableRelation{stateRelation, userRelation, userGroupRelation, stateTableHasOneDescription}
+				newTables = append(newTables, stateTable)
 			}
-
-			if table.TableName == "usergroup" {
-				continue
-			}
-
-			relation := api2go.NewTableRelation(table.TableName, "belongs_to", "user")
-			finalRelations = append(finalRelations, relation)
-			relationsDone[relation.Hash()] = true
-
-			if table.TableName == "world_column" {
-				continue
-			}
-
-			relationGroup := api2go.NewTableRelation(table.TableName, "has_many", "usergroup")
-			relationsDone[relationGroup.Hash()] = true
-
-			finalRelations = append(finalRelations, relationGroup)
 
 		}
-
+		config.Tables[i] = table
 	}
 
 	log.Infof("%d state tables on base entities", len(newTables))
@@ -184,7 +195,9 @@ func CheckRelations(config *CmsConfig) {
 	//	log.Infof("All relations: %v", relation.String())
 	//}
 	PrintRelations(finalRelations)
+	config.Relations = finalRelations
 }
+
 func PrintRelations(relations []api2go.TableRelation) {
 	table := simpletable.New()
 
@@ -241,16 +254,7 @@ func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB, tx *sqlx.Tx) {
 func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]bool, map[string]api2go.ColumnInfo) {
 	columnsWeWant := map[string]bool{}
 	colInfoMap := map[string]api2go.ColumnInfo{}
-
-	// first fist column names for each column, if they were initially left blank.
-	for i, c := range tableInfo.Columns {
-		if c.ColumnName == "" {
-			c.ColumnName = c.Name
-			tableInfo.Columns[i].Name = c.Name
-		}
-		columnsWeWant[c.ColumnName] = false
-		colInfoMap[c.ColumnName] = c
-	}
+	finalColumnList := make([]api2go.ColumnInfo, 0)
 
 	// append all the standard columns to this table
 	for _, sCol := range StandardColumns {
@@ -260,17 +264,31 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
 		} else {
 			colInfoMap[sCol.Name] = sCol
 			columnsWeWant[sCol.Name] = false
-			tableInfo.Columns = append(tableInfo.Columns, sCol)
+			finalColumnList = append(finalColumnList, sCol)
 		}
 	}
+
+	// first fist column names for each column, if they were initially left blank.
+	for _, c := range tableInfo.Columns {
+		_, ok := colInfoMap[c.ColumnName]
+		if ok {
+
+		} else {
+			columnsWeWant[c.ColumnName] = false
+			colInfoMap[c.ColumnName] = c
+			finalColumnList = append(finalColumnList, c)
+		}
+	}
+
+	tableInfo.Columns = finalColumnList
+
 	return columnsWeWant, colInfoMap
 }
 
 func CheckTable(tableInfo *TableInfo, db *sqlx.DB, tx *sqlx.Tx) {
 
-	finalColumns := make(map[string]api2go.ColumnInfo, 0)
-	finalColumnsList := make([]api2go.ColumnInfo, 0)
-
+	//finalColumns := make(map[string]api2go.ColumnInfo, 0)
+	// if column name is empty, use name as column name
 	for i, c := range tableInfo.Columns {
 		if c.ColumnName == "" {
 			c.ColumnName = c.Name
@@ -278,21 +296,13 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB, tx *sqlx.Tx) {
 		}
 	}
 
-	for _, col := range tableInfo.Columns {
-		finalColumns[col.ColumnName] = col
-	}
-
-	for _, c := range finalColumns {
-		finalColumnsList = append(finalColumnsList, c)
-	}
-	tableInfo.Columns = finalColumnsList
+	// make a map finalColumns from array of Columns
+	//for _, col := range tableInfo.Columns {
+	//	finalColumns[col.ColumnName] = col
+	//}
 
 	columnsWeWant, colInfoMap := CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo)
 	log.Infof("Columns we want in [%v]", tableInfo.TableName)
-
-	if tableInfo.TableName == "todo" {
-		log.Infof("special break")
-	}
 
 	PrintTableInfo(tableInfo)
 	//for col := range columnsWeWant {

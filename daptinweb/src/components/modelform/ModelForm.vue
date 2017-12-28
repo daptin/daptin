@@ -32,7 +32,7 @@
 
 <script>
   import VueFormGenerator from "vue-form-generator";
-//  import 'vue-form-generator/dist/vfg.css'
+  //  import 'vue-form-generator/dist/vfg.css'
 
   export default {
     props: {
@@ -61,10 +61,6 @@
       meta: {
         type: Object,
         required: true,
-      },
-      title: {
-        type: String,
-        required: false,
       }
     },
     components: {
@@ -96,7 +92,7 @@
       setRelation(item) {
         console.log("save relation", item);
 
-        var meta = this.meta[item.name];
+        const meta = this.meta[item.name];
 
         if (meta.jsonApi == "hasOne") {
 
@@ -115,10 +111,13 @@
       },
       getTextInputType(columnMeta) {
         let inputType = columnMeta.ColumnType;
-        console.log("get text input type for ", columnMeta)
+        console.log("get text input type for ", columnMeta);
         if (inputType.indexOf(".") > 0) {
-          var inputTypeParts = inputType.split(".")
+          const inputTypeParts = inputType.split(".");
           if (inputTypeParts[0] == "file") {
+            inputTypeParts.shift();
+            return inputTypeParts.join(".");
+          } else if (inputTypeParts[0] == "image") {
             inputTypeParts.shift();
             return inputTypeParts.join(".");
           } else if (inputTypeParts[0] == "json") {
@@ -128,7 +127,7 @@
         }
 
         if (["json", "yaml"].indexOf(columnMeta.ColumnType) > -1) {
-          console.log("get text input type for json ", this.model)
+          console.log("get text input type for json ", this.model);
           return columnMeta.ColumnName
         }
 
@@ -166,10 +165,12 @@
       },
       getInputType(columnMeta) {
         let inputType = columnMeta.ColumnType;
-
         if (inputType.indexOf(".") > 0) {
-          var inputTypeParts = inputType.split(".");
+          const inputTypeParts = inputType.split(".");
           if (inputTypeParts[0] == "file") {
+            return "fileUpload";
+          }
+          if (inputTypeParts[0] == "image") {
             return "fileUpload";
           }
         }
@@ -213,7 +214,7 @@
         return inputType;
       },
       saveRow: function () {
-        var that = this;
+        const that = this;
         console.log("save row", this.model);
 //        window.localStorage.setItem(that.$route.path, JSON.stringify(this.model))
         this.loading = true;
@@ -237,17 +238,17 @@
 
         // todo: convert strings to booleans and numbers
 
-        var that = this;
-        var formFields = [];
+        const that = this;
+        let formFields = [];
         console.log("that mode", that.model);
         that.formValue = that.model;
 
         console.log("model form for ", this.meta);
-        var columnsKeys = Object.keys(this.meta);
+        const columnsKeys = Object.keys(this.meta);
         that.formModel = {};
 
 
-        var skipColumns = [
+        let skipColumns = [
           "reference_id",
           "id",
           "updated_at",
@@ -257,7 +258,7 @@
           "usergroup_id"
         ];
 
-        var foreignKeys = [];
+        let foreignKeys = [];
 
         formFields = columnsKeys.map(function (columnName) {
 
@@ -293,13 +294,13 @@
           }
 
           if (columnMeta.ColumnType == "truefalse") {
-            that.model[columnMeta.ColumnName] = that.model[columnMeta.ColumnName] === "1" || that.model[columnMeta.ColumnName] === 1 ? true : false;
+            that.model[columnMeta.ColumnName] = that.model[columnMeta.ColumnName] === "1" || that.model[columnMeta.ColumnName] === 1;
           }
 
           if (columnMeta.ColumnType == "date") {
-            var parseTime = Date.parse(that.model[columnMeta.ColumnName])
+            var parseTime = Date.parse(that.model[columnMeta.ColumnName]);
             if (!isNaN(parseTime)) {
-              console.log("parsed time is not nan", parseTime)
+              console.log("parsed time is not nan", parseTime);
               that.model[columnMeta.ColumnName] = new Date(parseTime)
             }
           }
@@ -333,7 +334,7 @@
                 console.warn("Validation error in Name field! Errors:", errors);
             }
           };
-          console.log("check column meta for entity", columnMeta)
+          console.log("check column meta for entity", columnMeta);
           if (columnMeta.ColumnType == "entity") {
             if (columnMeta.jsonApi == "hasOne") {
               resVal.value = that.model[resVal.ColumnName];

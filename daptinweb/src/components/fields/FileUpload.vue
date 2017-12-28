@@ -28,6 +28,7 @@
       }
     },
     mounted() {
+      console.log("File upload initial value: ", this.value)
       setTimeout(function () {
         let $input = $("input[type=file]");
         if ($input && $input.length > 0) {
