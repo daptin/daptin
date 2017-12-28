@@ -2,7 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
-	//log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	//"gopkg.in/Masterminds/squirrel.v1"
 
 	"github.com/daptin/daptin/server/auth"
@@ -41,6 +41,15 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 		if result == nil {
 			continue
 		}
+
+		if BeginsWith(result["__type"].(string), "image.") {
+			log.Infof("Included object is an image")
+			returnMap = append(returnMap, result)
+			continue
+		}
+
+		log.Infof("Check permission for : %v", result)
+
 		referenceId := result["reference_id"].(string)
 		_, ok := notIncludedMapCache[referenceId]
 		if ok {
@@ -73,6 +82,12 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 
 	return returnMap, nil
 
+}
+func BeginsWith(longerString string, smallerString string) bool {
+	if len(smallerString) > len(longerString) {
+		return false
+	}
+	return longerString[0:len(smallerString)] == smallerString
 }
 
 func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
