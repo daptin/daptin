@@ -4,7 +4,7 @@
     <section class="content-header">
       <ol class="breadcrumb">
         <li>
-          <a href="javascript:;">
+          <a href="javascript:">
             <i class="fa fa-home"></i>New item</a>
         </li>
       </ol>
@@ -166,7 +166,7 @@
                   return null;
                 }
                 col.ColumnName = col.Name;
-                col.DataType = that.columnTypes[col.ColumnType].DataTypes[0]
+                col.DataType = that.columnTypes[col.ColumnType].DataTypes[0];
                 return col;
               }).filter(function (e) {
                 return !!e && !e.ReadOnly;
@@ -180,7 +180,7 @@
             return !!e && !e.ReadOnly
           })
         });
-        console.log("New table json", fileContent)
+        console.log("New table json", fileContent);
 
         var postData = {
           "schema_file": [{
@@ -267,17 +267,21 @@
               })
             } else {
               console.log("add column", model);
-              model.ReadOnly = true
+              model.ReadOnly = true;
               finalColumns.push(model);
             }
           }
+          finalColumns.forEach(function (e) {
+            console.log("final column", e);
+            e.ColumnType = e.ColumnType.split(".")[0];
+          });
           that.data.Columns = finalColumns;
           that.data.Relations = finalRelations;
           console.log("selected world columns", columns)
         });
       }
-      console.log("selected world", query)
-      console.log("column types", that.columnTypes)
+      console.log("selected world", query);
+      console.log("column types", that.columnTypes);
       that.setup();
     }
   }

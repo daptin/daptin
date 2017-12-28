@@ -1,8 +1,12 @@
 <!-- FileUpload.vue -->
 <template>
   <div class="col-md-12">
-    <div id="jsonEditor" style="width: 80%; height: 600px;" v-if="!useAce"></div>
-    <editor ref="aceEditor" :options="options" :content="value" v-if="useAce" :lang="'markdown'"
+    <div class="ui icon buttons">
+      <button @click="mode = 'ace'" class="btn btn-box-tool"><i class="fa fa-2x fa-align-justify grey"></i></button>
+      <button @click="mode = 'je'" class="btn btn-box-tool"><i class="fa fa-2x fa-pencil grey"></i></button>
+    </div>
+    <div id="jsonEditor" style="width: 100%; height: 600px;" v-if="mode == 'je'"></div>
+    <editor ref="aceEditor" :options="options" :content="value" v-if="mode == 'ace'" :lang="'markdown'"
             :sync="true"></editor>
   </div>
 </template>
@@ -23,6 +27,7 @@
       return {
         fileList: [],
         useAce: false,
+        mode: 'ace',
         options: {
           fontSize: 18,
           wrap: true,
@@ -111,15 +116,17 @@
         console.log("this is new");
         if (true) {
           try {
-            var container = document.getElementById("jsonEditor");
-            var editor = new Jsoneditor(container, {
-              onChange: function () {
-                that.value = JSON.stringify(editor.get());
-              }
-            });
             var json = JSON.parse(startVal);
-            editor.set(json);
-            return;
+            if (json instanceof Object) {
+              var container = document.getElementById("jsonEditor");
+              var editor = new Jsoneditor(container, {
+                onChange: function () {
+                  that.value = JSON.stringify(editor.get());
+                }
+              });
+              editor.set(json);
+              return;
+            }
           } catch (e) {
             console.log("Failed to init json editor", e)
           }
@@ -169,6 +176,31 @@
     methods: {
       updated() {
         console.log("editor adsflkj asdf", arguments);
+      }
+    },
+    watch: {
+      mode: function (newMode) {
+        var that = this;
+        var startVal = this.value;
+        switch (newMode) {
+          case "ace":
+            break;
+          case "je":
+            var json = JSON.parse(startVal);
+            if (json instanceof Object) {
+              setTimeout(function () {
+                var container = document.getElementById("jsonEditor");
+                var editor = new Jsoneditor(container, {
+                  onChange: function () {
+                    that.value = JSON.stringify(editor.get());
+                  }
+                });
+                editor.set(json);
+              }, 500)
+            }
+            break;
+        }
+        console.log("mode changes", arguments)
       }
     }
   };

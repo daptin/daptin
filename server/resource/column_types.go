@@ -88,6 +88,8 @@ func (ct ColumnType) Fake() interface{} {
 		return fake.Sentences()
 	case "file":
 		return ""
+	case "image":
+		return ""
 	case "url":
 		return "https://places.com/"
 	default:
@@ -293,7 +295,14 @@ var ColumnTypes = []ColumnType{
 		BlueprintType: "string",
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
-		DataTypes:     []string{"text"},
+		DataTypes:     []string{"blob"},
+	},
+	{
+		Name:          "image",
+		BlueprintType: "string",
+		ReclineType:   "binary",
+		Validations:   []string{"base64"},
+		DataTypes:     []string{"blob"},
 	},
 	{
 		Name:          "url",
