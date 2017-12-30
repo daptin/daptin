@@ -68,6 +68,15 @@
                     </tr>
                     </tbody>
                   </table>
+
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="row" v-for="imageField in imageFields">
+                <h3>{{imageField.name | titleCase}}</h3>
+                <div class="col-md-6" v-for="image in imageField.value">
+                  <img style="height: 200px; width: 100%" :src="'data:image/jpeg;base64,'  + image.contents">
                 </div>
               </div>
             </div>
@@ -156,8 +165,10 @@
         attributes: null,
         visible2: false,
         normalFields: [],
+        imageFields: [],
         relatedData: {},
         relations: [],
+        imageMap: {},
         relationFinder: {},
         truefalse: []
       }
@@ -169,7 +180,7 @@
       initiateDelete: function () {
 
         if (!this.showAll) {
-          console.log("not the parent")
+          console.log("not the parent");
           this.$emit("deleteRow", this.model)
         } else {
           console.log("start to delete this row", this.model, this.showAll)
@@ -266,12 +277,13 @@
       },
       init: function () {
         var that = this;
-        // console.log("data for detailed row ", this.model)
+         console.log("data for detailed row ", this.model);
 
         this.meta = this.jsonApi.modelFor(this.jsonApiModelName);
 
         this.attributes = this.meta["attributes"];
         this.truefalse = [];
+        this.imageFields = [];
         var attributes = this.meta["attributes"];
 
         var normalFields = [];
@@ -301,6 +313,7 @@
           item.label = columnNameTitleCase;
           item.title = columnNameTitleCase;
           item.style = "";
+          console.log("Column information: ", item)
 
           if (item.valueType == "entity") {
 
@@ -310,7 +323,7 @@
               var columnName = item.name;
               columnNameTitleCase = item.name
 
-              // console.log("relation", item, that.jsonApiModelName, that.model);
+//              console.log("relation", item, that.jsonApiModelName, that.model);
 
               var builderStack = that.jsonApi.one(that.jsonApiModelName, that.model["id"]).all(item.name);
               var finder = builderStack.builderStack;
@@ -359,6 +372,10 @@
             continue;
           }
 
+          if (item.type == "photo") {
+            this.imageFields.push(item)
+            continue;
+          }
 
           if (item.type == "datetime") {
             continue;
@@ -374,15 +391,17 @@
             item.style = "width: 100%; min-height: 20px;"
           }
 
-          if (item.name == "permission") {
-            continue
-          }
-
           if (item.name == "reference_id") {
             continue
           }
 
           if (item.name == "password") {
+            continue
+          }
+          if (item.name == "created_at") {
+            continue
+          }
+          if (item.name == "updated_at") {
             continue
           }
 

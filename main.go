@@ -34,7 +34,7 @@ func init() {
 func main() {
 	stream.AddSink(&health.WriterSink{os.Stdout})
 	boxStatic1, err := rice.FindBox("daptinweb/dist/static")
-	resource.CheckError(err, "Failed to open dist/static")
+	resource.CheckErr(err, "Failed to open dist/static")
 	boxRoot1, err := rice.FindBox("daptinweb/dist")
 	resource.CheckErr(err, "Failed to open dist")
 
@@ -60,7 +60,7 @@ func main() {
 		boxRoot = boxRoot1.HTTPBox()
 	}
 	db, err := server.GetDbConnection(*db_type, *connection_string)
-	resource.CheckError(err, "Failed to connect to database")
+	resource.CheckErr(err, "Failed to connect to database")
 	log.Printf("Connection acquired from database")
 
 	// Inherit a net.Listener from our parent process or listen anew.

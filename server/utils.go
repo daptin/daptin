@@ -86,10 +86,21 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 		var t resource.TableInfo
 
 		err = json.Unmarshal([]byte(world_schema_json), &t)
+
+
 		if err != nil {
 			log.Errorf("Failed to unmarshal json schema: %v", err)
 			continue
 		}
+
+		//for _, col := range t.Columns {
+		//	if col.ForeignKeyData.Namespace != col.ForeignKeyData.TableName {
+		//		col.ForeignKeyData.Namespace = col.ForeignKeyData.TableName
+		//	}
+		//	if col.ForeignKeyData.KeyName != col.ForeignKeyData.ColumnName {
+		//		col.ForeignKeyData.KeyName = col.ForeignKeyData.ColumnName
+		//	}
+		//}
 
 		t.TableName = table_name
 		t.Permission = permission
