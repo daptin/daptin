@@ -126,7 +126,7 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 
 	tx, errb := db.Beginx()
 	//_, errb := db.Exec("begin")
-	resource.CheckError(errb, "Failed to begin transaction")
+	resource.CheckErr(errb, "Failed to begin transaction")
 
 	resource.CheckAllTableStatus(&initConfig, db, tx)
 	resource.CreateRelations(&initConfig, tx)
@@ -168,7 +168,7 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 		jwtSecret = newSecret
 	}
 
-	resource.CheckError(err, "Failed to get config store")
+	resource.CheckErr(err, "Failed to get config store")
 	err = CheckSystemSecrets(configStore)
 	resource.CheckErr(err, "Failed to initialise system secrets")
 

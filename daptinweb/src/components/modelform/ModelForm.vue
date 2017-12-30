@@ -272,10 +272,8 @@
           columnMeta.ColumnName = columnName;
           const columnLabel = that.titleCase(columnMeta.Name);
 
-          if (columnMeta.columnType && columnMeta.columnType === "entity") {
+          if (columnMeta.columnType && !columnMeta.ColumnType ) {
             columnMeta.ColumnType = columnMeta.columnType;
-//            console.log("Skip relation", columnName);
-//            return null;
           }
 
           if (columnMeta.ColumnType == "hidden") {

@@ -199,6 +199,20 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 				}
 			}
 		}
+
+		for _, col := range cols {
+			//log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue)
+			if col.ExcludeFromApi {
+				continue
+			}
+
+			if !col.IsForeignKey || col.ForeignKeyData.DataSource == "self" {
+				continue
+			}
+
+			res[col.ColumnName] = NewJsonApiRelation(col.Name, col.ColumnName, "hasMany", col.ColumnType)
+		}
+
 		res["__type"] = api2go.ColumnInfo{
 			Name:       "type",
 			ColumnName: "__type",
