@@ -248,6 +248,16 @@ const WorldManager = function () {
     })
   };
 
+
+  jsonApi.define("image.png|jpg|jpeg|gif|tiff", {
+    "__type": "value",
+    "contents": "value",
+    "name": "value",
+    "reference_id": "value",
+    "src": "value",
+    "type": "value"
+  });
+
   that.loadModel = function (modelName) {
     var promise = new Promise(function (resolve, reject) {
 
