@@ -32,7 +32,7 @@ func (dr *DbResource) GetActionByName(typeName string, actionName string) (Actio
 	}
 
 	err = json.Unmarshal([]byte(a.ActionSchema), &action)
-	CheckError(err, "failed to unmarshal infields")
+	CheckErr(err, "failed to unmarshal infields")
 
 	action.Name = a.Name
 	action.Label = a.Name
@@ -66,7 +66,7 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 			continue
 		}
 		err = json.Unmarshal([]byte(a.ActionSchema), &act)
-		CheckError(err, "failed to unmarshal infields")
+		CheckErr(err, "failed to unmarshal infields")
 
 		act.Name = a.Name
 		act.Label = a.Label
@@ -79,12 +79,6 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 	}
 
 	return action, nil
-}
-
-func CheckError(err error, msg string) {
-	if err != nil {
-		log.Errorf(msg+" : %v", err)
-	}
 }
 
 func (dr *DbResource) GetActionPermissionByName(worldId int64, actionName string) (PermissionInstance, error) {
@@ -686,7 +680,8 @@ func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, err
 	}
 
 	var str string
-	err = dr.db.QueryRowx(s, q...).Scan(&str)
+	row := dr.db.QueryRowx(s, q...)
+	err = row.Scan(&str)
 	return str, err
 
 }
@@ -771,7 +766,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 			}
 
 			namespace := columnInfo.ForeignKeyData.Namespace
-			log.Infof("Resolve foreign key from [%v][%v]", columnInfo.ForeignKeyData.DataSource, namespace)
+			//log.Infof("Resolve foreign key from [%v][%v]", columnInfo.ForeignKeyData.DataSource, namespace)
 			switch columnInfo.ForeignKeyData.DataSource {
 			case "self":
 				referenceIdInt, ok := val.(int64)

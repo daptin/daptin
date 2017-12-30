@@ -173,8 +173,8 @@
         let selectedInstanceId = that.$route.params.refId;
 
         jsonApi.find(tableName, selectedInstanceId).then(function (res) {
-          res = res.data;
           console.log("got object", res);
+          res = res.data;
           that.$store.commit("SET_SELECTED_ROW", res);
         }, function (err) {
           console.log("Errors", err)
@@ -282,8 +282,8 @@
         that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", selectedInstanceId);
         console.log("Get instance: ", tableName, selectedInstanceId);
         jsonApi.find(tableName, selectedInstanceId).then(function (res) {
+          console.log("got object", arguments);
           res = res.data;
-          console.log("got object", res);
           that.$store.commit("SET_SELECTED_ROW", res);
         }, function (err) {
           console.log("Errors", err)
