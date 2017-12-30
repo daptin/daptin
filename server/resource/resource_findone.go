@@ -30,7 +30,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	log.Infof("Find [%s] by id [%s]", dr.model.GetName(), referenceId)
 
 	data, include, err := dr.GetSingleRowByReferenceId(dr.model.GetName(), referenceId)
-	log.Infof("Single row result: %v", data)
+	//log.Infof("Single row result: %v", data)
 	for _, bf := range dr.ms.AfterFindOne {
 		//log.Infof("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
@@ -61,7 +61,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	for _, inc := range include {
 		p, ok := inc["permission"].(int64)
 		if !ok {
-			log.Errorf("Failed to convert [%v] to permission: %v", inc["permission"], ok)
+			log.Infof("Failed to convert [%v] to permission: %v", inc["permission"], inc["__type"])
 			p = 0
 		}
 		incType := inc["__type"].(string)

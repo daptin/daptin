@@ -206,7 +206,7 @@ func (resource *DbResource) GetCloudStoreByName(name string) (CloudStore, error)
 		cloudStore.StoreType = row["store_type"].(string)
 		params := make(map[string]interface{})
 		err = json.Unmarshal([]byte(row["store_parameters"].(string)), params)
-		CheckErr(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
+		CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
 		cloudStore.StoreParameters = params
 		cloudStore.RootPath = row["root_path"].(string)
 		cloudStore.StoreProvider = row["store_provider"].(string)
