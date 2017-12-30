@@ -48,7 +48,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 			continue
 		}
 
-		log.Infof("Check permission for : %v", result)
+		//log.Infof("Check permission for : %v", result)
 
 		referenceId := result["reference_id"].(string)
 		_, ok := notIncludedMapCache[referenceId]

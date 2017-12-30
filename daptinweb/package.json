@@ -51,6 +51,7 @@
     "autoprefixer": "^6.7.2",
     "babel-core": "^6.22.1",
     "babel-eslint": "^7.1.1",
+    "ecstatic": "^2.0.0",
     "babel-loader": "^6.2.10",
     "babel-plugin-istanbul": "^3.1.2",
     "babel-plugin-transform-runtime": "^6.22.0",
