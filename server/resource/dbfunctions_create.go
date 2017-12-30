@@ -37,16 +37,19 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 				}
 			}
 
+			if len(cols) < 1 {
+				log.Infof("No foreign keys in %v", table.TableName)
+				continue
+			}
+
 			indexName := GetMD5Hash("index_join_" + table.TableName + "_" + "_unique")
 			alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + strings.Join(cols, ", ") + ")"
 			log.Infof("Create unique index sql: %v", alterTable)
 			_, err := db.Exec(alterTable)
 			if err != nil {
-				log.Infof("Table[%v] Column[%v]: Failed to create unique join index: %v", table.TableName, err)
+				log.Infof("Table[%v] Column[%v]: Failed to create unique join index: %v", table.TableName, cols, err)
 			}
-
 		}
-
 	}
 }
 
@@ -136,9 +139,10 @@ func CheckAuditTables(config *CmsConfig) {
 		auditTableName := table.TableName + "_audit"
 		existingAuditTable, ok := tableMap[auditTableName]
 		if !ok {
-			createAuditTableFor = append(createAuditTableFor, table.TableName)
+			if table.IsAuditEnabled {
+				createAuditTableFor = append(createAuditTableFor, table.TableName)
+			}
 		} else {
-
 			if len(table.Columns) > len(existingAuditTable.Columns) {
 				log.Infof("New columns added to the table, audit table need to be updated")
 				updateAuditTableFor = append(updateAuditTableFor, table.TableName)
