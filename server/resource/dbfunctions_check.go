@@ -14,6 +14,7 @@ func InfoErr(err error, message string) {
 	}
 
 }
+
 func CheckErr(err error, message ...interface{}) {
 	if err != nil {
 		fmtString := message[0].(string)
@@ -22,7 +23,19 @@ func CheckErr(err error, message ...interface{}) {
 			args = message[1:]
 		}
 		args = append(args, err)
-		log.Errorf(fmtString+": %v", args)
+		log.Errorf(fmtString+": %v", args...)
+	}
+}
+
+func CheckInfo(err error, message ...interface{}) {
+	if err != nil {
+		fmtString := message[0].(string)
+		args := make([]interface{}, 0)
+		if len(message) > 1 {
+			args = message[1:]
+		}
+		args = append(args, err)
+		log.Infof(fmtString+": %v", args...)
 	}
 }
 
