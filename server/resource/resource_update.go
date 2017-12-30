@@ -308,7 +308,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			return NewResponse(nil, nil, 500, nil), err
 		}
 	}
-	if data.IsDirty() {
+	if data.IsDirty() && dr.tableInfo.IsAuditEnabled {
 
 		auditModel := data.GetAuditModel()
 		log.Infof("Object [%v][%v] has been changed, trying to audit in %v", data.GetTableName(), data.GetID(), auditModel.GetTableName())
@@ -335,7 +335,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		}
 
 	} else {
-		log.Infof("[%v][%v] Model was not dirty, not creating an audit row", data.GetTableName(), data.GetID())
+		log.Infof("[%v][%v] Not creating an audit row", data.GetTableName(), data.GetID())
 	}
 
 	//query, vals, err = squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": id}).ToSql()
