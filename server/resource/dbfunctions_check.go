@@ -208,7 +208,6 @@ func CheckRelations(config *CmsConfig) {
 	//	log.Infof("All relations: %v", relation.String())
 	//}
 	PrintRelations(finalRelations)
-	config.Relations = finalRelations
 }
 
 func PrintRelations(relations []api2go.TableRelation) {
