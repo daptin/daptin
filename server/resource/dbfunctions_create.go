@@ -259,7 +259,6 @@ func CheckAuditTables(config *CmsConfig) {
 }
 
 func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConfig) {
-
 	existingRelationMap := make(map[string]bool)
 
 	for _, rel := range config.Relations {
