@@ -14,10 +14,22 @@
   <img src="https://github.com/daptin/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" title="Daptin" height="140" />
     </p>
 
-## What is Daptin?
-Daptin is a way to serve RESTful API from a MySQL/PostgreSQL/SQLite Database.
 
-## Installation
+**Daptin is an open-source backend development framework** to develop and deploy production-ready JSONAPI microservices. With Daptin you can design your data model and have a production ready JSON API online in minutes.
+
+By following shared conventions, you can increase productivity, take advantage of generalized tooling, and focus on what matters: your application.
+
+The framework integrates with cloud servers and is compatible with existing libraries and tools like JSONAPI.org/implementations and OAuth2. Daptin comes as a native binary and a Docker-based runtime which can be deployed to any server or cloud.
+
+The framework provides powerful abstractions and building blocks to develop flexible, scalable GraphQL backends:
+
+- **Daptin database** to easily evolves your data schema & migrates your database [Postgres/MySQL/SQLite]
+- **Flexible auth** using the JWT-based authentication & permission system
+- **Realtime API** using Websocket subscriptions
+- **Works with all frontend frameworks** like React, Vue.js, Angular (Quickstart Examples)
+
+
+## Quickstart
 
 ### Cloud
 
@@ -130,39 +142,13 @@ Tables:
     DataType: varchar(500)
     ColumnType: label
     IsIndexed: true
-  - Name: url
-    DataType: varchar(200)
-    ColumnType: url
-    IsNullable: true
   - Name: completed
     DataType: int(1)
     ColumnType: truefalse
     DefaultValue: 'false'
-  - Name: schedule
-    DataType: date
-    ColumnType: date
-    IsNullable: true
-  - Name: order
-    ColumnName: item_order
-    DataType: int(4)
-    ColumnType: measurement
-    DefaultValue: '10'
-  - Name: text
-    DataType: text
-    ColumnType: content
-    IsNullable: true
-  Conformations:
-  - ColumnName: order
-    Tags: numeric
   Validations:
   - ColumnName: title
     Tags: required
-- TableName: tag
-  Columns:
-  - Name: label
-    DataType: varchar(100)
-    ColumnType: label
-    IsIndexed: true
 - TableName: project
   Columns:
   - Name: name
@@ -173,9 +159,6 @@ Relations:
 - Subject: todo
   Relation: has_one
   Object: project
-- Subject: todo
-  Relation: has_many
-  Object: tag
 ```
 
 ## Web Dashboard
@@ -198,7 +181,6 @@ Daptin will provide
 - Data-as-objects (instead of just strings)
 
 Compared to building JSON APIs directly, Daptin provides APIs that makes writing fast frontend apps simpler.
-
 
 
 ## Why Daptin?
