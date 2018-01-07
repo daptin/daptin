@@ -1,5 +1,5 @@
-hash: 8c1380c9467a28a4add411ba02c96276b012ec349caf49dd412106be1fe0bb93
-updated: 2017-12-27T17:08:05.267064104+05:30
+hash: 4b03ea815ebf8265ddad0dc212dafe851796a79673189f52fd6da3b259902981
+updated: 2018-01-07T17:17:34.034589848+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -16,7 +16,7 @@ imports:
 - name: github.com/araddon/dateparse
   version: ca7e753bd149dae747d76fa7d52b20b920f3a814
 - name: github.com/artpar/api2go
-  version: 958e1eb7583c35a54cedf7b5c8a624b6df27ddf9
+  version: a333385d19a28b98c69a0cdcac14e2512faf4d77
   subpackages:
   - jsonapi
   - routing
@@ -100,7 +100,7 @@ imports:
   - service/s3/s3manager
   - service/sts
 - name: github.com/Azure/azure-sdk-for-go
-  version: 990842d1126ef6e294152c5f6f4e3f804a3cfd6d
+  version: 57da6001a1d275435ae24b8a39c04828d9623321
   subpackages:
   - storage
 - name: github.com/Azure/go-autorest
@@ -110,7 +110,6 @@ imports:
   - autorest/adal
   - autorest/azure
   - autorest/date
-  - autorest/to
 - name: github.com/boombuler/barcode
   version: 3cfea5ab600ae37946be2b763b8ec2c1cf2d272d
   subpackages:
@@ -168,7 +167,7 @@ imports:
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
 - name: github.com/go-playground/validator
-  version: b1f51f36f1c98cc97f777d6fc9d4b05eaa0cabb5
+  version: 230db62e071d40171640c9deb875d46a3858d9dd
 - name: github.com/go-sql-driver/mysql
   version: a0583e0143b1624142adab07e0e97fe106d99561
 - name: github.com/gocraft/health
@@ -210,7 +209,7 @@ imports:
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
-  version: 5ab525f4fb1678e197ae59401e9050fa0b6cb5fd
+  version: 512169e5d707b96d6306216743bb7884a2b3a3c9
 - name: github.com/hashicorp/hcl
   version: 23c074d0eceb2b8a5bfdbb271ab780cde70f05a8
   subpackages:
@@ -256,7 +255,7 @@ imports:
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - name: github.com/labstack/echo
-  version: 62f95acdd77737beb11cce81eab57fc1d2f95503
+  version: c8bedd1cf928bcd4315f771319d3063746066c11
 - name: github.com/labstack/gommon
   version: 57409ada9da0f2afad6664c49502f8c50fbd8476
   subpackages:
@@ -274,8 +273,10 @@ imports:
   version: bcc3636384ce80a109a6039432b30ff5b82476ee
 - name: github.com/magiconair/properties
   version: 49d762b9817ba1c2e9d0c69183c2b4a8b8f1d934
+- name: github.com/marstr/guid
+  version: 8bdf7d1a087ccc975cf37dd6507da50698fd19ca
 - name: github.com/mattn/go-colorable
-  version: 6fcc0c1fd9b620311d821b106a400b35dc95c497
+  version: 586e6dcca296d085100876beb6dbf02287a247f7
 - name: github.com/mattn/go-isatty
   version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/mattn/go-sqlite3
@@ -454,7 +455,7 @@ imports:
 - name: gopkg.in/go-playground/validator.v8
   version: 5f1438d3fca68893a817e4a66806cea46a9e4ebf
 - name: gopkg.in/go-playground/validator.v9
-  version: b1f51f36f1c98cc97f777d6fc9d4b05eaa0cabb5
+  version: 230db62e071d40171640c9deb875d46a3858d9dd
   subpackages:
   - translations/en
 - name: gopkg.in/Masterminds/squirrel.v1

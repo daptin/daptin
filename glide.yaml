@@ -7,7 +7,7 @@ import:
   version: 1.49
 - package: github.com/gocraft/health
 - package: github.com/artpar/api2go
-  version: ^2.3.3
+  version: ^2.3.4
 - package: github.com/artpar/api2go-adapter
   subpackages:
   - gingonic
