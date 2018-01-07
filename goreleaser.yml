@@ -21,7 +21,7 @@ build:
   # - Version (Tag with the `v` prefix stripped)
   # The default is `-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}`
   # Date format is `2006-01-02_15:04:05`
-  ldflags: -linkmode external  -extldflags -static -w
+  ldflags: -linkmode external  -extldflags -static -w  -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 
   # Custom environment variables to be set durign the builds.
   # Default is empty
