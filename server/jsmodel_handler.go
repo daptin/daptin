@@ -169,7 +169,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 		res := map[string]interface{}{}
 
 		for _, col := range cols {
-			log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue, col.IsForeignKey, col.ForeignKeyData)
+			//log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue, col.IsForeignKey, col.ForeignKeyData)
 			if col.ExcludeFromApi {
 				continue
 			}
@@ -182,7 +182,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 		}
 
 		for _, rel := range selectedTable.Relations {
-			log.Infof("Relation [%v][%v]", selectedTable.TableName, rel.String())
+			//log.Infof("Relation [%v][%v]", selectedTable.TableName, rel.String())
 
 			if rel.GetSubject() == selectedTable.TableName {
 				r := "hasMany"
