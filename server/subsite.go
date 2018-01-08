@@ -167,7 +167,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if !BeginsWithCheck(r.Host, "dashboard.") {
+		if !BeginsWithCheck(r.Host, "dashboard.") && !BeginsWithCheck(r.Host, "api.") {
 			handler, ok := hs.handlerMap["default"]
 			if !ok {
 				log.Errorf("Failed to find default route")
