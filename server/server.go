@@ -163,7 +163,8 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
 
 	if err != nil {
-		newSecret := uuid.NewV4().String()
+		u, _ := uuid.NewV4()
+		newSecret := u.String()
 		configStore.SetConfigValueFor("jwt.secret", newSecret, "backend")
 		jwtSecret = newSecret
 	}

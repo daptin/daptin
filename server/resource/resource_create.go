@@ -223,8 +223,8 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	//
 	//  }
 	//}
-
-	newUuid := uuid.NewV4().String()
+	u, _ := uuid.NewV4()
+	newUuid := u.String()
 
 	colsList = append(colsList, "reference_id")
 	valsList = append(valsList, newUuid)
@@ -267,7 +267,8 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
 	if userGroupId != 0 && dr.model.HasMany("usergroup") {
 		log.Infof("Associate new entity [%v][%v] with usergroup: %v", dr.model.GetTableName(), createdResource["reference_id"], userGroupId)
-		nuuid := uuid.NewV4().String()
+		u, _ := uuid.NewV4()
+		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := squirrel.
 			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
@@ -283,7 +284,8 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	} else if dr.model.GetName() == "usergroup" && sessionUser.UserId != 0 {
 
 		log.Infof("Associate new usergroup with user: %v", sessionUser.UserId)
-		nuuid := uuid.NewV4().String()
+		u, _ := uuid.NewV4()
+		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := squirrel.
 			Insert("user_user_id_has_usergroup_usergroup_id").

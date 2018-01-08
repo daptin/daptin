@@ -42,7 +42,8 @@ func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields m
 	rows := make([]map[string]interface{}, 0)
 	for i := 0; i < count; i++ {
 		row := GetFakeRow(d.tableMap[tableName])
-		row["reference_id"] = uuid.NewV4().String()
+		u, _ := uuid.NewV4()
+		row["reference_id"] = u.String()
 		row["permission"] = auth.DEFAULT_PERMISSION
 		rows = append(rows, row)
 	}
