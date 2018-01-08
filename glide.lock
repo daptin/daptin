@@ -1,5 +1,5 @@
-hash: 2facfc9b68a52b2129e34bab5f5879ed2b54fb6dccc5ae0c6b03a791885823ff
-updated: 2018-01-08T12:55:20.849689072+05:30
+hash: 30c6b8c208ad378cb32e9c99fc34473759f78debb60664d9d8da6532870a8b06
+updated: 2018-01-08T14:40:41.042691664+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -16,7 +16,7 @@ imports:
 - name: github.com/araddon/dateparse
   version: ca7e753bd149dae747d76fa7d52b20b920f3a814
 - name: github.com/artpar/api2go
-  version: a333385d19a28b98c69a0cdcac14e2512faf4d77
+  version: 3f75374086043688bb67052538aea05375a01448
   subpackages:
   - jsonapi
   - routing
@@ -26,6 +26,8 @@ imports:
   - gingonic
 - name: github.com/artpar/conform
   version: a5409cc587c60d7805e75e66f63274397712290d
+- name: github.com/artpar/go.uuid
+  version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/artpar/goagain
   version: f2d5d7b515c4c1b6244ed9260e04c29800350d35
 - name: github.com/artpar/rclone
