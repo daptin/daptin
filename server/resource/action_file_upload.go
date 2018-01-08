@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
-	"github.com/satori/go.uuid"
+	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	//"os"

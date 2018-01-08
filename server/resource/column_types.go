@@ -3,7 +3,7 @@ package resource
 import (
 	"fmt"
 	"github.com/icrowley/fake"
-	"github.com/satori/go.uuid"
+	"github.com/artpar/go.uuid"
 	validator2 "gopkg.in/go-playground/validator.v9"
 	"math/rand"
 	"time"

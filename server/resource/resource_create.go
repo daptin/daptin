@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	//"reflect"
-	"github.com/satori/go.uuid"
+	"github.com/artpar/go.uuid"
 	//"strconv"
 	"fmt"
 	"github.com/araddon/dateparse"
