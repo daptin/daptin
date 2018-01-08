@@ -167,15 +167,17 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		handler, ok := hs.handlerMap["default"]
-		if !ok {
-			log.Errorf("Failed to find default route")
-		} else {
-			handler.ServeHTTP(w, r)
-			return
+		if !BeginsWithCheck(r.Host, "dashboard.") {
+			handler, ok := hs.handlerMap["default"]
+			if !ok {
+				log.Errorf("Failed to find default route")
+			} else {
+				handler.ServeHTTP(w, r)
+				return
+			}
 		}
 
-		handler, ok = hs.handlerMap["dashboard"]
+		handler, ok := hs.handlerMap["dashboard"]
 		if !ok {
 			log.Errorf("Failed to find default route")
 			return
@@ -603,6 +605,21 @@ func EndsWithCheck(str string, endsWith string) bool {
 
 	suffix := str[len(str)-len(endsWith):]
 	i := suffix == endsWith
+	return i
+
+}
+
+func BeginsWithCheck(str string, beginsWith string) bool {
+	if len(beginsWith) > len(str) {
+		return false
+	}
+
+	if len(beginsWith) == len(str) && beginsWith != str {
+		return false
+	}
+
+	prefix := str[:len(beginsWith)]
+	i := prefix == beginsWith
 	return i
 
 }
