@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
-	"github.com/satori/go.uuid"
+	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"

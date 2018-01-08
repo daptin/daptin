@@ -41,8 +41,7 @@ import:
   subpackages:
   - totp
 - package: github.com/artpar/goagain
-- package: github.com/satori/go.uuid
-  version: ^1.1.0
+- package: github.com/artpar/go.uuid
 - package: github.com/sirupsen/logrus
   version: ^1.0.2
 - package: golang.org/x/crypto

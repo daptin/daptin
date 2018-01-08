@@ -7,7 +7,7 @@ import (
 	//log "github.com/sirupsen/logrus"
 	//"database/sql"
 	//"reflect"
-	//"github.com/satori/go.uuid"
+	//"github.com/artpar/go.uuid"
 	//"github.com/artpar/reflect"
 	//"time"
 	"github.com/jmoiron/sqlx"

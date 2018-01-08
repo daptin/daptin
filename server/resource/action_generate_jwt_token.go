@@ -3,7 +3,7 @@ package resource
 import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/satori/go.uuid"
+	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"strings"

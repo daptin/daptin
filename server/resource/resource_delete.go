@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	//sq "gopkg.in/Masterminds/squirrel.v1"
 	//"reflect"
-	//"github.com/satori/go.uuid"
+	//"github.com/artpar/go.uuid"
 	"github.com/pkg/errors"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
