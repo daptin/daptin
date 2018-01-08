@@ -83,7 +83,8 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 
 	responses := make([]ActionResponse, 0)
 
-	sourceDirectoryName := uuid.NewV4().String()
+	u, _ := uuid.NewV4()
+	sourceDirectoryName := u.String()
 	tempDirectoryPath, err := ioutil.TempDir("", sourceDirectoryName)
 	log.Infof("Temp directory for this upload: %v", tempDirectoryPath)
 

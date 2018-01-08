@@ -42,6 +42,7 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 
 			// Create a new token object, specifying signing method and the claims
 			// you would like it to contain.
+			u, _ := uuid.NewV4()
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 				"email":   existingUser["email"],
 				"name":    existingUser["name"],
@@ -50,7 +51,7 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 				"iss":     "daptin",
 				"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5Hash(strings.ToLower(existingUser["email"].(string)))),
 				"iat":     time.Now(),
-				"jti":     uuid.NewV4().String(),
+				"jti":     u.String(),
 			})
 
 			// Sign and get the complete encoded token as a string using the secret

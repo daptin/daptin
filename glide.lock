@@ -1,5 +1,5 @@
 hash: 4b03ea815ebf8265ddad0dc212dafe851796a79673189f52fd6da3b259902981
-updated: 2018-01-07T18:03:08.082661814+05:30
+updated: 2018-01-08T11:31:24.387892038+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -209,7 +209,7 @@ imports:
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
-  version: 512169e5d707b96d6306216743bb7884a2b3a3c9
+  version: 5bbbb5b2b5729b132181cc7f4aa3b3c973e9a0ed
 - name: github.com/hashicorp/hcl
   version: 23c074d0eceb2b8a5bfdbb271ab780cde70f05a8
   subpackages:

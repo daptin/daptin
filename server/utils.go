@@ -15,7 +15,8 @@ import (
 func CheckSystemSecrets(store *resource.ConfigStore) error {
 	jwtSecret, err := store.GetConfigValueFor("jwt.secret", "backend")
 	if err != nil {
-		jwtSecret = uuid.NewV4().String()
+		u, _ := uuid.NewV4()
+		jwtSecret = u.String()
 		err = store.SetConfigValueFor("jwt.secret", jwtSecret, "backend")
 		resource.CheckErr(err, "Failed to store jwt secret")
 	}
@@ -23,8 +24,8 @@ func CheckSystemSecrets(store *resource.ConfigStore) error {
 	encryptionSecret, err := store.GetConfigValueFor("encryption.secret", "backend")
 
 	if err != nil || len(encryptionSecret) < 10 {
-
-		newSecret := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+		u, _ := uuid.NewV4()
+		newSecret := strings.Replace(u.String(), "-", "", -1)
 		err = store.SetConfigValueFor("encryption.secret", newSecret, "backend")
 	}
 	return err
