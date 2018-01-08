@@ -5,7 +5,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
-	"github.com/satori/go.uuid"
+	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"

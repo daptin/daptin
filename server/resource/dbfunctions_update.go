@@ -7,7 +7,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/jmoiron/sqlx"
-	"github.com/satori/go.uuid"
+	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/tealeg/xlsx"
 	"gopkg.in/Masterminds/squirrel.v1"
