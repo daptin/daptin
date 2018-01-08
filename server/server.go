@@ -7,7 +7,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/artpar/rclone/fs"
 	"github.com/jmoiron/sqlx"
-	"github.com/satori/go.uuid"
+	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gin-gonic/gin.v1"
 	"io/ioutil"

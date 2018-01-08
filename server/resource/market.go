@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/satori/go.uuid"
+	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/src-d/go-git.v4"
 	"io/ioutil"
