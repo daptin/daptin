@@ -98,7 +98,8 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 			}
 		}
 
-		sourceDirectoryName := uuid.NewV4().String()
+		u, _ := uuid.NewV4()
+		sourceDirectoryName := u.String()
 		tempDirectoryPath, err := ioutil.TempDir("", sourceDirectoryName)
 
 		hostRouter := httprouter.New()

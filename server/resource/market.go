@@ -115,8 +115,8 @@ func (mp *MarketplaceService) GetPackageList() ([]MarketPackage, error) {
 func NewMarketplaceService(marketplace Marketplace) (*MarketplaceService, error) {
 
 	tempDir := os.TempDir()
-
-	tempRepoDir := tempDir + "/" + uuid.NewV4().String()
+	u, _ := uuid.NewV4()
+	tempRepoDir := tempDir + "/" + u.String()
 	log.Infof("Creating directory  [%v] for marketplace [%v]", tempRepoDir, marketplace.Endpoint)
 	l := len(marketplace.RootPath)
 	if l == 0 || marketplace.RootPath[l-1] != '/' {

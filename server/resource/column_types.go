@@ -35,9 +35,11 @@ func (ct ColumnType) Fake() interface{} {
 
 	switch ct.Name {
 	case "id":
-		return uuid.NewV4().String()
+		u, _ := uuid.NewV4()
+		return u.String()
 	case "alias":
-		return uuid.NewV4().String()
+		u, _ := uuid.NewV4()
+		return u.String()
 	case "date":
 		return randate().Format("2006-01-02")
 	case "time":
