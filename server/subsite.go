@@ -151,7 +151,7 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Check if a http.Handler is registered for the given host.
 	// If yes, use it to handle the request.
-	if handler := hs.handlerMap[r.Host]; handler != nil {
+	if handler := hs.handlerMap[r.URL.Host]; handler != nil {
 		handler.ServeHTTP(w, r)
 	} else {
 		pathParts := strings.Split(r.URL.Path, "/")
