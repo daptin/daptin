@@ -6,3 +6,4 @@ ENV GOPATH=/go
 ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 RUN /usr/local/go/bin/go version
 RUN /usr/local/go/bin/go env
+RUN apt-get update && apt-get install -y libc6-dev-i386 gcc-mingw-w64
