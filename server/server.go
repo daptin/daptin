@@ -141,6 +141,7 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 	resource.UpdateExchanges(&initConfig, db)
 	resource.UpdateStreams(&initConfig, db)
 	resource.UpdateMarketplaces(&initConfig, db)
+	resource.UpdateStandardData(&initConfig, db)
 
 	err := resource.UpdateActionTable(&initConfig, db)
 	resource.CheckErr(err, "Failed to update action table")
