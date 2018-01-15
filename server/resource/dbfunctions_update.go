@@ -73,6 +73,19 @@ func (resource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId stri
 
 }
 
+func UpdateStandardData(initConfig *CmsConfig, db *sqlx.DB) {
+
+
+	//for _, row := range StandardData {
+	//
+	//
+	//	typeName := row.Data["__type"]
+	//
+	//}
+
+}
+
+
 func UpdateMarketplaces(initConfig *CmsConfig, db *sqlx.DB) {
 
 	s, v, err := squirrel.Select("endpoint", "root_path").From("marketplace").ToSql()
