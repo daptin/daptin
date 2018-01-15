@@ -248,6 +248,11 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 
 	r.NoRoute(func(c *gin.Context) {
 		file, err := boxRoot.Open("index.html")
+		resource.CheckErr(err, "Failed to open index.html")
+		if err != nil {
+			c.AbortWithStatus(500)
+			return
+		}
 		fileContents, err := ioutil.ReadAll(file)
 		_, err = c.Writer.Write(fileContents)
 		resource.CheckErr(err, "Failed to write index html")
