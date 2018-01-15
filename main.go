@@ -57,8 +57,9 @@ func main() {
 
 	var boxStatic, boxRoot http.FileSystem
 	if err != nil {
-		boxStatic = http.Dir("../dapwtinweb/dist/static")
-		boxRoot = http.Dir("../daptinweb/dist")
+		log.Printf("Try loading web dashboard from: %v", *webDashboardSource)
+		boxStatic = http.Dir(*webDashboardSource + "/static")
+		boxRoot = http.Dir(*webDashboardSource)
 	} else {
 		boxStatic = boxStatic1.HTTPBox()
 		boxRoot = boxRoot1.HTTPBox()
