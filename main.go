@@ -48,17 +48,17 @@ func main() {
 	flag.Parse()
 
 	stream.AddSink(&health.WriterSink{os.Stdout})
-	boxStatic1, err := rice.FindBox(*webDashboardSource + "/static")
+	boxStatic1, err := rice.FindBox("daptinweb/dist/static")
 	resource.CheckErr(err, "Failed to open %s/static", webDashboardSource)
-	boxRoot1, err := rice.FindBox(*webDashboardSource)
+	boxRoot1, err := rice.FindBox("daptinweb/dist/")
 	resource.CheckErr(err, "Failed to open %s", webDashboardSource)
 
 
 
 	var boxStatic, boxRoot http.FileSystem
 	if err != nil {
-		boxStatic = http.Dir("dapwtinweb/dist/static")
-		boxRoot = http.Dir("daptinweb/dist")
+		boxStatic = http.Dir("../dapwtinweb/dist/static")
+		boxRoot = http.Dir("../daptinweb/dist")
 	} else {
 		boxStatic = boxStatic1.HTTPBox()
 		boxRoot = boxRoot1.HTTPBox()
