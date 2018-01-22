@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 cd docs_markdown
 mkdocs build
 cd ..
