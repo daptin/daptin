@@ -20,6 +20,7 @@ import (
 	"os"
 	"strings"
 	"golang.org/x/oauth2"
+	"github.com/daptin/daptin/server/auth"
 )
 
 type HostSwitch struct {
@@ -160,9 +161,14 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			firstSubFolder := pathParts[1]
 			subSite, isSubSite := hs.siteMap[firstSubFolder]
 			if isSubSite {
-				r.URL.Path = "/" + strings.Join(pathParts[2:], "/")
-				handler := hs.handlerMap[subSite.Hostname]
-				handler.ServeHTTP(w, r)
+
+				permission := subSite.Permission
+				user := r.Context().Value("user").(*auth.SessionUser)
+				if permission.CanExecute(user.UserReferenceId, user.Groups) {
+					r.URL.Path = "/" + strings.Join(pathParts[2:], "/")
+					handler := hs.handlerMap[subSite.Hostname]
+					handler.ServeHTTP(w, r)
+				}
 				return
 			}
 		}
