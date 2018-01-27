@@ -120,9 +120,10 @@ type SubSite struct {
 	Name         string
 	Hostname     string
 	Path         string
-	CloudStoreId *int64  `db:"cloud_store_id"`
-	Permission   *int
-	UserId       *int64  `db:"user_id"`
+	CloudStoreId *int64 `db:"cloud_store_id"`
+	Permission   PermissionInstance
+	UserId       *int64 `db:"user_id"`
+	ReferenceId  string
 }
 
 type CloudStore struct {
@@ -139,7 +140,7 @@ type CloudStore struct {
 	UpdatedAt       *time.Time
 	DeletedAt       *time.Time
 	ReferenceId     string
-	Permission      int
+	Permission      PermissionInstance
 }
 
 func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
@@ -164,10 +165,9 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 		id, err := strconv.ParseInt(storeMap["id"].(string), 10, 64)
 		CheckErr(err, "Failed to parse id as int in loading stores")
 		cloudStore.Id = id
-		permission, err := strconv.ParseInt(storeMap["permission"].(string), 10, 64)
-		CheckErr(err, "Failed to parse permission as int in loading stores")
-		cloudStore.Permission = int(permission)
 		cloudStore.ReferenceId = storeMap["reference_id"].(string)
+		CheckErr(err, "Failed to parse permission as int in loading stores")
+		cloudStore.Permission = resource.GetObjectPermission("cloud_store", cloudStore.ReferenceId)
 		cloudStore.UserId = storeMap["user_id"].(string)
 		createdAt, _ := time.Parse(storeMap["created_at"].(string), "2006-01-02 15:04:05")
 		cloudStore.CreatedAt = &createdAt
@@ -269,7 +269,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	sites := []SubSite{}
 
-	s, v, err := squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s.permission", "s.user_id", "s.path").
+	s, v, err := squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s.permission", "s.user_id", "s.path", "s.reference_id").
 		From("site s").
 		ToSql()
 	if err != nil {
@@ -288,6 +288,8 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 		if err != nil {
 			log.Errorf("Failed to scan site from db to struct: %v", err)
 		}
+		perm := resource.GetObjectPermission("subsite", site.ReferenceId)
+		site.Permission = perm
 		sites = append(sites, site)
 	}
 
