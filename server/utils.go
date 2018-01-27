@@ -47,7 +47,7 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx
 		//}
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
 
-		res := resource.NewDbResource(model, db, ms, cruds, configStore)
+		res := resource.NewDbResource(model, db, ms, cruds, configStore, &table)
 
 		cruds[table.TableName] = res
 		api.AddResource(model, res)

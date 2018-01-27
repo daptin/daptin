@@ -308,6 +308,13 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			return NewResponse(nil, nil, 500, nil), err
 		}
 	}
+
+	if dr.tableInfo.TableName == "usergroup" {
+		//newPermission := data.Data
+	}
+
+
+
 	if data.IsDirty() && dr.tableInfo.IsAuditEnabled {
 
 		auditModel := data.GetAuditModel()
@@ -412,8 +419,8 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			//var vars []interface{}
 			switch relationName {
 			case "has_one":
-				intId := updatedResource["id"].(int64)
-				log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
+				//intId := updatedResource["id"].(int64)
+				//log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
 
 				valMapList := val.([]map[string]interface{})
 
@@ -450,8 +457,8 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 				break
 			case "belongs_to":
-				intId := updatedResource["id"].(int64)
-				log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
+				//intId := updatedResource["id"].(int64)
+				//log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
 
 				valMapList := val.([]map[string]interface{})
 

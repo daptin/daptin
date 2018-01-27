@@ -25,7 +25,7 @@ func (dr *DbResource) GetTotalCount() uint64 {
 func (dr *DbResource) GetTotalCountBySelectBuilder(builder squirrel.SelectBuilder) uint64 {
 
 	s, v, err := builder.ToSql()
-	log.Infof("Count query: %v == %v", s, v)
+	//log.Infof("Count query: %v == %v", s, v)
 	if err != nil {
 		log.Errorf("Failed to generate count query for %v: %v", dr.model.GetName(), err)
 		return 0
@@ -213,9 +213,9 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 				}
 			}
 			ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetObject(), "id", "reference_id", queries)
-			log.Infof("Converted ids: %v", ids)
+			//log.Infof("Converted ids: %v", ids)
 			if err != nil {
-				log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject, queries, err)
+				log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
 				continue
 			}
 			switch rel.Relation {
@@ -327,7 +327,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		return 0, nil, err
 	}
 
-	log.Infof("Sql: %v == %v", sql1, args)
+	//log.Infof("Sql: %v == %v", sql1, args)
 
 	stmt, err := dr.db.Preparex(sql1)
 	if err != nil {
@@ -344,7 +344,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	defer rows.Close()
 
 	results, includes, err := dr.ResultToArrayOfMap(rows, dr.model.GetColumnMap(), includedRelations)
-	log.Infof("Found: %d results", len(results))
+	//log.Infof("Found: %d results", len(results))
 	//log.Infof("Results: %v", results)
 
 	if err != nil {
@@ -369,7 +369,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		for _, include := range includes {
 			include, err = bf.InterceptAfter(dr, &req, include)
 			if err != nil {
-				log.Errorf("Error from AfterFindAll[%v] middleware: %v", bf.String(), err)
+				log.Errorf("Error from AfterFindAll[includes][%v] middleware: %v", bf.String(), err)
 			}
 			includesNew = append(includesNew, include)
 		}

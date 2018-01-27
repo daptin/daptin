@@ -6,7 +6,7 @@
       <button @click="mode = 'je'" class="btn btn-box-tool"><i class="fa fa-2x fa-pencil grey"></i></button>
     </div>
     <div id="jsonEditor" style="width: 100%; height: 600px;" v-if="mode == 'je'"></div>
-    <editor ref="aceEditor" :options="options" :content="value" v-if="mode == 'ace'" :lang="'markdown'"
+    <editor ref="aceEditor" :options="options" :content="initValue" v-if="mode == 'ace'" :lang="'markdown'"
             :sync="true"></editor>
   </div>
 </template>
@@ -27,7 +27,8 @@
       return {
         fileList: [],
         useAce: false,
-        mode: 'ace',
+        mode: 'none',
+        initValue: null,
         options: {
           fontSize: 18,
           wrap: true,
@@ -135,36 +136,14 @@
         }
 
         if (false) {
-//          schema = schemas[that.schema.inputType].schema;
-//
-//          try {
-//            var startValNew = JSON.parse(startVal);
-//            startVal = startValNew;
-//          } catch (e) {
-//
-//          }
-//
-//          var editor = new JSONEditor(element, {
-//            startval: startVal,
-//            schema: schema,
-//            theme: 'bootstrap3'
-//          });
-//          editor.on('change', function () {
-//            // Do something
-//            console.log("Json data updated", editor.getValue());
-//            var val = editor.getValue();
-//            if (!val) {
-//              that.value = null;
-//            } else {
-//              that.value = JSON.stringify(editor.getValue());
-//            }
-//          });
+
         } else {
           if (!that.value) {
             that.value = "";
           }
           schema = {};
           that.useAce = true;
+          that.initValue = that.value;
           that.$on('editor-update', function (newValue) {
             console.log("Value  updated", newValue);
             that.value = newValue;
@@ -201,6 +180,9 @@
             break;
         }
         console.log("mode changes", arguments)
+      },
+      initValue: function(newValue) {
+        this.value = newValue;
       }
     }
   };
