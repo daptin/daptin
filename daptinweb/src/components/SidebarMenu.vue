@@ -104,7 +104,7 @@
     methods: {
       toggleMenu(event) {
         // remove active from li
-        var active = document.querySelector('li.pageLink.active')
+        var active = document.querySelector('li.pageLink.active');
 
         if (active) {
           active.classList.remove('active')
@@ -132,15 +132,15 @@
       }
     },
     mounted() {
-      var that = this;
-      console.log("sidebarmenu visible worlds: ", this.topWorlds)
+      let that = this;
+      console.log("sidebarmenu visible worlds: ", this.topWorlds);
 
-      that.topWorlds = that.worlds.filter(function (w, r) {
+      that.topWorlds = this.worlds.filter(function (w, r) {
         return w.is_top_level && !w.is_hidden;
       });
 
       setTimeout(function () {
-        $(window).resize()
+        $(window).resize();
         console.log("this sidebar again", that.topWorlds)
       }, 300);
     },

@@ -245,6 +245,7 @@
   import actionManager from '../../plugins/actionmanager'
   import worldManager from '../../plugins/worldmanager'
   import statsManger from '../../plugins/statsmanager'
+  import { mapState } from 'vuex';
 
   export default {
     data() {
@@ -262,6 +263,7 @@
       }
     },
     computed: {
+      ...mapState(['query']),
       sortedWorldActions: function () {
 
         console.log("return sorted world actions", this.worldActions);
@@ -285,10 +287,99 @@
 //        console.log("String to color", str, window.stringToColor(str))
         return "#" + window.stringToColor(str)
       },
+      reloadData() {
+        let that = this;
+        let newWorldActions = {};
+        jsonApi.all("world").get({
+          page: {
+            number: 1,
+            size: 200,
+          }
+        }).then(function (worlds) {
+          worlds = worlds.data;
+          console.log("");
+          that.worlds = worlds.map(function (e) {
+            let parse = JSON.parse(e.world_schema_json);
+            parse.Icon = e.icon;
+            parse.Count = 0;
+            return parse;
+          }).filter(function (e) {
+            console.log("filter ", e);
+            return !e.IsHidden && !e.IsJoinTable && e.TableName.indexOf("_state") == -1;
+          });
+          that.worlds.forEach(function (w) {
+            console.log("call stats", w);
+
+
+            statsManger.getStats(w.TableName, {
+              column: ["count(*)"]
+            }).then(function (stats) {
+              stats = stats.data;
+              console.log("Stats received", stats)
+
+              var rows = stats.Data;
+              var totalCount = rows[0]["count(*)"]
+              w.Count = totalCount;
+
+
+            }, function (error) {
+              console.log("Failed to query stats", error);
+            });
+          });
+
+          let actionGroups = {
+            "System": [],
+            "User": []
+          };
+          console.log("worlds in dashboard", worlds);
+          for (let i = 0; i < worlds.length; i++) {
+            let tableName = worlds[i].table_name;
+            let actions = actionManager.getActions(tableName);
+
+            if (!actions) {
+              continue
+            }
+            console.log("actions for ", tableName, actions);
+            let actionKeys = Object.keys(actions);
+            for (let j = 0; j < actionKeys.length; j++) {
+              let action = actions[actionKeys[j]];
+//            console.log("dashboard action", action)
+              let onType = action.OnType;
+              let onWorld = worldManager.getWorldByName(onType);
+//            console.log("on world", onWorld)
+
+              if (onWorld.is_hidden == "1") {
+                actionGroups["System"].push(action)
+              } else if (onWorld.table_name == "user") {
+                actionGroups["User"].push(action)
+              } else if (onWorld.table_name == "usergroup") {
+                actionGroups["User"].push(action)
+              } else {
+                if (!newWorldActions[onWorld.table_name]) {
+                  newWorldActions[onWorld.table_name] = [];
+                }
+                newWorldActions[onWorld.table_name].push(action)
+              }
+            }
+          }
+
+          that.worldActions = newWorldActions;
+          that.actionGroups = actionGroups;
+        });
+
+      },
     },
     updated() {
+      document.getElementById("navbar-search-input").value = "";
+    },
+    watch: {
+      query: function(oldVal, newVal) {
+        console.log("query change", arguments);
+        this.reloadData();
+      }
     },
     mounted() {
+
 //      $(".content").popover();
 
       let that = this;
@@ -297,84 +388,7 @@
           label: 'Dashboard'
         }
       ];
-      let newWorldActions = {};
-      jsonApi.all("world").get({
-        page: {
-          number: 1,
-          size: 200,
-        }
-      }).then(function (worlds) {
-        worlds = worlds.data;
-        console.log("");
-        that.worlds = worlds.map(function (e) {
-          let parse = JSON.parse(e.world_schema_json);
-          parse.Icon = e.icon;
-          parse.Count = 0;
-          return parse;
-        }).filter(function (e) {
-          console.log("filter ", e);
-          return !e.IsHidden && !e.IsJoinTable && e.TableName.indexOf("_state") == -1;
-        });
-        that.worlds.forEach(function (w) {
-          console.log("call stats", w);
-
-
-          statsManger.getStats(w.TableName, {
-            column: ["count(*)"]
-          }).then(function (stats) {
-            stats = stats.data;
-            console.log("Stats received", stats)
-
-            var rows = stats.Data;
-            var totalCount = rows[0]["count(*)"]
-            w.Count = totalCount;
-
-
-          }, function (error) {
-            console.log("Failed to query stats", error);
-          });
-        });
-
-        let actionGroups = {
-          "System": [],
-          "User": []
-        };
-        console.log("worlds in dashboard", worlds);
-        for (let i = 0; i < worlds.length; i++) {
-          let tableName = worlds[i].table_name;
-          let actions = actionManager.getActions(tableName);
-
-          if (!actions) {
-            continue
-          }
-          console.log("actions for ", tableName, actions);
-          let actionKeys = Object.keys(actions);
-          for (let j = 0; j < actionKeys.length; j++) {
-            let action = actions[actionKeys[j]];
-//            console.log("dashboard action", action)
-            let onType = action.OnType;
-            let onWorld = worldManager.getWorldByName(onType);
-//            console.log("on world", onWorld)
-
-            if (onWorld.is_hidden == "1") {
-              actionGroups["System"].push(action)
-            } else if (onWorld.table_name == "user") {
-              actionGroups["User"].push(action)
-            } else if (onWorld.table_name == "usergroup") {
-              actionGroups["User"].push(action)
-            } else {
-              if (!newWorldActions[onWorld.table_name]) {
-                newWorldActions[onWorld.table_name] = [];
-              }
-              newWorldActions[onWorld.table_name].push(action)
-            }
-          }
-        }
-
-        that.worldActions = newWorldActions;
-        that.actionGroups = actionGroups;
-      });
-
+     this.reloadData();
 
     }
   }

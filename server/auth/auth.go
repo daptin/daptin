@@ -85,7 +85,7 @@ func (op ObjectPermission) Value() (driver.Value, error) {
 	return op.IntValue(), nil
 }
 
-var DEFAULT_PERMISSION ObjectPermission = NewPermission(Peek|Execute, Read, CRUD|Execute)
+var DEFAULT_PERMISSION ObjectPermission = NewPermission(Peek|Execute|Update|Delete|Refer, Read, CRUD|Execute)
 
 func (op ObjectPermission) OwnerCan(a AuthPermission) bool {
 	return op.OwnerPermission&a == a
@@ -122,7 +122,7 @@ func NewPermission(guest AuthPermission, group AuthPermission, owner AuthPermiss
 }
 
 func (al ObjectPermission) String() string {
-	return fmt.Sprintf("Owner[%v], Group[%v], Guest[%v]", al.OwnerPermission, al.GroupPermission, al.GuestPermission)
+	return fmt.Sprintf("Owner[%v], Group[%v], Guest[%v]", al.OwnerPermission.String(), al.GroupPermission.String(), al.GuestPermission.String())
 }
 
 func (a AuthPermission) String() string {
@@ -177,7 +177,7 @@ func (a AuthPermission) String() string {
 		vals = append(vals, "Can CRUD")
 	}
 
-	return strings.Join(vals, ", ")
+	return strings.Join(vals, ", \n")
 }
 
 type AuthMiddleWare struct {
