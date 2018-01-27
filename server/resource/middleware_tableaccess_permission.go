@@ -7,6 +7,8 @@ import (
 	"errors"
 
 	"github.com/daptin/daptin/server/auth"
+	//"log"
+
 )
 
 // The TableAccessPermissionChecker middleware is resposible for entity level authorization check, before and after the changes
@@ -36,7 +38,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 
 	tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
 
-	//log.Infof("Row Permission for [%v] for [%v]", permission, result)
+	//log.Printf("Row Permission for [%v] for [%v]", dr.model.GetName(), tableOwnership)
 	if req.PlainRequest.Method == "GET" {
 		if tableOwnership.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
 			//returnMap = append(returnMap, result)
@@ -77,7 +79,7 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 
 	tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
 
-	//log.Infof("[TableAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), tableOwnership.PermissionInstance)
+	//log.Printf("[TableAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), tableOwnership)
 	if req.PlainRequest.Method == "GET" {
 		if !tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
 			return nil, ErrUnauthorized

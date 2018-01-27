@@ -268,7 +268,7 @@ func NewConfigStore(db *sqlx.DB) (*ConfigStore, error) {
 	var cou int
 	err = db.QueryRowx(s, v...).Scan(&cou)
 	if err != nil {
-		log.Infof("Count query failed. Creating table: %v", err)
+		//log.Infof("Count query failed. Creating table: %v", err)
 
 		createTableQuery := MakeCreateTableQuery(&ConfigTableStructure, db.DriverName())
 

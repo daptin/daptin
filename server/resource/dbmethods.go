@@ -229,7 +229,7 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 
 	//log.Infof("Join string: %v: ", rel.GetJoinString())
 
-	sql := fmt.Sprintf("select usergroup.reference_id as referenceid, j1.permission from %s join %s  where %s.%s = ?", rel.Subject, rel.GetJoinString(), rel.Subject, colName)
+	sql := fmt.Sprintf("select usergroup.reference_id as referenceid, usergroup.permission from %s join %s  where %s.%s = ?", rel.Subject, rel.GetJoinString(), rel.Subject, colName)
 	//log.Infof("Group select sql: %v", sql)
 	res, err := dr.db.Queryx(sql, colvalue)
 	if err != nil {
@@ -267,7 +267,7 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 	}
 
 	res, err := dr.db.Queryx(
-		fmt.Sprintf("select ug.reference_id as referenceid, uug.permission "+
+		fmt.Sprintf("select ug.reference_id as referenceid, ug.permission "+
 			"from usergroup ug "+
 			"join %s_%s_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id and uug.%s_id = ?", objType, objType, objType), objectId)
 	if err != nil {
@@ -576,13 +576,13 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 }
 
 func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string) (map[string]interface{}, error) {
-	log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
+	//log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
 	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
 		return nil, err
 	}
 
-	log.Infof("Get object by reference id sql: %v", s)
+	//log.Infof("Get object by reference id sql: %v", s)
 	row, err := dr.db.Queryx(s, q...)
 
 	if err != nil {
@@ -600,7 +600,7 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 		return nil, err
 	}
 
-	log.Infof("Have to return first of %d results", len(results))
+	//log.Infof("Have to return first of %d results", len(results))
 	if len(results) == 0 {
 		return nil, fmt.Errorf("no such object [%v][%v]", typeName, referenceId)
 	}

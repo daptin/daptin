@@ -47,7 +47,7 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 				"email":   existingUser["email"],
 				"name":    existingUser["name"],
 				"nbf":     time.Now().Unix(),
-				"exp":     time.Now().Add(60 * time.Minute).Unix(),
+				"exp":     time.Now().Add(3 * 24 * time.Hour).Unix(),
 				"iss":     "daptin",
 				"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5Hash(strings.ToLower(existingUser["email"].(string)))),
 				"iat":     time.Now(),
