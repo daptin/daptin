@@ -19,7 +19,7 @@ import (
 
 var cruds = make(map[string]*resource.DbResource)
 
-func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l net.Listener, ch chan struct{}) {
+func Main(boxRoot, assetsStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l net.Listener, ch chan struct{}) {
 	defer wg.Done()
 
 	//configFile := "daptin_style.json"
@@ -35,83 +35,8 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 
 	existingTables, _ := GetTablesFromWorld(db)
 	//initConfig.Tables = append(initConfig.Tables, existingTables...)
-	existingTablesMap := make(map[string]bool)
 
-	allTables := make([]resource.TableInfo, 0)
-
-	for j, existableTable := range existingTables {
-		existingTablesMap[existableTable.TableName] = true
-		var isBeingModified = false
-		var indexBeingModified = -1
-
-		for i, newTable := range initConfig.Tables {
-			if newTable.TableName == existableTable.TableName {
-				isBeingModified = true
-				indexBeingModified = i
-				break
-			}
-		}
-
-		if isBeingModified {
-			log.Infof("Table %s is being modified", existableTable.TableName)
-			tableBeingModified := initConfig.Tables[indexBeingModified]
-
-			if len(tableBeingModified.Columns) > 0 {
-
-				for _, newColumnDef := range tableBeingModified.Columns {
-					columnAlreadyExist := false
-					colIndex := -1
-					for i, existingColumn := range existableTable.Columns {
-						if existingColumn.ColumnName == newColumnDef.ColumnName {
-							columnAlreadyExist = true
-							colIndex = i
-							break
-						}
-					}
-					if columnAlreadyExist {
-						//log.Infof("Modifying existing columns[%v][%v] is not supported at present. not sure what would break. and alter query isnt being run currently.", existableTable.TableName, newColumnDef.Name);
-
-						existableTable.Columns[colIndex].DefaultValue = newColumnDef.DefaultValue
-						existableTable.Columns[colIndex].ExcludeFromApi = newColumnDef.ExcludeFromApi
-						existableTable.Columns[colIndex].IsIndexed = newColumnDef.IsIndexed
-						existableTable.Columns[colIndex].IsNullable = newColumnDef.IsNullable
-						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
-						existableTable.Columns[colIndex].Options = newColumnDef.Options
-
-					} else {
-						existableTable.Columns = append(existableTable.Columns, newColumnDef)
-					}
-
-				}
-
-			}
-			if len(tableBeingModified.Relations) > 0 {
-
-				existingRelations := existableTable.Relations
-				relMap := make(map[string]bool)
-				for _, rel := range existingRelations {
-					relMap[rel.Hash()] = true
-				}
-
-				for _, newRel := range tableBeingModified.Relations {
-
-					_, ok := relMap[newRel.Hash()]
-					if !ok {
-						existableTable.AddRelation(newRel)
-					}
-				}
-			}
-			existingTables[j] = existableTable
-		}
-		allTables = append(allTables, existableTable)
-	}
-
-	for _, newTable := range initConfig.Tables {
-		if existingTablesMap[newTable.TableName] {
-			continue
-		}
-		allTables = append(allTables, newTable)
-	}
+	allTables := MergeTables(existingTables, initConfig.Tables)
 
 	initConfig.Tables = allTables
 	fs.LoadConfig()
@@ -121,9 +46,7 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 
 	resource.CheckRelations(&initConfig)
 	resource.CheckAuditTables(&initConfig)
-
 	//AddStateMachines(&initConfig, db)
-
 	tx, errb := db.Beginx()
 	//_, errb := db.Exec("begin")
 	resource.CheckErr(errb, "Failed to begin transaction")
@@ -150,11 +73,11 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 
 	r := gin.Default()
 	r.Use(CorsMiddlewareFunc)
-	r.StaticFS("/static", boxStatic)
+	r.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
 
 	r.GET("/favicon.ico", func(c *gin.Context) {
 
-		file, err := boxRoot.Open("index.html")
+		file, err := boxRoot.Open("favicon.ico")
 		fileContents, err := ioutil.ReadAll(file)
 		_, err = c.Writer.Write(fileContents)
 		resource.CheckErr(err, "Failed to write favico")
@@ -274,6 +197,104 @@ func Main(boxRoot, boxStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l
 	default:
 	}
 
+}
+func MergeTables(existingTables []resource.TableInfo, initConfigTables []resource.TableInfo) []resource.TableInfo {
+	allTables := make([]resource.TableInfo, 0)
+	existingTablesMap := make(map[string]bool)
+
+	for j, existableTable := range existingTables {
+		existingTablesMap[existableTable.TableName] = true
+		var isBeingModified = false
+		var indexBeingModified = -1
+
+		for i, newTable := range initConfigTables {
+			if newTable.TableName == existableTable.TableName {
+				isBeingModified = true
+				indexBeingModified = i
+				break
+			}
+		}
+
+		if isBeingModified {
+			log.Infof("Table %s is being modified", existableTable.TableName)
+			tableBeingModified := initConfigTables[indexBeingModified]
+
+			if len(tableBeingModified.Columns) > 0 {
+
+				for _, newColumnDef := range tableBeingModified.Columns {
+					columnAlreadyExist := false
+					colIndex := -1
+					for i, existingColumn := range existableTable.Columns {
+						if existingColumn.ColumnName == newColumnDef.ColumnName {
+							columnAlreadyExist = true
+							colIndex = i
+							break
+						}
+					}
+					if columnAlreadyExist {
+						//log.Infof("Modifying existing columns[%v][%v] is not supported at present. not sure what would break. and alter query isnt being run currently.", existableTable.TableName, newColumnDef.Name);
+
+						existableTable.Columns[colIndex].DefaultValue = newColumnDef.DefaultValue
+						existableTable.Columns[colIndex].ExcludeFromApi = newColumnDef.ExcludeFromApi
+						existableTable.Columns[colIndex].IsIndexed = newColumnDef.IsIndexed
+						existableTable.Columns[colIndex].IsNullable = newColumnDef.IsNullable
+						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
+						existableTable.Columns[colIndex].Options = newColumnDef.Options
+
+					} else {
+						existableTable.Columns = append(existableTable.Columns, newColumnDef)
+					}
+
+				}
+
+			}
+			if len(tableBeingModified.Relations) > 0 {
+
+				existingRelations := existableTable.Relations
+				relMap := make(map[string]bool)
+				for _, rel := range existingRelations {
+					relMap[rel.Hash()] = true
+				}
+
+				for _, newRel := range tableBeingModified.Relations {
+
+					_, ok := relMap[newRel.Hash()]
+					if !ok {
+						existableTable.AddRelation(newRel)
+					}
+				}
+			}
+			existableTable.DefaultGroups = tableBeingModified.DefaultGroups
+			existableTable.Conformations = tableBeingModified.Conformations
+			existableTable.Validations = tableBeingModified.Validations
+			existableTable.DefaultGroups = tableBeingModified.DefaultGroups
+			existingTables[j] = existableTable
+		}
+		allTables = append(allTables, existableTable)
+	}
+
+	for _, newTable := range initConfigTables {
+		if existingTablesMap[newTable.TableName] {
+			continue
+		}
+		allTables = append(allTables, newTable)
+	}
+
+	return allTables
+
+}
+
+func NewSubPathFs(system http.FileSystem, s string) http.FileSystem {
+	return &SubPathFs{system: system, subPath: s}
+}
+
+type SubPathFs struct {
+	system  http.FileSystem
+	subPath string
+}
+
+func (spf *SubPathFs) Open(name string) (http.File, error) {
+	return spf.Open(spf.subPath + name)
 }
 
 type WebSocketConnectionHandlerImpl struct {

@@ -39,6 +39,7 @@ func main() {
 		"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
 	var webDashboardSource = flag.String("dashboard", "daptinweb/dist", "path to dist folder for daptin web dashboard")
+	var assetsSource = flag.String("assets", "assets", "path to folder for assets")
 	var port = flag.String("port", "6336", "Daptin port")
 	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
 
@@ -48,20 +49,20 @@ func main() {
 	flag.Parse()
 
 	stream.AddSink(&health.WriterSink{os.Stdout})
-	boxStatic1, err := rice.FindBox("daptinweb/dist/static")
-	resource.CheckErr(err, "Failed to open %s/static", webDashboardSource)
+	assetsRoot, err := rice.FindBox("assets")
+	resource.CheckErr(err, "Failed to open %s/static", assetsSource)
 	boxRoot1, err := rice.FindBox("daptinweb/dist/")
 	resource.CheckErr(err, "Failed to open %s", webDashboardSource)
 
 
 
-	var boxStatic, boxRoot http.FileSystem
+	var assetsStatic, boxRoot http.FileSystem
 	if err != nil {
 		log.Printf("Try loading web dashboard from: %v", *webDashboardSource)
-		boxStatic = http.Dir(*webDashboardSource + "/static")
+		assetsStatic = http.Dir(*webDashboardSource + "/static")
 		boxRoot = http.Dir(*webDashboardSource)
 	} else {
-		boxStatic = boxStatic1.HTTPBox()
+		assetsStatic = assetsRoot.HTTPBox()
 		boxRoot = boxRoot1.HTTPBox()
 	}
 	db, err := server.GetDbConnection(*db_type, *connection_string)
@@ -81,9 +82,8 @@ func main() {
 			log.Printf("Failed to listen to port: %v", err)
 		} else {
 			log.Println("listening on", l.Addr())
-
 			// Accept connections in a new goroutine.
-			go server.Main(boxRoot, boxStatic, db, wg, l, ch)
+			go server.Main(boxRoot, assetsStatic, db, wg, l, ch)
 
 		}
 
@@ -91,7 +91,7 @@ func main() {
 
 		// Resume listening and accepting connections in a new goroutine.
 		log.Println("resuming listening on", l.Addr())
-		go server.Main(boxRoot, boxStatic, db, wg, l, ch)
+		go server.Main(boxRoot, assetsStatic, db, wg, l, ch)
 
 		// If this is the child, send the parent SIGUSR2.  If this is the
 		// parent, send the child SIGQUIT.

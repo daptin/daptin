@@ -281,7 +281,7 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 		return nil, err
 	}
 
-	log.Infof("Sql: %v\n", sql1)
+	//log.Infof("Sql: %v\n", sql1)
 
 	_, err = dr.db.Exec(sql1, args...)
 	if err != nil {

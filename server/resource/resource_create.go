@@ -138,7 +138,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 				val, err = dateparse.ParseLocal(valString)
 
 				CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
-			}  else {
+			} else {
 				floatVal, ok := val.(float64)
 				if ok {
 					val = time.Unix(int64(floatVal), 0)
@@ -265,7 +265,27 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 
 	userGroupId := dr.GetUserGroupIdByUserId(sessionUser.UserId)
 
+	groupsToAdd := dr.defaultGroups
+	log.Infof("Default groups to add object to: %v", groupsToAdd)
+	for _, groupId := range groupsToAdd {
+		u, _ := uuid.NewV4()
+		nuuid := u.String()
+
+		belogsToUserGroupSql, q, err := squirrel.
+			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
+			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
+			Values(createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
+
+		log.Infof("Query for default group belonging: %v", belogsToUserGroupSql)
+		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
+
+		if err != nil {
+			log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
+		}
+	}
+
 	if userGroupId != 0 && dr.model.HasMany("usergroup") {
+
 		log.Infof("Associate new entity [%v][%v] with usergroup: %v", dr.model.GetTableName(), createdResource["reference_id"], userGroupId)
 		u, _ := uuid.NewV4()
 		nuuid := u.String()
@@ -281,6 +301,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		if err != nil {
 			log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
 		}
+
 	} else if dr.model.GetName() == "usergroup" && sessionUser.UserId != 0 {
 
 		log.Infof("Associate new usergroup with user: %v", sessionUser.UserId)
