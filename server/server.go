@@ -303,7 +303,7 @@ type SubPathFs struct {
 }
 
 func (spf *SubPathFs) Open(name string) (http.File, error) {
-	log.Infof("Service file from static path: %s/%s", spf.subPath, name)
+	//log.Infof("Service file from static path: %s/%s", spf.subPath, name)
 	return spf.system.Open(spf.subPath + name)
 }
 
