@@ -117,13 +117,14 @@ func GetAdminUserIdAndUserGroupId(db *sqlx.DB) (int64, int64) {
 }
 
 type SubSite struct {
+	Id           *int64
 	Name         string
 	Hostname     string
 	Path         string
 	CloudStoreId *int64 `db:"cloud_store_id"`
 	Permission   PermissionInstance
 	UserId       *int64 `db:"user_id"`
-	ReferenceId  string
+	ReferenceId  string `db:"reference_id"`
 }
 
 type CloudStore struct {
@@ -269,7 +270,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	sites := []SubSite{}
 
-	s, v, err := squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s.permission", "s.user_id", "s.path", "s.reference_id").
+	s, v, err := squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s.user_id", "s.path", "s.reference_id", "s.id").
 		From("site s").
 		ToSql()
 	if err != nil {
