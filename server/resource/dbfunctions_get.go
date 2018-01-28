@@ -288,7 +288,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 		if err != nil {
 			log.Errorf("Failed to scan site from db to struct: %v", err)
 		}
-		perm := resource.GetObjectPermission("subsite", site.ReferenceId)
+		perm := resource.GetObjectPermission("site", site.ReferenceId)
 		site.Permission = perm
 		sites = append(sites, site)
 	}
