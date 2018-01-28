@@ -78,7 +78,16 @@ func Main(boxRoot, assetsStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup
 	r.GET("/favicon.ico", func(c *gin.Context) {
 
 		file, err := boxRoot.Open("favicon.ico")
+		if err != nil {
+			c.AbortWithStatus(404)
+			return
+		}
+
 		fileContents, err := ioutil.ReadAll(file)
+		if err != nil {
+			c.AbortWithStatus(404)
+			return
+		}
 		_, err = c.Writer.Write(fileContents)
 		resource.CheckErr(err, "Failed to write favico")
 	})
@@ -294,7 +303,8 @@ type SubPathFs struct {
 }
 
 func (spf *SubPathFs) Open(name string) (http.File, error) {
-	return spf.Open(spf.subPath + name)
+	log.Infof("Service file from static path: %s/%s", spf.subPath, name)
+	return spf.system.Open(spf.subPath + name)
 }
 
 type WebSocketConnectionHandlerImpl struct {
