@@ -279,7 +279,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 				}
 				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), "id", "reference_id", queries)
 				if err != nil {
-					log.Errorf("Failed to convert refids to ids[%v]: %v", queries, err)
+					log.Errorf("Failed to convert [%v]refids to ids[%v]: %v", rel.GetSubject(), queries, err)
 					continue
 				}
 

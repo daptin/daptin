@@ -23,7 +23,7 @@ import (
 
 func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 	data := obj.(*api2go.Api2GoModel)
-	//log.Infof("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
+	log.Infof("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
 
 	for _, bf := range dr.ms.BeforeCreate {
 		//log.Infof("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
