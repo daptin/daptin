@@ -46,7 +46,7 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 	m := dr.model
 	//log.Infof("Get all resource type: %v\n", m)
 
-	if !EndsWithCheck(apiModel.GetTableName(), "_audit") {
+	if !EndsWithCheck(apiModel.GetTableName(), "_audit") && dr.tableInfo.IsAuditEnabled {
 		auditModel := apiModel.GetAuditModel()
 		log.Infof("Object [%v][%v] has been changed, trying to audit in %v", apiModel.GetTableName(), apiModel.GetID(), auditModel.GetTableName())
 		if auditModel.GetTableName() != "" {
@@ -281,7 +281,7 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 		return nil, err
 	}
 
-	//log.Infof("Sql: %v\n", sql1)
+	log.Infof("Delete Sql: %v\n", sql1)
 
 	_, err = dr.db.Exec(sql1, args...)
 	if err != nil {

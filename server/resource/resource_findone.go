@@ -27,7 +27,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		}
 	}
 
-	log.Printf("Find [%s] by id [%s]", dr.model.GetName(), referenceId)
+	//log.Printf("Find [%s] by id [%s]", dr.model.GetName(), referenceId)
 
 	data, include, err := dr.GetSingleRowByReferenceId(dr.model.GetName(), referenceId)
 	//log.Printf("Single row result: %v", data)

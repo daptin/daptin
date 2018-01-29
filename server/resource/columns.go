@@ -457,7 +457,7 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"type":    "success",
 					"title":   "Success",
-					"message": "Signup Successful",
+					"message": "Sign-up successful. Redirecting to sign in",
 				},
 			},
 			{
@@ -466,6 +466,7 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"location": "/auth/signin",
 					"window":   "self",
+					"delay": 2000,
 				},
 			},
 		},

@@ -301,6 +301,22 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 
 }
 
+func (d *DbResource) GetUserPassword(email string) (string, error) {
+	passwordHash := ""
+
+	existingUsers, _, err := d.cruds["user"].GetRowsByWhereClause("user", squirrel.Eq{"email": email})
+	if err != nil {
+		return passwordHash, err
+	}
+	if len(existingUsers) < 1 {
+		return passwordHash, errors.New("User not found")
+	}
+
+	passwordHash = existingUsers[0]["password"].(string)
+
+	return passwordHash, err
+}
+
 func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 
 	if !dbResource.CanBecomeAdmin() {
