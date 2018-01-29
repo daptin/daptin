@@ -3,18 +3,21 @@ pages:
     - Home: index.md
     - Setting up: setting-up/settingup.md
     - Entities: setting-up/entities.md
-    - Entity Relations: setting-up/entity_relations.md
+    - Entity relations: setting-up/entity_relations.md
+    - Cloud storage: cloudstore/cloudstore.md
+    - Subsites: subsite/subsite.md
     - Users and groups: auth/users_and_usergroups.md
     - Authorization: auth/authorization.md
     - Authentication: auth/authentication.md
     - Actions: actions-streams/actions.md
     - Data storage: data-modeling/data_storage.md
-    - Marketplace: setting-up/marketplace.md
-    - Data Auditing: data-modeling/auditing.md
+    - Market place: setting-up/marketplace.md
+    - Data auditing: data-modeling/auditing.md
     - Data validation: data-modeling/data_validation.md
     - Data conformations: data-modeling/data_conformation.md
     - State tracking: data-modeling/state_tracking.md
-    - Data Streams: actions-streams/streams.md
+    - Data streams: actions-streams/streams.md
     - Permission model: auth/permissions.md
-    - OAuth Connections: extend/oauth_connection.md
+    - OAuth connections: extend/oauth_connection.md
+    - OAuth tokens: extend/oauth_token.md
 theme: readthedocs

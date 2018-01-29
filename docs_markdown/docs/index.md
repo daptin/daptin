@@ -9,7 +9,7 @@ Daptin is a ready-to-deploy API first backend. Create new JSON APIs within minut
 ## Setting up
 - [Setting up](setting-up/settingup.md)
 - [Entities](setting-up/entities.md)
-- [Entity Relations](setting-up/entity_relations.md)
+- [Entity relations](setting-up/entity_relations.md)
 - [Marketplace](setting-up/marketplace.md)
 
 ## Data
@@ -23,22 +23,22 @@ Daptin is a ready-to-deploy API first backend. Create new JSON APIs within minut
 ## Actions and streams
 
 - [Actions](actions-streams/actions.md)
-- [Data Streams](actions-streams/streams.md)
+- [Data streams](actions-streams/streams.md)
+- [Oauth connections](extend/oauth_connection.md)
+- [Oauth tokens](extend/oauth_token.md)
 
 ## Authentication and Authorization
-- [Users and User groups](auth/users_and_usergroups.md)
+- [Users and user groups](auth/users_and_usergroups.md)
 - [Authentication](auth/authentication.md)
 - [Authorization](auth/authorization.md)
 - [Permissions](auth/permissions.md)
 
 ## External apis and integrations
 
-- [Oauth Connections](extend/oauth_connection.md)
-- Oauth tokens
 - Interacting with third party APIs
 - Storage connectors
 
-## Subsites, Marketplace
+## Sub-sites, Marketplace
 
-- Sub sites
+- [Sub sites](subsite/subsite.md)
 - Json schemas

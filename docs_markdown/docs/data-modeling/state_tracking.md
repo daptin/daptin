@@ -4,7 +4,7 @@ Tracking the status of things is one of the most common operation in most busine
 
 ## State machine
 
-A state machine is a description of "states" which the object can be in, and list of all valid transactions from one state to another. Lets begin with an example:
+A state machine is a description of "states" which the object can be in, and list of all valid transitions from one state to another. Let us begin with an example:
 
 The following JSON defines a state machine which has (a hypothetical state machine for tracking todos):
 
@@ -77,14 +77,49 @@ The following JSON defines a state machine which has (a hypothetical state machi
 State machines can be uploaded to Daptin just like entities and actions. A JSON/YAML file with a ```StateMachineDescriptions``` top level key can contain an array of state machine descriptions.
 
 
+## REST API
+
+### Start tracking an object by state machine reference id
+
+
+Request
+```
+	POST  /track/start/:stateMachineId
+	{"typeName": <entityTypeName>, "referenceId": <ReferenceIdOfTheObject> }
+```
+
+Response
+```
+		"current_state": <InitialStateOfTheStateMachine>
+		"<typename>_smd": <ObjectStateInstanceReferenceId>
+		"is_state_of_<typename>" = <ObjectInstanceId>
+		"permission": <AuthPermission>
+```
+
+### Trigger an event by name in the state of an object
+
+```
+	POST  /track/event/:typename/:ObjectStateInstanceReferenceId/:eventName
+```
+Response
+```
+		"current_state": <NewStateAfterEvent>
+		"<typename>_smd": <ObjectStateInstanceReferenceId>
+		"is_state_of_<typename>" = <ObjectInstanceId>
+```
+
+
+
 ## Enabling state tracking for entity
 
-First we need to tell goms that an entity is trackable. To do this, go to the world table page and edit the corresponding entity. Check the "Is state tracking enabled" checkbox.
+Begin with marking an entity as trackable. To do this, 
+
+- go to the world tables page and edit the an entity
+
+- Check the "Is state tracking enabled" checkbox
 
 This "is_state_tracking_enabled" options tells daptin to create the associated state table for the entity. Even though we have not yet specified which state machines are available for this entity.
 
-To make a state machine available for an entity, go to the "SMD" tab of the entity and add the state machine by searching it by name.
+To make a state machine available for an entity, go to the "SMD" tab of this entity on the same page and add the state machine by searching it by name and adding it.
 
-It would not make a lot of sense if the above state machine was allowed for all type of entities. Also since state of the objects in maintained in a separate table
-
-![Entity designer](gifs/enable_state_machine_for_todo.gif)
+It would not make a lot of sense if the above state machine was allowed for all type of entities. 
