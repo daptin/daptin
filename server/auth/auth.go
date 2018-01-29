@@ -12,6 +12,8 @@ import (
 	"gopkg.in/gin-gonic/gin.v1"
 	"net/http"
 	"strings"
+	"encoding/base64"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type CmsUser interface {
@@ -180,33 +182,38 @@ func (a AuthPermission) String() string {
 	return strings.Join(vals, ", \n")
 }
 
-type AuthMiddleWare struct {
-	db                *sqlx.DB
-	userCrud          api2go.CRUD
-	userGroupCrud     api2go.CRUD
-	userUserGroupCrud api2go.CRUD
+type ResourceAdapter interface {
+	api2go.CRUD
+	GetUserPassword(email string) (string, error)
 }
 
-func NewAuthMiddlewareBuilder(db *sqlx.DB) *AuthMiddleWare {
-	return &AuthMiddleWare{
+type AuthMiddleware struct {
+	db                *sqlx.DB
+	userCrud          ResourceAdapter
+	userGroupCrud     ResourceAdapter
+	userUserGroupCrud ResourceAdapter
+}
+
+func NewAuthMiddlewareBuilder(db *sqlx.DB) *AuthMiddleware {
+	return &AuthMiddleware{
 		db: db,
 	}
 }
 
-func (a *AuthMiddleWare) SetUserCrud(curd api2go.CRUD) {
+func (a *AuthMiddleware) SetUserCrud(curd ResourceAdapter) {
 	a.userCrud = curd
 }
 
-func (a *AuthMiddleWare) SetUserGroupCrud(curd api2go.CRUD) {
+func (a *AuthMiddleware) SetUserGroupCrud(curd ResourceAdapter) {
 	a.userGroupCrud = curd
 }
 
-func (a *AuthMiddleWare) SetUserUserGroupCrud(curd api2go.CRUD) {
+func (a *AuthMiddleware) SetUserUserGroupCrud(curd ResourceAdapter) {
 	a.userUserGroupCrud = curd
 }
 
-func NewAuthMiddleware(db *sqlx.DB, userCrud api2go.CRUD, userGroupCrud api2go.CRUD, userUserGroupCrud api2go.CRUD) *AuthMiddleWare {
-	return &AuthMiddleWare{
+func NewAuthMiddleware(db *sqlx.DB, userCrud ResourceAdapter, userGroupCrud ResourceAdapter, userUserGroupCrud ResourceAdapter) *AuthMiddleware {
+	return &AuthMiddleware{
 		db:                db,
 		userCrud:          userCrud,
 		userGroupCrud:     userGroupCrud,
@@ -222,9 +229,9 @@ func InitJwtMiddleware(secret []byte) {
 			return secret, nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err string) {
-			log.Infof("Guest request [%v]: %v", err, r.Header)
+			//log.Infof("Guest request [%v]: %v", err, r.Header)
 		},
-		//Debug: true,
+		Debug: false,
 		// When set, the middleware verifies that tokens are signed with the specific signing algorithm
 		// If the signing method is not constant the ValidationKeyGetter callback can be used to implement additional checks
 		// Important to avoid security issues described here: https://auth0.com/blog/2015/03/31/critical-vulnerabilities-in-json-web-token-libraries/
@@ -250,27 +257,81 @@ func StartsWith(bigStr string, smallString string) bool {
 
 }
 
-func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
-
-	if StartsWith(c.Request.RequestURI, "/static") || StartsWith(c.Request.RequestURI, "/favicon.ico") {
-		c.Next()
+func (a *AuthMiddleware) BasicAuthCheckMiddlewareWithHttp(req *http.Request, writer http.ResponseWriter) (token *jwt.Token, err error) {
+	token = nil
+	authHeaderValue := req.Header.Get("Authorization")
+	bearerValueParts := strings.Split(authHeaderValue, " ")
+	if len(bearerValueParts) < 2 {
 		return
 	}
 
-	user, err := jwtMiddleware.CheckJWT(c.Writer, c.Request)
+	tokenString := bearerValueParts[1]
+	tokenValue, err := base64.StdEncoding.DecodeString(tokenString)
+	if err != nil {
+		return
+	}
+	tokenValueParts := strings.Split(string(tokenValue), ":")
+	username := tokenValueParts[0]
+	password := tokenValueParts[1]
+	existingPasswordHash, err := a.userCrud.GetUserPassword(username)
+	if err != nil {
+		return
+	}
+
+	if BcryptCheckStringHash(password, existingPasswordHash) {
+		token = &jwt.Token{
+			Claims: jwt.MapClaims{
+				"name":  strings.Split(username, "@")[0],
+				"email": username,
+			},
+		}
+	}
+
+	return
+}
+
+func BcryptCheckStringHash(newString, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(newString))
+	return err == nil
+}
+
+func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer http.ResponseWriter, doBasicAuthCheck bool) (okToContinue, abortRequest bool, returnRequest *http.Request) {
+	okToContinue = true
+	abortRequest = false
+
+	if StartsWith(req.RequestURI, "/static") || StartsWith(req.RequestURI, "/favicon.ico") {
+		okToContinue = true
+		return okToContinue, abortRequest, req
+	}
+
+	hasUser := false
+	user, err := jwtMiddleware.CheckJWT(writer, req)
 
 	if err != nil {
-		log.Infof("Auth failed: %v", err)
-		c.Next()
+
+		if doBasicAuthCheck {
+			user, err = a.BasicAuthCheckMiddlewareWithHttp(req, writer)
+			if err != nil || user == nil {
+				log.Infof("JWT/Basic auth failed: %v", err)
+			} else {
+				hasUser = true
+			}
+		} else {
+			//log.Infof("JWT auth failed: %v", err)
+		}
 	} else {
+		hasUser = true
+	}
+
+	if hasUser {
 
 		//log.Infof("Set user: %v", user)
 		if user == nil {
 
-			newRequest := c.Request.WithContext(context.WithValue(c.Request.Context(), "user_id", ""))
+			newRequest := req.WithContext(context.WithValue(req.Context(), "user_id", ""))
 			newRequest = newRequest.WithContext(context.WithValue(newRequest.Context(), "usergroup_id", []GroupPermission{}))
-			c.Request = newRequest
-			c.Next()
+			req = newRequest
+			okToContinue = true
 		} else {
 
 			userToken := user
@@ -292,17 +353,17 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 
 				newUser := api2go.NewApi2GoModelWithData("user", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
 
-				req := api2go.Request{
+				req1 := api2go.Request{
 					PlainRequest: &http.Request{
 						Method: "POST",
 					},
 				}
 
-				resp, err := a.userCrud.Create(newUser, req)
+				resp, err := a.userCrud.Create(newUser, req1)
 				if err != nil {
 					log.Errorf("Failed to create new user: %v", err)
-					c.AbortWithStatus(403)
-					return
+					abortRequest = true
+					return okToContinue, abortRequest, req
 				}
 				referenceId = resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
 
@@ -311,7 +372,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 
 				newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
 
-				resp, err = a.userGroupCrud.Create(newUserGroup, req)
+				resp, err = a.userGroupCrud.Create(newUserGroup, req1)
 				if err != nil {
 					log.Errorf("Failed to create new user group: %v", err)
 				}
@@ -324,7 +385,7 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 
 				newUserUserGroup := api2go.NewApi2GoModelWithData("user_user_id_has_usergroup_usergroup_id", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
 
-				uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req)
+				uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req1)
 				if err != nil {
 					log.Errorf("Failed to create user-usergroup relation: %v", err)
 				}
@@ -358,13 +419,27 @@ func (a *AuthMiddleWare) AuthCheckMiddleware(c *gin.Context) {
 				UserReferenceId: referenceId,
 				Groups:          userGroups,
 			}
-			ct := c.Request.Context()
+			ct := req.Context()
 			ct = context.WithValue(ct, "user", user)
-			newRequest := c.Request.WithContext(ct)
-			c.Request = newRequest
-			c.Next()
-
+			newRequest := req.WithContext(ct)
+			req = newRequest
+			okToContinue = true
 		}
+	}
+
+	return okToContinue, abortRequest, req
+}
+
+func (a *AuthMiddleware) AuthCheckMiddleware(c *gin.Context) {
+
+	ok, abort, newRequest := a.AuthCheckMiddlewareWithHttp(c.Request, c.Writer, false)
+	if abort {
+		c.Abort()
+	} else if ok {
+		c.Request = newRequest
+		c.Next()
+	} else {
+		c.AbortWithStatus(401)
 	}
 
 }

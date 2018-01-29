@@ -20,7 +20,7 @@ import (
 // - 204 No Content: Update was successful, no fields were changed by the server, return nothing
 func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 	data, ok := obj.(*api2go.Api2GoModel)
-	log.Infof("Update object request: [%v][%v]", dr.model.GetTableName(), data.GetID())
+	//log.Infof("Update object request: [%v][%v]", dr.model.GetTableName(), data.GetID())
 
 	for _, bf := range dr.ms.BeforeUpdate {
 		//log.Infof("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
@@ -66,7 +66,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 	allChanges := data.GetChanges()
 	allColumns := dr.model.GetColumns()
-	log.Infof("Update object request with changes: %v", allChanges)
+	//log.Infof("Update object request with changes: %v", allChanges)
 
 	//dataToInsert := make(map[string]interface{})
 
@@ -295,7 +295,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		}
 
 		query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).ToSql()
-		log.Infof("Update query: %v", query)
+		//log.Infof("Update query: %v", query)
 		if err != nil {
 			log.Errorf("Failed to create update query: %v", err)
 			return NewResponse(nil, nil, 500, nil), err
@@ -359,7 +359,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 
 	for _, rel := range dr.model.GetRelations() {
 		relationName := rel.GetRelation()
-		//log.Infof("Check relation in Update: %v", rel.String())
+		log.Infof("Check relation in Update: %v", rel.String())
 		if rel.GetSubject() == dr.model.GetName() {
 
 			if relationName == "belongs_to" || relationName == "has_one" {
@@ -592,7 +592,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			}
 
 		}
-		log.Infof("Delete to relation: %v", deleteRelations)
+		log.Infof("Relation to Delete: %v", deleteRelations)
 	}
 
 	for _, bf := range dr.ms.AfterUpdate {

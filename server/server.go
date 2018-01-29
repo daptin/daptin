@@ -126,10 +126,11 @@ func Main(boxRoot, assetsStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
 
-	hostSwitch := CreateSubSites(&initConfig, db, cruds)
+	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
 
 	hostSwitch.handlerMap["api"] = r
 	hostSwitch.handlerMap["dashboard"] = r
+
 	go resource.ImportDataFiles(&initConfig, db, cruds)
 
 	authMiddleware.SetUserCrud(cruds["user"])

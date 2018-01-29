@@ -24,22 +24,24 @@ import (
 )
 
 type HostSwitch struct {
-	handlerMap map[string]http.Handler
-	siteMap    map[string]resource.SubSite
+	handlerMap     map[string]*gin.Engine
+	siteMap        map[string]resource.SubSite
+	authMiddleware *auth.AuthMiddleware
 }
 
 type JsonApiError struct {
 	Message string
 }
 
-func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*resource.DbResource) HostSwitch {
+func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) HostSwitch {
 
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
 
 	hs := HostSwitch{}
-	hs.handlerMap = make(map[string]http.Handler)
+	hs.handlerMap = make(map[string]*gin.Engine)
 	hs.siteMap = make(map[string]resource.SubSite)
+	hs.authMiddleware = authMiddleware
 
 	sites, err := cruds["site"].GetAllSites()
 	stores, err := cruds["cloud_store"].GetAllCloudStores()
@@ -60,7 +62,8 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 
 		subSiteInformation := resource.SubSiteInformation{}
 		hs.siteMap[site.Path] = site
-		log.Infof("Site to subhost: %v", site)
+		hs.siteMap[site.Hostname] = site
+		//log.Infof("Site to subhost: %v", site)
 
 		subSiteInformation.SubSite = site
 
@@ -103,7 +106,8 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 		sourceDirectoryName := u.String()
 		tempDirectoryPath, err := ioutil.TempDir("", sourceDirectoryName)
 
-		hostRouter := httprouter.New()
+		//hostRouter := httprouter.New()
+		hostRouter := gin.New()
 
 		subSiteInformation.SourceRoot = tempDirectoryPath
 
@@ -136,7 +140,9 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 			dir := fs.CopyDir(fdst, fsrc)
 			return dir
 		})
-		hostRouter.ServeFiles("/*filepath", http.Dir(tempDirectoryPath))
+		//hostRouter.ServeFiles("/*filepath", http.Dir(tempDirectoryPath))
+		hostRouter.Use(authMiddleware.AuthCheckMiddleware)
+		hostRouter.StaticFS("/", http.Dir(tempDirectoryPath))
 
 		hs.handlerMap[site.Hostname] = hostRouter
 		siteMap[subSiteInformation.SubSite.Hostname] = subSiteInformation
@@ -152,9 +158,43 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Check if a http.Handler is registered for the given host.
 	// If yes, use it to handle the request.
-	log.Printf("Request url host: %s", r.URL.Host)
-	if handler := hs.handlerMap[r.URL.Host]; handler != nil {
-		handler.ServeHTTP(w, r)
+	hostName := strings.Split(r.Host, ":")[0]
+	//log.Printf("Request url host: %v", hostName)
+	if handler := hs.handlerMap[hostName]; handler != nil {
+
+		subSite := hs.siteMap[hostName]
+		permission := subSite.Permission
+		ok, abort, modifiedRequest := hs.authMiddleware.AuthCheckMiddlewareWithHttp(r, w, true)
+		if ok {
+			r = modifiedRequest
+		}
+		if abort {
+			w.Header().Set("WWW-Authenticate", `Basic realm="`+hostName+`"`)
+			w.WriteHeader(401)
+			w.Write([]byte("Unauthorised.\n"))
+		} else if ok {
+			userI := r.Context().Value("user")
+			var user *auth.SessionUser
+			if userI != nil {
+				user = userI.(*auth.SessionUser)
+			} else {
+				user = &auth.SessionUser{
+					UserReferenceId: "",
+					Groups:          []auth.GroupPermission{},
+				}
+			}
+
+			if permission.CanExecute(user.UserReferenceId, user.Groups) {
+				handler.ServeHTTP(w, r)
+			} else {
+				w.Header().Set("WWW-Authenticate", `Basic realm="`+hostName+`"`)
+				w.WriteHeader(401)
+				w.Write([]byte("Unauthorised.\n"))
+			}
+
+		}
+		return
+
 	} else {
 		pathParts := strings.Split(r.URL.Path, "/")
 		if len(pathParts) > 1 {
@@ -164,11 +204,23 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if isSubSite {
 
 				permission := subSite.Permission
-				user := r.Context().Value("user").(*auth.SessionUser)
+				userI := r.Context().Value("user")
+				var user *auth.SessionUser
+				if userI != nil {
+					user = userI.(*auth.SessionUser)
+				} else {
+					user = &auth.SessionUser{
+						UserReferenceId: "",
+						Groups:          []auth.GroupPermission{},
+					}
+				}
 				if permission.CanExecute(user.UserReferenceId, user.Groups) {
 					r.URL.Path = "/" + strings.Join(pathParts[2:], "/")
 					handler := hs.handlerMap[subSite.Hostname]
 					handler.ServeHTTP(w, r)
+				} else {
+					w.WriteHeader(403)
+					w.Write([]byte("Unauthorized"))
 				}
 				return
 			}
