@@ -160,14 +160,15 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// If yes, use it to handle the request.
 	hostName := strings.Split(r.Host, ":")[0]
 	//log.Printf("Request url host: %v", hostName)
+	ok, abort, modifiedRequest := hs.authMiddleware.AuthCheckMiddlewareWithHttp(r, w, true)
+	if ok {
+		r = modifiedRequest
+	}
+
 	if handler := hs.handlerMap[hostName]; handler != nil {
 
 		subSite := hs.siteMap[hostName]
 		permission := subSite.Permission
-		ok, abort, modifiedRequest := hs.authMiddleware.AuthCheckMiddlewareWithHttp(r, w, true)
-		if ok {
-			r = modifiedRequest
-		}
 		if abort {
 			w.Header().Set("WWW-Authenticate", `Basic realm="`+hostName+`"`)
 			w.WriteHeader(401)

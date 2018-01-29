@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>OAuth tokens - Daptin</title>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/highlight.css">
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "OAuth tokens";
+    var mkdocs_page_input_path = "extend/oauth_token.md";
+    var mkdocs_page_url = "/extend/oauth_token/";
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js"></script>
+  <script src="../../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../../js/highlight.pack.js"></script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Daptin</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+	<ul class="current">
+	  
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../..">Home</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/settingup/">Setting up</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/entities/">Entities</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/entity_relations/">Entity relations</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../cloudstore/cloudstore/">Cloud storage</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../subsite/subsite/">Subsites</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/users_and_usergroups/">Users and groups</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/authorization/">Authorization</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/authentication/">Authentication</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../actions-streams/actions/">Actions</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/data_storage/">Data storage</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../setting-up/marketplace/">Market place</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/auditing/">Data auditing</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/data_validation/">Data validation</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/data_conformation/">Data conformations</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../data-modeling/state_tracking/">State tracking</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../actions-streams/streams/">Data streams</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../../auth/permissions/">Permission model</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../oauth_connection/">OAuth connections</a>
+	    </li>
+          
+            <li class="toctree-l1 current">
+		
+    <a class="current" href="./">OAuth tokens</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l2"><a href="#oauth-token">Oauth Token</a></li>
+    
+        <ul>
+        
+            <li><a class="toctree-l3" href="#use-the-oauth-connection-to-generate-a-new-token">Use the oauth connection to generate a new token</a></li>
+        
+        </ul>
+    
+
+    </ul>
+	    </li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Daptin</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>OAuth tokens</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="oauth-token">Oauth Token</h1>
+<p>Oauth tokens can be used internally to connect to other services which require authentication.</p>
+<ul>
+<li>Tokens and Refresh token are stored encrytped inside the database</li>
+<li>Refresh token is used to generate new tokens if the existing token expires</li>
+</ul>
+<h2 id="use-the-oauth-connection-to-generate-a-new-token">Use the oauth connection to generate a new token</h2>
+<ul>
+<li>Click the "expand" icon on the card to go into detailed view</li>
+<li>On the right side, under the "Actions" find "Authenticate via OAuth"</li>
+<li>Click it and click "Submit" in the next form to initiate the flow</li>
+</ul>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="../oauth_connection/" class="btn btn-neutral" title="OAuth connections"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+      
+        <span><a href="../oauth_connection/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+    </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/require.js"></script>
+      <script src="../../search/search.js"></script>
+
+</body>
+</html>

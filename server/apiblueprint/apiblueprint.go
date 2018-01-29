@@ -413,116 +413,16 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 			resource[k] = v
 		}
 
+		if tableInfo.IsStateTrackingEnabled {
+
+			//tableInfo.StateMachines
+
+		}
+
 		resourcesMap["/api/"+tableInfo.TableName] = resource
 
-		//
-		//blueprintWriter.WriteString("    patch:")
-		//blueprintWriter.WriteString(fmt.Sprintf("    description: Edit existing %s", tableInfo.TableName))
-		//blueprintWriter.WriteString("      body: ")
-		//blueprintWriter.WriteString("      type: " + tableInfo.TableName)
-		//blueprintWriter.WriteString("        responses: ")
-		//blueprintWriter.WriteString("          200: ")
-		//blueprintWriter.WriteString("            body: ")
-		//blueprintWriter.WriteString("              type: object")
-		//blueprintWriter.WriteString("              properties:")
-		//blueprintWriter.WriteString("                data:")
-		//blueprintWriter.WriteString("                  type: object")
-		//blueprintWriter.WriteString("                    properties:")
-		//blueprintWriter.WriteString("                      attributes: " + tableInfo.TableName)
-		//blueprintWriter.WriteString("                      id: ")
-		//blueprintWriter.WriteString("                        type: string")
-		//blueprintWriter.WriteString("                      type: ")
-		//blueprintWriter.WriteString("                        type: string")
-		//blueprintWriter.WriteString("                      relations:")
-		//
-		//for _, relation := range tableInfo.Relations {
-		//	if relation.Object == tableInfo.TableName {
-		//		blueprintWriter.WriteString(fmt.Sprintf("                        %v: IncludedRelationship", relation.SubjectName))
-		//	} else {
-		//		blueprintWriter.WriteString(fmt.Sprintf("                        %v: IncludedRelationship", relation.ObjectName))
-		//	}
-		//}
-		//
-		//blueprintWriter.WriteString("    delete:")
-		//blueprintWriter.WriteString(fmt.Sprintf("      description: Delete an existing %s", tableInfo.TableName))
-
-		//for _, relation := range tableInfo.Relations {
-		//
-		//	var name, typeName string
-		//	if relation.Object == tableInfo.TableName {
-		//		name = relation.SubjectName
-		//		typeName = relation.Subject
-		//	} else {
-		//		name = relation.ObjectName
-		//		typeName = relation.Object
-		//	}
-		//
-		//	blueprintWriter.WriteString("    /" + name)
-		//	blueprintWriter.WriteString("      description: " + typeName + " associated with " + tableInfo.TableName)
-		//	blueprintWriter.WriteString("+ Parameters")
-		//	blueprintWriter.WriteString("    + sort (optional, string) - sort results by a columns")
-		//	blueprintWriter.WriteString("    + page[number] (string, required) - Page number for the query set, starts with 1")
-		//	blueprintWriter.WriteString("    + page[size] (string, required) - Size of one page, try 10")
-		//	blueprintWriter.WriteString("    + query (optional, string) - sort results by a columns")
-		//	blueprintWriter.WriteString("    + referenceId (string, required) - reference id of the parent object as path param")
-		//	blueprintWriter.WriteString("")
-		//
-		//	blueprintWriter.WriteString("## Fetch related " + typeName + " which are of type " + name + " [GET]")
-		//	blueprintWriter.WriteString(fmt.Sprintf("Fetch related %s", typeName))
-		//	blueprintWriter.WriteString("")
-		//
-		//	blueprintWriter.WriteString("+ Response 200 (application/vnd.api+json)")
-		//	blueprintWriter.WriteString("")
-		//	blueprintWriter.WriteString("    + Body")
-		//	blueprintWriter.WriteString("")
-		//	blueprintWriter.WriteString(fmt.Sprintf("    + Attributes (object)"))
-		//	blueprintWriter.WriteString(fmt.Sprintf("            + data - list of queried %s", typeName))
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + attributes (%s) - Attributes of %s", typeName, name))
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + id (string) - reference id of this %s", typeName))
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + relationships - related entities of %v", typeName))
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + type (string) - type of this object"))
-		//	blueprintWriter.WriteString(fmt.Sprintf("            + included - Array of included related entities to %v", typeName))
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + attributes (object) - Attributes of the related entity"))
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + relationships Links to all the relations"))
-		//
-		//	subRelations := tableMap[typeName].Relations
-		//	for _, subRelation := range subRelations {
-		//		if tableInfo.TableName == subRelation.Object {
-		//
-		//			blueprintWriter.WriteString(fmt.Sprintf("                    + %s (object)", subRelation.SubjectName))
-		//
-		//			if subRelation.Relation == "belongs_to" || subRelation.Relation == "has_one" {
-		//				blueprintWriter.WriteString(fmt.Sprintf("                        + data (RelationStructure) - Reference to related %s of %s", subRelation.SubjectName, subRelation.Subject, typeName))
-		//			} else {
-		//				blueprintWriter.WriteString(fmt.Sprintf("                        + data (array[RelationStructure]) - References to related %s of %s", subRelation.SubjectName, subRelation.Subject, typeName))
-		//			}
-		//		} else {
-		//			blueprintWriter.WriteString(fmt.Sprintf("                    + %s (object)", subRelation.ObjectName))
-		//
-		//			if subRelation.Relation == "belongs_to" || subRelation.Relation == "has_one" {
-		//				blueprintWriter.WriteString(fmt.Sprintf("                        + data (RelationStructure) - Reference to related %s of %s", subRelation.Object, typeName))
-		//			} else {
-		//				blueprintWriter.WriteString(fmt.Sprintf("                        + data (array[RelationStructure]) - References to related %s of %s", subRelation.Object, typeName))
-		//			}
-		//			blueprintWriter.WriteString(fmt.Sprintf("                        + links (object) - Urls to fetch associated objects"))
-		//			blueprintWriter.WriteString(fmt.Sprintf("                            + related (string) - Urls to Fetch relations of %s", subRelation.Object))
-		//			blueprintWriter.WriteString(fmt.Sprintf("                            + self (string) - Url to Fetch self %s", subRelation.Object))
-		//		}
-		//	}
-		//
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + type (string) - type of this included object"))
-		//	blueprintWriter.WriteString(fmt.Sprintf("            + links (object)"))
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + current_page (number) - The current page, for pagination"))
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + from (number) - Index of the first records fetched in this result"))
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + last_page (number) - The last page number in current query set"))
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + per_page (number) - This is the number of results in one page"))
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + to (number) - Index of the last record feched in this result"))
-		//	blueprintWriter.WriteString(fmt.Sprintf("                + total (number) - Total number of records"))
-		//	blueprintWriter.WriteString("")
-		//
-		//}
-
 	}
+
 
 	for key, val := range resourcesMap {
 		apiDefinition[key] = val
