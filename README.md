@@ -21,7 +21,7 @@ By following shared conventions, you can increase productivity, take advantage o
 
 The framework integrates with cloud servers and is compatible with existing libraries and tools like JSONAPI.org/implementations and OAuth2. Daptin comes as a native binary and a Docker-based runtime which can be deployed to any server or cloud.
 
-The framework provides powerful abstractions and building blocks to develop flexible, scalable GraphQL backends:
+The framework provides powerful abstractions and building blocks to develop flexible, scalable JSON Rest backends:
 
 - **Daptin database** to easily evolves your data schema & migrates your database [Postgres/MySQL/SQLite]
 - **Flexible auth** using the JWT-based authentication & permission system
