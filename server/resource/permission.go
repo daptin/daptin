@@ -46,7 +46,7 @@ func (p1 PermissionInstance) CheckBit(userId string, usergroupId []auth.GroupPer
 	for _, uid := range usergroupId {
 
 		for _, gid := range p1.UserGroupId {
-			if uid.ReferenceId == gid.ReferenceId && len(gid.ReferenceId) > 0 {
+			if uid.GroupReferenceId == gid.GroupReferenceId && len(gid.GroupReferenceId) > 0 {
 				if gid.Permission.GroupCan(bit) {
 					return true
 				}

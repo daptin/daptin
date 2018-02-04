@@ -1,100 +1,82 @@
 <template>
-  <ul class="sidebar-menu">
-    <li class="pageLink" v-on:click="toggleMenu">
-      <router-link :to="{name: 'Dashboard', params: {}}">
-        <i class="fa fa-map-o"></i>
-        <span class="page">Dashboard</span>
-      </router-link>
-    </li>
-    <li class="treeview">
-      <a href="#">
+  <el-menu>
+    <el-menu-item index="1" @click="goto({name: 'Dashboard'})">
+      <i class="fa fa-map-o"></i>
+      <span class="page">Dashboard</span>
+    </el-menu-item>
+
+    <el-submenu index="2">
+      <template slot="title">
         <i class="fa fa-book"></i>
         <span>Items</span>
-        <span class="pull-right-container">
-          <i class="fa fa-angle-left fa-fw pull-right"></i>
-        </span>
-      </a>
-      <ul class="treeview-menu">
+      </template>
+      <el-menu-item :index="'2-' + index" @click="goto({name: 'Entity', params: {tablename: w.table_name}})"
+                    v-for="(w, index) in topWorlds"
+                    v-if="w.table_name != 'user' && w.table_name != 'usergroup'">
+        <span class="page">{{w.table_name | titleCase}}</span>
+      </el-menu-item>
+    </el-submenu>
 
-        <li class="pageLink" v-on:click="toggleMenu" v-for="w in topWorlds"
-            v-if="w.table_name != 'user' && w.table_name != 'usergroup'">
-          <router-link :class="w.table_name + '-link'" :to="{name: 'Entity', params: {tablename: w.table_name}}">
-            <span class="page">{{w.table_name | titleCase}}</span>
-          </router-link>
-        </li>
-      </ul>
-    </li>
-
-
-    <li class="treeview">
-      <a href="#">
+    <el-submenu index="3">
+      <template slot="title">
         <i class="fa fa-users"></i>
         <span>People</span>
-        <span class="pull-right-container">
-          <i class="fa fa-angle-left fa-fw pull-right"></i>
-        </span>
-      </a>
-      <ul class="treeview-menu">
-        <li class="pageLink" v-on:click="toggleMenu">
-          <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'user'}}">
-            <i class="fa fa-user"></i>
-            <span class="page">User</span>
-          </router-link>
-        </li>
-        <li class="pageLink" v-on:click="toggleMenu">
-          <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'usergroup'}}">
-            <i class="fa fa-users"></i>
-            <span class="page">User Group</span>
-          </router-link>
-        </li>
-      </ul>
-    </li>
+      </template>
+      <el-menu-item index="3-1" @click="goto({name: 'Entity', params: {tablename: 'user'}})">
+        <i class="fa fa-user"></i>
+        <span class="page">User</span>
+      </el-menu-item>
+      <el-menu-item index="3-2" @click="goto({name: 'Entity', params: {tablename: 'usergroup'}})">
+        <i class="fa fa-users"></i>
+        <span class="page">User Group</span>
+      </el-menu-item>
+    </el-submenu>
 
-    <li class="treeview help-support">
-      <a href="#">
+    <el-submenu index="4">
+      <template slot="title">
         <i class="fa fa-keyboard-o"></i>
         <span>Administration</span>
-        <span class="pull-right-container">
-          <i class="fa fa-angle-left fa-fw pull-right"></i>
-        </span>
-      </a>
-      <ul class="treeview-menu">
+      </template>
 
-        <li class="pageLink" v-on:click="toggleMenu">
-          <router-link :to="{name: 'Entity', params: {tablename: 'world'}}">
-            <i class="fa fa-th"></i>
-            <span class="page">All tables</span>
-          </router-link>
-        </li>
+      <el-menu-item index="4-1" @click="goto({name: 'Entity', params: {tablename: 'world'}})">
+        <i class="fa fa-th"></i>
+        <span class="page">All tables</span>
+      </el-menu-item>
 
-      </ul>
-    </li>
+    </el-submenu>
 
-    <li class="treeview help-support">
-      <a href="#">
+    <el-submenu index="5">
+      <template slot="title">
         <i class="fa fa-comment"></i>
         <span>Support</span>
-        <span class="pull-right-container">
-          <i class="fa fa-angle-left fa-fw pull-right"></i>
-        </span>
-      </a>
-      <ul class="treeview-menu">
+      </template>
 
-        <li><a href="https://github.com/artpar/daptin/wiki" target="_blank"><span class="fa fa-files-o"></span>
-          Dev help</a></li>
-
-
-        <li><a href="https://github.com/artpar/daptin/issues/new" target="_blank"><span class="fa fa-cogs"></span>
-          File an issue/bug</a></li>
+      <el-menu-item index="5-1">
+        <a href="https://github.com/artpar/daptin/wiki" target="_blank">
+          <span class="fa fa-files-o"></span>
+          Dev help
+        </a>
+      </el-menu-item>
 
 
-        <li><a href="mailto:artpar@gmail.com?subject=Daptin&body=Hi Parth,\n"><span class="fa fa-envelope-o"></span>
-          Email support</a></li>
-      </ul>
+      <el-menu-item index="5-2">
+        <a href="https://github.com/artpar/daptin/issues/new" target="_blank">
+          <span class="fa fa-cogs"></span>
+          File an issue/bug
+        </a>
+      </el-menu-item>
 
-    </li>
 
-  </ul>
+      <el-menu-item index="5-3">
+        <a href="mailto:artpar@gmail.com?subject=Daptin&body=Hi Parth,\n">
+          <span class="fa fa-envelope-o"></span>
+          Email support
+        </a>
+      </el-menu-item>
+
+    </el-submenu>
+
+  </el-menu>
 </template>
 <script>
   import {mapState} from "vuex"
@@ -102,6 +84,9 @@
   export default {
     name: 'SidebarName',
     methods: {
+      goto(params) {
+        this.$router.push(params);
+      },
       toggleMenu(event) {
         // remove active from li
         var active = document.querySelector('li.pageLink.active');

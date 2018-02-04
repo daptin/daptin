@@ -60,7 +60,7 @@
 
       <div class="col-md-12" v-for="item in tableData">
         <detailed-table-row :show-all="false" :model="item" :json-api="jsonApi" ref="vuetable"
-                            :json-api-model-name="jsonApiModelName" @deleteRow="deleteRow"
+                            :json-api-model-name="jsonApiModelName" @saveRelatedRow="saveRelatedRow" @deleteRow="deleteRow"
                             :key="item.id">
         </detailed-table-row>
       </div>
@@ -144,6 +144,35 @@
       }
     },
     methods: {
+      saveRelatedRow(relatedRow){
+        var that = this;
+        console.log("save row from list view", relatedRow);
+
+        that.$emit("saveRow", relatedRow);
+
+//        if (relatedRow.type == "usergroup") {
+//
+//          that.jsonApi.builderStack = [];
+//
+//          for (var i = 0; i < that.finder.length - 1; i++) {
+//            that.jsonApi.builderStack.push(that.finder[i])
+//          }
+//          var top = that.finder[that.finder.length - 1];
+//
+//          that.jsonApi.relationships().all(top.model).update(relatedRow["type"], {
+//            "type": relatedRow["type"],
+//            "id": relatedRow["id"],
+//            "permission":  relatedRow.permission
+//          }).then(function (e) {
+//            that.reloadData();
+//          }, function(){
+//            that.reloadData();
+//            that.failed();
+//          });
+//
+//        }
+
+      },
       deleteRow(rowToDelete) {
         var that = this;
         console.log("Delete row from list view", rowToDelete, that.finder);
@@ -159,12 +188,12 @@
         that.jsonApi.relationships().all(top.model).destroy([{
           "type": rowToDelete["__type"],
           "id": rowToDelete["id"]
-        }]).then(
-          function (e) {
+        }]).then(function (e) {
             that.reloadData();
-          },
-          that.failed
-        )
+          }, function(){
+          that.reloadData();
+          that.failed();
+        });
 
       },
       saveRow(obj) {
@@ -187,7 +216,7 @@
       },
       onChangePage(page) {
         var that = this;
-        console.log("cnage pge", page);
+        console.log("chnage pge", page);
         that.jsonApi.builderStack = that.finder;
         that.jsonApi.get({
           page: {

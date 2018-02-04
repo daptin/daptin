@@ -87,7 +87,7 @@ func (op ObjectPermission) Value() (driver.Value, error) {
 	return op.IntValue(), nil
 }
 
-var DEFAULT_PERMISSION ObjectPermission = NewPermission(Peek|Execute|Update|Delete|Refer, Read, CRUD|Execute)
+var DEFAULT_PERMISSION ObjectPermission = NewPermission(Peek|Execute|Refer, Read, CRUD|Execute)
 
 func (op ObjectPermission) OwnerCan(a AuthPermission) bool {
 	return op.OwnerPermission&a == a
@@ -272,7 +272,10 @@ func (a *AuthMiddleware) BasicAuthCheckMiddlewareWithHttp(req *http.Request, wri
 	}
 	tokenValueParts := strings.Split(string(tokenValue), ":")
 	username := tokenValueParts[0]
-	password := tokenValueParts[1]
+	password := ""
+	if len(tokenValueParts) > 1 {
+		password = tokenValueParts[1]
+	}
 	existingPasswordHash, err := a.userCrud.GetUserPassword(username)
 	if err != nil {
 		return
@@ -392,7 +395,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				log.Infof("Userug: %v", uug)
 
 			} else {
-				rows, err := a.db.Queryx("select ug.reference_id as referenceid, uug.permission from usergroup ug join user_user_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id where uug.user_id = ?", userId)
+				rows, err := a.db.Queryx("select ug.reference_id as GroupReferenceId, uug.reference_id as RelationReferenceId, uug.permission from usergroup ug join user_user_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id where uug.user_id = ?", userId)
 				if err != nil {
 					log.Errorf("Failed to get user group permissions: %v", err)
 				} else {
@@ -402,6 +405,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					for rows.Next() {
 						var p GroupPermission
 						err = rows.StructScan(&p)
+						p.ObjectReferenceId = referenceId
 						if err != nil {
 							log.Errorf("failed to scan group permission struct: %v", err)
 							continue
@@ -451,6 +455,8 @@ type SessionUser struct {
 }
 
 type GroupPermission struct {
-	ReferenceId string
-	Permission  ObjectPermission
+	GroupReferenceId    string `db:"GroupReferenceId"`
+	ObjectReferenceId   string `db:"ObjectReferenceId"`
+	RelationReferenceId string `db:"RelationReferenceId"`
+	Permission          ObjectPermission
 }

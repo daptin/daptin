@@ -6,7 +6,7 @@ import (
 	//"gopkg.in/Masterminds/squirrel.v1"
 
 	"github.com/daptin/daptin/server/auth"
-	"strings"
+	//"strings"
 )
 
 type ObjectAccessPermissionChecker struct {
@@ -117,11 +117,11 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		refIdInterface := result["reference_id"]
 		referenceId := refIdInterface.(string)
 
-		if strings.Index(result["__type"].(string), "_has_") > -1 {
-			returnMap = append(returnMap, result)
-			includedMapCache[referenceId] = true
-			continue
-		}
+		//if strings.Index(result["__type"].(string), "_has_") > -1 {
+		//	returnMap = append(returnMap, result)
+		//	includedMapCache[referenceId] = true
+		//	continue
+		//}
 
 		if refIdInterface == nil {
 			returnMap = append(returnMap, result)
@@ -138,8 +138,9 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		}
 
 		originalRowReference := map[string]interface{}{
-			"reference_id": result["reference_id"],
-			"__type":       result["__type"],
+			"__type":              result["__type"],
+			"reference_id":        result["reference_id"],
+			"object_reference_id": result["object_reference_id"],
 		}
 		permission := dr.GetRowPermission(originalRowReference)
 		//log.Infof("[ObjectAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.PermissionInstance)

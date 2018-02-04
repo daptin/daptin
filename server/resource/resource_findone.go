@@ -4,6 +4,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/pkg/errors"
 	"log"
+	//"strings"
 )
 
 // FindOne returns an object by its ID
@@ -27,12 +28,18 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		}
 	}
 
-	//log.Printf("Find [%s] by id [%s]", dr.model.GetName(), referenceId)
+	modelName := dr.model.GetName()
+	log.Printf("Find [%s] by id [%s]", modelName, referenceId)
+	//
+	//if strings.Index(modelName, "_has_") > 0 {
+	//	parts := strings.Split(modelName, "_has_")
+	//}
 
-	data, include, err := dr.GetSingleRowByReferenceId(dr.model.GetName(), referenceId)
-	//log.Printf("Single row result: %v", data)
+	data, include, err := dr.GetSingleRowByReferenceId(modelName, referenceId)
+
+	log.Printf("Single row result: %v", data)
 	for _, bf := range dr.ms.AfterFindOne {
-		//log.Printf("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Printf("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), modelName)
 
 		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{data})
 		if len(results) != 0 {

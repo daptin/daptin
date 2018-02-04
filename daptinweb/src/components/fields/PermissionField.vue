@@ -1,87 +1,277 @@
 <!-- PermissionInput.vue -->
 <template>
-  <table class="table">
-    <tr>
-      <td></td>
-      <td>Peek</td>
-      <td>Read</td>
-      <td>Create</td>
-      <td>Update</td>
-      <td>Delete</td>
-      <td>Execute</td>
-      <td>Refer</td>
-      <td>Read Strict</td>
-      <td>Create Strict</td>
-      <td>Update Strict</td>
-      <td>Delete Strict</td>
-      <td>Execute Strict</td>
-      <td>Refer Strict</td>
-      <td>CRUD</td>
-    </tr>
-    <tr>
-      <td><b>Owner</b></td>
-      <td><input class="checkbox" type="checkbox" v-model.sync="parsedOwnerPermission.canPeek"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canRead"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canCreate"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canUpdate"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canDelete"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canExecute"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canRefer"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canReadStrict"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canCreateStrict"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canUpdateStrict"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canDeleteStrict"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canExecuteStrict"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canReferStrict"></td>
-      <td><input type="checkbox" v-model="parsedOwnerPermission.canCRUD"></td>
-    </tr>
-    <tr>
-      <td><b>Guest</b></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canPeek"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canRead"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canCreate"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canUpdate"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canDelete"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canExecute"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canRefer"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canReadStrict"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canCreateStrict"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canUpdateStrict"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canDeleteStrict"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canExecuteStrict"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canReferStrict"></td>
-      <td><input type="checkbox" v-model="parsedGuestPermission.canCRUD"></td>
-    </tr>
-    <tr>
-      <td><b>Group</b></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canPeek"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canRead"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canCreate"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canUpdate"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canDelete"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canExecute"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canRefer"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canReadStrict"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canCreateStrict"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canUpdateStrict"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canDeleteStrict"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canExecuteStrict"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canReferStrict"></td>
-      <td><input type="checkbox" v-model="parsedGroupPermission.canCRUD"></td>
-    </tr>
-  </table>
+  <div>
+    <el-row>
+      <el-tabs v-model="activeTabName">
+        <el-tab-pane label="User" name="user">
+          <div>
+
+            <el-row>
+
+              <el-col :span="8">
+                <el-checkbox v-model.sync="parsedOwnerPermission.canPeek">Peek</el-checkbox>
+              </el-col>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canCRUD">CRUD</el-checkbox>
+              </el-col>
+
+            </el-row>
+
+
+            <el-row>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canRead">Read</el-checkbox>
+              </el-col>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canCreate">Create</el-checkbox>
+              </el-col>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canUpdate">Update</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canDelete">Delete</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canExecute">Execute</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canRefer">Refer</el-checkbox>
+              </el-col>
+
+            </el-row>
+            <el-row>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canReadStrict">Read Strict</el-checkbox>
+              </el-col>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canCreateStrict">Create Strict</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canUpdateStrict">Update Strict</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canDeleteStrict">Delete Strict</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canExecuteStrict">Execute Strict</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedOwnerPermission.canReferStrict">Refer Strict</el-checkbox>
+              </el-col>
+
+
+            </el-row>
+
+          </div>
+        </el-tab-pane>
+        <el-tab-pane label="Group" name="group">
+          <div>
+
+            <el-row>
+
+              <el-col :span="8">
+                <el-checkbox v-model.sync="parsedGroupPermission.canPeek">Peek</el-checkbox>
+              </el-col>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canCRUD">CRUD</el-checkbox>
+              </el-col>
+
+            </el-row>
+
+
+            <el-row>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canRead">Read</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canCreate">Create</el-checkbox>
+              </el-col>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canUpdate">Update</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canDelete">Delete</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canExecute">Execute</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canRefer">Refer</el-checkbox>
+              </el-col>
+
+            </el-row>
+            <el-row>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canReadStrict">Read Strict</el-checkbox>
+              </el-col>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canCreateStrict">Create Strict</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canUpdateStrict">Update Strict</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canDeleteStrict">Delete Strict</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canExecuteStrict">Execute Strict</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGroupPermission.canReferStrict">Refer Strict</el-checkbox>
+              </el-col>
+
+
+            </el-row>
+
+          </div>
+        </el-tab-pane>
+        <el-tab-pane label="Guest" name="guest">
+          <div class>
+            <el-row>
+
+              <el-col :span="8">
+                <el-checkbox v-model.sync="parsedGuestPermission.canPeek">Peek</el-checkbox>
+              </el-col>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canCRUD">CRUD</el-checkbox>
+              </el-col>
+
+            </el-row>
+
+
+            <el-row>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canRead">Read</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canCreate">Create</el-checkbox>
+              </el-col>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canUpdate">Update</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canDelete">Delete</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canExecute">Execute</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canRefer">Refer</el-checkbox>
+              </el-col>
+
+            </el-row>
+            <el-row>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canReadStrict">Read Strict</el-checkbox>
+              </el-col>
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canCreateStrict">Create Strict</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canUpdateStrict">Update Strict</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canDeleteStrict">Delete Strict</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canExecuteStrict">Execute Strict</el-checkbox>
+              </el-col>
+
+
+              <el-col :span="8">
+                <el-checkbox v-model="parsedGuestPermission.canReferStrict">Refer Strict</el-checkbox>
+              </el-col>
+
+
+            </el-row>
+
+
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+    </el-row>
+    <el-row>
+      <el-button @click="clearAll">Clear all</el-button>
+      <el-button @click="enableAll">Enable all</el-button>
+      <el-button @click="toggleSelectionAll">Toggle selection</el-button>
+    </el-row>
+  </div>
+
 </template>
 
 <script>
   import {abstractField} from "vue-form-generator";
   import {DatePicker} from "element-ui";
 
-
   export default {
     components: {DatePicker},
     mixins: [abstractField],
     data: function () {
       return {
+        activeTabName: 'user',
         editorOptions: {},
         guestValue: {},
         ownerValue: {},
@@ -168,6 +358,55 @@
       this.parsedGroupPermission = this.parsePermission(this.groupValue);
     },
     methods: {
+      setValue(obj, newValue) {
+        var keys = Object.keys(obj);
+        for(var i=0; i<keys.length;i++) {
+          if (newValue === undefined) {
+            obj[keys[i]] = !obj[keys[i]]
+          } else {
+            obj[keys[i]] = newValue
+          }
+        }
+      },
+      clearAll() {
+        switch (this.activeTabName) {
+          case "user":
+            this.setValue(this.parsedOwnerPermission, false);
+            break;
+          case "group":
+            this.setValue(this.parsedGroupPermission, false);
+            break;
+          case "guest":
+            this.setValue(this.parsedGuestPermission, false);
+            break;
+        }
+      },
+      enableAll() {
+        switch (this.activeTabName) {
+          case "user":
+            this.setValue(this.parsedOwnerPermission, true);
+            break;
+          case "group":
+            this.setValue(this.parsedGroupPermission, true);
+            break;
+          case "guest":
+            this.setValue(this.parsedGuestPermission, true);
+            break;
+        };
+      },
+      toggleSelectionAll() {
+        switch (this.activeTabName) {
+          case "user":
+            this.setValue(this.parsedOwnerPermission);
+            break;
+          case "group":
+            this.setValue(this.parsedGroupPermission);
+            break;
+          case "guest":
+            this.setValue(this.parsedGuestPermission);
+            break;
+        };
+      },
       updatePermissionValue() {
         console.log("make permission value");
         var ownerPermission = this.makePermission(this.parsedOwnerPermission);
@@ -177,7 +416,7 @@
         console.log("guest permission", guestPermission);
         console.log("group permission", groupPermission);
 
-        this.value = (ownerPermission * 1000*1000) + (groupPermission * 1000) + (guestPermission)
+        this.value = (ownerPermission * 1000 * 1000) + (groupPermission * 1000) + (guestPermission)
         console.log("updated permission value to ", this.value);
       },
       makePermission(permissionObject) {

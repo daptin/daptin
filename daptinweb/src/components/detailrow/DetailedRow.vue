@@ -14,6 +14,9 @@
               <button @click="initiateDelete" type="button" class="btn btn-box-tool">
                 <span class="fa fa-2x fa-times red"></span>
               </button>
+              <button @click="editPermission" v-if="jsonApiModelName == 'usergroup'" type="button" class="btn btn-box-tool">
+                <span class="fa fa-2x fa-pencil grey"></span>
+              </button>
 
               <router-link type="button" class="btn btn-box-tool"
                            :to="{name: 'Instance', params: {tablename: jsonApiModelName, refId: model.reference_id}}">
@@ -25,14 +28,13 @@
 
         </div>
 
-
         <div class="box-body">
           <div class="col-md-4" v-for="tf in truefalse">
             <input disabled type="checkbox" :checked="tf.value" name="tf.name">
             <label>{{tf.label}}</label>
           </div>
 
-          <div class="col-md-12">
+          <div class="col-md-6">
             <table class="table">
               <tbody>
               <tr v-for="col in normalFields" :id="col.name" v-if="col.value != ''">
@@ -41,6 +43,13 @@
               </tr>
               </tbody>
             </table>
+          </div>
+
+          <div class="col-md-6" v-if="rowBeingEdited && showAddEdit">
+            <model-form :hideTitle="true" @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
+                        @cancel="showAddEdit = false"
+                        v-bind:model="rowBeingEdited"
+                        v-bind:meta="selectedTableColumns" ref="modelform"></model-form>
           </div>
         </div>
 
@@ -111,7 +120,7 @@
           <el-tab-pane v-for="relation in relations" v-if="!relation.failed" :key="relation.name"
                        :label="relation.label">
             <list-view :json-api="jsonApi" :ref="relation.name" class="tab"
-                       :data-tab="relation.name" @onDeleteRow="initiateDelete"
+                       :data-tab="relation.name" @onDeleteRow="initiateDelete" @saveRow="saveRow"
                        :json-api-model-name="relation.type" :json-api-relation-name="relation.name" @addRow="addRow"
                        :autoload="true" @onLoadFailure="loadFailed(relation)"
                        :finder="relation.finder"></list-view>
@@ -167,7 +176,10 @@
         normalFields: [],
         imageFields: [],
         relatedData: {},
+        selectedTableColumns: null,
+        rowBeingEdited: null,
         relations: [],
+        showAddEdit: false,
         imageMap: {},
         relationFinder: {},
         truefalse: []
@@ -177,6 +189,40 @@
     },
     computed: {},
     methods: {
+      saveRow: function (relatedRow) {
+        var that = this;
+        console.log("Save from row being edited", relatedRow)
+        if (!this.showAll) {
+          console.log("not the parent");
+          this.$emit("saveRelatedRow", relatedRow)
+        } else {
+          console.log("start to save this row", that.jsonApiModelName, that.relations);
+
+          var typeName = that.jsonApiModelName + "_" + that.jsonApiModelName + "_id_has_" + relatedRow["type"] + "_" + relatedRow["type"] + "_id", relatedRow;
+          console.log("typename is", typeName);
+          that.jsonApi.update(typeName, relatedRow).then(function (r) {
+            that.$notify.success("Added " + relation.type);
+            // console.log("reference of list : ", that.$refs[relation.name])
+            that.$refs[relation.name].reloadData()
+          }, function (err) {
+            that.$notify.error(err)
+          })
+
+        }
+
+      },
+      editPermission: function () {
+        this.showAddEdit = true;
+        this.selectedTableColumns = {
+          "permission": {
+            "Name": "permission",
+            "ColumnName": "permission",
+            "ColumnType": "value",
+            "DataType": "int(11)",
+          }
+        };
+        this.rowBeingEdited = this.model;
+      },
       initiateDelete: function () {
 
         if (!this.showAll) {
@@ -277,7 +323,7 @@
       },
       init: function () {
         var that = this;
-         console.log("data for detailed row ", this.model);
+        console.log("data for detailed row ", this.model);
 
         this.meta = this.jsonApi.modelFor(this.jsonApiModelName);
 
@@ -313,7 +359,7 @@
           item.label = columnNameTitleCase;
           item.title = columnNameTitleCase;
           item.style = "";
-          console.log("Column information: ", item)
+//          console.log("Column information: ", item)
 
           if (item.valueType == "entity") {
 
