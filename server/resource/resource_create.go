@@ -266,7 +266,6 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	userGroupId := dr.GetUserGroupIdByUserId(sessionUser.UserId)
 
 	groupsToAdd := dr.defaultGroups
-	log.Infof("Default groups to add object to: %v", groupsToAdd)
 	for _, groupId := range groupsToAdd {
 		u, _ := uuid.NewV4()
 		nuuid := u.String()

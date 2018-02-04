@@ -17,6 +17,9 @@ import store from './store'
 
 // Import Views - Top level
 import AppView from './components/App.vue'
+import Element from 'element-ui'
+
+Vue.use(Element)
 
 // Import Install and register helper items
 

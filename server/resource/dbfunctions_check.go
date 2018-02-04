@@ -314,9 +314,7 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB, tx *sqlx.Tx) {
 	//}
 
 	columnsWeWant, colInfoMap := CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo)
-	log.Infof("Columns we want in [%v]", tableInfo.TableName)
-
-	PrintTableInfo(tableInfo)
+	PrintTableInfo(tableInfo, fmt.Sprintf("Columns we want in [%v]", tableInfo.TableName))
 	//for col := range columnsWeWant {
 	//	log.Infof("Column: [%v]%v @ %v - %v", tableInfo.TableName, col, colInfoMap[col].ColumnType, colInfoMap[col].DataType)
 	//}
@@ -362,7 +360,7 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB, tx *sqlx.Tx) {
 		}
 	}
 }
-func PrintTableInfo(info *TableInfo) {
+func PrintTableInfo(info *TableInfo, title string) {
 
 	table := simpletable.New()
 
@@ -397,6 +395,7 @@ func PrintTableInfo(info *TableInfo) {
 	}
 
 	table.Body = &tableBody
+	fmt.Println(title)
 	table.Println()
 
 }

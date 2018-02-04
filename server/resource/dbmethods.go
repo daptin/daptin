@@ -182,40 +182,6 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	return perm
 }
 
-//func (dr *DbResource) GetTablePermission(typeName string) (PermissionInstance) {
-//
-//  s, q, err := squirrel.Select("user_id", "permission", "id").From("world").Where(squirrel.Eq{"table_name": typeName}).ToSql()
-//  if err != nil {
-//    log.Errorf("Failed to create sql: %v", err)
-//    return PermissionInstance{
-//      "", []auth.GroupPermission{}, 0,
-//    }
-//  }
-//
-//  m := make(map[string]interface{})
-//  err = dr.db.QueryRowx(s, q...).MapScan(m)
-//  //log.Infof("permi map: %v", m)
-//  var perm PermissionInstance
-//  if m["user_id"] != nil {
-//
-//    user, err := dr.GetIdToReferenceId("user", m["user_id"].(int64))
-//    if err == nil {
-//      perm.UserId = user
-//    }
-//
-//  }
-//
-//  perm.UserGroupId = dr.GetObjectGroups("world", m["id"])
-//
-//  perm.PermissionInstance = m["permission"].(int64)
-//  if err != nil {
-//    log.Errorf("Failed to scan permission: %v", err)
-//  }
-//
-//  //log.Infof("PermissionInstance for [%v]: %v", typeName, perm)
-//  return perm
-//}
-
 func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string, colvalue string) []auth.GroupPermission {
 
 	s := make([]auth.GroupPermission, 0)
@@ -229,10 +195,11 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 
 	//log.Infof("Join string: %v: ", rel.GetJoinString())
 
-	sql := fmt.Sprintf("select usergroup.reference_id as referenceid, usergroup.permission from %s join %s  where %s.%s = ?", rel.Subject, rel.GetJoinString(), rel.Subject, colName)
-	//log.Infof("Group select sql: %v", sql)
+	sql := fmt.Sprintf("select usergroup.reference_id as GroupReferenceId, j1.reference_id as RelationReferenceId, j1.permission from %s join %s where %s.%s = ?", rel.Subject, rel.GetJoinString(), rel.Subject, colName)
 	res, err := dr.db.Queryx(sql, colvalue)
+	log.Infof("Group select sql: %v", sql)
 	if err != nil {
+
 		log.Errorf("Failed to get object groups by where clause: %v", err)
 		return s
 	}
@@ -242,7 +209,7 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 		var g auth.GroupPermission
 		err = res.StructScan(&g)
 		if err != nil {
-			log.Errorf("Failed to scan group permission : %v", err)
+			log.Errorf("Failed to scan group permission 1: %v", err)
 		}
 		s = append(s, g)
 	}
@@ -252,22 +219,24 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) []auth.GroupPermission {
 	s := make([]auth.GroupPermission, 0)
 
+	refId, err := dr.GetIdToReferenceId(objType, objectId)
 	if objType == "usergroup" {
 
-		refId, err := dr.GetIdToReferenceId(objType, objectId)
 		if err != nil {
 			log.Infof("Failed to get id to reference id [%v][%v] == %v", objType, objectId, err)
 			return s
 		}
 		s = append(s, auth.GroupPermission{
-			ReferenceId: refId,
-			Permission:  auth.ParsePermission(dr.cruds["usergroup"].model.GetDefaultPermission()),
+			GroupReferenceId:    refId,
+			ObjectReferenceId:   refId,
+			RelationReferenceId: refId,
+			Permission:          auth.ParsePermission(dr.cruds["usergroup"].model.GetDefaultPermission()),
 		})
 		return s
 	}
 
 	res, err := dr.db.Queryx(
-		fmt.Sprintf("select ug.reference_id as referenceid, ug.permission "+
+		fmt.Sprintf("select ug.reference_id as GroupReferenceId, uug.reference_id as RelationReferenceId, uug.permission "+
 			"from usergroup ug "+
 			"join %s_%s_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id and uug.%s_id = ?", objType, objType, objType), objectId)
 	if err != nil {
@@ -279,8 +248,9 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 	for res.Next() {
 		var g auth.GroupPermission
 		err = res.StructScan(&g)
+		g.ObjectReferenceId = refId
 		if err != nil {
-			log.Errorf("Failed to scan group permission : %v", err)
+			log.Errorf("Failed to scan group permission 2: %v", err)
 		}
 		s = append(s, g)
 	}
@@ -393,28 +363,44 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 
 	}
 
-	loc := strings.Index(dr.cruds[rowType].model.GetName(), "_has_")
+	loc := strings.Index(rowType, "_has_")
 	//log.Infof("Location [%v]: %v", dr.model.GetName(), loc)
 	if loc == -1 && dr.cruds[rowType].model.HasMany("usergroup") {
 
 		perm.UserGroupId = dr.GetObjectUserGroupsByWhere(rowType, "reference_id", refId.(string))
 
 	} else if rowType == "usergroup" {
+		originalGroupId, _ := row["object_reference_id"]
+
 		perm.UserGroupId = []auth.GroupPermission{
 			{
-				ReferenceId: refId.(string),
-				Permission:  auth.ParsePermission(dr.cruds["usergroup"].model.GetDefaultPermission()),
+				GroupReferenceId:    originalGroupId.(string),
+				ObjectReferenceId:   refId.(string),
+				RelationReferenceId: refId.(string),
+				Permission:          auth.ParsePermission(dr.cruds["usergroup"].model.GetDefaultPermission()),
 			},
 		}
+	} else if loc > -1 {
+		// this is a something belongs to a usergroup row
+		for colName, colValue := range row {
+			if EndsWithCheck(colName, "_id") && colName != "reference_id" {
+				if colName != "usergroup_id" {
+					return dr.GetObjectPermission(strings.Split(rowType, "_" + colName)[0], colValue.(string))
+				}
+			}
+		}
+
 	}
-	if row["permission"] != nil {
+
+	rowPermission := row["permission"]
+	if rowPermission != nil {
 
 		var err error
-		i64, ok := row["permission"].(int64)
+		i64, ok := rowPermission.(int64)
 		if !ok {
-			f64, ok := row["permission"].(float64)
+			f64, ok := rowPermission.(float64)
 			if !ok {
-				i64, err = strconv.ParseInt(row["permission"].(string), 10, 64)
+				i64, err = strconv.ParseInt(rowPermission.(string), 10, 64)
 				//p, err := int64(row["permission"].(int))
 				if err != nil {
 					log.Errorf("Invalid cast :%v", err)
@@ -782,7 +768,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 			}
 
 			namespace := columnInfo.ForeignKeyData.Namespace
-			//log.Infof("Resolve foreign key from [%v][%v]", columnInfo.ForeignKeyData.DataSource, namespace)
+			//log.Infof("Resolve foreign key from [%v][%v][%v]", columnInfo.ForeignKeyData.DataSource, namespace, val)
 			switch columnInfo.ForeignKeyData.DataSource {
 			case "self":
 				referenceIdInt, ok := val.(int64)
@@ -799,7 +785,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					continue
 				}
 
-				if includedRelationMap != nil && (includedRelationMap[namespace] || includedRelationMap["*"]) {
+				if includedRelationMap != nil && includedRelationMap[namespace] {
 					obj, err := dr.GetIdToObject(namespace, referenceIdInt)
 					obj["__type"] = namespace
 

@@ -22,6 +22,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	data, ok := obj.(*api2go.Api2GoModel)
 	//log.Infof("Update object request: [%v][%v]", dr.model.GetTableName(), data.GetID())
 
+	data.Data["__type"] = dr.model.GetName()
 	for _, bf := range dr.ms.BeforeUpdate {
 		//log.Infof("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
@@ -308,11 +309,6 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			return NewResponse(nil, nil, 500, nil), err
 		}
 	}
-
-	if dr.tableInfo.TableName == "usergroup" {
-		//newPermission := data.Data
-	}
-
 
 
 	if data.IsDirty() && dr.tableInfo.IsAuditEnabled {

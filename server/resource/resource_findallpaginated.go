@@ -48,7 +48,16 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 			return 0, NewResponse(nil, err, 400, nil), err
 		}
 	}
-	//log.Infof("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
+	log.Infof("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
+
+	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
+	if dr.model.GetName() == "usergroup" && len(req.QueryParams) > 2 {
+		for key := range req.QueryParams {
+			if EndsWithCheck(key, "_id") {
+				isRelatedGroupRequest = true
+			}
+		}
+	}
 
 	pageNumber := uint64(0)
 	if len(req.QueryParams["page[number]"]) > 0 {
@@ -63,8 +72,13 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	requestedFields, hasRequestedFields := req.QueryParams["fields"]
 	if hasRequestedFields {
 		for _, f := range requestedFields {
-			reqFieldMap[f] = true
+
+			fieldNames := strings.Split(f, ",")
+			for _, name := range fieldNames {
+				reqFieldMap[name] = true
+			}
 		}
+		reqFieldMap["user_id"] = true
 	}
 
 	pageSize := uint64(10)
@@ -125,23 +139,35 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	if hasRequestedFields {
 
 		for _, col := range cols {
-			if !col.ExcludeFromApi && reqFieldMap[col.Name] {
+			if !col.ExcludeFromApi && reqFieldMap[col.Name] && col.ColumnName != "permission" && col.ColumnName != "reference_id" {
 				finalCols = append(finalCols, prefix+col.ColumnName)
 			}
 		}
 	} else {
 		for _, col := range cols {
-			if col.ExcludeFromApi {
+			if col.ExcludeFromApi || col.ColumnName == "permission" || col.ColumnName == "reference_id" {
 				continue
 			}
 			finalCols = append(finalCols, prefix+col.ColumnName)
 		}
 	}
 
+	if _, ok := req.QueryParams["usergroup_id"]; ok && req.QueryParams["usergroupName"][0] == dr.model.GetName()+"_id" {
+		isRelatedGroupRequest = true
+	}
+
+	if isRelatedGroupRequest {
+		log.Infof("Switch permission to join table j1 instead of %v%v", prefix, "permission")
+		finalCols = append(finalCols, "j1.permission")
+		finalCols = append(finalCols, prefix + "reference_id as object_reference_id")
+		finalCols = append(finalCols, "j1.reference_id as reference_id")
+	} else {
+		finalCols = append(finalCols, prefix+"permission")
+		finalCols = append(finalCols, prefix+"reference_id")
+	}
+
 	queryBuilder := squirrel.Select(finalCols...).From(m.GetTableName()).Offset(pageNumber).Limit(pageSize)
 	countQueryBuilder := squirrel.Select("count(*)").From(m.GetTableName()).Offset(0).Limit(1)
-
-	//whereClauses := make([][]interface{}, 0)
 
 	infos := dr.model.GetColumns()
 
@@ -174,19 +200,8 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 				countQueryBuilder = countQueryBuilder.Where("( "+strings.Join(colString, " or ")+")", wheres...)
 			}
 		}
-	} else {
-		//user_id_int := context.Get(req.PlainRequest, "user_id_int")
-		//queryBuilder = queryBuilder.Where(squirrel.Eq{"user_id": user_id_int})
 	}
 
-	//for key, values := range req.QueryParams {
-	//	log.Infof("Query [%v] == %v", key, values)
-	//}
-
-	//for _, rel := range dr.model.GetRelations() {
-	//log.Infof("TableRelation[%v] == [%v]", dr.model.GetName(), rel.String())
-
-	//}
 	for _, rel := range dr.model.GetRelations() {
 
 		if rel.GetSubject() == dr.model.GetName() {
@@ -291,7 +306,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 				if len(subjectId) < 1 {
 					continue
 				}
-				//log.Infof("Has many [%v] : [%v] === %v", dr.model.GetName(), subjectId, req.QueryParams)
+				log.Infof("Has many [%v] : [%v] === %v", dr.model.GetName(), subjectId, req.QueryParams)
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
 				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
 
@@ -327,7 +342,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		return 0, nil, err
 	}
 
-	//log.Infof("Sql: %v == %v", sql1, args)
+	log.Infof("Sql: %v == %v", sql1, args)
 
 	stmt, err := dr.db.Preparex(sql1)
 	if err != nil {
@@ -343,6 +358,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	}
 	defer rows.Close()
 
+	//log.Infof("Included relations: %v", includedRelations)
 	results, includes, err := dr.ResultToArrayOfMap(rows, dr.model.GetColumnMap(), includedRelations)
 	//log.Infof("Found: %d results", len(results))
 	//log.Infof("Results: %v", results)
