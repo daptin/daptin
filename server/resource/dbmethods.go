@@ -197,7 +197,7 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 
 	sql := fmt.Sprintf("select usergroup.reference_id as GroupReferenceId, j1.reference_id as RelationReferenceId, j1.permission from %s join %s where %s.%s = ?", rel.Subject, rel.GetJoinString(), rel.Subject, colName)
 	res, err := dr.db.Queryx(sql, colvalue)
-	log.Infof("Group select sql: %v", sql)
+	//log.Infof("Group select sql: %v", sql)
 	if err != nil {
 
 		log.Errorf("Failed to get object groups by where clause: %v", err)

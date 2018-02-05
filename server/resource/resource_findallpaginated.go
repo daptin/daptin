@@ -48,7 +48,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 			return 0, NewResponse(nil, err, 400, nil), err
 		}
 	}
-	log.Infof("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
+	//log.Infof("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
 
 	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
 	if dr.model.GetName() == "usergroup" && len(req.QueryParams) > 2 {
@@ -306,7 +306,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 				if len(subjectId) < 1 {
 					continue
 				}
-				log.Infof("Has many [%v] : [%v] === %v", dr.model.GetName(), subjectId, req.QueryParams)
+				//log.Infof("Has many [%v] : [%v] === %v", dr.model.GetName(), subjectId, req.QueryParams)
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
 				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
 
@@ -342,7 +342,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		return 0, nil, err
 	}
 
-	log.Infof("Sql: %v == %v", sql1, args)
+	//log.Infof("Sql: %v == %v", sql1, args)
 
 	stmt, err := dr.db.Preparex(sql1)
 	if err != nil {
