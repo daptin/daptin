@@ -2,11 +2,12 @@ package resource
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
-	"strconv"
-	"strings"
 )
 
 func (dr *DbResource) GetTotalCount() uint64 {
@@ -65,7 +66,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		if err != nil {
 			log.Errorf("Invalid parameter value: %v", req.QueryParams["page[number]"])
 		}
-		pageNumber -= 1
+		pageNumber--
 	}
 
 	reqFieldMap := make(map[string]bool)
@@ -159,7 +160,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	if isRelatedGroupRequest {
 		log.Infof("Switch permission to join table j1 instead of %v%v", prefix, "permission")
 		finalCols = append(finalCols, "j1.permission")
-		finalCols = append(finalCols, prefix + "reference_id as object_reference_id")
+		finalCols = append(finalCols, prefix+"reference_id as object_reference_id")
 		finalCols = append(finalCols, "j1.reference_id as reference_id")
 	} else {
 		finalCols = append(finalCols, prefix+"permission")
@@ -342,7 +343,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		return 0, nil, err
 	}
 
-	//log.Infof("Sql: %v == %v", sql1, args)
+	log.Infof("Findall select query sql: %v == %v", sql1, args)
 
 	stmt, err := dr.db.Preparex(sql1)
 	if err != nil {
