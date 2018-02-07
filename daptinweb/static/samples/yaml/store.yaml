@@ -38,7 +38,7 @@ Actions:
   - Type: sale
     Method: POST
     Reference: sale
-    Attributes: {}
+    Attributes:
   - Type: inventory
     Method: UPDATE
     Attributes:
