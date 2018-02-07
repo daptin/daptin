@@ -371,10 +371,14 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 
 	} else if rowType == "usergroup" {
 		originalGroupId, _ := row["object_reference_id"]
+		originalGroupIdStr := refId.(string)
+		if originalGroupId != nil {
+			originalGroupIdStr = originalGroupId.(string)
+		}
 
 		perm.UserGroupId = []auth.GroupPermission{
 			{
-				GroupReferenceId:    originalGroupId.(string),
+				GroupReferenceId:    originalGroupIdStr,
 				ObjectReferenceId:   refId.(string),
 				RelationReferenceId: refId.(string),
 				Permission:          auth.ParsePermission(dr.cruds["usergroup"].model.GetDefaultPermission()),
