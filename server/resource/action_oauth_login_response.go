@@ -107,6 +107,36 @@ func mapToOauthConfig(authConnectorData map[string]interface{}, secret string) (
 	return conf, nil
 }
 
+func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_connect_reference_id string) error {
+	storeToken := make(map[string]interface{})
+
+	storeToken["access_token"] = token.AccessToken
+	storeToken["refresh_token"] = token.RefreshToken
+	expiry := token.Expiry.Unix()
+	if expiry < 0 {
+		expiry = time.Now().Add(24 * 300 * time.Hour).Unix()
+	}
+	storeToken["expires_in"] = expiry
+	storeToken["token_type"] = token_type
+	storeToken["oauth_connect_id"] = oauth_connect_reference_id
+
+	sessionUser := &auth.SessionUser{0, "", nil}
+
+	pr := &http.Request{
+		Method: "POST",
+	}
+	pr = pr.WithContext(context.WithValue(context.Background(), "user", sessionUser))
+
+	req := api2go.Request{
+		PlainRequest: pr,
+	}
+
+	model := api2go.NewApi2GoModelWithData("oauth_token", nil, auth.DEFAULT_PERMISSION.IntValue(), nil, storeToken)
+
+	_, err := dr.cruds["oauth_token"].Create(model, req)
+	return err
+}
+
 func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	state := inFieldMap["state"].(string)
@@ -139,48 +169,8 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 		return nil, nil, []error{err}
 	}
 
-	storeToken := make(map[string]interface{})
-
-	storeToken["access_token"] = token.AccessToken
-	storeToken["refresh_token"] = token.RefreshToken
-	expiry := token.Expiry.Unix()
-	if expiry < 0 {
-		expiry = time.Now().Add(24 * 300 * time.Hour).Unix()
-	}
-	storeToken["expires_in"] = expiry
-	storeToken["token_type"] = authenticator
-	storeToken["oauth_connect_id"] = authReferenceId
-
-	sessionUser := &auth.SessionUser{0, "", nil}
-
-	if inFieldMap["user_id"] != nil {
-		sessionUser = &auth.SessionUser{
-			UserId:          inFieldMap["user_id"].(int64),
-			UserReferenceId: inFieldMap["user_reference_id"].(string),
-			Groups:          []auth.GroupPermission{},
-		}
-	}
-
-	pr := &http.Request{
-		Method: "POST",
-	}
-	pr = pr.WithContext(context.WithValue(ctx, "user", sessionUser))
-
-	req := api2go.Request{
-		PlainRequest: pr,
-	}
-
-	//gorillaContext.Set(pr, "user_id", user["reference_id"])
-	//gorillaContext.Set(pr, "usergroup_id", []auth.GroupPermission{})
-	//gorillaContext.Set(pr, "user_id_integer", user["id"])
-
-	model := api2go.NewApi2GoModelWithData("oauth_token", nil, auth.DEFAULT_PERMISSION.IntValue(), nil, storeToken)
-
-	_, err = d.cruds["oauth_token"].Create(model, req)
-	if err != nil {
-		log.Errorf("Failed to store oauth token: %v", err)
-		return nil, nil, []error{err}
-	}
+	err = d.cruds["oauth_token"].StoreToken(token, authenticator, authReferenceId)
+	CheckErr(err, "Failed to store new auth token")
 
 	responseAttrs := make(map[string]interface{})
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"encoding/json"
 	"github.com/artpar/api2go"
+	"log"
 )
 
 type NetworkRequestActionPerformer struct {
@@ -16,7 +17,7 @@ func (d *NetworkRequestActionPerformer) Name() string {
 	return "$network.request"
 }
 
-func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder,  []ActionResponse, []error) {
+func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	headers, isHeader := inFieldMap["Headers"]
 	headerMap := make(map[string]string)
@@ -41,6 +42,7 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 	if isBody {
 		bodyMap = body.(map[string]interface{})
 	}
+	log.Printf("Request body: %v", body)
 
 	formData, isFormData := inFieldMap["FormData"]
 	formDataMap := make(map[string]string)
@@ -62,7 +64,7 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 
 	method, isMethodPresent := inFieldMap["Method"]
 	if !isMethodPresent {
-		return nil, nil, []error{fmt.Errorf("Http Request method not present")}
+		method = "GET"
 	}
 	methodString := strings.ToUpper(method.(string))
 
@@ -104,6 +106,7 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 	} else {
 		responseMap["body"] = string(response.Body())
 	}
+	log.Printf("Reponse body [%v][%v]: %v", methodString, urlString, responseMap["body"])
 	responseMap["headers"] = responseHeaders
 
 	return nil, []ActionResponse{{

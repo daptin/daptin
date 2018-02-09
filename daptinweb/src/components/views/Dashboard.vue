@@ -8,7 +8,7 @@
           <a href="javascript:">
             <i class="fa fa-home"></i>Home </a>
         </li>
-        <li v-for="crumb in $route.meta.breadcrumb">
+        <li v-for="crumb in $route.meta.breadcrumb" v-bind:key="crumb.label">
           <template v-if="crumb.to">
 
           </template>
@@ -26,7 +26,7 @@
 
       <div class="row">
 
-        <div class="col-lg-3 col-xs-6" v-for="world in worlds">
+        <div class="col-lg-3 col-xs-6" v-bind:key="world.id" v-for="world in worlds">
           <!-- small box -->
           <div class="small-box" style="background-color: #444; color: white;">
             <div class="inner">
@@ -50,7 +50,7 @@
       <!-- Main row -->
       <!-- /.row -->
       <div class="row">
-        <div class="col-md-3" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0">
+        <div class="col-md-3" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0" v-bind:key="tableName">
 
           <div class="box box-solid">
             <div class="box-header with-border">
@@ -63,7 +63,7 @@
             </div>
             <div class="box-body no-padding">
               <ul class="nav nav-pills nav-stacked">
-                <li v-for="action in worlds" v-if="action.InstanceOptional">
+                <li v-for="action in worlds" v-if="action.InstanceOptional" v-bind:key="action.Name">
                   <router-link :to="{name: 'Action', params: {tablename: action.OnType, actionname: action.Name}}">
                     {{action.Label}}
                   </router-link>
@@ -84,10 +84,11 @@
         <div class="col-md-12">
 
           <div class="row">
-            <div class="col-md-10">
+            <div class="col-md-12">
 
               <div class="row">
-                <router-link :to="{name: 'Entity', params:{tablename: 'marketplace'}}"
+                <div class="col-sm-12">
+                  <router-link :to="{name: 'Entity', params:{tablename: 'marketplace'}}"
                              class="btn btn-lg btn-app dashboard_button">
                   <i class="fa fa-3x fa-shopping-cart black"></i>Market places
                 </router-link>
@@ -131,13 +132,14 @@
                              class="btn btn-lg btn-app dashboard_button">
                   <i class="fa fa-3x fa-puzzle-piece black"></i>Json Schemas
                 </router-link>
+                </div>
 
               </div>
 
 
               <h3>People</h3>
               <div class="row">
-                <router-link :to="{name: 'Action', params: {tablename: 'user', actionname: 'signup'}}"
+                           <div class="col-sm-12">     <router-link :to="{name: 'Action', params: {tablename: 'user', actionname: 'signup'}}"
 
                              class="btn btn-lg btn-app dashboard_button">
                   <i class="fa fa-3x fa-user-plus black"></i>Create new user
@@ -159,14 +161,14 @@
                              class="btn btn-lg btn-app dashboard_button">
                   <i class="fa fa-3x fa-retweet black"></i>Restart
                 </router-link>
-
+</div>
               </div>
 
 
               <h3>Create</h3>
 
               <div class="row">
-
+                <div class="col-sm-12">
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
                              class="btn btn-lg btn-app dashboard_button">
                   <i class="fa fa-3x fa-plus black "></i>Upload Schema JSON
@@ -188,13 +190,15 @@
                              class="btn btn-lg btn-app dashboard_button">
                   <i class="fa fa-3x fa-pencil black"></i>Online designer
                 </router-link>
-
+</div>
 
               </div>
 
               <h3>Backup</h3>
               <div class="row">
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
+            
+                            <div class="col-sm-12">
+                                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
                              class="btn btn-lg btn-app dashboard_button">
                   <i class="fa fa-3x fa-object-group black"></i>Download schema JSON
                 </router-link>
@@ -203,7 +207,7 @@
                              class="btn btn-lg btn-app dashboard_button">
                   <i class="fa fa-3x fa-cloud-download black"></i>Download dump JSON
                 </router-link>
-
+</div>
               </div>
 
 
@@ -225,111 +229,120 @@
 </template>
 
 <style>
-  .dashboard_button {
-    width: 230px;
-    height: 90px;
-    font-size: 20px;
-  }
+.dashboard_button {
+  width: 230px;
+  height: 90px;
+  font-size: 20px;
+}
 
-  .dashboard_button i {
-    font-size: 30px
-  }
+.dashboard_button i {
+  font-size: 30px;
+}
 
-  .dashboard_button i {
-    color: #534da7;
-  }
+.dashboard_button i {
+  color: #534da7;
+}
 </style>
 
 <script>
-  import jsonApi from '../../plugins/jsonapi'
-  import actionManager from '../../plugins/actionmanager'
-  import worldManager from '../../plugins/worldmanager'
-  import statsManger from '../../plugins/statsmanager'
-  import { mapState } from 'vuex';
+import jsonApi from "../../plugins/jsonapi";
+import actionManager from "../../plugins/actionmanager";
+import worldManager from "../../plugins/worldmanager";
+import statsManger from "../../plugins/statsmanager";
+import { mapState } from "vuex";
 
-  export default {
-    data() {
-      return {
-        worldActions: {},
-        actionGroups: {},
-        generateRandomNumbers(numbers, max, min) {
-          let a = [];
-          for (let i = 0; i < numbers; i++) {
-            a.push(Math.floor(Math.random() * (max - min + 1)) + max)
-          }
-          return a
-        },
-        worlds: [],
-      }
-    },
-    computed: {
-      ...mapState(['query']),
-      sortedWorldActions: function () {
-
-        console.log("return sorted world actions", this.worldActions);
-        let keys = Object.keys(this.worldActions);
-
-        keys.sort();
-
-        let res = {};
-
-
-        for (let key in keys) {
-          res[key] = this.worldActions[key];
+export default {
+  data() {
+    return {
+      worldActions: {},
+      actionGroups: {},
+      generateRandomNumbers(numbers, max, min) {
+        let a = [];
+        for (let i = 0; i < numbers; i++) {
+          a.push(Math.floor(Math.random() * (max - min + 1)) + max);
         }
-
-        console.log("returning sorted worlds", res);
-        return res;
-      }
-    },
-    methods: {
-      stringToColor(str) {
-//        console.log("String to color", str, window.stringToColor(str))
-        return "#" + window.stringToColor(str)
+        return a;
       },
-      reloadData() {
-        let that = this;
-        let newWorldActions = {};
-        jsonApi.all("world").get({
+      worlds: []
+    };
+  },
+  computed: {
+    ...mapState(["query"]),
+    sortedWorldActions: function() {
+      console.log("return sorted world actions", this.worldActions);
+      let keys = Object.keys(this.worldActions);
+
+      keys.sort();
+
+      let res = {};
+
+      for (let key in keys) {
+        res[key] = this.worldActions[key];
+      }
+
+      console.log("returning sorted worlds", res);
+      return res;
+    }
+  },
+  methods: {
+    stringToColor(str) {
+      //        console.log("String to color", str, window.stringToColor(str))
+      return "#" + window.stringToColor(str);
+    },
+    reloadData() {
+      let that = this;
+      let newWorldActions = {};
+      jsonApi
+        .all("world")
+        .get({
           page: {
             number: 1,
-            size: 200,
+            size: 200
           }
-        }).then(function (worlds) {
+        })
+        .then(function(worlds) {
           worlds = worlds.data;
           console.log("");
-          that.worlds = worlds.map(function (e) {
-            let parse = JSON.parse(e.world_schema_json);
-            parse.Icon = e.icon;
-            parse.Count = 0;
-            return parse;
-          }).filter(function (e) {
-            console.log("filter ", e);
-            return !e.IsHidden && !e.IsJoinTable && e.TableName.indexOf("_state") == -1;
-          });
-          that.worlds.forEach(function (w) {
+          that.worlds = worlds
+            .map(function(e) {
+              let parse = JSON.parse(e.world_schema_json);
+              parse.Icon = e.icon;
+              parse.Count = 0;
+              return parse;
+            })
+            .filter(function(e) {
+              console.log("filter ", e);
+              return (
+                !e.IsHidden &&
+                !e.IsJoinTable &&
+                e.TableName.indexOf("_state") == -1
+              );
+            });
+          that.worlds.forEach(function(w) {
             console.log("call stats", w);
 
+            statsManger
+              .getStats(w.TableName, {
+                column: ["count(*)"]
+              })
+              .then(
+                function(stats) {
+                  stats = stats.data;
+                  console.log("Stats received", stats);
 
-            statsManger.getStats(w.TableName, {
-              column: ["count(*)"]
-            }).then(function (stats) {
-              stats = stats.data;
-              console.log("Stats received", stats)
-
-              var rows = stats.Data;
-              var totalCount = rows[0]["count(*)"]
-              w.Count = totalCount;
-
-
-            }, function (error) {
-              console.log("Failed to query stats", error);
-            });
+                  var rows = stats.Data;
+                  var totalCount = rows[0]["count(*)"];
+                  w.Count = totalCount;
+                },
+                function(error) {
+                  console.log("Failed to query stats", error);
+                }
+              );
           });
 
           let actionGroups = {
-            "System": [],
-            "User": []
+            System: [],
+            User: []
           };
           console.log("worlds in dashboard", worlds);
           for (let i = 0; i < worlds.length; i++) {
@@ -337,28 +350,28 @@
             let actions = actionManager.getActions(tableName);
 
             if (!actions) {
-              continue
+              continue;
             }
             console.log("actions for ", tableName, actions);
             let actionKeys = Object.keys(actions);
             for (let j = 0; j < actionKeys.length; j++) {
               let action = actions[actionKeys[j]];
-//            console.log("dashboard action", action)
+              //            console.log("dashboard action", action)
               let onType = action.OnType;
               let onWorld = worldManager.getWorldByName(onType);
-//            console.log("on world", onWorld)
+              //            console.log("on world", onWorld)
 
               if (onWorld.is_hidden == "1") {
-                actionGroups["System"].push(action)
+                actionGroups["System"].push(action);
               } else if (onWorld.table_name == "user") {
-                actionGroups["User"].push(action)
+                actionGroups["User"].push(action);
               } else if (onWorld.table_name == "usergroup") {
-                actionGroups["User"].push(action)
+                actionGroups["User"].push(action);
               } else {
                 if (!newWorldActions[onWorld.table_name]) {
                   newWorldActions[onWorld.table_name] = [];
                 }
-                newWorldActions[onWorld.table_name].push(action)
+                newWorldActions[onWorld.table_name].push(action);
               }
             }
           }
@@ -366,45 +379,42 @@
           that.worldActions = newWorldActions;
           that.actionGroups = actionGroups;
         });
-
-      },
-    },
-    updated() {
-      document.getElementById("navbar-search-input").value = "";
-    },
-    watch: {
-      query: function(oldVal, newVal) {
-        console.log("query change", arguments);
-        this.reloadData();
-      }
-    },
-    mounted() {
-
-//      $(".content").popover();
-
-      let that = this;
-      that.$route.meta.breadcrumb = [
-        {
-          label: 'Dashboard'
-        }
-      ];
-     this.reloadData();
-
     }
+  },
+  updated() {
+    document.getElementById("navbar-search-input").value = "";
+  },
+  watch: {
+    query: function(oldVal, newVal) {
+      console.log("query change", arguments);
+      this.reloadData();
+    }
+  },
+  mounted() {
+    //      $(".content").popover();
+
+    let that = this;
+    that.$route.meta.breadcrumb = [
+      {
+        label: "Dashboard"
+      }
+    ];
+    this.reloadData();
   }
+};
 </script>
 <style>
-  .info-box {
-    cursor: pointer;
-  }
+.info-box {
+  cursor: pointer;
+}
 
-  .info-box-content {
-    text-align: center;
-    vertical-align: middle;
-    display: inherit;
-  }
+.info-box-content {
+  text-align: center;
+  vertical-align: middle;
+  display: inherit;
+}
 
-  .fullCanvas {
-    width: 100%;
-  }
+.fullCanvas {
+  width: 100%;
+}
 </style>

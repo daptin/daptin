@@ -160,6 +160,7 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 					oauthDesc, err := dr.GetOauthDescriptionByTokenId(*exchange.OauthTokenId)
 
 					if err != nil {
+						err = nil
 						log.Errorf("No oauth description for [%v][%v]: %v", exchange.Name, exchange.OauthTokenId, err)
 					}
 					ctx := context.Background()

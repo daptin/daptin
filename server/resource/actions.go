@@ -8,6 +8,7 @@ type Outcome struct {
 	Type       string
 	Method     string
 	Reference  string
+	Condition  string
 	Attributes map[string]interface{}
 }
 
@@ -27,7 +28,7 @@ type ActionRow struct {
 	Name             string
 	Label            string
 	OnType           string
-	InstanceOptional bool `db:"instance_optional"`
+	InstanceOptional bool   `db:"instance_optional"`
 	ReferenceId      string
 	ActionSchema     string `db:"action_schema"`
 }

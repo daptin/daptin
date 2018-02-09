@@ -13,7 +13,7 @@
       <div class="col-md-3" v-if="relations.length > 0">
 
         <div class="row">
-          <div class="col-md-12" v-for="item in relations">
+          <div class="col-md-12" v-bind:key="item.value" v-for="item in relations">
             <select-one-or-more :value="item.value" :schema="item" @save="setRelation"></select-one-or-more>
           </div>
         </div>

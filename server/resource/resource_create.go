@@ -21,23 +21,8 @@ import (
 // - 204 No Content: Resource created with a client generated ID, and no fields were modified by
 //   the server
 
-func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
+func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (map[string]interface{}, error) {
 	data := obj.(*api2go.Api2GoModel)
-	log.Infof("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
-
-	for _, bf := range dr.ms.BeforeCreate {
-		//log.Infof("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
-		data.Data["__type"] = dr.model.GetName()
-		responseData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{data.Data})
-		if err != nil {
-			log.Warnf("Error from before create middleware [%v]: %v", bf.String(), err)
-			return nil, err
-		}
-		if responseData == nil {
-			return nil, errors.New("No object to act upon")
-		}
-	}
-
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
 
@@ -244,14 +229,14 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	query, vals, err := squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create insert query: %v", err)
-		return NewResponse(nil, nil, 500, nil), err
+		return nil, err
 	}
 
-	log.Infof("Insert query: %v", query)
+	log.Infof("Insert query: %v == %v", query, vals)
 	_, err = dr.db.Exec(query, vals...)
 	if err != nil {
 		log.Errorf("Failed to execute insert query: %v", err)
-		return NewResponse(nil, nil, 500, nil), err
+		return nil, err
 	}
 
 	createdResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), newUuid)
@@ -340,6 +325,32 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 	delete(createdResource, "id")
 	createdResource["__type"] = dr.model.GetName()
 
+	return createdResource, nil
+
+}
+
+func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
+	data := obj.(*api2go.Api2GoModel)
+	log.Infof("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
+
+	for _, bf := range dr.ms.BeforeCreate {
+		//log.Infof("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
+		data.Data["__type"] = dr.model.GetName()
+		responseData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{data.Data})
+		if err != nil {
+			log.Warnf("Error from before create middleware [%v]: %v", bf.String(), err)
+			return nil, err
+		}
+		if responseData == nil {
+			return nil, errors.New("No object to act upon")
+		}
+	}
+
+	createdResource, err := dr.CreateWithoutFilter(obj, req)
+	if err != nil {
+		return NewResponse(nil, nil, 500, nil), err
+	}
+
 	for _, bf := range dr.ms.AfterCreate {
 		//log.Infof("Invoke AfterCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
 		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource})
@@ -353,13 +364,6 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		}
 	}
 
-	//for k, v := range createdResource {
-	//  k1 := reflect.TypeOf(v)
-	//  //log.Infof("K: %v", k1)
-	//  if v != nil && k1.Kind() == reflect.Slice {
-	//    createdResource[k] = string(v.([]uint8))
-	//  }
-	//}
 	n1 := dr.model.GetName()
 	c1 := dr.model.GetColumns()
 	p1 := dr.model.GetDefaultPermission()

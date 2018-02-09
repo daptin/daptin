@@ -67,6 +67,11 @@ jsonapi.insertMiddlewareBefore("HEADER", {
 jsonapi.insertMiddlewareBefore('HEADER', {
   name: 'insert-query',
   req: function (payload) {
+
+    if (payload.req.method.toLowerCase() != "get") {
+      return payload;
+    }
+
     var query = $("#navbar-search-input").val();
 
     if (query && query.length > 2) {
