@@ -589,11 +589,11 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			data.Data,
 		})
 		if err != nil {
-			log.Errorf("Error set attributes from BeforeUpdate middleware: %v", err)
+			log.Errorf("error set attributes from BeforeUpdate middleware: %v", err)
 			return nil, err
 		}
 		if len(finalData) == 0 {
-			return nil, fmt.Errorf("Failed to updated this object because of [%v]", bf.String())
+			return nil, fmt.Errorf("failed to updated this object because of [%v]", bf.String())
 		}
 		res := finalData[0]
 		data.Data = res
