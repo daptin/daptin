@@ -459,3 +459,39 @@ func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 	return &token, err
 
 }
+
+func (resource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, error) {
+
+	var access_token, refresh_token, token_type string
+	var expires_in int64
+	var token oauth2.Token
+	s, v, err := squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
+		Where(squirrel.Eq{"token_type": name}).Limit(1).ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = resource.db.QueryRowx(s, v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
+
+	if err != nil {
+		return nil, err
+	}
+
+	secret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	CheckErr(err, "Failed to get encryption secret")
+
+	dec, err := Decrypt([]byte(secret), access_token)
+	CheckErr(err, "Failed to decrypt access token")
+
+	ref, err := Decrypt([]byte(secret), refresh_token)
+	CheckErr(err, "Failed to decrypt refresh token")
+
+	token.AccessToken = dec
+	token.RefreshToken = ref
+	token.TokenType = token_type
+	token.Expiry = time.Unix(expires_in, 0)
+
+	return &token, err
+
+}

@@ -33,8 +33,6 @@
     </section>
     <section class="content">
 
-      <div class="row">
-
         <div class="col-md-12" v-if="showAddEdit">
           <div class="row" v-if="selectedAction != null">
             <action-view @cancel="showAddEdit = false" @action-complete="showAddEdit = false"
@@ -104,7 +102,7 @@
 
         </div>
 
-      </div>
+
 
       <div class="col-md-12" v-if="objectStates.length > 0">
         <h3>Status tracks</h3>

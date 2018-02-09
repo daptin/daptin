@@ -62,7 +62,7 @@ func (ec *ExchangeExecution) Execute(inFields map[string]interface{}, data []map
 
 	switch ec.ExchangeContract.TargetType {
 	case "self":
-		log.Errorf("self in target, not yet implemented")
+		log.Errorf("exchange contract: target: 'self' is not yet implemented")
 		return errors.New("self in target, not yet implemented")
 	default:
 		handler, err = NewRestExchangeHandler(ec.ExchangeContract, ec.oauthToken, ec.oauthConfig)

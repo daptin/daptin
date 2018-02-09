@@ -580,7 +580,7 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 			log.Infof("Action [%v] on [%v] already present in database", action.Name, action.OnType)
 
 			actionJson, err := json.Marshal(action)
-			CheckErr(err, "Failed to marshal infields")
+			CheckErr(err, "Failed to marshal action infields")
 			s, v, err := squirrel.Update("action").
 				Set("label", action.Label).
 				Set("world_id", worldId).

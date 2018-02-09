@@ -235,12 +235,14 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 					columnAlreadyExist := false
 					colIndex := -1
 					for i, existingColumn := range existableTable.Columns {
-						if existingColumn.ColumnName == newColumnDef.ColumnName {
+						//log.Infof("Table column old/new [%v][%v] == [%v][%v] @ %v", tableBeingModified.TableName, newColumnDef.Name, existableTable.TableName, existingColumn.Name, i)
+						if (existingColumn.Name == newColumnDef.Name || existingColumn.ColumnName == newColumnDef.ColumnName) {
 							columnAlreadyExist = true
 							colIndex = i
 							break
 						}
 					}
+					//log.Infof("Decide for table column [%v][%v] @ index: %v [%v]", tableBeingModified.TableName, newColumnDef.Name, colIndex, columnAlreadyExist)
 					if columnAlreadyExist {
 						//log.Infof("Modifying existing columns[%v][%v] is not supported at present. not sure what would break. and alter query isnt being run currently.", existableTable.TableName, newColumnDef.Name);
 
@@ -279,6 +281,8 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 			existableTable.Validations = tableBeingModified.Validations
 			existableTable.DefaultGroups = tableBeingModified.DefaultGroups
 			existingTables[j] = existableTable
+		} else {
+			//log.Infof("Table %s is not being modified", existableTable.TableName)
 		}
 		allTables = append(allTables, existableTable)
 	}

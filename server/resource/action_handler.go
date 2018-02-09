@@ -24,6 +24,7 @@ import (
 	"github.com/go-playground/universal-translator"
 	"gopkg.in/go-playground/validator.v9"
 	en2 "gopkg.in/go-playground/validator.v9/translations/en"
+	"net/url"
 )
 
 var guestActions = map[string]Action{}
@@ -105,8 +106,28 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			return
 		}
 
+		requestBodyContentType := ginContext.Request.Header.Get("Content-type")
+		log.Printf("Action initiate: body content type: %v", requestBodyContentType)
 		actionRequest := ActionRequest{}
-		json.Unmarshal(bytes, &actionRequest)
+		err = json.Unmarshal(bytes, &actionRequest)
+		//CheckErr(err, "Failed to read request body as json")
+		if err != nil {
+			values, err := url.ParseQuery(string(bytes))
+			CheckErr(err, "Failed to parse body as query values")
+			attributesMap := make(map[string]interface{})
+			actionRequest.Attributes = make(map[string]interface{})
+			for key, val := range values {
+				if len(val) > 1 {
+					attributesMap[key] = val
+					actionRequest.Attributes[key] = val
+				} else {
+					attributesMap[key] = val[0]
+					actionRequest.Attributes[key] = val[0]
+				}
+			}
+			attributesMap["__body"] = string(bytes)
+			actionRequest.Attributes = attributesMap
+		}
 
 		actionRequest.Type = ginContext.Param("typename")
 		actionRequest.Action = actionName
@@ -174,6 +195,10 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 		action, err := cruds["action"].GetActionByName(actionRequest.Type, actionRequest.Action)
 		CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
+		if err != nil {
+			ginContext.AbortWithStatus(404)
+			return
+		}
 
 		for _, field := range action.InFields {
 			_, ok := actionRequest.Attributes[field.ColumnName]
@@ -208,6 +233,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 		}
 
 		inFieldMap, err := GetValidatedInFields(actionRequest, action)
+		inFieldMap["attributes"] = actionRequest.Attributes
 
 		if err != nil {
 			ginContext.AbortWithError(400, err)
@@ -237,6 +263,22 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			var errors1 []error
 			var actionResponse ActionResponse
 
+			if len(outcome.Condition) > 0 {
+				outcomeResult, err := evaluateString(outcome.Condition, inFieldMap)
+				CheckErr(err, "Failed to evaluate condition, assuming false by default")
+				if err != nil {
+					continue
+				}
+
+				boolValue, ok := outcomeResult.(bool)
+				if !ok {
+					log.Printf("Failed to convert value to bool, assuming false")
+					continue
+				} else if !boolValue {
+					continue
+				}
+			}
+
 			model, request, err := BuildOutcome(inFieldMap, outcome)
 			if err != nil {
 				log.Errorf("Failed to build outcome: %v", err)
@@ -245,16 +287,30 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			}
 
 			request.PlainRequest = request.PlainRequest.WithContext(ginContext.Request.Context())
-
-			dbResource, ok := cruds[outcome.Type]
-			if !ok {
-				//log.Errorf("No DbResource for type [%v]", outcome.Type)
-			}
+			dbResource, _ := cruds[outcome.Type]
 
 			log.Infof("Next outcome method: %v", outcome.Method)
 			switch outcome.Method {
 			case "POST":
 				res, err = dbResource.Create(model, request)
+				if err != nil {
+
+					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
+					responses = append(responses, actionResponse)
+					break OutFields
+				} else {
+					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+				}
+				responses = append(responses, actionResponse)
+			case "GET":
+
+				request.QueryParams = make(map[string][]string)
+
+				for k, val := range model.Data {
+					request.QueryParams[k] = []string{fmt.Sprintf("%v", val)}
+				}
+
+				_, res, err = dbResource.PaginatedFindAll(request)
 				if err != nil {
 
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
@@ -287,7 +343,8 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			case "EXECUTE":
 				//res, err = cruds[outcome.Type].Create(model, request)
 
-				performer, ok := actionHandlerMap[model.GetName()]
+				actionName := model.GetName()
+				performer, ok := actionHandlerMap[actionName]
 				if !ok {
 					log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
 					//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
@@ -303,18 +360,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				//res, err = cruds[outcome.Type].Create(model, request)
 				log.Infof("Create action response: ", model.GetName())
 				var actionResponse ActionResponse
-				switch model.GetName() {
-				case "client.notify":
-					actionResponse = NewActionResponse("client.notify", model.Data)
-				case "client.redirect":
-					actionResponse = NewActionResponse("client.redirect", model.Data)
-				case "client.store.set":
-					actionResponse = NewActionResponse("client.store.set", model.Data)
-				case "error":
-					actionResponse = NewActionResponse("error", model.Data)
-				default:
-					log.Errorf("Unknown action response type: %v", model.GetName())
-				}
+				actionResponse = NewActionResponse(model.GetName(), model.Data)
 				responses = append(responses, actionResponse)
 
 			default:
@@ -322,7 +368,26 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 			}
 			if res != nil && res.Result() != nil {
-				inFieldMap[outcome.Reference] = res.Result().(*api2go.Api2GoModel).Data
+
+				resultInstance := res.Result()
+
+				singleResult, isSingleResult := resultInstance.(*api2go.Api2GoModel)
+
+				if isSingleResult {
+					inFieldMap[outcome.Reference] = singleResult.Data
+				} else {
+					resultArray, ok := resultInstance.([]*api2go.Api2GoModel)
+
+					finalArray := make([]map[string]interface{}, 0)
+					if ok {
+						for i, item := range resultArray {
+							finalArray = append(finalArray, item.Data)
+							inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = item.Data
+						}
+					}
+					inFieldMap[outcome.Reference] = finalArray
+
+				}
 
 				if outcome.Reference == "" {
 					inFieldMap["subject"] = inFieldMap[outcome.Reference]
@@ -463,33 +528,13 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 
 		return model, returnRequest, nil
 
-	case "POST":
-
-		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, attrs)
-
-		req := api2go.Request{
-			PlainRequest: &http.Request{
-				Method: "POST",
-			},
-		}
-		return model, req, nil
-	case "UPDATE":
-
-		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, attrs)
-
-		req := api2go.Request{
-			PlainRequest: &http.Request{
-				Method: "POST",
-			},
-		}
-		return model, req, nil
 	default:
 
 		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, attrs)
 
 		req := api2go.Request{
 			PlainRequest: &http.Request{
-				Method: "POST",
+				Method: outcome.Method,
 			},
 		}
 		return model, req, nil
@@ -517,6 +562,20 @@ func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) (inte
 	return v.Export(), nil
 }
 
+//func runUnsafeZygome(unsafe string, contextMap map[string]interface{}) (interface{}, error) {
+//
+//	env := zygo.NewZlisp()
+//	err := env.LoadString(unsafe)
+//
+//	for key, val := range contextMap {
+//		env.AddGlobal(key, val)
+//		env.
+//	}
+//
+//
+//
+//}
+
 func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]interface{}) (interface{}, error) {
 
 	var data interface{}
@@ -538,7 +597,7 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 				fieldString := field.(string)
 
 				val, err := evaluateString(fieldString, inFieldMap)
-				//log.Infof("Value of [%v] == [%v]", key, val)
+				log.Infof("Value of [%v] == [%v]", key, val)
 				if err != nil {
 					return nil, err
 				}
@@ -555,6 +614,8 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 				if val != nil {
 					dataMap[key] = val
 				}
+			} else {
+				dataMap[key] = field
 			}
 
 		}
@@ -591,6 +652,7 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 
 			} else if outcomeKind == reflect.Map || outcomeKind == reflect.Array || outcomeKind == reflect.Slice {
 				outc, err := buildActionContext(outcome, inFieldMap)
+				log.Infof("Outcome is: %v", outc)
 				if err != nil {
 					return data, err
 				}
@@ -614,6 +676,14 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 	}
 
 	if fieldString[0] == '!' {
+
+		res, err := runUnsafeJavascript(fieldString[1:], inFieldMap)
+		if err != nil {
+			return nil, err
+		}
+		val = res
+
+	} else if fieldString[0] == ':' {
 
 		res, err := runUnsafeJavascript(fieldString[1:], inFieldMap)
 		if err != nil {
@@ -682,7 +752,6 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 	}
 
 	return val, nil
-
 }
 
 func GetValidatedInFields(actionRequest ActionRequest, action Action) (map[string]interface{}, error) {

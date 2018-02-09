@@ -562,6 +562,7 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"authenticator": "~authenticator",
 					"token":         "~auth.access_token",
+					"tokenInfoUrl": "https://www.googleapis.com/oauth2/v1/tokeninfo",
 				},
 			},
 		},
@@ -1055,13 +1056,13 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "client_id",
 				ColumnName: "client_id",
-				DataType:   "varchar(80)",
+				DataType:   "varchar(150)",
 				ColumnType: "name",
 			},
 			{
 				Name:       "client_secret",
 				ColumnName: "client_secret",
-				DataType:   "varchar(80)",
+				DataType:   "varchar(500)",
 				ColumnType: "encrypted",
 			},
 			{

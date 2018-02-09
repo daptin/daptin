@@ -360,6 +360,7 @@ func CheckTable(tableInfo *TableInfo, db *sqlx.DB, tx *sqlx.Tx) {
 		}
 	}
 }
+
 func PrintTableInfo(info *TableInfo, title string) {
 
 	table := simpletable.New()

@@ -18,32 +18,15 @@ import (
 // - 200 OK: Update successful, however some field(s) were changed, returns updates source
 // - 202 Accepted: Processing is delayed, return nothing
 // - 204 No Content: Update was successful, no fields were changed by the server, return nothing
-func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {
+func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) (map[string]interface{}, error) {
+
 	data, ok := obj.(*api2go.Api2GoModel)
-	//log.Infof("Update object request: [%v][%v]", dr.model.GetTableName(), data.GetID())
-
-	data.Data["__type"] = dr.model.GetName()
-	for _, bf := range dr.ms.BeforeUpdate {
-		//log.Infof("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
-
-		finalData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
-			data.Data,
-		})
-		if err != nil {
-			log.Errorf("Error set attributes from BeforeUpdate middleware: %v", err)
-			return nil, err
-		}
-		if len(finalData) == 0 {
-			return nil, fmt.Errorf("Failed to updated this object because of [%v]", bf.String())
-		}
-		res := finalData[0]
-		data.Data = res
-	}
 
 	if !ok {
 		log.Errorf("Request data is not api2go model: %v", data)
-		return nil, errors.New("Invalid request")
+		return nil, errors.New("invalid request")
 	}
+
 	id := data.GetID()
 
 	user := req.PlainRequest.Context().Value("user")
@@ -299,17 +282,16 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		//log.Infof("Update query: %v", query)
 		if err != nil {
 			log.Errorf("Failed to create update query: %v", err)
-			return NewResponse(nil, nil, 500, nil), err
+			return nil, err
 		}
 
 		//log.Infof("Update query: %v == %v", query, vals)
 		_, err = dr.db.Exec(query, vals...)
 		if err != nil {
 			log.Errorf("Failed to execute update query: %v", err)
-			return NewResponse(nil, nil, 500, nil), err
+			return nil, err
 		}
 	}
-
 
 	if data.IsDirty() && dr.tableInfo.IsAuditEnabled {
 
@@ -591,6 +573,37 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		log.Infof("Relation to Delete: %v", deleteRelations)
 	}
 
+	return updatedResource, nil
+
+}
+
+func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {
+	data, _ := obj.(*api2go.Api2GoModel)
+	//log.Infof("Update object request: [%v][%v]", dr.model.GetTableName(), data.GetID())
+
+	data.Data["__type"] = dr.model.GetName()
+	for _, bf := range dr.ms.BeforeUpdate {
+		//log.Infof("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+
+		finalData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
+			data.Data,
+		})
+		if err != nil {
+			log.Errorf("Error set attributes from BeforeUpdate middleware: %v", err)
+			return nil, err
+		}
+		if len(finalData) == 0 {
+			return nil, fmt.Errorf("Failed to updated this object because of [%v]", bf.String())
+		}
+		res := finalData[0]
+		data.Data = res
+	}
+
+	updatedResource, err := dr.UpdateWithoutFilters(obj, req)
+	if err != nil {
+		return NewResponse(nil, nil, 500, nil), err
+	}
+
 	for _, bf := range dr.ms.AfterUpdate {
 		//log.Infof("Invoke AfterUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
@@ -606,16 +619,6 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		}
 	}
 	delete(updatedResource, "id")
-
-	//for k, v := range updatedResource {
-	//  k1 := reflect.TypeOf(v)
-	//  //log.Infof("K: %v", k1)
-	//  if v != nil && k1.Kind() == reflect.Slice {
-	//    updatedResource[k] = string(v.([]uint8))
-	//  }
-	//}
-
-	//log.Infof("Create response: %v", m)
 
 	return NewResponse(nil, api2go.NewApi2GoModelWithData(dr.model.GetName(), dr.model.GetColumns(), dr.model.GetDefaultPermission(), dr.model.GetRelations(), updatedResource), 200, nil), nil
 

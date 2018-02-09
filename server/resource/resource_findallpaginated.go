@@ -8,6 +8,7 @@ import (
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
+	"net/url"
 )
 
 func (dr *DbResource) GetTotalCount() uint64 {
@@ -38,19 +39,16 @@ func (dr *DbResource) GetTotalCountBySelectBuilder(builder squirrel.SelectBuilde
 	return count
 }
 
+type PaginationData struct {
+	PageNumber uint64
+	PageSize   uint64
+	TotalCount uint64
+}
+
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
-func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, response api2go.Responder, err error) {
+func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[string]interface{}, [][]map[string]interface{}, *PaginationData, error) {
 
-	for _, bf := range dr.ms.BeforeFindAll {
-		//log.Infof("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
-		_, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{})
-		if err != nil {
-			log.Infof("Error from BeforeFindAll middleware [%v]: %v", bf.String(), err)
-			return 0, NewResponse(nil, err, 400, nil), err
-		}
-	}
-	//log.Infof("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
-
+	var err error
 	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
 	if dr.model.GetName() == "usergroup" && len(req.QueryParams) > 2 {
 		for key := range req.QueryParams {
@@ -117,6 +115,11 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 	if len(req.QueryParams["filter"]) > 0 {
 		queries = req.QueryParams["filter"]
+
+		for i, q := range queries {
+			unescaped, _ := url.QueryUnescape(q)
+			queries[i] = unescaped
+		}
 	}
 
 	//filters := []string{}
@@ -179,7 +182,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		wheres := make([]interface{}, 0)
 
 		for _, col := range infos {
-			if col.IsIndexed && col.ColumnType == "name" || col.ColumnType == "label" {
+			if col.IsIndexed && col.ColumnType == "name" || col.ColumnType == "label" || col.ColumnType == "email" {
 				colsToAdd = append(colsToAdd, col.ColumnName)
 			}
 		}
@@ -340,7 +343,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 	if err != nil {
 		log.Infof("Error: %v", err)
-		return 0, nil, err
+		return nil, nil, nil, err
 	}
 
 	log.Infof("Findall select query sql: %v == %v", sql1, args)
@@ -348,14 +351,14 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	stmt, err := dr.db.Preparex(sql1)
 	if err != nil {
 		log.Errorf("Failed to prepare sql: %v", err)
-		return 0, nil, err
+		return nil, nil, nil, err
 	}
 	defer stmt.Close()
 	rows, err := stmt.Queryx(args...)
 
 	if err != nil {
 		log.Infof("Error: %v", err)
-		return 0, nil, err
+		return nil, nil, nil, err
 	}
 	defer rows.Close()
 
@@ -364,9 +367,35 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	//log.Infof("Found: %d results", len(results))
 	//log.Infof("Results: %v", results)
 
-	if err != nil {
-		return 0, nil, err
+	total1 := dr.GetTotalCountBySelectBuilder(countQueryBuilder)
+
+	if pageNumber < pageSize {
+		pageNumber = pageSize
 	}
+
+	paginationData := &PaginationData{
+		PageNumber: pageNumber,
+		PageSize:   pageSize,
+		TotalCount: total1,
+	}
+
+	return results, includes, paginationData, err
+
+}
+
+func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, response api2go.Responder, err error) {
+
+	for _, bf := range dr.ms.BeforeFindAll {
+		//log.Infof("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		_, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{})
+		if err != nil {
+			log.Infof("Error from BeforeFindAll middleware [%v]: %v", bf.String(), err)
+			return 0, NewResponse(nil, err, 400, nil), err
+		}
+	}
+	//log.Infof("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
+
+	results, includes, pagination, err := dr.PaginatedFindAllWithoutFilters(req)
 
 	// todo: handle fetching of usergroups, because world permission
 	for _, bf := range dr.ms.AfterFindAll {
@@ -394,6 +423,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	}
 
 	result := make([]*api2go.Api2GoModel, 0)
+	infos := dr.model.GetColumns()
 
 	for i, res := range results {
 		delete(res, "id")
@@ -418,27 +448,19 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		result = append(result, a)
 	}
 
-	total1 := dr.GetTotalCountBySelectBuilder(countQueryBuilder)
-	total := total1
-	if total < pageSize {
-		// total = pageSize
-	}
-	if pageNumber < pageSize {
-		pageNumber = pageSize
-	}
 	//log.Infof("Offset, limit: %v, %v", pageNumber, pageSize)
 
-	return uint(total1), NewResponse(nil, result, 200, &api2go.Pagination{
-		Next:        map[string]string{"limit": fmt.Sprintf("%v", pageSize), "offset": fmt.Sprintf("%v", pageSize+pageNumber)},
-		Prev:        map[string]string{"limit": fmt.Sprintf("%v", pageSize), "offset": fmt.Sprintf("%v", pageNumber-pageSize)},
+	return uint(pagination.TotalCount), NewResponse(nil, result, 200, &api2go.Pagination{
+		Next:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageSize+pagination.PageNumber)},
+		Prev:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageNumber-pagination.PageSize)},
 		First:       map[string]string{},
-		Last:        map[string]string{"limit": fmt.Sprintf("%v", pageSize), "offset": fmt.Sprintf("%v", total-pageSize)},
-		Total:       total1,
-		PerPage:     pageSize,
-		CurrentPage: 1 + (pageNumber / pageSize),
-		LastPage:    1 + (total1 / pageSize),
-		From:        pageNumber + 1,
-		To:          pageSize,
+		Last:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.TotalCount-pagination.PageSize)},
+		Total:       pagination.TotalCount,
+		PerPage:     pagination.PageSize,
+		CurrentPage: 1 + (pagination.PageNumber / pagination.PageSize),
+		LastPage:    1 + (pagination.TotalCount / pagination.PageSize),
+		From:        pagination.PageNumber + 1,
+		To:          pagination.PageSize,
 	}), nil
 
 }

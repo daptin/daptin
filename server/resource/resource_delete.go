@@ -3,12 +3,10 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
-	//sq "gopkg.in/Masterminds/squirrel.v1"
-	//"reflect"
-	//"github.com/artpar/go.uuid"
-	"github.com/pkg/errors"
+
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
+	"fmt"
 )
 
 // Delete an object
@@ -17,29 +15,11 @@ import (
 // - 202 Accepted: Processing is delayed, return nothing
 // - 204 No Content: Deletion was successful, return nothing
 
-func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, error) {
-
-	log.Infof("Delete [%v][%v]", dr.model.GetTableName(), id)
-	for _, bf := range dr.ms.BeforeDelete {
-		//log.Infof("[Before][%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
-		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
-			{
-				"reference_id": id,
-				"__type":       dr.model.GetName(),
-			},
-		})
-		if err != nil {
-			log.Errorf("Error from BeforeDelete[%v] middleware: %v", bf.String(), err)
-			return nil, err
-		}
-		if r == nil || len(r) == 0 {
-			return nil, errors.New("Cannot delete this object")
-		}
-	}
+func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) (error) {
 
 	data, err := dr.GetReferenceIdToObject(dr.model.GetTableName(), id)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	apiModel := api2go.NewApi2GoModelWithData(dr.model.GetTableName(), nil, 0, nil, data)
 
@@ -278,12 +258,37 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 	sql1, args, err := queryBuilder.ToSql()
 	if err != nil {
 		log.Infof("Error: %v", err)
-		return nil, err
+		return err
 	}
 
 	log.Infof("Delete Sql: %v\n", sql1)
 
 	_, err = dr.db.Exec(sql1, args...)
+	return err
+
+}
+
+func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, error) {
+
+	log.Infof("Delete [%v][%v]", dr.model.GetTableName(), id)
+	for _, bf := range dr.ms.BeforeDelete {
+		//log.Infof("[Before][%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
+			{
+				"reference_id": id,
+				"__type":       dr.model.GetName(),
+			},
+		})
+		if err != nil {
+			log.Errorf("Error from BeforeDelete[%v] middleware: %v", bf.String(), err)
+			return nil, err
+		}
+		if r == nil || len(r) == 0 {
+			return nil, fmt.Errorf("Cannot delete this object [%v][%v]", bf.String(), id)
+		}
+	}
+
+	err := dr.DeleteWithoutFilters(id, req)
 	if err != nil {
 		return nil, err
 	}
