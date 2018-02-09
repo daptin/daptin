@@ -258,7 +258,8 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 	OutFields:
 		for _, outcome := range action.OutFields {
-			var res api2go.Responder
+			var responseObjects interface{}
+			responseObjects = nil
 			var responses1 []ActionResponse
 			var errors1 []error
 			var actionResponse ActionResponse
@@ -275,6 +276,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					log.Printf("Failed to convert value to bool, assuming false")
 					continue
 				} else if !boolValue {
+					log.Infof("Outcome [%v][%v] skipped because condition failed [%v]", outcome.Method, outcome.Type, outcome.Condition)
 					continue
 				}
 			}
@@ -292,7 +294,8 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			log.Infof("Next outcome method: %v", outcome.Method)
 			switch outcome.Method {
 			case "POST":
-				res, err = dbResource.Create(model, request)
+				responseObjects, err = dbResource.CreateWithoutFilter(model, request)
+				CheckErr(err, "Failed to post from action")
 				if err != nil {
 
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
@@ -310,9 +313,22 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					request.QueryParams[k] = []string{fmt.Sprintf("%v", val)}
 				}
 
-				_, res, err = dbResource.PaginatedFindAll(request)
+				responseObjects, _, _, err = dbResource.PaginatedFindAllWithoutFilters(request)
+				CheckErr(err, "Failed to get inside action")
 				if err != nil {
+					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
+					responses = append(responses, actionResponse)
+					break OutFields
+				} else {
+					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+				}
+				responses = append(responses, actionResponse)
+			case "GET_BY_ID":
 
+				responseObjects, _, err = dbResource.GetSingleRowByReferenceId(outcome.Type, model.Data["reference_id"].(string))
+					CheckErr(err, "Failed to get by id")
+
+				if err != nil {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
 					responses = append(responses, actionResponse)
 					break OutFields
@@ -321,7 +337,8 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				}
 				responses = append(responses, actionResponse)
 			case "UPDATE":
-				res, err = dbResource.Update(model, request)
+				responseObjects, err = dbResource.UpdateWithoutFilters(model, request)
+				CheckErr(err, "Failed to update inside action")
 				if err != nil {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName()+". "+err.Error(), "Failed"))
 					responses = append(responses, actionResponse)
@@ -331,7 +348,8 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				}
 				responses = append(responses, actionResponse)
 			case "DELETE":
-				res, err = dbResource.Delete(model.Data["reference_id"].(string), request)
+				err = dbResource.DeleteWithoutFilters(model.Data["reference_id"].(string), request)
+				CheckErr(err, "Failed to delete inside action")
 				if err != nil {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to delete "+model.GetName(), "Failed"))
 					responses = append(responses, actionResponse)
@@ -349,7 +367,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
 					//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
 				} else {
-					res, responses1, errors1 = performer.DoAction(actionRequest, model.Data)
+					_, responses1, errors1 = performer.DoAction(actionRequest, model.Data)
 					responses = append(responses, responses1...)
 					if errors1 != nil && len(errors1) > 0 {
 						err = errors1[0]
@@ -358,7 +376,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 			case "ACTIONRESPONSE":
 				//res, err = cruds[outcome.Type].Create(model, request)
-				log.Infof("Create action response: ", model.GetName())
+				log.Infof("Create action response: %v", model.GetName())
 				var actionResponse ActionResponse
 				actionResponse = NewActionResponse(model.GetName(), model.Data)
 				responses = append(responses, actionResponse)
@@ -367,22 +385,21 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				log.Errorf("Unknown outcome method: %v", outcome.Method)
 
 			}
-			if res != nil && res.Result() != nil {
 
-				resultInstance := res.Result()
+			if responseObjects != nil {
 
-				singleResult, isSingleResult := resultInstance.(*api2go.Api2GoModel)
+				singleResult, isSingleResult := responseObjects.(map[string]interface{})
 
 				if isSingleResult {
-					inFieldMap[outcome.Reference] = singleResult.Data
+					inFieldMap[outcome.Reference] = singleResult
 				} else {
-					resultArray, ok := resultInstance.([]*api2go.Api2GoModel)
+					resultArray, ok := responseObjects.([]map[string]interface{})
 
 					finalArray := make([]map[string]interface{}, 0)
 					if ok {
 						for i, item := range resultArray {
-							finalArray = append(finalArray, item.Data)
-							inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = item.Data
+							finalArray = append(finalArray, item)
+							inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = item
 						}
 					}
 					inFieldMap[outcome.Reference] = finalArray
@@ -400,9 +417,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = res.Attributes
 					lst = append(lst, res.Attributes)
 				}
-				if res == nil || res.Result() == nil {
-					inFieldMap[outcome.Reference] = lst
-				}
+				inFieldMap[fmt.Sprintf("%v", outcome.Reference)] = lst
 			}
 
 			if err != nil {
