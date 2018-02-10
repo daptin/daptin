@@ -557,6 +557,7 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 	if err != nil {
 		return err
 	}
+	adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
 
 	for _, action := range initConfig.Actions {
 
@@ -603,6 +604,7 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 				"world_id",
 				"action_schema",
 				"instance_optional",
+				"user_id",
 				"reference_id",
 				"permission").Values(
 				action.Name,
@@ -610,8 +612,9 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 				worldId,
 				actionSchema,
 				action.InstanceOptional,
+				adminUserId,
 				u.String(),
-				777).ToSql()
+				auth.DEFAULT_PERMISSION.IntValue()).ToSql()
 
 			_, err = db.Exec(s, v...)
 			if err != nil {
