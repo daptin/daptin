@@ -5,11 +5,12 @@ import (
 )
 
 type Outcome struct {
-	Type       string
-	Method     string
-	Reference  string
-	Condition  string
-	Attributes map[string]interface{}
+	Type           string
+	Method         string
+	Reference      string
+	SkipInResponse bool
+	Condition      string
+	Attributes     map[string]interface{}
 }
 
 type Action struct {

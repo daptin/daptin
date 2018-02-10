@@ -291,6 +291,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			request.PlainRequest = request.PlainRequest.WithContext(ginContext.Request.Context())
 			dbResource, _ := cruds[outcome.Type]
 
+			actionResponses := make([]ActionResponse, 0)
 			log.Infof("Next outcome method: %v", outcome.Method)
 			switch outcome.Method {
 			case "POST":
@@ -299,12 +300,12 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				if err != nil {
 
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
-					responses = append(responses, actionResponse)
+					actionResponses = append(actionResponses, actionResponse)
 					break OutFields
 				} else {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
 				}
-				responses = append(responses, actionResponse)
+				actionResponses = append(actionResponses, actionResponse)
 			case "GET":
 
 				request.QueryParams = make(map[string][]string)
@@ -317,47 +318,47 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				CheckErr(err, "Failed to get inside action")
 				if err != nil {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
-					responses = append(responses, actionResponse)
+					actionResponses = append(actionResponses, actionResponse)
 					break OutFields
 				} else {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
 				}
-				responses = append(responses, actionResponse)
+				actionResponses = append(actionResponses, actionResponse)
 			case "GET_BY_ID":
 
 				responseObjects, _, err = dbResource.GetSingleRowByReferenceId(outcome.Type, model.Data["reference_id"].(string))
-					CheckErr(err, "Failed to get by id")
+				CheckErr(err, "Failed to get by id")
 
 				if err != nil {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
-					responses = append(responses, actionResponse)
+					actionResponses = append(actionResponses, actionResponse)
 					break OutFields
 				} else {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
 				}
-				responses = append(responses, actionResponse)
+				actionResponses = append(actionResponses, actionResponse)
 			case "UPDATE":
 				responseObjects, err = dbResource.UpdateWithoutFilters(model, request)
 				CheckErr(err, "Failed to update inside action")
 				if err != nil {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName()+". "+err.Error(), "Failed"))
-					responses = append(responses, actionResponse)
+					actionResponses = append(actionResponses, actionResponse)
 					break OutFields
 				} else {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
 				}
-				responses = append(responses, actionResponse)
+				actionResponses = append(actionResponses, actionResponse)
 			case "DELETE":
 				err = dbResource.DeleteWithoutFilters(model.Data["reference_id"].(string), request)
 				CheckErr(err, "Failed to delete inside action")
 				if err != nil {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to delete "+model.GetName(), "Failed"))
-					responses = append(responses, actionResponse)
+					actionResponses = append(actionResponses, actionResponse)
 					break OutFields
 				} else {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
 				}
-				responses = append(responses, actionResponse)
+				actionResponses = append(actionResponses, actionResponse)
 			case "EXECUTE":
 				//res, err = cruds[outcome.Type].Create(model, request)
 
@@ -368,7 +369,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
 				} else {
 					_, responses1, errors1 = performer.DoAction(actionRequest, model.Data)
-					responses = append(responses, responses1...)
+					actionResponses = append(actionResponses, responses1...)
 					if errors1 != nil && len(errors1) > 0 {
 						err = errors1[0]
 					}
@@ -379,11 +380,13 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				log.Infof("Create action response: %v", model.GetName())
 				var actionResponse ActionResponse
 				actionResponse = NewActionResponse(model.GetName(), model.Data)
-				responses = append(responses, actionResponse)
-
+				actionResponses = append(actionResponses, actionResponse)
 			default:
 				log.Errorf("Unknown outcome method: %v", outcome.Method)
+			}
 
+			if !outcome.SkipInResponse {
+				responses = append(responses, actionResponses...)
 			}
 
 			if responseObjects != nil {
@@ -605,14 +608,14 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 		for key, field := range outcomeMap {
 
 			typeOfField := reflect.TypeOf(field).Kind()
-			log.Infof("Outcome attribute [%v] == %v [%v]", key, field, typeOfField)
+			//log.Infof("Outcome attribute [%v] == %v [%v]", key, field, typeOfField)
 
 			if typeOfField == reflect.String {
 
 				fieldString := field.(string)
 
 				val, err := evaluateString(fieldString, inFieldMap)
-				log.Infof("Value of [%v] == [%v]", key, val)
+				//log.Infof("Value of [%v] == [%v]", key, val)
 				if err != nil {
 					return nil, err
 				}
@@ -667,7 +670,7 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 
 			} else if outcomeKind == reflect.Map || outcomeKind == reflect.Array || outcomeKind == reflect.Slice {
 				outc, err := buildActionContext(outcome, inFieldMap)
-				log.Infof("Outcome is: %v", outc)
+				//log.Infof("Outcome is: %v", outc)
 				if err != nil {
 					return data, err
 				}

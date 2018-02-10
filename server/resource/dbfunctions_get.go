@@ -102,7 +102,6 @@ func GetAdminUserIdAndUserGroupId(db *sqlx.DB) (int64, int64) {
 		err = db.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
 	} else {
-
 		s, v, err := squirrel.Select("id").From("user").Where(squirrel.NotEq{"email": "guest@cms.go"}).OrderBy("id").Limit(1).ToSql()
 		CheckErr(err, "Failed to create select user sql")
 		err = db.QueryRowx(s, v...).Scan(&userId)
@@ -466,7 +465,7 @@ func (resource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, err
 	var expires_in int64
 	var token oauth2.Token
 	s, v, err := squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
-		Where(squirrel.Eq{"token_type": name}).Limit(1).ToSql()
+		Where(squirrel.Eq{"token_type": name}).OrderBy("created_at desc").Limit(1).ToSql()
 
 	if err != nil {
 		return nil, err
