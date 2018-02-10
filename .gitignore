@@ -19,3 +19,4 @@ dist
 _*.*
 daptin
 migration.sql
+.vscode/

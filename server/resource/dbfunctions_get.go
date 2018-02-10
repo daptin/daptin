@@ -157,7 +157,6 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 		tokenId := storeMap["oauth_token_id"]
 		if tokenId == nil {
 			log.Infof("Token id for store [%v] is empty", storeMap["name"])
-			continue
 		} else {
 			cloudStore.OAutoTokenId = tokenId.(string)
 		}
