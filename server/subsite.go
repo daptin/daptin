@@ -192,10 +192,8 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(401)
 				w.Write([]byte("Unauthorised.\n"))
 			}
-
 		}
 		return
-
 	} else {
 		pathParts := strings.Split(r.URL.Path, "/")
 		if len(pathParts) > 1 {
