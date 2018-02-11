@@ -368,11 +368,13 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
 					//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
 				} else {
-					_, responses1, errors1 = performer.DoAction(actionRequest, model.Data)
+					var responder api2go.Responder
+					responder, responses1, errors1 = performer.DoAction(actionRequest, model.Data)
 					actionResponses = append(actionResponses, responses1...)
 					if errors1 != nil && len(errors1) > 0 {
 						err = errors1[0]
 					}
+					responseObjects = responder.Result()
 				}
 
 			case "ACTIONRESPONSE":
@@ -389,7 +391,16 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				responses = append(responses, actionResponses...)
 			}
 
-			if responseObjects != nil {
+			if len(responses1) > 0 && responseObjects != nil {
+				lst := make([]interface{}, 0)
+				for i, res := range responses1 {
+					inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = res.Attributes
+					lst = append(lst, res.Attributes)
+				}
+				inFieldMap[fmt.Sprintf("%v", outcome.Reference)] = lst
+			}
+
+			if responseObjects != nil && outcome.Reference != "" {
 
 				singleResult, isSingleResult := responseObjects.(map[string]interface{})
 
@@ -408,19 +419,6 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					inFieldMap[outcome.Reference] = finalArray
 
 				}
-
-				if outcome.Reference == "" {
-					inFieldMap["subject"] = inFieldMap[outcome.Reference]
-				}
-			}
-
-			if len(responses1) > 0 {
-				lst := make([]interface{}, 0)
-				for i, res := range responses1 {
-					inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = res.Attributes
-					lst = append(lst, res.Attributes)
-				}
-				inFieldMap[fmt.Sprintf("%v", outcome.Reference)] = lst
 			}
 
 			if err != nil {
