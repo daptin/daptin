@@ -9,6 +9,7 @@ import:
 - package: github.com/artpar/api2go
   version: ^2.3.5
 - package: github.com/artpar/api2go-adapter
+  version: ^1.0.0
   subpackages:
   - gingonic
 - package: github.com/artpar/conform

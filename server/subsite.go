@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gin-contrib/static"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/artpar/rclone/cmd"
@@ -13,7 +14,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/gin-gonic/gin.v1"
+	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -112,19 +113,13 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 
 		subsiteStats := stats.New()
 
-
 		hostRouter.Use(func() gin.HandlerFunc {
 			return func(c *gin.Context) {
 				beginning, recorder := subsiteStats.Begin(c.Writer)
+				defer Stats.End(beginning, recorder)
 				c.Next()
-				Stats.End(beginning, recorder)
 			}
 		}())
-
-
-		hostRouter.GET("/statistics", func(c *gin.Context) {
-			c.JSON(http.StatusOK, Stats.Data())
-		})
 
 		subSiteInformation.SourceRoot = tempDirectoryPath
 
@@ -159,10 +154,14 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 		})
 		//hostRouter.ServeFiles("/*filepath", http.Dir(tempDirectoryPath))
 		hostRouter.Use(authMiddleware.AuthCheckMiddleware)
-		hostRouter.StaticFS("/", http.Dir(tempDirectoryPath))
+		hostRouter.Use(static.Serve("/", static.LocalFile(tempDirectoryPath, false)))
 		hostRouter.NoRoute(func(c *gin.Context) {
 			c.File(tempDirectoryPath + "/index.html")
 			c.AbortWithStatus(200)
+		})
+
+		hostRouter.Handle("GET", "/statistics", func(c *gin.Context) {
+			c.JSON(http.StatusOK, Stats.Data())
 		})
 
 		hs.handlerMap[site.Hostname] = hostRouter
@@ -173,6 +172,25 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 	config.SubSites = siteMap
 
 	return hs
+}
+
+func NewStaticFsWithDefaultIndex(system http.Dir, pageOn404 string) http.FileSystem {
+	return &StaticFsWithDefaultIndex{system: system, pageOn404: pageOn404}
+}
+
+type StaticFsWithDefaultIndex struct {
+	system    http.FileSystem
+	pageOn404 string
+}
+
+func (spf *StaticFsWithDefaultIndex) Open(name string) (http.File, error) {
+	//log.Infof("Service file from static path: %s/%s", spf.subPath, name)
+
+	f, err := spf.system.Open(name)
+	if err != nil {
+		return spf.system.Open(spf.pageOn404)
+	}
+	return f, nil
 }
 
 // Implement the ServerHTTP method on our new type

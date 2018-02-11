@@ -3,7 +3,7 @@ package websockets
 import (
 	"golang.org/x/net/websocket"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/gin-gonic/gin.v1"
+	"github.com/gin-gonic/gin"
 	"fmt"
 	"net/http"
 )

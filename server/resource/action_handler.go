@@ -9,7 +9,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/dop251/goja"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/gin-gonic/gin.v1"
+	"github.com/gin-gonic/gin"
 	//"io"
 	"crypto/md5"
 	"encoding/hex"
