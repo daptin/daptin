@@ -160,12 +160,13 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// If yes, use it to handle the request.
 	hostName := strings.Split(r.Host, ":")[0]
 	//log.Printf("Request url host: %v", hostName)
-	ok, abort, modifiedRequest := hs.authMiddleware.AuthCheckMiddlewareWithHttp(r, w, true)
-	if ok {
-		r = modifiedRequest
-	}
 
 	if handler := hs.handlerMap[hostName]; handler != nil {
+
+		ok, abort, modifiedRequest := hs.authMiddleware.AuthCheckMiddlewareWithHttp(r, w, true)
+		if ok {
+			r = modifiedRequest
+		}
 
 		subSite := hs.siteMap[hostName]
 		permission := subSite.Permission
