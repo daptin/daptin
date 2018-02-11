@@ -12,6 +12,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/pkg/errors"
 	"time"
+	"strconv"
 )
 
 // Create a new object. Newly created object/struct must be in Responder.
@@ -73,7 +74,11 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 		if !ok || val == nil {
 			if col.DefaultValue != "" {
-				val = col.DefaultValue
+				var err error
+				val, err = strconv.Unquote(col.DefaultValue)
+				if err != nil {
+					val = col.DefaultValue
+				}
 			} else {
 				continue
 			}
