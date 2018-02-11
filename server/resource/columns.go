@@ -561,7 +561,7 @@ var SystemActions = []Action{
 				Reference: "auth",
 				Attributes: map[string]interface{}{
 					"authenticator": "~authenticator",
-					"token":         "~auth.access_token",
+					"token":         "$auth[0].access_token",
 					"tokenInfoUrl": "https://www.googleapis.com/oauth2/v1/tokeninfo",
 				},
 			},
