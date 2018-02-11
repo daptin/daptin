@@ -298,6 +298,18 @@ func BcryptCheckStringHash(newString, hash string) bool {
 	return err == nil
 }
 
+func CheckErr(err error, message ...interface{}) {
+	if err != nil {
+		fmtString := message[0].(string)
+		args := make([]interface{}, 0)
+		if len(message) > 1 {
+			args = message[1:]
+		}
+		args = append(args, err)
+		log.Errorf(fmtString+": %v", args...)
+	}
+}
+
 func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer http.ResponseWriter, doBasicAuthCheck bool) (okToContinue, abortRequest bool, returnRequest *http.Request) {
 	okToContinue = true
 	abortRequest = false
@@ -311,11 +323,11 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 	user, err := jwtMiddleware.CheckJWT(writer, req)
 
 	if err != nil {
-
+		CheckErr(err, "JWT middleware auth check failed")
 		if doBasicAuthCheck {
 			user, err = a.BasicAuthCheckMiddlewareWithHttp(req, writer)
 			if err != nil || user == nil {
-				log.Infof("JWT/Basic auth failed: %v", err)
+				CheckErr(err, "BASIC middleware auth check failed")
 			} else {
 				hasUser = true
 			}
