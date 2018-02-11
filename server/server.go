@@ -14,8 +14,11 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"github.com/thoas/stats"
 	"github.com/daptin/daptin/server/websockets"
 )
+
+var Stats = stats.New()
 
 var cruds = make(map[string]*resource.DbResource)
 
@@ -72,6 +75,19 @@ func Main(boxRoot, assetsStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup
 	/// end system initialise
 
 	r := gin.Default()
+
+	r.Use(func() gin.HandlerFunc {
+		return func(c *gin.Context) {
+			beginning, recorder := Stats.Begin(c.Writer)
+			defer Stats.End(beginning, recorder)
+			c.Next()
+		}
+	}())
+
+	r.GET("/statistics", func(c *gin.Context) {
+		c.JSON(http.StatusOK, Stats.Data())
+	})
+
 	r.Use(CorsMiddlewareFunc)
 	r.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
 

@@ -776,6 +776,7 @@ func GetValidatedInFields(actionRequest ActionRequest, action Action) (map[strin
 
 	dataMap := actionRequest.Attributes
 	finalDataMap := make(map[string]interface{})
+
 	for _, inField := range action.InFields {
 		val, ok := dataMap[inField.ColumnName]
 		if ok {

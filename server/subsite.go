@@ -21,6 +21,7 @@ import (
 	"strings"
 	"golang.org/x/oauth2"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/thoas/stats"
 )
 
 type HostSwitch struct {
@@ -108,6 +109,22 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 
 		//hostRouter := httprouter.New()
 		hostRouter := gin.New()
+
+		subsiteStats := stats.New()
+
+
+		hostRouter.Use(func() gin.HandlerFunc {
+			return func(c *gin.Context) {
+				beginning, recorder := subsiteStats.Begin(c.Writer)
+				c.Next()
+				Stats.End(beginning, recorder)
+			}
+		}())
+
+
+		hostRouter.GET("/statistics", func(c *gin.Context) {
+			c.JSON(http.StatusOK, Stats.Data())
+		})
 
 		subSiteInformation.SourceRoot = tempDirectoryPath
 
