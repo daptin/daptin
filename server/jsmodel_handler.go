@@ -5,7 +5,7 @@ import (
 	"github.com/daptin/daptin/server/apiblueprint"
 	"github.com/daptin/daptin/server/resource"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/gin-gonic/gin.v1"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
 )

@@ -9,7 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/gin-gonic/gin.v1"
+	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -242,7 +242,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 		}
 
 		if isBeingModified {
-			log.Infof("Table %s is being modified", existableTable.TableName)
+			log.Debugf("Table %s is being modified", existableTable.TableName)
 			tableBeingModified := initConfigTables[indexBeingModified]
 
 			if len(tableBeingModified.Columns) > 0 {

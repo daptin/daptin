@@ -5,7 +5,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"gopkg.in/gin-gonic/gin.v1"
+	"github.com/gin-gonic/gin"
 	"gopkg.in/go-playground/validator.v9"
 	"path/filepath"
 )
