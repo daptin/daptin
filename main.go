@@ -45,7 +45,7 @@ func main() {
 
 	gin.SetMode(*runtimeMode)
 
-	envy.Parse("DAPTIN") // looks for GOMS_PORT
+	envy.Parse("DAPTIN") // looks for DAPTIN_PORT
 	flag.Parse()
 
 	stream.AddSink(&health.WriterSink{os.Stdout})

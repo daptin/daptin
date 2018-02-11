@@ -374,7 +374,9 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					if errors1 != nil && len(errors1) > 0 {
 						err = errors1[0]
 					}
-					responseObjects = responder.Result()
+					if responder != nil {
+						responseObjects = responder.Result()
+					}
 				}
 
 			case "ACTIONRESPONSE":
