@@ -44,7 +44,7 @@ func GroupNamesToIds(db *sqlx.DB, groupsName []string) []int64 {
 	query = db.Rebind(query)
 
 	err = db.Select(&retArray, query, args...)
-	CheckErr(err, "Failed to query usergroup names to ids")
+	CheckErr(err, "Failed to query user-group names to ids")
 
 	//retInt := make([]int64, 0)
 

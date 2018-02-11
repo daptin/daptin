@@ -47,7 +47,7 @@ type PaginationData struct {
 
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
 func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[string]interface{}, [][]map[string]interface{}, *PaginationData, error) {
-
+	log.Infof("Find all row by params: [%v]: %v", dr.model.GetName(), req.QueryParams)
 	var err error
 	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
 	if dr.model.GetName() == "usergroup" && len(req.QueryParams) > 2 {

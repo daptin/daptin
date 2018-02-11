@@ -17,6 +17,11 @@ func (d *NetworkRequestActionPerformer) Name() string {
 	return "$network.request"
 }
 
+func toJson(obj interface{}) string {
+	r, _ := json.Marshal(obj)
+	return string(r)
+}
+
 func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	headers, isHeader := inFieldMap["Headers"]
@@ -42,7 +47,8 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 	if isBody {
 		bodyMap = body.(map[string]interface{})
 	}
-	log.Printf("Request body: %v", body)
+	log.Printf("Request body: %v", toJson(body))
+	log.Printf("Headers: %v", toJson(headerMap))
 
 	formData, isFormData := inFieldMap["FormData"]
 	formDataMap := make(map[string]string)
@@ -51,6 +57,7 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 		for key, val := range formDataMapInterface {
 			formDataMap[key] = val.(string)
 		}
+		log.Printf("Form data: %v", toJson(formDataMap))
 	}
 
 	queryParams, isQueryParams := inFieldMap["Query"]

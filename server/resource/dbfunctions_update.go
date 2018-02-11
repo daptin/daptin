@@ -75,7 +75,6 @@ func (resource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId stri
 
 func UpdateStandardData(initConfig *CmsConfig, db *sqlx.DB) {
 
-
 	//for _, row := range StandardData {
 	//
 	//
@@ -84,7 +83,6 @@ func UpdateStandardData(initConfig *CmsConfig, db *sqlx.DB) {
 	//}
 
 }
-
 
 func UpdateMarketplaces(initConfig *CmsConfig, db *sqlx.DB) {
 
@@ -768,6 +766,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		_, err = tx.Exec(s, v...)
 		CheckErr(err, "Failed to insert user")
 
+
 		s, v, err = squirrel.Select("id").From("user").Where(squirrel.Eq{"reference_id": u2}).ToSql()
 		CheckErr(err, "Failed to create select user sql ")
 		err = tx.QueryRowx(s, v...).Scan(&userId)
@@ -777,11 +776,31 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		u1 := u.String()
 		s, v, err = squirrel.Insert("usergroup").
 			Columns("name", "reference_id", "permission").
-			Values("guest group", u1, auth.DEFAULT_PERMISSION).ToSql()
+			Values("guests", u1, auth.DEFAULT_PERMISSION).ToSql()
 
-		CheckErr(err, "Failed to create insert usergroup sql")
+		CheckErr(err, "Failed to create insert user-group sql for guests")
 		_, err = tx.Exec(s, v...)
-		CheckErr(err, "Failed to insert usergroup")
+		CheckErr(err, "Failed to insert user-group for guests")
+
+		u, _ = uuid.NewV4()
+		u1 = u.String()
+		s, v, err = squirrel.Insert("usergroup").
+			Columns("name", "reference_id", "permission").
+			Values("administrators", u1, auth.DEFAULT_PERMISSION).ToSql()
+		CheckErr(err, "Failed to create insert user-group sql for administrators")
+		_, err = tx.Exec(s, v...)
+		CheckErr(err, "Failed to insert user-group sql for administrators")
+
+
+		u, _ = uuid.NewV4()
+		u1 = u.String()
+		s, v, err = squirrel.Insert("usergroup").
+			Columns("name", "reference_id", "permission").
+			Values("users", u1, auth.DEFAULT_PERMISSION).ToSql()
+		CheckErr(err, "Failed to create insert user-group sql for administrators")
+		_, err = tx.Exec(s, v...)
+		CheckErr(err, "Failed to insert user-group sql for administrators")
+
 
 		s, v, err = squirrel.Select("id").From("usergroup").Where(squirrel.Eq{"reference_id": u1}).ToSql()
 		CheckErr(err, "Failed to create select usergroup sql")

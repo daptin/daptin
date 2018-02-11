@@ -22,6 +22,7 @@ import (
 //   the server
 
 func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (map[string]interface{}, error) {
+	log.Infof("Create object of type [%v]", dr.model.GetName())
 	data := obj.(*api2go.Api2GoModel)
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
