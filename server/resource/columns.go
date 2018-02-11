@@ -466,7 +466,7 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"location": "/auth/signin",
 					"window":   "self",
-					"delay": 2000,
+					"delay":    2000,
 				},
 			},
 		},
@@ -562,7 +562,7 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"authenticator": "~authenticator",
 					"token":         "$auth[0].access_token",
-					"tokenInfoUrl": "https://www.googleapis.com/oauth2/v1/tokeninfo",
+					"tokenInfoUrl":  "https://www.googleapis.com/oauth2/v1/tokeninfo",
 				},
 			},
 		},
@@ -576,7 +576,7 @@ var SystemActions = []Action{
 			{
 				Name:       "name",
 				ColumnName: "name",
-				ColumnType: "name",
+				ColumnType: "label",
 				IsNullable: false,
 			},
 			{
@@ -614,6 +614,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName: "marketplace",
 		IsHidden:  true,
+		DefaultGroups: []string{"administrators"},
 		Icon:      "fa-shopping-cart",
 		Columns: []api2go.ColumnInfo{
 			{
@@ -641,6 +642,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName: "json_schema",
 		Icon:      "fa-code",
+		DefaultGroups: []string{"administrators"},
 		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -661,6 +663,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName: "timeline",
 		Icon:      "fa-clock-o",
+		DefaultGroups: []string{"administrators"},
 		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -690,6 +693,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName: "world",
 		IsHidden:  true,
+		DefaultGroups: []string{"administrators"},
 		Icon:      "fa-home",
 		Columns: []api2go.ColumnInfo{
 			{
@@ -777,7 +781,7 @@ var StandardTables = []TableInfo{
 				DataType:   "varchar(100)",
 				IsIndexed:  true,
 				IsNullable: false,
-				ColumnType: "name",
+				ColumnType: "label",
 			},
 			{
 				Name:       "column_name",
@@ -785,7 +789,7 @@ var StandardTables = []TableInfo{
 				DataType:   "varchar(100)",
 				IsIndexed:  true,
 				IsNullable: false,
-				ColumnType: "name",
+				ColumnType: "label",
 			},
 			{
 				Name:       "column_type",
@@ -883,6 +887,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName: "stream",
 		Icon:      "fa-strikethrough",
+		DefaultGroups: []string{"administrators"},
 		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -903,15 +908,16 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName: "user",
-		Icon:      "fa-child",
+		TableName:     "user",
+		Icon:          "fa-child",
+		DefaultGroups: []string{"users"},
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
 				ColumnName: "name",
 				IsIndexed:  true,
 				DataType:   "varchar(80)",
-				ColumnType: "name",
+				ColumnType: "label",
 			},
 			{
 				Name:       "email",
@@ -967,21 +973,23 @@ var StandardTables = []TableInfo{
 				Name:       "name",
 				ColumnName: "name",
 				IsIndexed:  true,
+				IsUnique:   true,
 				DataType:   "varchar(80)",
-				ColumnType: "name",
+				ColumnType: "label",
 			},
 		},
 	},
 	{
-		TableName: "action",
-		Icon:      "fa-bolt",
+		TableName:     "action",
+		DefaultGroups: []string{"administrators"},
+		Icon:          "fa-bolt",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "action_name",
 				IsIndexed:  true,
 				ColumnName: "action_name",
 				DataType:   "varchar(100)",
-				ColumnType: "name",
+				ColumnType: "label",
 			},
 			{
 				Name:       "label",
@@ -1007,8 +1015,9 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName: "smd",
-		IsHidden:  true,
+		TableName:     "smd",
+		IsHidden:      true,
+		DefaultGroups: []string{"administrators"},
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -1042,8 +1051,9 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName: "oauth_connect",
-		IsHidden:  true,
+		TableName:     "oauth_connect",
+		IsHidden:      true,
+		DefaultGroups: []string{"administrators"},
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -1051,13 +1061,13 @@ var StandardTables = []TableInfo{
 				IsUnique:   true,
 				IsIndexed:  true,
 				DataType:   "varchar(80)",
-				ColumnType: "name",
+				ColumnType: "label",
 			},
 			{
 				Name:       "client_id",
 				ColumnName: "client_id",
 				DataType:   "varchar(150)",
-				ColumnType: "name",
+				ColumnType: "label",
 			},
 			{
 				Name:       "client_secret",
@@ -1076,7 +1086,7 @@ var StandardTables = []TableInfo{
 				Name:         "response_type",
 				ColumnName:   "response_type",
 				DataType:     "varchar(80)",
-				ColumnType:   "name",
+				ColumnType:   "label",
 				DefaultValue: "'code'",
 			},
 			{
@@ -1110,13 +1120,14 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName: "data_exchange",
-		IsHidden:  true,
+		TableName:     "data_exchange",
+		IsHidden:      true,
+		DefaultGroups: []string{"administrators"},
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
 				ColumnName: "name",
-				ColumnType: "name",
+				ColumnType: "label",
 				DataType:   "varchar(200)",
 				IsIndexed:  true,
 			},
@@ -1129,7 +1140,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "source_type",
 				ColumnName: "source_type",
-				ColumnType: "name",
+				ColumnType: "label",
 				DataType:   "varchar(100)",
 			},
 			{
@@ -1141,7 +1152,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "target_type",
 				ColumnName: "target_type",
-				ColumnType: "name",
+				ColumnType: "label",
 				DataType:   "varchar(100)",
 			},
 			{
@@ -1159,8 +1170,9 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName: "oauth_token",
-		IsHidden:  true,
+		TableName:     "oauth_token",
+		IsHidden:      true,
+		DefaultGroups: []string{"administrators"},
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "access_token",
@@ -1190,6 +1202,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName: "cloud_store",
+		DefaultGroups: []string{"administrators"},
 		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1226,6 +1239,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName: "site",
+		DefaultGroups: []string{"administrators"},
 		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{

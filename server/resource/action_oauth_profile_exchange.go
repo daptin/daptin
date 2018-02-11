@@ -24,6 +24,7 @@ func (d *OuathProfileExchangePerformer) Name() string {
 
 func GetTokensScope(tokUrl string, scope string, clientId string, clientSecret string, token string) (map[string]interface{}, error) {
 
+	log.Infof("Token url for token exchange: %v", tokUrl)
 	urlParams := "grant_type=client_credentials&client_id=" + clientId
 	dat := map[string]interface{}{}
 
@@ -35,6 +36,7 @@ func GetTokensScope(tokUrl string, scope string, clientId string, clientSecret s
 		urlParams = urlParams + "&access_token=" + token
 	}
 
+	scope = strings.TrimSpace(scope)
 	if len(scope) > 0 {
 		urlParams = urlParams + "&scope=" + scope
 	}
@@ -52,7 +54,7 @@ func GetTokensScope(tokUrl string, scope string, clientId string, clientSecret s
 	defer resp.Body.Close()
 	rsBody, err := ioutil.ReadAll(resp.Body)
 	bstr := string(rsBody)
-	log.Infof("Exx: %v", bstr)
+	log.Infof("oauth token exchange response: %v", bstr)
 	err = json.Unmarshal(rsBody, &dat)
 	if err != nil {
 		return dat, err

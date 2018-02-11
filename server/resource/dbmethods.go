@@ -287,6 +287,23 @@ func (d *DbResource) GetUserPassword(email string) (string, error) {
 	return passwordHash, err
 }
 
+func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
+
+	query, arg, err := squirrel.Select("id").From("usergroup").Where(squirrel.Eq{"name": groupName}).ToSql()
+	if err != nil {
+		return 0, err
+	}
+	res := dbResource.db.QueryRowx(query, arg)
+	if res.Err() != nil {
+		return 0, res.Err()
+	}
+
+	var id uint64
+	err = res.Scan(&id)
+
+	return id, err
+}
+
 func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 
 	if !dbResource.CanBecomeAdmin() {
@@ -312,10 +329,19 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 			}
 
 		}
-
 	}
 
-	_, err := dbResource.db.Exec("update world set permission = ?, default_permission = ? where table_name not like '%_audit'",
+	adminUsergroupId, err := dbResource.UserGroupNameToId("administrators")
+
+	query, args, err := squirrel.Insert("user_user_id_has_usergroup_usergroup_id").
+		Columns("user_id", "usergroup_id", "permission").
+		Values(userId, adminUsergroupId, auth.DEFAULT_PERMISSION.IntValue()).
+		ToSql()
+
+	_, err = dbResource.db.Exec(query, args)
+	CheckErr(err, "Failed to add user to administrator usergroup")
+
+	_, err = dbResource.db.Exec("update world set permission = ?, default_permission = ? where table_name not like '%_audit'",
 		auth.DEFAULT_PERMISSION, auth.DEFAULT_PERMISSION)
 	if err != nil {
 		log.Errorf("Failed to update world permissions: %v", err)
@@ -389,7 +415,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 		for colName, colValue := range row {
 			if EndsWithCheck(colName, "_id") && colName != "reference_id" {
 				if colName != "usergroup_id" {
-					return dr.GetObjectPermission(strings.Split(rowType, "_" + colName)[0], colValue.(string))
+					return dr.GetObjectPermission(strings.Split(rowType, "_"+colName)[0], colValue.(string))
 				}
 			}
 		}
@@ -463,7 +489,7 @@ func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 }
 
 func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId string) (map[string]interface{}, []map[string]interface{}, error) {
-
+	log.Infof("Get single row by id: [%v][%v]", typeName, referenceId)
 	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create select query by ref id: %v", referenceId)

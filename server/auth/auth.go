@@ -87,7 +87,7 @@ func (op ObjectPermission) Value() (driver.Value, error) {
 	return op.IntValue(), nil
 }
 
-var DEFAULT_PERMISSION ObjectPermission = NewPermission(Peek|Execute|Refer, Read, CRUD|Execute|Refer)
+var DEFAULT_PERMISSION = NewPermission(CRUD|Execute, Read, CRUD|Execute)
 
 func (op ObjectPermission) OwnerCan(a AuthPermission) bool {
 	return op.OwnerPermission&a == a

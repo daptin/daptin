@@ -143,6 +143,10 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 		//hostRouter.ServeFiles("/*filepath", http.Dir(tempDirectoryPath))
 		hostRouter.Use(authMiddleware.AuthCheckMiddleware)
 		hostRouter.StaticFS("/", http.Dir(tempDirectoryPath))
+		hostRouter.NoRoute(func(c *gin.Context) {
+			c.File(tempDirectoryPath + "/index.html")
+			c.AbortWithStatus(200)
+		})
 
 		hs.handlerMap[site.Hostname] = hostRouter
 		siteMap[subSiteInformation.SubSite.Hostname] = subSiteInformation
@@ -242,6 +246,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Errorf("Failed to find dashboard route")
 			return
 		}
+
 		handler.ServeHTTP(w, r)
 
 		// Handle host names for which no handler is registered

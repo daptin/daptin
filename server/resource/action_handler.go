@@ -292,7 +292,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			dbResource, _ := cruds[outcome.Type]
 
 			actionResponses := make([]ActionResponse, 0)
-			log.Infof("Next outcome method: %v", outcome.Method)
+			log.Infof("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
 			switch outcome.Method {
 			case "POST":
 				responseObjects, err = dbResource.CreateWithoutFilter(model, request)
@@ -393,7 +393,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				responses = append(responses, actionResponses...)
 			}
 
-			if len(responses1) > 0 && responseObjects != nil {
+			if len(responses1) > 0 {
 				lst := make([]interface{}, 0)
 				for i, res := range responses1 {
 					inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = res.Attributes
