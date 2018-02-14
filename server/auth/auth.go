@@ -332,6 +332,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				hasUser = true
 			}
 		} else {
+			hasUser = true
 			//log.Infof("JWT auth failed: %v", err)
 		}
 	} else {
