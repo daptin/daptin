@@ -295,7 +295,6 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 			existableTable.DefaultGroups = tableBeingModified.DefaultGroups
 			existableTable.Conformations = tableBeingModified.Conformations
 			existableTable.Validations = tableBeingModified.Validations
-			existableTable.DefaultGroups = tableBeingModified.DefaultGroups
 			existingTables[j] = existableTable
 		} else {
 			//log.Infof("Table %s is not being modified", existableTable.TableName)
@@ -346,6 +345,7 @@ func AddStreamsToApi2Go(api *api2go.API, processors []*resource.StreamProcessor,
 	}
 
 }
+
 func GetStreamProcessors(config *resource.CmsConfig, store *resource.ConfigStore, cruds map[string]*resource.DbResource) []*resource.StreamProcessor {
 
 	allProcessors := make([]*resource.StreamProcessor, 0)
