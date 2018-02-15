@@ -1,5 +1,5 @@
-hash: 2046762e174d3eb9d1a831cfc7cca9368430f63fa2e307bc43b4b2d3468b36bb
-updated: 2018-02-12T03:36:28.09520445+05:30
+hash: 8f52faa2faa3047d93c42cdfbec4341cdd1ffc674aa7148345d026e4df340d90
+updated: 2018-02-15T06:01:22.757223293+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -31,44 +31,66 @@ imports:
 - name: github.com/artpar/goagain
   version: f2d5d7b515c4c1b6244ed9260e04c29800350d35
 - name: github.com/artpar/rclone
-  version: 06abbc1ce6654bd191d15efcdf2c19d76b1d1594
+  version: 4f38a406fa3797f08a32c34fe00811458d7b3b42
   subpackages:
-  - amazonclouddrive
-  - azureblob
-  - b2
-  - b2/api
-  - box
-  - box/api
-  - cache
+  - backend/alias
+  - backend/all
+  - backend/amazonclouddrive
+  - backend/azureblob
+  - backend/b2
+  - backend/b2/api
+  - backend/box
+  - backend/box/api
+  - backend/cache
+  - backend/crypt
+  - backend/crypt/pkcs7
+  - backend/drive
+  - backend/dropbox
+  - backend/dropbox/dbhash
+  - backend/ftp
+  - backend/googlecloudstorage
+  - backend/http
+  - backend/hubic
+  - backend/local
+  - backend/onedrive
+  - backend/onedrive/api
+  - backend/pcloud
+  - backend/pcloud/api
+  - backend/qingstor
+  - backend/s3
+  - backend/sftp
+  - backend/swift
+  - backend/webdav
+  - backend/webdav/api
+  - backend/yandex
+  - backend/yandex/api
   - cmd
-  - crypt
-  - crypt/pkcs7
-  - dircache
-  - drive
-  - dropbox
-  - dropbox/dbhash
   - fs
-  - fs/all
-  - ftp
-  - googlecloudstorage
-  - http
-  - hubic
-  - local
-  - oauthutil
-  - onedrive
-  - onedrive/api
-  - pacer
-  - pcloud
-  - pcloud/api
-  - qingstor
-  - rest
-  - s3
-  - sftp
-  - swift
-  - webdav
-  - webdav/api
-  - yandex
-  - yandex/api
+  - fs/accounting
+  - fs/asyncreader
+  - fs/config
+  - fs/config/configflags
+  - fs/config/flags
+  - fs/config/obscure
+  - fs/driveletter
+  - fs/filter
+  - fs/filter/filterflags
+  - fs/fserrors
+  - fs/fshttp
+  - fs/fspath
+  - fs/hash
+  - fs/list
+  - fs/log
+  - fs/march
+  - fs/object
+  - fs/operations
+  - fs/walk
+  - lib/atexit
+  - lib/dircache
+  - lib/oauthutil
+  - lib/pacer
+  - lib/readers
+  - lib/rest
 - name: github.com/artpar/resty
   version: cbd85f7cf881b5d8f42fd8a8b66d9461193762c9
 - name: github.com/aws/aws-sdk-go
@@ -125,6 +147,8 @@ imports:
   version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
 - name: github.com/dgrijalva/jwt-go
   version: dbeaa9332f19a944acb5736b4456cfcc02140e29
+- name: github.com/digitalocean/godo
+  version: 77ea48de76a7b31b234d854f15d003c68bb2fb90
 - name: github.com/dlclark/regexp2
   version: 7632a260cbaf5e7594fc1544a503456ecd0827f1
   subpackages:
@@ -438,7 +462,7 @@ imports:
 - name: google.golang.org/api
   version: 167592a6a784880141ec6f1d98e3f3ed132b98b2
   subpackages:
-  - drive/v2
+  - drive/v3
   - gensupport
   - googleapi
   - googleapi/internal/uritemplates

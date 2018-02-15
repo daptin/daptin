@@ -3,7 +3,6 @@ package resource
 import (
 	"encoding/base64"
 	"github.com/artpar/rclone/cmd"
-	"github.com/artpar/rclone/fs"
 	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -17,6 +16,8 @@ import (
 	"strings"
 	"github.com/artpar/api2go"
 	"golang.org/x/oauth2"
+	"github.com/artpar/rclone/fs/config"
+	"github.com/artpar/rclone/fs/sync"
 )
 
 type FileUploadActionPerformer struct {
@@ -144,18 +145,16 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 		}
 	}
 
-
-
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to marshal access token to json")
 
 	storeProvider := inFields["store_provider"].(string)
-	fs.ConfigFileSet(storeProvider, "client_id", oauthConf.ClientID)
-	fs.ConfigFileSet(storeProvider, "type", storeProvider)
-	fs.ConfigFileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
-	fs.ConfigFileSet(storeProvider, "token", string(jsonToken))
-	fs.ConfigFileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-	fs.ConfigFileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
+	config.FileSet(storeProvider, "client_id", oauthConf.ClientID)
+	config.FileSet(storeProvider, "type", storeProvider)
+	config.FileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
+	config.FileSet(storeProvider, "token", string(jsonToken))
+	config.FileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
+	config.FileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
 
@@ -164,7 +163,7 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-		dir := fs.CopyDir(fdst, fsrc)
+		dir := sync.CopyDir(fdst, fsrc)
 		os.RemoveAll(tempDirectoryPath)
 		return dir
 	})

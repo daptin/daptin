@@ -16,6 +16,7 @@ import (
 	"sync"
 	"github.com/thoas/stats"
 	"github.com/daptin/daptin/server/websockets"
+	"github.com/artpar/rclone/fs/config"
 )
 
 var Stats = stats.New()
@@ -42,7 +43,7 @@ func Main(boxRoot, assetsStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup
 	allTables := MergeTables(existingTables, initConfig.Tables)
 
 	initConfig.Tables = allTables
-	fs.LoadConfig()
+	config.LoadConfig()
 	fs.Config.DryRun = false
 	fs.Config.LogLevel = 200
 	fs.Config.StatsLogLevel = 200

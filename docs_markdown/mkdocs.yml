@@ -21,3 +21,4 @@ pages:
     - OAuth connections: extend/oauth_connection.md
     - OAuth tokens: extend/oauth_token.md
 theme: readthedocs
+google_analytics: ['UA-114227400-1', 'docs.dapt.in']

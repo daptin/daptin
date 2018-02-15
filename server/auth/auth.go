@@ -323,10 +323,10 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 	user, err := jwtMiddleware.CheckJWT(writer, req)
 
 	if err != nil {
-		CheckErr(err, "JWT middleware auth check failed")
 		if doBasicAuthCheck {
 			user, err = a.BasicAuthCheckMiddlewareWithHttp(req, writer)
 			if err != nil || user == nil {
+				CheckErr(err, "JWT middleware auth check failed")
 				CheckErr(err, "BASIC middleware auth check failed")
 			} else {
 				hasUser = true
