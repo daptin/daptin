@@ -8,14 +8,14 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/artpar/rclone/cmd"
-	"github.com/artpar/rclone/fs"
-	_ "github.com/artpar/rclone/fs/all" // import all fs
+	_ "github.com/artpar/rclone/backend/all" // import all fs
 	"github.com/jmoiron/sqlx"
 	"github.com/julienschmidt/httprouter"
 	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
+	"github.com/artpar/rclone/fs/config"
 	"net/http"
 	"net/url"
 	"os"
@@ -23,6 +23,7 @@ import (
 	"golang.org/x/oauth2"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/thoas/stats"
+	"github.com/artpar/rclone/fs/sync"
 )
 
 type HostSwitch struct {
@@ -35,7 +36,7 @@ type JsonApiError struct {
 	Message string
 }
 
-func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) HostSwitch {
+func CreateSubSites(cmsConfig *resource.CmsConfig, db *sqlx.DB, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) HostSwitch {
 
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
@@ -125,12 +126,12 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 
 		jsonToken, err := json.Marshal(token)
 		resource.CheckErr(err, "Failed to convert token to json")
-		fs.ConfigFileSet(storeProvider, "client_id", oauthConf.ClientID)
-		fs.ConfigFileSet(storeProvider, "type", storeProvider)
-		fs.ConfigFileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
-		fs.ConfigFileSet(storeProvider, "token", string(jsonToken))
-		fs.ConfigFileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-		fs.ConfigFileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
+		config.FileSet(storeProvider, "client_id", oauthConf.ClientID)
+		config.FileSet(storeProvider, "type", storeProvider)
+		config.FileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
+		config.FileSet(storeProvider, "token", string(jsonToken))
+		config.FileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
+		config.FileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
 
 		args := []string{
 			cloudStore.RootPath,
@@ -149,13 +150,14 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 				log.Errorf("Source or destination is null")
 				return nil
 			}
-			dir := fs.CopyDir(fdst, fsrc)
+			dir := sync.CopyDir(fdst, fsrc)
 			return dir
 		})
 		//hostRouter.ServeFiles("/*filepath", http.Dir(tempDirectoryPath))
 		hostRouter.Use(authMiddleware.AuthCheckMiddleware)
-		hostRouter.Use(static.Serve("/", static.LocalFile(tempDirectoryPath, false)))
+		hostRouter.Use(static.Serve("/", static.LocalFile(tempDirectoryPath, true)))
 		hostRouter.NoRoute(func(c *gin.Context) {
+			log.Printf("Found no route for %v", c.Request.URL)
 			c.File(tempDirectoryPath + "/index.html")
 			c.AbortWithStatus(200)
 		})
@@ -169,7 +171,7 @@ func CreateSubSites(config *resource.CmsConfig, db *sqlx.DB, cruds map[string]*r
 		siteMap[subSiteInformation.SubSite.Path] = subSiteInformation
 	}
 
-	config.SubSites = siteMap
+	cmsConfig.SubSites = siteMap
 
 	return hs
 }
