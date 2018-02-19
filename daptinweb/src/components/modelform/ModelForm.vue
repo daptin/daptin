@@ -181,7 +181,7 @@
 
         switch (inputType) {
           case "truefalse":
-            inputType = "checkbox";
+            inputType = "fancyCheckBox";
             break;
           case "entity":
             inputType = "selectOneOrMore";

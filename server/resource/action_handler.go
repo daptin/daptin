@@ -424,7 +424,11 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			}
 
 			if err != nil {
-				ginContext.AbortWithError(500, err)
+				ginContext.AbortWithStatusJSON(400, struct {
+					Message string
+				}{
+					Message: err.Error(),
+				})
 				return
 			}
 		}

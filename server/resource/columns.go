@@ -309,13 +309,25 @@ var SystemActions = []Action{
 			{
 				Name:       "XLSX file",
 				ColumnName: "data_xls_file",
-				ColumnType: "file.application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+				ColumnType: "file.xls|xlsx",
 				IsNullable: false,
 			},
 			{
 				Name:       "Entity name",
 				ColumnName: "entity_name",
 				ColumnType: "label",
+				IsNullable: false,
+			},
+			{
+				Name:       "Create entity if not exists",
+				ColumnName: "create_if_not_exists",
+				ColumnType: "truefalse",
+				IsNullable: false,
+			},
+			{
+				Name:       "Add missing columns",
+				ColumnName: "add_missing_columns",
+				ColumnType: "truefalse",
 				IsNullable: false,
 			},
 		},
@@ -327,11 +339,63 @@ var SystemActions = []Action{
 		},
 		OutFields: []Outcome{
 			{
-				Type:   "__upload_file_to_entity",
+				Type:   "__upload_xlsx_file_to_entity",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"xls_data": "~data_xls_file",
-					"name":     "entity_name",
+					"data_xls_file":             "~data_xls_file",
+					"entity_name":                 "~entity_name",
+					"add_missing_columns":  "~add_missing_columns",
+					"create_if_not_exists": "~create_if_not_exists",
+				},
+			},
+		},
+	},
+	{
+		Name:             "upload_csv_to_system_schema",
+		Label:            "Upload CSV to entity",
+		OnType:           "world",
+		InstanceOptional: true,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "CSV file",
+				ColumnName: "data_csv_file",
+				ColumnType: "file.csv",
+				IsNullable: false,
+			},
+			{
+				Name:       "Entity name",
+				ColumnName: "entity_name",
+				ColumnType: "label",
+				IsNullable: false,
+			},
+			{
+				Name:       "Create entity if not exists",
+				ColumnName: "create_if_not_exists",
+				ColumnType: "truefalse",
+				IsNullable: false,
+			},
+			{
+				Name:       "Add missing columns",
+				ColumnName: "add_missing_columns",
+				ColumnType: "truefalse",
+				IsNullable: false,
+			},
+		},
+		Validations: []ColumnTag{
+			{
+				ColumnName: "entity_name",
+				Tags:       "required",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "__upload_csv_file_to_entity",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"data_csv_file":             "~data_csv_file",
+					"entity_name":                 "~entity_name",
+					"add_missing_columns":  "~add_missing_columns",
+					"create_if_not_exists": "~create_if_not_exists",
 				},
 			},
 		},
@@ -612,10 +676,10 @@ var SystemActions = []Action{
 
 var StandardTables = []TableInfo{
 	{
-		TableName: "marketplace",
-		IsHidden:  true,
+		TableName:     "marketplace",
+		IsHidden:      true,
 		DefaultGroups: []string{"administrators"},
-		Icon:      "fa-shopping-cart",
+		Icon:          "fa-shopping-cart",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -640,10 +704,10 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName: "json_schema",
-		Icon:      "fa-code",
+		TableName:     "json_schema",
+		Icon:          "fa-code",
 		DefaultGroups: []string{"administrators"},
-		IsHidden:  true,
+		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "schema_name",
@@ -661,10 +725,10 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName: "timeline",
-		Icon:      "fa-clock-o",
+		TableName:     "timeline",
+		Icon:          "fa-clock-o",
 		DefaultGroups: []string{"administrators"},
-		IsHidden:  true,
+		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "event_type",
@@ -691,10 +755,10 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName: "world",
-		IsHidden:  true,
+		TableName:     "world",
+		IsHidden:      true,
 		DefaultGroups: []string{"administrators"},
-		Icon:      "fa-home",
+		Icon:          "fa-home",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "table_name",
@@ -885,10 +949,10 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName: "stream",
-		Icon:      "fa-strikethrough",
+		TableName:     "stream",
+		Icon:          "fa-strikethrough",
 		DefaultGroups: []string{"administrators"},
-		IsHidden:  true,
+		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "stream_name",
@@ -1201,9 +1265,9 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName: "cloud_store",
+		TableName:     "cloud_store",
 		DefaultGroups: []string{"administrators"},
-		IsHidden:  true,
+		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "Name",
@@ -1238,9 +1302,9 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName: "site",
+		TableName:     "site",
 		DefaultGroups: []string{"administrators"},
-		IsHidden:  true,
+		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -1344,6 +1408,18 @@ type TableInfo struct {
 	Conformations          []ColumnTag
 	DefaultOrder           string
 	Icon                   string
+}
+
+func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {
+
+	for _, col := range ti.Columns {
+		if col.Name == name {
+			return &col, true
+		}
+	}
+
+	return nil, false
+
 }
 
 func (ti *TableInfo) AddRelation(relations ...api2go.TableRelation) {
