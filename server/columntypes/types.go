@@ -617,18 +617,17 @@ func DetectType(d []string) (entityType EntityType, hasHeaders bool, err error) 
 	for _, typeInfo := range order {
 		detect, ok := detectorMap[typeInfo]
 		if !ok {
-			log.Infof("No detectorMap for type [%v]", typeInfo)
+			//log.Infof("No detectorMap for type [%v]", typeInfo)
 			continue
 		}
 
-		log.Infof("Detector for type [%v]", typeInfo)
+		//log.Infof("Detector for type [%v]", typeInfo)
 		ok, unidentified = checkStringsAgainstDetector(d, detect)
 
 		if ok {
-			log.Infof("Column was identified as %v", typeInfo)
 			return typeInfo, false, nil
 		} else {
-			log.Infof("Column was not identified: %v", typeInfo)
+			//log.Infof("Column was not identified: %v", typeInfo)
 		}
 	}
 
@@ -644,17 +643,16 @@ func DetectType(d []string) (entityType EntityType, hasHeaders bool, err error) 
 		for _, typeInfo := range order {
 			detect, ok := detectorMap[typeInfo]
 			if !ok {
-				log.Infof("No detectorMap for type [%v]", typeInfo)
+				//log.Infof("No detectorMap for type [%v]", typeInfo)
 				continue
 			}
 
-			log.Infof("Detector for type [%v]", typeInfo)
+			//log.Infof("Detector for type [%v]", typeInfo)
 			ok, unidentified = checkStringsAgainstDetector(d[1:], detect)
 			if ok {
-				log.Infof("Column was identified as %v", typeInfo)
 				return typeInfo, hasHeaders, nil
 			} else {
-				log.Infof("Column was not identified: %v", typeInfo)
+				//log.Infof("Column was not identified: %v", typeInfo)
 			}
 		}
 	}

@@ -90,47 +90,52 @@
                 <div class="col-sm-12">
                   <router-link :to="{name: 'Entity', params:{tablename: 'marketplace'}}"
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-shopping-cart black"></i>Market places
+                  <i class="fas fa-shopping-cart"></i><br />
+                  Market places
                 </router-link>
 
                 <router-link :to="{name: 'Entity', params:{tablename: 'data_exchange'}}"
 
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-exchange black"></i>Data Exchange
+                  <i class="fas fa-exchange-alt"></i><br />
+                  Data Exchange
                 </router-link>
 
                 <router-link :to="{name: 'Entity', params:{tablename: 'oauth_token'}}"
 
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-key black"></i>Oauth Tokens
+                  <i class="fas fa-key"></i><br />
+                  Oauth Tokens
                 </router-link>
 
                 <router-link :to="{name: 'Entity', params:{tablename: 'oauth_connect'}}"
 
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-institution black"></i>Oauth Connections
+                  <i class="fas fa-plug"></i>
+                  <br />
+                  Oauth Connections
                 </router-link>
 
                 <router-link :to="{name: 'Entity', params:{tablename: 'cloud_store'}}"
 
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-cloud black"></i>Storage
+                  <i class="fas fa-cloud"></i><br />Storage
                 </router-link>
 
                 <router-link :to="{name: 'Entity', params:{tablename: 'site'}}"
 
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-television black"></i>Sub sites
+                  <i class="fas fa-cubes "></i><br />Sub sites
                 </router-link>
                 <router-link :to="{name: 'Entity', params:{tablename: 'stream'}}"
 
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-film black"></i>Data views
+                  <i class="fas fa-film "></i><br />Data views
                 </router-link>
 
                 <router-link :to="{name: 'Entity', params:{tablename: 'json_schema'}}"
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-puzzle-piece black"></i>Json Schemas
+                  <i class="fas fa-puzzle-piece "></i><br />Json Schemas
                 </router-link>
                 </div>
 
@@ -142,24 +147,24 @@
                            <div class="col-sm-12">     <router-link :to="{name: 'Action', params: {tablename: 'user', actionname: 'signup'}}"
 
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-user-plus black"></i>Create new user
+                  <i class="fas fa-user-plus"></i><br />Create new user
                 </router-link>
 
                 <router-link :to="{name: 'NewEntity', params:{tablename: 'usergroup'}}"
 
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-users black"></i>Create new user group
+                  <i class="fas fa-users"></i><br />Create new user group
                 </router-link>
 
                 <router-link
                   :to="{name : 'Action', params: {tablename: 'world', actionname: 'become_an_administrator'}}"
                   class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-expeditedssl black"></i>Become admin
+                  <i class="fas fa-lock"></i><br />Become admin
                 </router-link>
 
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'restart_daptin'}}"
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-retweet black"></i>Restart
+                  <i class="fas fa-retweet"></i><br />Restart
                 </router-link>
 </div>
               </div>
@@ -171,24 +176,30 @@
                 <div class="col-sm-12">
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-plus black "></i>Upload Schema JSON
+                  <i class="fas fa-plus "></i><br />Upload Schema JSON
                 </router-link>
 
 
                 <router-link
                   :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
                   class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-file-excel-o black"></i>Upload XLS
+                  <i class="fas fa-file-excel"></i><br />Upload XLSX
+                </router-link>
+
+                <router-link
+                  :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_csv_to_system_schema'}}"
+                  class="btn btn-lg btn-app dashboard_button">
+                  <i class="fas fa-file-alt"></i><br />Upload CSV
                 </router-link>
 
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-upload black"></i>Upload Data JSON
+                  <i class="fab fa-js"></i><br />Upload Data JSON
                 </router-link>
 
                 <router-link :to="{name : 'NewItem'}"
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-pencil black"></i>Online designer
+                  <i class="fas fa-pencil-alt"></i><br />Online designer
                 </router-link>
 </div>
 
@@ -200,12 +211,12 @@
                             <div class="col-sm-12">
                                   <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-object-group black"></i>Download schema JSON
+                  <i class="fas fa-object-group"></i><br />Download JSON schema 
                 </router-link>
 
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'export_data'}}"
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fa fa-3x fa-cloud-download black"></i>Download dump JSON
+                  <i class="fas fa-database"></i><br />Download JSON dump 
                 </router-link>
 </div>
               </div>
@@ -236,7 +247,7 @@
 }
 
 .dashboard_button i {
-  font-size: 30px;
+  font-size: 40px;
 }
 
 .dashboard_button i {

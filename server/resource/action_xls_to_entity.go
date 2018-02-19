@@ -15,13 +15,14 @@ import (
 	"strings"
 )
 
-type UploadFileToEntityPerformer struct {
+type UploadXlsFileToEntityPerformer struct {
 	responseAttrs map[string]interface{}
 	cruds         map[string]*DbResource
+	cmsConfig     *CmsConfig
 }
 
-func (d *UploadFileToEntityPerformer) Name() string {
-	return "__upload_file_to_entity"
+func (d *UploadXlsFileToEntityPerformer) Name() string {
+	return "__upload_xlsx_file_to_entity"
 }
 
 var EntityTypeToDataTypeMap = map[fieldtypes.EntityType]string{
@@ -88,7 +89,7 @@ var EntityTypeToColumnTypeMap = map[fieldtypes.EntityType]string{
 	fieldtypes.Namespace:   "namespace",
 }
 
-func (d *UploadFileToEntityPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *UploadXlsFileToEntityPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	//actions := make([]ActionResponse, 0)
 	log.Infof("Do action: %v", d.Name())
@@ -96,8 +97,8 @@ func (d *UploadFileToEntityPerformer) DoAction(request ActionRequest, inFields m
 	files := inFields["data_xls_file"].([]interface{})
 
 	entityName := inFields["entity_name"].(string)
-	parts := strings.Split(entityName, ".")
-	fileType := parts[len(parts)-1]
+	create_if_not_exists := inFields["create_if_not_exists"].(bool)
+	add_missing_columns := inFields["add_missing_columns"].(bool)
 
 	table := TableInfo{}
 	table.TableName = SmallSnakeCaseText(entityName)
@@ -110,6 +111,16 @@ func (d *UploadFileToEntityPerformer) DoAction(request ActionRequest, inFields m
 
 	completed := false
 
+	var existingEntity *TableInfo
+	if !create_if_not_exists {
+		var ok bool
+		dbr, ok := d.cruds[entityName]
+		if !ok {
+			return nil, nil, []error{fmt.Errorf("no such entity: %v", entityName)}
+		}
+		existingEntity = dbr.tableInfo
+	}
+
 nextFile:
 	for _, fileInterface := range files {
 		file := fileInterface.(map[string]interface{})
@@ -121,7 +132,7 @@ nextFile:
 		xlsFile, err := xlsx.OpenBinary(fileBytes)
 		CheckErr(err, "Uploaded file is not a valid xls file")
 		if err != nil {
-			continue
+			return nil, nil, []error{fmt.Errorf("Failed to read file: %v", err)}
 		}
 		log.Infof("File has %d sheets", len(xlsFile.Sheets))
 		err = ioutil.WriteFile(fileName, fileBytes, 0644)
@@ -135,18 +146,31 @@ nextFile:
 
 			if err != nil {
 				log.Errorf("Failed to get data from sheet [%s]: %v", sheet.Name, err)
-				continue
+				return nil, nil, []error{fmt.Errorf("Failed to get data from sheet [%s]: %v", sheet.Name, err)}
 			}
 
 			// identify data type of each column
 			for _, colName := range columnNames {
+
+				if colName == "" {
+					continue
+				}
+
 				var column api2go.ColumnInfo
+
+				if add_missing_columns && existingEntity != nil {
+					_, ok := existingEntity.GetColumnByName(colName)
+					if !ok {
+						// ignore column if it doesn't exists
+						continue
+					}
+				}
 
 				dataMap := map[string]bool{}
 				datas := make([]string, 0)
 
 				isNullable := false
-				count := 100
+				count := 10000
 				for _, d := range data {
 					if count < 0 {
 						break
@@ -156,6 +180,7 @@ nextFile:
 					if i == nil {
 						strVal = ""
 						isNullable = true
+						continue
 					} else {
 						strVal = i.(string)
 					}
@@ -169,19 +194,17 @@ nextFile:
 
 				eType, _, err := fieldtypes.DetectType(datas)
 				if err != nil {
+					log.Infof("Unable to identify column type for %v", colName)
 					column.ColumnType = "label"
 					column.DataType = "varchar(100)"
 				} else {
+					log.Infof("Column %v was identified as %v", colName, eType)
 					column.ColumnType = EntityTypeToColumnTypeMap[eType]
 					column.DataType = EntityTypeToDataTypeMap[eType]
 				}
 				column.IsNullable = isNullable
 				column.Name = colName
 				column.ColumnName = colName
-
-				if column.ColumnName == "" {
-					continue
-				}
 
 				columns = append(columns, column)
 			}
@@ -194,19 +217,29 @@ nextFile:
 	}
 
 	if completed {
-		allSt["tables"] = []TableInfo{table}
+
+		if create_if_not_exists {
+			allSt["tables"] = []TableInfo{table}
+		}
+
 		allSt["imports"] = sources
 
 		jsonStr, err := json.Marshal(allSt)
 		if err != nil {
-			log.Errorf("Failed to convert table to json string")
+			InfoErr(err, "Failed to convert object to json")
 			return nil, nil, []error{err}
 		}
 
-		jsonFileName := fmt.Sprintf("schema_%v_daptin.%v", entityName, fileType)
+		jsonFileName := fmt.Sprintf("schema_%v_daptin.json", entityName)
 		ioutil.WriteFile(jsonFileName, jsonStr, 0644)
+		log.Printf("File %v written to disk for upload", jsonFileName)
 
-		go restart()
+		if create_if_not_exists || add_missing_columns {
+			go restart()
+		} else {
+			ImportDataFiles(d.cmsConfig, d.cruds[entityName].db, d.cruds)
+		}
+
 		return nil, successResponses, nil
 	} else {
 		return nil, failedResponses, nil
@@ -312,8 +345,9 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 
 func NewUploadFileToEntityPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := UploadFileToEntityPerformer{
-		cruds: cruds,
+	handler := UploadXlsFileToEntityPerformer{
+		cruds:     cruds,
+		cmsConfig: initConfig,
 	}
 
 	return &handler, nil

@@ -627,8 +627,8 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 }
 
 func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbResource) {
-
-	ctx := context.Background()
+	log.Printf("Importing [%v] data files", len(initConfig.Imports))
+	ctx := context.TODO()
 	pr1 := http.Request{
 		Method: "POST",
 	}
@@ -766,7 +766,6 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		_, err = tx.Exec(s, v...)
 		CheckErr(err, "Failed to insert user")
 
-
 		s, v, err = squirrel.Select("id").From("user").Where(squirrel.Eq{"reference_id": u2}).ToSql()
 		CheckErr(err, "Failed to create select user sql ")
 		err = tx.QueryRowx(s, v...).Scan(&userId)
@@ -791,7 +790,6 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		_, err = tx.Exec(s, v...)
 		CheckErr(err, "Failed to insert user-group sql for administrators")
 
-
 		u, _ = uuid.NewV4()
 		u1 = u.String()
 		s, v, err = squirrel.Insert("usergroup").
@@ -800,7 +798,6 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		CheckErr(err, "Failed to create insert user-group sql for administrators")
 		_, err = tx.Exec(s, v...)
 		CheckErr(err, "Failed to insert user-group sql for administrators")
-
 
 		s, v, err = squirrel.Select("id").From("usergroup").Where(squirrel.Eq{"reference_id": u1}).ToSql()
 		CheckErr(err, "Failed to create select usergroup sql")

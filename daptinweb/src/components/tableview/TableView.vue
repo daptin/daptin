@@ -31,7 +31,7 @@
 
             <button class="btn btn-box-tool"
                     @click="onAction('go-item', props.rowData, props.rowIndex)">
-              <i class="fa fa-2x fa-expand"></i>
+              <i class="fa fa-2x fa-expand-arrows-alt"></i>
             </button>
 
             <!--<button class="btn btn-box-tool"-->
@@ -85,7 +85,7 @@
 
             <button class="btn btn-box-tool"
                     @click="onAction('go-item', props.rowData, props.rowIndex)">
-              <i class="fa fa-2x fa-expand"></i>
+              <i class="fa fa-2x fa-expand-arrows-alt"></i>
             </button>
 
             <!--<button class="btn btn-box-tool"-->
@@ -95,7 +95,7 @@
 
             <button class="btn btn-box-tool"
                     @click="onAction('edit-item', props.rowData, props.rowIndex)">
-              <i class="fa fa-2x fa-pencil-square"></i>
+              <i class="fas fa-pencil-alt  fa-2x"></i>
             </button>
 
             <el-popover

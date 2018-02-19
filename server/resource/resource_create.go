@@ -23,7 +23,7 @@ import (
 //   the server
 
 func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (map[string]interface{}, error) {
-	log.Infof("Create object of type [%v]", dr.model.GetName())
+	//log.Infof("Create object of type [%v]", dr.model.GetName())
 	data := obj.(*api2go.Api2GoModel)
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -238,7 +238,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		return nil, err
 	}
 
-	log.Infof("Insert query: %v == %v", query, vals)
+	//log.Infof("Insert query: %v == %v", query, vals)
 	_, err = dr.db.Exec(query, vals...)
 	if err != nil {
 		log.Errorf("Failed to execute insert query: %v", err)
@@ -276,7 +276,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 	if userGroupId != 0 && dr.model.HasMany("usergroup") {
 
-		log.Infof("Associate new entity [%v][%v] with usergroup: %v", dr.model.GetTableName(), createdResource["reference_id"], userGroupId)
+		//log.Infof("Associate new entity [%v][%v] with usergroup: %v", dr.model.GetTableName(), createdResource["reference_id"], userGroupId)
 		u, _ := uuid.NewV4()
 		nuuid := u.String()
 
@@ -285,7 +285,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
-		log.Infof("Query: %v", belogsToUserGroupSql)
+		//log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 
 		if err != nil {
@@ -302,7 +302,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			Insert("user_user_id_has_usergroup_usergroup_id").
 			Columns("user_id", "usergroup_id", "reference_id", "permission").
 			Values(sessionUser.UserId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
-		log.Infof("Query: %v", belogsToUserGroupSql)
+		//log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 
 		if err != nil {
@@ -319,7 +319,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			Set("user_id", adminUserId).
 			Where(squirrel.Eq{"id": createdResource["id"]}).ToSql()
 
-		log.Infof("Query: %v", belogsToUserGroupSql)
+		//log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 
 		if err != nil {
@@ -337,7 +337,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 	data := obj.(*api2go.Api2GoModel)
-	log.Infof("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
+	//log.Infof("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
 
 	for _, bf := range dr.ms.BeforeCreate {
 		//log.Infof("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())

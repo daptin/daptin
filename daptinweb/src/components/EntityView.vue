@@ -28,31 +28,34 @@
       <div class="box-tools pull-right">
         <div class="ui icon buttons">
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'; currentViewType = 'table-view';"><i
-            class="fa  fa-2x fa-table grey "></i>
+            class="fas fa-table fa-2x"></i>
           </button>
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'card'; currentViewType = 'table-view';"><i
-            class="fa  fa-2x fa-th-large grey"></i></button>
+            class="fas fa-th-large fa-2x  grey"></i></button>
           <button class="btn btn-box-tool" @click.prevent="currentViewType = 'recline-view'"><i
-            class="fa  fa-2x fa-area-chart grey"></i></button>
+            class="fas fa-chart-bar fa-2x grey"></i></button>
           <!--<button class="btn btn-box-tool" @click.prevent="currentViewType = 'voyager-view'"><i-->
           <!--class="fa  fa-2x fa-area-chart grey"></i></button>-->
           <router-link v-if="selectedTable" :to="{name: 'NewEntity', params: {tablename: selectedTable}}"
                        class="btn btn-box-tool"
-                       @click.prevent="newRow()"><i class="fa fa-2x fa-plus green "></i></router-link>
-          <button class="btn btn-box-tool" @click.prevent="reloadData()"><i class="fa fa-2x fa-refresh grey"></i>
+                       @click.prevent="newRow()">
+            <i class="fa fa-2x fa-plus green "></i>
+          </router-link>
+          <button class="btn btn-box-tool" @click.prevent="reloadData()">
+            <i class="fas fa-sync fa-2x grey"></i>
           </button>
           <router-link
             :to="{name: 'NewItem', query: {table: selectedTable}}"
             class="btn btn-box-tool"><i
-            class="fa fa-2x fa-pencil  grey"></i></router-link>
+            class="fas fa-edit fa-2x grey"></i></router-link>
           <router-link
             :to="{name: 'Action', params: {actionname: 'add_exchange', tablename: 'world'}, query: {id: worldReferenceId}}"
             class="btn btn-box-tool"><i
-            class="fa fa-2x fa-link grey"></i></router-link>
+            class="fas fa-link fa-2x  grey"></i></router-link>
           <router-link
             :to="{name: 'Action', params: {actionname: 'export_data', tablename: 'world'}, query: {world_id: worldReferenceId}}"
             class="btn btn-box-tool"><i
-            class="fa fa-2x fa-cloud-download grey"></i></router-link>
+            class="fas fa-download fa-2x  grey"></i></router-link>
         </div>
 
       </div>
