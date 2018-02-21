@@ -189,7 +189,17 @@ func IsFloat(d string) (bool, interface{}) {
 }
 
 func IsInt(d string) (bool, interface{}) {
+
+	if d == "-" {
+		return true, 0
+	}
+
 	d = strings.ToLower(d)
+
+	if d == "na" {
+		return true, 0
+	}
+
 	in := sort.SearchStrings(unknownNumbers, d)
 	if in < len(unknownNumbers) && unknownNumbers[in] == d {
 		log.Infof("One of the unknowns - %v : %d", d, sort.SearchStrings(unknownNumbers, strings.ToLower(d)))

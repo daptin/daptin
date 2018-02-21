@@ -67,6 +67,11 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request ActionRequest, inField
 			return nil, nil, []error{err}
 		}
 
+		err = ioutil.WriteFile(fileName, fileBytes, 0644)
+		if err != nil {
+			log.Errorf("Failed to write xls file to disk: %v", err)
+		}
+
 		csvReader := csvmap.NewReader(bytes.NewReader(fileBytes))
 		columnNames, err := csvReader.ReadHeader()
 
@@ -76,6 +81,7 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request ActionRequest, inField
 
 		csvReader.Columns = columnNames
 		data, err := csvReader.ReadAll()
+		recordCount := len(data)
 		if err != nil {
 			return nil, nil, []error{err}
 		}
@@ -105,7 +111,7 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request ActionRequest, inField
 			datas := make([]string, 0)
 
 			isNullable := false
-			count := 100
+			count := 100000
 			for _, d := range data {
 				if count < 0 {
 					break
@@ -134,9 +140,18 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request ActionRequest, inField
 				column.ColumnType = EntityTypeToColumnTypeMap[eType]
 				column.DataType = EntityTypeToDataTypeMap[eType]
 			}
+
+			if len(datas) > (recordCount / 10) {
+				column.IsIndexed = true
+			}
+
+			if len(datas) == recordCount {
+				column.IsUnique = true
+			}
+
 			column.IsNullable = isNullable
 			column.Name = colName
-			column.ColumnName = colName
+			column.ColumnName = SmallSnakeCaseText(colName)
 
 			columns = append(columns, column)
 		}
@@ -156,14 +171,20 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request ActionRequest, inField
 
 		jsonStr, err := json.Marshal(allSt)
 		if err != nil {
-			log.Errorf("Failed to convert table to json string")
+			InfoErr(err, "Failed to convert object to json")
 			return nil, nil, []error{err}
 		}
 
 		jsonFileName := fmt.Sprintf("schema_%v_daptin.json", entityName)
 		ioutil.WriteFile(jsonFileName, jsonStr, 0644)
-		ImportDataFiles(d.cmsConfig, d.cruds[entityName].db, d.cruds)
-		//go restart()
+		log.Printf("File %v written to disk for upload", jsonFileName)
+
+		if create_if_not_exists || add_missing_columns {
+			go restart()
+		} else {
+			ImportDataFiles(d.cmsConfig, d.cruds[entityName].db, d.cruds)
+		}
+
 		return nil, successResponses, nil
 	} else {
 		return nil, failedResponses, nil

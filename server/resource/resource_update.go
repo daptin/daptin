@@ -112,7 +112,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 							return nil, errors.New(fmt.Sprintf("No write permission on object [%v][%v]", col.ForeignKeyData.Namespace, valString))
 						}
 					} else {
-						ok = false
+						ok = true
 					}
 
 				case "cloud_store":
@@ -285,7 +285,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 			return nil, err
 		}
 
-		//log.Infof("Update query: %v == %v", query, vals)
+		log.Infof("Update query: %v == %v", query, vals)
 		_, err = dr.db.Exec(query, vals...)
 		if err != nil {
 			log.Errorf("Failed to execute update query: %v", err)
@@ -337,12 +337,15 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 	for _, rel := range dr.model.GetRelations() {
 		relationName := rel.GetRelation()
+
+		if relationName == "belongs_to" || relationName == "has_one" {
+			continue
+		}
+
 		log.Infof("Check relation in Update: %v", rel.String())
 		if rel.GetSubject() == dr.model.GetName() {
 
-			if relationName == "belongs_to" || relationName == "has_one" {
-				continue
-			}
+
 
 			val11, ok := attrs[rel.GetObjectName()]
 			if !ok || len(val11.([]map[string]interface{})) < 1 {
@@ -521,7 +524,6 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 	//
 
 	for relationName, deleteRelations := range data.DeleteIncludes {
-		log.Infof("Delete to many relation: [%v][%v]", relationName, deleteRelations)
 		referencedRelation := api2go.TableRelation{}
 		referencedTypeName := ""
 		for _, relation := range dr.model.GetRelations() {
@@ -536,10 +538,12 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				break
 			}
 		}
+		log.Infof("Delete [%v] relation: [%v][%v]", referencedRelation.GetRelation(), relationName, deleteRelations)
 
 		if referencedRelation.GetRelation() == "" {
 			continue
 		}
+
 		for _, id := range deleteRelations {
 
 			otherObjectPermission := dr.GetObjectPermission(referencedTypeName, id)
@@ -553,24 +557,59 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					continue
 				}
 
-				joinReference, _, err := dr.GetRowsByWhereClause(referencedRelation.GetJoinTableName(), squirrel.Eq{relationName: otherObjectId})
-				if err != nil {
-					log.Errorf("Referenced relation found: %v", err)
-					continue
+				if referencedRelation.Relation == "has_many" || referencedRelation.Relation == "has_many_and_belongs_to_many" {
+
+					joinReference, _, err := dr.GetRowsByWhereClause(referencedRelation.GetJoinTableName(), squirrel.Eq{relationName: otherObjectId})
+					if err != nil {
+						log.Errorf("Referenced relation not found: %v", err)
+						continue
+					}
+
+					joinReferenceObject := joinReference[0]
+
+					_, err = dr.cruds[referencedTypeName].Delete(joinReferenceObject["reference_id"].(string), req)
+					if err != nil {
+						log.Errorf("Failed to delete relation [%v][%v]: %v", referencedRelation.GetSubject(), referencedRelation.GetObjectName(), err)
+					}
+				} else {
+					// todo: write code for belongs_to and has_one relation reference deletes
+					// check for relation side and update the appropriate column
+
+					selfTypeName := referencedRelation.GetSubject()
+					selfSubjectName := referencedRelation.GetSubjectName()
+					targetTypeName := referencedRelation.GetObject()
+					//targetSubjectName := referencedRelation.GetObjectName()
+
+					if selfTypeName != dr.model.GetName() {
+						selfTypeName = referencedRelation.GetObject()
+						selfSubjectName = referencedRelation.GetObjectName()
+						targetTypeName = referencedRelation.GetSubject()
+						//targetSubjectName = referencedRelation.GetSubjectName()
+
+					}
+
+					foreignObject, err := dr.GetIdToObject(targetTypeName, otherObjectId)
+					if err != nil {
+						log.Errorf("Failed to get foreign object by reference id: %v", err)
+						continue
+					}
+					modelToUpdate := api2go.NewApi2GoModelWithData(referencedTypeName, nil, 0, nil, foreignObject)
+
+					updatedAttributes := map[string]interface{}{
+						selfSubjectName: nil,
+					}
+
+					modelToUpdate.SetAttributes(updatedAttributes)
+					_, err = dr.cruds[referencedTypeName].Update(modelToUpdate, req)
+					CheckErr(err, "Failed to update object to remove reference")
+
 				}
 
-				joinReferenceObject := joinReference[0]
-
-				_, err = dr.cruds[referencedRelation.GetJoinTableName()].Delete(joinReferenceObject["reference_id"].(string), req)
-				if err != nil {
-					log.Errorf("Failed to delete relation [%v][%v]: %v", referencedRelation.GetSubject(), referencedRelation.GetObjectName(), err)
-				}
 			} else {
 				log.Errorf("Not allowed to delete relation [%v][%v]: %v", referencedRelation.GetSubject(), referencedRelation.GetObjectName(), err)
 			}
 
 		}
-		log.Infof("Relation to Delete: %v", deleteRelations)
 	}
 
 	return updatedResource, nil

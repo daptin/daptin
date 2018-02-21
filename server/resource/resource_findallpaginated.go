@@ -161,7 +161,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 
 	if isRelatedGroupRequest {
-		log.Infof("Switch permission to join table j1 instead of %v%v", prefix, "permission")
+		//log.Infof("Switch permission to join table j1 instead of %v%v", prefix, "permission")
 		finalCols = append(finalCols, "j1.permission")
 		finalCols = append(finalCols, prefix+"reference_id as object_reference_id")
 		finalCols = append(finalCols, "j1.reference_id as reference_id")
@@ -346,10 +346,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		return nil, nil, nil, err
 	}
 
-	log.Infof("Findall select query sql: %v == %v", sql1, args)
-
 	stmt, err := dr.db.Preparex(sql1)
 	if err != nil {
+		log.Infof("Findall select query sql: %v == %v", sql1, args)
 		log.Errorf("Failed to prepare sql: %v", err)
 		return nil, nil, nil, err
 	}
@@ -397,7 +396,6 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 	results, includes, pagination, err := dr.PaginatedFindAllWithoutFilters(req)
 
-	// todo: handle fetching of usergroups, because world permission
 	for _, bf := range dr.ms.AfterFindAll {
 		//log.Infof("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 

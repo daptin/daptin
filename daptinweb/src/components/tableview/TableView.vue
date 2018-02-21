@@ -6,7 +6,7 @@
       <!--<div class="pull-left">-->
       <!--</div>-->
 
-        <vuetable-pagination :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
+      <vuetable-pagination :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
 
     </div>
     <div class="col-md-12">
@@ -35,8 +35,8 @@
             </button>
 
             <!--<button class="btn btn-box-tool"-->
-                    <!--@click="onAction('view-item', props.rowData, props.rowIndex)">-->
-              <!--<i class="fa  fa-2x fa-eye"></i>-->
+            <!--@click="onAction('view-item', props.rowData, props.rowIndex)">-->
+            <!--<i class="fa  fa-2x fa-eye"></i>-->
             <!--</button>-->
 
             <button class="btn btn-box-tool"
@@ -89,8 +89,8 @@
             </button>
 
             <!--<button class="btn btn-box-tool"-->
-                    <!--@click="onAction('view-item', props.rowData, props.rowIndex)">-->
-              <!--<i class="fa  fa-2x fa-eye"></i>-->
+            <!--@click="onAction('view-item', props.rowData, props.rowIndex)">-->
+            <!--<i class="fa  fa-2x fa-eye"></i>-->
             <!--</button>-->
 
             <button class="btn btn-box-tool"
@@ -127,7 +127,7 @@
 <script>
   import {Notification} from 'element-ui';
 
-  export default  {
+  export default {
     name: 'table-view',
     props: {
       jsonApi: {
@@ -153,7 +153,7 @@
         default: "card"
       },
     },
-    data () {
+    data() {
       return {
         world: [],
         selectedWorld: null,
@@ -184,7 +184,7 @@
       }
     },
     methods: {
-      onAction (action, data){
+      onAction(action, data) {
         console.log("on action", action, data);
         const that = this;
         if (action === "view-item") {
@@ -212,7 +212,7 @@
           .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
           .join(' ')
       },
-      onCellClicked (data, field, event){
+      onCellClicked(data, field, event) {
         console.log('cellClicked 1: ', data, this.selectedWorld);
 //        this.$refs.vuetable.toggleDetailRow(data.id);
         console.log("this router", data["id"])
@@ -225,15 +225,15 @@
 //          }
 //        })
       },
-      trueFalseView (value) {
+      trueFalseView(value) {
         console.log("Render", value);
         return value === "1" ? '<span class="fa fa-check"></span>' : '<span class="fa fa-times"></span>'
       },
-      onPaginationData (paginationData) {
+      onPaginationData(paginationData) {
         console.log("set pagifnation method", paginationData, this.$refs.pagination);
         this.$refs.pagination.setPaginationData(paginationData)
       },
-      onChangePage (page) {
+      onChangePage(page) {
         console.log("cnage pge", page, typeof this.$refs.vuetable);
         if (typeof this.$refs.vuetable !== "undefined") {
           this.$refs.vuetable.changePage(page)
@@ -320,7 +320,7 @@
       'finder': function (newFinder, oldFinder) {
         var that = this;
         console.log("finder updated in ", newFinder, oldFinder);
-        setTimeout(function(){
+        setTimeout(function () {
           that.reloadData(that.selectedWorld);
         }, 100)
       }

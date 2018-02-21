@@ -52,10 +52,10 @@
 
     <li class="treeview help-support">
       <a href="#">
-        <i class="fa fa-keyboard-o"></i>
+        <i class="fas fa-keyboard"></i>
         <span>Administration</span>
         <span class="pull-right-container">
-          <i class="fa fa-angle-left fa-fw pull-right"></i>
+          <i class="fas fa-angle-left fa-fw pull-right"></i>
         </span>
       </a>
       <ul class="treeview-menu">
