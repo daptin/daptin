@@ -143,6 +143,7 @@ nextFile:
 		for _, sheet := range xlsFile.Sheets {
 
 			data, columnNames, err := GetDataArray(sheet)
+			recordCount := len(data)
 
 			if err != nil {
 				log.Errorf("Failed to get data from sheet [%s]: %v", sheet.Name, err)
@@ -170,7 +171,7 @@ nextFile:
 				datas := make([]string, 0)
 
 				isNullable := false
-				count := 10000
+				count := 100000
 				for _, d := range data {
 					if count < 0 {
 						break
@@ -202,12 +203,23 @@ nextFile:
 					column.ColumnType = EntityTypeToColumnTypeMap[eType]
 					column.DataType = EntityTypeToDataTypeMap[eType]
 				}
+
+				if len(datas) > (recordCount / 10) {
+					column.IsIndexed = true
+				}
+
+				if len(datas) == recordCount {
+					column.IsUnique = true
+				}
+
+
 				column.IsNullable = isNullable
 				column.Name = colName
-				column.ColumnName = colName
+				column.ColumnName = SmallSnakeCaseText(colName)
 
 				columns = append(columns, column)
 			}
+
 			table.Columns = columns
 			completed = true
 			sources = append(sources, DataFileImport{FilePath: fileName, Entity: table.TableName, FileType: "xlsx"})
@@ -319,7 +331,7 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 			return
 		}
 		columnNames = append(columnNames, colName)
-		properColumnNames = append(properColumnNames, SmallSnakeCaseText(colName))
+		properColumnNames = append(properColumnNames, colName)
 	}
 
 	for i := 1; i < rowCount; i++ {

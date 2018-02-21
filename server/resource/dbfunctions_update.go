@@ -692,6 +692,9 @@ func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbRes
 
 			header := data[0]
 			importSuccess = true
+			for i, h := range header {
+				header[i] = SmallSnakeCaseText(h)
+			}
 			ImportDataStringArray(data, header, importFile.Entity, cruds[importFile.Entity], req)
 
 		default:

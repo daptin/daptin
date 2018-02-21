@@ -24,7 +24,7 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 	tableName, isSubjected := inFields["table_name"]
 	user, isUserPresent := inFields["user"]
 	userReferenceId := ""
-	userIdInt := uint64(1)
+	userIdInt := int64(1)
 	var err error
 	if isUserPresent {
 		userMap := user.(map[string]interface{})

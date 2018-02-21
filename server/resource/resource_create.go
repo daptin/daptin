@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"time"
 	"strconv"
+	"strings"
 )
 
 // Create a new object. Newly created object/struct must be in Responder.
@@ -177,8 +178,12 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		}
 
 		if col.ColumnType == "measurement" {
-			if val == "" {
-				continue
+			valString, ok := val.(string)
+			if ok {
+
+				if val == "" || val == "-" || strings.ToLower(valString) == "na" {
+					val = 0
+				}
 			}
 		}
 
@@ -238,9 +243,9 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		return nil, err
 	}
 
-	//log.Infof("Insert query: %v == %v", query, vals)
 	_, err = dr.db.Exec(query, vals...)
 	if err != nil {
+		log.Infof("Insert query: %v == %v", query, vals)
 		log.Errorf("Failed to execute insert query: %v", err)
 		return nil, err
 	}

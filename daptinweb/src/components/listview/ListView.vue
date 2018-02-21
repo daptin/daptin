@@ -15,13 +15,13 @@
           <vuetable-pagination style="margin: 0px" :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
           <button type="button" class="btn btn-box-tool" @click="reloadData()">
             <span>
-              <i class="fa fa-2x fa-refresh yellow"></i>
+              <i class="fas fa-sync fa-2x  yellow"></i>
             </span>
           </button>
 
           <button type="button" class="btn btn-box-tool" @click="showAddEdit = true">
             <span>
-              <i class="fa fa-2x fa-plus green"></i>
+              <i class="fas fa-plus fa-2x green"></i>
             </span>
           </button>
         </div>
