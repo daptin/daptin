@@ -76,7 +76,7 @@ func main() {
 		l, err = net.Listen("tcp", fmt.Sprintf(":%v", *port))
 		if nil != err {
 			log.Printf("Failed to listen to port: %v", err)
-			panic(err)
+			// no return no panic here for proper restart
 		} else {
 			log.Println("listening on", l.Addr())
 			// Accept connections in a new goroutine.
