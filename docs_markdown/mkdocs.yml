@@ -1,24 +1,38 @@
 site_name: Daptin
+repo_url: https://github.com/daptin/daptin
 pages:
-    - Home: index.md
-    - Setting up: setting-up/settingup.md
-    - Entities: setting-up/entities.md
-    - Entity relations: setting-up/entity_relations.md
-    - Cloud storage: cloudstore/cloudstore.md
-    - Subsites: subsite/subsite.md
-    - Users and groups: auth/users_and_usergroups.md
-    - Authorization: auth/authorization.md
-    - Authentication: auth/authentication.md
-    - Actions: actions-streams/actions.md
-    - Data storage: data-modeling/data_storage.md
-    - Market place: setting-up/marketplace.md
-    - Data auditing: data-modeling/auditing.md
-    - Data validation: data-modeling/data_validation.md
-    - Data conformations: data-modeling/data_conformation.md
-    - State tracking: data-modeling/state_tracking.md
-    - Data streams: actions-streams/streams.md
-    - Permission model: auth/permissions.md
-    - OAuth connections: extend/oauth_connection.md
-    - OAuth tokens: extend/oauth_token.md
-theme: readthedocs
+  - Home: index.md
+  - Setting up:
+      - Setting up: setting-up/settingup.md
+      - Entities: setting-up/entities.md
+      - Entity relations: setting-up/entity_relations.md
+  - Concepts:
+      - Storage:
+          - Data storage: data-modeling/data_storage.md
+          - Cloud storage: cloudstore/cloudstore.md
+          - Subsites: subsite/subsite.md
+      - Auth:
+          - Users and groups: auth/users_and_usergroups.md
+          - Authorization: auth/authorization.md
+          - Authentication: auth/authentication.md
+      - Extend:
+          - Actions: actions-streams/actions.md
+          - Market place: setting-up/marketplace.md
+          - Data auditing: data-modeling/auditing.md
+          - Data validation: data-modeling/data_validation.md
+          - Data conformations: data-modeling/data_conformation.md
+      - Other APIs:
+          - State tracking: data-modeling/state_tracking.md
+          - Data streams: actions-streams/streams.md
+          - Permission model: auth/permissions.md
+          - OAuth connections: extend/oauth_connection.md
+          - OAuth tokens: extend/oauth_token.md
+theme:
+  name: mkdocs
+extra_css:
+  - css/theme_extra.css
 google_analytics: ['UA-114227400-1', 'docs.dapt.in']
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.superfences

@@ -1,16 +1,21 @@
 # Entites
 
-Entities are the foundation for daptin. Everything in daptin work on one or more entities. To define an entity, we specify the fields and its relations with other entities. A collection of entities and their relations will be called a schema.
+Import CSV or XLS file and you can let Daptin create the entities for you based on intelligent data pre-processor.
+
+If you are looking for a more reproducible way, design your entities and create JSON or YAML files. These files can be used again to create an exact same replica.
 
 Multiple schema json files can be uploaded, and changes are merged accordingly.
 
 Lets imagine we were creating a todo application and wanted to keep a track the following for each todo item
 
-- the todo text - lets call this "title"
-- a description - a longer text, which may or may not be empty
-- a deadline date - a date field to capture the deadline
-- completed - a true/false field, which captures if the todo is done
-- order - a field to store the priority of each todo
+
+!!! note "To do list example"
+    - the todo text field - title
+    - a description text field - may or may not be empty
+    - a deadline date field - a date field to capture the deadline
+    - completed - a true/false field, which captures if the todo is done
+    - order - a field to store the priority of each todo
+
 
 Along with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo
 
@@ -23,7 +28,7 @@ Once we have come up with the above picture in mind, we can use one of the follo
 
 The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it. This is a basic designer and more advanced features to customise every aspect of the entity will be added later.
 
-![Entity designer](images/create_entity.png)
+![Entity designer](/images/create_entity.png)
 
 ## Market place
 
@@ -135,16 +140,16 @@ Columns of the entity can be cusomised:
 
 Property Name | Property Type | Description
 --- | --- | ---
-	Name       |       string |        human readable name, can be skipped
-	ColumnName  |      string |        column name in the table
-	ColumnDescription| string |        human readable description
-	ColumnType       | string |        column type is a rich type of the column
-	IsIndexed        | boolean|        true to add an index on this column
-	IsUnique         | boolean|        true to set a unique constraint on this column
-	IsNullable       | boolean|        are null values allowed
-	Permission       | uint64 |        permission column (check authorization docs)
-	DataType         | string |        the column type inside the database
-	DefaultValue     | string |        default value if any (has to be inside single quotes for static values
+Name       |       string |        human readable name, can be skipped
+ColumnName  |      string |        column name in the table
+ColumnDescription| string |        human readable description
+ColumnType       | string |        column type is a rich type of the column
+IsIndexed        | boolean|        true to add an index on this column
+IsUnique         | boolean|        true to set a unique constraint on this column
+IsNullable       | boolean|        are null values allowed
+Permission       | uint64 |        permission column (check authorization docs)
+DataType         | string |        the column type inside the database
+DefaultValue     | string |        default value if any (has to be inside single quotes for static values
 
 ## Column types
 
