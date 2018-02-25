@@ -36,6 +36,7 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 		aggReq.TimeSample = resource.TimeStamp(c.Query("timesample"))
 		aggReq.TimeFrom = c.Query("timefrom")
 		aggReq.TimeTo = c.Query("timeto")
+		aggReq.Order = c.QueryArray("order")
 
 		aggResponse, err := cruds[typeName].DataStats(aggReq)
 

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"reflect"
 	"encoding/json"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
@@ -30,6 +31,25 @@ func CheckSystemSecrets(store *resource.ConfigStore) error {
 	}
 	return err
 
+}
+
+
+func InArrayIndex(val interface{}, array interface{}) (index int) {
+	index = -1
+
+	switch reflect.TypeOf(array).Kind() {
+	case reflect.Slice:
+		s := reflect.ValueOf(array)
+
+		for i := 0; i < s.Len(); i++ {
+			if reflect.DeepEqual(val, s.Index(i).Interface()) == true {
+				index = i
+				return
+			}
+		}
+	}
+
+	return
 }
 
 func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet, configStore *resource.ConfigStore) map[string]*resource.DbResource {
@@ -87,7 +107,6 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 		var t resource.TableInfo
 
 		err = json.Unmarshal([]byte(world_schema_json), &t)
-
 
 		if err != nil {
 			log.Errorf("Failed to unmarshal json schema: %v", err)
