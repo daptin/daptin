@@ -23,10 +23,10 @@
       <div class="pull-right">
         <div class="ui icon buttons">
           <button class="btn btn-box-tool" @click.prevent="editRow()"><i
-            class="fa fa-3x fa-pencil-square primary"></i>
+            class="fas fa-edit fa-3x "></i>
           </button>
           <button class="btn btn-box-tool" @click.prevent="refreshRow()"><i
-            class="fa fa-3x fa-refresh primary"></i>
+            class="fas fa-sync fa-3x "></i>
           </button>
         </div>
       </div>
@@ -223,6 +223,15 @@
             "id": that.selectedInstanceReferenceId,
           };
         }
+
+        var newRow = {};
+        var keys = Object.keys(row);
+        for (var i=0;i<keys.length;i++){
+          if (row[keys[i]] != null) {
+            newRow[keys[i]] = row[keys[i]];
+          }
+        }
+        row = newRow;
 
 
         console.log("save row", row);

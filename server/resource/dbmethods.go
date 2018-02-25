@@ -309,7 +309,7 @@ func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error
 }
 
 func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
-
+	log.Printf("User: %d is going to become admin")
 	if !dbResource.CanBecomeAdmin() {
 		return false
 	}
@@ -322,12 +322,14 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 				Set("permission", auth.DEFAULT_PERMISSION).
 				ToSql()
 			if err != nil {
-				log.Errorf("Failed to create query to update: %v == %v", crud.model.GetName(), err)
+				log.Errorf("Query: %v", q)
+				log.Errorf("Failed to create query to update to become admin: %v == %v", crud.model.GetName(), err)
 				continue
 			}
 
 			_, err = dbResource.db.Exec(q, v...)
 			if err != nil {
+				log.Errorf("Query: %v", q)
 				log.Errorf("	Failed to execute become admin update query: %v", err)
 				continue
 			}
@@ -493,7 +495,7 @@ func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 }
 
 func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId string) (map[string]interface{}, []map[string]interface{}, error) {
-	log.Infof("Get single row by id: [%v][%v]", typeName, referenceId)
+	//log.Infof("Get single row by id: [%v][%v]", typeName, referenceId)
 	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create select query by ref id: %v", referenceId)

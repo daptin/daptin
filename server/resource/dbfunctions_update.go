@@ -666,6 +666,25 @@ func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbRes
 		importSuccess := false
 
 		switch importFile.FileType {
+
+		case "json":
+
+			jsonData := make(map[string][]map[string]interface{}, 0)
+			err := json.Unmarshal(fileBytes, jsonData)
+			if err != nil {
+				log.Errorf("Failed to read content as json to import: %v", err)
+				continue
+			}
+
+			for typeName, data := range jsonData {
+				errs := ImportDataMapArray(data, cruds[typeName], req)
+				if len(errs) > 0 {
+					for _, err := range errs {
+						log.Errorf("Error while importing json data: %v", err)
+					}
+				}
+			}
+
 		case "xlsx":
 			xlsxFile, err := xlsx.OpenBinary(fileBytes)
 			if err != nil {
@@ -679,7 +698,7 @@ func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbRes
 			}
 
 			importSuccess = true
-			ImportDataMapArray(data, importFile.Entity, cruds[importFile.Entity], req)
+			ImportDataMapArray(data, cruds[importFile.Entity], req)
 
 		case "csv":
 
@@ -710,10 +729,10 @@ func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbRes
 
 }
 
-func ImportDataMapArray(data []map[string]interface{}, entityName string, crud *DbResource, req api2go.Request) ([]error) {
+func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api2go.Request) ([]error) {
 	errs := make([]error, 0)
 	for _, row := range data {
-		model := api2go.NewApi2GoModelWithData(entityName, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, row)
+		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, row)
 		_, err := crud.Create(model, req)
 		if err != nil {
 			errs = append(errs, err)
