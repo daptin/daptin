@@ -207,16 +207,16 @@
 
               <h3>Backup</h3>
               <div class="row">
-            
+
                             <div class="col-sm-12">
                                   <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-object-group"></i><br />Download JSON schema 
+                  <i class="fas fa-object-group"></i><br />Download JSON schema
                 </router-link>
 
                 <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'export_data'}}"
                              class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-database"></i><br />Download JSON dump 
+                  <i class="fas fa-database"></i><br />Download JSON dump
                 </router-link>
 </div>
               </div>
@@ -341,7 +341,7 @@ export default {
                   stats = stats.data;
                   console.log("Stats received", stats);
 
-                  var rows = stats.Data;
+                  var rows = stats.data;
                   var totalCount = rows[0]["count(*)"];
                   w.Count = totalCount;
                 },

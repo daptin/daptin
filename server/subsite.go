@@ -206,8 +206,6 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// If yes, use it to handle the request.
 	hostName := strings.Split(r.Host, ":")[0]
 	pathParts := strings.Split(r.URL.Path, "/")
-	log.Printf("Request url host: %v", pathParts)
-
 	if handler := hs.handlerMap[hostName]; handler != nil && !(len(pathParts) > 1 && apiPaths[pathParts[1]]) {
 
 		ok, abort, modifiedRequest := hs.authMiddleware.AuthCheckMiddlewareWithHttp(r, w, true)
