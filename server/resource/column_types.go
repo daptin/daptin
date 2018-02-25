@@ -127,13 +127,13 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "date",
-		BlueprintType: "string",
+		BlueprintType: "date-only",
 		ReclineType:   "date",
 		DataTypes:     []string{"timestamp"},
 	},
 	{
 		Name:          "time",
-		BlueprintType: "string",
+		BlueprintType: "time-only",
 		ReclineType:   "time",
 		DataTypes:     []string{"timestamp"},
 	},
@@ -171,7 +171,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "datetime",
-		BlueprintType: "string",
+		BlueprintType: "datetime",
 		ReclineType:   "date-time",
 		DataTypes:     []string{"timestamp"},
 	},
@@ -230,7 +230,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "timestamp",
-		BlueprintType: "timestamp",
+		BlueprintType: "datetime",
 		ReclineType:   "date-time",
 		DataTypes:     []string{"timestamp"},
 	},
@@ -256,7 +256,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "location.altitude",
-		BlueprintType: "string",
+		BlueprintType: "number",
 		ReclineType:   "number",
 		DataTypes:     []string{"float(7,4)"},
 	},
@@ -294,14 +294,14 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "file",
-		BlueprintType: "string",
+		BlueprintType: "file",
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 		DataTypes:     []string{"blob"},
 	},
 	{
 		Name:          "image",
-		BlueprintType: "string",
+		BlueprintType: "file",
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 		DataTypes:     []string{"blob"},
@@ -315,7 +315,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "image",
-		BlueprintType: "string",
+		BlueprintType: "file",
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 		DataTypes:     []string{"text"},
