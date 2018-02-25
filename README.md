@@ -44,32 +44,26 @@ The framework provides powerful abstractions and building blocks to develop flex
 | Raspberry Pi               | [Linux arm 7 static build](https://github.com/daptin/daptin/releases)                                                         |
 
 
-### Native
+## Database persistence
 
+Store data on MySQL, PostgreSQL for heavy use cases (thousands of users) or SQLite for light use cases (iot, embedded).
 
-#### SQLite
-```
-./daptin -db_type sqlite3 -db_connection_string daptin.db
-```
+## Client
 
-#### MySQL
-```
-./daptin -db_type mysql -db_connection_string '<username>:<password>@tcp(<hostname>:<port>)/<db_name>'
-```
+|                                                                                |                                                                        |                                                                                |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [Ruby](http://jsonapi.org/implementations/#client-libraries-ruby)              | [Python](http://jsonapi.org/implementations/#client-libraries-python)  | [Javascript](http://jsonapi.org/implementations/#client-libraries-javascript)  |
+| [Typescript](http://jsonapi.org/implementations/#client-libraries-typescript)  | [PHP](http://jsonapi.org/implementations/#client-libraries-php)        | [Dart](http://jsonapi.org/implementations/#client-libraries-dart)              |
+| [.NET](http://jsonapi.org/implementations/#client-libraries-net)               | [Java](http://jsonapi.org/implementations/#client-libraries-java)      | [iOS](http://jsonapi.org/implementations/#client-libraries-ios)                |
+| [Elixir](http://jsonapi.org/implementations/#client-libraries-elixir)          | [R](http://jsonapi.org/implementations/#client-libraries-r)             | [Perl](http://jsonapi.org/implementations/#client-libraries-perl)               |
 
-#### PostgreSQL
-```
-./daptin -db_type postgres -db_connection_string 'host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable'
-```
+### API spec RAML
 
+RAML spec is auto generated for each endpoint exposed. This can be use to generate further documentation and clients.
 
-## Database connection properties
+![RAML API documentatnon](docs_markdown/docs/images/api-documentation.png)
 
-Connection details to be provided in arguments or environment variables
-
-## JSON API Structure
-
-### Response Structure
+```curl http://localhost/apispec.raml```
 
 ```
 {
@@ -112,7 +106,7 @@ Connection details to be provided in arguments or environment variables
 |                       |                             |                                           |
 
 ---
-### paginated
+### Pagination
 
 
 | Number          | Size            |
@@ -120,20 +114,13 @@ Connection details to be provided in arguments or environment variables
 | ?page[number]=1 | ?page[size]=200 |
 
 
-### project, sort, filter
+### Projection, Sort, Filter
 
 | Column projection       | Sorting          | Filtering          |
 |-------------------------|------------------|--------------------|
 | ?fields=column1,column2 | ?sort=col1,-col2 | ?filter=query_text |
 
-## Client SDK
 
-[JSONAPI clients list](http://jsonapi.org/implementations/)
-
-
-## RAML specification for APIs
-
-Available at ```<host>/apispec.raml``` You can use it to generate clients for any platform.
 
 ## Usage
 
