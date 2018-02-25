@@ -4,7 +4,7 @@
 
 ## Import data
 
-<img src="/images/create_data.png">
+<img src="images/create_data.png">
 
 ## Upload from dashboard
 
@@ -160,7 +160,7 @@ Use action to expose endpoints for your forms and processes. Here is an example 
     ```
 
 
-## Exchanges <img style="float: right" src="/images/exchanges.png" class="cloud-provider">
+## Exchanges <img style="float: right" src="images/exchanges.png" class="cloud-provider">
 
 Exchanges are internal hooks to external apis, to either push data and update an external service, or pull data and update itself from some external service.
 
@@ -252,7 +252,7 @@ Example, tracking the status of a task in a todo list, the description below des
 
 ## Users and access
 
-<img src="/images/users_and_groups.png">
+<img src="images/users_and_groups.png">
 
 Requests **without** a valid `Authorization Bearer` `token` will be referred to as "guests requests". Requests with a valid token will have an identified user.
 
@@ -328,7 +328,7 @@ This user can sign in now (generate an auth token). But what he can access is ag
 
 ## Host static sites
 
-<img src="/images/subsite.png">
+<img src="images/subsite.png">
 
 Expose folders on cloud storage services as websites using your daptin instance.
 
@@ -348,7 +348,7 @@ Audits are ready only and cannot be manipulated over api. You can configure the 
 
 ## OAuth Connection
 
-<img src="/images/oauth.png">
+<img src="images/oauth.png">
 
 Connecting to your cloud storage and external services requires authentication, OAuth covers a large number of those services.
 
