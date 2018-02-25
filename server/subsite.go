@@ -195,14 +195,20 @@ func (spf *StaticFsWithDefaultIndex) Open(name string) (http.File, error) {
 	return f, nil
 }
 
+var apiPaths = map[string]bool{
+	"api":    true,
+	"action": true,
+}
+
 // Implement the ServerHTTP method on our new type
 func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Check if a http.Handler is registered for the given host.
 	// If yes, use it to handle the request.
 	hostName := strings.Split(r.Host, ":")[0]
-	//log.Printf("Request url host: %v", hostName)
+	pathParts := strings.Split(r.URL.Path, "/")
+	log.Printf("Request url host: %v", pathParts)
 
-	if handler := hs.handlerMap[hostName]; handler != nil {
+	if handler := hs.handlerMap[hostName]; handler != nil && !(len(pathParts) > 1 && apiPaths[pathParts[1]]) {
 
 		ok, abort, modifiedRequest := hs.authMiddleware.AuthCheckMiddlewareWithHttp(r, w, true)
 		if ok {
@@ -237,8 +243,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	} else {
-		pathParts := strings.Split(r.URL.Path, "/")
-		if len(pathParts) > 1 {
+		if len(pathParts) > 1 && !apiPaths[pathParts[1]] {
 
 			firstSubFolder := pathParts[1]
 			subSite, isSubSite := hs.siteMap[firstSubFolder]
