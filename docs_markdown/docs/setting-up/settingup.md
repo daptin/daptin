@@ -28,11 +28,11 @@ To start daptin, execute ```./daptin``` which will create a local sqlite databas
 
 Deploy the docker image is on any docker compatible hosting provider (aws, gce, linode, digitalocean, azure)
 
-<img class="cloud-provider" src="/images/aws.png">
-<img class="cloud-provider" src="/images/digitalocean.jpg">
-<img class="cloud-provider" src="/images/gce.png">
-<img class="cloud-provider" src="/images/linode.jpg">
-<img class="cloud-provider" src="/images/azure.jpg">
+<img class="cloud-provider" src="images/aws.png">
+<img class="cloud-provider" src="images/digitalocean.jpg">
+<img class="cloud-provider" src="images/gce.png">
+<img class="cloud-provider" src="images/linode.jpg">
+<img class="cloud-provider" src="images/azure.jpg">
 
 [https://hub.docker.com/r/daptin/daptin/](https://hub.docker.com/r/daptin/daptin/)
 
