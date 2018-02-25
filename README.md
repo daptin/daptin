@@ -11,7 +11,7 @@
 </p>
   <p align="left">
 
-  <img src="https://github.com/daptin/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" title="Daptin" height="140" />
+  <img src="https://github.com/daptin/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" style="float: right;" title="Daptin" height="140" />
     </p>
 
 
@@ -29,17 +29,20 @@ The framework provides powerful abstractions and building blocks to develop flex
 - **Works with all frontend frameworks** like React, Vue.js, Angular (Quickstart Examples)
 
 
-## Quickstart
+## Deploy and get started
 
-### Cloud
+| Deployment preference      | Getting started                                                                                                               |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Heroku                     | [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/daptin/daptin) |
+| Docker                     | `docker run -p 8080:8080 daptin/daptin`                                                                                         |
+| Kubernetes                 | [Service & Deployment YAML](https://docs.dapt.in/setting-up/settingup/#kubernetes)                                                                                      |
+| Local                      | `go get github.com/daptin/daptin`                                                                                         |
+| Linux (386/amd64/arm5,6,7) | [Download static linux builds](https://github.com/daptin/daptin/releases)                                                     |
+| Windows                    | `go get github.com/daptin/daptin`                                                                                               |
+| OS X                       | `go get github.com/daptin/daptin`                                                                                               |
+| Load testing               | [Docker compose](https://docs.dapt.in/setting-up/settingup/#docker-compose)                                                                                             |
+| Raspberry Pi               | [Linux arm 7 static build](https://github.com/daptin/daptin/releases)                                                         |
 
- [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
-
-### Docker
-
-```
-docker run -d -p 8080:8080 daptin/daptin
-```
 
 ### Native
 
