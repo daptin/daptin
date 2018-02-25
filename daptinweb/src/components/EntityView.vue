@@ -185,6 +185,14 @@
       saveRow(row) {
 
         var that = this;
+        var newRow = {};
+        var keys = Object.keys(row);
+        for (var i=0;i<keys.length;i++){
+          if (row[keys[i]] != null) {
+            newRow[keys[i]] = row[keys[i]];
+          }
+        }
+        row = newRow;
 
         var currentTableType = this.getCurrentTableType();
 

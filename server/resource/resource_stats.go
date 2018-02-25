@@ -5,8 +5,10 @@ import (
 	"regexp"
 	"github.com/pkg/errors"
 	"fmt"
-	//log "github.com/sirupsen/logrus"
 	"strings"
+	"github.com/labstack/gommon/log"
+	"sort"
+	"reflect"
 )
 
 type TimeStamp string
@@ -17,6 +19,7 @@ type AggregationRequest struct {
 	GroupBy       []string
 	ProjectColumn []string
 	Filter        []string
+	Order         []string
 	TimeSample    TimeStamp
 	TimeFrom      string
 	TimeTo        string
@@ -24,15 +27,42 @@ type AggregationRequest struct {
 
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
 type AggregateData struct {
-	Data []map[string]interface{}
+	Data []map[string]interface{} `json:"data"`
+}
+
+func InArray(val interface{}, array interface{}) (exists bool) {
+	exists = false
+
+	switch reflect.TypeOf(array).Kind() {
+	case reflect.Slice:
+		s := reflect.ValueOf(array)
+
+		for i := 0; i < s.Len(); i++ {
+			if reflect.DeepEqual(val, s.Index(i).Interface()) == true {
+				exists = true
+				return
+			}
+		}
+	}
+
+	return
 }
 
 func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 
-	builder := squirrel.Select(req.ProjectColumn...).From(req.RootEntity)
+	sort.Strings(req.GroupBy)
+	projections := req.ProjectColumn
+	for _, group := range req.GroupBy {
+		projections = append(projections, group)
+	}
+	selectBuilder := squirrel.Select(projections...)
+	builder := selectBuilder.From(req.RootEntity)
 	builder = builder.GroupBy(req.GroupBy...)
 
-	querySyntax, err := regexp.Compile("([a-zA-Z0-9]+)\\( *([^, ]) *, *([^ ]) *\\)")
+	builder = builder.OrderBy(req.Order...)
+
+	// functionName(param1, param2)
+	querySyntax, err := regexp.Compile("([a-zA-Z0-9]+)\\( *([^,]+) *, *([^)]+) *\\)")
 	CheckErr(err, "Failed to build query regex")
 	for _, filter := range req.Filter {
 
@@ -43,28 +73,33 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 			parts := querySyntax.FindStringSubmatch(filter)
 
 			functionName := parts[1]
-			leftVal := parts[2]
-			rightVal := parts[3]
+			leftVal := strings.TrimSpace(parts[2])
+			rightVal := strings.TrimSpace(parts[3])
+
+			function := builder.Where
+			if len(req.GroupBy) > 0 {
+				function = builder.Having
+			}
 
 			switch functionName {
 			case "eq":
-				builder = builder.Where(squirrel.Eq{leftVal: rightVal})
+				builder = function(squirrel.Eq{leftVal: rightVal})
 			case "neq":
-				builder = builder.Where("? != ?", leftVal, rightVal)
+				builder = function(fmt.Sprintf("%s != %s", leftVal, rightVal))
 			case "le":
-				builder = builder.Where("? < ?", leftVal, rightVal)
+				builder = function(fmt.Sprintf("%s < %s", leftVal, rightVal))
 			case "lte":
-				builder = builder.Where("? <= ?", leftVal, rightVal)
+				builder = function(fmt.Sprintf("%s <= %s", leftVal, rightVal))
 			case "gt":
-				builder = builder.Where("? > ?", leftVal, rightVal)
+				builder = function(fmt.Sprintf("%s > %s", leftVal, rightVal))
 			case "gte":
-				builder = builder.Where("? >= ?", leftVal, rightVal)
+				builder = function(fmt.Sprintf("%s >= %s", leftVal, rightVal))
 			case "like":
-				builder = builder.Where("? LIKE ?", leftVal, fmt.Sprint("%", rightVal, "%"))
+				builder = function(fmt.Sprintf("%s LIKE %s", leftVal, rightVal))
 			case "in":
-				builder = builder.Where(squirrel.Eq{leftVal: strings.Split(rightVal, ",")})
+				builder = function(squirrel.Eq{leftVal: strings.Split(rightVal, ",")})
 			case "notin":
-				builder = builder.Where(squirrel.Eq{leftVal: strings.Split(rightVal, ",")})
+				builder = function(squirrel.Eq{leftVal: strings.Split(rightVal, ",")})
 			}
 
 		}
@@ -72,6 +107,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 	}
 
 	sql, args, err := builder.ToSql()
+	log.Printf("Stat query: %v", sql)
 	CheckErr(err, "Failed to generate stats sql: [%v]")
 	if err != nil {
 		return AggregateData{}, err
