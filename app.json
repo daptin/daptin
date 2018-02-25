@@ -15,6 +15,6 @@
     "heroku-postbuild": "echo This runs afterwards."
   },
   "mount_dir": "src/github.com/daptin/daptin",
-  "website": "http://github.com/daptin/daptin",
+  "website": "https://dapt.in",
   "repository": "http://github.com/daptin/daptin"
 }
