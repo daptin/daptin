@@ -1,6 +1,20 @@
 # Setting up Daptin
 
-You can setup daptin on any machine/server of your choice.
+Daptin is built in golang and a static artifact is available for most targets
+
+## Deploy and get started
+
+| Deployment preference      | Getting started                                                                                                               |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Heroku                     | [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/daptin/daptin) |
+| Docker                     | docker run -p 8080:8080 daptin/daptin                                                                                         |
+| Kubernetes                 | [Service & Deployment YAML](#kubernetes)                                                                                      |
+| Local                      | go get github.com/daptin/daptin                                                                                               |
+| Linux (386/amd64/arm5,6,7) | [Download static linux builds](https://github.com/daptin/daptin/releases)                                                     |
+| Windows                    | go get github.com/daptin/daptin                                                                                               |
+| OS X                       | go get github.com/daptin/daptin                                                                                               |
+| Load testing               | [Docker compose](#docker-compose)                                                                                             |
+| Raspberry Pi               | [Linux arm 7 static build](https://github.com/daptin/daptin/releases)                                                         |
 
 ## Native binary
 
@@ -10,29 +24,31 @@ Daptin is available as a native binary. You can fetch the lastest binary from th
 
 To start daptin, execute ```./daptin``` which will create a local sqlite database and start listening on port 6336. To change the database or port, read below.
 
-## Docker
+## Docker image
 
-A docker image is also available which can be deployed on any docker compatible hosting provider (aws, gce, linode, digitalocean, azure)
+Deploy the docker image is on any docker compatible hosting provider (aws, gce, linode, digitalocean, azure)
 
-<img src="/images/aws.png" style="width: 200px">
-<img src="/images/digitalocean.jpg" style="width: 200px">
-<img src="/images/gce.png" style="width: 200px">
-<img src="/images/linode.jpg" style="width: 200px">
-<img src="/images/azure.jpg" style="width: 200px">
+<img class="cloud-provider" src="/images/aws.png">
+<img class="cloud-provider" src="/images/digitalocean.jpg">
+<img class="cloud-provider" src="/images/gce.png">
+<img class="cloud-provider" src="/images/linode.jpg">
+<img class="cloud-provider" src="/images/azure.jpg">
 
 [https://hub.docker.com/r/daptin/daptin/](https://hub.docker.com/r/daptin/daptin/)
 
-To start daptin using docker
+To start daptin on your local machine using docker
 
-```docker run daptin/daptin```
+```docker run -p 8080:8080 daptin/daptin```
 
 ## Docker compose
+
+Docker compose is a great way to bring up a mysql/postgres instance backed daptin
 
 ```yaml
 version: '3'
 services:
     web:
-        image: devsupport
+        image: daptin/daptin
         ports:
             - "8090:8080"
         restart: always
@@ -60,7 +76,9 @@ services:
 ```
 
 
-## Kubernetes
+## Kubernetes deployment
+
+Daptin can be infinitely scaled on kubernetes
 
 ```yaml
 apiVersion: v1
