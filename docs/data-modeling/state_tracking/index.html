@@ -1,201 +1,211 @@
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  
-  <link rel="shortcut icon" href="../../img/favicon.ico">
-  <title>State tracking - Daptin</title>
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>State tracking - Daptin</title>
+        <link href="../../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome-4.5.0.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../../css/highlight.css">
+        <link href="../../css/theme_extra.css" rel="stylesheet">
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
 
-  <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
-  <link rel="stylesheet" href="../../css/highlight.css">
-  
-  <script>
-    // Current page data
-    var mkdocs_page_name = "State tracking";
-    var mkdocs_page_input_path = "data-modeling/state_tracking.md";
-    var mkdocs_page_url = "/data-modeling/state_tracking/";
-  </script>
-  
-  <script src="../../js/jquery-2.1.1.min.js"></script>
-  <script src="../../js/modernizr-2.8.3.min.js"></script>
-  <script type="text/javascript" src="../../js/highlight.pack.js"></script> 
-  
-</head>
+        <script src="../../js/jquery-1.10.2.min.js"></script>
+        <script src="../../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../../js/highlight.pack.js"></script>
+        <script>
+            (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+            })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-<body class="wy-body-for-nav" role="document">
+            ga('create', 'UA-114227400-1', 'docs.dapt.in');
+            ga('send', 'pageview');
+        </script> 
+    </head>
 
-  <div class="wy-grid-for-nav">
+    <body>
 
-    
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
-      <div class="wy-side-nav-search">
-        <a href="../.." class="icon icon-home"> Daptin</a>
-        <div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
-  </form>
-</div>
-      </div>
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-	<ul class="current">
-	  
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../..">Home</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../setting-up/settingup/">Setting up</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../setting-up/entities/">Entities</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../setting-up/entity_relations/">Entity relations</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../cloudstore/cloudstore/">Cloud storage</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../subsite/subsite/">Subsites</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../auth/users_and_usergroups/">Users and groups</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../auth/authorization/">Authorization</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../auth/authentication/">Authentication</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../actions-streams/actions/">Actions</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../data_storage/">Data storage</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../setting-up/marketplace/">Market place</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../auditing/">Data auditing</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../data_validation/">Data validation</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../data_conformation/">Data conformations</a>
-	    </li>
-          
-            <li class="toctree-l1 current">
-		
-    <a class="current" href="./">State tracking</a>
-    <ul class="subnav">
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="../..">Daptin</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                    <li >
+                        <a href="../..">Home</a>
+                    </li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Setting up <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            
+<li >
+    <a href="../../setting-up/settingup/">Setting up</a>
+</li>
+                            
+<li >
+    <a href="../../setting-up/entities/">Entities</a>
+</li>
+                            
+<li >
+    <a href="../../setting-up/entity_relations/">Entity relations</a>
+</li>
+                        </ul>
+                    </li>
+                    <li class="dropdown active">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Concepts <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Storage</a>
+    <ul class="dropdown-menu">
             
-    <li class="toctree-l2"><a href="#state-tracking-for-entities">State tracking for entities</a></li>
-    
-        <ul>
-        
-            <li><a class="toctree-l3" href="#state-machine">State machine</a></li>
-        
-            <li><a class="toctree-l3" href="#rest-api">REST API</a></li>
-        
-            <li><a class="toctree-l3" href="#enabling-state-tracking-for-entity">Enabling state tracking for entity</a></li>
-        
-        </ul>
-    
-
+<li >
+    <a href="../data_storage/">Data storage</a>
+</li>
+            
+<li >
+    <a href="../../cloudstore/cloudstore/">Cloud storage</a>
+</li>
+            
+<li >
+    <a href="../../subsite/subsite/">Subsites</a>
+</li>
     </ul>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../actions-streams/streams/">Data streams</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../auth/permissions/">Permission model</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../extend/oauth_connection/">OAuth connections</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../extend/oauth_token/">OAuth tokens</a>
-	    </li>
-          
-        </ul>
-      </div>
-      &nbsp;
-    </nav>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Auth</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../auth/users_and_usergroups/">Users and groups</a>
+</li>
+            
+<li >
+    <a href="../../auth/authorization/">Authorization</a>
+</li>
+            
+<li >
+    <a href="../../auth/authentication/">Authentication</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Extend</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../actions-streams/actions/">Actions</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/marketplace/">Market place</a>
+</li>
+            
+<li >
+    <a href="../auditing/">Data auditing</a>
+</li>
+            
+<li >
+    <a href="../data_validation/">Data validation</a>
+</li>
+            
+<li >
+    <a href="../data_conformation/">Data conformations</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Other APIs</a>
+    <ul class="dropdown-menu">
+            
+<li class="active">
+    <a href="./">State tracking</a>
+</li>
+            
+<li >
+    <a href="../../actions-streams/streams/">Data streams</a>
+</li>
+            
+<li >
+    <a href="../../auth/permissions/">Permission model</a>
+</li>
+            
+<li >
+    <a href="../../extend/oauth_connection/">OAuth connections</a>
+</li>
+            
+<li >
+    <a href="../../extend/oauth_token/">OAuth tokens</a>
+</li>
+    </ul>
+  </li>
+                        </ul>
+                    </li>
+                </ul>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="../..">Daptin</a>
-      </nav>
-
-      
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="breadcrumbs navigation">
-  <ul class="wy-breadcrumbs">
-    <li><a href="../..">Docs</a> &raquo;</li>
-    
-      
-    
-    <li>State tracking</li>
-    <li class="wy-breadcrumbs-aside">
-      
-    </li>
-  </ul>
-  <hr/>
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                    <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
+                        <i class="fa fa-search"></i> Search
+                    </a>
+                </li>
+                    <li >
+                        <a rel="next" href="../data_conformation/">
+                            <i class="fa fa-arrow-left"></i> Previous
+                        </a>
+                    </li>
+                    <li >
+                        <a rel="prev" href="../../actions-streams/streams/">
+                            Next <i class="fa fa-arrow-right"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://github.com/daptin/daptin/edit/master/docs/data-modeling/state_tracking.md"><i class="fa fa-github"></i> Edit on GitHub</a>
+                    </li>
+            </ul>
+        </div>
+    </div>
 </div>
-          <div role="main">
-            <div class="section">
-              
-                <h1 id="state-tracking-for-entities">State tracking for entities</h1>
+
+        <div class="container">
+                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+        <li class="main active"><a href="#state-tracking-for-entities">State tracking for entities</a></li>
+            <li><a href="#state-machine">State machine</a></li>
+            <li><a href="#rest-api">REST API</a></li>
+            <li><a href="#enabling-state-tracking-for-entity">Enabling state tracking for entity</a></li>
+    </ul>
+</div></div>
+                <div class="col-md-9" role="main">
+
+<h1 id="state-tracking-for-entities">State tracking for entities</h1>
 <p>Tracking the status of things is one of the most common operation in most business flows. Daptin has a native support for state tracking and allows a lot of convienent features.</p>
 <h2 id="state-machine">State machine</h2>
 <p>A state machine is a description of "states" which the object can be in, and list of all valid transitions from one state to another. Let us begin with an example:</p>
@@ -205,92 +215,87 @@
 <li>List of valid states: to_be_done, delayed, started, ongoing, interrupted, completed</li>
 <li>List of valid transitions, giving name to each event</li>
 </ul>
-<pre><code class="json">        {
-        &quot;Name&quot;: &quot;task_status&quot;,
-        &quot;Label&quot;: &quot;Task Status&quot;,
-        &quot;InitialState&quot;: &quot;to_be_done&quot;,
-        &quot;Events&quot;: [{
-                &quot;Name&quot;: &quot;start&quot;,
-                &quot;Label&quot;: &quot;Start&quot;,
-                &quot;Src&quot;: [
-                    &quot;to_be_done&quot;,
-                    &quot;delayed&quot;
-                ],
-                &quot;Dst&quot;: &quot;started&quot;
-            },
-            {
-                &quot;Name&quot;: &quot;delayed&quot;,
-                &quot;Label&quot;: &quot;Unable to pick up&quot;,
-                &quot;Src&quot;: [
-                    &quot;to_be_done&quot;
-                ],
-                &quot;Dst&quot;: &quot;delayed&quot;
-            },
-            {
-                &quot;Name&quot;: &quot;ongoing&quot;,
-                &quot;Label&quot;: &quot;Record progress&quot;,
-                &quot;Src&quot;: [
-                    &quot;started&quot;,
-                    &quot;ongoing&quot;
-                ],
-                &quot;Dst&quot;: &quot;ongoing&quot;
-            },
-            {
-                &quot;Name&quot;: &quot;interrupted&quot;,
-                &quot;Label&quot;: &quot;Interrupted&quot;,
-                &quot;Src&quot;: [
-                    &quot;started&quot;,
-                    &quot;ongoing&quot;
-                ],
-                &quot;Dst&quot;: &quot;interrupted&quot;
-            },
-            {
-                &quot;Name&quot;: &quot;resume&quot;,
-                &quot;Label&quot;: &quot;Resume from interruption&quot;,
-                &quot;Src&quot;: [
-                    &quot;interrupted&quot;
-                ],
-                &quot;Dst&quot;: &quot;ongoing&quot;
-            },
-            {
-                &quot;Name&quot;: &quot;completed&quot;,
-                &quot;Label&quot;: &quot;Mark as completed&quot;,
-                &quot;Src&quot;: [
-                    &quot;ongoing&quot;,
-                    &quot;started&quot;
-                ],
-                &quot;Dst&quot;: &quot;completed&quot;
-            }
-        ]
-    }
-
-</code></pre>
+<div class="codehilite"><pre><span></span>        <span class="p">{</span>
+        <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;task_status&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;Label&quot;</span><span class="p">:</span> <span class="s2">&quot;Task Status&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;InitialState&quot;</span><span class="p">:</span> <span class="s2">&quot;to_be_done&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;Events&quot;</span><span class="p">:</span> <span class="p">[{</span>
+                <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;start&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Label&quot;</span><span class="p">:</span> <span class="s2">&quot;Start&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Src&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="s2">&quot;to_be_done&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;delayed&quot;</span>
+                <span class="p">],</span>
+                <span class="nt">&quot;Dst&quot;</span><span class="p">:</span> <span class="s2">&quot;started&quot;</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;delayed&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Label&quot;</span><span class="p">:</span> <span class="s2">&quot;Unable to pick up&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Src&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="s2">&quot;to_be_done&quot;</span>
+                <span class="p">],</span>
+                <span class="nt">&quot;Dst&quot;</span><span class="p">:</span> <span class="s2">&quot;delayed&quot;</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;ongoing&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Label&quot;</span><span class="p">:</span> <span class="s2">&quot;Record progress&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Src&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="s2">&quot;started&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;ongoing&quot;</span>
+                <span class="p">],</span>
+                <span class="nt">&quot;Dst&quot;</span><span class="p">:</span> <span class="s2">&quot;ongoing&quot;</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;interrupted&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Label&quot;</span><span class="p">:</span> <span class="s2">&quot;Interrupted&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Src&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="s2">&quot;started&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;ongoing&quot;</span>
+                <span class="p">],</span>
+                <span class="nt">&quot;Dst&quot;</span><span class="p">:</span> <span class="s2">&quot;interrupted&quot;</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;resume&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Label&quot;</span><span class="p">:</span> <span class="s2">&quot;Resume from interruption&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Src&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="s2">&quot;interrupted&quot;</span>
+                <span class="p">],</span>
+                <span class="nt">&quot;Dst&quot;</span><span class="p">:</span> <span class="s2">&quot;ongoing&quot;</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;completed&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Label&quot;</span><span class="p">:</span> <span class="s2">&quot;Mark as completed&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Src&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="s2">&quot;ongoing&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;started&quot;</span>
+                <span class="p">],</span>
+                <span class="nt">&quot;Dst&quot;</span><span class="p">:</span> <span class="s2">&quot;completed&quot;</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+</pre></div>
 
 <p>State machines can be uploaded to Daptin just like entities and actions. A JSON/YAML file with a <code>StateMachineDescriptions</code> top level key can contain an array of state machine descriptions.</p>
 <h2 id="rest-api">REST API</h2>
 <h3 id="start-tracking-an-object-by-state-machine-reference-id">Start tracking an object by state machine reference id</h3>
-<p>Request</p>
-<pre><code>    POST  /track/start/:stateMachineId
+<p>Request
+<div class="codehilite"><pre><span></span>    POST  /track/start/:stateMachineId
     {&quot;typeName&quot;: &lt;entityTypeName&gt;, &quot;referenceId&quot;: &lt;ReferenceIdOfTheObject&gt; }
-</code></pre>
-
-<p>Response</p>
-<pre><code>        &quot;current_state&quot;: &lt;InitialStateOfTheStateMachine&gt;
+</pre></div></p>
+<p>Response
+<div class="codehilite"><pre><span></span>        &quot;current_state&quot;: &lt;InitialStateOfTheStateMachine&gt;
         &quot;&lt;typename&gt;_smd&quot;: &lt;ObjectStateInstanceReferenceId&gt;
         &quot;is_state_of_&lt;typename&gt;&quot; = &lt;ObjectInstanceId&gt;
         &quot;permission&quot;: &lt;AuthPermission&gt;
-</code></pre>
-
+</pre></div></p>
 <h3 id="trigger-an-event-by-name-in-the-state-of-an-object">Trigger an event by name in the state of an object</h3>
-<pre><code>    POST  /track/event/:typename/:ObjectStateInstanceReferenceId/:eventName
-</code></pre>
-
-<p>Response</p>
-<pre><code>        &quot;current_state&quot;: &lt;NewStateAfterEvent&gt;
+<p><div class="codehilite"><pre><span></span>    POST  /track/event/:typename/:ObjectStateInstanceReferenceId/:eventName
+</pre></div>
+Response
+<div class="codehilite"><pre><span></span>        &quot;current_state&quot;: &lt;NewStateAfterEvent&gt;
         &quot;&lt;typename&gt;_smd&quot;: &lt;ObjectStateInstanceReferenceId&gt;
         &quot;is_state_of_&lt;typename&gt;&quot; = &lt;ObjectInstanceId&gt;
-</code></pre>
-
+</pre></div></p>
 <h2 id="enabling-state-tracking-for-entity">Enabling state tracking for entity</h2>
 <p>Begin with marking an entity as trackable. To do this, </p>
 <ul>
@@ -303,54 +308,82 @@
 </ul>
 <p>This "is_state_tracking_enabled" options tells daptin to create the associated state table for the entity. Even though we have not yet specified which state machines are available for this entity.</p>
 <p>To make a state machine available for an entity, go to the "SMD" tab of this entity on the same page and add the state machine by searching it by name and adding it.</p>
-<p>It would not make a lot of sense if the above state machine was allowed for all type of entities. </p>
-              
-            </div>
-          </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="../../actions-streams/streams/" class="btn btn-neutral float-right" title="Data streams">Next <span class="icon icon-circle-arrow-right"></span></a>
-      
-      
-        <a href="../data_conformation/" class="btn btn-neutral" title="Data conformations"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-      
-    </div>
-  
-
-  <hr/>
-
-  <div role="contentinfo">
-    <!-- Copyright etc -->
-    
-  </div>
-
-  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
-</footer>
-      
+<p>It would not make a lot of sense if the above state machine was allowed for all type of entities. </p></div>
         </div>
-      </div>
 
-    </section>
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script>var base_url = '../..';</script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/require.js"></script>
+        <script src="../../search/search.js"></script>
 
-  </div>
-
-  <div class="rst-versions" role="note" style="cursor: pointer">
-    <span class="rst-current-version" data-toggle="rst-current-version">
-      
-      
-        <span><a href="../data_conformation/" style="color: #fcfcfc;">&laquo; Previous</a></span>
-      
-      
-        <span style="margin-left: 15px"><a href="../../actions-streams/streams/" style="color: #fcfcfc">Next &raquo;</a></span>
-      
-    </span>
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title" id="exampleModalLabel">Search</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    From here you can search these documents. Enter
+                    your search terms below.
+                </p>
+                <form role="form">
+                    <div class="form-group">
+                        <input type="text" class="form-control" placeholder="Search..." id="mkdocs-search-query">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="Keyboard Shortcuts Modal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title" id="exampleModalLabel">Keyboard Shortcuts</h4>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>&larr;</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>&rarr;</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
 </div>
-    <script>var base_url = '../..';</script>
-    <script src="../../js/theme.js"></script>
-      <script src="../../search/require.js"></script>
-      <script src="../../search/search.js"></script>
 
-</body>
+
+    </body>
 </html>
