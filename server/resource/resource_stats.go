@@ -6,7 +6,6 @@ import (
 	"github.com/pkg/errors"
 	"fmt"
 	"strings"
-	"github.com/labstack/gommon/log"
 	"sort"
 	"reflect"
 )
@@ -107,7 +106,6 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 	}
 
 	sql, args, err := builder.ToSql()
-	log.Printf("Stat query: %v", sql)
 	CheckErr(err, "Failed to generate stats sql: [%v]")
 	if err != nil {
 		return AggregateData{}, err
