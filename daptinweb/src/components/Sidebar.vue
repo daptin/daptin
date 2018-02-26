@@ -13,14 +13,14 @@
             <p class="black">{{ user.name }}</p>
           </div>
           <a href="javascript:;">
-            <i class="fa fa-circle text-success"></i> Online
+            <i class="fas fa-circle text-success"></i> Online
           </a>
         </div>
       </div> <!-- Sidebar user panel (optional) -->
       <div class="user-panel" v-if="!user">
         <div class="pull-left">
           <a href="/auth/signin">
-            <i class="fa fa-circle text-success"></i> Login
+            <i class="fas fa-circle text-success"></i> Login
           </a>
         </div>
       </div>

@@ -670,7 +670,7 @@ func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbRes
 		case "json":
 
 			jsonData := make(map[string][]map[string]interface{}, 0)
-			err := json.Unmarshal(fileBytes, jsonData)
+			err := json.Unmarshal(fileBytes, &jsonData)
 			if err != nil {
 				log.Errorf("Failed to read content as json to import: %v", err)
 				continue

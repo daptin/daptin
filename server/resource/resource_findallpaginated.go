@@ -104,14 +104,14 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		pageSize = 1
 	}
 
-	sortOrder := []string{}
+	var sortOrder []string
 	if len(req.QueryParams["sort"]) > 0 {
 		sortOrder = req.QueryParams["sort"]
 	} else if dr.tableInfo.DefaultOrder != "" {
 		sortOrder = strings.Split(dr.tableInfo.DefaultOrder, ",")
 	}
 
-	queries := []string{}
+	var queries []string
 
 	if len(req.QueryParams["filter"]) > 0 {
 		queries = req.QueryParams["filter"]

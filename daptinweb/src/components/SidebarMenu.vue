@@ -2,13 +2,13 @@
   <ul class="sidebar-menu">
     <li class="pageLink" v-on:click="toggleMenu">
       <router-link :to="{name: 'Dashboard', params: {}}">
-        <i class="fa fa-tv"></i>
+        <i class="fas fa-tv"></i>
         <span class="page">Dashboard</span>
       </router-link>
     </li>
     <li class="treeview">
       <a href="#">
-        <i class="fa fa-book"></i>
+        <i class="fas fa-book"></i>
         <span>Items</span>
         <span class="pull-right-container">
           <i class="fa fa-angle-left fa-fw pull-right"></i>
