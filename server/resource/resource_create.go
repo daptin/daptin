@@ -87,6 +87,8 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			s := val.(string)
 			if len(s) == 36 {
 				newUuid = s
+			} else {
+				continue
 			}
 		}
 
