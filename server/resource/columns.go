@@ -44,6 +44,8 @@ var StandardColumns = []api2go.ColumnInfo{
 		ColumnName: "reference_id",
 		DataType:   "varchar(40)",
 		IsIndexed:  true,
+		IsUnique:   true,
+		IsNullable: false,
 		ColumnType: "alias",
 	},
 	{
@@ -342,8 +344,8 @@ var SystemActions = []Action{
 				Type:   "__upload_xlsx_file_to_entity",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"data_xls_file":             "~data_xls_file",
-					"entity_name":                 "~entity_name",
+					"data_xls_file":        "~data_xls_file",
+					"entity_name":          "~entity_name",
 					"add_missing_columns":  "~add_missing_columns",
 					"create_if_not_exists": "~create_if_not_exists",
 				},
@@ -392,8 +394,8 @@ var SystemActions = []Action{
 				Type:   "__upload_csv_file_to_entity",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"data_csv_file":             "~data_csv_file",
-					"entity_name":                 "~entity_name",
+					"data_csv_file":        "~data_csv_file",
+					"entity_name":          "~entity_name",
 					"add_missing_columns":  "~add_missing_columns",
 					"create_if_not_exists": "~create_if_not_exists",
 				},
