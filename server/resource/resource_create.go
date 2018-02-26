@@ -39,6 +39,8 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	allColumns := dr.model.GetColumns()
 
 	dataToInsert := make(map[string]interface{})
+	u, _ := uuid.NewV4()
+	newUuid := u.String()
 
 	colsList := []string{}
 	valsList := []interface{}{}
@@ -50,10 +52,6 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		}
 
 		if col.ColumnName == "created_at" {
-			continue
-		}
-
-		if col.ColumnName == "reference_id" {
 			continue
 		}
 
@@ -83,6 +81,10 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			} else {
 				continue
 			}
+		}
+
+		if col.ColumnName == "reference_id" {
+			newUuid = val.(string)
 		}
 
 		if col.IsForeignKey {
@@ -219,11 +221,11 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	//
 	//  }
 	//}
-	u, _ := uuid.NewV4()
-	newUuid := u.String()
 
-	colsList = append(colsList, "reference_id")
-	valsList = append(valsList, newUuid)
+	if !InArray(colsList, "reference_id") {
+		colsList = append(colsList, "reference_id")
+		valsList = append(valsList, newUuid)
+	}
 
 	colsList = append(colsList, "permission")
 	valsList = append(valsList, dr.model.GetDefaultPermission())
