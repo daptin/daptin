@@ -362,14 +362,33 @@
               var dfd = new Deferred();
 
               that.jsonApi.builderStack = that.finder;
+
+              var sortOrder = query.sort;
+              var sort = [];
+              if (sortOrder && sortOrder.length > 0) {
+
+                for (var y = 0; y < sortOrder.length; y++) {
+                  var field = sortOrder[y].field;
+                  var order = sortOrder[y].order;
+
+                  if (order == "desc") {
+                    sort.push("-" + field);
+                  } else {
+                    sort.push(field);
+                  }
+                }
+
+              }
+
               let {data, errors, meta, links} = that.jsonApi.get({
                 page: {
                   number: query.from + 1,
                   size: query.size
                 },
-                filter: query.q
+                filter: query.q,
+                sort: sort.length > 0 ? sort.join(",") : "",
               }).then(function (result) {
-                console.log("here ")
+                console.log("here ");
                 dfd.resolve({
                   total: result.links.total,
                   hits: result.data,
@@ -382,9 +401,9 @@
                   message: "Are you still logged in ?"
                 });
                 dfd.reject("Failed to fetch data: Are you still logged in ?");
-              })
+              });
 
-              console.log("backend query", arguments)
+              console.log("backend query", arguments);
               return dfd.promise();
             }
 
