@@ -161,17 +161,30 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 			cloudStore.OAutoTokenId = tokenId.(string)
 		}
 		cloudStore.Name = storeMap["name"].(string)
-		id, err := strconv.ParseInt(storeMap["id"].(string), 10, 64)
-		CheckErr(err, "Failed to parse id as int in loading stores")
+
+		id, ok := storeMap["id"].(int64)
+		if !ok {
+			id, err = strconv.ParseInt(storeMap["id"].(string), 10, 64)
+			CheckErr(err, "Failed to parse id as int in loading stores")
+		}
+
 		cloudStore.Id = id
 		cloudStore.ReferenceId = storeMap["reference_id"].(string)
 		CheckErr(err, "Failed to parse permission as int in loading stores")
 		cloudStore.Permission = resource.GetObjectPermission("cloud_store", cloudStore.ReferenceId)
 		cloudStore.UserId = storeMap["user_id"].(string)
-		createdAt, _ := time.Parse(storeMap["created_at"].(string), "2006-01-02 15:04:05")
+
+		createdAt, ok := storeMap["created_at"].(time.Time)
+		if !ok {
+			createdAt, _ = time.Parse(storeMap["created_at"].(string), "2006-01-02 15:04:05")
+		}
+
 		cloudStore.CreatedAt = &createdAt
 		if storeMap["updated_at"] != nil {
-			updatedAt, _ := time.Parse(storeMap["updated_at"].(string), "2006-01-02 15:04:05")
+			updatedAt, ok := storeMap["updated_at"].(time.Time)
+			if !ok {
+				updatedAt, _ = time.Parse(storeMap["updated_at"].(string), "2006-01-02 15:04:05")
+			}
 			cloudStore.UpdatedAt = &updatedAt
 		}
 		storeParameters := storeMap["store_parameters"].(string)
@@ -184,7 +197,12 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 		cloudStore.StoreProvider = storeMap["store_provider"].(string)
 		cloudStore.StoreType = storeMap["store_type"].(string)
 		cloudStore.RootPath = storeMap["root_path"].(string)
-		version, _ := strconv.ParseInt(storeMap["version"].(string), 10, 64)
+
+		version, ok := storeMap["version"].(int64)
+		if !ok {
+			version, _ = strconv.ParseInt(storeMap["version"].(string), 10, 64)
+		}
+
 		cloudStore.Version = int(version)
 
 		cloudStores = append(cloudStores, cloudStore)
