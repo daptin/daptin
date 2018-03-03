@@ -196,8 +196,10 @@ func (spf *StaticFsWithDefaultIndex) Open(name string) (http.File, error) {
 }
 
 var apiPaths = map[string]bool{
-	"api":    true,
-	"action": true,
+	"api":     true,
+	"action":  true,
+	"meta":    true,
+	"jsmodel": true,
 }
 
 // Implement the ServerHTTP method on our new type
