@@ -595,6 +595,7 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 
 	return m, err
 }
+
 func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{}, error) {
 	s, q, err := squirrel.Select("*").From(typeName).ToSql()
 	if err != nil {
