@@ -19,14 +19,21 @@
 
 By following shared conventions, you can increase productivity, take advantage of generalized tooling, and focus on what matters: your application.
 
-The framework integrates with cloud servers and is compatible with existing libraries and tools like JSONAPI.org/implementations and OAuth2. Daptin comes as a native binary and a Docker-based runtime which can be deployed to any server or cloud.
+Daptin works as an interface between your users and your data. 
 
-The framework provides powerful abstractions and building blocks to develop flexible, scalable JSON Rest backends:
+- Easily consume the API on any device using a [JSONAPI.org client](http://JSONAPI.org/implementations.org)
+- Interact with users as guests or known users by using a JWT token
+- Grant permission of data/actions to users based on ownership, groups and guests
+- Build custom actions to expose custom APIs over your data apart from the usual CRUD APIs
+- Sync with cloud storage services like gdrive, dropbox, b2, s3 and more
+- Sync folders and expose these as static websites under separate sub-domain/sub-paths
+- Connect with other services by directly connecting with any external API
 
-- **Daptin database** to easily evolves your data schema & migrates your database [Postgres/MySQL/SQLite]
+
+- **Database** to easily evolves your data schema & migrates your database [Postgres/MySQL/SQLite]
 - **Flexible auth** using the JWT-based authentication & permission system
-- **Realtime API** using Websocket subscriptions
-- **Works with all frontend frameworks** like React, Vue.js, Angular (Quickstart Examples)
+- **Works with all frontend frameworks** like React, Vue.js, Angular, Android, iOS
+- **Can be deployed on a wide range of hardware** arm5,arm6,arm7,arm64,mips,mips64,mips64le,mipsle (or build for your target using go)
 
 
 ## Deploy and get started
