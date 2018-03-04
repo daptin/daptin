@@ -8,7 +8,7 @@
         
         
         <link rel="shortcut icon" href="../../img/favicon.ico">
-        <title>Permission model - Daptin</title>
+        <title>Market place - Daptin</title>
         <link href="../../css/bootstrap-custom.min.css" rel="stylesheet">
         <link href="../../css/font-awesome-4.5.0.css" rel="stylesheet">
         <link href="../../css/base.css" rel="stylesheet">
@@ -112,19 +112,19 @@
     <ul class="dropdown-menu">
             
 <li >
-    <a href="../users_and_usergroups/">Users and groups</a>
+    <a href="../../auth/users_and_usergroups/">Users and groups</a>
 </li>
             
 <li >
-    <a href="../authorization/">Authorization</a>
+    <a href="../../auth/authorization/">Authorization</a>
 </li>
             
 <li >
-    <a href="../authentication/">Authentication</a>
+    <a href="../../auth/authentication/">Authentication</a>
 </li>
             
-<li class="active">
-    <a href="./">Permission model</a>
+<li >
+    <a href="../../auth/permissions/">Permission model</a>
 </li>
     </ul>
   </li>
@@ -137,8 +137,8 @@
     <a href="../../actions-streams/actions/">Actions</a>
 </li>
             
-<li >
-    <a href="../../extend/marketplace/">Market place</a>
+<li class="active">
+    <a href="./">Market place</a>
 </li>
             
 <li >
@@ -168,11 +168,11 @@
 </li>
             
 <li >
-    <a href="../../extend/oauth_connection/">OAuth connections</a>
+    <a href="../oauth_connection/">OAuth connections</a>
 </li>
             
 <li >
-    <a href="../../extend/oauth_token/">OAuth tokens</a>
+    <a href="../oauth_token/">OAuth tokens</a>
 </li>
     </ul>
   </li>
@@ -187,17 +187,17 @@
                     </a>
                 </li>
                     <li >
-                        <a rel="next" href="../authentication/">
+                        <a rel="next" href="../../actions-streams/actions/">
                             <i class="fa fa-arrow-left"></i> Previous
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="../../actions-streams/actions/">
+                        <a rel="prev" href="../../data-modeling/auditing/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
                     <li>
-                        <a href="https://github.com/daptin/daptin/edit/master/docs/auth/permissions.md"><i class="fa fa-github"></i> Edit on GitHub</a>
+                        <a href="https://github.com/daptin/daptin/edit/master/docs/extend/marketplace.md"><i class="fa fa-github"></i> Edit on GitHub</a>
                     </li>
             </ul>
         </div>
@@ -207,44 +207,48 @@
         <div class="container">
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
-        <li class="main active"><a href="#permission-model">Permission model</a></li>
-            <li><a href="#peek">Peek</a></li>
-            <li><a href="#c-create">[C] Create</a></li>
-            <li><a href="#r-read">[R] Read</a></li>
-            <li><a href="#u-update">[U] Update</a></li>
-            <li><a href="#d-delete">[D] Delete</a></li>
-            <li><a href="#r-refer">[R] Refer</a></li>
-            <li><a href="#x-execute">[X] Execute</a></li>
+        <li class="main active"><a href="#marketplace">Marketplace</a></li>
+            <li><a href="#create-a-market-place">Create a market place</a></li>
+            <li><a href="#example-of-a-market-place-git-repository">Example of a market place git repository</a></li>
+            <li><a href="#install-a-package-from-a-market-place">Install a package from a market place</a></li>
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h1 id="permission-model">Permission model<a class="headerlink" href="#permission-model" title="Permanent link">Link</a></h1>
-<p>Every read/write to the system passes through two level of permission check.</p>
+<h1 id="marketplace">Marketplace<a class="headerlink" href="#marketplace" title="Permanent link">Link</a></h1>
+<p>Market places are git based repositories where you can keep your collections of schemas, to be re-used by you or others later.</p>
+<h2 id="create-a-market-place">Create a market place<a class="headerlink" href="#create-a-market-place" title="Permanent link">Link</a></h2>
 <ul>
-<li>Type level: apply permission on all types of entities at the same time</li>
-<li>Data level: object level permission</li>
+<li>Create a git repository</li>
+<li>Goto <strong>Dashboard</strong></li>
+<li>Click <strong>Marketplace</strong></li>
+<li>Click PLUS icon to add a new marketplace</li>
+<li>Enter git endpoint</li>
+<li>Enter a name</li>
+<li>If your packages are not at the root, then enter a path to the subpackages</li>
+<li>Or leave this path empty</li>
 </ul>
-<p>The <code>world</code> table contains two columns:</p>
+<p>Click submit to add this. Remember to "Sync repository" once before installing a package.</p>
+<p>Syncing makes a local clone of the git repository for usage, or pulls for changes if it exists already.</p>
+<h2 id="example-of-a-market-place-git-repository">Example of a market place git repository<a class="headerlink" href="#example-of-a-market-place-git-repository" title="Permanent link">Link</a></h2>
+<p><a href="https://github.com/artpar/daptin-marketplace-dummy">Checkout a dummy market place</a> with a couple of packages to be used</p>
 <ul>
-<li><code>Permission</code>: defines the entity level permission</li>
-<li><code>Default permission</code>: defines the default permission for a new object of this entity type</li>
+<li>Blog</li>
+<li>Construction project management system</li>
+<li>FAQ management system</li>
+<li>Store management system</li>
+<li>Fashion style management system</li>
+<li>Todo list</li>
 </ul>
-<p>The default permission for an object is picked from the default permission setting, and can be changed after the object creation (if the permission allows).</p>
-<h2 id="peek">Peek<a class="headerlink" href="#peek" title="Permanent link">Link</a></h2>
-<p><strong>Peek</strong> gives access to the user to read data in the system but not allow it in response as data. So while the query to read the data will execute and certain <strong>actions</strong> can be allowed over them, directly trying to read the data in response will fail.</p>
-<h2 id="c-create">[C] Create<a class="headerlink" href="#c-create" title="Permanent link">Link</a></h2>
-<p><strong>Create</strong> allows a new row to be created by using the POST api. Note: this doesn't apply over indirect creations using <em>actions</em>*.</p>
-<h2 id="r-read">[R] Read<a class="headerlink" href="#r-read" title="Permanent link">Link</a></h2>
-<p><strong>Read</strong> allows the data to be served in the http response body. The response will usually follow the JSONAPI.org structure.</p>
-<h2 id="u-update">[U] Update<a class="headerlink" href="#u-update" title="Permanent link">Link</a></h2>
-<p><strong>Update</strong> allows the data fields to be updated using the PUT/PATCH http methods.</p>
-<h2 id="d-delete">[D] Delete<a class="headerlink" href="#d-delete" title="Permanent link">Link</a></h2>
-<p><strong>Delete</strong> gives permission to be delete a row or certain type of data using DELETE http method. Unless you have enabled <strong>auditing</strong>, you will permanently loose this data.</p>
-<h2 id="r-refer">[R] Refer<a class="headerlink" href="#r-refer" title="Permanent link">Link</a></h2>
-<p><strong>Refer</strong> gives permission to add data/users to usergroups. Note that you will also need certain permission on the <strong>usergroup</strong> as well.</p>
-<h2 id="x-execute">[X] Execute<a class="headerlink" href="#x-execute" title="Permanent link">Link</a></h2>
-<p><strong>Execute</strong> gives permission to invoke action over data (like export). Note that giving access to a <strong>type of data</strong> doesn't give access to all rows of that <strong>entity type</strong>.</p></div>
+<h2 id="install-a-package-from-a-market-place">Install a package from a market place<a class="headerlink" href="#install-a-package-from-a-market-place" title="Permanent link">Link</a></h2>
+<ul>
+<li>Goto <strong>Dashboard</strong></li>
+<li>Click <strong>Marketplace</strong></li>
+<li>Go into a marketplace</li>
+<li>Click Action "Install package"</li>
+<li>Type in the package name: this is the name of the folder you want to install</li>
+</ul>
+<p>Submit to install this package. Daptin will restart itself and makes the changes to the APIs.</p></div>
         </div>
 
         <footer class="col-md-12">
