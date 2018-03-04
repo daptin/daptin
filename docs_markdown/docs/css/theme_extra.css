@@ -4,8 +4,13 @@ h1 {
     color: #000;
 }
 
+.well {
+    background: #ffffff;
+}
+
 body {
     color: #000;
+    font-family: 'Varela Round', sans-serif;
 }
 
 .rst-content {
@@ -20,6 +25,11 @@ body {
     background: #ffffff;
 }
 
+.admonition.note {
+    background-color: #fff;
+    color: #000;
+    border: none;
+}
 .col-md-9 img {
     border: none;
 }

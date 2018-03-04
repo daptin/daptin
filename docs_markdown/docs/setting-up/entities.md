@@ -1,15 +1,19 @@
 # Entites
 
+## Automatic creation
+
 Import CSV or XLS file and you can let Daptin create the entities for you based on intelligent data pre-processor.
+
+## Manual creation
 
 If you are looking for a more reproducible way, design your entities and create JSON or YAML files. These files can be used again to create an exact same replica.
 
 Multiple schema json files can be uploaded, and changes are merged accordingly.
 
-Lets imagine we were creating a todo application and wanted to keep a track the following for each todo item
+Lets imagine we were creating a todo application and wanted to keep a track of the following for each todo item
 
 
-!!! note "To do list example"
+!!! example "Todo list example"
     - the todo text field - title
     - a description text field - may or may not be empty
     - a deadline date field - a date field to capture the deadline
@@ -19,22 +23,23 @@ Lets imagine we were creating a todo application and wanted to keep a track the 
 
 Along with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo
 
-- title cannot be empty
-- order has to be numeric
+!!! example "Validations"
+    - title cannot be empty
+    - order has to be numeric
 
-Once we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this:
+Once we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this.
 
-## Online entity designer
+### Online entity designer
 
 The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it. This is a basic designer and more advanced features to customise every aspect of the entity will be added later.
 
 ![Entity designer](/images/create_entity.png)
 
-## Market place
+### Market place
 
-Checkout [marketplace documentation](marketplace.md)
+Checkout [marketplace documentation](/extend/marketplace.md)
 
-## JSON / YAML files
+### JSON / YAML files
 
 JSON/YAML files are the primary way to create new entites in daptin. The above two ways ultimatele create a JSON file or fetch from the market.
 
@@ -134,9 +139,9 @@ Tags: required
 
 You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.
 
-## Column specifications
+### Column specifications
 
-Columns of the entity can be cusomised:
+Columns of the entity can be customized:
 
 Property Name | Property Type | Description
 --- | --- | ---
