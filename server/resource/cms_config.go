@@ -2,11 +2,11 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
-	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"gopkg.in/go-playground/validator.v9"
 	"time"
+	"github.com/daptin/daptin/server/database"
 )
 
 type CmsConfig struct {
@@ -68,7 +68,7 @@ type Config struct {
 
 type ConfigStore struct {
 	defaultEnv string
-	db         *sqlx.DB
+	db         database.DatabaseConnection
 }
 
 var settingsTableName = "_config"
@@ -257,7 +257,7 @@ func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype strin
 
 }
 
-func NewConfigStore(db *sqlx.DB) (*ConfigStore, error) {
+func NewConfigStore(db database.DatabaseConnection) (*ConfigStore, error) {
 	var cs ConfigStore
 	s, v, err := squirrel.Select("count(*)").From(settingsTableName).ToSql()
 	CheckErr(err, "Failed to create sql for config check table")
@@ -274,6 +274,9 @@ func NewConfigStore(db *sqlx.DB) (*ConfigStore, error) {
 
 		_, err = db.Exec(createTableQuery)
 		CheckErr(err, "Failed to create config table")
+		if err != nil {
+			log.Printf("create config table query: %v", createTableQuery)
+		}
 
 	}
 

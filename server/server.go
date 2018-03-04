@@ -6,7 +6,6 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/artpar/rclone/fs"
-	"github.com/jmoiron/sqlx"
 	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
@@ -17,20 +16,21 @@ import (
 	"github.com/thoas/stats"
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/artpar/rclone/fs/config"
+	"github.com/daptin/daptin/server/database"
 )
 
 var Stats = stats.New()
 
 var cruds = make(map[string]*resource.DbResource)
 
-func Main(boxRoot, assetsStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup, l net.Listener, ch chan struct{}) {
+func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection, wg *sync.WaitGroup, l net.Listener, ch chan struct{}) {
 	defer wg.Done()
 
 	//configFile := "daptin_style.json"
 	/// Start system initialise
 
 	log.Infof("Load config files")
-	initConfig, errs := loadConfigFiles()
+	initConfig, errs := LoadConfigFiles()
 	if errs != nil {
 		for _, err := range errs {
 			log.Errorf("Failed to load config file: %v", err)
@@ -137,8 +137,9 @@ func Main(boxRoot, assetsStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup
 		gingonic.New(r),
 	)
 
-	ms := BuildMiddlewareSet(&initConfig)
-	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore)
+	cruds := make(map[string]*resource.DbResource)
+	ms := BuildMiddlewareSet(&initConfig, cruds)
+	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, cruds)
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
@@ -149,7 +150,18 @@ func Main(boxRoot, assetsStatic http.FileSystem, db *sqlx.DB, wg *sync.WaitGroup
 
 	hostSwitch.handlerMap["api"] = r
 	hostSwitch.handlerMap["dashboard"] = r
-
+	//hostSwitch.siteMap["dashboard"] = resource.SubSite{
+	//	Id:           int64(0),
+	//	Name:         "dashboard",
+	//	Hostname:     "dashboard",
+	//	Path:         "dashboard",
+	//	CloudStoreId: nil,
+	//	Permission: resource.PermissionInstance{
+	//		UserId:      "",
+	//		UserGroupId: []auth.GroupPermission{},
+	//		Permission:  auth.DEFAULT_PERMISSION,
+	//	},
+	//}
 
 	authMiddleware.SetUserCrud(cruds["user"])
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
@@ -336,7 +348,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message websockets
 
 }
 
-func AddStreamsToApi2Go(api *api2go.API, processors []*resource.StreamProcessor, db *sqlx.DB, middlewareSet *resource.MiddlewareSet, configStore *resource.ConfigStore) {
+func AddStreamsToApi2Go(api *api2go.API, processors []*resource.StreamProcessor, db database.DatabaseConnection, middlewareSet *resource.MiddlewareSet, configStore *resource.ConfigStore) {
 
 	for _, processor := range processors {
 

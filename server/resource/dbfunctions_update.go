@@ -19,6 +19,7 @@ import (
 	"encoding/csv"
 	"bytes"
 	"github.com/pkg/errors"
+	"github.com/daptin/daptin/server/database"
 )
 
 func (resource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken string, expiresIn int64) error {
@@ -73,7 +74,7 @@ func (resource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId stri
 
 }
 
-func UpdateStandardData(initConfig *CmsConfig, db *sqlx.DB) {
+func UpdateStandardData(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	//for _, row := range StandardData {
 	//
@@ -84,7 +85,7 @@ func UpdateStandardData(initConfig *CmsConfig, db *sqlx.DB) {
 
 }
 
-func UpdateMarketplaces(initConfig *CmsConfig, db *sqlx.DB) {
+func UpdateMarketplaces(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	s, v, err := squirrel.Select("endpoint", "root_path").From("marketplace").ToSql()
 
@@ -163,7 +164,7 @@ func UpdateMarketplaces(initConfig *CmsConfig, db *sqlx.DB) {
 
 }
 
-func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
+func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	s, v, err := squirrel.Select("stream_name", "stream_contract").From("stream").ToSql()
 
@@ -260,7 +261,7 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.DB) {
 
 }
 
-func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
+func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	log.Infof("We have %d data exchange updates", len(initConfig.ExchangeContracts))
 
@@ -396,7 +397,7 @@ func UpdateExchanges(initConfig *CmsConfig, db *sqlx.DB) {
 
 }
 
-func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.DB) {
+func UpdateStateMachineDescriptions(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	log.Infof("We have %d state machine descriptions", len(initConfig.StateMachineDescriptions))
 
@@ -542,7 +543,7 @@ func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.Tx) {
 	}
 }
 
-func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
+func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) error {
 
 	var err error
 
@@ -626,7 +627,7 @@ func UpdateActionTable(initConfig *CmsConfig, db *sqlx.DB) error {
 	return nil
 }
 
-func ImportDataFiles(initConfig *CmsConfig, db *sqlx.DB, cruds map[string]*DbResource) {
+func ImportDataFiles(initConfig *CmsConfig, db database.DatabaseConnection, cruds map[string]*DbResource) {
 	log.Printf("Importing [%v] data files", len(initConfig.Imports))
 	ctx := context.TODO()
 	pr1 := http.Request{

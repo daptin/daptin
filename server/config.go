@@ -20,7 +20,8 @@ func CreateConfigHandler(configStore *resource.ConfigStore) func(context *gin.Co
 	}
 }
 
-func loadConfigFiles() (resource.CmsConfig, []error) {
+// Load config files which have the naming of the form schema_*_daptin.json/yaml
+func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 	var err error
 

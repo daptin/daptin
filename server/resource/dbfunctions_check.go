@@ -6,6 +6,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
+	"github.com/daptin/daptin/server/database"
 )
 
 func InfoErr(err error, message string) {
@@ -251,7 +252,7 @@ func PrintRelations(relations []api2go.TableRelation) {
 
 }
 
-func CheckAllTableStatus(initConfig *CmsConfig, db *sqlx.DB, tx *sqlx.Tx) {
+func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection, tx *sqlx.Tx) {
 
 	tables := []TableInfo{}
 
@@ -297,7 +298,7 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
 	return columnsWeWant, colInfoMap
 }
 
-func CheckTable(tableInfo *TableInfo, db *sqlx.DB, tx *sqlx.Tx) {
+func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.Tx) {
 
 	//finalColumns := make(map[string]api2go.ColumnInfo, 0)
 	// if column name is empty, use name as column name

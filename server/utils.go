@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/jmoiron/sqlx"
 	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strings"
+	"github.com/daptin/daptin/server/database"
 )
 
 func CheckSystemSecrets(store *resource.ConfigStore) error {
@@ -33,7 +33,6 @@ func CheckSystemSecrets(store *resource.ConfigStore) error {
 
 }
 
-
 func InArrayIndex(val interface{}, array interface{}) (index int) {
 	index = -1
 
@@ -52,8 +51,7 @@ func InArrayIndex(val interface{}, array interface{}) (index int) {
 	return
 }
 
-func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx.DB, ms *resource.MiddlewareSet, configStore *resource.ConfigStore) map[string]*resource.DbResource {
-	cruds = make(map[string]*resource.DbResource)
+func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource) {
 	for _, table := range tables {
 		//log.Infof("Table [%v] Relations: %v", table.TableName)
 
@@ -66,16 +64,14 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db *sqlx
 		//log.Infof("Relation :: %v", r.String())
 		//}
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
-
 		res := resource.NewDbResource(model, db, ms, cruds, configStore, &table)
 
 		cruds[table.TableName] = res
 		api.AddResource(model, res)
 	}
-	return cruds
 }
 
-func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
+func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, error) {
 
 	ts := make([]resource.TableInfo, 0)
 
@@ -141,7 +137,7 @@ func GetTablesFromWorld(db *sqlx.DB) ([]resource.TableInfo, error) {
 
 }
 
-func BuildMiddlewareSet(cmsConfig *resource.CmsConfig) resource.MiddlewareSet {
+func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) resource.MiddlewareSet {
 
 	var ms resource.MiddlewareSet
 

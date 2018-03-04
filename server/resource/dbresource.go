@@ -3,11 +3,12 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
+	"github.com/daptin/daptin/server/database"
 )
 
 type DbResource struct {
 	model         *api2go.Api2GoModel
-	db            *sqlx.DB
+	db            database.DatabaseConnection
 	tableInfo     *TableInfo
 	cruds         map[string]*DbResource
 	ms            *MiddlewareSet
@@ -16,9 +17,7 @@ type DbResource struct {
 	defaultGroups []int64
 }
 
-func NewDbResource(model *api2go.Api2GoModel, db *sqlx.DB, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, tableInfo *TableInfo) *DbResource {
-	cols := model.GetColumns()
-	model.SetColumns(cols)
+func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, tableInfo *TableInfo) *DbResource {
 	//log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
 	return &DbResource{
 		model:         model,
@@ -31,7 +30,7 @@ func NewDbResource(model *api2go.Api2GoModel, db *sqlx.DB, ms *MiddlewareSet, cr
 		contextCache:  make(map[string]interface{}),
 	}
 }
-func GroupNamesToIds(db *sqlx.DB, groupsName []string) []int64 {
+func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int64 {
 
 	if len(groupsName) == 0 {
 		return []int64{}

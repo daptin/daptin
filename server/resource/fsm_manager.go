@@ -3,15 +3,15 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	loopfsm "github.com/looplab/fsm"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
+	"github.com/daptin/daptin/server/database"
 )
 
 type fsmManager struct {
-	db    *sqlx.DB
+	db    database.DatabaseConnection
 	cruds map[string]*DbResource
 }
 
@@ -24,9 +24,9 @@ type StateMachineInstance struct {
 func (fsm *fsmManager) getStateMachineInstance(objType string, objId int64, machineInstanceId string) (StateMachineInstance, error) {
 
 	s, v, err := squirrel.Select("current_state", objType+"_smd", "is_state_of_"+objType, "id", "created_at", "permission").
-			From(objType + "_state").
-			Where(squirrel.Eq{"reference_id": machineInstanceId}).
-			Where(squirrel.Eq{"is_state_of_" + objType: objId}).ToSql()
+		From(objType + "_state").
+		Where(squirrel.Eq{"reference_id": machineInstanceId}).
+		Where(squirrel.Eq{"is_state_of_" + objType: objId}).ToSql()
 
 	var res StateMachineInstance
 	if err != nil {
@@ -140,13 +140,13 @@ func (fsm *fsmManager) ApplyEvent(subject map[string]interface{}, stateMachineEv
 		return nextState, err
 	} else {
 		return stateMachineInstance.CurrestState,
-				errors.New(fmt.Sprintf("Cannot apply event %s at this state [%v]",
-					stateMachineEvent.GetEventName(), stateMachineInstance.CurrestState),
-				)
+			errors.New(fmt.Sprintf("Cannot apply event %s at this state [%v]",
+				stateMachineEvent.GetEventName(), stateMachineInstance.CurrestState),
+			)
 	}
 
 }
-func ReferenceIdToIntegerId(typeName string, referenceId string, db *sqlx.DB) (int64, error) {
+func ReferenceIdToIntegerId(typeName string, referenceId string, db database.DatabaseConnection) (int64, error) {
 
 	s, v, err := squirrel.Select("id").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
@@ -160,7 +160,7 @@ func ReferenceIdToIntegerId(typeName string, referenceId string, db *sqlx.DB) (i
 
 }
 
-func NewFsmManager(db *sqlx.DB, cruds map[string]*DbResource) FsmManager {
+func NewFsmManager(db database.DatabaseConnection, cruds map[string]*DbResource) FsmManager {
 
 	fsm := fsmManager{
 		db:    db,
