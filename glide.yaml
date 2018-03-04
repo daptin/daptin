@@ -39,6 +39,7 @@ import:
 - package: github.com/pkg/errors
   version: ^0.8.0
 - package: github.com/pquerna/otp
+  version: ^1.0.0
   subpackages:
   - totp
 - package: github.com/artpar/goagain
@@ -51,6 +52,7 @@ import:
   - bcrypt
 - package: golang.org/x/oauth2
 - package: gopkg.in/Masterminds/squirrel.v1
+  version: ^1.0.0
 - package: gopkg.in/gin-gonic/gin.v1
   version: ^1.2.0
 - package: gopkg.in/go-playground/validator.v9

@@ -9,7 +9,6 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/artpar/rclone/cmd"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
-	"github.com/jmoiron/sqlx"
 	"github.com/julienschmidt/httprouter"
 	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -24,6 +23,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/thoas/stats"
 	"github.com/artpar/rclone/fs/sync"
+	"github.com/daptin/daptin/server/database"
 )
 
 type HostSwitch struct {
@@ -36,7 +36,7 @@ type JsonApiError struct {
 	Message string
 }
 
-func CreateSubSites(cmsConfig *resource.CmsConfig, db *sqlx.DB, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) HostSwitch {
+func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) HostSwitch {
 
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
@@ -302,7 +302,7 @@ type GrapeSaveRequest struct {
 	Html   string       `json:"gjs-html"`
 }
 
-func CreateSubSiteSaveContentHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, db *sqlx.DB) func(context *gin.Context) {
+func CreateSubSiteSaveContentHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, db database.DatabaseConnection) func(context *gin.Context) {
 
 	return func(context *gin.Context) {
 
@@ -485,7 +485,7 @@ func exists(path string) (Exists bool, IsDir bool) {
 	return
 }
 
-func CreateSubSiteContentHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, db *sqlx.DB) func(context *gin.Context) {
+func CreateSubSiteContentHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, db database.DatabaseConnection) func(context *gin.Context) {
 
 	siteMap := initConfig.SubSites
 

@@ -2,8 +2,8 @@ package server
 
 import (
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	//"github.com/casbin/xorm-adapter"
 	//"github.com/casbin/casbin"

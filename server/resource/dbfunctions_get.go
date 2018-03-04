@@ -3,16 +3,16 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"strconv"
 	"strings"
 	"time"
+	"github.com/daptin/daptin/server/database"
 )
 
-func GetObjectByWhereClause(objType string, db *sqlx.DB, queries ...squirrel.Eq) ([]map[string]interface{}, error) {
+func GetObjectByWhereClause(objType string, db database.DatabaseConnection, queries ...squirrel.Eq) ([]map[string]interface{}, error) {
 	result := make([]map[string]interface{}, 0)
 
 	builder := squirrel.Select("*").From(objType)
@@ -38,7 +38,7 @@ func GetObjectByWhereClause(objType string, db *sqlx.DB, queries ...squirrel.Eq)
 	return RowsToMap(rows, objType)
 }
 
-func GetActionMapByTypeName(db *sqlx.DB) (map[string]map[string]interface{}, error) {
+func GetActionMapByTypeName(db database.DatabaseConnection) (map[string]map[string]interface{}, error) {
 
 	allActions, err := GetObjectByWhereClause("action", db)
 	if err != nil {
@@ -67,7 +67,7 @@ func GetActionMapByTypeName(db *sqlx.DB) (map[string]map[string]interface{}, err
 
 }
 
-func GetWorldTableMapBy(col string, db *sqlx.DB) (map[string]map[string]interface{}, error) {
+func GetWorldTableMapBy(col string, db database.DatabaseConnection) (map[string]map[string]interface{}, error) {
 
 	allWorlds, err := GetObjectByWhereClause("world", db)
 	if err != nil {
@@ -83,7 +83,7 @@ func GetWorldTableMapBy(col string, db *sqlx.DB) (map[string]map[string]interfac
 
 }
 
-func GetAdminUserIdAndUserGroupId(db *sqlx.DB) (int64, int64) {
+func GetAdminUserIdAndUserGroupId(db database.DatabaseConnection) (int64, int64) {
 	var userCount int
 	s, v, err := squirrel.Select("count(*)").From("user").ToSql()
 	err = db.QueryRowx(s, v...).Scan(&userCount)
@@ -116,7 +116,7 @@ func GetAdminUserIdAndUserGroupId(db *sqlx.DB) (int64, int64) {
 }
 
 type SubSite struct {
-	Id           *int64
+	Id           int64
 	Name         string
 	Hostname     string
 	Path         string
