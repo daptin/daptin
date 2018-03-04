@@ -7,13 +7,13 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/jwt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
 	"encoding/base64"
 	"golang.org/x/crypto/bcrypt"
+	"github.com/daptin/daptin/server/database"
 )
 
 type CmsUser interface {
@@ -188,13 +188,13 @@ type ResourceAdapter interface {
 }
 
 type AuthMiddleware struct {
-	db                *sqlx.DB
+	db                database.DatabaseConnection
 	userCrud          ResourceAdapter
 	userGroupCrud     ResourceAdapter
 	userUserGroupCrud ResourceAdapter
 }
 
-func NewAuthMiddlewareBuilder(db *sqlx.DB) *AuthMiddleware {
+func NewAuthMiddlewareBuilder(db database.DatabaseConnection) *AuthMiddleware {
 	return &AuthMiddleware{
 		db: db,
 	}
@@ -212,7 +212,7 @@ func (a *AuthMiddleware) SetUserUserGroupCrud(curd ResourceAdapter) {
 	a.userUserGroupCrud = curd
 }
 
-func NewAuthMiddleware(db *sqlx.DB, userCrud ResourceAdapter, userGroupCrud ResourceAdapter, userUserGroupCrud ResourceAdapter) *AuthMiddleware {
+func NewAuthMiddleware(db database.DatabaseConnection, userCrud ResourceAdapter, userGroupCrud ResourceAdapter, userUserGroupCrud ResourceAdapter) *AuthMiddleware {
 	return &AuthMiddleware{
 		db:                db,
 		userCrud:          userCrud,
