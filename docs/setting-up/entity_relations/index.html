@@ -31,7 +31,9 @@
 
             ga('create', 'UA-114227400-1', 'docs.dapt.in');
             ga('send', 'pageview');
-        </script> 
+        </script>
+<link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet">
+
     </head>
 
     <body>
@@ -73,6 +75,14 @@
 <li class="active">
     <a href="./">Entity relations</a>
 </li>
+                            
+<li >
+    <a href="../../actions-streams/default_actions/">Inbuilt Actions</a>
+</li>
+                            
+<li >
+    <a href="../database_configuration/">Database configuration</a>
+</li>
                         </ul>
                     </li>
                     <li class="dropdown">
@@ -112,6 +122,10 @@
 <li >
     <a href="../../auth/authentication/">Authentication</a>
 </li>
+            
+<li >
+    <a href="../../auth/permissions/">Permission model</a>
+</li>
     </ul>
   </li>
                             
@@ -124,7 +138,7 @@
 </li>
             
 <li >
-    <a href="../marketplace/">Market place</a>
+    <a href="../../extend/marketplace/">Market place</a>
 </li>
             
 <li >
@@ -154,10 +168,6 @@
 </li>
             
 <li >
-    <a href="../../auth/permissions/">Permission model</a>
-</li>
-            
-<li >
     <a href="../../extend/oauth_connection/">OAuth connections</a>
 </li>
             
@@ -182,7 +192,7 @@
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="../../data-modeling/data_storage/">
+                        <a rel="prev" href="../../actions-streams/default_actions/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -207,9 +217,9 @@
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h1 id="entity-relations">Entity relations</h1>
+<h1 id="entity-relations">Entity relations<a class="headerlink" href="#entity-relations" title="Permanent link">Link</a></h1>
 <p>A data oriented system with no relational knowledge of the data is next to an Excel sheet. Specifying relations in your data is the most important thing after creating your entities.</p>
-<h2 id="relations-in-jsonyaml-schema">Relations in JSON/YAML schema</h2>
+<h2 id="relations-in-jsonyaml-schema">Relations in JSON/YAML schema<a class="headerlink" href="#relations-in-jsonyaml-schema" title="Permanent link">Link</a></h2>
 <p>When uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.</p>
 <p>Continuing with our example of todos, lets say we want to group todo's in "projects" and each todo can belong to only a single project.</p>
 <p>Lets design a "project" entity:</p>
@@ -229,7 +239,7 @@
 </pre></div>
 
 <p>This tells daptin that todo "has_one" project.</p>
-<h2 id="relations-types">Relations types</h2>
+<h2 id="relations-types">Relations types<a class="headerlink" href="#relations-types" title="Permanent link">Link</a></h2>
 <p>Any entity can be associated to any other entity (or to itself) as one of the follows</p>
 <table>
 <thead>
@@ -257,7 +267,7 @@
 </tr>
 </tbody>
 </table>
-<h2 id="default-relations">Default relations</h2>
+<h2 id="default-relations">Default relations<a class="headerlink" href="#default-relations" title="Permanent link">Link</a></h2>
 <p>Every entity created on daptin has at least two relations</p>
 <table>
 <thead>
@@ -278,7 +288,7 @@
 </tbody>
 </table>
 <p>To understand why these two relations will always exist, checkout <a href="../../auth/authorization/">daptin authorization model</a></p>
-<h2 id="multiple-relation">Multiple relation</h2>
+<h2 id="multiple-relation">Multiple relation<a class="headerlink" href="#multiple-relation" title="Permanent link">Link</a></h2>
 <p>There can be a scenario where two entities are related in more then 1 way. Consider the following example</p>
 <ul>
 <li>A blog entity</li>
@@ -328,16 +338,16 @@
 </pre></div>
 
 <p>Notice the "SubjectName" and "ObjectName" keys which helps to name our relations more intuitively.</p>
-<h2 id="sql-constraints">SQL constraints</h2>
-<h3 id="belongs-to">belongs to</h3>
+<h2 id="sql-constraints">SQL constraints<a class="headerlink" href="#sql-constraints" title="Permanent link">Link</a></h2>
+<h3 id="belongs-to">belongs to<a class="headerlink" href="#belongs-to" title="Permanent link">Link</a></h3>
 <ul>
 <li>A column is added to the subject entity, which refers to the Object entity, set to non nullable</li>
 </ul>
-<h3 id="has-one">has one</h3>
+<h3 id="has-one">has one<a class="headerlink" href="#has-one" title="Permanent link">Link</a></h3>
 <ul>
 <li>Same as above, but nullable</li>
 </ul>
-<h3 id="has-many">has many</h3>
+<h3 id="has-many">has many<a class="headerlink" href="#has-many" title="Permanent link">Link</a></h3>
 <ul>
 <li>A join table is created</li>
 </ul></div>

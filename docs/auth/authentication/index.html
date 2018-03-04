@@ -31,7 +31,9 @@
 
             ga('create', 'UA-114227400-1', 'docs.dapt.in');
             ga('send', 'pageview');
-        </script> 
+        </script>
+<link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet">
+
     </head>
 
     <body>
@@ -73,6 +75,14 @@
 <li >
     <a href="../../setting-up/entity_relations/">Entity relations</a>
 </li>
+                            
+<li >
+    <a href="../../actions-streams/default_actions/">Inbuilt Actions</a>
+</li>
+                            
+<li >
+    <a href="../../setting-up/database_configuration/">Database configuration</a>
+</li>
                         </ul>
                     </li>
                     <li class="dropdown active">
@@ -112,6 +122,10 @@
 <li class="active">
     <a href="./">Authentication</a>
 </li>
+            
+<li >
+    <a href="../permissions/">Permission model</a>
+</li>
     </ul>
   </li>
                             
@@ -124,7 +138,7 @@
 </li>
             
 <li >
-    <a href="../../setting-up/marketplace/">Market place</a>
+    <a href="../../extend/marketplace/">Market place</a>
 </li>
             
 <li >
@@ -154,10 +168,6 @@
 </li>
             
 <li >
-    <a href="../permissions/">Permission model</a>
-</li>
-            
-<li >
     <a href="../../extend/oauth_connection/">OAuth connections</a>
 </li>
             
@@ -182,7 +192,7 @@
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="../../actions-streams/actions/">
+                        <a rel="prev" href="../permissions/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -208,19 +218,19 @@
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h1 id="authentication">Authentication</h1>
+<h1 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">Link</a></h1>
 <p>Daptin maintains its own user accounts and usergroups as well. Users are identified by <code>email</code> which is a unique key in the <code>user</code> entity. Passwords are stored using bcrypt with a cost of 11. Password field has a column_type <code>password</code> which makes daptin to bcrypt it before storing, and password fields are never returned in any JSONAPI call.</p>
-<h2 id="authentication-token">Authentication token</h2>
+<h2 id="authentication-token">Authentication token<a class="headerlink" href="#authentication-token" title="Permanent link">Link</a></h2>
 <p>The authentication token is a JWT token issued by daptin on sign in action. Users can create new actions to allow other means of generating JWT token. It is as simple as adding another outcome to an action.</p>
-<h2 id="server-side">Server side</h2>
+<h2 id="server-side">Server side<a class="headerlink" href="#server-side" title="Permanent link">Link</a></h2>
 <p>Daptin uses oAuth2 based authentication strategy. HTTP calls are checked for <code>Authorization</code> header, and if present, validates the token as a JWT token.</p>
 <p>The JWT token contains the issuer info (Daptin in this case) plus basic user profile (email). The JWT token has a one hour expiry from the time of issue.</p>
 <p>If the token is absent or invalid, the user is considered as a guest. Guests also have certain permissions. Checkout the <a href="../authorization/">Authorization docs</a> for details. </p>
-<h2 id="client-side">Client side</h2>
+<h2 id="client-side">Client side<a class="headerlink" href="#client-side" title="Permanent link">Link</a></h2>
 <p>On the client side, for dashboard, the token is stored in local storage. The local storage is cleared on logout or if the server responds with a 401 Unauthorized status.</p>
-<h2 id="authentication-using-other-systems">Authentication using other systems</h2>
+<h2 id="authentication-using-other-systems">Authentication using other systems<a class="headerlink" href="#authentication-using-other-systems" title="Permanent link">Link</a></h2>
 <p>There is planned road map to allow user logins via external oauth2 servers as well (login via google/facebook/twitter... and so on). This feature is not complete yet. Documentation will be updated to reflect changes.</p>
-<h2 id="sign-up">Sign Up</h2>
+<h2 id="sign-up">Sign Up<a class="headerlink" href="#sign-up" title="Permanent link">Link</a></h2>
 <p>Sign up is an action on user entity. Sign up takes four inputs:</p>
 <ul>
 <li>Name</li>
@@ -238,7 +248,7 @@
 <li>Associate the user to the usergroup (refer permission)</li>
 </ul>
 <p>This means that every user has his own dedicated usergrou by default. </p>
-<h2 id="sign-in">Sign In</h2>
+<h2 id="sign-in">Sign In<a class="headerlink" href="#sign-in" title="Permanent link">Link</a></h2>
 <p>Sign In is also an action on user entity. Sign in takes two inputs:</p>
 <ul>
 <li>Email</li>

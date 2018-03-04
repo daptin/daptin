@@ -8,7 +8,7 @@
         
         
         <link rel="shortcut icon" href="../../img/favicon.ico">
-        <title>Permission model - Daptin</title>
+        <title>Database configuration - Daptin</title>
         <link href="../../css/bootstrap-custom.min.css" rel="stylesheet">
         <link href="../../css/font-awesome-4.5.0.css" rel="stylesheet">
         <link href="../../css/base.css" rel="stylesheet">
@@ -60,32 +60,32 @@
                     <li >
                         <a href="../..">Home</a>
                     </li>
-                    <li class="dropdown">
+                    <li class="dropdown active">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">Setting up <b class="caret"></b></a>
                         <ul class="dropdown-menu">
                             
 <li >
-    <a href="../../setting-up/settingup/">Setting up</a>
+    <a href="../settingup/">Setting up</a>
 </li>
                             
 <li >
-    <a href="../../setting-up/entities/">Entities</a>
+    <a href="../entities/">Entities</a>
 </li>
                             
 <li >
-    <a href="../../setting-up/entity_relations/">Entity relations</a>
+    <a href="../entity_relations/">Entity relations</a>
 </li>
                             
 <li >
     <a href="../../actions-streams/default_actions/">Inbuilt Actions</a>
 </li>
                             
-<li >
-    <a href="../../setting-up/database_configuration/">Database configuration</a>
+<li class="active">
+    <a href="./">Database configuration</a>
 </li>
                         </ul>
                     </li>
-                    <li class="dropdown active">
+                    <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">Concepts <b class="caret"></b></a>
                         <ul class="dropdown-menu">
                             
@@ -112,19 +112,19 @@
     <ul class="dropdown-menu">
             
 <li >
-    <a href="../users_and_usergroups/">Users and groups</a>
+    <a href="../../auth/users_and_usergroups/">Users and groups</a>
 </li>
             
 <li >
-    <a href="../authorization/">Authorization</a>
+    <a href="../../auth/authorization/">Authorization</a>
 </li>
             
 <li >
-    <a href="../authentication/">Authentication</a>
+    <a href="../../auth/authentication/">Authentication</a>
 </li>
             
-<li class="active">
-    <a href="./">Permission model</a>
+<li >
+    <a href="../../auth/permissions/">Permission model</a>
 </li>
     </ul>
   </li>
@@ -187,17 +187,17 @@
                     </a>
                 </li>
                     <li >
-                        <a rel="next" href="../authentication/">
+                        <a rel="next" href="../../actions-streams/default_actions/">
                             <i class="fa fa-arrow-left"></i> Previous
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="../../actions-streams/actions/">
+                        <a rel="prev" href="../../data-modeling/data_storage/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
                     <li>
-                        <a href="https://github.com/daptin/daptin/edit/master/docs/auth/permissions.md"><i class="fa fa-github"></i> Edit on GitHub</a>
+                        <a href="https://github.com/daptin/daptin/edit/master/docs/setting-up/database_configuration.md"><i class="fa fa-github"></i> Edit on GitHub</a>
                     </li>
             </ul>
         </div>
@@ -207,44 +207,38 @@
         <div class="container">
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
-        <li class="main active"><a href="#permission-model">Permission model</a></li>
-            <li><a href="#peek">Peek</a></li>
-            <li><a href="#c-create">[C] Create</a></li>
-            <li><a href="#r-read">[R] Read</a></li>
-            <li><a href="#u-update">[U] Update</a></li>
-            <li><a href="#d-delete">[D] Delete</a></li>
-            <li><a href="#r-refer">[R] Refer</a></li>
-            <li><a href="#x-execute">[X] Execute</a></li>
+        <li class="main active"><a href="#database">Database</a></li>
+            <li><a href="#data-persistence">Data persistence</a></li>
+            <li><a href="#port">Port</a></li>
+            <li><a href="#restart">Restart</a></li>
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h1 id="permission-model">Permission model<a class="headerlink" href="#permission-model" title="Permanent link">Link</a></h1>
-<p>Every read/write to the system passes through two level of permission check.</p>
+<h1 id="database">Database<a class="headerlink" href="#database" title="Permanent link">Link</a></h1>
+<h2 id="data-persistence">Data persistence<a class="headerlink" href="#data-persistence" title="Permanent link">Link</a></h2>
+<p>Daptin can use one of the following database for data persistence</p>
 <ul>
-<li>Type level: apply permission on all types of entities at the same time</li>
-<li>Data level: object level permission</li>
+<li>Mysql</li>
+<li>Postgres</li>
+<li>SQLite [Default]</li>
 </ul>
-<p>The <code>world</code> table contains two columns:</p>
-<ul>
-<li><code>Permission</code>: defines the entity level permission</li>
-<li><code>Default permission</code>: defines the default permission for a new object of this entity type</li>
-</ul>
-<p>The default permission for an object is picked from the default permission setting, and can be changed after the object creation (if the permission allows).</p>
-<h2 id="peek">Peek<a class="headerlink" href="#peek" title="Permanent link">Link</a></h2>
-<p><strong>Peek</strong> gives access to the user to read data in the system but not allow it in response as data. So while the query to read the data will execute and certain <strong>actions</strong> can be allowed over them, directly trying to read the data in response will fail.</p>
-<h2 id="c-create">[C] Create<a class="headerlink" href="#c-create" title="Permanent link">Link</a></h2>
-<p><strong>Create</strong> allows a new row to be created by using the POST api. Note: this doesn't apply over indirect creations using <em>actions</em>*.</p>
-<h2 id="r-read">[R] Read<a class="headerlink" href="#r-read" title="Permanent link">Link</a></h2>
-<p><strong>Read</strong> allows the data to be served in the http response body. The response will usually follow the JSONAPI.org structure.</p>
-<h2 id="u-update">[U] Update<a class="headerlink" href="#u-update" title="Permanent link">Link</a></h2>
-<p><strong>Update</strong> allows the data fields to be updated using the PUT/PATCH http methods.</p>
-<h2 id="d-delete">[D] Delete<a class="headerlink" href="#d-delete" title="Permanent link">Link</a></h2>
-<p><strong>Delete</strong> gives permission to be delete a row or certain type of data using DELETE http method. Unless you have enabled <strong>auditing</strong>, you will permanently loose this data.</p>
-<h2 id="r-refer">[R] Refer<a class="headerlink" href="#r-refer" title="Permanent link">Link</a></h2>
-<p><strong>Refer</strong> gives permission to add data/users to usergroups. Note that you will also need certain permission on the <strong>usergroup</strong> as well.</p>
-<h2 id="x-execute">[X] Execute<a class="headerlink" href="#x-execute" title="Permanent link">Link</a></h2>
-<p><strong>Execute</strong> gives permission to invoke action over data (like export). Note that giving access to a <strong>type of data</strong> doesn't give access to all rows of that <strong>entity type</strong>.</p></div>
+<p>If nothing specified, a <strong>sqlite</strong> database is created on the local file system and is used for all purposes. (uploads/blobs are not stored in database)</p>
+<p>You can customise the database connection properties when starting daptin</p>
+<h3 id="mysql">mysql<a class="headerlink" href="#mysql" title="Permanent link">Link</a></h3>
+<p>To use mysql, start daptin as follows</p>
+<p><code>./daptin -db_type=mysql -db_connection_string='&lt;username&gt;:&lt;password&gt;@tcp(&lt;hostname&gt;:&lt;port&gt;)/&lt;db_name&gt;'</code></p>
+<h3 id="postgres">postgres<a class="headerlink" href="#postgres" title="Permanent link">Link</a></h3>
+<p><code>./daptin -db_type=postgres -db_connection_string='host=&lt;hostname&gt; port=&lt;port&gt; user=&lt;username&gt; password=&lt;password&gt; dbname=&lt;db_name&gt; sslmode=enable/disable'</code></p>
+<h3 id="sqlite">sqlite<a class="headerlink" href="#sqlite" title="Permanent link">Link</a></h3>
+<p>By default a "daptin.db" file is created to store data</p>
+<p><code>./daptin -db_type=sqlite -db_connection_string=db_file_name.db</code></p>
+<h2 id="port">Port<a class="headerlink" href="#port" title="Permanent link">Link</a></h2>
+<p>Daptin will listen on port 6336 by default. You can change it by using the following argument</p>
+<p><code>-port=8080</code></p>
+<h2 id="restart">Restart<a class="headerlink" href="#restart" title="Permanent link">Link</a></h2>
+<p>Daptin relies on self restarts to configure new entities and apis and changes to the other parts of the ststem. As soon as you upload a schema file, daptin will write the file to disk, and restart itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.</p>
+<p>You can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.</p></div>
         </div>
 
         <footer class="col-md-12">

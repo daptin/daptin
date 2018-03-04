@@ -31,7 +31,9 @@
 
             ga('create', 'UA-114227400-1', 'docs.dapt.in');
             ga('send', 'pageview');
-        </script> 
+        </script>
+<link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet">
+
     </head>
 
     <body class="homepage">
@@ -73,6 +75,14 @@
 <li >
     <a href="setting-up/entity_relations/">Entity relations</a>
 </li>
+                            
+<li >
+    <a href="actions-streams/default_actions/">Inbuilt Actions</a>
+</li>
+                            
+<li >
+    <a href="setting-up/database_configuration/">Database configuration</a>
+</li>
                         </ul>
                     </li>
                     <li class="dropdown">
@@ -112,6 +122,10 @@
 <li >
     <a href="auth/authentication/">Authentication</a>
 </li>
+            
+<li >
+    <a href="auth/permissions/">Permission model</a>
+</li>
     </ul>
   </li>
                             
@@ -124,7 +138,7 @@
 </li>
             
 <li >
-    <a href="setting-up/marketplace/">Market place</a>
+    <a href="extend/marketplace/">Market place</a>
 </li>
             
 <li >
@@ -151,10 +165,6 @@
             
 <li >
     <a href="actions-streams/streams/">Data streams</a>
-</li>
-            
-<li >
-    <a href="auth/permissions/">Permission model</a>
 </li>
             
 <li >
@@ -222,11 +232,11 @@
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h1 id="daptin">DAPTIN</h1>
-<h2 id="create-an-instance"><a href="setting-up/settingup/">Create an instance</a></h2>
-<h2 id="import-data">Import data</h2>
+<h1 id="daptin">DAPTIN<a class="headerlink" href="#daptin" title="Permanent link">Link</a></h1>
+<h2 id="create-an-instance"><a href="setting-up/settingup/">Create an instance</a><a class="headerlink" href="#create-an-instance" title="Permanent link">Link</a></h2>
+<h2 id="import-data">Import data<a class="headerlink" href="#import-data" title="Permanent link">Link</a></h2>
 <p><img src="images/create_data.png"></p>
-<h2 id="upload-from-dashboard">Upload from dashboard</h2>
+<h2 id="upload-from-dashboard">Upload from dashboard<a class="headerlink" href="#upload-from-dashboard" title="Permanent link">Link</a></h2>
 <p>Upload one of these files:</p>
 <table>
 <thead>
@@ -254,7 +264,7 @@
 </tr>
 </tbody>
 </table>
-<h2 id="tables">Tables</h2>
+<h2 id="tables">Tables<a class="headerlink" href="#tables" title="Permanent link">Link</a></h2>
 <p>Tables are the basic data structure. Tables have columns. Each column has a particular data type. These tables are exposed over APIs under the <code>/api/</code> path. Checkout <a href="setting-up/entities/">entity documentation</a> for details.</p>
 <div class="admonition note">
 <p class="admonition-title">YAML example</p>
@@ -288,7 +298,7 @@
 </pre></div>
 
 </div>
-<h2 id="relations">Relations</h2>
+<h2 id="relations">Relations<a class="headerlink" href="#relations" title="Permanent link">Link</a></h2>
 <p>Relations are constraints among tables and help you keep clean and consistent data. Relational data is easily accessible over APIs using a path structure like <code>/api/&lt;entityName&gt;/&lt;id&gt;/&lt;relationName&gt;</code> and the response is consistent with <a href="https://JSONAPI.org">JSONAPI.org</a>.</p>
 <div class="admonition note">
 <p class="admonition-title">YAML example</p>
@@ -313,7 +323,7 @@
 </pre></div>
 
 </div>
-<h2 id="actions">Actions</h2>
+<h2 id="actions">Actions<a class="headerlink" href="#actions" title="Permanent link">Link</a></h2>
 <p>Actions are entity dependent APIs which you want to expose which may have an outcome of events. Most basic example is the login action which generates an oauth2 token as an outcome.</p>
 <p>Use action to expose endpoints for your forms and processes. Here is an example of creating a "/action/project/new_task" API:</p>
 <div class="admonition note">
@@ -393,7 +403,7 @@
 </pre></div>
 
 </div>
-<h2 id="exchanges">Exchanges <img style="float: right" src="images/exchanges.png" class="cloud-provider"></h2>
+<h2 id="exchanges">Exchanges <img style="float: right" src="images/exchanges.png" class="cloud-provider"><a class="headerlink" href="#exchanges" title="Permanent link">Link</a></h2>
 <p>Exchanges are internal hooks to external apis, to either push data and update an external service, or pull data and update itself from some external service.</p>
 <p>Example, use exchange to sync data creation call to Google Sheets. So on every row created using the POST API also creates a corresponding row in your google sheet.</p>
 <div class="admonition note">
@@ -417,7 +427,7 @@
 </pre></div>
 
 </div>
-<h2 id="state-machine-apis">State Machine APIs</h2>
+<h2 id="state-machine-apis">State Machine APIs<a class="headerlink" href="#state-machine-apis" title="Permanent link">Link</a></h2>
 <p>Using state machine descriptions with daptin expose couple of super useful apis to manage state based data.</p>
 <p>Enabling <code>task_status</code> state machine on <code>todo</code> entity will expose the following APIs</p>
 <div class="codehilite"><pre><span></span>POST /track/start/:stateMachineId <span class="o">{</span><span class="s2">&quot;typeName&quot;</span>: <span class="s2">&quot;todo&quot;</span>, <span class="s2">&quot;referenceId&quot;</span>: <span class="s2">&quot;objectId&quot;</span><span class="o">}</span> <span class="c1"># Start tracking a particular object by id</span>
@@ -473,10 +483,10 @@
 </pre></div>
 
 </div>
-<h2 id="users-and-access">Users and access</h2>
+<h2 id="users-and-access">Users and access<a class="headerlink" href="#users-and-access" title="Permanent link">Link</a></h2>
 <p><img src="images/users_and_groups.png"></p>
 <p>Requests <strong>without</strong> a valid <code>Authorization Bearer</code> <code>token</code> will be referred to as "guests requests". Requests with a valid token will have an identified user.</p>
-<h2 id="user-registration-api">User registration API</h2>
+<h2 id="user-registration-api">User registration API<a class="headerlink" href="#user-registration-api" title="Permanent link">Link</a></h2>
 <p>Sign up action can be allowed to guests to allow open registration by anyone. Users with enough permission over the <code>user</code> table can create users manually.</p>
 <p>Users registered using signup action are their own owners. Hence they can update and delete themselves. These permission can be changed based on the use case.</p>
 <div class="admonition note">
@@ -503,7 +513,7 @@
 </pre></div>
 
 <p>This user can sign in now (generate an auth token). But what he can access is again based on the permission of the system.</p>
-<h2 id="user-sign-in-api">User sign in API</h2>
+<h2 id="user-sign-in-api">User sign in API<a class="headerlink" href="#user-sign-in-api" title="Permanent link">Link</a></h2>
 <div class="admonition note">
 <p class="admonition-title">POST call for sign in</p>
 <div class="codehilite"><pre><span></span>curl <span class="s1">&#39;http://api.daptin.com:6336/action/user/signin&#39;</span> <span class="se">\</span>
@@ -540,7 +550,7 @@
 <span class="p">]</span>
 </pre></div>
 
-<h2 id="host-static-sites">Host static sites</h2>
+<h2 id="host-static-sites">Host static sites<a class="headerlink" href="#host-static-sites" title="Permanent link">Link</a></h2>
 <p><img src="images/subsite.png"></p>
 <p>Expose folders on cloud storage services as websites using your daptin instance.</p>
 <div class="admonition note">
@@ -552,14 +562,14 @@
 </ul>
 </div>
 <p>Restart is required to reflect changes.</p>
-<h2 id="data-auditing">Data auditing</h2>
+<h2 id="data-auditing">Data auditing<a class="headerlink" href="#data-auditing" title="Permanent link">Link</a></h2>
 <p>To enable recoding of all historical data for a particular entity, enable data audit for it in the worlds configuration.</p>
 <p>Audits are ready only and cannot be manipulated over api. You can configure the permission for your use case.</p>
-<h2 id="oauth-connection">OAuth Connection</h2>
+<h2 id="oauth-connection">OAuth Connection<a class="headerlink" href="#oauth-connection" title="Permanent link">Link</a></h2>
 <p><img src="images/oauth.png"></p>
 <p>Connecting to your cloud storage and external services requires authentication, OAuth covers a large number of those services.</p>
-<h1 id="concepts">Concepts</h1>
-<h2 id="data">Data</h2>
+<h1 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Permanent link">Link</a></h1>
+<h2 id="data">Data<a class="headerlink" href="#data" title="Permanent link">Link</a></h2>
 <ul>
 <li><a href="data-modeling/data_storage/">Data storage and table structures</a></li>
 <li><a href="data-modeling/auditing/">Auditing</a></li>
@@ -567,26 +577,26 @@
 <li><a href="data-modeling/data_conformation/">Data conformations</a></li>
 <li><a href="data-modeling/state_tracking/">State tracking for entities</a></li>
 </ul>
-<h2 id="actions-and-streams">Actions and streams</h2>
+<h2 id="actions-and-streams">Actions and streams<a class="headerlink" href="#actions-and-streams" title="Permanent link">Link</a></h2>
 <ul>
 <li><a href="actions-streams/actions/">Actions</a></li>
 <li><a href="actions-streams/streams/">Data streams</a></li>
 <li><a href="extend/oauth_connection/">Oauth connections</a></li>
 <li><a href="extend/oauth_token/">Oauth tokens</a></li>
 </ul>
-<h2 id="authentication-and-authorization">Authentication and Authorization</h2>
+<h2 id="authentication-and-authorization">Authentication and Authorization<a class="headerlink" href="#authentication-and-authorization" title="Permanent link">Link</a></h2>
 <ul>
 <li><a href="auth/users_and_usergroups/">Users and user groups</a></li>
 <li><a href="auth/authentication/">Authentication</a></li>
 <li><a href="auth/authorization/">Authorization</a></li>
 <li><a href="auth/permissions/">Permissions</a></li>
 </ul>
-<h2 id="external-apis-and-integrations">External APIs and integrations</h2>
+<h2 id="external-apis-and-integrations">External APIs and integrations<a class="headerlink" href="#external-apis-and-integrations" title="Permanent link">Link</a></h2>
 <ul>
 <li>Interacting with third party APIs</li>
 <li>Storage connectors</li>
 </ul>
-<h2 id="sub-sites-marketplace">Sub-sites, Marketplace</h2>
+<h2 id="sub-sites-marketplace">Sub-sites, Marketplace<a class="headerlink" href="#sub-sites-marketplace" title="Permanent link">Link</a></h2>
 <ul>
 <li><a href="subsite/subsite/">Sub sites</a></li>
 <li>Json schemas</li>
@@ -672,5 +682,5 @@
 
 <!--
 MkDocs version : 0.17.2
-Build Date UTC : 2018-02-25 00:40:19
+Build Date UTC : 2018-03-04 18:29:08
 -->
