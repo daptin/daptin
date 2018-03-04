@@ -21,7 +21,7 @@ By following shared conventions, you can increase productivity, take advantage o
 
 Daptin works as an interface between your users and your data. 
 
-- Easily consume the API on any device using a [JSONAPI.org client](http://JSONAPI.org/implementations.org)
+- Easily consume the API on any device using a [JSONAPI.org client](http://JSONAPI.org/implementations/)
 - Interact with users as guests or known users by using a JWT token
 - Grant permission of data/actions to users based on ownership, groups and guests
 - Build custom actions to expose custom APIs over your data apart from the usual CRUD APIs
