@@ -31,7 +31,9 @@
 
             ga('create', 'UA-114227400-1', 'docs.dapt.in');
             ga('send', 'pageview');
-        </script> 
+        </script>
+<link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet">
+
     </head>
 
     <body>
@@ -73,6 +75,14 @@
 <li >
     <a href="../../setting-up/entity_relations/">Entity relations</a>
 </li>
+                            
+<li >
+    <a href="../../actions-streams/default_actions/">Inbuilt Actions</a>
+</li>
+                            
+<li >
+    <a href="../../setting-up/database_configuration/">Database configuration</a>
+</li>
                         </ul>
                     </li>
                     <li class="dropdown active">
@@ -112,6 +122,10 @@
 <li >
     <a href="../authentication/">Authentication</a>
 </li>
+            
+<li >
+    <a href="../permissions/">Permission model</a>
+</li>
     </ul>
   </li>
                             
@@ -124,7 +138,7 @@
 </li>
             
 <li >
-    <a href="../../setting-up/marketplace/">Market place</a>
+    <a href="../../extend/marketplace/">Market place</a>
 </li>
             
 <li >
@@ -151,10 +165,6 @@
             
 <li >
     <a href="../../actions-streams/streams/">Data streams</a>
-</li>
-            
-<li >
-    <a href="../permissions/">Permission model</a>
 </li>
             
 <li >
@@ -209,9 +219,9 @@
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h1 id="access-authorization">Access Authorization</h1>
+<h1 id="access-authorization">Access Authorization<a class="headerlink" href="#access-authorization" title="Permanent link">Link</a></h1>
 <p>Authorization is the part where daptin decides if the caller has enough permission to execute the call. Currently daptin has the following permissions.</p>
-<h2 id="entity-level-permission-check">Entity level permission check</h2>
+<h2 id="entity-level-permission-check">Entity level permission check<a class="headerlink" href="#entity-level-permission-check" title="Permanent link">Link</a></h2>
 <p>The world table has the list of all entities. Consider the scenario where we created a todo list. The world table would have a row to represent this entity</p>
 <table>
 <thead>
@@ -233,9 +243,9 @@
 <li>000 is for group users, no permission allowed in this case</li>
 <li>006 is for guest users, which is 2 + 4 = Read/Create</li>
 </ul>
-<h2 id="object-level-permission-check">Object level permission check</h2>
+<h2 id="object-level-permission-check">Object level permission check<a class="headerlink" href="#object-level-permission-check" title="Permanent link">Link</a></h2>
 <p>Once the call clears the entity level check, an object level permission check is applied. This happens in cases where the action is going to affect/read an existing row. The permission is stored in the same way. Each table has a permission column which stores the permission in <code>OOOGGGXXX</code> format.</p>
-<h2 id="order-of-permission-check">Order of permission check</h2>
+<h2 id="order-of-permission-check">Order of permission check<a class="headerlink" href="#order-of-permission-check" title="Permanent link">Link</a></h2>
 <p>The permission is checked in order of:</p>
 <ul>
 <li>Check if the user is owner, if yes, check if permission allows the current action, if yes do action</li>
@@ -248,7 +258,7 @@
 <li>eg, you cannot say owner is 'not allowed' to read but read by guest is allowed. </li>
 <li>Permission check is done in a hierarchy type order</li>
 </ul>
-<h2 id="access-flow">Access flow</h2>
+<h2 id="access-flow">Access flow<a class="headerlink" href="#access-flow" title="Permanent link">Link</a></h2>
 <p>Every "interaction" in daptin goes through two levels of access. Each level has a <code>before</code> and <code>after</code> check.</p>
 <ul>
 <li>Entity level access: does the user invoking the interaction has the appropriate permission to invoke this (So for sign up, the user table need to be writable by guests, for sign in the user table needs to be peakable by guests)</li>
@@ -262,12 +272,12 @@
 <li>"After check" for entity</li>
 </ul>
 <p>Each of these checks can filter out objects where the user does not have enough permission.</p>
-<h2 id="entity-level-permission">Entity level permission</h2>
+<h2 id="entity-level-permission">Entity level permission<a class="headerlink" href="#entity-level-permission" title="Permanent link">Link</a></h2>
 <p>Entity level permission are set in the world table and can be updated from dashboard. This can be done by updating the "permission" column for the entity.</p>
 <p>For these changes to take effect a restart is necessary.</p>
-<h2 id="instance-level-permission">Instance level permission</h2>
+<h2 id="instance-level-permission">Instance level permission<a class="headerlink" href="#instance-level-permission" title="Permanent link">Link</a></h2>
 <p>Like we saw in the <a href="../../setting-up/entities/">entity documentation</a>, every table has a <code>permission</code> column. No restart is necessary for changes in these permission.</p>
-<h2 id="permission-column">Permission column</h2>
+<h2 id="permission-column">Permission column<a class="headerlink" href="#permission-column" title="Permanent link">Link</a></h2>
 <p>The permission column contains a nine digit number, which decides the access for guests (the world), user groups and owner</p>
 <p>The nine digits can be represented as follows:</p>
 <p><code>UUUGGGWWW</code></p>
