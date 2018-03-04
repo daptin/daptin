@@ -10,7 +10,8 @@ coverage:
   status:
     project: yes
     patch: yes
-    changes: no
+    changes:
+      enabled: false
 parsers:
   gcov:
     branch_detection:
