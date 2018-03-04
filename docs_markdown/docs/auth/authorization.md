@@ -7,8 +7,8 @@ Authorization is the part where daptin decides if the caller has enough permissi
 The world table has the list of all entities. Consider the scenario where we created a todo list. The world table would have a row to represent this entity
 
 Entity | Permission
---- | ---
-todo | 112000006 |
+---    | ---
+todo   | 112000006 |
 
 Here:
 

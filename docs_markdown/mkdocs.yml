@@ -6,6 +6,8 @@ pages:
       - Setting up: setting-up/settingup.md
       - Entities: setting-up/entities.md
       - Entity relations: setting-up/entity_relations.md
+      - Inbuilt Actions: actions-streams/default_actions.md
+      - Database configuration: setting-up/database_configuration.md
   - Concepts:
       - Storage:
           - Data storage: data-modeling/data_storage.md
@@ -15,24 +17,29 @@ pages:
           - Users and groups: auth/users_and_usergroups.md
           - Authorization: auth/authorization.md
           - Authentication: auth/authentication.md
+          - Permission model: auth/permissions.md
       - Extend:
           - Actions: actions-streams/actions.md
-          - Market place: setting-up/marketplace.md
+          - Market place: extend/marketplace.md
           - Data auditing: data-modeling/auditing.md
           - Data validation: data-modeling/data_validation.md
           - Data conformations: data-modeling/data_conformation.md
       - Other APIs:
           - State tracking: data-modeling/state_tracking.md
           - Data streams: actions-streams/streams.md
-          - Permission model: auth/permissions.md
           - OAuth connections: extend/oauth_connection.md
           - OAuth tokens: extend/oauth_token.md
 theme:
   name: mkdocs
+  custom_dir: mkdocs-material
 extra_css:
   - css/theme_extra.css
 google_analytics: ['UA-114227400-1', 'docs.dapt.in']
 markdown_extensions:
+  - toc:
+      permalink: Link
   - admonition
   - codehilite
   - pymdownx.superfences
+  - pymdownx.tasklist
+  - pymdownx.magiclink
