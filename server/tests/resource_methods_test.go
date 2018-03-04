@@ -11,6 +11,7 @@ import (
 	"strings"
 	"golang.org/x/oauth2"
 	"github.com/daptin/daptin/server"
+	"net/http"
 )
 
 func GetDb() *InMemoryTestDatabase {
@@ -160,6 +161,48 @@ func TestGetActionsByType(t *testing.T) {
 
 }
 
+func TestPaginatedFindAllWithoutFilters(t *testing.T) {
+
+	wrapper, dbResource := GetResourceWithName("todo")
+	defer wrapper.db.Close()
+	req := api2go.Request{
+		PlainRequest: &http.Request{
+			Method: "GET",
+		},
+		QueryParams: map[string][]string{},
+	}
+
+	dbResource.PaginatedFindAllWithoutFilters(req)
+
+	if !wrapper.HasExecuted("SELECT todo.permission, todo.reference_id FROM todo LIMIT 10 OFFSET 0") {
+		t.Errorf("Expected query not fired")
+		t.Fail()
+	}
+
+}
+
+func TestCreateWithoutFilter(t *testing.T) {
+
+	wrapper, dbResource := GetResourceWithName("todo")
+	defer wrapper.db.Close()
+	req := api2go.Request{
+		PlainRequest: &http.Request{
+			Method: "GET",
+		},
+		QueryParams: map[string][]string{},
+	}
+
+	data := map[string]interface{}{}
+	obj := api2go.NewApi2GoModelWithData("todo", nil, 0, nil, data)
+	dbResource.CreateWithoutFilter(obj, req)
+
+	if !wrapper.HasExecuted("INSERT INTO todo (reference_id,permission,created_at) VALUES (?,?,?)") {
+		t.Errorf("Expected query not fired")
+		t.Fail()
+	}
+
+}
+
 func (imtd *InMemoryTestDatabase) HasExecuted(query string) bool {
 	query = strings.TrimSpace(query)
 
@@ -173,6 +216,7 @@ func (imtd *InMemoryTestDatabase) HasExecuted(query string) bool {
 
 	return false
 }
+
 func (imtd *InMemoryTestDatabase) HasExecutedAll(queries ...string) bool {
 
 	executedAll := true
