@@ -1,19 +1,5 @@
-<style type="text/css">
-.image-left {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  float: left;
-}
-.heading-right {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  float: right;
-}
-</style>
-<img class="image-left" src="https://github.com/daptin/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" style="float: right;" title="Daptin" height="140" />
-<h1 class="heading-right" aligh=right>Daptin</h1>
+<h1 class="heading-right" aligh="left">Daptin</h1>
+<img class="image-left" aligh="right" src="https://github.com/daptin/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" style="float: right;" title="Daptin" height="140" />
 
 <p align="left">
     <a href="https://github.com/daptin/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/daptin/daptin.svg?style=flat-square"></a>
