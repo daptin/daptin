@@ -129,6 +129,7 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 	auth.InitJwtMiddleware([]byte(jwtSecret))
 	r.Use(authMiddleware.AuthCheckMiddleware)
 
+	cruds = make(map[string]*resource.DbResource)
 	r.GET("/actions", resource.CreateGuestActionListHandler(&initConfig, cruds))
 
 	api := api2go.NewAPIWithRouting(
@@ -137,7 +138,6 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 		gingonic.New(r),
 	)
 
-	cruds := make(map[string]*resource.DbResource)
 	ms := BuildMiddlewareSet(&initConfig, cruds)
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, cruds)
 

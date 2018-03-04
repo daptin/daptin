@@ -1,44 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="description" content="None">
-        
-        
-        <link rel="shortcut icon" href="./img/favicon.ico">
-        <title>Daptin</title>
-        <link href="./css/bootstrap-custom.min.css" rel="stylesheet">
-        <link href="./css/font-awesome-4.5.0.css" rel="stylesheet">
-        <link href="./css/base.css" rel="stylesheet">
-        <link rel="stylesheet" href="./css/highlight.css">
-        <link href="./css/theme_extra.css" rel="stylesheet">
-        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
-        <!--[if lt IE 9]>
-            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
-        <![endif]-->
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="None">
 
-        <script src="./js/jquery-1.10.2.min.js"></script>
-        <script src="./js/bootstrap-3.0.3.min.js"></script>
-        <script src="./js/highlight.pack.js"></script>
-        <script>
-            (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-            })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-            ga('create', 'UA-114227400-1', 'docs.dapt.in');
-            ga('send', 'pageview');
-        </script>
-<link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet">
+    <link rel="shortcut icon" href="./img/favicon.ico">
+    <title>Daptin</title>
+    <link href="./css/bootstrap-custom.min.css" rel="stylesheet">
+    <link href="./css/font-awesome-4.5.0.css" rel="stylesheet">
+    <link href="./css/base.css" rel="stylesheet">
+    <link rel="stylesheet" href="./css/highlight.css">
+    <link href="./css/theme_extra.css" rel="stylesheet">
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
 
-    </head>
+    <script src="./js/jquery-1.10.2.min.js"></script>
+    <script src="./js/bootstrap-3.0.3.min.js"></script>
+    <script src="./js/highlight.pack.js"></script>
+    <script>
+        (function (i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r;
+            i[r] = i[r] || function () {
+                (i[r].q = i[r].q || []).push(arguments)
+            }, i[r].l = 1 * new Date();
+            a = s.createElement(o),
+                    m = s.getElementsByTagName(o)[0];
+            a.async = 1;
+            a.src = g;
+            m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
 
-    <body class="homepage">
+        ga('create', 'UA-114227400-1', 'docs.dapt.in');
+        ga('send', 'pageview');
+    </script>
+    <link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet">
 
-        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+</head>
+
+<body class="homepage">
+
+<div class="navbar navbar-default navbar-fixed-top" role="navigation">
     <div class="container">
 
         <!-- Collapsed navigation -->
@@ -55,130 +62,130 @@
 
         <!-- Expanded navigation -->
         <div class="navbar-collapse collapse">
-                <!-- Main navigation -->
-                <ul class="nav navbar-nav">
-                    <li class="active">
-                        <a href=".">Home</a>
-                    </li>
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Setting up <b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            
-<li >
-    <a href="setting-up/settingup/">Setting up</a>
-</li>
-                            
-<li >
-    <a href="setting-up/entities/">Entities</a>
-</li>
-                            
-<li >
-    <a href="setting-up/entity_relations/">Entity relations</a>
-</li>
-                            
-<li >
-    <a href="actions-streams/default_actions/">Inbuilt Actions</a>
-</li>
-                            
-<li >
-    <a href="setting-up/database_configuration/">Database configuration</a>
-</li>
-                        </ul>
-                    </li>
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Concepts <b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            
-  <li class="dropdown-submenu">
-    <a href="#">Storage</a>
-    <ul class="dropdown-menu">
-            
-<li >
-    <a href="data-modeling/data_storage/">Data storage</a>
-</li>
-            
-<li >
-    <a href="cloudstore/cloudstore/">Cloud storage</a>
-</li>
-            
-<li >
-    <a href="subsite/subsite/">Subsites</a>
-</li>
-    </ul>
-  </li>
-                            
-  <li class="dropdown-submenu">
-    <a href="#">Auth</a>
-    <ul class="dropdown-menu">
-            
-<li >
-    <a href="auth/users_and_usergroups/">Users and groups</a>
-</li>
-            
-<li >
-    <a href="auth/authorization/">Authorization</a>
-</li>
-            
-<li >
-    <a href="auth/authentication/">Authentication</a>
-</li>
-            
-<li >
-    <a href="auth/permissions/">Permission model</a>
-</li>
-    </ul>
-  </li>
-                            
-  <li class="dropdown-submenu">
-    <a href="#">Extend</a>
-    <ul class="dropdown-menu">
-            
-<li >
-    <a href="actions-streams/actions/">Actions</a>
-</li>
-            
-<li >
-    <a href="extend/marketplace/">Market place</a>
-</li>
-            
-<li >
-    <a href="data-modeling/auditing/">Data auditing</a>
-</li>
-            
-<li >
-    <a href="data-modeling/data_validation/">Data validation</a>
-</li>
-            
-<li >
-    <a href="data-modeling/data_conformation/">Data conformations</a>
-</li>
-    </ul>
-  </li>
-                            
-  <li class="dropdown-submenu">
-    <a href="#">Other APIs</a>
-    <ul class="dropdown-menu">
-            
-<li >
-    <a href="data-modeling/state_tracking/">State tracking</a>
-</li>
-            
-<li >
-    <a href="actions-streams/streams/">Data streams</a>
-</li>
-            
-<li >
-    <a href="extend/oauth_connection/">OAuth connections</a>
-</li>
-            
-<li >
-    <a href="extend/oauth_token/">OAuth tokens</a>
-</li>
-    </ul>
-  </li>
-                        </ul>
-                    </li>
-                </ul>
+            <!-- Main navigation -->
+            <ul class="nav navbar-nav">
+                <li class="active">
+                    <a href=".">Home</a>
+                </li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Setting up <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+
+                        <li>
+                            <a href="setting-up/settingup/">Setting up</a>
+                        </li>
+
+                        <li>
+                            <a href="setting-up/entities/">Entities</a>
+                        </li>
+
+                        <li>
+                            <a href="setting-up/entity_relations/">Entity relations</a>
+                        </li>
+
+                        <li>
+                            <a href="actions-streams/default_actions/">Inbuilt Actions</a>
+                        </li>
+
+                        <li>
+                            <a href="setting-up/database_configuration/">Database configuration</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Concepts <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+
+                        <li class="dropdown-submenu">
+                            <a href="#">Storage</a>
+                            <ul class="dropdown-menu">
+
+                                <li>
+                                    <a href="data-modeling/data_storage/">Data storage</a>
+                                </li>
+
+                                <li>
+                                    <a href="cloudstore/cloudstore/">Cloud storage</a>
+                                </li>
+
+                                <li>
+                                    <a href="subsite/subsite/">Subsites</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="dropdown-submenu">
+                            <a href="#">Auth</a>
+                            <ul class="dropdown-menu">
+
+                                <li>
+                                    <a href="auth/users_and_usergroups/">Users and groups</a>
+                                </li>
+
+                                <li>
+                                    <a href="auth/authorization/">Authorization</a>
+                                </li>
+
+                                <li>
+                                    <a href="auth/authentication/">Authentication</a>
+                                </li>
+
+                                <li>
+                                    <a href="auth/permissions/">Permission model</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="dropdown-submenu">
+                            <a href="#">Extend</a>
+                            <ul class="dropdown-menu">
+
+                                <li>
+                                    <a href="actions-streams/actions/">Actions</a>
+                                </li>
+
+                                <li>
+                                    <a href="extend/marketplace/">Market place</a>
+                                </li>
+
+                                <li>
+                                    <a href="data-modeling/auditing/">Data auditing</a>
+                                </li>
+
+                                <li>
+                                    <a href="data-modeling/data_validation/">Data validation</a>
+                                </li>
+
+                                <li>
+                                    <a href="data-modeling/data_conformation/">Data conformations</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="dropdown-submenu">
+                            <a href="#">Other APIs</a>
+                            <ul class="dropdown-menu">
+
+                                <li>
+                                    <a href="data-modeling/state_tracking/">State tracking</a>
+                                </li>
+
+                                <li>
+                                    <a href="actions-streams/streams/">Data streams</a>
+                                </li>
+
+                                <li>
+                                    <a href="extend/oauth_connection/">OAuth connections</a>
+                                </li>
+
+                                <li>
+                                    <a href="extend/oauth_token/">OAuth tokens</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
 
             <ul class="nav navbar-nav navbar-right">
                 <li>
@@ -186,437 +193,601 @@
                         <i class="fa fa-search"></i> Search
                     </a>
                 </li>
-                    <li class="disabled">
-                        <a rel="next" >
-                            <i class="fa fa-arrow-left"></i> Previous
-                        </a>
-                    </li>
-                    <li >
-                        <a rel="prev" href="setting-up/settingup/">
-                            Next <i class="fa fa-arrow-right"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="https://github.com/daptin/daptin/edit/master/docs/index.md"><i class="fa fa-github"></i> Edit on GitHub</a>
-                    </li>
+                <li class="disabled">
+                    <a rel="next">
+                        <i class="fa fa-arrow-left"></i> Previous
+                    </a>
+                </li>
+                <li>
+                    <a rel="prev" href="setting-up/settingup/">
+                        Next <i class="fa fa-arrow-right"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="https://github.com/daptin/daptin/tree/master/docs_markdown"><i class="fa fa-github"></i>
+                        Edit on GitHub</a>
+                </li>
             </ul>
         </div>
     </div>
 </div>
 
-        <div class="container">
-                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
-    <ul class="nav bs-sidenav">
-        <li class="main active"><a href="#daptin">DAPTIN</a></li>
-            <li><a href="#create-an-instance">Create an instance</a></li>
-            <li><a href="#import-data">Import data</a></li>
-            <li><a href="#upload-from-dashboard">Upload from dashboard</a></li>
-            <li><a href="#tables">Tables</a></li>
-            <li><a href="#relations">Relations</a></li>
-            <li><a href="#actions">Actions</a></li>
-            <li><a href="#exchanges">Exchanges </a></li>
-            <li><a href="#state-machine-apis">State Machine APIs</a></li>
-            <li><a href="#users-and-access">Users and access</a></li>
-            <li><a href="#user-registration-api">User registration API</a></li>
-            <li><a href="#user-sign-in-api">User sign in API</a></li>
-            <li><a href="#host-static-sites">Host static sites</a></li>
-            <li><a href="#data-auditing">Data auditing</a></li>
-            <li><a href="#oauth-connection">OAuth Connection</a></li>
-        <li class="main "><a href="#concepts">Concepts</a></li>
-            <li><a href="#data">Data</a></li>
-            <li><a href="#actions-and-streams">Actions and streams</a></li>
-            <li><a href="#authentication-and-authorization">Authentication and Authorization</a></li>
-            <li><a href="#external-apis-and-integrations">External APIs and integrations</a></li>
-            <li><a href="#sub-sites-marketplace">Sub-sites, Marketplace</a></li>
-    </ul>
-</div></div>
-                <div class="col-md-9" role="main">
+<div class="container">
+    <div class="col-md-3">
+        <div class="bs-sidebar hidden-print affix well" role="complementary">
+            <ul class="nav bs-sidenav">
+                <li class="main active"><a href="#daptin">DAPTIN</a></li>
+                <li><a href="#create-an-instance">Create an instance</a></li>
+                <li><a href="#import-data">Import data</a></li>
+                <li><a href="#upload-from-dashboard">Upload from dashboard</a></li>
+                <li><a href="#tables">Tables</a></li>
+                <li><a href="#relations">Relations</a></li>
+                <li><a href="#actions">Actions</a></li>
+                <li><a href="#exchanges">Exchanges </a></li>
+                <li><a href="#state-machine-apis">State Machine APIs</a></li>
+                <li><a href="#users-and-access">Users and access</a></li>
+                <li><a href="#user-registration-api">User registration API</a></li>
+                <li><a href="#user-sign-in-api">User sign in API</a></li>
+                <li><a href="#host-static-sites">Host static sites</a></li>
+                <li><a href="#data-auditing">Data auditing</a></li>
+                <li><a href="#oauth-connection">OAuth Connection</a></li>
+                <li class="main "><a href="#concepts">Concepts</a></li>
+                <li><a href="#data">Data</a></li>
+                <li><a href="#actions-and-streams">Actions and streams</a></li>
+                <li><a href="#authentication-and-authorization">Authentication and Authorization</a></li>
+                <li><a href="#external-apis-and-integrations">External APIs and integrations</a></li>
+                <li><a href="#sub-sites-marketplace">Sub-sites, Marketplace</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-9" role="main">
 
-<h1 id="daptin">DAPTIN<a class="headerlink" href="#daptin" title="Permanent link">Link</a></h1>
-<h2 id="create-an-instance"><a href="setting-up/settingup/">Create an instance</a><a class="headerlink" href="#create-an-instance" title="Permanent link">Link</a></h2>
-<h2 id="import-data">Import data<a class="headerlink" href="#import-data" title="Permanent link">Link</a></h2>
-<p><img src="images/create_data.png"></p>
-<h2 id="upload-from-dashboard">Upload from dashboard<a class="headerlink" href="#upload-from-dashboard" title="Permanent link">Link</a></h2>
-<p>Upload one of these files:</p>
-<table>
-<thead>
-<tr>
-<th>File</th>
-<th>Usage</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Schema JSON</td>
-<td>Create schema and apis</td>
-</tr>
-<tr>
-<td>CSV</td>
-<td>Auto create entity and upload data</td>
-</tr>
-<tr>
-<td>XLSX</td>
-<td>Auto create entity and upload data</td>
-</tr>
-<tr>
-<td>Data JSON</td>
-<td>Upload data from dumps</td>
-</tr>
-</tbody>
-</table>
-<h2 id="tables">Tables<a class="headerlink" href="#tables" title="Permanent link">Link</a></h2>
-<p>Tables are the basic data structure. Tables have columns. Each column has a particular data type. These tables are exposed over APIs under the <code>/api/</code> path. Checkout <a href="setting-up/entities/">entity documentation</a> for details.</p>
-<div class="admonition note">
-<p class="admonition-title">YAML example</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Tables</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+        <h1 id="daptin">DAPTIN<a class="headerlink" href="#daptin" title="Permanent link">Link</a></h1>
+        <h2 id="create-an-instance"><a href="setting-up/settingup/">Create an instance</a><a class="headerlink"
+                                                                                             href="#create-an-instance"
+                                                                                             title="Permanent link">Link</a>
+        </h2>
+        <h2 id="import-data">Import data<a class="headerlink" href="#import-data" title="Permanent link">Link</a></h2>
+        <p><img src="images/create_data.png"></p>
+        <h2 id="upload-from-dashboard">Upload from dashboard<a class="headerlink" href="#upload-from-dashboard"
+                                                               title="Permanent link">Link</a></h2>
+        <p>Upload one of these files:</p>
+        <table>
+            <thead>
+            <tr>
+                <th>File</th>
+                <th>Usage</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Schema JSON</td>
+                <td>Create schema and apis</td>
+            </tr>
+            <tr>
+                <td>CSV</td>
+                <td>Auto create entity and upload data</td>
+            </tr>
+            <tr>
+                <td>XLSX</td>
+                <td>Auto create entity and upload data</td>
+            </tr>
+            <tr>
+                <td>Data JSON</td>
+                <td>Upload data from dumps</td>
+            </tr>
+            </tbody>
+        </table>
+        <h2 id="tables">Tables<a class="headerlink" href="#tables" title="Permanent link">Link</a></h2>
+        <p>Tables are the basic data structure. Tables have columns. Each column has a particular data type. These
+            tables are exposed over APIs under the <code>/api/</code> path. Checkout <a href="setting-up/entities/">entity
+                documentation</a> for details.</p>
+        <div class="admonition note">
+            <p class="admonition-title">YAML example</p>
+            <div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Tables</span><span
+                    class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
   <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
-    <span class="l l-Scalar l-Scalar-Plain">IsIndexed</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-</pre></div>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">label</span>
+    <span class="l l-Scalar l-Scalar-Plain">IsIndexed</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">true</span>
+</pre>
+            </div>
 
-</div>
-<div class="admonition note">
-<p class="admonition-title">JSON example</p>
-<div class="codehilite"><pre><span></span><span class="p">{</span>
+        </div>
+        <div class="admonition note">
+            <p class="admonition-title">JSON example</p>
+            <div class="codehilite"><pre><span></span><span class="p">{</span>
   <span class="nt">&quot;Tables&quot;</span><span class="p">:</span> <span class="p">[</span>
     <span class="p">{</span>
-      <span class="nt">&quot;TableName&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;TableName&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;todo&quot;</span><span class="p">,</span>
       <span class="nt">&quot;Columns&quot;</span><span class="p">:</span> <span class="p">[</span>
         <span class="p">{</span>
-          <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;title&quot;</span><span class="p">,</span>
-          <span class="nt">&quot;DataType&quot;</span><span class="p">:</span> <span class="s2">&quot;varchar(500)&quot;</span><span class="p">,</span>
-          <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span class="s2">&quot;label&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;title&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;DataType&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;varchar(500)&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;label&quot;</span><span class="p">,</span>
           <span class="nt">&quot;IsIndexed&quot;</span><span class="p">:</span> <span class="kc">true</span>
         <span class="p">}</span>
       <span class="p">]</span>
     <span class="p">}</span>
   <span class="p">]</span>
 <span class="p">}</span>
-</pre></div>
+</pre>
+            </div>
 
-</div>
-<h2 id="relations">Relations<a class="headerlink" href="#relations" title="Permanent link">Link</a></h2>
-<p>Relations are constraints among tables and help you keep clean and consistent data. Relational data is easily accessible over APIs using a path structure like <code>/api/&lt;entityName&gt;/&lt;id&gt;/&lt;relationName&gt;</code> and the response is consistent with <a href="https://JSONAPI.org">JSONAPI.org</a>.</p>
-<div class="admonition note">
-<p class="admonition-title">YAML example</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Relations</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
-  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
-</pre></div>
+        </div>
+        <h2 id="relations">Relations<a class="headerlink" href="#relations" title="Permanent link">Link</a></h2>
+        <p>Relations are constraints among tables and help you keep clean and consistent data. Relational data is easily
+            accessible over APIs using a path structure like <code>/api/&lt;entityName&gt;/&lt;id&gt;/&lt;relationName&gt;</code>
+            and the response is consistent with <a href="https://JSONAPI.org">JSONAPI.org</a>.</p>
+        <div class="admonition note">
+            <p class="admonition-title">YAML example</p>
+            <div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Relations</span><span
+                    class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">has_one</span>
+  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">project</span>
+</pre>
+            </div>
 
-</div>
-<div class="admonition note">
-<p class="admonition-title">JSON example</p>
-<div class="codehilite"><pre><span></span><span class="p">{</span>
+        </div>
+        <div class="admonition note">
+            <p class="admonition-title">JSON example</p>
+            <div class="codehilite"><pre><span></span><span class="p">{</span>
   <span class="nt">&quot;Relations&quot;</span><span class="p">:</span> <span class="p">[</span>
     <span class="p">{</span>
-      <span class="nt">&quot;Subject&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;Relation&quot;</span><span class="p">:</span> <span class="s2">&quot;has_one&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Subject&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span
+                        class="p">,</span>
+      <span class="nt">&quot;Relation&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;has_one&quot;</span><span class="p">,</span>
       <span class="nt">&quot;Object&quot;</span><span class="p">:</span> <span class="s2">&quot;project&quot;</span>
     <span class="p">}</span>
   <span class="p">]</span>
 <span class="p">}</span>
-</pre></div>
+</pre>
+            </div>
 
-</div>
-<h2 id="actions">Actions<a class="headerlink" href="#actions" title="Permanent link">Link</a></h2>
-<p>Actions are entity dependent APIs which you want to expose which may have an outcome of events. Most basic example is the login action which generates an oauth2 token as an outcome.</p>
-<p>Use action to expose endpoints for your forms and processes. Here is an example of creating a "/action/project/new_task" API:</p>
-<div class="admonition note">
-<p class="admonition-title">New task action YAML</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Actions</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">new_task</span>
-  <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">New to do</span>
-  <span class="l l-Scalar l-Scalar-Plain">OnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
-  <span class="l l-Scalar l-Scalar-Plain">InstanceOptional</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+        </div>
+        <h2 id="actions">Actions<a class="headerlink" href="#actions" title="Permanent link">Link</a></h2>
+        <p>Actions are entity dependent APIs which you want to expose which may have an outcome of events. Most basic
+            example is the login action which generates an oauth2 token as an outcome.</p>
+        <p>Use action to expose endpoints for your forms and processes. Here is an example of creating a
+            "/action/project/new_task" API:</p>
+        <div class="admonition note">
+            <p class="admonition-title">New task action YAML</p>
+            <div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Actions</span><span
+                    class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">new_task</span>
+  <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">New to do</span>
+  <span class="l l-Scalar l-Scalar-Plain">OnType</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">project</span>
+  <span class="l l-Scalar l-Scalar-Plain">InstanceOptional</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">true</span>
   <span class="l l-Scalar l-Scalar-Plain">InFields</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">description</span>
-    <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Description</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">schedule</span>
-    <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Scheduled at</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">description</span>
+    <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Description</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">label</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">schedule</span>
+    <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Scheduled at</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">date</span>
   <span class="l l-Scalar l-Scalar-Plain">OutFields</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-    <span class="l l-Scalar l-Scalar-Plain">Method</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">POST</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Type</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+    <span class="l l-Scalar l-Scalar-Plain">Method</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">POST</span>
     <span class="l l-Scalar l-Scalar-Plain">Attributes</span><span class="p p-Indicator">:</span>
       <span class="l l-Scalar l-Scalar-Plain">schedule</span><span class="p p-Indicator">:</span> <span class="s">&quot;~schedule&quot;</span>
       <span class="l l-Scalar l-Scalar-Plain">title</span><span class="p p-Indicator">:</span> <span class="s">&quot;~description&quot;</span>
       <span class="l l-Scalar l-Scalar-Plain">project_id</span><span class="p p-Indicator">:</span> <span class="s">&quot;$.reference_id&quot;</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">client.notify</span>
-    <span class="l l-Scalar l-Scalar-Plain">Method</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">ACTIONRESPONSE</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Type</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">client.notify</span>
+    <span class="l l-Scalar l-Scalar-Plain">Method</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">ACTIONRESPONSE</span>
     <span class="l l-Scalar l-Scalar-Plain">Attributes</span><span class="p p-Indicator">:</span>
-      <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">success</span>
-      <span class="l l-Scalar l-Scalar-Plain">message</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Created new todo, taking you to it.</span>
-      <span class="l l-Scalar l-Scalar-Plain">title</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Wait for it</span>
-</pre></div>
+      <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">success</span>
+      <span class="l l-Scalar l-Scalar-Plain">message</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Created new todo, taking you to it.</span>
+      <span class="l l-Scalar l-Scalar-Plain">title</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Wait for it</span>
+</pre>
+            </div>
 
-</div>
-<div class="admonition note">
-<p class="admonition-title">New task action JSON</p>
-<div class="codehilite"><pre><span></span><span class="p">{</span>
+        </div>
+        <div class="admonition note">
+            <p class="admonition-title">New task action JSON</p>
+            <div class="codehilite"><pre><span></span><span class="p">{</span>
   <span class="nt">&quot;Actions&quot;</span><span class="p">:</span> <span class="p">[</span>
     <span class="p">{</span>
-      <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;new_task&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;Label&quot;</span><span class="p">:</span> <span class="s2">&quot;New to do&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;OnType&quot;</span><span class="p">:</span> <span class="s2">&quot;project&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;InstanceOptional&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+      <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;new_task&quot;</span><span
+                        class="p">,</span>
+      <span class="nt">&quot;Label&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;New to do&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;OnType&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;project&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;InstanceOptional&quot;</span><span class="p">:</span> <span class="kc">true</span><span
+                        class="p">,</span>
       <span class="nt">&quot;InFields&quot;</span><span class="p">:</span> <span class="p">[</span>
         <span class="p">{</span>
-          <span class="nt">&quot;ColumnName&quot;</span><span class="p">:</span> <span class="s2">&quot;description&quot;</span><span class="p">,</span>
-          <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;Description&quot;</span><span class="p">,</span>
-          <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span class="s2">&quot;label&quot;</span>
+          <span class="nt">&quot;ColumnName&quot;</span><span class="p">:</span> <span class="s2">&quot;description&quot;</span><span
+                        class="p">,</span>
+          <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;Description&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;label&quot;</span>
         <span class="p">},</span>
         <span class="p">{</span>
-          <span class="nt">&quot;ColumnName&quot;</span><span class="p">:</span> <span class="s2">&quot;schedule&quot;</span><span class="p">,</span>
-          <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;Scheduled at&quot;</span><span class="p">,</span>
-          <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span class="s2">&quot;date&quot;</span>
+          <span class="nt">&quot;ColumnName&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;schedule&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;Scheduled at&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;date&quot;</span>
         <span class="p">}</span>
       <span class="p">],</span>
       <span class="nt">&quot;OutFields&quot;</span><span class="p">:</span> <span class="p">[</span>
         <span class="p">{</span>
-          <span class="nt">&quot;Type&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span class="p">,</span>
-          <span class="nt">&quot;Method&quot;</span><span class="p">:</span> <span class="s2">&quot;POST&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;Type&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span
+                        class="p">,</span>
+          <span class="nt">&quot;Method&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;POST&quot;</span><span class="p">,</span>
           <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="nt">&quot;schedule&quot;</span><span class="p">:</span> <span class="s2">&quot;~schedule&quot;</span><span class="p">,</span>
-            <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;~description&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;schedule&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;~schedule&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;~description&quot;</span><span class="p">,</span>
             <span class="nt">&quot;project_id&quot;</span><span class="p">:</span> <span class="s2">&quot;$.reference_id&quot;</span>
           <span class="p">}</span>
         <span class="p">},</span>
         <span class="p">{</span>
-          <span class="nt">&quot;Type&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
-          <span class="nt">&quot;Method&quot;</span><span class="p">:</span> <span class="s2">&quot;ACTIONRESPONSE&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;Type&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;Method&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;ACTIONRESPONSE&quot;</span><span class="p">,</span>
           <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span><span class="p">,</span>
-            <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Created new todo, taking you to it.&quot;</span><span class="p">,</span>
-            <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Wait for it&quot;</span>
+            <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span><span
+                        class="p">,</span>
+            <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Created new todo, taking you to it.&quot;</span><span
+                        class="p">,</span>
+            <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span
+                        class="s2">&quot;Wait for it&quot;</span>
           <span class="p">}</span>
         <span class="p">}</span>
       <span class="p">]</span>
     <span class="p">}</span>
   <span class="p">]</span>
 <span class="p">}</span>
-</pre></div>
+</pre>
+            </div>
 
-</div>
-<h2 id="exchanges">Exchanges <img style="float: right" src="images/exchanges.png" class="cloud-provider"><a class="headerlink" href="#exchanges" title="Permanent link">Link</a></h2>
-<p>Exchanges are internal hooks to external apis, to either push data and update an external service, or pull data and update itself from some external service.</p>
-<p>Example, use exchange to sync data creation call to Google Sheets. So on every row created using the POST API also creates a corresponding row in your google sheet.</p>
-<div class="admonition note">
-<p class="admonition-title">Google drive exchange YAML</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Exchanges</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Task to excel sheet</span>
+        </div>
+        <h2 id="exchanges">Exchanges <img style="float: right" src="images/exchanges.png" class="cloud-provider"><a
+                class="headerlink" href="#exchanges" title="Permanent link">Link</a></h2>
+        <p>Exchanges are internal hooks to external apis, to either push data and update an external service, or pull
+            data and update itself from some external service.</p>
+        <p>Example, use exchange to sync data creation call to Google Sheets. So on every row created using the POST API
+            also creates a corresponding row in your google sheet.</p>
+        <div class="admonition note">
+            <p class="admonition-title">Google drive exchange YAML</p>
+            <div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Exchanges</span><span
+                    class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span
+                        class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Task to excel sheet</span>
   <span class="l l-Scalar l-Scalar-Plain">SourceAttributes</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-  <span class="l l-Scalar l-Scalar-Plain">SourceType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">self</span>
+    <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="l l-Scalar l-Scalar-Plain">SourceType</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">self</span>
   <span class="l l-Scalar l-Scalar-Plain">TargetAttributes</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">sheetUrl</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append</span>
-    <span class="l l-Scalar l-Scalar-Plain">appKey</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">AIzaSyAC2xame4NShrzH9ZJeEpWT5GkySooa0XM</span>
-  <span class="l l-Scalar l-Scalar-Plain">TargetType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">gsheet-append</span>
+    <span class="l l-Scalar l-Scalar-Plain">sheetUrl</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append</span>
+    <span class="l l-Scalar l-Scalar-Plain">appKey</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">AIzaSyAC2xame4NShrzH9ZJeEpWT5GkySooa0XM</span>
+  <span class="l l-Scalar l-Scalar-Plain">TargetType</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">gsheet-append</span>
   <span class="l l-Scalar l-Scalar-Plain">Attributes</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">SourceColumn</span><span class="p p-Indicator">:</span> <span class="s">&quot;$self.description&quot;</span>
-    <span class="l l-Scalar l-Scalar-Plain">TargetColumn</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Task description</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">SourceColumn</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">self.schedule</span>
-    <span class="l l-Scalar l-Scalar-Plain">TargetColumn</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Scheduled at</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">SourceColumn</span><span
+                        class="p p-Indicator">:</span> <span class="s">&quot;$self.description&quot;</span>
+    <span class="l l-Scalar l-Scalar-Plain">TargetColumn</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Task description</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">SourceColumn</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">self.schedule</span>
+    <span class="l l-Scalar l-Scalar-Plain">TargetColumn</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Scheduled at</span>
   <span class="l l-Scalar l-Scalar-Plain">Options</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">hasHeader</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-</pre></div>
+    <span class="l l-Scalar l-Scalar-Plain">hasHeader</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">true</span>
+</pre>
+            </div>
 
-</div>
-<h2 id="state-machine-apis">State Machine APIs<a class="headerlink" href="#state-machine-apis" title="Permanent link">Link</a></h2>
-<p>Using state machine descriptions with daptin expose couple of super useful apis to manage state based data.</p>
-<p>Enabling <code>task_status</code> state machine on <code>todo</code> entity will expose the following APIs</p>
-<div class="codehilite"><pre><span></span>POST /track/start/:stateMachineId <span class="o">{</span><span class="s2">&quot;typeName&quot;</span>: <span class="s2">&quot;todo&quot;</span>, <span class="s2">&quot;referenceId&quot;</span>: <span class="s2">&quot;objectId&quot;</span><span class="o">}</span> <span class="c1"># Start tracking a particular object by id</span>
-</pre></div>
+        </div>
+        <h2 id="state-machine-apis">State Machine APIs<a class="headerlink" href="#state-machine-apis"
+                                                         title="Permanent link">Link</a></h2>
+        <p>Using state machine descriptions with daptin expose couple of super useful apis to manage state based
+            data.</p>
+        <p>Enabling <code>task_status</code> state machine on <code>todo</code> entity will expose the following APIs
+        </p>
+        <div class="codehilite"><pre><span></span>POST /track/start/:stateMachineId <span class="o">{</span><span
+                class="s2">&quot;typeName&quot;</span>: <span class="s2">&quot;todo&quot;</span>, <span class="s2">&quot;referenceId&quot;</span>: <span
+                class="s2">&quot;objectId&quot;</span><span class="o">}</span> <span class="c1"># Start tracking a particular object by id</span>
+</pre>
+        </div>
 
-<p>This returns a state machine id.</p>
-<div class="codehilite"><pre><span></span>POST /track/event/:typename/:objectStateMachineId/:eventName <span class="o">{}</span> <span class="c1"># Trigger event on current state</span>
-</pre></div>
+        <p>This returns a state machine id.</p>
+        <div class="codehilite"><pre><span></span>POST /track/event/:typename/:objectStateMachineId/:eventName <span
+                class="o">{}</span> <span class="c1"># Trigger event on current state</span>
+</pre>
+        </div>
 
-<p>This either moves the object state to next state, or fails on invalid event name.</p>
-<p>Example, tracking the status of a task in a todo list, the description below describes the states it can take and the events.</p>
-<div class="admonition note">
-<p class="admonition-title">State machine description YAML</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">StateMachineDescriptions</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">task_status</span>
-  <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Task Status</span>
-  <span class="l l-Scalar l-Scalar-Plain">InitialState</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">to_be_done</span>
+        <p>This either moves the object state to next state, or fails on invalid event name.</p>
+        <p>Example, tracking the status of a task in a todo list, the description below describes the states it can take
+            and the events.</p>
+        <div class="admonition note">
+            <p class="admonition-title">State machine description YAML</p>
+            <div class="codehilite"><pre><span></span><span
+                    class="l l-Scalar l-Scalar-Plain">StateMachineDescriptions</span><span
+                    class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">task_status</span>
+  <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Task Status</span>
+  <span class="l l-Scalar l-Scalar-Plain">InitialState</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">to_be_done</span>
   <span class="l l-Scalar l-Scalar-Plain">Events</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">start</span>
-    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Start</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">start</span>
+    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Start</span>
     <span class="l l-Scalar l-Scalar-Plain">Src</span><span class="p p-Indicator">:</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">to_be_done</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">delayed</span>
-    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">started</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">delayed</span>
-    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Unable to pick up</span>
+    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">started</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">delayed</span>
+    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Unable to pick up</span>
     <span class="l l-Scalar l-Scalar-Plain">Src</span><span class="p p-Indicator">:</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">to_be_done</span>
-    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">delayed</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
-    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Record progress</span>
+    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">delayed</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
+    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Record progress</span>
     <span class="l l-Scalar l-Scalar-Plain">Src</span><span class="p p-Indicator">:</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">started</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
-    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">interrupted</span>
-    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Interrupted</span>
+    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">ongoing</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">interrupted</span>
+    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Interrupted</span>
     <span class="l l-Scalar l-Scalar-Plain">Src</span><span class="p p-Indicator">:</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">started</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
-    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">interrupted</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">resume</span>
-    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Resume from interruption</span>
+    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">interrupted</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">resume</span>
+    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Resume from interruption</span>
     <span class="l l-Scalar l-Scalar-Plain">Src</span><span class="p p-Indicator">:</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">interrupted</span>
-    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">completed</span>
-    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Mark as completed</span>
+    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">ongoing</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span
+                        class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">completed</span>
+    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">Mark as completed</span>
     <span class="l l-Scalar l-Scalar-Plain">Src</span><span class="p p-Indicator">:</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">started</span>
-    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">completed</span>
-</pre></div>
+    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span
+                        class="l l-Scalar l-Scalar-Plain">completed</span>
+</pre>
+            </div>
 
-</div>
-<h2 id="users-and-access">Users and access<a class="headerlink" href="#users-and-access" title="Permanent link">Link</a></h2>
-<p><img src="images/users_and_groups.png"></p>
-<p>Requests <strong>without</strong> a valid <code>Authorization Bearer</code> <code>token</code> will be referred to as "guests requests". Requests with a valid token will have an identified user.</p>
-<h2 id="user-registration-api">User registration API<a class="headerlink" href="#user-registration-api" title="Permanent link">Link</a></h2>
-<p>Sign up action can be allowed to guests to allow open registration by anyone. Users with enough permission over the <code>user</code> table can create users manually.</p>
-<p>Users registered using signup action are their own owners. Hence they can update and delete themselves. These permission can be changed based on the use case.</p>
-<div class="admonition note">
-<p class="admonition-title">POST call for user registration</p>
-<div class="codehilite"><pre><span></span>curl <span class="s1">&#39;http://api.daptin.com:6336/action/user/signup&#39;</span> <span class="se">\</span>
+        </div>
+        <h2 id="users-and-access">Users and access<a class="headerlink" href="#users-and-access" title="Permanent link">Link</a>
+        </h2>
+        <p><img src="images/users_and_groups.png"></p>
+        <p>Requests <strong>without</strong> a valid <code>Authorization Bearer</code> <code>token</code> will be
+            referred to as "guests requests". Requests with a valid token will have an identified user.</p>
+        <h2 id="user-registration-api">User registration API<a class="headerlink" href="#user-registration-api"
+                                                               title="Permanent link">Link</a></h2>
+        <p>Sign up action can be allowed to guests to allow open registration by anyone. Users with enough permission
+            over the <code>user</code> table can create users manually.</p>
+        <p>Users registered using signup action are their own owners. Hence they can update and delete themselves. These
+            permission can be changed based on the use case.</p>
+        <div class="admonition note">
+            <p class="admonition-title">POST call for user registration</p>
+            <div class="codehilite"><pre><span></span>curl <span class="s1">&#39;http://api.daptin.com:6336/action/user/signup&#39;</span> <span
+                    class="se">\</span>
 -H <span class="s1">&#39;Authorization: Bearer null&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Content-Type: application/json;charset=UTF-8&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Accept: application/json, text/plain, */*&#39;</span> <span class="se">\</span>
 --data-binary <span class="s1">&#39;{&quot;attributes&quot;:{&quot;name&quot;:&quot;username&quot;,&quot;email&quot;:&quot;&lt;UserEmail&gt;&quot;,&quot;password&quot;:&quot;&lt;Password&gt;&quot;,&quot;passwordConfirm&quot;:&quot;&lt;Password&gt;&quot;}}&#39;</span> 
-</pre></div>
+</pre>
+            </div>
 
-</div>
-<p>You can either allow guests to be able to invoke <code>sign up</code> action or allow only a particular user to be able to create new users or a usergroup.</p>
-<div class="codehilite"><pre><span></span><span class="p">[</span>
+        </div>
+        <p>You can either allow guests to be able to invoke <code>sign up</code> action or allow only a particular user
+            to be able to create new users or a usergroup.</p>
+        <div class="codehilite"><pre><span></span><span class="p">[</span>
   <span class="p">{</span>
-    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span
+                    class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
     <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Created user&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Success&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span
+                    class="s2">&quot;Created user&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Success&quot;</span><span
+                    class="p">,</span>
       <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span>
     <span class="p">}</span>
   <span class="p">}</span>
 <span class="p">]</span>
-</pre></div>
+</pre>
+        </div>
 
-<p>This user can sign in now (generate an auth token). But what he can access is again based on the permission of the system.</p>
-<h2 id="user-sign-in-api">User sign in API<a class="headerlink" href="#user-sign-in-api" title="Permanent link">Link</a></h2>
-<div class="admonition note">
-<p class="admonition-title">POST call for sign in</p>
-<div class="codehilite"><pre><span></span>curl <span class="s1">&#39;http://api.daptin.com:6336/action/user/signin&#39;</span> <span class="se">\</span>
+        <p>This user can sign in now (generate an auth token). But what he can access is again based on the permission
+            of the system.</p>
+        <h2 id="user-sign-in-api">User sign in API<a class="headerlink" href="#user-sign-in-api" title="Permanent link">Link</a>
+        </h2>
+        <div class="admonition note">
+            <p class="admonition-title">POST call for sign in</p>
+            <div class="codehilite"><pre><span></span>curl <span class="s1">&#39;http://api.daptin.com:6336/action/user/signin&#39;</span> <span
+                    class="se">\</span>
 -H <span class="s1">&#39;Content-Type: application/json;charset=UTF-8&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Accept: application/json, text/plain, */*&#39;</span> <span class="se">\</span>
 --data-binary <span class="s1">&#39;{&quot;attributes&quot;:{&quot;email&quot;:&quot;&lt;Email&gt;&quot;,&quot;password&quot;:&quot;&lt;Password&gt;&quot;}}&#39;</span>
-</pre></div>
+</pre>
+            </div>
 
-</div>
-<div class="codehilite"><pre><span></span><span class="p">[</span>
+        </div>
+        <div class="codehilite"><pre><span></span><span class="p">[</span>
   <span class="p">{</span>
-    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.store.set&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.store.set&quot;</span><span
+                    class="p">,</span>
     <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;token&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;AccessToken&gt;&quot;</span>
+      <span class="nt">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;token&quot;</span><span
+                    class="p">,</span>
+      <span class="nt">&quot;value&quot;</span><span class="p">:</span> <span
+                    class="s2">&quot;&lt;AccessToken&gt;&quot;</span>
     <span class="p">}</span>
   <span class="p">},</span>
   <span class="p">{</span>
-    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span
+                    class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
     <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Logged in&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Success&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span
+                    class="s2">&quot;Logged in&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Success&quot;</span><span
+                    class="p">,</span>
       <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span>
     <span class="p">}</span>
   <span class="p">},</span>
   <span class="p">{</span>
-    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.redirect&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.redirect&quot;</span><span
+                    class="p">,</span>
     <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;delay&quot;</span><span class="p">:</span> <span class="mi">2000</span><span class="p">,</span>
-      <span class="nt">&quot;location&quot;</span><span class="p">:</span> <span class="s2">&quot;/&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;delay&quot;</span><span class="p">:</span> <span class="mi">2000</span><span
+                    class="p">,</span>
+      <span class="nt">&quot;location&quot;</span><span class="p">:</span> <span class="s2">&quot;/&quot;</span><span
+                    class="p">,</span>
       <span class="nt">&quot;window&quot;</span><span class="p">:</span> <span class="s2">&quot;self&quot;</span>
     <span class="p">}</span>
   <span class="p">}</span>
 <span class="p">]</span>
-</pre></div>
-
-<h2 id="host-static-sites">Host static sites<a class="headerlink" href="#host-static-sites" title="Permanent link">Link</a></h2>
-<p><img src="images/subsite.png"></p>
-<p>Expose folders on cloud storage services as websites using your daptin instance.</p>
-<div class="admonition note">
-<p class="admonition-title">New subsite</p>
-<ul>
-<li>Select a cloud storage</li>
-<li>Choose a domain/sub-domain</li>
-<li>Choose a sub-path</li>
-</ul>
-</div>
-<p>Restart is required to reflect changes.</p>
-<h2 id="data-auditing">Data auditing<a class="headerlink" href="#data-auditing" title="Permanent link">Link</a></h2>
-<p>To enable recoding of all historical data for a particular entity, enable data audit for it in the worlds configuration.</p>
-<p>Audits are ready only and cannot be manipulated over api. You can configure the permission for your use case.</p>
-<h2 id="oauth-connection">OAuth Connection<a class="headerlink" href="#oauth-connection" title="Permanent link">Link</a></h2>
-<p><img src="images/oauth.png"></p>
-<p>Connecting to your cloud storage and external services requires authentication, OAuth covers a large number of those services.</p>
-<h1 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Permanent link">Link</a></h1>
-<h2 id="data">Data<a class="headerlink" href="#data" title="Permanent link">Link</a></h2>
-<ul>
-<li><a href="data-modeling/data_storage/">Data storage and table structures</a></li>
-<li><a href="data-modeling/auditing/">Auditing</a></li>
-<li><a href="data-modeling/data_validation/">Data validations</a></li>
-<li><a href="data-modeling/data_conformation/">Data conformations</a></li>
-<li><a href="data-modeling/state_tracking/">State tracking for entities</a></li>
-</ul>
-<h2 id="actions-and-streams">Actions and streams<a class="headerlink" href="#actions-and-streams" title="Permanent link">Link</a></h2>
-<ul>
-<li><a href="actions-streams/actions/">Actions</a></li>
-<li><a href="actions-streams/streams/">Data streams</a></li>
-<li><a href="extend/oauth_connection/">Oauth connections</a></li>
-<li><a href="extend/oauth_token/">Oauth tokens</a></li>
-</ul>
-<h2 id="authentication-and-authorization">Authentication and Authorization<a class="headerlink" href="#authentication-and-authorization" title="Permanent link">Link</a></h2>
-<ul>
-<li><a href="auth/users_and_usergroups/">Users and user groups</a></li>
-<li><a href="auth/authentication/">Authentication</a></li>
-<li><a href="auth/authorization/">Authorization</a></li>
-<li><a href="auth/permissions/">Permissions</a></li>
-</ul>
-<h2 id="external-apis-and-integrations">External APIs and integrations<a class="headerlink" href="#external-apis-and-integrations" title="Permanent link">Link</a></h2>
-<ul>
-<li>Interacting with third party APIs</li>
-<li>Storage connectors</li>
-</ul>
-<h2 id="sub-sites-marketplace">Sub-sites, Marketplace<a class="headerlink" href="#sub-sites-marketplace" title="Permanent link">Link</a></h2>
-<ul>
-<li><a href="subsite/subsite/">Sub sites</a></li>
-<li>Json schemas</li>
-</ul></div>
+</pre>
         </div>
 
-        <footer class="col-md-12">
-            <hr>
-            <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
-        </footer>
-        <script>var base_url = '.';</script>
-        <script src="./js/base.js"></script>
-        <script src="./search/require.js"></script>
-        <script src="./search/search.js"></script>
+        <h2 id="host-static-sites">Host static sites<a class="headerlink" href="#host-static-sites"
+                                                       title="Permanent link">Link</a></h2>
+        <p><img src="images/subsite.png"></p>
+        <p>Expose folders on cloud storage services as websites using your daptin instance.</p>
+        <div class="admonition note">
+            <p class="admonition-title">New subsite</p>
+            <ul>
+                <li>Select a cloud storage</li>
+                <li>Choose a domain/sub-domain</li>
+                <li>Choose a sub-path</li>
+            </ul>
+        </div>
+        <p>Restart is required to reflect changes.</p>
+        <h2 id="data-auditing">Data auditing<a class="headerlink" href="#data-auditing" title="Permanent link">Link</a>
+        </h2>
+        <p>To enable recoding of all historical data for a particular entity, enable data audit for it in the worlds
+            configuration.</p>
+        <p>Audits are ready only and cannot be manipulated over api. You can configure the permission for your use
+            case.</p>
+        <h2 id="oauth-connection">OAuth Connection<a class="headerlink" href="#oauth-connection" title="Permanent link">Link</a>
+        </h2>
+        <p><img src="images/oauth.png"></p>
+        <p>Connecting to your cloud storage and external services requires authentication, OAuth covers a large number
+            of those services.</p>
+        <h1 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Permanent link">Link</a></h1>
+        <h2 id="data">Data<a class="headerlink" href="#data" title="Permanent link">Link</a></h2>
+        <ul>
+            <li><a href="data-modeling/data_storage/">Data storage and table structures</a></li>
+            <li><a href="data-modeling/auditing/">Auditing</a></li>
+            <li><a href="data-modeling/data_validation/">Data validations</a></li>
+            <li><a href="data-modeling/data_conformation/">Data conformations</a></li>
+            <li><a href="data-modeling/state_tracking/">State tracking for entities</a></li>
+        </ul>
+        <h2 id="actions-and-streams">Actions and streams<a class="headerlink" href="#actions-and-streams"
+                                                           title="Permanent link">Link</a></h2>
+        <ul>
+            <li><a href="actions-streams/actions/">Actions</a></li>
+            <li><a href="actions-streams/streams/">Data streams</a></li>
+            <li><a href="extend/oauth_connection/">Oauth connections</a></li>
+            <li><a href="extend/oauth_token/">Oauth tokens</a></li>
+        </ul>
+        <h2 id="authentication-and-authorization">Authentication and Authorization<a class="headerlink"
+                                                                                     href="#authentication-and-authorization"
+                                                                                     title="Permanent link">Link</a>
+        </h2>
+        <ul>
+            <li><a href="auth/users_and_usergroups/">Users and user groups</a></li>
+            <li><a href="auth/authentication/">Authentication</a></li>
+            <li><a href="auth/authorization/">Authorization</a></li>
+            <li><a href="auth/permissions/">Permissions</a></li>
+        </ul>
+        <h2 id="external-apis-and-integrations">External APIs and integrations<a class="headerlink"
+                                                                                 href="#external-apis-and-integrations"
+                                                                                 title="Permanent link">Link</a></h2>
+        <ul>
+            <li>Interacting with third party APIs</li>
+            <li>Storage connectors</li>
+        </ul>
+        <h2 id="sub-sites-marketplace">Sub-sites, Marketplace<a class="headerlink" href="#sub-sites-marketplace"
+                                                                title="Permanent link">Link</a></h2>
+        <ul>
+            <li><a href="subsite/subsite/">Sub sites</a></li>
+            <li>Json schemas</li>
+        </ul>
+    </div>
+</div>
 
-        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+<footer class="col-md-12">
+    <hr>
+    <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+</footer>
+<script>var base_url = '.';</script>
+<script src="./js/base.js"></script>
+<script src="./search/require.js"></script>
+<script src="./search/search.js"></script>
+
+<div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal"
+     aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span
+                        class="sr-only">Close</span></button>
                 <h4 class="modal-title" id="exampleModalLabel">Search</h4>
             </div>
             <div class="modal-body">
@@ -635,40 +806,43 @@
             </div>
         </div>
     </div>
-</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="Keyboard Shortcuts Modal" aria-hidden="true">
+</div>
+<div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="Keyboard Shortcuts Modal"
+     aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span
+                        class="sr-only">Close</span></button>
                 <h4 class="modal-title" id="exampleModalLabel">Keyboard Shortcuts</h4>
             </div>
             <div class="modal-body">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th style="width: 20%;">Keys</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><kbd>?</kbd></td>
-                    <td>Open this help</td>
-                  </tr>
-                  <tr>
-                    <td><kbd>&larr;</kbd></td>
-                    <td>Previous page</td>
-                  </tr>
-                  <tr>
-                    <td><kbd>&rarr;</kbd></td>
-                    <td>Next page</td>
-                  </tr>
-                  <tr>
-                    <td><kbd>s</kbd></td>
-                    <td>Search</td>
-                  </tr>
-                </tbody>
-              </table>
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th style="width: 20%;">Keys</th>
+                        <th>Action</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><kbd>?</kbd></td>
+                        <td>Open this help</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>&larr;</kbd></td>
+                        <td>Previous page</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>&rarr;</kbd></td>
+                        <td>Next page</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>s</kbd></td>
+                        <td>Search</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
             <div class="modal-footer">
             </div>
@@ -677,7 +851,7 @@
 </div>
 
 
-    </body>
+</body>
 </html>
 
 <!--
