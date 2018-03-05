@@ -19,7 +19,7 @@ docker-compose up -d --force-recreate
 ip=`docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' daptin`
 
 
-until $(curl --output /dev/null --silent --fail http://$ip:8080/api/user); do
+until $(curl http://$ip:8080/api/user); do
     ip=`docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' daptin`
     printf '.'
     sleep 5
