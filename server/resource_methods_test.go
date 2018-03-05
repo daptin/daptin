@@ -1,9 +1,8 @@
-package resource
+package server
 
 import (
 	"database/sql"
 	"github.com/artpar/api2go"
-	"github.com/daptin/daptin/server"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/oauth2"
@@ -11,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"github.com/daptin/daptin/server/resource"
 )
 
 func GetDb() *InMemoryTestDatabase {
@@ -25,66 +25,66 @@ func GetDb() *InMemoryTestDatabase {
 
 }
 
-func GetResource() (*InMemoryTestDatabase, *DbResource) {
+func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	wrapper := GetDb()
 
-	configStore, _ := NewConfigStore(wrapper)
+	configStore, _ := resource.NewConfigStore(wrapper)
 
-	initConfig, _ := server.LoadConfigFiles()
+	initConfig, _ := LoadConfigFiles()
 
-	existingTables, _ := server.GetTablesFromWorld(wrapper)
+	existingTables, _ := GetTablesFromWorld(wrapper)
 	//initConfig.Tables = append(initConfig.Tables, existingTables...)
 
-	allTables := server.MergeTables(existingTables, initConfig.Tables)
+	allTables := MergeTables(existingTables, initConfig.Tables)
 
 	initConfig.Tables = allTables
 
-	cruds := make(map[string]*DbResource)
+	cruds := make(map[string]*resource.DbResource)
 
-	ms := server.BuildMiddlewareSet(&initConfig, cruds)
+	ms := BuildMiddlewareSet(&initConfig, cruds)
 	for _, table := range initConfig.Tables {
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
-		res := NewDbResource(model, wrapper, &ms, cruds, configStore, &table)
+		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, &table)
 		cruds[table.TableName] = res
 	}
 
-	CheckRelations(&initConfig)
-	CheckAuditTables(&initConfig)
+	resource.CheckRelations(&initConfig)
+	resource.CheckAuditTables(&initConfig)
 	//AddStateMachines(&initConfig, wrapper)
 	tx, errb := wrapper.Beginx()
 	//_, errb := db.Exec("begin")
-	CheckErr(errb, "Failed to begin transaction")
+	resource.CheckErr(errb, "Failed to begin transaction")
 
-	CheckAllTableStatus(&initConfig, wrapper, tx)
-	CreateRelations(&initConfig, tx)
-	CreateUniqueConstraints(&initConfig, tx)
-	CreateIndexes(&initConfig, tx)
-	UpdateWorldTable(&initConfig, tx)
-	UpdateWorldColumnTable(&initConfig, tx)
+	resource.CheckAllTableStatus(&initConfig, wrapper, tx)
+	resource.CreateRelations(&initConfig, tx)
+	resource.CreateUniqueConstraints(&initConfig, tx)
+	resource.CreateIndexes(&initConfig, tx)
+	resource.UpdateWorldTable(&initConfig, tx)
+	resource.UpdateWorldColumnTable(&initConfig, tx)
 	errc := tx.Commit()
-	CheckErr(errc, "Failed to commit transaction")
+	resource.CheckErr(errc, "Failed to commit transaction")
 
-	UpdateStateMachineDescriptions(&initConfig, wrapper)
-	UpdateExchanges(&initConfig, wrapper)
-	UpdateStreams(&initConfig, wrapper)
-	UpdateMarketplaces(&initConfig, wrapper)
-	UpdateStandardData(&initConfig, wrapper)
+	resource.UpdateStateMachineDescriptions(&initConfig, wrapper)
+	resource.UpdateExchanges(&initConfig, wrapper)
+	resource.UpdateStreams(&initConfig, wrapper)
+	resource.UpdateMarketplaces(&initConfig, wrapper)
+	resource.UpdateStandardData(&initConfig, wrapper)
 
-	err := UpdateActionTable(&initConfig, wrapper)
-	CheckErr(err, "Failed to update action table")
+	err := resource.UpdateActionTable(&initConfig, wrapper)
+	resource.CheckErr(err, "Failed to update action table")
 
-	dbResource := NewDbResource(nil, wrapper, &ms, cruds, configStore, &TableInfo{})
+	dbResource := resource.NewDbResource(nil, wrapper, &ms, cruds, configStore, &resource.TableInfo{})
 	return wrapper, dbResource
 }
-func GetResourceWithName(name string) (*InMemoryTestDatabase, *DbResource) {
+func GetResourceWithName(name string) (*InMemoryTestDatabase, *resource.DbResource) {
 	wrapper := GetDb()
 
 	cols := []api2go.ColumnInfo{}
 	model := api2go.NewApi2GoModel(name, cols, 0, nil)
-	tableInfo := &TableInfo{
+	tableInfo := &resource.TableInfo{
 		TableName: name,
 	}
-	dbResource := NewDbResource(model, wrapper, nil, nil, nil, tableInfo)
+	dbResource := resource.NewDbResource(model, wrapper, nil, nil, nil, tableInfo)
 	return wrapper, dbResource
 }
 
