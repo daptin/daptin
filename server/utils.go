@@ -51,7 +51,7 @@ func InArrayIndex(val interface{}, array interface{}) (index int) {
 	return
 }
 
-func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource) {
+func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource) (map[string]*resource.DbResource) {
 	for _, table := range tables {
 		//log.Infof("Table [%v] Relations: %v", table.TableName)
 
@@ -69,6 +69,8 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 		cruds[table.TableName] = res
 		api.AddResource(model, res)
 	}
+
+	return cruds
 }
 
 func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, error) {

@@ -140,7 +140,7 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 	)
 
 	ms := BuildMiddlewareSet(&initConfig, cruds)
-	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, cruds)
+	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, cruds)
 
 	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend")
 	if err != nil {
