@@ -145,7 +145,7 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend")
 	if err != nil {
 		rcloneRetries = 5
-		configStore.SetConfigValueFor("rclone.retries", rcloneRetries, "backend")
+		configStore.SetConfigIntValueFor("rclone.retries", rcloneRetries, "backend")
 	}
 	cmd.SetRetries(&rcloneRetries)
 
