@@ -12,6 +12,7 @@ import (
 func GetDbConnection(dbType string, connectionString string) (*sqlx.DB, error) {
 	return sqlx.Open(dbType, connectionString)
 }
+
 //
 //func GetCasbinAdapter(dbType string, connectionString string) (*xormadapter.Adapter) {
 //	a := xormadapter.NewAdapter(dbType, connectionString) // Your driver and data source.
@@ -23,5 +24,3 @@ func GetDbConnection(dbType string, connectionString string) (*sqlx.DB, error) {
 //
 //	return e
 //}
-
-

@@ -30,8 +30,8 @@ type ExchangeContract struct {
 	TargetType       string                 `db:"target_type"`
 	Attributes       []ColumnMap            `db:"attributes"`
 	Options          map[string]interface{}
-	ReferenceId      string `db:"reference_id"`
-	OauthTokenId     *int64 `db:"oauth_token_id"`
+	ReferenceId      string                 `db:"reference_id"`
+	OauthTokenId     *int64                 `db:"oauth_token_id"`
 }
 
 var objectSuffix = []byte("{")

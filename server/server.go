@@ -17,6 +17,7 @@ import (
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/daptin/daptin/server/database"
+	"github.com/artpar/rclone/cmd"
 )
 
 var Stats = stats.New()
@@ -140,6 +141,13 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 
 	ms := BuildMiddlewareSet(&initConfig, cruds)
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, cruds)
+
+	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend")
+	if err != nil {
+		rcloneRetries = 5
+		configStore.SetConfigValueFor("rclone.retries", rcloneRetries, "backend")
+	}
+	cmd.SetRetries(&rcloneRetries)
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
