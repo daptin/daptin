@@ -113,7 +113,7 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 	} else {
 		responseMap["body"] = string(response.Body())
 	}
-	log.Printf("Reponse body [%v][%v]: %v", methodString, urlString, responseMap["body"])
+	log.Printf("Response body [%v][%v]: %v", methodString, urlString, responseMap["body"])
 	responseMap["headers"] = responseHeaders
 
 	return nil, []ActionResponse{{

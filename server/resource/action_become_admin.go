@@ -5,6 +5,9 @@ import (
 	"github.com/artpar/api2go"
 )
 
+/**
+    Become administrator of the instance
+ */
 type BecomeAdminActionPerformer struct {
 	responseAttrs map[string]interface{}
 	cruds         map[string]*DbResource
@@ -19,7 +22,7 @@ func (d *BecomeAdminActionPerformer) DoAction(request ActionRequest, inFieldMap 
 	if !d.cruds["world"].CanBecomeAdmin() {
 		return nil, nil, []error{errors.New("Unauthorized")}
 	}
- 	u := inFieldMap["user"]
+	u := inFieldMap["user"]
 	if u == nil {
 		return nil, nil, []error{errors.New("Unauthorized")}
 	}
