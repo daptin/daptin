@@ -183,6 +183,25 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 	return val, err
 }
 
+func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, error) {
+	var val int
+
+	s, v, err := squirrel.Select("value").
+		From(settingsTableName).
+		Where(squirrel.Eq{"name": key}).
+		Where(squirrel.Eq{"configstate": "enabled"}).
+		Where(squirrel.Eq{"configenv": c.defaultEnv}).
+		Where(squirrel.Eq{"configtype": configtype}).ToSql()
+
+	CheckErr(err, "Failed to create config select query")
+
+	err = c.db.QueryRowx(s, v...).Scan(&val)
+	if err != nil {
+		log.Infof("Failed to scan config value: ", err)
+	}
+	return val, err
+}
+
 func (c *ConfigStore) GetWebConfig() map[string]string {
 
 	s, v, err := squirrel.Select("name", "value").
@@ -210,7 +229,7 @@ func (c *ConfigStore) GetWebConfig() map[string]string {
 
 }
 
-func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype string) error {
+func (c *ConfigStore) SetConfigValueFor(key string, val int, configtype string) error {
 	var previousValue string
 
 	s, v, err := squirrel.Select("value").
@@ -222,7 +241,7 @@ func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype strin
 
 	CheckErr(err, "Failed to create config select query")
 
-	err = c.db.QueryRowx(s, v...).Scan(&val)
+	err = c.db.QueryRowx(s, v...).Scan(&previousValue)
 
 	if err != nil {
 
@@ -256,6 +275,7 @@ func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype strin
 	}
 
 }
+
 
 func NewConfigStore(db database.DatabaseConnection) (*ConfigStore, error) {
 	var cs ConfigStore
