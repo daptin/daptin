@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server"
-	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/oauth2"
@@ -26,10 +25,10 @@ func GetDb() *InMemoryTestDatabase {
 
 }
 
-func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
+func GetResource() (*InMemoryTestDatabase, *DbResource) {
 	wrapper := GetDb()
 
-	configStore, _ := resource.NewConfigStore(wrapper)
+	configStore, _ := NewConfigStore(wrapper)
 
 	initConfig, _ := server.LoadConfigFiles()
 
@@ -40,52 +39,52 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 
 	initConfig.Tables = allTables
 
-	cruds := make(map[string]*resource.DbResource)
+	cruds := make(map[string]*DbResource)
 
 	ms := server.BuildMiddlewareSet(&initConfig, cruds)
 	for _, table := range initConfig.Tables {
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
-		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, &table)
+		res := NewDbResource(model, wrapper, &ms, cruds, configStore, &table)
 		cruds[table.TableName] = res
 	}
 
-	resource.CheckRelations(&initConfig)
-	resource.CheckAuditTables(&initConfig)
+	CheckRelations(&initConfig)
+	CheckAuditTables(&initConfig)
 	//AddStateMachines(&initConfig, wrapper)
 	tx, errb := wrapper.Beginx()
 	//_, errb := db.Exec("begin")
-	resource.CheckErr(errb, "Failed to begin transaction")
+	CheckErr(errb, "Failed to begin transaction")
 
-	resource.CheckAllTableStatus(&initConfig, wrapper, tx)
-	resource.CreateRelations(&initConfig, tx)
-	resource.CreateUniqueConstraints(&initConfig, tx)
-	resource.CreateIndexes(&initConfig, tx)
-	resource.UpdateWorldTable(&initConfig, tx)
-	resource.UpdateWorldColumnTable(&initConfig, tx)
+	CheckAllTableStatus(&initConfig, wrapper, tx)
+	CreateRelations(&initConfig, tx)
+	CreateUniqueConstraints(&initConfig, tx)
+	CreateIndexes(&initConfig, tx)
+	UpdateWorldTable(&initConfig, tx)
+	UpdateWorldColumnTable(&initConfig, tx)
 	errc := tx.Commit()
-	resource.CheckErr(errc, "Failed to commit transaction")
+	CheckErr(errc, "Failed to commit transaction")
 
-	resource.UpdateStateMachineDescriptions(&initConfig, wrapper)
-	resource.UpdateExchanges(&initConfig, wrapper)
-	resource.UpdateStreams(&initConfig, wrapper)
-	resource.UpdateMarketplaces(&initConfig, wrapper)
-	resource.UpdateStandardData(&initConfig, wrapper)
+	UpdateStateMachineDescriptions(&initConfig, wrapper)
+	UpdateExchanges(&initConfig, wrapper)
+	UpdateStreams(&initConfig, wrapper)
+	UpdateMarketplaces(&initConfig, wrapper)
+	UpdateStandardData(&initConfig, wrapper)
 
-	err := resource.UpdateActionTable(&initConfig, wrapper)
-	resource.CheckErr(err, "Failed to update action table")
+	err := UpdateActionTable(&initConfig, wrapper)
+	CheckErr(err, "Failed to update action table")
 
-	dbResource := resource.NewDbResource(nil, wrapper, &ms, cruds, configStore, &resource.TableInfo{})
+	dbResource := NewDbResource(nil, wrapper, &ms, cruds, configStore, &TableInfo{})
 	return wrapper, dbResource
 }
-func GetResourceWithName(name string) (*InMemoryTestDatabase, *resource.DbResource) {
+func GetResourceWithName(name string) (*InMemoryTestDatabase, *DbResource) {
 	wrapper := GetDb()
 
 	cols := []api2go.ColumnInfo{}
 	model := api2go.NewApi2GoModel(name, cols, 0, nil)
-	tableInfo := &resource.TableInfo{
+	tableInfo := &TableInfo{
 		TableName: name,
 	}
-	dbResource := resource.NewDbResource(model, wrapper, nil, nil, nil, tableInfo)
+	dbResource := NewDbResource(model, wrapper, nil, nil, nil, tableInfo)
 	return wrapper, dbResource
 }
 
