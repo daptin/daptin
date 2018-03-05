@@ -276,6 +276,7 @@ func (c *ConfigStore) SetConfigValueFor(key string, val int, configtype string) 
 
 }
 
+
 func NewConfigStore(db database.DatabaseConnection) (*ConfigStore, error) {
 	var cs ConfigStore
 	s, v, err := squirrel.Select("count(*)").From(settingsTableName).ToSql()
