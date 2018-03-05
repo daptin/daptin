@@ -20,7 +20,7 @@ script: go get github.com/GeertJohan/go.rice/rice && ls -lah && curl https://gli
 
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
-    cd docker_dir && docker built -t daptin/daptin:travis . && cd ..;
+    cd docker_dir && docker build -t daptin/daptin:travis . && cd ..;
     docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
     docker push daptin/daptin:travis;
     fi
