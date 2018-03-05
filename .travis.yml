@@ -9,9 +9,6 @@ cache:
   directories:
     - "daptinweb/node_modules"
 
-script:
-  - go test -race -coverprofile=coverage.txt -covermode=atomic
-
 services:
   - docker
 
@@ -24,6 +21,7 @@ after_success:
     docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
     docker push daptin/daptin:travis;
     fi
+  - go get -t ./... && go test ./... -race -coverprofile=coverage.txt -covermode=atomic
   - bash <(curl -s https://codecov.io/bash)
   - cat /home/travis/gopath/src/github.com/daptin/daptin/coverage.txt
 
