@@ -15,7 +15,7 @@ script:
 services:
   - docker
 
-script: go get github.com/GeertJohan/go.rice/rice && cd daptinweb && npm run build && cd .. && rice embed-go && ls -lah && go build -o docker_dir/main && cp Dockerfile docker_dir/Dockerfile
+script: go get github.com/GeertJohan/go.rice/rice && cd daptinweb && npm install && npm run build && cd .. && rice embed-go && ls -lah && go build -o docker_dir/main && cp Dockerfile docker_dir/Dockerfile
 
 
 after_success:
