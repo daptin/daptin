@@ -85,7 +85,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 			resource.CheckErr(err, "Failed to create audit for [%v]", objectStateMachine.GetTableName())
 		}
 
-		s, v, err := squirrel.Update(typename+"_state").
+		s, v, err := squirrel.Update(typename + "_state").
 			Set("current_state", nextState).
 			Set("version", stateObject["version"].(int64)+1).
 			Where(squirrel.Eq{"reference_id": stateMachineId}).ToSql()

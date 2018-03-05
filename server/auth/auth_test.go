@@ -9,9 +9,9 @@ func TestAllPermission(t *testing.T) {
 
 	perm1 := NewPermission(Read, Read|Create|Update, CRUD)
 	perm2 := NewPermission(Create|Read|Refer, Read|Update|Execute, Create|Read|Refer|Update)
-	perm3 := NewPermission(None, Read | Execute, CRUD | Execute)
-	perm4 := NewPermission(Read, Read | Execute, CRUD | Execute)
-	perm5 := NewPermission(Peek | ExecuteStrict, Read | Execute, CRUD | Execute)
+	perm3 := NewPermission(None, Read|Execute, CRUD|Execute)
+	perm4 := NewPermission(Read, Read|Execute, CRUD|Execute)
+	perm5 := NewPermission(Peek|ExecuteStrict, Read|Execute, CRUD|Execute)
 
 	tperm1 := ParsePermission(perm1.IntValue())
 	tperm2 := ParsePermission(perm2.IntValue())
