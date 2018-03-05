@@ -20,11 +20,12 @@ script: go get github.com/GeertJohan/go.rice/rice && ls -lah && curl https://gli
 
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
-    cd docker_dir && docker build -t daptin/daptin:travis . && cd ..;
+    cp Dockerfile docker_dir/Dockerfile && cd docker_dir && docker build -t daptin/daptin:travis . && cd ..;
     docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
     docker push daptin/daptin:travis;
     fi
   - bash <(curl -s https://codecov.io/bash)
+  - cat /home/travis/gopath/src/github.com/daptin/daptin/coverage.txt
 
 notifications:
   email: false
