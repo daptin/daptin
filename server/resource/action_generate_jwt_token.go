@@ -2,13 +2,13 @@ package resource
 
 import (
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
+	"github.com/dgrijalva/jwt-go"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"strings"
 	"time"
-	"github.com/artpar/api2go"
 )
 
 type GenerateJwtTokenActionPerformer struct {

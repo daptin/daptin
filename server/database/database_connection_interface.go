@@ -1,8 +1,8 @@
 package database
 
 import (
-	"github.com/jmoiron/sqlx"
 	"database/sql"
+	"github.com/jmoiron/sqlx"
 )
 
 type DatabaseConnection interface {

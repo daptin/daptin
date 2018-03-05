@@ -1,21 +1,21 @@
 package main
 
 import (
-	"github.com/daptin/daptin/server"
-	"github.com/gocraft/health"
-	"log"
+	"flag"
 	"fmt"
 	"github.com/GeertJohan/go.rice"
+	"github.com/artpar/goagain"
+	"github.com/daptin/daptin/server"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/gin-gonic/gin"
+	"github.com/gocraft/health"
+	"github.com/jamiealquiza/envy"
+	"log"
+	"net"
 	"net/http"
 	"os"
-	"syscall"
-	"flag"
-	"github.com/artpar/goagain"
-	"github.com/gin-gonic/gin"
-	"github.com/jamiealquiza/envy"
-	"net"
 	"sync"
+	"syscall"
 )
 
 // Save the stream as a global variable
@@ -49,8 +49,6 @@ func main() {
 	resource.CheckErr(err, "Failed to open %s/static", assetsSource)
 	boxRoot1, err := rice.FindBox("daptinweb/dist/")
 	resource.CheckErr(err, "Failed to open %s", webDashboardSource)
-
-
 
 	var assetsStatic, boxRoot http.FileSystem
 	if err != nil {

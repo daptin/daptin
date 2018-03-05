@@ -4,11 +4,11 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	//"golang.org/x/oauth2"
+	"github.com/artpar/api2go"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/oauth2"
 	"time"
-	"github.com/artpar/api2go"
 )
 
 type OauthLoginBeginActionPerformer struct {

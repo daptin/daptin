@@ -399,7 +399,7 @@ func CreateActionResponse(action resource.Action) map[string]interface{} {
 
 		attrs := CreateActionResponseTypeAttributes(outcome)
 
-		for key, _ := range attrs {
+		for key := range attrs {
 			resp[key] = "string"
 		}
 	}
@@ -407,11 +407,9 @@ func CreateActionResponse(action resource.Action) map[string]interface{} {
 	return resp
 }
 func CreateActionResponseTypeAttributes(outcome resource.Outcome) map[string]interface{} {
-	properties := map[string]interface{}{
+	properties := map[string]interface{}{}
 
-	}
-
-	for attrName, _ := range outcome.Attributes {
+	for attrName := range outcome.Attributes {
 		properties[attrName] = "string"
 	}
 

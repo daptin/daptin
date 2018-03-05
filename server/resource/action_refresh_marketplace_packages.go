@@ -2,8 +2,8 @@ package resource
 
 import (
 	//"golang.org/x/oauth2"
-	log "github.com/sirupsen/logrus"
 	"github.com/artpar/api2go"
+	log "github.com/sirupsen/logrus"
 )
 
 type RefreshMarketplacePackagelistPerformer struct {

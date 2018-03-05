@@ -2,8 +2,8 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
-	"github.com/jmoiron/sqlx"
 	"github.com/daptin/daptin/server/database"
+	"github.com/jmoiron/sqlx"
 )
 
 type DbResource struct {

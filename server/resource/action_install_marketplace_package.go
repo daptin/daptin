@@ -4,10 +4,10 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	//"golang.org/x/oauth2"
+	"github.com/artpar/api2go"
 	"io"
 	"io/ioutil"
 	"os"
-	"github.com/artpar/api2go"
 )
 
 type MarketplacePackageInstallActionPerformer struct {

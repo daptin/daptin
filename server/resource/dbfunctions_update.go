@@ -1,13 +1,18 @@
 package resource
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"github.com/alexeyco/simpletable"
 	"github.com/artpar/api2go"
-	"github.com/daptin/daptin/server/auth"
-	"github.com/jmoiron/sqlx"
 	"github.com/artpar/go.uuid"
+	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/database"
+	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/tealeg/xlsx"
 	"gopkg.in/Masterminds/squirrel.v1"
@@ -15,11 +20,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"github.com/alexeyco/simpletable"
-	"encoding/csv"
-	"bytes"
-	"github.com/pkg/errors"
-	"github.com/daptin/daptin/server/database"
 )
 
 func (resource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken string, expiresIn int64) error {
@@ -328,9 +328,9 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 			s, v, err = squirrel.
 				Insert("data_exchange").
 				Columns("permission", "name", "source_attributes", "source_type", "target_attributes", "target_type",
-				"attributes", "options", "created_at", "user_id", "reference_id").
+					"attributes", "options", "created_at", "user_id", "reference_id").
 				Values(auth.DEFAULT_PERMISSION, exchange.Name, sourceAttrsJson, exchange.SourceType, targetAttrsJson, exchange.TargetType,
-				attrsJson, optionsJson, time.Now(), adminId, u.String()).
+					attrsJson, optionsJson, time.Now(), adminId, u.String()).
 				ToSql()
 
 			_, err = db.Exec(s, v...)
@@ -730,7 +730,7 @@ func ImportDataFiles(initConfig *CmsConfig, db database.DatabaseConnection, crud
 
 }
 
-func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api2go.Request) ([]error) {
+func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api2go.Request) []error {
 	errs := make([]error, 0)
 	for _, row := range data {
 		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, row)
@@ -742,7 +742,7 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 	return errs
 }
 
-func ImportDataStringArray(data [][]string, headers []string, entityName string, crud *DbResource, req api2go.Request) ([]error) {
+func ImportDataStringArray(data [][]string, headers []string, entityName string, crud *DbResource, req api2go.Request) []error {
 	errs := make([]error, 0)
 	for _, rowArray := range data {
 

@@ -2,10 +2,10 @@ package websockets
 
 import (
 	"fmt"
-	"io"
-	"golang.org/x/net/websocket"
-	log "github.com/sirupsen/logrus"
 	"github.com/daptin/daptin/server/auth"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/websocket"
+	"io"
 )
 
 const channelBufSize = 100

@@ -1,12 +1,12 @@
 package resource
 
 import (
+	"fmt"
+	"github.com/pkg/errors"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"regexp"
-	"github.com/pkg/errors"
-	"fmt"
-	"strings"
 	"sort"
+	"strings"
 )
 
 type TimeStamp string

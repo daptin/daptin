@@ -2,8 +2,8 @@ package resource
 
 import (
 	"fmt"
-	"github.com/icrowley/fake"
 	"github.com/artpar/go.uuid"
+	"github.com/icrowley/fake"
 	validator2 "gopkg.in/go-playground/validator.v9"
 	"math/rand"
 	"time"

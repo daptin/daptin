@@ -1,16 +1,16 @@
 package resource
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/columntypes"
+	"github.com/daptin/daptin/server/csvmap"
 	"github.com/gin-gonic/gin/json"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strings"
-	"github.com/daptin/daptin/server/csvmap"
-	"bytes"
 )
 
 type UploadCsvFileToEntityPerformer struct {

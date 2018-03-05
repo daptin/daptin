@@ -1,10 +1,10 @@
 package websockets
 
 import (
-	"golang.org/x/net/websocket"
-	log "github.com/sirupsen/logrus"
-	"github.com/gin-gonic/gin"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/websocket"
 	"net/http"
 )
 
