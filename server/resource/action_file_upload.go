@@ -2,22 +2,22 @@ package resource
 
 import (
 	"encoding/base64"
-	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/go.uuid"
+	"github.com/artpar/rclone/cmd"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	//"os"
 	"archive/zip"
 	"context"
+	"github.com/artpar/api2go"
+	"github.com/artpar/rclone/fs/config"
+	"github.com/artpar/rclone/fs/sync"
 	"github.com/gin-gonic/gin/json"
+	"golang.org/x/oauth2"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/artpar/api2go"
-	"golang.org/x/oauth2"
-	"github.com/artpar/rclone/fs/config"
-	"github.com/artpar/rclone/fs/sync"
 )
 
 type FileUploadActionPerformer struct {

@@ -2,10 +2,10 @@ package resource
 
 import (
 	"fmt"
+	"github.com/artpar/resty"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
-	"github.com/artpar/resty"
 	"strings"
 )
 

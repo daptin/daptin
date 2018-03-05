@@ -3,9 +3,9 @@ package server
 import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/go-playground/validator.v9"
 	"path/filepath"
 )

@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
-	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"net/http"
-	"github.com/daptin/daptin/server/database"
 )
 
 func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmManager, cruds map[string]*resource.DbResource, db database.DatabaseConnection) func(context *gin.Context) {
@@ -85,7 +85,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 			resource.CheckErr(err, "Failed to create audit for [%v]", objectStateMachine.GetTableName())
 		}
 
-		s, v, err := squirrel.Update(typename + "_state").
+		s, v, err := squirrel.Update(typename+"_state").
 			Set("current_state", nextState).
 			Set("version", stateObject["version"].(int64)+1).
 			Where(squirrel.Eq{"reference_id": stateMachineId}).ToSql()

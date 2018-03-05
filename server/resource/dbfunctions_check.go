@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/alexeyco/simpletable"
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/database"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"github.com/daptin/daptin/server/database"
 )
 
 func InfoErr(err error, message string) {

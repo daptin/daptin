@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,10 +10,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
+	"io/ioutil"
 	"strconv"
 	"strings"
-	"io/ioutil"
-	"encoding/base64"
 )
 
 func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []auth.GroupPermission, typeName string, actionName string) bool {
@@ -904,7 +904,7 @@ func (resource *DbResource) GetFileFromCloudStore(data api2go.ForeignKeyData, fi
 		}
 
 		fileName := fileItem["name"].(string)
-		bytes, err := ioutil.ReadFile(cloudStore.RootPath + "/" + data.KeyName + "/" + fileName, )
+		bytes, err := ioutil.ReadFile(cloudStore.RootPath + "/" + data.KeyName + "/" + fileName)
 		CheckErr(err, "Failed to read file on storage")
 		if err != nil {
 			continue

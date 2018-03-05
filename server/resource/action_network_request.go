@@ -1,12 +1,12 @@
 package resource
 
 import (
-	"strings"
-	"github.com/artpar/resty"
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/artpar/resty"
 	"log"
+	"strings"
 )
 
 type NetworkRequestActionPerformer struct {
@@ -124,9 +124,7 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 
 func NewNetworkRequestPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := NetworkRequestActionPerformer{
-
-	}
+	handler := NetworkRequestActionPerformer{}
 
 	return &handler, nil
 

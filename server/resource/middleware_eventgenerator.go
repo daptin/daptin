@@ -116,6 +116,7 @@ func NewExchangeMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) 
 func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, objects []map[string]interface{}) ([]map[string]interface{}, error) {
 	return nil, nil
 }
+
 // Called after the data changes are complete, resposible for calling the external api.
 func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
 

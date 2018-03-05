@@ -1,17 +1,17 @@
 package resource
 
 import (
-	"testing"
-	"github.com/jmoiron/sqlx"
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/daptin/daptin/server/resource"
-	"log"
 	"github.com/artpar/api2go"
-	"strings"
-	"golang.org/x/oauth2"
 	"github.com/daptin/daptin/server"
+	"github.com/daptin/daptin/server/resource"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/oauth2"
+	"log"
 	"net/http"
+	"strings"
+	"testing"
 )
 
 func GetDb() *InMemoryTestDatabase {
@@ -311,7 +311,7 @@ func (imtd *InMemoryTestDatabase) Queryx(query string, args ...interface{}) (*sq
 
 	imtd.queries = append(imtd.queries, query)
 
-	return imtd.db.Queryx(query, args ...)
+	return imtd.db.Queryx(query, args...)
 
 }
 func (imtd *InMemoryTestDatabase) QueryRowx(query string, args ...interface{}) *sqlx.Row {

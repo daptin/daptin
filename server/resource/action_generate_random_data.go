@@ -3,8 +3,8 @@ package resource
 import (
 	"context"
 	"github.com/artpar/api2go"
-	"github.com/daptin/daptin/server/auth"
 	"github.com/artpar/go.uuid"
+	"github.com/daptin/daptin/server/auth"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"

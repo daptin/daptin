@@ -212,7 +212,6 @@ nextFile:
 					column.IsUnique = true
 				}
 
-
 				column.IsNullable = isNullable
 				column.Name = colName
 				column.ColumnName = SmallSnakeCaseText(colName)
