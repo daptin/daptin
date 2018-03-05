@@ -3,21 +3,21 @@ package server
 import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
-	"github.com/daptin/daptin/server/auth"
-	"github.com/daptin/daptin/server/resource"
-	"github.com/artpar/rclone/fs"
 	"github.com/artpar/go.uuid"
-	log "github.com/sirupsen/logrus"
+	"github.com/artpar/rclone/cmd"
+	"github.com/artpar/rclone/fs"
+	"github.com/artpar/rclone/fs/config"
+	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/database"
+	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/websockets"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
+	"github.com/thoas/stats"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"sync"
-	"github.com/thoas/stats"
-	"github.com/daptin/daptin/server/websockets"
-	"github.com/artpar/rclone/fs/config"
-	"github.com/daptin/daptin/server/database"
-	"github.com/artpar/rclone/cmd"
 )
 
 var Stats = stats.New()
@@ -274,7 +274,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 					colIndex := -1
 					for i, existingColumn := range existableTable.Columns {
 						//log.Infof("Table column old/new [%v][%v] == [%v][%v] @ %v", tableBeingModified.TableName, newColumnDef.Name, existableTable.TableName, existingColumn.Name, i)
-						if (existingColumn.Name == newColumnDef.Name || existingColumn.ColumnName == newColumnDef.ColumnName) {
+						if existingColumn.Name == newColumnDef.Name || existingColumn.ColumnName == newColumnDef.ColumnName {
 							columnAlreadyExist = true
 							colIndex = i
 							break

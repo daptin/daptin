@@ -11,9 +11,9 @@ import (
 	"github.com/araddon/dateparse"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/pkg/errors"
-	"time"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Create a new object. Newly created object/struct must be in Responder.
@@ -274,7 +274,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := squirrel.
-			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
@@ -293,7 +293,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := squirrel.
-			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 

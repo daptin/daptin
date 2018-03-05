@@ -7,10 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/gin-gonic/gin/json"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
 	"time"
-	"github.com/gin-gonic/gin/json"
 )
 
 // Update an object
@@ -131,7 +131,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					"oauth_token_id": "$.oauth_token_id",
 					"store_provider": "$.store_provider",
 					"root_path":      "$.root_path",
-					 */
+					*/
 
 					log.Infof("Get cloud store details: %v", col.ForeignKeyData.Namespace)
 					cloudStore, err := dr.GetCloudStoreByName(col.ForeignKeyData.Namespace)
@@ -344,8 +344,6 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 		log.Infof("Check relation in Update: %v", rel.String())
 		if rel.GetSubject() == dr.model.GetName() {
-
-
 
 			val11, ok := attrs[rel.GetObjectName()]
 			if !ok || len(val11.([]map[string]interface{})) < 1 {

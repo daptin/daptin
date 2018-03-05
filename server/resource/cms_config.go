@@ -2,11 +2,11 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/database"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"gopkg.in/go-playground/validator.v9"
 	"time"
-	"github.com/daptin/daptin/server/database"
 )
 
 type CmsConfig struct {

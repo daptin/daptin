@@ -3,17 +3,17 @@ package auth
 import (
 	"context"
 	"database/sql/driver"
+	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/jwt"
 	"github.com/dgrijalva/jwt-go"
-	log "github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strings"
-	"encoding/base64"
-	"golang.org/x/crypto/bcrypt"
-	"github.com/daptin/daptin/server/database"
 )
 
 type CmsUser interface {
@@ -50,7 +50,7 @@ type AuthPermission int64
 const None AuthPermission = iota
 
 const (
-	Peek          AuthPermission = 1 << iota
+	Peek AuthPermission = 1 << iota
 	ReadStrict
 	CreateStrict
 	UpdateStrict

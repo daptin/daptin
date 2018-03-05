@@ -4,8 +4,8 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/apiblueprint"
 	"github.com/daptin/daptin/server/resource"
-	log "github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 )

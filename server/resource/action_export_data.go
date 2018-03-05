@@ -3,9 +3,9 @@ package resource
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/artpar/api2go"
 	"github.com/gin-gonic/gin/json"
 	log "github.com/sirupsen/logrus"
-	"github.com/artpar/api2go"
 )
 
 type ExportDataPerformer struct {

@@ -2,8 +2,8 @@ package csvmap
 
 import (
 	"encoding/csv"
-	"io"
 	"fmt"
+	"io"
 )
 
 // A Reader reads records from a CSV-encoded file.

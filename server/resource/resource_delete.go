@@ -4,9 +4,9 @@ import (
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
 
+	"fmt"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
-	"fmt"
 )
 
 // Delete an object
@@ -15,7 +15,7 @@ import (
 // - 202 Accepted: Processing is delayed, return nothing
 // - 204 No Content: Deletion was successful, return nothing
 
-func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) (error) {
+func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error {
 
 	data, err := dr.GetReferenceIdToObject(dr.model.GetTableName(), id)
 	if err != nil {

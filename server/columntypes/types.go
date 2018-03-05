@@ -82,7 +82,7 @@ func (t EntityType) MarshalJSON() ([]byte, error) {
 }
 
 const (
-	DateTime    EntityType = iota
+	DateTime EntityType = iota
 	Id
 	Time
 	Date

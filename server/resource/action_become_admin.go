@@ -1,13 +1,13 @@
 package resource
 
 import (
-	"github.com/pkg/errors"
 	"github.com/artpar/api2go"
+	"github.com/pkg/errors"
 )
 
 /**
-    Become administrator of the instance
- */
+  Become administrator of the instance
+*/
 type BecomeAdminActionPerformer struct {
 	responseAttrs map[string]interface{}
 	cruds         map[string]*DbResource

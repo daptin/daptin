@@ -608,7 +608,7 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 	}
 
 	if c.DefaultValue != "" {
-		columnParams = append(columnParams, "default " + c.DefaultValue)
+		columnParams = append(columnParams, "default "+c.DefaultValue)
 	}
 
 	columnLine := strings.Join(columnParams, " ")

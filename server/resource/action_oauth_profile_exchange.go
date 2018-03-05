@@ -1,15 +1,15 @@
 package resource
 
 import (
-	log "github.com/sirupsen/logrus"
 	"github.com/artpar/api2go"
+	log "github.com/sirupsen/logrus"
 	//"context"
 	"bytes"
-	"net/http"
-	"io/ioutil"
 	"encoding/json"
-	"strings"
 	"golang.org/x/oauth2"
+	"io/ioutil"
+	"net/http"
+	"strings"
 	"time"
 )
 

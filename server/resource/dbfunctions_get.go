@@ -3,13 +3,13 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/daptin/daptin/server/database"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/daptin/daptin/server/database"
 )
 
 func GetObjectByWhereClause(objType string, db database.DatabaseConnection, queries ...squirrel.Eq) ([]map[string]interface{}, error) {

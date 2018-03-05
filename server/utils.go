@@ -1,16 +1,16 @@
 package server
 
 import (
-	"reflect"
 	"encoding/json"
 	"github.com/artpar/api2go"
-	"github.com/daptin/daptin/server/resource"
 	"github.com/artpar/go.uuid"
+	"github.com/daptin/daptin/server/database"
+	"github.com/daptin/daptin/server/resource"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
-	"github.com/daptin/daptin/server/database"
 )
 
 func CheckSystemSecrets(store *resource.ConfigStore) error {

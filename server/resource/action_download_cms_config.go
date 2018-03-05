@@ -3,8 +3,8 @@ package resource
 import (
 	"encoding/base64"
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	"github.com/artpar/api2go"
+	log "github.com/sirupsen/logrus"
 )
 
 type DownloadCmsConfigActionPerformer struct {
