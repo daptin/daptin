@@ -21,7 +21,7 @@ func Fdiff(a, b interface{}) []Change {
 type changeType int
 
 const (
-	Added changeType = iota
+	Added        changeType = iota
 	Removed
 	ChangedType
 	ChangedValue

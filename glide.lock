@@ -1,5 +1,5 @@
-hash: 616fc5766bb430e5ac6f06a7cdea2fa41e2f8f4074b67f54d539b36ada129dbc
-updated: 2018-03-05T00:17:50.387037304+05:30
+hash: d7a186a986145151d69567a0cc689156b8913f71317ac55b2b74a15472334d23
+updated: 2018-03-05T14:59:36.693027676+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -31,7 +31,7 @@ imports:
 - name: github.com/artpar/goagain
   version: f2d5d7b515c4c1b6244ed9260e04c29800350d35
 - name: github.com/artpar/rclone
-  version: 2158e08988a3f76dc9443c92a442a7c0b3795e4d
+  version: 68a0407a350aef9f8bcdfe3a8803cec320ac7ba6
   subpackages:
   - backend/alias
   - backend/all
