@@ -10,6 +10,8 @@ COPY --from=certs /etc/ssl/certs /etc/ssl/certs
 
 ADD main /opt/daptin/daptin
 RUN chmod +x /opt/daptin/daptin
+RUN file /opt/daptin/daptin
+RUN ls -lah /opt/daptin/daptin
 
 EXPOSE 8080
 RUN export
