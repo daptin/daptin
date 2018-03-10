@@ -53,7 +53,7 @@ func InArrayIndex(val interface{}, array interface{}) (index int) {
 
 func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource) (map[string]*resource.DbResource) {
 	for _, table := range tables {
-		//log.Infof("Table [%v] Relations: %v", table.TableName)
+		log.Infof("Table [%v] AddResourcesToApi2Go", table.TableName)
 
 		if table.TableName == "" {
 			log.Errorf("Table name is empty, not adding to JSON API, as it will create conflict: %v", table)
@@ -139,15 +139,15 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 }
 
-func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) resource.MiddlewareSet {
+func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds *map[string]*resource.DbResource) resource.MiddlewareSet {
 
 	var ms resource.MiddlewareSet
 
-	exchangeMiddleware := resource.NewExchangeMiddleware(cmsConfig, &cruds)
+	exchangeMiddleware := resource.NewExchangeMiddleware(cmsConfig, cruds)
 
 	tablePermissionChecker := &resource.TableAccessPermissionChecker{}
 	objectPermissionChecker := &resource.ObjectAccessPermissionChecker{}
-	dataValidationMiddleware := resource.NewDataValidationMiddleware(cmsConfig, &cruds)
+	dataValidationMiddleware := resource.NewDataValidationMiddleware(cmsConfig, cruds)
 
 	findOneHandler := resource.NewFindOneEventHandler()
 	createEventHandler := resource.NewCreateEventHandler()

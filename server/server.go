@@ -22,8 +22,6 @@ import (
 
 var Stats = stats.New()
 
-var cruds = make(map[string]*resource.DbResource)
-
 func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection, wg *sync.WaitGroup, l net.Listener, ch chan struct{}) {
 	defer wg.Done()
 
@@ -130,8 +128,8 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 	auth.InitJwtMiddleware([]byte(jwtSecret))
 	r.Use(authMiddleware.AuthCheckMiddleware)
 
-	cruds = make(map[string]*resource.DbResource)
-	r.GET("/actions", resource.CreateGuestActionListHandler(&initConfig, cruds))
+	cruds := make(map[string]*resource.DbResource)
+	r.GET("/actions", resource.CreateGuestActionListHandler(&initConfig))
 
 	api := api2go.NewAPIWithRouting(
 		"api",
@@ -139,7 +137,7 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 		gingonic.New(r),
 	)
 
-	ms := BuildMiddlewareSet(&initConfig, cruds)
+	ms := BuildMiddlewareSet(&initConfig, &cruds)
 	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, cruds)
 
 	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend")
@@ -181,7 +179,7 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 		c.String(200, "pong")
 	})
 
-	handler := CreateJsModelHandler(&initConfig)
+	handler := CreateJsModelHandler(&initConfig, cruds)
 	metaHandler := CreateMetaHandler(&initConfig)
 	blueprintHandler := CreateApiBlueprintHandler(&initConfig, cruds)
 	modelHandler := CreateReclineModelHandler()
@@ -196,7 +194,7 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 	r.OPTIONS("/apispec.raml", blueprintHandler)
 	r.OPTIONS("/recline_model", modelHandler)
 
-	actionPerformers := GetActionPerformers(&initConfig, configStore)
+	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds)
 	initConfig.ActionPerformers = actionPerformers
 	//actionPerforMap := make(map[string]resource.ActionPerformerInterface)
 	//for _, actionPerformer := range actionPerformers {
@@ -234,6 +232,7 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 	//r.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
 
+	log.Printf("Listening at: %v", l.Addr().String())
 	go func() {
 		err = http.Serve(l, hostSwitch)
 		resource.CheckErr(err, "Failed to listen")

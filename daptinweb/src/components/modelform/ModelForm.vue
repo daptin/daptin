@@ -7,17 +7,18 @@
       </div>
     </div>
     <div class="box-body">
-      <div :class="{'col-md-9': relations.length > 0, 'col-md-12': relations.length == 0 }">
+      <div :class="{'col-md-12': relations.length == 0 && !hasPermissionField, 'col-md-6': relations.length > 0 || hasPermissionField }">
         <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
       </div>
       <div class="col-md-3" v-if="relations.length > 0">
-
         <div class="row">
           <div class="col-md-12" v-bind:key="item.value" v-for="item in relations">
             <select-one-or-more :value="item.value" :schema="item" @save="setRelation"></select-one-or-more>
           </div>
         </div>
-
+      </div>
+      <div class="col-md-6" v-if="hasPermissionField">
+        <fieldPermissionInput :value="model.permission"></fieldPermissionInput>
       </div>
     </div>
     <div class="box-footer">
@@ -72,6 +73,7 @@
         formValue: {},
         loading: false,
         relations: [],
+        hasPermissionField: false,
       }
     },
     methods: {
@@ -272,12 +274,18 @@
           columnMeta.ColumnName = columnName;
           const columnLabel = that.titleCase(columnMeta.Name);
 
-          if (columnMeta.columnType && !columnMeta.ColumnType ) {
+          if (columnMeta.columnType && !columnMeta.ColumnType) {
             columnMeta.ColumnType = columnMeta.columnType;
           }
 
           if (columnMeta.ColumnType == "hidden") {
             return null;
+          }
+
+
+          if (columnMeta.ColumnName == "permission") {
+//            that.hasPermissionField = true;
+//            return null;
           }
 
 

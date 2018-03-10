@@ -610,9 +610,21 @@ var SystemActions = []Action{
 		},
 		OutFields: []Outcome{
 			{
-				Type:      "oauth.login.response",
-				Method:    "EXECUTE",
-				Reference: "auth",
+				Type:           "oauth_connect",
+				Method:         "GET",
+				SkipInResponse: true,
+				Reference:      "connection",
+				Attributes: map[string]interface{}{
+					"filter":       "~authenticator",
+					"page[number]": "1",
+					"page[size]":   "1",
+				},
+			},
+			{
+				Type:           "oauth.login.response",
+				Method:         "EXECUTE",
+				SkipInResponse: true,
+				Reference:      "auth",
 				Attributes: map[string]interface{}{
 					"authenticator":     "~authenticator",
 					"user_id":           "~user.id",
@@ -622,13 +634,75 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:      "oauth.profile.exchange",
-				Method:    "EXECUTE",
-				Reference: "auth",
+				Type:           "oauth.profile.exchange",
+				Method:         "EXECUTE",
+				Reference:      "profile",
+				SkipInResponse: true,
+				Condition:      "$connection[0].allow_login",
 				Attributes: map[string]interface{}{
 					"authenticator": "~authenticator",
-					"token":         "$auth[0].access_token",
-					"tokenInfoUrl":  "https://www.googleapis.com/oauth2/v1/tokeninfo",
+					"token":         "$auth.access_token",
+					"tokenInfoUrl":  "$connection[0].token_url",
+					"profileUrl":    "$connection[0].profile_url",
+				},
+			},
+			{
+				Type:           "user",
+				Method:         "GET",
+				Reference:      "user",
+				SkipInResponse: true,
+				Condition:      "$connection[0].allow_login",
+				Attributes: map[string]interface{}{
+					"filter": "$profile.emails[0].value",
+				},
+			},
+			{
+				Type:           "user",
+				Method:         "POST",
+				Reference:      "user",
+				SkipInResponse: true,
+				Condition:      "!!user || (!user.length && !user.reference_id)",
+				Attributes: map[string]interface{}{
+					"email":    "$profile.emails[0].value",
+					"name":     "$profile.displayName",
+					"password": "$profile.id",
+				},
+			},
+			{
+				Type:           "usergroup",
+				Method:         "POST",
+				Reference:      "usergroup",
+				SkipInResponse: true,
+				Condition:      "!!user || (!user.length && !user.reference_id)",
+				Attributes: map[string]interface{}{
+					"name": "!'Home group for ' + profile.emails[0].value",
+				},
+			},
+			{
+				Type:           "user_user_id_has_usergroup_usergroup_id",
+				Method:         "POST",
+				SkipInResponse: true,
+				Condition:      "!!user || (!user.length && !user.reference_id)",
+				Attributes: map[string]interface{}{
+					"user_id":      "$user.reference_id",
+					"usergroup_id": "$usergroup.reference_id",
+				},
+			},
+			{
+				Type:   "jwt.token",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"email":    "$profile.emails[0].value",
+					"password": "$profile.id",
+				},
+			},
+			{
+				Type:   "client.redirect",
+				Method: "ACTIONRESPONSE",
+				Attributes: map[string]interface{}{
+					"location": "/",
+					"window":   "self",
+					"delay":    2000,
 				},
 			},
 		},
@@ -1039,7 +1113,6 @@ var StandardTables = []TableInfo{
 				Name:       "name",
 				ColumnName: "name",
 				IsIndexed:  true,
-				IsUnique:   true,
 				DataType:   "varchar(80)",
 				ColumnType: "label",
 			},
@@ -1174,6 +1247,13 @@ var StandardTables = []TableInfo{
 				ColumnName:   "token_url",
 				DataType:     "varchar(200)",
 				DefaultValue: "'https://accounts.google.com/o/oauth2/token'",
+				ColumnType:   "url",
+			},
+			{
+				Name:         "profile_url",
+				ColumnName:   "profile_url",
+				DataType:     "varchar(200)",
+				DefaultValue: "'https://www.googleapis.com/oauth2/v1/userinfo?alt=json'",
 				ColumnType:   "url",
 			},
 			{
@@ -1390,13 +1470,13 @@ var StandardData = []api2go.Api2GoModel{
 }
 
 type TableInfo struct {
-	TableName              string `db:"table_name"`
+	TableName              string   `db:"table_name"`
 	TableId                int
-	DefaultPermission      int64 `db:"default_permission"`
+	DefaultPermission      int64    `db:"default_permission"`
 	Columns                []api2go.ColumnInfo
 	StateMachines          []LoopbookFsmDescription
 	Relations              []api2go.TableRelation
-	IsTopLevel             bool `db:"is_top_level"`
+	IsTopLevel             bool     `db:"is_top_level"`
 	Permission             int64
 	UserId                 uint64   `db:"user_id"`
 	IsHidden               bool     `db:"is_hidden"`

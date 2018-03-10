@@ -344,18 +344,22 @@
       }
     },
     mounted() {
-      console.log("perission value", this.value)
-      var permissionValue = this.value;
-      this.guestValue = permissionValue % 1000;
-      permissionValue = parseInt(permissionValue / 1000);
-      this.groupValue = permissionValue % 1000;
-      permissionValue = parseInt(permissionValue / 1000);
-      this.ownerValue = permissionValue % 1000;
-      permissionValue = parseInt(permissionValue / 1000);
-      console.log("Owner, group, guest", this.ownerValue, this.groupValue, this.guestValue);
-      this.parsedGuestPermission = this.parsePermission(this.guestValue);
-      this.parsedOwnerPermission = this.parsePermission(this.ownerValue);
-      this.parsedGroupPermission = this.parsePermission(this.groupValue);
+      var that = this;
+      setTimeout(function(){
+        console.log("permission value", that.value)
+        var permissionValue = that.value;
+        that.guestValue = permissionValue % 1000;
+        permissionValue = parseInt(permissionValue / 1000);
+        that.groupValue = permissionValue % 1000;
+        permissionValue = parseInt(permissionValue / 1000);
+        that.ownerValue = permissionValue % 1000;
+        permissionValue = parseInt(permissionValue / 1000);
+        console.log("Owner, group, guest", that.ownerValue, that.groupValue, that.guestValue);
+        that.parsedGuestPermission = that.parsePermission(that.guestValue);
+        that.parsedOwnerPermission = that.parsePermission(that.ownerValue);
+        that.parsedGroupPermission = that.parsePermission(that.groupValue);
+      }, 200);
+
     },
     methods: {
       setValue(obj, newValue) {
@@ -408,7 +412,7 @@
         };
       },
       updatePermissionValue() {
-        console.log("make permission value");
+//        console.log("make permission value");
         var ownerPermission = this.makePermission(this.parsedOwnerPermission);
         var guestPermission = this.makePermission(this.parsedGuestPermission);
         var groupPermission = this.makePermission(this.parsedGroupPermission);
@@ -420,7 +424,7 @@
         console.log("updated permission value to ", this.value);
       },
       makePermission(permissionObject) {
-        console.log("make permission from", permissionObject);
+//        console.log("make permission from", permissionObject);
 
         var value = 0;
         var perms = Object.keys(this.permissionStructure);
@@ -438,8 +442,7 @@
         return value
       },
       parsePermission(val) {
-        console.log("parse value to permission struct", val)
-        var res = {
+        const res = {
           canPeek: (val & this.permissionStructure.Peek ) == this.permissionStructure.Peek,
           canRead: (val & this.permissionStructure.Read ) == this.permissionStructure.Read,
           canCreate: (val & this.permissionStructure.Create ) == this.permissionStructure.Create,

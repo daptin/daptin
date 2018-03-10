@@ -24,28 +24,38 @@ func (d *OuathProfileExchangePerformer) Name() string {
 
 func GetTokensScope(tokUrl string, scope string, clientId string, clientSecret string, token string) (map[string]interface{}, error) {
 
-	log.Infof("Token url for token exchange: %v", tokUrl)
-	urlParams := "grant_type=client_credentials&client_id=" + clientId
+	log.Infof("Profile url for token exchange: %v", tokUrl)
+	urlParams := ""
 	dat := map[string]interface{}{}
 
 	//if len(clientSecret) > 0 {
-	//	urlParams = urlParams + "&client_secret=" + clientSecret
+	//	urlParams = urlParams + "&key=" + clientSecret
 	//}
 
-	if len(token) > 0 {
-		urlParams = urlParams + "&access_token=" + token
-	}
+	//if len(token) > 0 {
+	//	urlParams = urlParams
+	//}
 
 	scope = strings.TrimSpace(scope)
 	if len(scope) > 0 {
-		urlParams = urlParams + "&scope=" + scope
+		//urlParams = urlParams + "&scope=" + scope
 	}
 
 	body := bytes.NewBuffer([]byte(urlParams))
-	req, err := http.NewRequest("POST", tokUrl, body)
+
+	tokUrl = tokUrl + urlParams
+
+	req, err := http.NewRequest("GET", tokUrl, body)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.SetBasicAuth(clientId, clientSecret)
-	client := &http.Client{}
+
+	if len(token) > 0 {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	tenSeconds, err := time.ParseDuration("10s")
+	client := &http.Client{
+		Timeout: tenSeconds,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return dat, err
@@ -73,7 +83,7 @@ func (d *OuathProfileExchangePerformer) DoAction(request ActionRequest, inFieldM
 	authenticator := inFieldMap["authenticator"].(string)
 	token := inFieldMap["token"].(string)
 
-	conf, oauthConnectRefId, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"])
+	conf, _, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"])
 
 	if err != nil {
 		return nil, nil, []error{err}
@@ -87,7 +97,7 @@ func (d *OuathProfileExchangePerformer) DoAction(request ActionRequest, inFieldM
 	}
 	var tokenResponse map[string]interface{}
 	if oauthToken == nil || !oauthToken.Valid() {
-		tokenResponse, err = GetTokensScope(inFieldMap["tokenInfoUrl"].(string), strings.Join(conf.Scopes, ","), conf.ClientID, conf.ClientSecret, token)
+		tokenResponse, err = GetTokensScope(inFieldMap["profileUrl"].(string), strings.Join(conf.Scopes, ","), conf.ClientID, conf.ClientSecret, token)
 		if err != nil {
 			log.Errorf("Failed to exchange code for token: %v", err)
 			return nil, nil, []error{err}
@@ -98,21 +108,12 @@ func (d *OuathProfileExchangePerformer) DoAction(request ActionRequest, inFieldM
 			oauthToken, err = d.cruds["oauth_token"].GetTokenByTokenName(token_type.(string))
 
 			oauthToken := oauth2.Token{}
-			oauthToken.AccessToken = tokenResponse["access_token"].(string)
-			if tokenResponse["expiry"] != nil {
-				oauthToken.Expiry = time.Unix(int64(tokenResponse["expiry"].(float64)), 0)
-			}
 			if tokenResponse["expires_in"] != nil {
 				seconds := int(tokenResponse["expires_in"].(float64))
 				oauthToken.Expiry = time.Now().Add(time.Duration(seconds) * time.Second)
 				tokenResponse["expiry"] = oauthToken.Expiry.Unix()
 			}
-			if tokenResponse["refresh_token"] != nil {
-				oauthToken.RefreshToken = tokenResponse["refresh_token"].(string)
-			}
-			oauthToken.TokenType = tokenResponse["token_type"].(string)
 
-			err = d.cruds["oauth_token"].StoreToken(&oauthToken, token_type.(string), oauthConnectRefId)
 		}
 	} else {
 		tokenResponse = make(map[string]interface{})
@@ -122,12 +123,19 @@ func (d *OuathProfileExchangePerformer) DoAction(request ActionRequest, inFieldM
 		tokenResponse["expiry"] = oauthToken.Expiry.Unix()
 	}
 
-	return nil, []ActionResponse{
+	responder := api2go.Response{
+		Res: api2go.NewApi2GoModelWithData("oauth_profile", nil, 0, nil , tokenResponse),
+	}
+
+	return responder, []ActionResponse{
 		{
-			ResponseType: "token",
-			Attributes:   tokenResponse,
-		},
-	}, nil
+			ResponseType: "ACTIONRESPONSE",
+			Attributes: map[string]interface{}{
+				"location": "/auth/signin",
+				"window":   "self",
+				"delay":    2000,
+			},
+		}}, nil
 }
 
 func NewOuathProfileExchangePerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {

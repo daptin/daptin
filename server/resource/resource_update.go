@@ -28,6 +28,10 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 	}
 
 	id := data.GetID()
+	idInt, err := dr.GetReferenceIdToId(dr.model.GetName(), id)
+	if err != nil {
+		return nil, err
+	}
 
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -524,14 +528,20 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 	for relationName, deleteRelations := range data.DeleteIncludes {
 		referencedRelation := api2go.TableRelation{}
 		referencedTypeName := ""
+		//hostRelationTypeName := ""
+		hostRelationName := ""
 		for _, relation := range dr.model.GetRelations() {
 
 			if relation.GetSubject() == dr.model.GetTableName() && relation.GetObjectName() == relationName {
 				referencedRelation = relation
 				referencedTypeName = relation.GetObject()
+				//hostRelationTypeName = relation.GetSubject()
+				hostRelationName = relation.GetSubjectName()
 				break
 			} else if relation.GetObject() == dr.model.GetTableName() && relation.GetSubjectName() == relationName {
 				referencedRelation = relation
+				//hostRelationTypeName = relation.GetObject()
+				hostRelationName = relation.GetObjectName()
 				referencedTypeName = relation.GetSubject()
 				break
 			}
@@ -542,13 +552,13 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 			continue
 		}
 
-		for _, id := range deleteRelations {
+		for _, deleteId := range deleteRelations {
 
-			otherObjectPermission := dr.GetObjectPermission(referencedTypeName, id)
+			otherObjectPermission := dr.GetObjectPermission(referencedTypeName, deleteId)
 
 			if otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 
-				otherObjectId, err := dr.GetReferenceIdToId(referencedTypeName, id)
+				otherObjectId, err := dr.GetReferenceIdToId(referencedTypeName, deleteId)
 
 				if err != nil {
 					log.Errorf("Referenced object not found: %v", err)
@@ -557,15 +567,19 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 				if referencedRelation.Relation == "has_many" || referencedRelation.Relation == "has_many_and_belongs_to_many" {
 
-					joinReference, _, err := dr.GetRowsByWhereClause(referencedRelation.GetJoinTableName(), squirrel.Eq{relationName: otherObjectId})
+					joinReference, _, err := dr.cruds[referencedRelation.GetJoinTableName()].GetRowsByWhereClause(referencedRelation.GetJoinTableName(),
+						squirrel.Eq{
+							  relationName: otherObjectId,
+							  hostRelationName: idInt,
+							},
+						)
 					if err != nil {
 						log.Errorf("Referenced relation not found: %v", err)
 						continue
 					}
 
 					joinReferenceObject := joinReference[0]
-
-					_, err = dr.cruds[referencedTypeName].Delete(joinReferenceObject["reference_id"].(string), req)
+					err = dr.cruds[referencedRelation.GetJoinTableName()].DeleteWithoutFilters(joinReferenceObject["reference_id"].(string), req)
 					if err != nil {
 						log.Errorf("Failed to delete relation [%v][%v]: %v", referencedRelation.GetSubject(), referencedRelation.GetObjectName(), err)
 					}
@@ -588,7 +602,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 					foreignObject, err := dr.GetIdToObject(targetTypeName, otherObjectId)
 					if err != nil {
-						log.Errorf("Failed to get foreign object by reference id: %v", err)
+						log.Errorf("Failed to get foreign object by reference deleteId: %v", err)
 						continue
 					}
 					modelToUpdate := api2go.NewApi2GoModelWithData(referencedTypeName, nil, 0, nil, foreignObject)
@@ -618,11 +632,21 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	data, _ := obj.(*api2go.Api2GoModel)
 	//log.Infof("Update object request: [%v][%v]", dr.model.GetTableName(), data.GetID())
 
+	updateRequest := &http.Request{
+		Method: "PATCH",
+	}
+	updateRequest = updateRequest.WithContext(req.PlainRequest.Context())
+
 	data.Data["__type"] = dr.model.GetName()
 	for _, bf := range dr.ms.BeforeUpdate {
 		//log.Infof("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
-		finalData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
+		finalData, err := bf.InterceptBefore(dr, &api2go.Request{
+			PlainRequest: updateRequest,
+			QueryParams:  req.QueryParams,
+			Header:       req.Header,
+			Pagination:   req.Pagination,
+		}, []map[string]interface{}{
 			data.Data,
 		})
 		if err != nil {
@@ -644,7 +668,12 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 	for _, bf := range dr.ms.AfterUpdate {
 		//log.Infof("Invoke AfterUpdate [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
-		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{updatedResource})
+		results, err := bf.InterceptAfter(dr, &api2go.Request{
+			PlainRequest: updateRequest,
+			QueryParams:  req.QueryParams,
+			Header:       req.Header,
+			Pagination:   req.Pagination,
+		}, []map[string]interface{}{updatedResource})
 		if len(results) != 0 {
 			updatedResource = results[0]
 		} else {

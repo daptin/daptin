@@ -25,11 +25,12 @@ import (
 	"gopkg.in/go-playground/validator.v9"
 	en2 "gopkg.in/go-playground/validator.v9/translations/en"
 	"net/url"
+	"strconv"
 )
 
 var guestActions = map[string]Action{}
 
-func CreateGuestActionListHandler(initConfig *CmsConfig, cruds map[string]*DbResource) func(*gin.Context) {
+func CreateGuestActionListHandler(initConfig *CmsConfig) func(*gin.Context) {
 
 	actionMap := make(map[string]Action)
 
@@ -162,7 +163,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 		var subjectInstanceMap map[string]interface{}
 
 		subjectInstanceReferenceId, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
-		if ok {
+   		if ok {
 			referencedObject, err := cruds[actionRequest.Type].FindOne(subjectInstanceReferenceId.(string), req)
 			if err != nil {
 				ginContext.AbortWithError(400, err)
@@ -273,8 +274,23 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 				boolValue, ok := outcomeResult.(bool)
 				if !ok {
-					log.Printf("Failed to convert value to bool, assuming false")
-					continue
+
+					strVal, ok := outcomeResult.(string)
+					if ok {
+
+						if strVal == "1" || strings.ToLower(strings.TrimSpace(strVal)) == "true" {
+							// condition is true
+						} else {
+							// condition isn't true
+							continue
+						}
+
+					} else {
+
+						log.Printf("Failed to convert value to bool, assuming false")
+						continue
+					}
+
 				} else if !boolValue {
 					log.Infof("Outcome [%v][%v] skipped because condition failed [%v]", outcome.Method, outcome.Type, outcome.Condition)
 					continue
@@ -300,7 +316,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				if err != nil {
 
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
-					actionResponses = append(actionResponses, actionResponse)
+					responses = append(responses, actionResponse)
 					break OutFields
 				} else {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
@@ -318,7 +334,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				CheckErr(err, "Failed to get inside action")
 				if err != nil {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
-					actionResponses = append(actionResponses, actionResponse)
+					responses = append(responses, actionResponse)
 					break OutFields
 				} else {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
@@ -331,7 +347,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 				if err != nil {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
-					actionResponses = append(actionResponses, actionResponse)
+					responses = append(responses, actionResponse)
 					break OutFields
 				} else {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
@@ -342,7 +358,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				CheckErr(err, "Failed to update inside action")
 				if err != nil {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName()+". "+err.Error(), "Failed"))
-					actionResponses = append(actionResponses, actionResponse)
+					responses = append(responses, actionResponse)
 					break OutFields
 				} else {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
@@ -353,7 +369,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				CheckErr(err, "Failed to delete inside action")
 				if err != nil {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to delete "+model.GetName(), "Failed"))
-					actionResponses = append(actionResponses, actionResponse)
+					responses = append(responses, actionResponse)
 					break OutFields
 				} else {
 					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
@@ -375,7 +391,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 						err = errors1[0]
 					}
 					if responder != nil {
-						responseObjects = responder.Result()
+						responseObjects = responder.Result().(*api2go.Api2GoModel).Data
 					}
 				}
 
@@ -739,8 +755,9 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 		val = finalValue
 
 	} else {
+		log.Printf("Get [%v] from infields: %v", fieldString, inFieldMap)
 
-		rex := regexp.MustCompile(`\$([a-zA-Z0-9_\[\]]+)?(\.[a-zA-Z0-9_]+)+`)
+		rex := regexp.MustCompile(`\$([a-zA-Z0-9_\[\]]+)?(\.[a-zA-Z0-9_\[\]]+)+`)
 		matches := rex.FindAllStringSubmatch(fieldString, -1)
 
 		for _, match := range matches {
@@ -758,14 +775,49 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 
 			finalValue = inFieldMap
 			for i := 0; i < len(fieldParts)-1; i++ {
+
 				fieldPart := fieldParts[i]
-				finalValue = finalValue.(map[string]interface{})[fieldPart]
+
+				fieldIndexParts := strings.Split(fieldPart, "[")
+				if len(fieldIndexParts) > 1 {
+					right := strings.Split(fieldIndexParts[1], "]")
+					index, err := strconv.ParseInt(right[0], 10, 64)
+					if err == nil {
+						finalValMap := finalValue.(map[string]interface{})
+						mapPart := finalValMap[fieldIndexParts[0]]
+						mapPartArray, ok := mapPart.([]map[string]interface{})
+						if !ok {
+							mapPartArrayInterface, ok := mapPart.([]interface {})
+							if ok {
+								mapPartArray = make([]map[string]interface{}, 0)
+								for _, ar := range mapPartArrayInterface {
+									mapPartArray = append(mapPartArray, ar.(map[string]interface{}))
+								}
+							}
+						}
+
+						if int(index) >= len(mapPartArray) {
+							return nil, errors.New("index out of range")
+						}
+						finalValue = mapPartArray[index]
+					} else {
+						finalValue = finalValue.(map[string]interface{})[fieldPart]
+					}
+				} else {
+					finalValue = finalValue.(map[string]interface{})[fieldPart]
+
+				}
+
 			}
 			if finalValue == nil {
 				return nil, nil
 			}
 
-			castMap := finalValue.(map[string]interface{})
+			castMap, ok := finalValue.(map[string]interface{})
+			if !ok {
+				log.Errorf("Value at [%v] is %v", fieldString, castMap)
+				return val, errors.New("something is wrong")
+			}
 			finalValue = castMap[fieldParts[len(fieldParts)-1]]
 			fieldString = strings.Replace(fieldString, fmt.Sprintf("%v", match[0]), fmt.Sprintf("%v", finalValue), -1)
 		}

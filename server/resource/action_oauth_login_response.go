@@ -133,7 +133,7 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 
 	model := api2go.NewApi2GoModelWithData("oauth_token", nil, auth.DEFAULT_PERMISSION.IntValue(), nil, storeToken)
 
-	_, err := dr.cruds["oauth_token"].Create(model, req)
+	_, err := dr.cruds["oauth_token"].CreateWithoutFilter(	model, req)
 	return err
 }
 
