@@ -2,7 +2,7 @@ package server
 
 import "github.com/daptin/daptin/server/resource"
 
-func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore) []resource.ActionPerformerInterface {
+func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource) []resource.ActionPerformerInterface {
 	performers := make([]resource.ActionPerformerInterface, 0)
 
 	becomeAdminPerformer, err := resource.NewBecomeAdminPerformer(initConfig, cruds)

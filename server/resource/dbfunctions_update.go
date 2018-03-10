@@ -628,7 +628,13 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 }
 
 func ImportDataFiles(initConfig *CmsConfig, db database.DatabaseConnection, cruds map[string]*DbResource) {
-	log.Printf("Importing [%v] data files", len(initConfig.Imports))
+	importCount := len(initConfig.Imports)
+
+	if importCount == 0 {
+		return
+	}
+
+	log.Printf("Importing [%v] data files", importCount)
 	ctx := context.TODO()
 	pr1 := http.Request{
 		Method: "POST",
@@ -798,7 +804,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		u1 := u.String()
 		s, v, err = squirrel.Insert("usergroup").
 			Columns("name", "reference_id", "permission").
-			Values("guests", u1, auth.DEFAULT_PERMISSION).ToSql()
+			Values("guests", u1, auth.DEFAULT_PERMISSION.IntValue()).ToSql()
 
 		CheckErr(err, "Failed to create insert user-group sql for guests")
 		_, err = tx.Exec(s, v...)
@@ -808,7 +814,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		u1 = u.String()
 		s, v, err = squirrel.Insert("usergroup").
 			Columns("name", "reference_id", "permission").
-			Values("administrators", u1, auth.DEFAULT_PERMISSION).ToSql()
+			Values("administrators", u1, auth.DEFAULT_PERMISSION.IntValue()).ToSql()
 		CheckErr(err, "Failed to create insert user-group sql for administrators")
 		_, err = tx.Exec(s, v...)
 		CheckErr(err, "Failed to insert user-group sql for administrators")

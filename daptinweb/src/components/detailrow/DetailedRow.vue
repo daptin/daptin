@@ -15,12 +15,12 @@
                 <span class="fa fa-2x fa-times red"></span>
               </button>
               <button @click="editPermission" v-if="jsonApiModelName == 'usergroup'" type="button" class="btn btn-box-tool">
-                <span class="fa fa-2x fa-pencil grey"></span>
+                <span class="fas fa-edit fa-2x grey"></span>
               </button>
 
               <router-link type="button" class="btn btn-box-tool"
                            :to="{name: 'Instance', params: {tablename: jsonApiModelName, refId: model.reference_id}}">
-                <span class="fa fa-2x fa-external-link"></span>
+                <span class="fa fa-2x fa-expand"></span>
               </router-link>
             </div>
 
@@ -62,7 +62,7 @@
         <el-tabs>
           <el-tab-pane label="Overview">
             <div class="col-md-6">
-              <div class="box">
+              <div class="box-invisible">
                 <div class="box-header">
                   <div class="box-title">
                     Details
@@ -226,7 +226,7 @@
       initiateDelete: function () {
 
         if (!this.showAll) {
-          console.log("not the parent");
+          console.log("not the parent", this.model);
           this.$emit("deleteRow", this.model)
         } else {
           console.log("start to delete this row", this.model, this.showAll)

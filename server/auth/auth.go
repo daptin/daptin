@@ -50,7 +50,7 @@ type AuthPermission int64
 const None AuthPermission = iota
 
 const (
-	Peek AuthPermission = 1 << iota
+	Peek          AuthPermission = 1 << iota
 	ReadStrict
 	CreateStrict
 	UpdateStrict
@@ -87,7 +87,7 @@ func (op ObjectPermission) Value() (driver.Value, error) {
 	return op.IntValue(), nil
 }
 
-var DEFAULT_PERMISSION = NewPermission(Peek, CRUD|Execute, CRUD|Execute)
+var DEFAULT_PERMISSION = NewPermission(Peek|Refer, CRUD|Execute, CRUD|Execute)
 
 func (op ObjectPermission) OwnerCan(a AuthPermission) bool {
 	return op.OwnerPermission&a == a

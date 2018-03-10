@@ -3,7 +3,7 @@
   <div class="col-md-12">
     <div class="ui icon buttons">
       <button @click="mode = 'ace'" class="btn btn-box-tool"><i class="fa fa-2x fa-align-justify grey"></i></button>
-      <button @click="mode = 'je'" class="btn btn-box-tool"><i class="fa fa-2x fa-pencil grey"></i></button>
+      <button @click="mode = 'je'" class="btn btn-box-tool"><i class="fas fa-edit fa-2x grey"></i></button>
     </div>
     <div id="jsonEditor" style="width: 100%; height: 600px;" v-if="mode == 'je'"></div>
     <editor ref="aceEditor" :options="options" :content="initValue" v-if="mode == 'ace'" :lang="'markdown'"
@@ -43,7 +43,7 @@
     },
     mounted() {
       window.ace.require = function (mode) {
-        console.log("ace wanted mode: ", mode);
+//        console.log("ace wanted mode: ", mode);
         return false;
       };
       var that = this;
@@ -52,10 +52,10 @@
 //        if (!startVal) {
 //          that.value = "";
 //        }
-        console.log("start value", startVal);
+//        console.log("start value", startVal);
 
         try {
-          console.log("try parse file json", startVal);
+//          console.log("try parse file json", startVal);
           var t = JSON.parse(startVal);
           startVal = JSON.stringify(t, null, 2);
           that.value = startVal;
@@ -115,7 +115,7 @@
 
 
         console.log("this is new");
-        if (true) {
+        if (false) {
           try {
             var json = JSON.parse(startVal);
             if (json instanceof Object) {

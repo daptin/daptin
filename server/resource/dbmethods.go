@@ -13,11 +13,19 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
+	"github.com/artpar/dockercell/utils"
 )
 
 func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []auth.GroupPermission, typeName string, actionName string) bool {
+
 	permission := dr.GetObjectPermissionByWhereClause("world", "table_name", typeName)
-	return permission.CanExecute(userReferenceId, userGroups)
+
+	actionPermission := dr.GetObjectPermissionByWhereClause("action", "action_name", actionName)
+
+	canExecuteOnType := permission.CanExecute(userReferenceId, userGroups)
+	canExecuteAction := actionPermission.CanExecute(userReferenceId, userGroups)
+
+	return canExecuteOnType && canExecuteAction
 
 }
 
@@ -297,7 +305,7 @@ func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error
 	if err != nil {
 		return 0, err
 	}
-	res := dbResource.db.QueryRowx(query, arg)
+	res := dbResource.db.QueryRowx(query, arg...)
 	if res.Err() != nil {
 		return 0, res.Err()
 	}
@@ -309,12 +317,16 @@ func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error
 }
 
 func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
-	log.Printf("User: %d is going to become admin")
+	log.Printf("User: %d is going to become admin", userId)
 	if !dbResource.CanBecomeAdmin() {
 		return false
 	}
 
 	for _, crud := range dbResource.cruds {
+
+		if crud.model.GetName() == "user_user_id_has_usergroup_usergroup_id" {
+			continue
+		}
 
 		if crud.model.HasColumn("user_id") {
 			q, v, err := squirrel.Update(crud.model.GetName()).
@@ -338,14 +350,15 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 	}
 
 	adminUsergroupId, err := dbResource.UserGroupNameToId("administrators")
+	reference_id := utils.NewV4Uuid()
 
 	query, args, err := squirrel.Insert("user_user_id_has_usergroup_usergroup_id").
-		Columns("user_id", "usergroup_id", "permission").
-		Values(userId, adminUsergroupId, auth.DEFAULT_PERMISSION.IntValue()).
+		Columns("user_id", "usergroup_id", "permission", "reference_id").
+		Values(userId, adminUsergroupId, auth.DEFAULT_PERMISSION.IntValue(), reference_id).
 		ToSql()
 
-	_, err = dbResource.db.Exec(query, args)
-	CheckErr(err, "Failed to add user to administrator usergroup")
+	_, err = dbResource.db.Exec(query, args...)
+	CheckErr(err, "Failed to add user to administrator usergroup: %v == %v", query, args)
 
 	_, err = dbResource.db.Exec("update world set permission = ?, default_permission = ? where table_name not like '%_audit'",
 		auth.DEFAULT_PERMISSION, auth.DEFAULT_PERMISSION)
@@ -360,7 +373,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 		log.Errorf("Failed to world update audit permissions: %v", err)
 	}
 
-	_, err = dbResource.db.Exec("update action set permission = ?", auth.NewPermission(auth.None, auth.Read|auth.Execute, auth.Create|auth.Execute).IntValue())
+	_, err = dbResource.db.Exec("update action set permission = ?", auth.NewPermission(auth.None, auth.Read|auth.Execute, auth.CRUD|auth.Execute|auth.Refer).IntValue())
 	_, err = dbResource.db.Exec("update action set permission = ? where action_name in ('signin')", auth.NewPermission(auth.Peek|auth.Execute, auth.Read|auth.Execute, auth.Create|auth.Execute).IntValue())
 
 	if err != nil {
@@ -402,7 +415,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 		perm.UserGroupId = dr.GetObjectUserGroupsByWhere(rowType, "reference_id", refId.(string))
 
 	} else if rowType == "usergroup" {
-		originalGroupId, _ := row["object_reference_id"]
+		originalGroupId, _ := row["reference_id"]
 		originalGroupIdStr := refId.(string)
 		if originalGroupId != nil {
 			originalGroupIdStr = originalGroupId.(string)
@@ -418,13 +431,13 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 		}
 	} else if loc > -1 {
 		// this is a something belongs to a usergroup row
-		for colName, colValue := range row {
-			if EndsWithCheck(colName, "_id") && colName != "reference_id" {
-				if colName != "usergroup_id" {
-					return dr.GetObjectPermission(strings.Split(rowType, "_"+colName)[0], colValue.(string))
-				}
-			}
-		}
+		//for colName, colValue := range row {
+		//	if EndsWithCheck(colName, "_id") && colName != "reference_id" {
+		//		if colName != "usergroup_id" {
+		//			return dr.GetObjectPermission(strings.Split(rowType, "_"+colName)[0], colValue.(string))
+		//		}
+		//	}
+		//}
 
 	}
 
@@ -462,7 +475,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where ...squirrel.Eq
 
 	s, q, err := stmt.ToSql()
 
-	//log.Infof("Select query: %v == [%v]", s, q)
+	log.Infof("Select query: %v == [%v]", s, q)
 	rows, err := dr.db.Queryx(s, q...)
 	if err != nil {
 		return nil, nil, err

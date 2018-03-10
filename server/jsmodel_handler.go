@@ -78,7 +78,7 @@ func CreateMetaHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 	}
 }
 
-func CreateJsModelHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
+func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
 	tableMap := make(map[string]resource.TableInfo)
 	for _, table := range initConfig.Tables {
 

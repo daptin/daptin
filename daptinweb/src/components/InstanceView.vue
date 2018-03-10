@@ -51,17 +51,17 @@
           <detailed-table-row :model="selectedRow" v-if="selectedRow" :json-api="jsonApi"
                               :json-api-model-name="selectedTable"></detailed-table-row>
 
-          <div class="row" v-if="showAddEdit && rowBeingEdited != null">
+          <!--<div class="row" v-if="showAddEdit && rowBeingEdited != null">-->
 
 
-            <model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
-                        v-if="selectedSubTable"
-                        @cancel="showAddEdit = false"
-                        v-bind:model="rowBeingEdited"
-                        v-bind:meta="subTableColumns" ref="modelform"></model-form>
+            <!--<model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"-->
+                        <!--v-if="selectedSubTable"-->
+                        <!--@cancel="showAddEdit = false"-->
+                        <!--v-bind:model="rowBeingEdited"-->
+                        <!--v-bind:meta="subTableColumns" ref="modelform"></model-form>-->
 
 
-          </div>
+          <!--</div>-->
 
 
         </div>

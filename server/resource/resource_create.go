@@ -93,7 +93,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		}
 
 		if col.IsForeignKey {
-			//log.Infof("Convert reference id to id %v[%v]", col.ForeignKeyData.TableName, val)
+			log.Infof("Convert reference_id to id %v[%v]", col.ForeignKeyData.Namespace, val)
 			valString := val.(string)
 			var uId interface{}
 			var err error
@@ -110,6 +110,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 				if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 					uId = foreignObject["id"]
 				} else {
+					log.Printf("User cannot refer this object")
 					ok = false
 				}
 
@@ -192,9 +193,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 					val = 0
 				}
 			}
-		}
-
-		if col.ColumnType == "encrypted" {
+		} else if col.ColumnType == "encrypted" {
 
 			secret, err := dr.configStore.GetConfigValueFor("encryption.secret", "backend")
 			if err != nil {
@@ -205,6 +204,24 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 				if err != nil {
 					log.Errorf("Failed to convert string to encrypted value, not storing the value: %v", err)
 					val = ""
+				}
+			}
+		} else if col.ColumnType == "truefalse" {
+			valBoolean, ok := val.(bool)
+			if ok {
+				if valBoolean {
+					val = 1
+				} else {
+					val = 0
+				}
+			} else {
+				valString, ok := val.(string)
+				if ok {
+					if strings.ToLower(strings.TrimSpace(valString)) == "true" {
+						val = 1
+					} else {
+						val = 0
+					}
 				}
 			}
 		}
@@ -274,7 +291,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := squirrel.
-			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
@@ -293,7 +310,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := squirrel.
-			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 

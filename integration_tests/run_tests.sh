@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -x
 
 docker-compose down
 
@@ -17,9 +17,9 @@ docker-compose up -d --force-recreate
 
 
 ip=`docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' daptin`
+echo "ip: $ip"
 
-
-until $(curl http://$ip:8080/api/user); do
+until $(curl --max-time 5 http://$ip:8080/api/user -H "Hostname: dashboard"); do
     ip=`docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' daptin`
     printf '.'
     sleep 5
