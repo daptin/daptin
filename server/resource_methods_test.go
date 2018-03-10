@@ -41,7 +41,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 
 	cruds := make(map[string]*resource.DbResource)
 
-	ms := BuildMiddlewareSet(&initConfig, cruds)
+	ms := BuildMiddlewareSet(&initConfig, &cruds)
 	for _, table := range initConfig.Tables {
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
 		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, &table)
