@@ -15,6 +15,21 @@ html, body {
   height: 100%
 }
 
+.box-invisible {
+  position: relative;
+  border-radius: 4px;
+  background: #fff;
+  border: none;
+  margin-bottom: 20px;
+  width: 100%;
+  box-shadow: none;
+  font-size: 16px;
+}
+
+.box-invisible table.table > tbody > tr > td {
+  border-top: none;
+}
+
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

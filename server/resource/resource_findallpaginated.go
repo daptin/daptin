@@ -163,8 +163,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if isRelatedGroupRequest {
 		//log.Infof("Switch permission to join table j1 instead of %v%v", prefix, "permission")
 		finalCols = append(finalCols, "j1.permission")
-		finalCols = append(finalCols, prefix+"reference_id as object_reference_id")
-		finalCols = append(finalCols, "j1.reference_id as reference_id")
+		finalCols = append(finalCols, "j1.reference_id as relation_reference_id")
+		finalCols = append(finalCols, prefix+"reference_id as reference_id")
 	} else {
 		finalCols = append(finalCols, prefix+"permission")
 		finalCols = append(finalCols, prefix+"reference_id")

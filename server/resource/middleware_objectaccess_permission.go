@@ -140,7 +140,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		originalRowReference := map[string]interface{}{
 			"__type":              result["__type"],
 			"reference_id":        result["reference_id"],
-			"object_reference_id": result["object_reference_id"],
+			"relation_reference_id": result["relation_reference_id"],
 		}
 		permission := dr.GetRowPermission(originalRowReference)
 		//log.Infof("[ObjectAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.PermissionInstance)

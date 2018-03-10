@@ -388,47 +388,6 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 
 			config.Tables = append(config.Tables, newTable)
 
-			//if targetTable != "usergroup" {
-			//	stateTable := TableInfo{
-			//		TableName: newTable.TableName + "_state",
-			//		Columns: []api2go.ColumnInfo{
-			//			{
-			//				ColumnName: "state",
-			//				Name:       "state",
-			//				ColumnType: "label",
-			//				DataType:   "varchar(100)",
-			//				IsNullable: false,
-			//			},
-			//			{
-			//				ColumnName:   "smd_id",
-			//				Name:         "smd_id",
-			//				ColumnType:   "alias",
-			//				DataType:     "int(11)",
-			//				IsForeignKey: true,
-			//				IsNullable:   false,
-			//				ForeignKeyData: api2go.ForeignKeyData{
-			//					DataSource: "self",
-			//					TableName:  "smd",
-			//					ColumnName: "id",
-			//				},
-			//			},
-			//			{
-			//				ColumnName:   newTable.TableName + "_id",
-			//				Name:         newTable.TableName + "_id",
-			//				ColumnType:   "alias",
-			//				DataType:     "int(11)",
-			//				IsForeignKey: true,
-			//				IsNullable:   false,
-			//				ForeignKeyData: api2go.ForeignKeyData{
-			//					DataSource: "self",
-			//					TableName:  newTable.TableName,
-			//					ColumnName: "id",
-			//				},
-			//			},
-			//		},
-			//	}
-			//	config.Tables = append(config.Tables, stateTable)
-			//}
 
 		} else if relation2 == "has_many_and_belongs_to_many" {
 
@@ -436,7 +395,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			targetTable := relation.GetObject()
 
 			newTable := TableInfo{
-				TableName: relation.GetSubjectName() + "_" + relation.GetObjectName(),
+				TableName: relation.GetJoinTableName(),
 				Columns:   make([]api2go.ColumnInfo, 0),
 			}
 
