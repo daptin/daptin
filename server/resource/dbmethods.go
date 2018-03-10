@@ -13,7 +13,7 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
-	"github.com/artpar/dockercell/utils"
+	"github.com/artpar/go.uuid"
 )
 
 func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []auth.GroupPermission, typeName string, actionName string) bool {
@@ -350,11 +350,11 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 	}
 
 	adminUsergroupId, err := dbResource.UserGroupNameToId("administrators")
-	reference_id := utils.NewV4Uuid()
+	reference_id, err := uuid.NewV4()
 
 	query, args, err := squirrel.Insert("user_user_id_has_usergroup_usergroup_id").
 		Columns("user_id", "usergroup_id", "permission", "reference_id").
-		Values(userId, adminUsergroupId, auth.DEFAULT_PERMISSION.IntValue(), reference_id).
+		Values(userId, adminUsergroupId, auth.DEFAULT_PERMISSION.IntValue(), reference_id.String()).
 		ToSql()
 
 	_, err = dbResource.db.Exec(query, args...)
