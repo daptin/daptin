@@ -6,17 +6,20 @@ import (
 )
 
 /**
-  Become administrator of the instance
+  Become administrator of daptin action implementation
 */
 type BecomeAdminActionPerformer struct {
 	responseAttrs map[string]interface{}
 	cruds         map[string]*DbResource
 }
 
+// Name of the action
 func (d *BecomeAdminActionPerformer) Name() string {
 	return "__become_admin"
 }
 
+// Perform action and try to make the current user the admin of the system
+// Checks CanBecomeAdmin and then invokes BecomeAdmin if true
 func (d *BecomeAdminActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	if !d.cruds["world"].CanBecomeAdmin() {
@@ -43,6 +46,7 @@ func (d *BecomeAdminActionPerformer) DoAction(request ActionRequest, inFieldMap 
 	return nil, []ActionResponse{actionResponse}, nil
 }
 
+// Create a new action performer for becoming administrator action
 func NewBecomeAdminPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
 	handler := BecomeAdminActionPerformer{

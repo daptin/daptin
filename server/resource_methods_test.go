@@ -76,6 +76,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	dbResource := resource.NewDbResource(nil, wrapper, &ms, cruds, configStore, &resource.TableInfo{})
 	return wrapper, dbResource
 }
+
 func GetResourceWithName(name string) (*InMemoryTestDatabase, *resource.DbResource) {
 	wrapper := GetDb()
 
@@ -84,7 +85,10 @@ func GetResourceWithName(name string) (*InMemoryTestDatabase, *resource.DbResour
 	tableInfo := &resource.TableInfo{
 		TableName: name,
 	}
-	dbResource := resource.NewDbResource(model, wrapper, nil, nil, nil, tableInfo)
+
+	cruds := make(map[string]*resource.DbResource)
+	dbResource := resource.NewDbResource(model, wrapper, nil, cruds, nil, tableInfo)
+	cruds[name] = dbResource
 	return wrapper, dbResource
 }
 
@@ -196,6 +200,48 @@ func TestCreateWithoutFilter(t *testing.T) {
 	dbResource.CreateWithoutFilter(obj, req)
 
 	if !wrapper.HasExecuted("INSERT INTO todo (reference_id,permission,created_at) VALUES (?,?,?)") {
+		t.Errorf("Expected query not fired")
+		t.Fail()
+	}
+
+}
+
+func TestPaginatedFindAllWithoutFilter(t *testing.T) {
+
+	wrapper, dbResource := GetResourceWithName("todo")
+	defer wrapper.db.Close()
+	req := api2go.Request{
+		PlainRequest: &http.Request{
+			Method: "GET",
+		},
+		QueryParams: map[string][]string{},
+	}
+	dbResource.PaginatedFindAllWithoutFilters(req)
+
+	if !wrapper.HasExecuted("SELECT todo.permission, todo.reference_id FROM todo LIMIT 10 OFFSET 0") {
+		t.Errorf("Expected query not fired")
+		t.Fail()
+	}
+
+}
+
+func TestDeleteWithoutFilter(t *testing.T) {
+
+	wrapper, dbResource := GetResourceWithName("world")
+	defer wrapper.db.Close()
+	req := api2go.Request{
+		PlainRequest: &http.Request{
+			Method: "GET",
+		},
+		QueryParams: map[string][]string{},
+	}
+
+	worlds,_ := dbResource.GetAllRawObjects("world")
+	log.Printf("%v", worlds[0]["reference_id"])
+
+	dbResource.DeleteWithoutFilters(worlds[0]["reference_id"].(string), req)
+
+	if !wrapper.HasExecuted("DELETE FROM world WHERE reference_id = ?") {
 		t.Errorf("Expected query not fired")
 		t.Fail()
 	}
