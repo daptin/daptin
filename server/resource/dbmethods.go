@@ -16,6 +16,10 @@ import (
 	"github.com/artpar/go.uuid"
 )
 
+// Check if a user identified by userReferenceId and belonging to userGroups is allowed to invoke an action `actionName` on type `typeName`
+// Called before invoking an action from the /action/** api
+// Checks EXECUTE on both the type and action for this user
+// The permissions can come from different groups
 func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []auth.GroupPermission, typeName string, actionName string) bool {
 
 	permission := dr.GetObjectPermissionByWhereClause("world", "table_name", typeName)
@@ -29,6 +33,8 @@ func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []a
 
 }
 
+// Get an Action instance by `typeName` and `actionName`
+// Check Action instance for usage
 func (dr *DbResource) GetActionByName(typeName string, actionName string) (Action, error) {
 	var a ActionRow
 
@@ -50,6 +56,8 @@ func (dr *DbResource) GetActionByName(typeName string, actionName string) (Actio
 	return action, nil
 }
 
+// Get list of all actions defined on type `typeName`
+// Returns list of `Action`
 func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 	action := make([]Action, 0)
 
@@ -89,6 +97,10 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 	return action, nil
 }
 
+// Get permission of an action by typeId and actionName
+// Loads the owner, usergroup and guest permission of the action from the database
+// Return a PermissionInstance
+// Special utility function for actions, for other objects use GetObjectPermission
 func (dr *DbResource) GetActionPermissionByName(worldId int64, actionName string) (PermissionInstance, error) {
 
 	refId, err := dr.GetReferenceIdByWhereClause("action", squirrel.Eq{"action_name": actionName}, squirrel.Eq{"world_id": worldId})
@@ -104,6 +116,10 @@ func (dr *DbResource) GetActionPermissionByName(worldId int64, actionName string
 	return permissions, nil
 }
 
+// Get permission of an GetObjectPermission by typeName and string referenceId
+// Loads the owner, usergroup and guest permission of the action from the database
+// Return a PermissionInstance
+// Return a NoPermissionToAnyone if no such object exist
 func (dr *DbResource) GetObjectPermission(objectType string, referenceId string) PermissionInstance {
 
 	var selectQuery string
@@ -156,6 +172,11 @@ func (dr *DbResource) GetObjectPermission(objectType string, referenceId string)
 	return perm
 }
 
+// Get permission of an GetObjectPermission by typeName and string referenceId with a simple where clause colName = colValue
+// Use carefully
+// Loads the owner, usergroup and guest permission of the action from the database
+// Return a PermissionInstance
+// Return a NoPermissionToAnyone if no such object exist
 func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colName string, colValue string) PermissionInstance {
 	var perm PermissionInstance
 	s, q, err := squirrel.Select("user_id", "permission", "id").From(objectType).Where(squirrel.Eq{colName: colValue}).ToSql()
@@ -190,6 +211,10 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	return perm
 }
 
+
+// Get list of group permissions for objects of typeName where colName=colValue
+// Utility method which makes a join query to load a lot of permissions quickly
+// Used by GetRowPermission
 func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string, colvalue string) []auth.GroupPermission {
 
 	s := make([]auth.GroupPermission, 0)
@@ -270,6 +295,9 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 
 }
 
+// Check if someone can invoke the become admin action
+// checks if there is only 1 real user in the system
+// No one can become admin once there are two non admin users
 func (dbResource *DbResource) CanBecomeAdmin() bool {
 
 	var count int
@@ -283,6 +311,7 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 
 }
 
+// Returns the bCrypt password hash of a user by looking up on email
 func (d *DbResource) GetUserPassword(email string) (string, error) {
 	passwordHash := ""
 
@@ -299,6 +328,9 @@ func (d *DbResource) GetUserPassword(email string) (string, error) {
 	return passwordHash, err
 }
 
+// Convert group name to the internal integer id
+// should not be used since group names are not unique
+// deprecated
 func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
 
 	query, arg, err := squirrel.Select("id").From("usergroup").Where(squirrel.Eq{"name": groupName}).ToSql()
@@ -316,6 +348,8 @@ func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error
 	return id, err
 }
 
+// make user by integer `userId` int the administrator and owner of everything
+// Check CanBecomeAdmin before invoking this
 func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 	log.Printf("User: %d is going to become admin", userId)
 	if !dbResource.CanBecomeAdmin() {
@@ -568,6 +602,9 @@ func (dr *DbResource) TruncateTable(typeName string) error {
 
 }
 
+
+// Update the data and set the values using the data map without an validation or transformations
+// Invoked by data import action
 func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{}) error {
 
 	columnMap := dr.cruds[typeName].model.GetColumnMap()
@@ -591,6 +628,10 @@ func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{})
 	return err
 }
 
+// Get all rows from the table `typeName`
+// Returns an array of Map object, each object has the column name to value mapping
+// Utility method for loading all objects having low count
+// Can be used by actions
 func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, error) {
 	s, q, err := squirrel.Select("*").From(typeName).ToSql()
 	if err != nil {
@@ -609,6 +650,11 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 	return m, err
 }
 
+// Get all rows from the table `typeName` without any processing of the response
+// expect no "__type" column on the returned instances
+// Returns an array of Map object, each object has the column name to value mapping
+// Utility method for loading all objects having low count
+// Can be used by actions
 func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{}, error) {
 	s, q, err := squirrel.Select("*").From(typeName).ToSql()
 	if err != nil {
@@ -627,6 +673,8 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 	return m, err
 }
 
+// Load an object of type `typeName` using a reference_id
+// Used internally, can be used by actions
 func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string) (map[string]interface{}, error) {
 	//log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
 	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
@@ -660,6 +708,9 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	return results[0], err
 }
 
+// Load rows from the database of `typeName` with a where clause to filter rows
+// Converts the queries to sql and run query with where clause
+// Returns list of reference_ids
 func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...squirrel.Eq) ([]string, error) {
 	builder := squirrel.Select("reference_id").From(typeName)
 
@@ -692,6 +743,9 @@ func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...sq
 
 }
 
+// Load rows from the database of `typeName` with a where clause to filter rows
+// Converts the queries to sql and run query with where clause
+// Returns  list of internal database integer ids
 func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...squirrel.Eq) ([]int64, error) {
 	builder := squirrel.Select("id").From(typeName)
 
@@ -724,6 +778,7 @@ func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...squirrel.Eq
 
 }
 
+// Lookup an integer id and return a string reference id of an object of type `typeName`
 func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, error) {
 
 	s, q, err := squirrel.Select("reference_id").From(typeName).Where(squirrel.Eq{"id": id}).ToSql()
@@ -738,6 +793,7 @@ func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, err
 
 }
 
+// Lookup an string reference id and return a internal integer id of an object of type `typeName`
 func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (int64, error) {
 
 	var id int64
@@ -751,6 +807,8 @@ func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (i
 
 }
 
+// select "column" from "typeName" where matchColumn in (values)
+// returns list of values of the column
 func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectColumn, matchColumn string, values []string) ([]interface{}, error) {
 
 	s, q, err := squirrel.Select(selectColumn).From(typeName).Where(squirrel.Eq{matchColumn: values}).ToSql()
@@ -762,6 +820,8 @@ func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectC
 	return rows.SliceScan()
 }
 
+// convert the result of db.QueryRowx => rows to array of data
+// can be used on any *sqlx.Rows and assign a typeName
 func RowsToMap(rows *sqlx.Rows, typeName string) ([]map[string]interface{}, error) {
 
 	columns, err := rows.Columns()
@@ -784,9 +844,14 @@ func RowsToMap(rows *sqlx.Rows, typeName string) ([]map[string]interface{}, erro
 	}
 
 	return responseArray, nil
-
 }
 
+// convert the result of db.QueryRowx => rows to array of data
+// fetches the related objects also
+// expects columnMap to be fetched from rows
+// check usage in exiting source for example
+// includeRelationMap can be nil to include none or map[string]bool{"*": true} to include all relations
+// can be used on any *sqlx.Rows
 func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]api2go.ColumnInfo, includedRelationMap map[string]bool) ([]map[string]interface{}, [][]map[string]interface{}, error) {
 
 	//finalArray := make([]map[string]interface{}, 0)
@@ -891,6 +956,9 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 	return responseArray, includes, nil
 }
 
+// convert the result of db.QueryRowx => rows to array of data
+// can be used on any *sqlx.Rows and assign a typeName
+// calls RowsToMap with the current model name
 func (dr *DbResource) ResultToArrayOfMapRaw(rows *sqlx.Rows, columnMap map[string]api2go.ColumnInfo) ([]map[string]interface{}, error) {
 
 	//finalArray := make([]map[string]interface{}, 0)
@@ -902,6 +970,10 @@ func (dr *DbResource) ResultToArrayOfMapRaw(rows *sqlx.Rows, columnMap map[strin
 
 	return responseArray, nil
 }
+
+// resolve a file column from data in column to actual file on a cloud store
+// returns a map containing the metadata of the file and the file contents as base64 encoded
+// can be sent to browser to invoke downloading js and data urls
 func (resource *DbResource) GetFileFromCloudStore(data api2go.ForeignKeyData, filesList []map[string]interface{}) (resp []map[string]interface{}, err error) {
 
 	cloudStore, err := resource.GetCloudStoreByName(data.Namespace)
