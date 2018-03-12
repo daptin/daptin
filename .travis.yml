@@ -9,13 +9,27 @@ cache:
   directories:
     - "daptinweb/node_modules"
 
-script: go test -v ./...  -race -coverprofile=coverage.txt -covermode=atomic
-
 services:
   - docker
 
-script: go get github.com/GeertJohan/go.rice/rice && ls -lah && curl https://glide.sh/get | sh && glide install && cd daptinweb && npm install && npm run build && cd .. && rice embed-go && ls -lah && go build -ldflags='-extldflags "-static"' -o main && mkdir docker_dir && cp ./main ./docker_dir/main && cp Dockerfile docker_dir/Dockerfile
+before_script:
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+  - ./cc-test-reporter before-build
 
+script:
+  - ls -lah
+  - cat .travis.yml
+  - "echo 'mode: set' > c.out"
+  - go get -t ./...
+  - for pkg in $(go list ./... | grep -v vendor); do go test -coverprofile=$(echo $pkg | tr / -).cover $pkg; done ;
+  - ls -lah
+  - grep -h -v "^mode:" ./*.cover >> c.out
+  - go get github.com/GeertJohan/go.rice/rice && ls -lah && curl https://glide.sh/get | sh && glide install && cd daptinweb && npm install && npm run build && cd .. && rice embed-go && ls -lah && go build -ldflags='-extldflags "-static"' -o main && mkdir docker_dir && cp ./main ./docker_dir/main && cp Dockerfile docker_dir/Dockerfile
+
+
+after_script:
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
 
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
