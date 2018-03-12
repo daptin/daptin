@@ -22,7 +22,7 @@ script:
   - ls -lah
   - cat .travis.yml
   - "echo 'mode: set' > c.out"
-  - ls -lah
+  - go get -t ./...
   - for pkg in $(go list ./... | grep -v vendor); do go test -coverprofile=$(echo $pkg | tr / -).cover $pkg; done ;
   - ls -lah
   - grep -h -v "^mode:" ./*.cover >> c.out
