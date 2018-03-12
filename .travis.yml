@@ -18,7 +18,6 @@ before_script:
   - ./cc-test-reporter before-build
 
 script:
-  - set -x
   - ls -lah
   - cat .travis.yml
   - "echo 'mode: set' > c.out"
