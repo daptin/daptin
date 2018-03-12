@@ -20,7 +20,6 @@ before_script:
 script:
   - for pkg in $(go list ./... | grep -v vendor); do go test -coverprofile=$(echo $pkg | tr / -).cover $pkg; done ; echo "mode: set" > c.out; grep -h -v "^mode:" ./*.cover >> c.out
   - ls -lah
-  - cp c.out coverage.out
   - go get github.com/GeertJohan/go.rice/rice && ls -lah && curl https://glide.sh/get | sh && glide install && cd daptinweb && npm install && npm run build && cd .. && rice embed-go && ls -lah && go build -ldflags='-extldflags "-static"' -o main && mkdir docker_dir && cp ./main ./docker_dir/main && cp Dockerfile docker_dir/Dockerfile
 
 
