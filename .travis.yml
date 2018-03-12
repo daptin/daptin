@@ -20,7 +20,8 @@ before_script:
 script:
   - set -x
   - ls -lah
-  - echo "mode: set" > c.out
+  - cat .travis.yml
+  - "echo 'mode: set' > c.out"
   - ls -lah
   - for pkg in $(go list ./... | grep -v vendor); do go test -coverprofile=$(echo $pkg | tr / -).cover $pkg; done ;
   - ls -lah
