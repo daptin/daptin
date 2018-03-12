@@ -9,7 +9,7 @@ cache:
   directories:
     - "daptinweb/node_modules"
 
-script: go test -v ./...  -race -coverprofile=coverage.txt -covermode=atomic
+script: go test -race -coverprofile=coverage.txt -covermode=atomic
 
 services:
   - docker
