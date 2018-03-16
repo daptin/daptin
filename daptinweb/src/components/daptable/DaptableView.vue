@@ -1,63 +1,21 @@
 <template>
-  <table class="daptable" ref="tabl" :id="tableId">
-    <thead>
-
-    </thead>
-    <tbody>
-
-    </tbody>
-    <tfoot>
-
-    </tfoot>
-  </table>
+  <div class="gridContainer">
+    <div ref="tabl" :id="tableId"></div>
+  </div>
 </template>
 <style>
 
-  .daptable li {
-    list-style: none;
+  .gridContainer {
+
+    position: relative;
+    width: 100%;
+    height: 250px;
   }
 
-  .daptable li:before {
-    content: "✓ ";
-  }
+  .gridContainer > div {
 
-  .daptable input {
-    border: none;
-    width: 80px;
-    font-size: 14px;
-    padding: 2px;
-  }
-
-  .daptable input:hover {
-    background-color: #eee;
-  }
-
-  .daptable input:focus {
-    background-color: #ccf;
-  }
-
-  .daptable input:not(:focus) {
-    text-align: right;
-  }
-
-  .daptable table {
-    border-collapse: collapse;
-  }
-
-  .daptable td {
-    border: 1px solid #999;
-    padding: 0;
-  }
-
-  .daptable tr:first-child td, .daptable td:first-child {
-    background-color: #ccc;
-    padding: 1px 3px;
-    font-weight: bold;
-    text-align: center;
-  }
-
-  .daptable footer {
-    font-size: 80%;
+    width: 100%;
+    height: 100%;
   }
 
 </style>
@@ -114,64 +72,14 @@
         that.jsonApi.findAll(that.selectedWorld).then(function (data) {
           console.log("got all data", data);
 
-
-          const initialData = data.data;
-          console.log("create ", initialData.length, " rows");
-          const attributeKeys = Object.keys(that.jsonModel.attributes);
-
-          for (let i = 0; i < initialData.length; i++) {
-            that.dataMap[initialData[i].id] = initialData[i];
-            const row = that.$refs.tabl.insertRow(-1);
-            const rowData = initialData[i];
-            for (let j = 0; j < attributeKeys.length; j++) {
-              const attribute = attributeKeys[j];
-//              debugger
-//              const letter = attribute;
-              row.insertCell(-1).innerHTML = i && j ? `<input value="${rowData[attribute]}" id="${attribute}@${rowData['id']}"'/>` : i || attribute;
-            }
-          }
-
-
-          that.data = {};
-          that.inputs = [].slice.call(document.querySelectorAll(`#${that.tableId} input`));
-          that.inputs.forEach(function (elm) {
-            const parts = elm.id.split("@");
-            const attributeName = parts[0];
-            const rowId = parts[1];
-
-
-            elm.onfocus = function (e) {
-              const parts1 = elm.id.split("@");
-              const attributeName1 = parts[0];
-              const rowId1 = parts[1];
-              e.target.value = that.dataMap[rowId1][attributeName1] || "";
-            };
-            elm.onblur = function (e) {
-              const parts1 = elm.id.split("@");
-              const attributeName1 = parts[0];
-              const rowId1 = parts[1];
-              that.dataMap[rowId1][attributeName1] = e.target.value;
-              computeAll();
-            };
-            const getter = function () {
-              const value = that.dataMap[rowId][attributeName] || "";
-              if (value.charAt(0) === "=") {
-                return eval(value.substring(1));
-              } else {
-                return isNaN(parseFloat(value)) ? value : parseFloat(value);
-              }
-            };
-            Object.defineProperty(that.data, elm.id, {get: getter});
-            Object.defineProperty(that.data, elm.id.toLowerCase(), {get: getter});
+          const grid = $(`#${that.tableId}`).ip_Grid({
+            rows: 10,
+            cols: 26,
+//            rowData: [[0]],
+//            colData: [6,7,8,9]
           });
-          (window.computeAll = function () {
-            that.inputs.forEach(function (elm) {
-              try {
-                elm.value = that.data[elm.id];
-              } catch (e) {
-              }
-            });
-          })();
+          console.log("hello grid", grid);
+          window.grid = grid;
 
         });
 
