@@ -11,6 +11,7 @@
     </div>
     <div class="col-md-12">
       <!-- TableView -->
+
       <vuetable v-if="viewMode == 'table'" ref="vuetable"
                 :json-api="jsonApi"
                 :finder="finder"
@@ -136,7 +137,7 @@
       },
       autoload: {
         type: Boolean,
-        rquired: false,
+        required: false,
         default: true
       },
       jsonApiModelName: {
