@@ -1,0 +1,1383 @@
+﻿.ip_grid_sheet {
+    overflow:hidden;
+    position:relative;
+    cursor:default;
+    width:100%;
+    height:100%;
+}
+.ip_grid_quadrant {
+    position:relative;    
+    padding:0px;
+    white-space:nowrap;
+    overflow:visible;
+    font-family:Verdana;
+    font-size:11px;
+    background-color:#393939;
+}
+.ip_grid_container {
+
+    top:0px;
+    left:0px;
+    position:relative;
+    overflow:hidden;
+    padding:0px;
+    background-color:#393939;
+    width:400px;
+}
+.ip_grid {
+    
+    color:#5d5d5d;
+    font-size:8pt;
+    font-weight:lighter;
+    border-bottom:none;
+    border-right:solid 1px #d8d8d8;
+    border-left:none;
+    border-top:none;
+    background-color:#393939;
+    position:relative;
+    table-layout:fixed;
+    overflow:hidden;
+    width:0px;
+    border-collapse:separate;
+    border-spacing:0px;
+    cursor:default;
+    /*height:0px;*/
+}
+
+
+/* --- FX BAR -------------------------------------------------------------------------------------------------------------------------------------*/
+.ip_grid_fbar {
+        
+    
+    background-color:#2a2a2a;
+    position:relative;
+    cursor:text;
+    width:100%;
+    text-align:left;
+    vertical-align:middle;
+    white-space:nowrap;
+    font-size:11pt;
+    color:white;
+}
+.ip_grid_fbar_f {
+        
+    color:#46b3ff;
+    font-style:italic;
+    position:relative;
+    font-family:'Times New Roman';
+    font-size:12pt;
+
+}
+.ip_grid_fbar_x {
+        
+    color:#46b3ff;
+    font-size:8pt;
+}
+.ip_grid_fbar_title {
+    position:absolute;
+    left:0px;
+    text-align:center;
+    width:60px;
+}
+.ip_grid_fbar_text {
+
+    background:inherit;
+    position:relative;
+    left:60px;
+    line-height:inherit;
+    width:100%;
+    min-width:1em;
+    white-space:nowrap;
+    text-align:left;
+    /*background-color:red;*/
+    
+
+}
+
+
+.ip_grid_columnSelectorRow {
+}
+.ip_grid_columnSelectorCell {
+
+    border-right:solid 1px #d8d8d8;
+    border-top:solid 1px #d8d8d8;
+    border-left:none;
+    overflow:hidden;
+    position:relative;  
+    background-color:#e5e5e5;
+    text-align:center;
+    vertical-align:middle;
+    max-height:inherit;    
+    padding:0px;
+    margin:0px;    
+    cursor:default;
+    font-weight:lighter;
+
+}
+.ip_grid_columnSelectorCell.q1 {
+    border-bottom:solid 1px #d8d8d8;
+}
+.ip_grid_columnSelectorCell.q2 {
+    border-bottom:solid 1px #d8d8d8;
+}
+.ip_grid_columnSelectorCell.q3 {
+    border-bottom:solid 1px #d8d8d8;
+}
+.ip_grid_columnSelectorCell.q4 {
+    border-bottom:solid 1px #d8d8d8;
+}
+
+.ip_grid_columnSelectorCell.selected {
+    background-color:#d8d8d8;
+
+}
+.ip_grid_columnSelectorCellCorner {
+
+        
+     border-bottom:solid 1px #d8d8d8;
+    overflow:hidden;
+    position:relative;    
+    background-color:#e5e5e5;
+    text-align:center;
+    vertical-align:middle;
+    max-height:inherit;    
+    padding:0px;
+    margin:0px;
+    z-index:0;    
+    width:50px;
+}
+.ip_grid_columnSelectorCellCorner.q1 {
+    border-right:solid 1px #d8d8d8;
+    border-bottom:solid 1px #d8d8d8;
+}
+.ip_grid_columnSelectorCellCorner.q2 {
+
+}
+.ip_grid_columnSelectorCellCorner.q3 {
+    border-right:solid 1px #d8d8d8;
+}
+.ip_grid_columnSelectorCellCorner.q4 {
+  
+}
+.ip_grid_columnSelectorCellCorner.selected {
+    /*background-color:#ccf08c;*/
+}
+
+.ip_grid_row {
+    overflow:hidden; 
+    position:relative;      
+}
+.ip_grid_rowSelecterCell {
+
+    font-weight:lighter;
+    overflow:hidden;
+    position:relative;    
+    background-color:#e5e5e5;
+    text-align:center;
+    vertical-align:middle;
+    max-height:inherit;
+    height:inherit;
+    padding:0px;    
+    margin:0px;
+    z-index:0;
+    cursor:default;
+
+}
+.ip_grid_rowSelecterCell.q1 {
+
+    border-bottom:solid 1px #d8d8d8;
+    border-left:solid 1px #d8d8d8;
+    border-top:none;
+    border-right:solid 1px #d8d8d8; 
+
+}
+.ip_grid_rowSelecterCell.q2 {
+    border-bottom:solid 1px #d8d8d8;
+}
+.ip_grid_rowSelecterCell.q3 {
+    border-bottom:solid 1px #d8d8d8;
+    border-left:solid 1px #d8d8d8;
+    border-top:none;
+    border-right:solid 1px #d8d8d8;
+}
+.ip_grid_rowSelecterCell.q4 {
+
+    border-bottom:solid 1px #d8d8d8;
+    
+    
+}
+
+.ip_grid_rowSelecterCell.selected {
+    background-color:#d8d8d8;
+}
+.ip_grid_rowGroup {  background-color:lavender; }
+
+
+/* --- CELL -------------------------------------------------------------------------------------------------------------------------------------*/
+
+.ip_grid_cell {
+    /*#f1f1f1;*/
+
+    font-family:Verdana;
+    font-size:11px;
+    border-collapse:collapse;
+    /*border:solid 1px red;*/
+    border-bottom:solid 1px #e5e5e5;
+    border-right:solid 1px #e5e5e5;
+    border-top:none;
+    border-left:none;
+    overflow:visible;
+    position:relative;    
+    background-color:white;
+    text-align:center;
+    vertical-align:middle;
+    max-height:inherit; 
+    height:inherit;       
+    padding:0px;
+    margin:0px;
+    /*z-index:1; WARNING: applying z-index here will prevent cell borders from working */ 
+
+}
+.ip_grid_cell_outerContent {
+
+    position:relative;
+    /*overflow:hidden;*/
+    padding:0px;
+    margin:0px;      
+    max-height:inherit;    
+    visibility:inherit;
+    text-align:inherit;
+    text-decoration:inherit;
+
+}
+.ip_grid_cell_innerContent {
+    
+    background-color:transparent;
+    /*white-space:nowrap;*/
+    padding:0px;
+    margin:4px;
+    display:inline-block;
+    visibility:inherit;
+    text-decoration:inherit;
+}
+.ip_grid_cell_loading {
+
+    border-bottom:dashed 1px #b4b4b4;
+    border-right:dashed 1px #b4b4b4;
+
+    background-color:#d8d8d8;
+    /*background: transparent;  
+    background: linear-gradient(45deg, #000000 25%, #6bcaf1 25%, #6bcaf1 50%, #000000 50%, #000000 75%, #6bcaf1 75%, #6bcaf1);
+    background-size:2px 2px;*/
+}
+.ip_grid_cell_hideIcon {
+
+    position:absolute;
+    width:0px;
+    height:0px;
+    line-height:0px;
+    border-top:solid 8px;
+    border-bottom:solid 8px;
+    border-left:solid 8px;
+    border-right:solid 8px;
+    border-color:#ff46d1;
+    z-index:3; /*must be higher than range selector*/
+
+}
+.ip_grid_cell_hideIcon.top {
+    
+    border-bottom-color:transparent;
+    border-right-color:transparent;
+    border-left-color:transparent;  
+    left:0px; 
+    top:0px;
+
+}
+.ip_grid_cell_hideIcon.left { 
+    
+    border-bottom-color:transparent;
+    border-right-color:transparent;
+    border-top-color:transparent;  
+    left: 0px; 
+    top:0px;
+
+}
+.ip_grid_cell_error {
+    background-color:#ffeeee;
+    color:red;
+
+}
+
+.ip_grid_cell_groupIcon {
+        
+    position:absolute;       
+    color:white;
+    font-weight:bold;
+    font-family: 'Times New Roman';
+    font-size:10pt;
+    height:15px;
+    line-height:15px;
+    width:15px;
+    background-color:#ff9200;
+    z-index:4;
+    left:4px;
+    top:5px;
+    padding:0px; /*1px 1px 0px 0px;*/
+    margin:0px;
+    border-radius:3px;
+    overflow:hidden;
+    vertical-align:top;
+    text-align:center;
+
+}
+.ip_grid_cell_groupIcon.expanded {  background-color:#e5e5e5; color:black;   }
+.ip_grid_cell_groupIcon.collapsed {  background-color:black;    }
+
+.ip_grid_cell_dropdownIconContainer {
+    cursor:pointer;
+    background-color:white;
+    position:absolute;
+    top:0px;
+    right:0px;
+    margin:4px 4px 0px 0px;
+    width:16px;
+    height:16px;
+    background-color:white;
+    border-radius:10px;
+    color:#c8c8c8;  
+    -webkit-transition: all 0.3s ease;
+    -moz-transition: all 0.3s ease;
+    -o-transition: all 0.3s ease;
+    transition: all 0.3s ease;
+    color:#d9d9d9;
+}
+.ip_grid_cell_dropdownIconContainer:hover {
+    /*box-shadow:0px 0px 6px 1px #b0b0b0;*/
+    background-color:#ff9446;
+    -webkit-transition: all 0.3s ease;
+    -moz-transition: all 0.3s ease;
+    -o-transition: all 0.3s ease;
+    transition: all 0.3s ease;
+    color:#2a2a2a;
+}
+.ip_grid_cell_dropdownIcon {
+    
+    position:absolute;
+    color:inherit;  
+    border-top: 5px solid;
+    border-left: 5px solid;
+    border-right: 5px solid;
+    border-bottom: 5px solid;
+    border-bottom-color:transparent;
+    border-right-color:transparent;
+    border-left-color:transparent;
+    width:0px;
+    height:0px;
+    left:3px;
+    top:6px;
+    /*margin:4px 4px;*/
+
+
+}
+
+.ip_grid_cell_gantt {
+    width:100%;
+    height:11px;    
+    position:absolute;    
+
+    left:0px;
+    top:0px;    
+
+    border-top:solid 1px #c3d825;
+    border-bottom:solid 1px #c3d825;
+    background: #e6f0a3; /* Old browsers */
+    background: -moz-linear-gradient(top,  #e6f0a3 0%, #d2e638 50%, #c3d825 51%, #dbf043 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#e6f0a3), color-stop(50%,#d2e638), color-stop(51%,#c3d825), color-stop(100%,#dbf043)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top,  #e6f0a3 0%,#d2e638 50%,#c3d825 51%,#dbf043 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top,  #e6f0a3 0%,#d2e638 50%,#c3d825 51%,#dbf043 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top,  #e6f0a3 0%,#d2e638 50%,#c3d825 51%,#dbf043 100%); /* IE10+ */
+    background: linear-gradient(to bottom,  #e6f0a3 0%,#d2e638 50%,#c3d825 51%,#dbf043 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e6f0a3', endColorstr='#dbf043',GradientType=0 ); /* IE6-9 */
+
+}
+.ip_grid_cell_border {
+
+    /*border:dashed 3px red;*/
+    position:absolute;
+    top:-1px;
+    left:-1px;
+    height:inherit;
+    width:100%;
+    z-index:1; /*only works if table and cells do not have z-index*/
+
+}
+
+
+.ip_grid_scrollBarContainer {
+
+    overflow:visible;
+    background-color:#393939;
+    z-index:3;
+
+
+}
+.ip_grid_scrollBarContainer.horizontal {
+       
+
+    width:100%;
+    height:10px;
+    position:relative;
+    top:0px;
+    left: 0px; 
+    background-color:#393939;
+
+
+}
+.ip_grid_scrollBarContainer.vertical {
+
+
+    width:10px;
+    height:100%;
+    position:absolute;
+    top:0px;
+    right: 0px; 
+    background-color:#393939;
+}
+.ip_grid_scrollBar_innerContent {
+
+    /*top:0px;
+    left:0px;*/
+    width:100%;
+    height:100%;
+    position:relative;
+
+
+}
+.ip_grid_scrollBar_gadget {
+
+
+    position:relative;
+    background-color:#6aaddc;
+    overflow:visible;
+
+}
+.ip_grid_scrollBar_gadget_scrolling {
+    background-color:#ff9446;
+}
+.ip_grid_scrollBar_gadget.horizontal {
+
+    height:100%;
+    width:0px;
+}
+.ip_grid_scrollBar_gadget.vertical {
+
+    height:0px;
+    width:100%;
+}
+.ip_grid_scrollBar_indecator {
+
+    display:none;
+}
+.ip_grid_scrollBar_indecator.vertical {
+
+    text-align:center;
+    position:relative;
+    width:50px;
+    padding:3px 3px 3px 3px;
+    background-color:white;
+    left:-60px;
+    border-radius:10px 10px 10px 10px;
+
+}
+
+
+.ip_grid_gridResizeTool {
+    position:absolute;
+    left:0px;
+    width:10px;
+    height:100%;
+    background-color:red;
+    z-index:4;
+    text-align:center;
+    cursor:pointer;
+    background: transparent;  
+    background: linear-gradient(45deg, #222222 25%, #46b3ff 25%, #46b3ff 50%, #222222 50%, #222222 75%, #46b3ff 75%, #46b3ff);
+    /*background-size:10px 10px;*/
+}
+.ip_grid_gridResizeTool:hover {
+
+    background: linear-gradient(45deg, #222222 25%, #ff9446 25%, #ff9446 50%, #222222 50%, #222222 75%, #ff9446 75%, #ff9446);
+    
+}
+.ip_grid_gridResizeTool.resizing {
+     
+    background: linear-gradient(45deg, #222222 25%, #ff9446 25%, #ff9446 50%, #222222 50%, #222222 75%, #ff9446 75%, #ff9446);
+    box-shadow: 0px 0px 3px 0px black;
+    cursor:ew-resize;
+}
+.ip_grid_gridResizeToolLine{
+    cursor:ew-resize;
+    top:100%;
+    position:absolute;
+    width:1px;
+    height:100%;
+    background-color:#ff9446;
+    margin:0px  auto;
+    right:0px;
+    left:0px;
+    display:none;
+}
+
+
+.ip_grid_cell_rangeHighlight {
+
+    position:absolute;
+    width:0px;
+    height:0px;
+    border:dashed 2px #6aaddc;
+    z-index:2;
+    display:none;
+    top:0px;
+    left:0px;
+    background-color:transparent;
+    pointer-events:none;
+
+
+}
+.ip_grid_cell_rangeHighlight_selected {
+
+    pointer-events:none;
+  
+}
+.ip_grid_cell_rangeHighlight_activecell {
+     border:solid 2px #6aaddc;
+}
+.ip_grid_cell_rangeHighlight_copy {
+    border-style:solid;
+    border-color:#ff9446;
+}
+.ip_grid_cell_rangeHighlight_cut {
+
+    border-style:dashed;
+    border-color:#ff9446;
+
+}
+.ip_grid_cell_rangeHighlight_move {
+    border-style:dashed;
+    border-color:#ff9c00;
+}
+.ip_grid_cell_rangeHighlight_hoverCell {
+    border:dashed 2px #00fd06;
+}
+.ip_grid_cell_rangeHighlight_alert {
+
+    background: transparent;  
+    background: linear-gradient(45deg, #ff0000 25%, #d00000 25%, #d00000 50%, #ff0000 50%, #ff0000 75%, #d00000 75%, #d00000);
+    background-size:100px 100px;
+    border:solid 2px #630000;
+    /*box-shadow:#484848 0px 0px 1px;*/
+    opacity:0.7;
+}
+.ip_grid_cell_rangeHighlight_fx {
+    border-style:dashed;
+    border-color:#ff9446;
+    border-width:1px;
+    margin-top:1px;
+    margin-left:1px;    
+}
+
+.ip_grid_cell_rangeselector {
+
+    position:absolute;
+    width:0px;
+    height:0px;
+    border:solid 1px #6aaddc;
+    z-index:2;
+    display:none;
+    top:0px;
+    left:0px;
+    background-color:transparent;
+    pointer-events:none;
+  
+    /*box-shadow:0px 0px 5px black;*/
+}
+.ip_grid_cell_rangeselector_border {
+    background-color:transparent;
+    position:absolute;
+    pointer-events:all;
+    z-index:1;
+    cursor:move;
+}
+.ip_grid_cell_rangeselector_border:hover {
+    background-color:#6aaddc;
+    
+}
+.ip_grid_cell_rangeselector_innerContent {
+    width:100%;
+    height:100%;
+    background-color:transparent;
+    opacity:0.1;
+    position:absolute;
+    pointer-events:none;
+}
+.ip_grid_cell_rangeselector_innerContent rect {
+    fill: #0964a5; 
+    fill-opacity: inherit;
+    pointer-events:none;
+}
+.ip_grid_cell_rangeselector_key {
+    width:6px;
+    height:6px;
+    background-color:#6aaddc;
+    border-top:solid 1px white;
+    border-left:solid 1px white;
+    position:absolute;
+    bottom:-4px;
+    right:-4px;
+    pointer-events:all;
+    cursor:nwse-resize;
+    z-index:1;
+    
+}
+.ip_grid_cell_rangeselector_selected {
+    pointer-events:none;
+}
+.ip_grid_cell_rangeselector_move {
+
+    border:solid 1px #87ff46;
+    pointer-events:none;
+    opacity:0.3;
+
+
+
+}
+.ip_grid_cell_rangeselector_move svg rect {
+    fill: red; 
+    pointer-events:none;
+}
+.ip_grid_cell_rangeselector_Resize {
+
+    border-style:dashed;
+
+}
+.ip_grid_cell_rangeselector_transparent {
+    opacity:0;
+}
+.ip_grid_cell_rangeselector_transparent svg rect {
+    opacity:0;
+}
+
+.ip_grid_columnSelectorResizeTool {
+    display:none;
+    position:absolute;
+    height:20px;
+    width:5px;
+    background-color:#0096ff;
+    cursor:ew-resize;
+    z-index:2;
+    overflow:visible;
+
+}
+.ip_grid_columnSelectorResizeLine {
+    background-color: inherit;
+    box-shadow:inherit;
+    width: 1px;
+    height: 500px;
+    left: 2px;
+    position: relative;
+    display: none;
+    
+}
+
+.ip_grid_rowSelectorResizeTool {
+    display:none;
+    position:absolute;
+    height:5px;
+    width:100%;
+    background-color:#0096ff;
+    cursor:ns-resize;
+    z-index:2;
+    overflow:visible;
+
+}
+.ip_grid_rowSelectorResizeLine {
+    background-color: inherit;
+    box-shadow:inherit;
+    width:500px;
+    height: 1px;
+    top: 2px;
+    position: relative;
+    display: none;
+    
+}
+
+.ip_grid_columnFrozenHandle {
+    /*display:none;*/
+    position:absolute;
+    height:20px;
+    width:4px;
+    background-color:#6aaddc;    
+    z-index:2;
+    overflow:visible;
+    cursor:pointer;
+    display:none;
+
+}
+.ip_grid_columnFrozenHandleLine {
+    background-color: inherit;
+    box-shadow:inherit;
+    width: 100%;
+    height: 500px;
+    left: 0px;
+    position: relative;
+    display: none;
+    opacity:0.7; 
+    pointer-events:none;
+    display:none;
+}
+.ip_grid_rowFrozenHandle {
+
+    
+    /*display:none;*/
+    position:absolute;
+    height:4px;
+    width:20px;
+    background-color:#6aaddc;
+    cursor:pointer;
+    z-index:2;
+    overflow:visible;
+    display:none;
+}
+.ip_grid_rowFrozenHandleLine {
+    background-color: inherit;
+    box-shadow:inherit;
+    width: 500px;
+    height: 100%;
+    top: 0px;
+    position: relative;
+    display: none;
+    opacity:0.7; 
+    pointer-events:none;
+    display:none;
+}
+
+
+
+.ip_grid_contextButtonTool {
+
+    position:absolute;
+    width:30px;
+    height:30px;
+    background-color: #ff00f6;
+    z-index:2;
+    display:none;
+    top:0px;
+    left:0px;
+    opacity:0.5;
+    border-radius:15px 15px 15px 0px;
+}
+.ip_grid_contextButtonTool:hover {
+    opacity:1; 
+}
+
+.ip_grid_MergedCell {
+
+    display:none;
+    z-index:0;
+}
+
+.ip_grid_EditTool {
+
+
+    font:inherit;    
+    color:inherit;
+    vertical-align:inherit;
+    text-align:inherit;
+    background:#e6eff6;
+
+    z-index:3;
+    display:none;
+    position:absolute;
+    top:0px;
+    left:0px;
+    width:auto;
+    height:auto;
+    padding:0px;
+    outline-width: 0;
+    overflow:visible;
+
+
+    
+}
+.ip_grid_EditTool_Input {
+
+    background:inherit;
+    font:inherit;    
+    color:inherit;
+    vertical-align:inherit;
+    text-align:inherit;
+    cursor:text;
+    
+    outline-width: 0;
+    display:table-cell;
+    padding-right:10px;
+
+    width:inherit;
+    height:inherit;
+    line-height:inherit;
+
+    box-shadow:0px 0px 3px 0px black;
+
+}
+.ip_grid_EditTool_Input_FX{
+
+    color:white;
+    background-color:#3d3d3d;
+    font-weight:bold;
+    /*border-top-right-radius:15px;
+    border-bottom-right-radius:15px;*/
+
+    
+}
+.ip_grid_EditTool_DropDown {
+
+    display:none;
+    background-color:white;
+    z-index:1;
+    text-align:left;
+    overflow-x:hidden;
+    overflow-y:auto;
+    outline-width: 0;
+    bottom:0px;    
+    margin-top:1px;
+    box-shadow: 0px 2px 4px 1px #b6b6b6;
+    white-space:nowrap;
+    
+}
+.ip_grid_EditTool_DropDownTable {
+}
+.ip_grid_EditTool_DropDownItem {
+
+}
+.ip_grid_EditTool_DropDownItem td {
+    
+    line-height:normal;
+    white-space: nowrap;
+    padding:4px;
+}
+.ip_grid_EditTool_DropDownItem td:last-child  {
+    
+    max-width:99%;
+    padding-right:18px;
+}
+.ip_grid_EditTool_DropDownItem.Selected {
+    background-color:#e5e5e5;
+}
+.ip_grid_EditTool_DropDownItem.filtered {
+    display:none;
+}
+.ip_grid_EditTool_Help {
+
+    line-height:normal;
+    font-size:10pt;
+    color:white;
+    text-align:left;
+    position:absolute;
+    background-color:#2a2a2a;
+    display:none;
+    margin:15px 0px;
+    padding:0px 10px 10px 10px;
+    opacity:0.95;
+    box-shadow:0px 0px 3px 0px black;
+    display:none;
+    z-index:3;
+    /*border-radius:3px;*/
+}
+.ip_grid_EditTool_HelpToolTipItem {
+
+    padding:4px;
+}
+.ip_grid_EditTool_HelpToolTipItem.Title {
+    border-bottom:dotted 1px #515151;
+}
+.ip_grid_EditTool_HelpToolTipItem.Example {
+    color:#87ff46;
+}
+.ip_grid_EditTool_HelpToolTipItem.Example span {
+    color:white;
+    font-weight:bold;
+}
+
+
+
+/* --- GENERIC TOOLS -------------------------------------------------------------------------------------------------------------------------------------*/
+
+.ip_ControlBase {
+
+    color:white;
+    background-color:#515151;
+    padding:5px;
+    border:none; /*solid 1px black;*/
+
+    /*border-radius:2px;*/
+    
+}
+.ip_ControlBase::-webkit-input-placeholder {
+    color:#747474;
+    font-weight:bold;
+    
+}
+.ip_ControlBase:-moz-placeholder { /* Firefox 18- */
+    color:#747474;
+    font-weight:bold;
+}
+.ip_ControlBase::-moz-placeholder {  /* Firefox 19+ */
+    color:#747474;
+    font-weight:bold;
+}
+.ip_ControlBase:-ms-input-placeholder {  
+    color:#747474;
+    font-weight:bold;  
+}
+.ip_ControlBase:focus { 
+    /*box-shadow:inset 0px 0px 15px red;*/
+}
+.ip_TextBox {
+    
+    padding:8px;
+    padding:8px;
+    margin:0px;
+    outline-width: 0;
+}
+.ip_TextBox.tooltip {
+    color:#747474;
+    font-weight:bold;
+}
+
+.ip_RadioButton {
+    outline-width: 0;
+    color:white;
+    padding:6px;
+    border:none;
+    margin:0px;
+    outline-width: 0;
+}
+
+.ip_Modal {
+    position:fixed;
+    background-color:#3d3d3d;   /*#2a2a2a*/
+    border:solid 0px white;
+    box-shadow:0px 0px 13px 2px #979696; /*0px 0px 30px 1px #dedede*/
+    padding:30px;
+    border-radius:3px;
+    /*border:solid 10px #515151;*/
+}
+.ip_ModalTitle { 
+    
+    color:#46b3ff;
+    margin-bottom:30px;
+    font-size:18px; 
+    text-transform:capitalize;
+    /*font-family:Verdana;*/
+    font-weight:bold;
+    
+
+}
+.ip_ModalBody { font-weight:normal; margin:10px 0px; padding-bottom:40px; }
+.ip_ModalButtons { text-align:center;padding:10px 0px; border-top:dotted 1px #515151;  z-index:1; position:absolute; bottom:0px; left:0px; width:100%;}
+.ip_ModalButton {   
+    
+    padding:8px;  
+    border:1px solid black;
+    margin-left:10px;
+    border-radius:2px;
+    
+}
+
+.ip_FloatingToolbar {
+    
+    border:solid 1px black;
+    margin:0 0px;
+    opacity:0.95;
+    z-index:3;
+    position:absolute;
+    width:150px;
+    height:auto;
+    box-shadow:0px 0px 5px 0px black;
+    background-color:#3d3d3d;
+
+}
+.ip_FloatingToolbar.theme-dark{
+	background-color:#2b2b2b;
+}
+.ip_FloatingToolbarHandle {
+
+    position:relative;
+
+    background: repeating-linear-gradient(
+      45deg,
+      #2b2b2b 0px,
+      #2b2b2b 5px,
+      #6aaddc 5px,
+      #6aaddc 10px
+    );
+
+        
+    /*background: transparent;  
+    background: linear-gradient(45deg, #2b2b2b 25%, #6aaddc 25%, #6aaddc 50%, #2b2b2b 50%, #2b2b2b 75%, #6aaddc 75%, #6aaddc);
+    background-size:15px 15px;*/
+    
+    height:8px;
+    margin:10px 10px 0px 10px;
+    cursor:pointer;
+
+}
+.ip_FloatingToolbarHandle:hover {
+
+
+    /*background-image: -webkit-gradient(linear, left top, right bottom, color-stop(0, #ff9446), color-stop(0.25, #ff9446), color-stop(0.25, #2b2b2b), color-stop(0.5, #2b2b2b), color-stop(0.5, #ff9446), color-stop(0.75, #ff9446), color-stop(0.75, #2b2b2b));
+    background-size: 20px 20px;*/
+
+background: repeating-linear-gradient(
+  45deg,
+  #2b2b2b 0px,
+  #2b2b2b 5px,
+  #ff9446 5px,
+  #ff9446 10px
+);
+box-shadow: 0px 0px 3px 0px black;
+        
+}
+.ip_FloatingToolbarHandleClose {
+    
+    background-color:#2b2b2b;
+    text-align:right;
+    position:absolute;
+    right:0px;    
+    top:-3px;
+    padding-top:0px;
+    padding-bottom:0px;
+    padding-left:10px;
+    padding-right:2px;
+    font-size:7pt;
+    text-transform:uppercase;
+    font-weight:bold;
+    color:#46b3ff;
+    border:solid 1px #2b2b2b;
+}
+.ip_FloatingToolbarHandleClose:hover {
+    color:red;
+  }
+.ip_FloatingToolbarContainer {
+ position:relative;
+ /*overflow-y:auto;*/
+ margin:10px 10px 10px 10px;
+}
+.ip_FloatingToolbarMenu {
+    border-bottom:solid 1px #3d3d3d;
+    padding-bottom:0px;
+    margin-bottom:10px;
+    display:none;
+    text-transform:uppercase;
+    font-size:9pt;
+    text-align:center;
+}
+.ip_FloatingToolbarButton {
+    
+    border:solid 1px transparent;
+    height:27px;
+    line-height:27px;
+    margin-top:3px;
+    display: inline-block;
+    /*padding-top:9px 12px 0px 12px;*/  
+    cursor:pointer;
+    vertical-align:middle;
+   
+}
+.ip_FloatingToolbarButton.text {
+    margin:0px 0px 6px 0px !important;
+    padding:0px 9px !important;
+    white-space:nowrap;
+    /*background-color:red;*/
+
+}
+.ip_FloatingToolbarButton:hover {
+
+    background-color:#3d3d3d;
+
+}
+.ip_FloatingToolbarButton.click {
+
+    background-color:#3d3d3d;
+    border:solid 1px #46b3ff;
+
+}
+.ip_FloatingToolbarButton.selected {
+
+    /*border:dotted 1px #46b3ff;*/
+    background-color:#3d3d3d;
+
+}
+.ip_FloatingToolbarDropDown {
+  
+    background-color:#2b2b2b;
+    font-size:9pt;
+    background-color:transparent;
+    text-align:left;
+    margin-top:3px;
+    height:28px;
+    line-height:28px;
+    text-transform:none;
+}
+.ip_FloatingToolbarDropDown:hover {
+
+    background-color:#3d3d3d;
+    color:#46b3ff;
+}
+
+.ip_Speech
+{
+
+    z-index:0;
+
+    background-color:transparent;
+
+    position:absolute;    
+    padding: 0px;
+    width: 0px;
+    height: 0px;
+    line-height:0px;
+
+    border-top: 10px solid;
+    border-left: 10px solid;
+    border-right: 10px solid;
+    border-bottom: 10px solid;
+    border-color: #3d3d3d;
+    /*border-top-color:red;
+    border-right-color:green;
+    border-bottom-color:blue;
+    border-left-color:yellow;*/
+}
+.ip_Speech.theme-dark{border-color: #2b2b2b;}
+.ip_Speech.top 
+{
+    border-top-color:transparent;
+    border-right-color:transparent;
+    border-left-color:transparent;
+    top:-20px;
+    right: 0;
+    left: 0;
+    margin: auto;
+}
+.ip_Speech.topLeft
+{
+    border-top-color:transparent;
+    border-right-color:transparent;
+    top:-15px;
+    left: 15px;
+
+}
+.ip_Speech.topRight
+{
+    border-top-color:transparent;
+    border-left-color:transparent;
+    top:-15px;
+    right: 15px;
+
+}
+.ip_Speech.right {
+    border-top-color:transparent;
+    border-right-color:transparent;
+    border-bottom-color:transparent;
+    top:0px;
+    bottom: 0px;
+    right: -20px;    
+    margin: auto;
+}
+.ip_Speech.rightTop {
+    
+    border-right-color:transparent;
+    border-bottom-color:transparent;
+    top:15px;
+    right: -15px;    
+
+}
+.ip_Speech.rightBottom {
+
+    border-right-color:transparent;
+    border-top-color:transparent;
+    bottom:15px;
+    right: -15px;    
+
+}
+.ip_Speech.bottom 
+{
+    border-bottom-color:transparent;
+    border-right-color:transparent;
+    border-left-color:transparent;
+    bottom:-20px;
+    right: 0;
+    left: 0;
+    margin: auto;
+}
+.ip_Speech.bottomLeft
+{
+    border-bottom-color:transparent;
+    border-right-color:transparent;
+    bottom:-15px;
+    left: 15px;
+}
+.ip_Speech.bottomRight
+{
+    border-bottom-color:transparent;    
+    border-left-color:transparent;
+    bottom:-15px;
+    right: 15px;
+}
+.ip_Speech.left {
+    border-top-color:transparent;
+    border-left-color:transparent;
+    border-bottom-color:transparent;
+    top:0px;
+    bottom: 0px;
+    left: -20px;    
+    margin: auto;
+}
+.ip_Speech.leftTop {
+    border-bottom-color:transparent;
+    border-left-color:transparent;
+    top:15px;
+    left: -15px;    
+    margin: auto;
+}
+.ip_Speech.leftBottom {
+    border-top-color:transparent;
+    border-left-color:transparent;
+    bottom:15px;
+    left: -15px;    
+    margin: auto;
+}
+
+
+.ip_TagInput {
+    position:relative;    
+    background-color:#515151;
+    overflow:hidden;
+    padding:8px 0px 0px 8px;
+    cursor:text;
+}
+.ip_TagInputTag {
+    display:inline-block;
+    background-color:#46b3ff;        
+    border-radius:2px;    
+    position:relative;
+    font-size:14px;
+    padding:2px 5px;
+    margin:0px 8px 8px 0px;
+}
+.ip_TagInputTagClose {
+
+    display:inline-block;
+    font-weight:bold;
+    font-size:12px;
+    vertical-align:middle;
+    /*background-color:#2892db;*/
+    position:relative;
+    border-radius:3px;
+    -webkit-transition: all 0.3s ease;
+    -moz-transition: all 0.3s ease;
+    -o-transition: all 0.3s ease;
+    transition: all 0.3s ease;
+    padding:0px 5px 1px  5px;
+    margin-left:5px;
+    top:-1px;
+    left:1px;
+}
+.ip_TagInputTagClose:hover {
+    background-color:#0c78c3;
+    -webkit-transition: all 0.3s ease;
+    -moz-transition: all 0.3s ease;
+    -o-transition: all 0.3s ease;
+    transition: all 0.3s ease;
+    cursor:pointer;
+}
+.ip_TagInputTextBox {
+    position:relative;
+    display:inline-block;
+    border:none;
+    max-width:100%;
+    min-width:10px;        
+    overflow: visible;
+    outline:none;
+    margin-bottom:8px;    
+}
+.ip_TagInputPlaceholder {
+    position:absolute;
+    margin:8px;
+    border-color:red;
+    top:0px;
+    left:0px;
+    color:#697474;
+}
+
+.ip_FooterDialog {
+
+    text-align:center;
+    /*border-top:solid 1px #47660e;*/
+    font-family:Verdana;
+    font-size:11px;
+    font-weight:bold;
+    color:black;
+    box-shadow:0px 0px 3px 0px black;
+    opacity:0.8;
+    padding:10px 10px 10px 10px;
+    background-color:#668b21;
+    width:100%;
+    position:fixed;
+    z-index:10;
+    display:none;
+    bottom:0px;
+}
+.ip_FooterDialog_Text{
+	padding:10px;
+}
+
+
+.ip_show {
+    display:normal;
+    -webkit-animation:ipScaleIn 0.3s both ease-in;
+	-moz-animation:ipScaleIn 0.3s both ease-in;
+	animation:ipScaleIn 0.3s both ease-in;    
+}
+.ip_hide {
+
+    -webkit-animation:ipScaleOut 0.3s both ease-in;
+	-moz-animation:ipScaleOut 0.3s both ease-in;
+	animation:ipScaleOut 0.3s both ease-in;    
+}
+
+@keyframes ipScaleIn {
+	from 		{  transform: scale(0); }
+    to 		{  transform: scale(1); }
+}
+@-moz-keyframes ipScaleIn {
+	from 		{ -moz-transform: scale(0); }
+    to 		{ -moz-transform: scale(1); }
+}
+@-webkit-keyframes ipScaleIn {
+	from 		{ -webkit-transform: scale(0); }
+    to 		{ -webkit-transform: scale(1); }
+}
+
+@keyframes ipScaleOut {
+	from 		{ opacity: 1; transform: scale(1); }
+    to 		{ opacity: 0; transform: scale(0); }
+}
+@-moz-keyframes ipScaleOut {
+	from 		{ opacity: 1;-moz-transform: scale(1); }
+    to 		{ opacity: 0;-moz-transform: scale(0); }
+}
+@-webkit-keyframes ipScaleOut {
+	from 		{ opacity: 1; -webkit-transform: scale(1); }
+    to 		{ opacity: 0;-webkit-transform: scale(0); }
+}
