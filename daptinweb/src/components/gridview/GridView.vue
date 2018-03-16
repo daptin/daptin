@@ -23,7 +23,7 @@
       },
       autoload: {
         type: Boolean,
-        rquired: false,
+        required: false,
         default: true
       },
       jsonApiModelName: {

@@ -328,9 +328,9 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 			s, v, err = squirrel.
 				Insert("data_exchange").
 				Columns("permission", "name", "source_attributes", "source_type", "target_attributes", "target_type",
-					"attributes", "options", "created_at", "user_id", "reference_id").
+				"attributes", "options", "created_at", "user_id", "reference_id").
 				Values(auth.DEFAULT_PERMISSION, exchange.Name, sourceAttrsJson, exchange.SourceType, targetAttrsJson, exchange.TargetType,
-					attrsJson, optionsJson, time.Now(), adminId, u.String()).
+				attrsJson, optionsJson, time.Now(), adminId, u.String()).
 				ToSql()
 
 			_, err = db.Exec(s, v...)
@@ -613,15 +613,13 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 				action.InstanceOptional,
 				adminUserId,
 				u.String(),
-				auth.DEFAULT_PERMISSION.IntValue()).ToSql()
+				auth.ALLOW_ALL_PERMISSIONS.IntValue()).ToSql()
 
 			_, err = db.Exec(s, v...)
 			if err != nil {
 				log.Errorf("Failed to insert action [%v]: %v", action.Name, err)
 			}
-
 		}
-
 	}
 
 	return nil

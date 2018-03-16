@@ -23,6 +23,15 @@
     <!-- Main content -->
     <section class="content">
 
+      <div class="row">
+        <div v-for="world in worlds" class="col-md-12">
+          <daptable
+            :json-api="jsonApi"
+            data-path="data"
+            :json-api-model-name="world.TableName">
+          </daptable>
+        </div>
+      </div>
 
       <div class="row">
 
@@ -89,54 +98,54 @@
               <div class="row">
                 <div class="col-sm-12">
                   <router-link :to="{name: 'Entity', params:{tablename: 'marketplace'}}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-shopping-cart"></i><br />
-                  Market places
-                </router-link>
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-shopping-cart"></i><br/>
+                    Market places
+                  </router-link>
 
-                <router-link :to="{name: 'Entity', params:{tablename: 'data_exchange'}}"
+                  <router-link :to="{name: 'Entity', params:{tablename: 'data_exchange'}}"
 
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-exchange-alt"></i><br />
-                  Data Exchange
-                </router-link>
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-exchange-alt"></i><br/>
+                    Data Exchange
+                  </router-link>
 
-                <router-link :to="{name: 'Entity', params:{tablename: 'oauth_token'}}"
+                  <router-link :to="{name: 'Entity', params:{tablename: 'oauth_token'}}"
 
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-key"></i><br />
-                  Oauth Tokens
-                </router-link>
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-key"></i><br/>
+                    Oauth Tokens
+                  </router-link>
 
-                <router-link :to="{name: 'Entity', params:{tablename: 'oauth_connect'}}"
+                  <router-link :to="{name: 'Entity', params:{tablename: 'oauth_connect'}}"
 
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-plug"></i>
-                  <br />
-                  Oauth Connections
-                </router-link>
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-plug"></i>
+                    <br/>
+                    Oauth Connections
+                  </router-link>
 
-                <router-link :to="{name: 'Entity', params:{tablename: 'cloud_store'}}"
+                  <router-link :to="{name: 'Entity', params:{tablename: 'cloud_store'}}"
 
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-cloud"></i><br />Storage
-                </router-link>
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-cloud"></i><br/>Storage
+                  </router-link>
 
-                <router-link :to="{name: 'Entity', params:{tablename: 'site'}}"
+                  <router-link :to="{name: 'Entity', params:{tablename: 'site'}}"
 
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-cubes "></i><br />Sub sites
-                </router-link>
-                <router-link :to="{name: 'Entity', params:{tablename: 'stream'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-cubes "></i><br/>Sub sites
+                  </router-link>
+                  <router-link :to="{name: 'Entity', params:{tablename: 'stream'}}"
 
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-film "></i><br />Data views
-                </router-link>
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-film "></i><br/>Data views
+                  </router-link>
 
-                <router-link :to="{name: 'Entity', params:{tablename: 'json_schema'}}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-puzzle-piece "></i><br />Json Schemas
-                </router-link>
+                  <router-link :to="{name: 'Entity', params:{tablename: 'json_schema'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-puzzle-piece "></i><br/>Json Schemas
+                  </router-link>
                 </div>
 
               </div>
@@ -144,29 +153,30 @@
 
               <h3>People</h3>
               <div class="row">
-                           <div class="col-sm-12">     <router-link :to="{name: 'Action', params: {tablename: 'user', actionname: 'signup'}}"
+                <div class="col-sm-12">
+                  <router-link :to="{name: 'Action', params: {tablename: 'user', actionname: 'signup'}}"
 
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-user-plus"></i><br />Create new user
-                </router-link>
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-user-plus"></i><br/>Create new user
+                  </router-link>
 
-                <router-link :to="{name: 'NewEntity', params:{tablename: 'usergroup'}}"
+                  <router-link :to="{name: 'NewEntity', params:{tablename: 'usergroup'}}"
 
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-users"></i><br />Create new user group
-                </router-link>
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-users"></i><br/>Create new user group
+                  </router-link>
 
-                <router-link
-                  :to="{name : 'Action', params: {tablename: 'world', actionname: 'become_an_administrator'}}"
-                  class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-lock"></i><br />Become admin
-                </router-link>
+                  <router-link
+                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'become_an_administrator'}}"
+                    class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-lock"></i><br/>Become admin
+                  </router-link>
 
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'restart_daptin'}}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-retweet"></i><br />Restart
-                </router-link>
-</div>
+                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'restart_daptin'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-retweet"></i><br/>Restart
+                  </router-link>
+                </div>
               </div>
 
 
@@ -174,51 +184,51 @@
 
               <div class="row">
                 <div class="col-sm-12">
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-plus "></i><br />Upload Schema JSON
-                </router-link>
+                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-plus "></i><br/>Upload Schema JSON
+                  </router-link>
 
 
-                <router-link
-                  :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
-                  class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-file-excel"></i><br />Upload XLSX
-                </router-link>
+                  <router-link
+                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
+                    class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-file-excel"></i><br/>Upload XLSX
+                  </router-link>
 
-                <router-link
-                  :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_csv_to_system_schema'}}"
-                  class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-file-alt"></i><br />Upload CSV
-                </router-link>
+                  <router-link
+                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_csv_to_system_schema'}}"
+                    class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-file-alt"></i><br/>Upload CSV
+                  </router-link>
 
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fab fa-js"></i><br />Upload Data JSON
-                </router-link>
+                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fab fa-js"></i><br/>Upload Data JSON
+                  </router-link>
 
-                <router-link :to="{name : 'NewItem'}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-pencil-alt"></i><br />Online designer
-                </router-link>
-</div>
+                  <router-link :to="{name : 'NewItem'}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-pencil-alt"></i><br/>Online designer
+                  </router-link>
+                </div>
 
               </div>
 
               <h3>Backup</h3>
               <div class="row">
 
-                            <div class="col-sm-12">
-                                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-object-group"></i><br />Download JSON schema
-                </router-link>
+                <div class="col-sm-12">
+                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-object-group"></i><br/>Download JSON schema
+                  </router-link>
 
-                <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'export_data'}}"
-                             class="btn btn-lg btn-app dashboard_button">
-                  <i class="fas fa-database"></i><br />Download JSON dump
-                </router-link>
-</div>
+                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'export_data'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-database"></i><br/>Download JSON dump
+                  </router-link>
+                </div>
               </div>
 
 
@@ -240,192 +250,195 @@
 </template>
 
 <style>
-.dashboard_button {
-  width: 230px;
-  height: 90px;
-  font-size: 20px;
-}
+  .dashboard_button {
+    width: 230px;
+    height: 90px;
+    font-size: 20px;
+  }
 
-.dashboard_button i {
-  font-size: 40px;
-}
+  .dashboard_button i {
+    font-size: 40px;
+  }
 
-.dashboard_button i {
-  color: #534da7;
-}
+  .dashboard_button i {
+    color: #534da7;
+  }
 </style>
 
 <script>
-import jsonApi from "../../plugins/jsonapi";
-import actionManager from "../../plugins/actionmanager";
-import worldManager from "../../plugins/worldmanager";
-import statsManger from "../../plugins/statsmanager";
-import { mapState } from "vuex";
+  import jsonApi from "../../plugins/jsonapi";
+  import actionManager from "../../plugins/actionmanager";
+  import worldManager from "../../plugins/worldmanager";
+  import statsManger from "../../plugins/statsmanager";
+  import {mapState} from "vuex";
 
-export default {
-  data() {
-    return {
-      worldActions: {},
-      actionGroups: {},
-      generateRandomNumbers(numbers, max, min) {
-        let a = [];
-        for (let i = 0; i < numbers; i++) {
-          a.push(Math.floor(Math.random() * (max - min + 1)) + max);
-        }
-        return a;
-      },
-      worlds: []
-    };
-  },
-  computed: {
-    ...mapState(["query"]),
-    sortedWorldActions: function() {
-      console.log("return sorted world actions", this.worldActions);
-      let keys = Object.keys(this.worldActions);
-
-      keys.sort();
-
-      let res = {};
-
-      for (let key in keys) {
-        res[key] = this.worldActions[key];
-      }
-
-      console.log("returning sorted worlds", res);
-      return res;
-    }
-  },
-  methods: {
-    stringToColor(str) {
-      //        console.log("String to color", str, window.stringToColor(str))
-      return "#" + window.stringToColor(str);
-    },
-    reloadData() {
-      let that = this;
-      let newWorldActions = {};
-      jsonApi
-        .all("world")
-        .get({
-          page: {
-            number: 1,
-            size: 200
+  export default {
+    data() {
+      return {
+        worldActions: {},
+        actionGroups: {},
+        jsonApi: jsonApi,
+        generateRandomNumbers(numbers, max, min) {
+          let a = [];
+          for (let i = 0; i < numbers; i++) {
+            a.push(Math.floor(Math.random() * (max - min + 1)) + max);
           }
-        })
-        .then(function(worlds) {
-          worlds = worlds.data;
-          console.log("");
-          that.worlds = worlds
-            .map(function(e) {
-              let parse = JSON.parse(e.world_schema_json);
-              parse.Icon = e.icon;
-              parse.Count = 0;
-              return parse;
-            })
-            .filter(function(e) {
-              console.log("filter ", e);
-              return (
-                !e.IsHidden &&
-                !e.IsJoinTable &&
-                e.TableName.indexOf("_state") == -1
-              );
-            });
-          that.worlds.forEach(function(w) {
-            console.log("call stats", w);
+          return a;
+        },
+        worlds: []
+      };
+    },
+    computed: {
+      ...mapState(["query"]),
+      sortedWorldActions: function () {
+        console.log("return sorted world actions", this.worldActions);
+        let keys = Object.keys(this.worldActions);
 
-            statsManger
-              .getStats(w.TableName, {
-                column: ["count(*)"]
-              })
-              .then(
-                function(stats) {
-                  stats = stats.data;
-                  console.log("Stats received", stats);
+        keys.sort();
 
-                  var rows = stats.data;
-                  var totalCount = rows[0]["count(*)"];
-                  w.Count = totalCount;
-                },
-                function(error) {
-                  console.log("Failed to query stats", error);
-                }
-              );
-          });
+        let res = {};
 
-          let actionGroups = {
-            System: [],
-            User: []
-          };
-          console.log("worlds in dashboard", worlds);
-          for (let i = 0; i < worlds.length; i++) {
-            let tableName = worlds[i].table_name;
-            let actions = actionManager.getActions(tableName);
+        for (let key in keys) {
+          res[key] = this.worldActions[key];
+        }
 
-            if (!actions) {
-              continue;
+        console.log("returning sorted worlds", res);
+        return res;
+      }
+    },
+    methods: {
+      stringToColor(str) {
+        //        console.log("String to color", str, window.stringToColor(str))
+        return "#" + window.stringToColor(str);
+      },
+      reloadData() {
+        let that = this;
+        let newWorldActions = {};
+        jsonApi
+          .all("world")
+          .get({
+            page: {
+              number: 1,
+              size: 200
             }
-            console.log("actions for ", tableName, actions);
-            let actionKeys = Object.keys(actions);
-            for (let j = 0; j < actionKeys.length; j++) {
-              let action = actions[actionKeys[j]];
-              //            console.log("dashboard action", action)
-              let onType = action.OnType;
-              let onWorld = worldManager.getWorldByName(onType);
-              //            console.log("on world", onWorld)
+          })
+          .then(function (worlds) {
+            worlds = worlds.data;
+            console.log("got worlds", worlds);
+            that.worlds = worlds
+              .map(function (e) {
+                let parse = JSON.parse(e.world_schema_json);
+                parse.Icon = e.icon;
+                parse.Count = 0;
+                return parse;
+              })
+              .filter(function (e) {
+                console.log("filter ", e);
+                return (
+                  !e.IsHidden &&
+                  !e.IsJoinTable &&
+                  e.TableName.indexOf("_state") == -1
+                );
+              });
+            that.worlds.forEach(function (w) {
+              console.log("call stats", w);
 
-              if (onWorld.is_hidden == "1") {
-                actionGroups["System"].push(action);
-              } else if (onWorld.table_name == "user") {
-                actionGroups["User"].push(action);
-              } else if (onWorld.table_name == "usergroup") {
-                actionGroups["User"].push(action);
-              } else {
-                if (!newWorldActions[onWorld.table_name]) {
-                  newWorldActions[onWorld.table_name] = [];
+              statsManger
+                .getStats(w.TableName, {
+                  column: ["count(*)"]
+                })
+                .then(
+                  function (stats) {
+                    stats = stats.data;
+                    console.log("Stats received", stats);
+
+                    const rows = stats.data;
+                    const totalCount = rows[0]["count(*)"];
+                    w.Count = totalCount;
+                  },
+                  function (error) {
+                    console.log("Failed to query stats", error);
+                  }
+                );
+            });
+
+            let actionGroups = {
+              System: [],
+              User: []
+            };
+            console.log("worlds in dashboard", worlds);
+            for (let i = 0; i < worlds.length; i++) {
+              let tableName = worlds[i].table_name;
+              let actions = actionManager.getActions(tableName);
+
+              if (!actions) {
+                continue;
+              }
+              console.log("actions for ", tableName, actions);
+              let actionKeys = Object.keys(actions);
+              for (let j = 0; j < actionKeys.length; j++) {
+                let action = actions[actionKeys[j]];
+                //            console.log("dashboard action", action)
+                let onType = action.OnType;
+                let onWorld = worldManager.getWorldByName(onType);
+                //            console.log("on world", onWorld)
+
+                if (onWorld.is_hidden == "1") {
+                  actionGroups["System"].push(action);
+                } else if (onWorld.table_name == "user") {
+                  actionGroups["User"].push(action);
+                } else if (onWorld.table_name == "usergroup") {
+                  actionGroups["User"].push(action);
+                } else {
+                  if (!newWorldActions[onWorld.table_name]) {
+                    newWorldActions[onWorld.table_name] = [];
+                  }
+                  newWorldActions[onWorld.table_name].push(action);
                 }
-                newWorldActions[onWorld.table_name].push(action);
               }
             }
-          }
 
-          that.worldActions = newWorldActions;
-          that.actionGroups = actionGroups;
-        });
-    }
-  },
-  updated() {
-    document.getElementById("navbar-search-input").value = "";
-  },
-  watch: {
-    query: function(oldVal, newVal) {
-      console.log("query change", arguments);
+            console.log("load world actions tabld");
+            that.worldActions = newWorldActions;
+            that.actionGroups = actionGroups;
+          });
+
+      }
+    },
+    updated() {
+      document.getElementById("navbar-search-input").value = "";
+    },
+    watch: {
+      query: function (oldVal, newVal) {
+        console.log("query change", arguments);
+        this.reloadData();
+      }
+    },
+    mounted() {
+      //      $(".content").popover();
+
+      let that = this;
+      that.$route.meta.breadcrumb = [
+        {
+          label: "Dashboard"
+        }
+      ];
       this.reloadData();
     }
-  },
-  mounted() {
-    //      $(".content").popover();
-
-    let that = this;
-    that.$route.meta.breadcrumb = [
-      {
-        label: "Dashboard"
-      }
-    ];
-    this.reloadData();
-  }
-};
+  };
 </script>
 <style>
-.info-box {
-  cursor: pointer;
-}
+  .info-box {
+    cursor: pointer;
+  }
 
-.info-box-content {
-  text-align: center;
-  vertical-align: middle;
-  display: inherit;
-}
+  .info-box-content {
+    text-align: center;
+    vertical-align: middle;
+    display: inherit;
+  }
 
-.fullCanvas {
-  width: 100%;
-}
+  .fullCanvas {
+    width: 100%;
+  }
 </style>
