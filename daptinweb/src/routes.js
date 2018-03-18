@@ -21,6 +21,7 @@ import HomeComponent from './components/Home'
 
 // Import Views - Dash
 import DashboardView from './components/views/Dashboard.vue'
+import AllInOne from './components/views/AllInOne.vue'
 // import TasksView from './components/views/Tasks.vue'
 // import SettingView from './components/views/Setting.vue'
 // import AccessView from './components/views/Access.vue'
@@ -62,6 +63,11 @@ const routes = [
         path: '',
         name: 'Dashboard',
         component: DashboardView,
+      },
+      {
+        path: '/all',
+        name: 'AllInOne',
+        component: AllInOne,
       },
       {
         path: '/act/:tablename/:actionname',

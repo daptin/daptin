@@ -24,16 +24,6 @@
     <section class="content">
 
       <div class="row">
-        <div v-for="world in worlds" class="col-md-12">
-          <daptable
-            :json-api="jsonApi"
-            data-path="data"
-            :json-api-model-name="world.TableName">
-          </daptable>
-        </div>
-      </div>
-
-      <div class="row">
 
         <div class="col-lg-3 col-xs-6" v-bind:key="world.id" v-for="world in worlds">
           <!-- small box -->
