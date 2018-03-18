@@ -6,6 +6,12 @@
         <span class="page">Dashboard</span>
       </router-link>
     </li>
+    <li class="pageLink" v-on:click="toggleMenu">
+      <router-link :to="{name: 'AllInOne', params: {}}">
+        <i class="fas fa-align-justify"></i>
+        <span class="page">All</span>
+      </router-link>
+    </li>
     <li class="treeview">
       <a href="#">
         <i class="fas fa-book"></i>
