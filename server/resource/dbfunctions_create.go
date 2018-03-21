@@ -17,7 +17,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 		for _, column := range table.Columns {
 
 			if column.IsUnique {
-				indexName := "index_" + table.TableName + "_" + column.ColumnName + "_unique"
+				indexName := GetMD5Hash("index_" + table.TableName + "_" + column.ColumnName + "_unique")
 				alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + column.ColumnName + ")"
 				log.Infof("Create unique index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
