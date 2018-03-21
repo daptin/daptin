@@ -29,8 +29,13 @@ func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields m
 	//userIdInt := uint64(1)
 	var err error
 	log.Info("%v", inFields)
-	userReferenceId = inFields["user_reference_id"].(string)
+
+	if inFields["user_reference_id"] != nil {
+		userReferenceId = inFields["user_reference_id"].(string)
+	}
+
 	userIdInt, _ := strconv.ParseInt(inFields["user_id"].(string), 10, 32)
+
 	//userIdInt, err = d.cruds["user"].GetReferenceIdToId("user", userReferenceId)
 	if err != nil {
 		log.Errorf("Failed to get user id from user reference id: %v", err)
