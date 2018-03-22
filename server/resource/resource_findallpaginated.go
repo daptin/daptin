@@ -9,6 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/url"
+	"encoding/json"
+	"encoding/base64"
 )
 
 func (dr *DbResource) GetTotalCount() uint64 {
@@ -45,6 +47,12 @@ type PaginationData struct {
 	TotalCount uint64
 }
 
+type Query struct {
+	ColumnName string `json:"column"`
+	Operator   string `json:"operator"`
+	Value      string `json:"value"`
+}
+
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
 func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[string]interface{}, [][]map[string]interface{}, *PaginationData, error) {
 	log.Infof("Find all row by params: [%v]: %v", dr.model.GetName(), req.QueryParams)
@@ -65,6 +73,18 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			log.Errorf("Invalid parameter value: %v", req.QueryParams["page[number]"])
 		}
 		pageNumber--
+	}
+
+	query, ok := req.QueryParams["query"]
+	queries := make([]Query, 0)
+	if ok {
+		queryS, err := base64.StdEncoding.DecodeString(query[0])
+		log.Printf("Found query in request: %s", queryS)
+		if err == nil {
+			err = json.Unmarshal(queryS, &queries)
+			log.Printf("Query filters: %v", queries)
+		}
+		InfoErr(err, fmt.Sprintf("Failed to read query from request: %v", query[0]))
 	}
 
 	reqFieldMap := make(map[string]bool)
@@ -111,21 +131,21 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		sortOrder = strings.Split(dr.tableInfo.DefaultOrder, ",")
 	}
 
-	var queries []string
+	var filters []string
 
-	if len(req.QueryParams["filter"]) > 0 {
-		queries = req.QueryParams["filter"]
+	if len(req.QueryParams["filter"]) > 0 && len(queries) == 0 {
+		filters = req.QueryParams["filter"]
 
-		for i, q := range queries {
+		for i, q := range filters {
 			unescaped, _ := url.QueryUnescape(q)
-			queries[i] = unescaped
+			filters[i] = unescaped
 		}
 	}
 
 	//filters := []string{}
 
 	//if len(req.QueryParams["filter"]) > 0 {
-	//	queries = req.QueryParams["filter"]
+	//	filters = req.QueryParams["filter"]
 	//}
 
 	if pageNumber > 0 {
@@ -176,7 +196,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	infos := dr.model.GetColumns()
 
 	// todo: fix search in findall operation. currently no way to do an " or " query
-	if len(queries) > 0 {
+	if len(filters) > 0 {
 
 		colsToAdd := make([]string, 0)
 		wheres := make([]interface{}, 0)
@@ -189,7 +209,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 		if len(colsToAdd) > 0 {
 			colString := make([]string, 0)
-			for _, q := range queries {
+			for _, q := range filters {
 				if len(q) < 1 {
 					continue
 				}
@@ -204,6 +224,51 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				countQueryBuilder = countQueryBuilder.Where("( "+strings.Join(colString, " or ")+")", wheres...)
 			}
 		}
+	}
+
+	if len(queries) > 0 {
+
+		for _, filterQuery := range queries {
+			switch filterQuery.Operator {
+			case "contains":
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), "%"+filterQuery.Value)
+			case "not contains":
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not like ?", prefix+filterQuery.ColumnName), "%"+filterQuery.Value)
+			case "is":
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+			case "is not":
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+			case "before":
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+			case "after":
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+			case "more then":
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+			case "any of":
+				vals := strings.Split(filterQuery.Value, ",")
+				valsInterface := make([]interface{}, len(vals))
+				for i, v := range vals {
+					valsInterface[i] = v
+				}
+				questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
+			case "none of ":
+				vals := strings.Split(filterQuery.Value, ",")
+				valsInterface := make([]interface{}, len(vals))
+				for i, v := range vals {
+					valsInterface[i] = v
+				}
+				questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
+			case "less then":
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+			case "is empty":
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), filterQuery.Value)
+			case "is not empty":
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), filterQuery.Value)
+			}
+		}
+
 	}
 
 	for _, rel := range dr.model.GetRelations() {
@@ -292,7 +357,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			case "belongs_to":
 
 				queries, ok := req.QueryParams[rel.GetSubject()+"_id"]
-				//log.Infof("%d Values as RefIds for relation [%v]", len(queries), rel.String())
+				//log.Infof("%d Values as RefIds for relation [%v]", len(filters), rel.String())
 				if !ok || len(queries) < 1 {
 					continue
 				}
@@ -340,6 +405,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 
 	sql1, args, err := queryBuilder.ToSql()
+	log.Printf("Query: %v == %v", sql1, args)
 
 	if err != nil {
 		log.Infof("Error: %v", err)
