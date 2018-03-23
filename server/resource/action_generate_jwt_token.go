@@ -27,6 +27,10 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 	email := inFieldMap["email"]
 	password := inFieldMap["password"]
 
+	if email == nil || password == nil {
+		return nil, nil, []error{fmt.Errorf("email or password is empty")}
+	}
+
 	existingUsers, _, err := d.cruds["user"].GetRowsByWhereClause("user", squirrel.Eq{"email": email})
 
 	responseAttrs := make(map[string]interface{})
@@ -38,7 +42,7 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 		responses = append(responses, actionResponse)
 	} else {
 		existingUser := existingUsers[0]
-		if BcryptCheckStringHash(password.(string), existingUser["password"].(string)) {
+		if existingUser["password"] != nil && BcryptCheckStringHash(password.(string), existingUser["password"].(string)) {
 
 			// Create a new token object, specifying signing method and the claims
 			// you would like it to contain.

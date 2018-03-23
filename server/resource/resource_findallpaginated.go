@@ -53,6 +53,11 @@ type Query struct {
 	Value      string `json:"value"`
 }
 
+type Group struct {
+	ColumnName string `json:"column"`
+	Order      string `json:"order"`
+}
+
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
 func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[string]interface{}, [][]map[string]interface{}, *PaginationData, error) {
 	log.Infof("Find all row by params: [%v]: %v", dr.model.GetName(), req.QueryParams)
@@ -85,6 +90,18 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			log.Printf("Query filters: %v", queries)
 		}
 		InfoErr(err, fmt.Sprintf("Failed to read query from request: %v", query[0]))
+	}
+
+	groups, ok := req.QueryParams["group"]
+	groupings := make([]Group, 0)
+	if ok {
+		queryS, err := base64.StdEncoding.DecodeString(groups[0])
+		log.Printf("Found groups in request: %s", queryS)
+		if err == nil {
+			err = json.Unmarshal(queryS, &groupings)
+			log.Printf("Groupings: %v", queries)
+		}
+		InfoErr(err, fmt.Sprintf("Failed to read groups from request: %v", query[0]))
 	}
 
 	reqFieldMap := make(map[string]bool)
@@ -252,7 +269,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				}
 				questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
 				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
-			case "none of ":
+			case "none of":
 				vals := strings.Split(filterQuery.Value, ",")
 				valsInterface := make([]interface{}, len(vals))
 				for i, v := range vals {
@@ -268,7 +285,12 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), filterQuery.Value)
 			}
 		}
+	}
 
+	if len(groupings) > 0 && false {
+		for _, groupBy := range groupings {
+			queryBuilder = queryBuilder.GroupBy(fmt.Sprintf("%s %s", groupBy.ColumnName, groupBy.Order))
+		}
 	}
 
 	for _, rel := range dr.model.GetRelations() {
