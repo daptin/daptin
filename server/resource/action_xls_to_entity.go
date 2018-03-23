@@ -172,6 +172,7 @@ nextFile:
 
 				isNullable := false
 				count := 100000
+				maxLen := 100
 				for _, d := range data {
 					if count < 0 {
 						break
@@ -190,6 +191,9 @@ nextFile:
 					}
 					dataMap[strVal] = true
 					datas = append(datas, strVal)
+					if maxLen < len(strVal) {
+						maxLen = len(strVal)
+					}
 					count -= 1
 				}
 
@@ -197,11 +201,17 @@ nextFile:
 				if err != nil {
 					log.Infof("Unable to identify column type for %v", colName)
 					column.ColumnType = "label"
-					column.DataType = "varchar(100)"
+					column.DataType = fmt.Sprintf("varchar(%v)", maxLen)
 				} else {
 					log.Infof("Column %v was identified as %v", colName, eType)
 					column.ColumnType = EntityTypeToColumnTypeMap[eType]
-					column.DataType = EntityTypeToDataTypeMap[eType]
+
+					dbDataType := EntityTypeToDataTypeMap[eType]
+					if strings.Index(dbDataType, "varchar") == 0 {
+						dbDataType = fmt.Sprintf("varchar(%v)", maxLen+100)
+					}
+					column.DataType = dbDataType
+
 				}
 
 				if len(datas) > (recordCount / 10) {
@@ -318,7 +328,7 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 		return
 	}
 
-	columnNames = make([]string, 0)
+	//columnNames = make([]string, 0)
 	properColumnNames := make([]string, 0)
 
 	headerRow := sheet.Rows[0]
@@ -329,8 +339,8 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 			err = errors.New(fmt.Sprintf("Column %d name has less then 3 characters", i+1))
 			return
 		}
-		columnNames = append(columnNames, colName)
-		properColumnNames = append(properColumnNames, colName)
+		//columnNames = append(columnNames, colName)
+		properColumnNames = append(properColumnNames, SmallSnakeCaseText(colName))
 	}
 
 	for i := 1; i < rowCount; i++ {
