@@ -24,7 +24,7 @@
     <section class="content">
 
       <el-tabs type="card">
-        <el-tab-pane v-for="world in worlds" :label="world.TableName | titleCase">
+        <el-tab-pane :key="world.TableName" v-for="world in worlds" :label="world.TableName | titleCase">
           <daptable
             :json-api="jsonApi"
             data-path="data"
