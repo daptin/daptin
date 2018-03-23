@@ -280,9 +280,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			case "less then":
 				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 			case "is empty":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), filterQuery.Value)
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
 			case "is not empty":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), filterQuery.Value)
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
 			}
 		}
 	}
