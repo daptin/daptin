@@ -9,7 +9,7 @@
       <vuetable-pagination :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
 
     </div>
-    <div class="col-md-12">
+    <div class="col-md-12" style="position: relative; height: 700px;">
       <!-- TableView -->
 
       <vuetable v-if="viewMode == 'table'" ref="vuetable"
@@ -17,10 +17,11 @@
                 :finder="finder"
                 track-by="id"
                 detail-row-component="detailed-table-row"
-                edit-row-component="model-form"
                 @vuetable:cell-clicked="onCellClicked"
                 pagination-path="links"
                 data-path="data"
+                @@vuetable:save-row="saveRow"
+                :perPage="10000"
                 :css="css.table"
                 :json-api-model-name="jsonApiModelName"
                 @pagination-data="onPaginationData"
@@ -28,41 +29,7 @@
                 :query-params="{ sort: 'sort', page: 'page[number]', perPage: 'page[size]' }"
                 :load-on-start="autoload">
         <template slot="actions" slot-scope="props">
-          <div class="custom-actions">
 
-            <button class="btn btn-box-tool"
-                    @click="onAction('go-item', props.rowData, props.rowIndex)">
-              <i class="fa fa-2x fa-expand-arrows-alt"></i>
-            </button>
-
-            <!--<button class="btn btn-box-tool"-->
-            <!--@click="onAction('view-item', props.rowData, props.rowIndex)">-->
-            <!--<i class="fa  fa-2x fa-eye"></i>-->
-            <!--</button>-->
-
-            <button class="btn btn-box-tool"
-                    @click="onAction('edit-item', props.rowData, props.rowIndex)">
-              <i class="fa fa-2x fa-pencil-square"></i>
-            </button>
-
-            <el-popover
-              placement="top"
-              trigger="click"
-              width="160">
-              <p>Are you sure to delete this?</p>
-              <div style="text-align: right; margin: 0">
-                <el-button type="primary" size="mini" @click="onAction('delete-item', props.rowData, props.rowIndex)">
-                  confirm
-                </el-button>
-              </div>
-              <button class="btn btn-box-tool" slot="reference">
-                <i class="fa fa-2x fa-times red"></i>
-              </button>
-
-            </el-popover>
-
-
-          </div>
         </template>
       </vuetable>
 
@@ -71,7 +38,6 @@
                :finder="finder"
                track-by="id"
                detail-row-component="detailed-table-row"
-               edit-row-component="model-form"
                @vuetable:cell-clicked="onCellClicked"
                pagination-path="links"
                data-path="data"
@@ -243,7 +209,7 @@
       saveRow(row) {
         let that;
         console.log("save row", row);
-        if (data.id) {
+        if (data.created_at) {
           that = this;
           that.jsonApi.update(this.selectedWorld, row).then(function () {
             that.setTable(that.selectedWorld);
