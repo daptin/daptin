@@ -409,7 +409,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 				responses = append(responses, actionResponses...)
 			}
 
-			if len(responses1) > 0 {
+			if len(responses1) > 0 && outcome.Reference != "" {
 				lst := make([]interface{}, 0)
 				for i, res := range responses1 {
 					inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = res.Attributes
@@ -755,7 +755,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 		val = finalValue
 
 	} else {
-		log.Printf("Get [%v] from infields: %v", fieldString, inFieldMap)
+		log.Printf("Get [%v] from infields: %v", fieldString, toJson(inFieldMap))
 
 		rex := regexp.MustCompile(`\$([a-zA-Z0-9_\[\]]+)?(\.[a-zA-Z0-9_\[\]]+)+`)
 		matches := rex.FindAllStringSubmatch(fieldString, -1)
