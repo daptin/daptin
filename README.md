@@ -34,6 +34,9 @@ Daptin works as an interface between your users and your data.
 - **Can be deployed on a wide range of hardware** arm5,arm6,arm7,arm64,mips,mips64,mips64le,mipsle (or build for your target using go)
 
 
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fdaptin%2Fdaptin.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fdaptin%2Fdaptin?ref=badge_large)
+
 ## Deploy and get started
 
 | Deployment preference      | Getting started                                                                                                               |
@@ -161,6 +164,7 @@ Relations:
 ![Sign up and Sign in](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/signup_and_signin.gif)
 ![Create entity and add item](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/create_entity_and_add.gif)
 ![Generate random data to show tables](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/generate_random_show_tables.gif)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fdaptin%2Fdaptin.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fdaptin%2Fdaptin?ref=badge_shield)
 
 Daptin will provide
 
