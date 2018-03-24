@@ -163,7 +163,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 		var subjectInstanceMap map[string]interface{}
 
 		subjectInstanceReferenceId, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
-   		if ok {
+		if ok {
 			referencedObject, err := cruds[actionRequest.Type].FindOne(subjectInstanceReferenceId.(string), req)
 			if err != nil {
 				ginContext.AbortWithError(400, err)
@@ -272,16 +272,18 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 					continue
 				}
 
+				log.Printf("Evaluated condition [%v] result: %v", outcome.Condition, outcomeResult)
 				boolValue, ok := outcomeResult.(bool)
 				if !ok {
 
 					strVal, ok := outcomeResult.(string)
 					if ok {
-
 						if strVal == "1" || strings.ToLower(strings.TrimSpace(strVal)) == "true" {
+							log.Printf("Condition is true")
 							// condition is true
 						} else {
 							// condition isn't true
+							log.Printf("Condition is false, skipping outcome")
 							continue
 						}
 
@@ -755,7 +757,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 		val = finalValue
 
 	} else {
-		log.Printf("Get [%v] from infields: %v", fieldString, toJson(inFieldMap))
+		//log.Printf("Get [%v] from infields: %v", fieldString, toJson(inFieldMap))
 
 		rex := regexp.MustCompile(`\$([a-zA-Z0-9_\[\]]+)?(\.[a-zA-Z0-9_\[\]]+)+`)
 		matches := rex.FindAllStringSubmatch(fieldString, -1)
@@ -787,7 +789,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 						mapPart := finalValMap[fieldIndexParts[0]]
 						mapPartArray, ok := mapPart.([]map[string]interface{})
 						if !ok {
-							mapPartArrayInterface, ok := mapPart.([]interface {})
+							mapPartArrayInterface, ok := mapPart.([]interface{})
 							if ok {
 								mapPartArray = make([]map[string]interface{}, 0)
 								for _, ar := range mapPartArrayInterface {
@@ -824,6 +826,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 		val = fieldString
 
 	}
+	log.Printf("Evaluated string path [%v] => %v", fieldString, val)
 
 	return val, nil
 }
