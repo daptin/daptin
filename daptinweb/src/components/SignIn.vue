@@ -54,7 +54,7 @@
         console.log("action initiate oauth login being for ", oauthConnect);
         actionManager.doAction("oauth_connect", "oauth.login.begin", {
           "oauth_connect_id": oauthConnect.id
-        }).then(function(actionResponse){
+        }).then(function (actionResponse) {
           console.log("action response", actionResponse);
         })
 
@@ -75,6 +75,11 @@
 
           jsonApi.findAll('oauth_connect', {
             page: {number: 1, size: 500},
+            query: btoa(JSON.stringify([{
+              "column": "allow_login",
+              "operator": "is",
+              "value": "1"
+            }]))
           }).then(function (res) {
             res = res.data;
             console.log("visible oauth connections: ", res);
