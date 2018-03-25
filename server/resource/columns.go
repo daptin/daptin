@@ -653,7 +653,7 @@ var SystemActions = []Action{
 				SkipInResponse: true,
 				Condition:      "$connection[0].allow_login",
 				Attributes: map[string]interface{}{
-					"filter": "$profile.email",
+					"filter": "!profile.email || profile.emailAddress",
 				},
 			},
 			{
@@ -663,7 +663,7 @@ var SystemActions = []Action{
 				SkipInResponse: true,
 				Condition:      "!!user || (!user.length && !user.reference_id)",
 				Attributes: map[string]interface{}{
-					"email":    "$profile.email",
+					"email":    "!profile.email || profile.emailAddress",
 					"name":     "$profile.displayName",
 					"password": "$profile.id",
 				},
@@ -692,8 +692,8 @@ var SystemActions = []Action{
 				Type:   "jwt.token",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"email":    "$profile.email",
-					"password": "$profile.id",
+					"email":             "!profile.email || profile.emailAddress",
+					"skipPasswordCheck": true,
 				},
 			},
 			{

@@ -25,9 +25,22 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 	responses := make([]ActionResponse, 0)
 
 	email := inFieldMap["email"]
-	password := inFieldMap["password"]
+	var password = ""
 
-	if email == nil || password == nil {
+	skipPasswordCheck := false
+
+	skipPasswordCheckStr, ok := inFieldMap["skipPasswordCheck"]
+	if ok {
+		skipPasswordCheck, _ = skipPasswordCheckStr.(bool)
+	}
+
+	if !skipPasswordCheck {
+		if inFieldMap["password"] != nil {
+			password = inFieldMap["password"].(string)
+		}
+	}
+
+	if email == nil || (len(password) < 1 && !skipPasswordCheck) {
 		return nil, nil, []error{fmt.Errorf("email or password is empty")}
 	}
 
@@ -42,7 +55,7 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 		responses = append(responses, actionResponse)
 	} else {
 		existingUser := existingUsers[0]
-		if existingUser["password"] != nil && BcryptCheckStringHash(password.(string), existingUser["password"].(string)) {
+		if skipPasswordCheck || (existingUser["password"] != nil && BcryptCheckStringHash(password, existingUser["password"].(string))) {
 
 			// Create a new token object, specifying signing method and the claims
 			// you would like it to contain.
