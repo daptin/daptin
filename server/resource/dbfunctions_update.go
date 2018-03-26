@@ -85,6 +85,107 @@ func UpdateStandardData(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 }
 
+func UpdateCronjobsData(initConfig *CmsConfig, db database.DatabaseConnection) error {
+
+	cronJobs, err := GetCronjobs(db)
+	if err != nil {
+		return err
+	}
+	cronJobMap := make(map[string]Cronjob)
+	for _, job := range cronJobs {
+		cronJobMap[job.Name] = job
+	}
+
+	newCronjobs := initConfig.Cronjobs
+
+	for _, newCronjob := range newCronjobs {
+
+		_, ok := cronJobMap[newCronjob.Name]
+		cronJobMap[newCronjob.Name] = newCronjob
+		var s string
+		var v []interface{}
+
+		if ok {
+			log.Printf("Updating existing cron job: %v", newCronjob.Name)
+
+			s, v, err = squirrel.Update("cron_job").
+				Set("active", newCronjob.Active).
+				Set("schedule", newCronjob.Schedule).
+				Set("attributes", toJson(newCronjob.Attributes)).
+				Set("job_type", newCronjob.JobType).ToSql()
+
+		} else {
+
+			uuidRef, err := uuid.NewV4()
+			if err != nil {
+				return err
+			}
+			refId := uuidRef.String()
+			s, v, err = squirrel.Insert("cron_job").
+				Columns("name", "schedule", "active", "job_type", "reference_id", "attributes", "created_at").
+				Values(newCronjob.Name, newCronjob.Schedule, newCronjob.Active, newCronjob.JobType, refId, toJson(newCronjob.Attributes), time.Now()).
+				ToSql()
+
+		}
+
+		if err != nil {
+			return err
+		}
+
+		_, err = db.Exec(s, v...)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	finalJobs := make([]Cronjob, 0)
+
+	for _, job := range cronJobMap {
+		finalJobs = append(finalJobs, job)
+	}
+
+	initConfig.Cronjobs = finalJobs
+
+	return nil
+
+}
+
+func GetCronjobs(connection database.DatabaseConnection) ([]Cronjob, error) {
+
+	s, v, err := squirrel.Select("name", "job_type as jobtype", "schedule", "active", "attributes as attributesjson").From("cron_job").Where(squirrel.Eq{"active": true}).ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := connection.Queryx(s, v...)
+	if err != nil {
+		return nil, err
+	}
+
+	jobs := make([]Cronjob, 0)
+
+	for rows.Next() {
+		var job Cronjob
+
+		err = rows.StructScan(&job)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal([]byte(job.AttributesJson), &job.Attributes)
+		if err != nil {
+			return nil, err
+		}
+
+		jobs = append(jobs, job)
+	}
+
+	return jobs, nil
+
+}
+
 func UpdateMarketplaces(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	s, v, err := squirrel.Select("endpoint", "root_path").From("marketplace").ToSql()

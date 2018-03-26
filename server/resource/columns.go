@@ -750,11 +750,56 @@ var SystemActions = []Action{
 	},
 }
 
+var adminsGroup = []string{"administrators"}
+
+var StandardCronjobs = []Cronjob{
+
+}
+
 var StandardTables = []TableInfo{
+	{
+		TableName:     "cron_job",
+		IsHidden:      true,
+		DefaultGroups: adminsGroup,
+		Icon:          "fa-clock",
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "name",
+				ColumnName: "name",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+				IsIndexed:  true,
+			},
+			{
+				Name:       "job_type",
+				ColumnName: "job_type",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "schedule",
+				ColumnName: "schedule",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "active",
+				ColumnName: "active",
+				DataType:   "bool",
+				ColumnType: "truefalse",
+			},
+			{
+				Name:       "attributes",
+				ColumnName: "attributes",
+				DataType:   "text",
+				ColumnType: "json",
+			},
+		},
+	},
 	{
 		TableName:     "marketplace",
 		IsHidden:      true,
-		DefaultGroups: []string{"administrators"},
+		DefaultGroups: adminsGroup,
 		Icon:          "fa-shopping-cart",
 		Columns: []api2go.ColumnInfo{
 			{
@@ -782,7 +827,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "json_schema",
 		Icon:          "fa-code",
-		DefaultGroups: []string{"administrators"},
+		DefaultGroups: adminsGroup,
 		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -803,7 +848,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "timeline",
 		Icon:          "fa-clock-o",
-		DefaultGroups: []string{"administrators"},
+		DefaultGroups: adminsGroup,
 		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -833,7 +878,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "world",
 		IsHidden:      true,
-		DefaultGroups: []string{"administrators"},
+		DefaultGroups: adminsGroup,
 		Icon:          "fa-home",
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1027,7 +1072,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "stream",
 		Icon:          "fa-strikethrough",
-		DefaultGroups: []string{"administrators"},
+		DefaultGroups: adminsGroup,
 		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1120,7 +1165,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "action",
-		DefaultGroups: []string{"administrators"},
+		DefaultGroups: adminsGroup,
 		Icon:          "fa-bolt",
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1156,7 +1201,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "smd",
 		IsHidden:      true,
-		DefaultGroups: []string{"administrators"},
+		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -1192,7 +1237,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "oauth_connect",
 		IsHidden:      true,
-		DefaultGroups: []string{"administrators"},
+		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -1257,6 +1302,13 @@ var StandardTables = []TableInfo{
 				ColumnType:   "url",
 			},
 			{
+				Name:         "profile_email_path",
+				ColumnName:   "profile_email_path",
+				DataType:     "varchar(200)",
+				DefaultValue: "'email'",
+				ColumnType:   "label",
+			},
+			{
 				Name:         "allow_login",
 				ColumnName:   "allow_login",
 				DataType:     "boolean",
@@ -1268,7 +1320,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "data_exchange",
 		IsHidden:      true,
-		DefaultGroups: []string{"administrators"},
+		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -1318,7 +1370,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "oauth_token",
 		IsHidden:      true,
-		DefaultGroups: []string{"administrators"},
+		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "access_token",
@@ -1348,7 +1400,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "cloud_store",
-		DefaultGroups: []string{"administrators"},
+		DefaultGroups: adminsGroup,
 		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1385,7 +1437,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "site",
-		DefaultGroups: []string{"administrators"},
+		DefaultGroups: adminsGroup,
 		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1410,7 +1462,12 @@ var StandardTables = []TableInfo{
 	},
 }
 
-var StandardMarketplaces = []Marketplace{}
+var StandardMarketplaces = []Marketplace{
+	{
+		RootPath: "",
+		Endpoint: "https://github.com/daptin/market",
+	},
+}
 
 var StandardStreams = []StreamContract{
 	{
