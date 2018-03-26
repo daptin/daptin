@@ -30,14 +30,15 @@
 
 By following shared conventions, you can increase productivity, take advantage of generalized tooling, and focus on what matters: your application.
 
-Daptin works as an interface between your users and your data. 
+Easily consume the following features on any device
 
-- Easily consume the API on any device using a [JSONAPI.org client](http://JSONAPI.org/implementations/)
-- Interact with users as guests or known users by using a JWT token
-- Grant permission of data/actions to users based on ownership, groups and guests
-- Build custom actions to expose custom APIs over your data apart from the usual CRUD APIs
-- Sync with cloud storage services like gdrive, dropbox, b2, s3 and more
-- Sync folders and expose these as static websites under separate sub-domain/sub-paths
+- Relations databased backed persistent data exposed as a **JSON API**
+- User registration and login API
+- Social login with oauth2: tested with google, github, linkedin
+- *Special* State management APIs
+- Install API Package from [Market place](https://github.com/daptin/market) selectively enabling a variety of features
+- Sync with **cloud storage services** like gdrive, dropbox, b2, s3 and more
+- Manage multiple static websites under separate sub-domain/sub-paths
 - Connect with other services by directly connecting with any external API
 
 
