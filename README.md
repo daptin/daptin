@@ -1,8 +1,14 @@
-<h1 class="heading-right" aligh="left">Daptin</h1>
-<img class="image-left" aligh="right" src="https://github.com/daptin/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin logo" style="float: right;" title="Daptin" height="140" />
+<p align="center">
+  <img width="300" height="282" src="https://github.com/daptin/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin" title="Daptin" />
+</p>
 
-<p align="left">
+<h1 class="heading-right" align="center">Complete backend for modern applications</h1>
+<p align="center">A modern backend for application developers and testers in the mobile era.</p>
+
+<p align="center">
     <a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLTVlYzBlMmM4YjMyOTk0MDc5MWJmMzFlMTliNzQwYjcxMzc5Mjk0YzEyZDIwYTljZmE5NDU3Yjk3YzQ3MzhkMzI"><img src="https://img.shields.io/badge/join-on%20slack-orange.svg?longCache=true&style=for-the-badge" /> <a/>
+</p>
+<p align="center">
     <a href="https://github.com/daptin/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/daptin/daptin.svg?style=flat-square"></a>
     <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
     <a href="https://travis-ci.org/daptin/daptin"><img alt="Travis" src="https://img.shields.io/travis/daptin/daptin.svg?style=flat-square"></a>
@@ -12,8 +18,15 @@
     <a href='https://semaphoreci.com/artpar/daptin'> <img src='https://semaphoreci.com/api/v1/artpar/daptin/branches/master/badge.svg' alt='Build Status'></a>
 </p>
 
+<p align="center">
+	<a href="https://github.com/daptin/daptin/releases">Download</a> ·
+	<a href="https://docs.dapt.in">Documentation</a> ·
+	<a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLTVlYzBlMmM4YjMyOTk0MDc5MWJmMzFlMTliNzQwYjcxMzc5Mjk0YzEyZDIwYTljZmE5NDU3Yjk3YzQ3MzhkMzI">Community</a>
+</p>
 
-**Daptin is an open-source backend development framework** to develop and deploy production-ready JSONAPI microservices. With Daptin you can design your data model and have a production ready JSON API online in minutes.
+---
+
+**Daptin** is an open-source backend development framework to develop and deploy production-ready JSON API based applications. With Daptin you can design your data model and have a production ready JSON API online in minutes.
 
 By following shared conventions, you can increase productivity, take advantage of generalized tooling, and focus on what matters: your application.
 
