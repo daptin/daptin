@@ -7,6 +7,7 @@ import (
 	"gopkg.in/Masterminds/squirrel.v1"
 	"gopkg.in/go-playground/validator.v9"
 	"time"
+	"fmt"
 )
 
 type CmsConfig struct {
@@ -19,10 +20,22 @@ type CmsConfig struct {
 	Hostname                 string
 	Validator                *validator.Validate
 	SubSites                 map[string]SubSiteInformation
+	Cronjobs                 []Cronjob
 	Streams                  []StreamContract
 	MarketplaceHandlers      map[string]*MarketplaceService `json:"-"`
 	Marketplaces             []Marketplace
 	ActionPerformers         []ActionPerformerInterface
+}
+
+type Cronjob struct {
+	Id             int64
+	ReferenceId    string
+	Schedule       string
+	Active         bool
+	Name           string
+	Attributes     map[string]interface{}
+	JobType        string
+	AttributesJson string
 }
 
 func (ti *CmsConfig) AddRelations(relations ...api2go.TableRelation) {
@@ -45,6 +58,25 @@ func (ti *CmsConfig) AddRelations(relations ...api2go.TableRelation) {
 		if !exists {
 			ti.Relations = append(ti.Relations, relation)
 		}
+	}
+
+}
+func (cmsConfig2 CmsConfig) StartCronJobs(cmsConfig *CmsConfig, connection database.DatabaseConnection, resources map[string]*DbResource, configStore *ConfigStore) error {
+
+	for _, cronjob := range cmsConfig.Cronjobs {
+
+		err := StartCronJob(cronjob, connection, resources, configStore)
+		InfoErr(err, fmt.Sprintf("Failed to start cron job: %v", cronjob.Name))
+
+	}
+
+}
+
+func StartCronJob(cronjob Cronjob, connection database.DatabaseConnection, resources map[string]*DbResource, configStore *ConfigStore) error {
+
+	switch cronjob.JobType {
+	default:
+		return fmt.Errorf("invalid job type: %v", cronjob.JobType)
 	}
 
 }

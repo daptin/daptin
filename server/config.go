@@ -38,6 +38,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 	}
 
 	globalInitConfig.Tables = append(globalInitConfig.Tables, resource.StandardTables...)
+	globalInitConfig.Cronjobs = append(globalInitConfig.Cronjobs, resource.StandardCronjobs...)
 	globalInitConfig.Actions = append(globalInitConfig.Actions, resource.SystemActions...)
 	globalInitConfig.Streams = append(globalInitConfig.Streams, resource.StandardStreams...)
 	globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, resource.StandardMarketplaces...)
@@ -85,6 +86,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		globalInitConfig.Imports = append(globalInitConfig.Imports, initConfig.Imports...)
 		globalInitConfig.Streams = append(globalInitConfig.Streams, initConfig.Streams...)
 		globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, initConfig.Marketplaces...)
+		globalInitConfig.Cronjobs = append(globalInitConfig.Cronjobs, initConfig.Cronjobs...)
 		globalInitConfig.Actions = append(globalInitConfig.Actions, initConfig.Actions...)
 		globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, initConfig.StateMachineDescriptions...)
 		globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
