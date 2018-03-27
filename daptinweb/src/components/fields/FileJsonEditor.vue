@@ -3,7 +3,7 @@
   <div class="col-md-12">
     <div class="ui icon buttons">
       <button @click="mode = 'ace'" class="btn btn-box-tool"><i class="fas fa-align-justify fa-2x grey"></i></button>
-      <button @click="mode = 'je'" class="btn btn-box-tool"><i class="fas fa-pencil fa-2x grey"></i></button>
+      <button @click="mode = 'je'" class="btn btn-box-tool"><i class="fas fa-edit fa-2x grey"></i></button>
     </div>
     <div id="jsonEditor" style="width: 100%; height: 600px;" v-if="mode == 'je'"></div>
     <editor ref="aceEditor" :options="options" :content="initValue" v-if="mode == 'ace'" :lang="'markdown'"
