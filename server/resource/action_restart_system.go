@@ -7,6 +7,7 @@ import (
 	//"os/exec"
 	//"fmt"
 	"github.com/artpar/api2go"
+	"github.com/sadlil/go-trigger"
 )
 
 type RestartSystemActionPerformer struct {
@@ -56,7 +57,7 @@ func restart() {
 	log.Infof("Sending %v to %v", syscall.SIGUSR2, syscall.Getpid())
 
 	//exec.Command("kill", "-12", fmt.Sprint(syscall.Getpid())).Output()
-
-	syscall.Kill(syscall.Getpid(), syscall.SIGUSR2)
+	trigger.Fire("restart")
+	//syscall.Kill(syscall.Getpid(), syscall.SIGUSR2)
 
 }
