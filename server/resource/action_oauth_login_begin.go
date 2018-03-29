@@ -50,7 +50,13 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
 
 	// Redirect user to consent page to ask for permission
 	// for the scopes specified above.
-	url := conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	var url string
+	if len(conf.Scopes) > 1 {
+		url = conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	} else {
+		url = conf.AuthCodeURL(state)
+
+	}
 	fmt.Printf("Visit the URL for the auth dialog: %v", url)
 
 	responseAttrs := make(map[string]interface{})
