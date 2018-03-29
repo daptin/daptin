@@ -15,17 +15,15 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/stats"
 	"io/ioutil"
-	"net"
+	//"net"
 	"net/http"
-	"sync"
+	//"sync"
 )
 
 var Stats = stats.New()
 
-func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection, wg *sync.WaitGroup, l net.Listener, ch chan struct{}) {
-	defer wg.Done()
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
-	//configFile := "daptin_style.json"
 	/// Start system initialise
 
 	log.Infof("Load config files")
@@ -37,7 +35,6 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 	}
 
 	existingTables, _ := GetTablesFromWorld(db)
-	//initConfig.Tables = append(initConfig.Tables, existingTables...)
 
 	allTables := MergeTables(existingTables, initConfig.Tables)
 
@@ -232,19 +229,10 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 	//r.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
 
-	log.Printf("Listening at: %v", l.Addr().String())
-	go func() {
-		err = http.Serve(l, hostSwitch)
-		resource.CheckErr(err, "Failed to listen")
-	}()
-
-	select {
-	case <-ch:
-		return
-	default:
-	}
+	return hostSwitch
 
 }
+
 func MergeTables(existingTables []resource.TableInfo, initConfigTables []resource.TableInfo) []resource.TableInfo {
 	allTables := make([]resource.TableInfo, 0)
 	existingTablesMap := make(map[string]bool)
