@@ -16,10 +16,11 @@
             <select-one-or-more :value="item.value" :schema="item" @save="setRelation"></select-one-or-more>
           </div>
         </div>
+        <div class="col-md-6" v-if="hasPermissionField">
+          <fieldPermissionInput :value="model.permission"></fieldPermissionInput>
+        </div>
       </div>
-      <div class="col-md-6" v-if="hasPermissionField">
-        <fieldPermissionInput :value="model.permission"></fieldPermissionInput>
-      </div>
+
     </div>
     <div class="box-footer">
       <el-button class="bg-yellow" type="submit" v-loading.body="loading" @click.prevent="saveRow()"> Submit
