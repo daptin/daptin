@@ -2,7 +2,7 @@ package resource
 
 import (
 	log "github.com/sirupsen/logrus"
-	"syscall"
+	//"syscall"
 	"time"
 	//"os/exec"
 	//"fmt"
@@ -54,7 +54,7 @@ func restart() {
 	log.Infof("Sleeping for 3 seconds before restart")
 	time.Sleep(300 * time.Millisecond)
 	log.Infof("Kill")
-	log.Infof("Sending %v to %v", syscall.SIGUSR2, syscall.Getpid())
+	//log.Infof("Sending %v to %v", syscall.SIGUSR2, syscall.Getpid())
 
 	//exec.Command("kill", "-12", fmt.Sprint(syscall.Getpid())).Output()
 	trigger.Fire("restart")

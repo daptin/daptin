@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/GeertJohan/go.rice"
-	//"github.com/artpar/goagain"
 	"github.com/daptin/daptin/server"
 	"github.com/gin-gonic/gin"
 	"github.com/gocraft/health"
@@ -13,10 +12,7 @@ import (
 	"net/http"
 	"github.com/sadlil/go-trigger"
 	"os"
-	"sync"
 	"syscall"
-	"os/signal"
-	//"github.com/artpar/goagain"
 )
 
 // Save the stream as a global variable
@@ -69,12 +65,6 @@ func main() {
 	}
 	log.Printf("Connection acquired from database")
 
-	// Inherit a net.Listener from our parent process or listen anew.
-	//ch := make(chan struct{})
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	//l, err := goagain.Listener()
-
 	var hostSwitch server.HostSwitch
 
 	hostSwitch = server.Main(boxRoot, db)
@@ -89,28 +79,11 @@ func main() {
 		rhs.HostSwitch = &hostSwitch
 	})
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Signal(syscall.SIGUSR2))
-	go func() {
-		for sig := range c {
-			switch sig.String() {
-			case "user defined signal 2":
-				log.Printf("Got signal: %v, updatd host switch", sig)
-				hostSwitch = server.Main(boxRoot, db)
-				rhs.HostSwitch = &hostSwitch
-
-			}
-			// sig is a ^C, handle it
-		}
-	}()
-
-	//log.Printf("Listening at: %v", l.Addr().String())
-	//go func() {
+	log.Printf("Listening at: %v", *port)
 	err = http.ListenAndServe(*port, &rhs)
 	if err != nil {
 		panic(err)
 	}
-	//}()
 
 	log.Printf("Why end now ?")
 }
