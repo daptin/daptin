@@ -8,8 +8,8 @@ bin/$(app): *.go
 	go build -o $@
 
 $(static-app): *.go
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
-		go build -ldflags "-s" -a -installsuffix cgo -o $(static-app)
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 \
+		go build  -ldflags='-extldflags "-static"' -a -installsuffix cgo -o $(static-app)
 
 container: $(static-app)
 	docker build -t $(docker-tag) .
