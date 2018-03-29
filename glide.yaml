@@ -42,7 +42,6 @@ import:
   version: ^1.0.0
   subpackages:
   - totp
-- package: github.com/artpar/goagain
 - package: github.com/artpar/go.uuid
   version: ^1.2.0
 - package: github.com/sirupsen/logrus
