@@ -1,5 +1,5 @@
-hash: d7a186a986145151d69567a0cc689156b8913f71317ac55b2b74a15472334d23
-updated: 2018-03-05T14:59:36.693027676+05:30
+hash: a1efe3242345132bae1881af42be34aa1325d65678748dae8544e39802d8d6a2
+updated: 2018-03-26T01:19:09.36220624+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -135,6 +135,8 @@ imports:
   - autorest/adal
   - autorest/azure
   - autorest/date
+- name: github.com/bamzi/jobrunner
+  version: 273175f8b6ebabab8a639a4e6260a5c50fbf016a
 - name: github.com/boombuler/barcode
   version: 3cfea5ab600ae37946be2b763b8ec2c1cf2d272d
   subpackages:
@@ -147,9 +149,9 @@ imports:
 - name: github.com/daaku/go.zipexe
   version: a5fe2436ffcb3236e175e5149162b41cd28bd27d
 - name: github.com/dgrijalva/jwt-go
-  version: dbeaa9332f19a944acb5736b4456cfcc02140e29
+  version: 06ea1031745cb8b3dab3f6a236daf2b0aa468b7e
 - name: github.com/digitalocean/godo
-  version: 77ea48de76a7b31b234d854f15d003c68bb2fb90
+  version: 7a32b5ce17203924a21366d5031032fd326d5051
 - name: github.com/dlclark/regexp2
   version: 7632a260cbaf5e7594fc1544a503456ecd0827f1
   subpackages:
@@ -189,14 +191,14 @@ imports:
 - name: github.com/go-ini/ini
   version: f280b3ba517bf5fc98922624f21fb0e7a92adaec
 - name: github.com/go-playground/locales
-  version: e4cbcb5d0652150d40ad0646651076b6bd2be4f6
+  version: f63010822830b6fe52288ee52d5a1151088ce039
   subpackages:
   - currency
   - en
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
 - name: github.com/go-playground/validator
-  version: 150fe5b6a4ccc9cd6ffdbf5d184b67fbea75efcc
+  version: 8ce234ff024d85b3848e485decba806385d6e276
 - name: github.com/go-sql-driver/mysql
   version: a0583e0143b1624142adab07e0e97fe106d99561
 - name: github.com/gocraft/health
@@ -286,7 +288,7 @@ imports:
 - name: github.com/labstack/echo
   version: c8bedd1cf928bcd4315f771319d3063746066c11
 - name: github.com/labstack/gommon
-  version: 57409ada9da0f2afad6664c49502f8c50fbd8476
+  version: 6fe1405d73ec4bd4cd8a4ac8e2a2b2bf95d03954
   subpackages:
   - color
   - log
@@ -339,7 +341,7 @@ imports:
   - hotp
   - totp
 - name: github.com/PuerkitoBio/goquery
-  version: 09540e565986583836b5fc792fe951ec5fd201dd
+  version: a86ea073017a6beddef78c8659e7224e8ca634b0
 - name: github.com/rfjakob/eme
   version: 2222dbd4ba467ab3fc7e8af41562fcfe69c0d770
 - name: github.com/satori/go.uuid
@@ -349,7 +351,7 @@ imports:
   subpackages:
   - diffmatchpatch
 - name: github.com/sirupsen/logrus
-  version: d682213848ed68c0a260ca37d6dd5ace8423f5ba
+  version: c155da19408a8799da419ed3eeb0cb5db0ad5dbc
 - name: github.com/skratchdot/open-golang
   version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
   subpackages:
@@ -486,11 +488,11 @@ imports:
 - name: gopkg.in/go-playground/validator.v8
   version: 5f1438d3fca68893a817e4a66806cea46a9e4ebf
 - name: gopkg.in/go-playground/validator.v9
-  version: 150fe5b6a4ccc9cd6ffdbf5d184b67fbea75efcc
+  version: 8ce234ff024d85b3848e485decba806385d6e276
   subpackages:
   - translations/en
 - name: gopkg.in/Masterminds/squirrel.v1
-  version: 2a85d1d526545de922a487d4841e61d6ee690c35
+  version: 40ef4f86bf59a996c348a9f56ddb4c4d3d49a6df
 - name: gopkg.in/src-d/go-billy.v3
   version: c329b7bc7b9d24905d2bc1b85bfa29f7ae266314
   subpackages:
