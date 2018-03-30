@@ -21,9 +21,20 @@ import (
 	"encoding/json"
 	"github.com/aws/aws-sdk-go/private/util"
 	"github.com/gedex/inflector"
+	"strings"
+	"encoding/base64"
+	"github.com/pkg/errors"
 )
 
 var Stats = stats.New()
+
+// Capitalize capitalizes the first character of the string.
+func Capitalize(s string) string {
+	if len(s) == 1 {
+		return strings.ToUpper(s)
+	}
+	return strings.ToUpper(s[0:1]) + s[1:]
+}
 
 func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*resource.DbResource) *graphql.Schema {
 
@@ -37,12 +48,15 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 		for _, column := range table.Columns {
 
+			if column.IsForeignKey {
+				continue
+			}
+
 			fields[column.ColumnName] = &graphql.Field{
 				Type: resource.ColumnManager.GetGraphqlType(column.ColumnType),
 				Name: column.Name,
 			}
 		}
-
 		objectConfig := graphql.NewObject(graphql.ObjectConfig{
 			Name:   table.TableName,
 			Fields: fields,
@@ -50,9 +64,62 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 		graphqlTypesMap[table.TableName] = objectConfig
 
+	}
+
+	for _, table := range cmsConfig.Tables {
+
+		for _, relation := range table.Relations {
+			if relation.Relation == "has_one" || relation.Relation == "belongs_to" {
+				if relation.Subject == table.TableName {
+					graphqlTypesMap[table.TableName].AddFieldConfig(relation.GetObjectName(), &graphql.Field{
+						Type: graphqlTypesMap[relation.GetObject()],
+						Name: relation.GetObjectName(),
+					})
+				} else {
+					graphqlTypesMap[table.TableName].AddFieldConfig(relation.GetSubjectName(), &graphql.Field{
+						Type: graphqlTypesMap[relation.GetSubject()],
+						Name: relation.GetSubjectName(),
+					})
+				}
+
+			} else {
+				if relation.Subject == table.TableName {
+					graphqlTypesMap[table.TableName].AddFieldConfig(relation.GetObjectName(), &graphql.Field{
+						Name: relation.GetObjectName(),
+						Type: graphql.NewList(graphqlTypesMap[relation.GetObject()]),
+					})
+				} else {
+					graphqlTypesMap[table.TableName].AddFieldConfig(relation.GetSubjectName(), &graphql.Field{
+						Type: graphql.NewList(graphqlTypesMap[relation.GetSubject()]),
+						Name: relation.GetSubjectName(),
+					})
+				}
+			}
+		}
+	}
+
+	for _, table := range cmsConfig.Tables {
+
 		createFields := make(graphql.FieldConfigArgument)
+		uniqueFields := make(graphql.FieldConfigArgument)
+		allFields := make(graphql.FieldConfigArgument)
 
 		for _, column := range table.Columns {
+
+			if column.IsForeignKey {
+				continue
+			}
+
+			allFields[column.ColumnName] = &graphql.ArgumentConfig{
+				Type: resource.ColumnManager.GetGraphqlType(column.ColumnType),
+			}
+
+			if column.IsUnique || column.IsPrimaryKey {
+				uniqueFields[column.ColumnName] = &graphql.ArgumentConfig{
+					Type: resource.ColumnManager.GetGraphqlType(column.ColumnType),
+				}
+			}
+
 			if IsStandardColumn(column.ColumnName) {
 				continue
 			}
@@ -73,72 +140,253 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 		}
 
+		for _, relation := range table.Relations {
+
+			if relation.Relation == "has_one" || relation.Relation == "belongs_to" {
+				if relation.Subject == table.TableName {
+					allFields[relation.GetObjectName()] = &graphql.ArgumentConfig{
+						Type: graphqlTypesMap[relation.GetObject()],
+					}
+				} else {
+					allFields[relation.GetSubjectName()] = &graphql.ArgumentConfig{
+						Type: graphqlTypesMap[relation.GetSubject()],
+					}
+				}
+
+			} else {
+				if relation.Subject == table.TableName {
+					allFields[relation.GetObjectName()] = &graphql.ArgumentConfig{
+						Type: graphql.NewList(graphqlTypesMap[relation.GetObject()]),
+					}
+				} else {
+					allFields[relation.GetSubjectName()] = &graphql.ArgumentConfig{
+						Type: graphql.NewList(graphqlTypesMap[relation.GetSubject()]),
+					}
+				}
+			}
+		}
+
 		mutations["create"+util.Capitalize(table.TableName)] = &graphql.Field{
 			Type:        graphqlTypesMap[table.TableName],
 			Description: "Create a new " + table.TableName,
 			Args:        createFields,
-			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				log.Printf("create resolve params: %v", p)
-				return nil, nil
-			},
+			Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
+				return func(p graphql.ResolveParams) (interface{}, error) {
+					log.Printf("create resolve params: %v", p)
+					return nil, nil
+				}
+			}(table),
 		}
 
-		mutations["update"+util.Capitalize(table.TableName)] = &graphql.Field{
+		mutations["update"+Capitalize(table.TableName)] = &graphql.Field{
 			Type:        graphqlTypesMap[table.TableName],
 			Description: "Create a new " + table.TableName,
 			Args:        createFields,
-			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				log.Printf("create resolve params: %v", p)
-				return nil, nil
-			},
+			Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
+				return func(p graphql.ResolveParams) (interface{}, error) {
+					log.Printf("create resolve params: %v", p)
+					return nil, nil
+				}
+			}(table),
 		}
 
 		query[table.TableName] = &graphql.Field{
 			Type:        graphqlTypesMap[table.TableName],
 			Description: "Get a single " + table.TableName,
-			Args: graphql.FieldConfigArgument{
-				"id": &graphql.ArgumentConfig{
-					Type:        graphql.String,
-					Description: "id of the " + table.TableName,
-				},
-			},
-			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+			Args:        uniqueFields,
+			Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
+				return func(params graphql.ResolveParams) (interface{}, error) {
 
-				id := params.Args["id"].(string)
+					log.Printf("Arguments: %v", params.Args)
 
-				req := api2go.Request{
-					PlainRequest: &http.Request{
+					filters := make([]resource.Query, 0)
+
+					for keyName, value := range params.Args {
+
+						if _, ok := uniqueFields[keyName]; !ok {
+							continue
+						}
+
+						query := resource.Query{
+							ColumnName: keyName,
+							Operator:   "is",
+							Value:      value.(string),
+						}
+						filters = append(filters, query)
+					}
+
+					pr := http.Request{
 						Method: "GET",
-					},
-				}
-				responder, err := resources[table.TableName].FindOne(id, req)
-				return responder.Result(), err
+					}
+					jsStr, err := json.Marshal(filters)
+					req := api2go.Request{
+						PlainRequest: &pr,
+						QueryParams: map[string][]string{
+							"query": {base64.StdEncoding.EncodeToString(jsStr)},
+						},
+					}
 
-			},
+					count, responder, err := resources[table.TableName].PaginatedFindAll(req)
+
+					if count == 0 {
+						return nil, errors.New("no such entity")
+					}
+
+					model := responder.Result().([]*api2go.Api2GoModel)
+					return model[0].Data, err
+
+				}
+			}(table),
 		}
 
-		query[table.TableName+"List"] = &graphql.Field{
+		query["all"+Capitalize(inflector.Pluralize(table.TableName))] = &graphql.Field{
 			Type:        graphql.NewList(graphqlTypesMap[table.TableName]),
 			Description: "Get a list of " + inflector.Pluralize(table.TableName),
-			Args: graphql.FieldConfigArgument{
-
-			},
+			Args:        allFields,
 			Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
 
 				return func(params graphql.ResolveParams) (interface{}, error) {
+					log.Printf("Arguments: %v", params.Args)
 
+					filters := make([]resource.Query, 0)
+
+					for keyName, value := range params.Args {
+
+						if _, ok := uniqueFields[keyName]; !ok {
+							continue
+						}
+
+						query := resource.Query{
+							ColumnName: keyName,
+							Operator:   "is",
+							Value:      value.(string),
+						}
+						filters = append(filters, query)
+					}
+
+					pr := http.Request{
+						Method: "GET",
+					}
+					jsStr, err := json.Marshal(filters)
 					req := api2go.Request{
-						PlainRequest: &http.Request{
-							Method: "GET",
+						PlainRequest: &pr,
+						QueryParams: map[string][]string{
+							"query":              {base64.StdEncoding.EncodeToString(jsStr)},
+							"included_relations": {"*"},
 						},
 					}
-					_, responder, err := resources[table.TableName].PaginatedFindAll(req)
-					items := responder.Result().([]*api2go.Api2GoModel)
-					results := make([]map[string]interface{}, 0)
 
+					count, responder, err := resources[table.TableName].PaginatedFindAll(req)
+
+					if count == 0 {
+						return nil, errors.New("no such entity")
+					}
+
+					items := responder.Result().([]*api2go.Api2GoModel)
+
+					results := make([]map[string]interface{}, 0)
 					for _, item := range items {
 						ai := item
-						results = append(results, ai.Data)
+
+						dataMap := ai.Data
+
+						includedMap := make(map[string]interface{})
+
+						for _, includedObject := range ai.Includes {
+							id := includedObject.GetID()
+							includedMap[id] = includedObject.GetAttributes()
+						}
+
+						for _, relation := range table.Relations {
+							columnName := relation.GetSubjectName()
+							if table.TableName == relation.Subject {
+								columnName = relation.GetObjectName()
+							}
+							referencedObjectId := dataMap[columnName]
+							if referencedObjectId == nil {
+								continue
+							}
+							dataMap[columnName] = includedMap[referencedObjectId.(string)]
+						}
+
+						results = append(results, dataMap)
+					}
+					return results, err
+				}
+			}(table),
+		}
+
+		query["meta"+Capitalize(inflector.Pluralize(table.TableName))] = &graphql.Field{
+			Type:        graphql.NewList(graphqlTypesMap[table.TableName]),
+			Description: "Aggregates for " + inflector.Pluralize(table.TableName),
+			Args:        allFields,
+			Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
+
+				return func(params graphql.ResolveParams) (interface{}, error) {
+					log.Printf("Arguments: %v", params.Args)
+
+					filters := make([]resource.Query, 0)
+
+					for keyName, value := range params.Args {
+
+						if _, ok := uniqueFields[keyName]; !ok {
+							continue
+						}
+
+						query := resource.Query{
+							ColumnName: keyName,
+							Operator:   "is",
+							Value:      value.(string),
+						}
+						filters = append(filters, query)
+					}
+
+					pr := http.Request{
+						Method: "GET",
+					}
+					jsStr, err := json.Marshal(filters)
+					req := api2go.Request{
+						PlainRequest: &pr,
+						QueryParams: map[string][]string{
+							"query":              {base64.StdEncoding.EncodeToString(jsStr)},
+							"included_relations": {"*"},
+						},
+					}
+
+					count, responder, err := resources[table.TableName].PaginatedFindAll(req)
+
+					if count == 0 {
+						return nil, errors.New("no such entity")
+					}
+
+					items := responder.Result().([]*api2go.Api2GoModel)
+
+					results := make([]map[string]interface{}, 0)
+					for _, item := range items {
+						ai := item
+
+						dataMap := ai.Data
+
+						includedMap := make(map[string]interface{})
+
+						for _, includedObject := range ai.Includes {
+							id := includedObject.GetID()
+							includedMap[id] = includedObject.GetAttributes()
+						}
+
+						for _, relation := range table.Relations {
+							columnName := relation.GetSubjectName()
+							if table.TableName == relation.Subject {
+								columnName = relation.GetObjectName()
+							}
+							referencedObjectId := dataMap[columnName]
+							if referencedObjectId == nil {
+								continue
+							}
+							dataMap[columnName] = includedMap[referencedObjectId.(string)]
+						}
+
+						results = append(results, dataMap)
 					}
 					return results, err
 				}
