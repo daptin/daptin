@@ -1,5 +1,5 @@
-hash: a1efe3242345132bae1881af42be34aa1325d65678748dae8544e39802d8d6a2
-updated: 2018-03-26T01:19:09.36220624+05:30
+hash: 649fb3408abf821e191badc63e004c77dfe52a181f790be925f5a8c6c4e07c10
+updated: 2018-03-29T23:34:43.668732919+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -120,6 +120,7 @@ imports:
   - private/protocol/rest
   - private/protocol/restxml
   - private/protocol/xml/xmlutil
+  - private/util
   - service/s3
   - service/s3/s3iface
   - service/s3/s3manager
@@ -174,6 +175,8 @@ imports:
   version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
+- name: github.com/gedex/inflector
+  version: 16278e9db8130ac7ec405dc174cfb94344f16325
 - name: github.com/GeertJohan/go.rice
   version: c02ca9a983da5807ddf7d796784928f5be4afd09
   subpackages:
@@ -241,6 +244,19 @@ imports:
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
   version: 5bbbb5b2b5729b132181cc7f4aa3b3c973e9a0ed
+- name: github.com/graphql-go/graphql
+  version: 1e23489041ba90a66f317fe0deccb236a2fff3cb
+  subpackages:
+  - gqlerrors
+  - language/ast
+  - language/kinds
+  - language/lexer
+  - language/location
+  - language/parser
+  - language/printer
+  - language/source
+  - language/typeInfo
+  - language/visitor
 - name: github.com/hashicorp/hcl
   version: 23c074d0eceb2b8a5bfdbb271ab780cde70f05a8
   subpackages:
@@ -344,6 +360,8 @@ imports:
   version: a86ea073017a6beddef78c8659e7224e8ca634b0
 - name: github.com/rfjakob/eme
   version: 2222dbd4ba467ab3fc7e8af41562fcfe69c0d770
+- name: github.com/sadlil/go-trigger
+  version: cfc3d83007cddfc1e31a478aa47cd41de07fac17
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/sergi/go-diff

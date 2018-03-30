@@ -4,17 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"github.com/GeertJohan/go.rice"
-	"github.com/artpar/goagain"
 	"github.com/daptin/daptin/server"
-	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/gocraft/health"
 	"github.com/jamiealquiza/envy"
 	"log"
-	"net"
 	"net/http"
+	"github.com/sadlil/go-trigger"
 	"os"
-	"sync"
 	"syscall"
 )
 
@@ -22,12 +19,13 @@ import (
 var stream = health.NewStream()
 
 func init() {
-	goagain.Strategy = goagain.Double
+	//goagain.Strategy = goagain.Double
 	log.SetFlags(log.Lmicroseconds | log.Lshortfile)
 	log.SetPrefix(fmt.Sprintf("pid:%d ", syscall.Getpid()))
 }
 
 func main() {
+	//eventEmitter := &emitter.Emitter{}
 
 	var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
 	var connection_string = flag.String("db_connection_string", "daptin.db", "\n\tSQLite: test.db\n"+
@@ -35,8 +33,8 @@ func main() {
 		"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
 	var webDashboardSource = flag.String("dashboard", "daptinweb/dist", "path to dist folder for daptin web dashboard")
-	var assetsSource = flag.String("assets", "assets", "path to folder for assets")
-	var port = flag.String("port", "6336", "Daptin port")
+	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
+	var port = flag.String("port", ":6336", "Daptin port")
 	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
 
 	gin.SetMode(*runtimeMode)
@@ -45,84 +43,55 @@ func main() {
 	flag.Parse()
 
 	stream.AddSink(&health.WriterSink{os.Stdout})
-	assetsRoot, err := rice.FindBox("assets")
-	resource.CheckErr(err, "Failed to open %s/static", assetsSource)
+	//assetsRoot, err := rice.FindBox("assets")
+	//resource.CheckErr(err, "Failed to open %s/static", assetsSource)
 	boxRoot1, err := rice.FindBox("daptinweb/dist/")
-	resource.CheckErr(err, "Failed to open %s", webDashboardSource)
+	if err != nil {
+		panic(err)
+	}
 
-	var assetsStatic, boxRoot http.FileSystem
+	var boxRoot http.FileSystem
 	if err != nil {
 		log.Printf("Try loading web dashboard from: %v", *webDashboardSource)
-		assetsStatic = http.Dir(*webDashboardSource + "/static")
+		//assetsStatic = http.Dir(*webDashboardSource + "/static")
 		boxRoot = http.Dir(*webDashboardSource)
 	} else {
-		assetsStatic = assetsRoot.HTTPBox()
+		//assetsStatic = assetsRoot.HTTPBox()
 		boxRoot = boxRoot1.HTTPBox()
 	}
 	db, err := server.GetDbConnection(*db_type, *connection_string)
-	resource.CheckErr(err, "Failed to connect to database")
+	if err != nil {
+		panic(err)
+	}
 	log.Printf("Connection acquired from database")
 
-	// Inherit a net.Listener from our parent process or listen anew.
-	ch := make(chan struct{})
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	l, err := goagain.Listener()
-	if nil != err {
+	var hostSwitch server.HostSwitch
 
-		// Listen on a TCP or a UNIX domain socket (TCP here).
-		l, err = net.Listen("tcp", fmt.Sprintf(":%v", *port))
-		if nil != err {
-			log.Printf("Failed to listen to port: %v", err)
-			// no return no panic here for proper restart
-		} else {
-			log.Println("listening on", l.Addr())
-			// Accept connections in a new goroutine.
-			go server.Main(boxRoot, assetsStatic, db, wg, l, ch)
-
-		}
-
-	} else {
-
-		// Resume listening and accepting connections in a new goroutine.
-		log.Println("resuming listening on", l.Addr())
-		go server.Main(boxRoot, assetsStatic, db, wg, l, ch)
-
-		// If this is the child, send the parent SIGUSR2.  If this is the
-		// parent, send the child SIGQUIT.
-		if err := goagain.Kill(); nil != err {
-			log.Fatalln(err)
-		}
-
+	hostSwitch = server.Main(boxRoot, db)
+	rhs := RestartHandlerServer{
+		HostSwitch: &hostSwitch,
 	}
 
-	// Block the main goroutine awaiting signals.
-	sig, err := goagain.Wait(l)
-	if nil != err {
-		log.Fatalln(err)
+	trigger.On("restart", func() {
+		// Do Some Task Here.
+		log.Printf("Trigger restart")
+		hostSwitch = server.Main(boxRoot, db)
+		rhs.HostSwitch = &hostSwitch
+	})
+
+	log.Printf("Listening at: %v", *port)
+	err = http.ListenAndServe(*port, &rhs)
+	if err != nil {
+		panic(err)
 	}
 
-	// Do whatever's necessary to ensure a graceful exit like waiting for
-	// goroutines to terminate or a channel to become closed.
-	//
-	// In this case, we'll close the channel to signal the goroutine to stop
-	// accepting connections and wait for the goroutine to exit.
-	close(ch)
-	wg.Wait()
-
-	// If we received SIGUSR2, re-exec the parent process.
-	log.Printf("Daptin main signal received: %v", sig)
-	if goagain.SIGUSR2 == sig {
-		if err := goagain.Exec(l); nil != err {
-			log.Fatalln(err)
-		}
-	}
 	log.Printf("Why end now ?")
 }
 
-//func CreateServerProgram(boxRoot, boxStatic http.FileSystem) (func(state overseer.State)) {
-//	return func(state overseer.State) {
-//		go server.Main(boxRoot, boxStatic)
-//		http.Serve(state.Listener, nil)
-//	}
-//}
+type RestartHandlerServer struct {
+	HostSwitch *server.HostSwitch
+}
+
+func (rhs *RestartHandlerServer) ServeHTTP(rew http.ResponseWriter, req *http.Request) {
+	rhs.HostSwitch.ServeHTTP(rew, req)
+}
