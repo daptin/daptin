@@ -73,7 +73,6 @@ func main() {
 	}
 
 	trigger.On("restart", func() {
-		// Do Some Task Here.
 		log.Printf("Trigger restart")
 		hostSwitch = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
