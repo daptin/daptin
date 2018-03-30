@@ -163,14 +163,15 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-		dir := sync.CopyDir(fdst, fsrc)
+		err := sync.CopyDir(fdst, fsrc)
 		os.RemoveAll(tempDirectoryPath)
-		return dir
+		InfoErr(err, "Failed to sync files for upload to cloud")
+		return err
 	})
 
 	restartAttrs := make(map[string]interface{})
 	restartAttrs["type"] = "success"
-	restartAttrs["message"] = "Initiating system update."
+	restartAttrs["message"] = "Cloud storage file upload queued"
 	restartAttrs["title"] = "Success"
 	actionResponse := NewActionResponse("client.notify", restartAttrs)
 	responses = append(responses, actionResponse)
