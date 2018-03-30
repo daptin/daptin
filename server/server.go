@@ -104,9 +104,15 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 
-				//params.Args["id"].(string)
+				id := params.Args["id"].(string)
 
-				return nil, nil
+				req := api2go.Request{
+					PlainRequest: &http.Request{
+						Method: "GET",
+					},
+				}
+				responder, err := resources[table.TableName].FindOne(id, req)
+				return responder.Result(), err
 
 			},
 		}
@@ -117,13 +123,26 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			Args: graphql.FieldConfigArgument{
 
 			},
-			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+			Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
 
-				//params.Args["id"].(string)
+				return func(params graphql.ResolveParams) (interface{}, error) {
 
-				return nil, nil
+					req := api2go.Request{
+						PlainRequest: &http.Request{
+							Method: "GET",
+						},
+					}
+					_, responder, err := resources[table.TableName].PaginatedFindAll(req)
+					items := responder.Result().([]*api2go.Api2GoModel)
+					results := make([]map[string]interface{}, 0)
 
-			},
+					for _, item := range items {
+						ai := item
+						results = append(results, ai.Data)
+					}
+					return results, err
+				}
+			}(table),
 		}
 
 	}
@@ -314,6 +333,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	blueprintHandler := CreateApiBlueprintHandler(&initConfig, cruds)
 	modelHandler := CreateReclineModelHandler()
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
+	resource.InitialiseColumnManager()
 
 	graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
 	r.GET("/graphql", func(context *gin.Context) {
@@ -348,9 +368,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	r.POST("/site/content/load", CreateSubSiteContentHandler(&initConfig, cruds, db))
 	r.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
-	webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
-	websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
-	go websocketServer.Listen(r)
+	//webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
+	//websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
+	//go websocketServer.Listen(r)
 
 	r.NoRoute(func(c *gin.Context) {
 		file, err := boxRoot.Open("index.html")
@@ -363,8 +383,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 		_, err = c.Writer.Write(fileContents)
 		resource.CheckErr(err, "Failed to write index html")
 	})
-
-	resource.InitialiseColumnManager()
 
 	//r.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()

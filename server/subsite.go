@@ -46,7 +46,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 	hs.siteMap = make(map[string]resource.SubSite)
 	hs.authMiddleware = authMiddleware
 
-	log.Printf("Cruds before making sub sits: %v", cruds)
+	log.Printf("Cruds before making sub sites: %v", cruds)
 	sites, err := cruds["site"].GetAllSites()
 	stores, err := cruds["cloud_store"].GetAllCloudStores()
 	cloudStoreMap := make(map[int64]resource.CloudStore)
