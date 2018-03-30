@@ -316,82 +316,70 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			}(table),
 		}
 
-		query["meta"+Capitalize(inflector.Pluralize(table.TableName))] = &graphql.Field{
-			Type:        graphql.NewList(graphqlTypesMap[table.TableName]),
-			Description: "Aggregates for " + inflector.Pluralize(table.TableName),
-			Args:        allFields,
-			Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
-
-				return func(params graphql.ResolveParams) (interface{}, error) {
-					log.Printf("Arguments: %v", params.Args)
-
-					filters := make([]resource.Query, 0)
-
-					for keyName, value := range params.Args {
-
-						if _, ok := uniqueFields[keyName]; !ok {
-							continue
-						}
-
-						query := resource.Query{
-							ColumnName: keyName,
-							Operator:   "is",
-							Value:      value.(string),
-						}
-						filters = append(filters, query)
-					}
-
-					pr := http.Request{
-						Method: "GET",
-					}
-					jsStr, err := json.Marshal(filters)
-					req := api2go.Request{
-						PlainRequest: &pr,
-						QueryParams: map[string][]string{
-							"query":              {base64.StdEncoding.EncodeToString(jsStr)},
-							"included_relations": {"*"},
-						},
-					}
-
-					count, responder, err := resources[table.TableName].PaginatedFindAll(req)
-
-					if count == 0 {
-						return nil, errors.New("no such entity")
-					}
-
-					items := responder.Result().([]*api2go.Api2GoModel)
-
-					results := make([]map[string]interface{}, 0)
-					for _, item := range items {
-						ai := item
-
-						dataMap := ai.Data
-
-						includedMap := make(map[string]interface{})
-
-						for _, includedObject := range ai.Includes {
-							id := includedObject.GetID()
-							includedMap[id] = includedObject.GetAttributes()
-						}
-
-						for _, relation := range table.Relations {
-							columnName := relation.GetSubjectName()
-							if table.TableName == relation.Subject {
-								columnName = relation.GetObjectName()
-							}
-							referencedObjectId := dataMap[columnName]
-							if referencedObjectId == nil {
-								continue
-							}
-							dataMap[columnName] = includedMap[referencedObjectId.(string)]
-						}
-
-						results = append(results, dataMap)
-					}
-					return results, err
-				}
-			}(table),
-		}
+		//query["meta"+Capitalize(inflector.Pluralize(table.TableName))] = &graphql.Field{
+		//	Type:        graphql.NewList(graphql.NewObject(graphql.ObjectConfig{
+		//		//Name
+		//	})),
+		//	Description: "Aggregates for " + inflector.Pluralize(table.TableName),
+		//	Args: graphql.FieldConfigArgument{
+		//		"group": &graphql.ArgumentConfig{
+		//			Type: graphql.NewList(graphql.String),
+		//		},
+		//		"join": &graphql.ArgumentConfig{
+		//			Type: graphql.NewList(graphql.String),
+		//		},
+		//		"column": &graphql.ArgumentConfig{
+		//			Type: graphql.NewList(graphql.String),
+		//		},
+		//		"order": &graphql.ArgumentConfig{
+		//			Type: graphql.NewList(graphql.String),
+		//		},
+		//	},
+		//	Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
+		//
+		//		return func(params graphql.ResolveParams) (interface{}, error) {
+		//			log.Printf("Arguments: %v", params.Args)
+		//			aggReq := resource.AggregationRequest{}
+		//
+		//			aggReq.RootEntity = table.TableName
+		//
+		//			if params.Args["group"] != nil {
+		//				groupBys := params.Args["group"].([]interface{})
+		//				aggReq.GroupBy = make([]string, 0)
+		//				for _, grp := range groupBys {
+		//					aggReq.GroupBy = append(aggReq.GroupBy, grp.(string))
+		//				}
+		//			}
+		//			if params.Args["join"] != nil {
+		//				groupBys := params.Args["join"].([]interface{})
+		//				aggReq.Join = make([]string, 0)
+		//				for _, grp := range groupBys {
+		//					aggReq.Join = append(aggReq.Join, grp.(string))
+		//				}
+		//			}
+		//			if params.Args["column"] != nil {
+		//				groupBys := params.Args["column"].([]interface{})
+		//				aggReq.ProjectColumn = make([]string, 0)
+		//				for _, grp := range groupBys {
+		//					aggReq.ProjectColumn = append(aggReq.ProjectColumn, grp.(string))
+		//				}
+		//			}
+		//			if params.Args["order"] != nil {
+		//				groupBys := params.Args["order"].([]interface{})
+		//				aggReq.Order = make([]string, 0)
+		//				for _, grp := range groupBys {
+		//					aggReq.Order = append(aggReq.Order, grp.(string))
+		//				}
+		//			}
+		//
+		//			//params.Args["query"].(string)
+		//			//aggReq.Query =
+		//
+		//			aggResponse, err := resources[table.TableName].DataStats(aggReq)
+		//			return aggResponse, err
+		//		}
+		//	}(table),
+		//}
 
 	}
 

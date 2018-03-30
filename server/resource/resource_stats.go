@@ -17,6 +17,7 @@ type AggregationRequest struct {
 	GroupBy       []string
 	ProjectColumn []string
 	Filter        []string
+	Query         []Query
 	Order         []string
 	TimeSample    TimeStamp
 	TimeFrom      string
