@@ -118,7 +118,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 		}
 
 		query[table.TableName+"List"] = &graphql.Field{
-			Type:        graphqlTypesMap[table.TableName],
+			Type:        graphql.NewList(graphqlTypesMap[table.TableName]),
 			Description: "Get a list of " + inflector.Pluralize(table.TableName),
 			Args: graphql.FieldConfigArgument{
 
