@@ -64,6 +64,9 @@ Easily consume the following features on any device
 | Raspberry Pi               | [Linux arm 7 static build](https://github.com/daptin/daptin/releases)                                                         |
 
 
+## Read more
+
+
 ## Database persistence
 
 Store data on MySQL, PostgreSQL for heavy use cases (thousands of users) or SQLite for light use cases (iot, embedded).

@@ -15,18 +15,160 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/stats"
 	"io/ioutil"
-	"net"
 	"net/http"
-	"sync"
-	"github.com/bamzi/jobrunner"
+	"github.com/graphql-go/graphql"
+	"fmt"
+	"encoding/json"
+	"github.com/aws/aws-sdk-go/private/util"
+	"github.com/gedex/inflector"
 )
 
 var Stats = stats.New()
 
-func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection, wg *sync.WaitGroup, l net.Listener, ch chan struct{}) {
-	defer wg.Done()
+func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*resource.DbResource) *graphql.Schema {
 
-	//configFile := "daptin_style.json"
+	graphqlTypesMap := make(map[string]*graphql.Object)
+	mutations := make(graphql.Fields)
+	query := make(graphql.Fields)
+
+	for _, table := range cmsConfig.Tables {
+
+		fields := make(graphql.Fields)
+
+		for _, column := range table.Columns {
+
+			fields[column.ColumnName] = &graphql.Field{
+				Type: resource.ColumnManager.GetGraphqlType(column.ColumnType),
+				Name: column.Name,
+			}
+		}
+
+		objectConfig := graphql.NewObject(graphql.ObjectConfig{
+			Name:   table.TableName,
+			Fields: fields,
+		})
+
+		graphqlTypesMap[table.TableName] = objectConfig
+
+		createFields := make(graphql.FieldConfigArgument)
+
+		for _, column := range table.Columns {
+			if IsStandardColumn(column.ColumnName) {
+				continue
+			}
+
+			if column.IsForeignKey {
+				continue
+			}
+
+			if column.IsNullable {
+				createFields[column.ColumnName] = &graphql.ArgumentConfig{
+					Type: resource.ColumnManager.GetGraphqlType(column.ColumnType),
+				}
+			} else {
+				createFields[column.ColumnName] = &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(resource.ColumnManager.GetGraphqlType(column.ColumnType)),
+				}
+			}
+
+		}
+
+		mutations["create"+util.Capitalize(table.TableName)] = &graphql.Field{
+			Type:        graphqlTypesMap[table.TableName],
+			Description: "Create a new " + table.TableName,
+			Args:        createFields,
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				log.Printf("create resolve params: %v", p)
+				return nil, nil
+			},
+		}
+
+		mutations["update"+util.Capitalize(table.TableName)] = &graphql.Field{
+			Type:        graphqlTypesMap[table.TableName],
+			Description: "Create a new " + table.TableName,
+			Args:        createFields,
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				log.Printf("create resolve params: %v", p)
+				return nil, nil
+			},
+		}
+
+		query[table.TableName] = &graphql.Field{
+			Type:        graphqlTypesMap[table.TableName],
+			Description: "Get a single " + table.TableName,
+			Args: graphql.FieldConfigArgument{
+				"id": &graphql.ArgumentConfig{
+					Type:        graphql.String,
+					Description: "id of the " + table.TableName,
+				},
+			},
+			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+
+				//params.Args["id"].(string)
+
+				return nil, nil
+
+			},
+		}
+
+		query[table.TableName+"List"] = &graphql.Field{
+			Type:        graphqlTypesMap[table.TableName],
+			Description: "Get a list of " + inflector.Pluralize(table.TableName),
+			Args: graphql.FieldConfigArgument{
+
+			},
+			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+
+				//params.Args["id"].(string)
+
+				return nil, nil
+
+			},
+		}
+
+	}
+
+	var rootMutation = graphql.NewObject(graphql.ObjectConfig{
+		Name:   "RootMutation",
+		Fields: mutations,
+	});
+	var rootQuery = graphql.NewObject(graphql.ObjectConfig{
+		Name:   "RootQuery",
+		Fields: query,
+	})
+
+	// define schema, with our rootQuery and rootMutation
+	var schema, _ = graphql.NewSchema(graphql.SchemaConfig{
+		Query:    rootQuery,
+		Mutation: rootMutation,
+	})
+
+	return &schema
+
+}
+
+func IsStandardColumn(s string) bool {
+	for _, cols := range resource.StandardColumns {
+		if cols.ColumnName == s {
+			return true
+		}
+	}
+	return false
+}
+
+func executeQuery(query string, schema graphql.Schema) *graphql.Result {
+	result := graphql.Do(graphql.Params{
+		Schema:        schema,
+		RequestString: query,
+	})
+	if len(result.Errors) > 0 {
+		fmt.Printf("wrong result, unexpected errors: %v", result.Errors)
+	}
+	return result
+}
+
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
+
 	/// Start system initialise
 
 	log.Infof("Load config files")
@@ -38,7 +180,6 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 	}
 
 	existingTables, _ := GetTablesFromWorld(db)
-	//initConfig.Tables = append(initConfig.Tables, existingTables...)
 
 	allTables := MergeTables(existingTables, initConfig.Tables)
 
@@ -160,18 +301,6 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 
 	hostSwitch.handlerMap["api"] = r
 	hostSwitch.handlerMap["dashboard"] = r
-	//hostSwitch.siteMap["dashboard"] = resource.SubSite{
-	//	Id:           int64(0),
-	//	Name:         "dashboard",
-	//	Hostname:     "dashboard",
-	//	Path:         "dashboard",
-	//	CloudStoreId: nil,
-	//	Permission: resource.PermissionInstance{
-	//		UserId:      "",
-	//		UserGroupId: []auth.GroupPermission{},
-	//		Permission:  auth.DEFAULT_PERMISSION,
-	//	},
-	//}
 
 	authMiddleware.SetUserCrud(cruds["user"])
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
@@ -188,6 +317,13 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 	blueprintHandler := CreateApiBlueprintHandler(&initConfig, cruds)
 	modelHandler := CreateReclineModelHandler()
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
+
+	graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
+	r.GET("/graphql", func(context *gin.Context) {
+		log.Infof("graphql query: %v", context.Query("query"))
+		result := executeQuery(context.Query("query"), *graphqlSchema)
+		json.NewEncoder(context.Writer).Encode(result)
+	})
 
 	r.GET("/jsmodel/:typename", handler)
 	r.GET("/stats/:typename", statsHandler)
@@ -236,21 +372,10 @@ func Main(boxRoot, assetsStatic http.FileSystem, db database.DatabaseConnection,
 	//r.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
 
-	jobrunner.Start()
-
-	log.Printf("Listening at: %v", l.Addr().String())
-	go func() {
-		err = http.Serve(l, hostSwitch)
-		resource.CheckErr(err, "Failed to listen")
-	}()
-
-	select {
-	case <-ch:
-		return
-	default:
-	}
+	return hostSwitch
 
 }
+
 func MergeTables(existingTables []resource.TableInfo, initConfigTables []resource.TableInfo) []resource.TableInfo {
 	allTables := make([]resource.TableInfo, 0)
 	existingTablesMap := make(map[string]bool)
