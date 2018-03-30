@@ -99,7 +99,7 @@ func (d *OuathProfileExchangePerformer) DoAction(request ActionRequest, inFieldM
 	if oauthToken == nil || !oauthToken.Valid() {
 		tokenResponse, err = GetTokensScope(inFieldMap["profileUrl"].(string), strings.Join(conf.Scopes, ","), conf.ClientID, conf.ClientSecret, token)
 		if err != nil {
-			log.Errorf("Failed to exchange code for token: %v", err)
+			log.Errorf("Failed to exchange code for token during profile exchange: %v", err)
 			return nil, nil, []error{err}
 		}
 		log.Infof("token response: %v", tokenResponse)

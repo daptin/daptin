@@ -115,7 +115,6 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 	for _, result := range results {
 		//log.Infof("Result: %v", result)
 		refIdInterface := result["reference_id"]
-		referenceId := refIdInterface.(string)
 
 		//if strings.Index(result["__type"].(string), "_has_") > -1 {
 		//	returnMap = append(returnMap, result)
@@ -127,6 +126,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 			returnMap = append(returnMap, result)
 			continue
 		}
+		referenceId := refIdInterface.(string)
 		_, ok := notIncludedMapCache[referenceId]
 		if ok {
 			continue

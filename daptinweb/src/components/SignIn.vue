@@ -6,19 +6,19 @@
           <a href="javascript:;"><b>Daptin</b></a>
         </div>
         <div class="col-md-4 col-sm-offset-4">
-
-          <div v-for="connect in oauthConnections">
-            <el-button @click="oauthLogin(connect)">Login via {{ connect | chooseTitle }}</el-button>
-          </div>
-
-        </div>
-        <div class="col-md-4 col-sm-offset-4">
           <!-- login form -->
           <action-view :model="{}" :hide-cancel="true" v-if="signInAction" :actionManager="actionManager"
                        :action="signInAction"></action-view>
 
           <!-- errors -->
           <div v-if=response class="text-red"><p>{{response}}</p></div>
+        </div>
+        <div class="col-md-3">
+          <div class="row" v-for="connect in oauthConnections">
+            <div class="col-md-12">
+              <el-button style="margin: 5px;" @click="oauthLogin(connect)">Login via {{ connect | chooseTitle }}</el-button>
+            </div>
+          </div>
         </div>
         <div class="col-md-4 col-sm-offset-4">
           <div class="box">
@@ -54,7 +54,7 @@
         console.log("action initiate oauth login being for ", oauthConnect);
         actionManager.doAction("oauth_connect", "oauth.login.begin", {
           "oauth_connect_id": oauthConnect.id
-        }).then(function(actionResponse){
+        }).then(function (actionResponse) {
           console.log("action response", actionResponse);
         })
 
@@ -75,6 +75,11 @@
 
           jsonApi.findAll('oauth_connect', {
             page: {number: 1, size: 500},
+            query: btoa(JSON.stringify([{
+              "column": "allow_login",
+              "operator": "is",
+              "value": "1"
+            }]))
           }).then(function (res) {
             res = res.data;
             console.log("visible oauth connections: ", res);
