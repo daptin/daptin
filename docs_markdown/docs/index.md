@@ -1,12 +1,17 @@
-# DAPTIN
+# Deploy
 
-## [Create an instance](setting-up/settingup.md)
+[Create an instance](setting-up/settingup.md)
 
-## Import data
+# Import data
 
 <img src="images/create_data.png">
 
-## Upload from dashboard
+You can either directly import a csv or xls file to import unknown data and let daptin identify the columns and types.
+
+Read more [here](http://localhost:8000/setting-up/entities/) 
+
+
+### Upload from dashboard
 
 Upload one of these files:
 
@@ -17,7 +22,68 @@ Upload one of these files:
 | XLSX        | Auto create entity and upload data |
 | Data JSON   | Upload data from dumps             |
 
-## Tables
+# APIs
+
+
+
+| GET    | /api/{entityName}                                         | Query Params                          | Request Body                                                                                  | Description                                                                                           |
+| ------ | --------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| POST   | /api/{entityName}                                         | page[size]= page[number] query filter |                                                                                               | Find all rows, paginated with query and filters                                                       |
+| PATCH  | /api/{entityName}/{id}                                    |                                       | {"attributes": {  } "type": "{entityType} }                                                   | Update row by reference id                                                                            |
+| PUT    | /api/{entityName}/{id}                                    |                                       | {"attributes": { } "type": "{entityType} }                                                    | Update row by reference id                                                                            |
+| DELETE | /api/{entityName}/{id}                                    |                                       |                                                                                               | Delete a row                                                                                          |
+| GET    | /api/{entityName}/{id}/{relationName}                     | page[size]= page[number] query filter |                                                                                               | Find all related rows by relation name, eg, "posts" of a user                                         |
+| DELETE | /api/{entityName}/{id}/{relationName}                     |                                       | {"id": , "type":  }                                                                           | Delete a related row, eg: delete post of a user. this only removes a relation and not the actual row. |
+| GET    | /action/{entityName}/{actionName}                         | Parameters for action                 |                                                                                               | Invoke an action on an entity                                                                         |
+| POST   | /action/{entityName}/{actionName}                         |                                       | { "attribute": { Parameters for action }, "id": "< object id >" type: "< entity type >" }     | Invoke an action on an entity                                                                         |
+| POST   | /track/start/{stateMachineId}                             |                                       | { "id": " < reference id >", type: " < entity type > " }                                      | Start tracking according to the state machine for an object                                           |
+| POST   | /track/event/{typename}/{objectStateId}/{eventName}       |                                       |                                                                                               | Invoke an event on a particular track of the state machine for a object                               |
+| GET    | /live                                                     |                                       |                                                                                               | Initiate a web socket connection                                                                      |
+|        |                                                           |                                       |                                                                                               |                                                                                                       |
+| GET    | /apispec.raml                                             |                                       |                                                                                               | RAML Spec for all API's                                                                               |
+| GET    | /ping                                                     |                                       |                                                                                               | Replies with PONG, Good for liveness probe                                                            |
+
+
+# Users and Usergroups
+
+Daptin has a built-in user system. Users are identified by their authorization token or other means of identification. Users are idenfied as registered users or guests.
+
+You can choose to disable new user registration by disallowing the signup action in permissions.
+
+## Adding users
+
+You can manually add users from the users page, or allow sign-up action to be performed by guests which will take care of creating a user and an associated usergroup for that user. All new signed up users will also be added to the "users" usergroup.
+
+Users and usergroups are just like other data in the system and is available over `/api/users` endpoint. You can choose to allow read/write permission directly to that table to allow other users/processes to use this api to read/create/update/delete users.
+
+## Social login
+
+Daptin can work with any oauth flow aware identity provider to allow new users to be registered (if you have disabled normal signup).
+
+Create a [OAuth Connection](/extend/oauth_connection.md) and mark "Allow login" to enable APIs for OAuth flow.
+
+Examples
+
+!!! note "Google login configuration"
+    ![Google oauth](images/oauth/google.png)
+    
+!!! note "Dropbox login configuration"
+    ![Google oauth](images/oauth/dropbox.png)
+    
+!!! note "Github login configuration"
+    ![Google oauth](images/oauth/github.png)
+    
+!!! note "Linkedin login configuration"
+    ![Google oauth](images/oauth/linkedin.png)
+    
+
+!!! note "Encrypted values"
+    The secrets are stored after encryption so the value you see in above screenshots are encrypted values.
+
+
+## Creating usergroups
+
+### Tables
 
 Tables are the basic data structure. Tables have columns. Each column has a particular data type. These tables are exposed over APIs under the `/api/` path. Checkout [entity documentation](/setting-up/entities.md) for details.
 
@@ -52,7 +118,7 @@ Tables are the basic data structure. Tables have columns. Each column has a part
     }
     ```
 
-## Relations
+### Relations
 
 Relations are constraints among tables and help you keep clean and consistent data. Relational data is easily accessible over APIs using a path structure like `/api/<entityName>/<id>/<relationName>` and the response is consistent with [JSONAPI.org](https://JSONAPI.org).
 
@@ -160,7 +226,7 @@ Use action to expose endpoints for your forms and processes. Here is an example 
     ```
 
 
-## Exchanges <img style="float: right" src="images/exchanges.png" class="cloud-provider">
+## Data Exchanges <img style="float: right" src="images/exchanges.png" class="cloud-provider">
 
 Exchanges are internal hooks to external apis, to either push data and update an external service, or pull data and update itself from some external service.
 
