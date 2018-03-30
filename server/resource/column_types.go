@@ -7,6 +7,7 @@ import (
 	validator2 "gopkg.in/go-playground/validator.v9"
 	"math/rand"
 	"time"
+	"github.com/graphql-go/graphql"
 )
 
 type Faker interface {
@@ -20,6 +21,7 @@ type ColumnType struct {
 	Conformations []string
 	ReclineType   string
 	DataTypes     []string
+	GraphqlType   *graphql.Scalar
 }
 
 func randate() time.Time {
@@ -118,30 +120,35 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "string",
 		Validations:   []string{},
 		DataTypes:     []string{"varchar(20)", "varchar(10)"},
+		GraphqlType:   graphql.ID,
 	},
 	{
 		Name:          "alias",
 		BlueprintType: "string",
 		ReclineType:   "string",
 		DataTypes:     []string{"varchar(100)", "varchar(20)", "varchar(10)"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "date",
 		BlueprintType: "date-only",
 		ReclineType:   "date",
 		DataTypes:     []string{"timestamp"},
+		GraphqlType:   graphql.DateTime,
 	},
 	{
 		Name:          "time",
 		BlueprintType: "time-only",
 		ReclineType:   "time",
 		DataTypes:     []string{"timestamp"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "day",
 		BlueprintType: "string",
 		ReclineType:   "string",
 		DataTypes:     []string{"varchar(10)"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "month",
@@ -149,6 +156,7 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "string",
 		Validations:   []string{"min=1,max=12"},
 		DataTypes:     []string{"int(4)"},
+		GraphqlType:   graphql.Int,
 	},
 	{
 		Name:          "year",
@@ -156,24 +164,28 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "string",
 		Validations:   []string{"min=1900,max=2100"},
 		DataTypes:     []string{"int(4)"},
+		GraphqlType:   graphql.Int,
 	},
 	{
 		Name:          "minute",
 		BlueprintType: "number",
 		Validations:   []string{"min=0,max=59"},
 		DataTypes:     []string{"int(4)"},
+		GraphqlType:   graphql.Int,
 	},
 	{
 		Name:          "hour",
 		BlueprintType: "number",
 		ReclineType:   "string",
 		DataTypes:     []string{"int(4)"},
+		GraphqlType:   graphql.Int,
 	},
 	{
 		Name:          "datetime",
 		BlueprintType: "datetime",
 		ReclineType:   "date-time",
 		DataTypes:     []string{"timestamp"},
+		GraphqlType:   graphql.DateTime,
 	},
 	{
 		Name:          "email",
@@ -182,12 +194,14 @@ var ColumnTypes = []ColumnType{
 		Validations:   []string{"email"},
 		Conformations: []string{"email"},
 		DataTypes:     []string{"varchar(100)"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "namespace",
 		BlueprintType: "string",
 		ReclineType:   "string",
 		DataTypes:     []string{"varchar(200)"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "name",
@@ -196,18 +210,21 @@ var ColumnTypes = []ColumnType{
 		Validations:   []string{"required"},
 		Conformations: []string{"name"},
 		DataTypes:     []string{"varchar(100)"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "encrypted",
 		ReclineType:   "string",
 		BlueprintType: "string",
 		DataTypes:     []string{"varchar(100)", "varchar(500)", "varchar(500)", "text"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "json",
 		ReclineType:   "string",
 		BlueprintType: "string",
 		DataTypes:     []string{"text", "varchar(100)"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "password",
@@ -215,30 +232,35 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "string",
 		Validations:   []string{"required"},
 		DataTypes:     []string{"varchar(200)"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "value",
 		ReclineType:   "string",
-		BlueprintType: "number",
+		BlueprintType: "string",
 		DataTypes:     []string{"varchar(100)"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "truefalse",
 		BlueprintType: "boolean",
 		ReclineType:   "boolean",
 		DataTypes:     []string{"boolean"},
+		GraphqlType:   graphql.Boolean,
 	},
 	{
 		Name:          "timestamp",
 		BlueprintType: "datetime",
 		ReclineType:   "date-time",
 		DataTypes:     []string{"timestamp"},
+		GraphqlType:   graphql.DateTime,
 	},
 	{
 		Name:          "location",
 		BlueprintType: "string",
 		ReclineType:   "geo_point",
 		DataTypes:     []string{"varchar(50)"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "location.latitude",
@@ -246,6 +268,7 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "number",
 		Validations:   []string{"latitude"},
 		DataTypes:     []string{"float(7,4)"},
+		GraphqlType:   graphql.Float,
 	},
 	{
 		Name:          "location.longitude",
@@ -253,12 +276,14 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "number",
 		Validations:   []string{"longitude"},
 		DataTypes:     []string{"float(7,4)"},
+		GraphqlType:   graphql.Float,
 	},
 	{
 		Name:          "location.altitude",
 		BlueprintType: "number",
 		ReclineType:   "number",
 		DataTypes:     []string{"float(7,4)"},
+		GraphqlType:   graphql.Float,
 	},
 	{
 		Name:          "color",
@@ -266,6 +291,7 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "string",
 		Validations:   []string{"iscolor"},
 		DataTypes:     []string{"varchar(50)"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "rating.10",
@@ -273,24 +299,35 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "string",
 		Validations:   []string{"min=0,max=10"},
 		DataTypes:     []string{"int(4)"},
+		GraphqlType:   graphql.Int,
 	},
 	{
 		Name:          "measurement",
 		ReclineType:   "number",
 		BlueprintType: "number",
 		DataTypes:     []string{"int(10)"},
+		GraphqlType:   graphql.Int,
+	},
+	{
+		Name:          "float",
+		ReclineType:   "number",
+		BlueprintType: "number",
+		DataTypes:     []string{"float(7,4)"},
+		GraphqlType:   graphql.Float,
 	},
 	{
 		Name:          "label",
 		ReclineType:   "string",
 		BlueprintType: "string",
 		DataTypes:     []string{"varchar(100)"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "content",
 		ReclineType:   "string",
 		BlueprintType: "string",
 		DataTypes:     []string{"text"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "file",
@@ -298,6 +335,7 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 		DataTypes:     []string{"blob"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "image",
@@ -305,6 +343,7 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 		DataTypes:     []string{"blob"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "url",
@@ -312,6 +351,7 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "string",
 		Validations:   []string{"url"},
 		DataTypes:     []string{"varchar(500)"},
+		GraphqlType:   graphql.String,
 	},
 	{
 		Name:          "image",
@@ -319,6 +359,7 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 		DataTypes:     []string{"text"},
+		GraphqlType:   graphql.String,
 	},
 }
 
@@ -336,8 +377,11 @@ func InitialiseColumnManager() {
 	}
 }
 
-func (ctm *ColumnTypeManager) GetBlueprintType(colName string) string {
-	return ctm.ColumnMap[colName].BlueprintType
+func (ctm *ColumnTypeManager) GetBlueprintType(columnType string) string {
+	return ctm.ColumnMap[columnType].BlueprintType
+}
+func (ctm *ColumnTypeManager) GetGraphqlType(columnType string) *graphql.Scalar {
+	return ctm.ColumnMap[columnType].GraphqlType
 }
 
 func (ctm *ColumnTypeManager) GetFakedata(colTypeName string) string {

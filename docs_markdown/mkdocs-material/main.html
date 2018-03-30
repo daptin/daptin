@@ -3,3 +3,81 @@
 {% block extrahead %}
 <link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet">
 {% endblock %}
+
+
+<script>
+    (function(document, window) {
+
+        var config = {
+            percentages: {
+                each: [10, 90],
+                every: [25]
+            }
+        };
+        var trackerId = 'UA-114227400-1';  // e.g. UA-000000-00
+
+        if (document.readyState !== 'loading') {
+
+            init();
+
+        } else {
+
+            document.addEventListener('DOMContentLoaded', init);
+
+        }
+
+        function init() {
+
+            getTracker(trackerId, registerScrollTracker);
+
+        }
+
+        function registerScrollTracker(tracker) {
+
+            var scrollTracker = window.ScrollTracker();
+            scrollTracker.on(config, function(evt) {
+
+                tracker.send('event', {
+                    eventCategory: 'Scroll Tracking',
+                    eventAction: evt.data.label,
+                    eventLabel: document.location.pathname,
+                    nonInteraction: true
+                });
+
+            });
+
+        }
+
+        function getTracker(trackerId, cb, ran) {
+
+            var ga = window[window.GoogleAnalyticsObject] ;
+
+            ga(function() {
+
+                var trackers = ga.getAll();
+                var len = trackers.length;
+                var tracker;
+                var i;
+
+                for (i = 0; i < len; i++) {
+
+                    tracker = trackers[i];
+
+                    if (tracker.get('trackingId') === trackerId) return cb(tracker);
+
+                }
+
+                if (!ran) {
+
+                    setTimeout(function() {
+                        getTracker(trackerId, cb, true);
+                    }, 0);
+
+                }
+
+            });
+
+        }
+
+    })(document, window);
+</script>
