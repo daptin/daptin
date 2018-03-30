@@ -211,7 +211,6 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	return perm
 }
 
-
 // Get list of group permissions for objects of typeName where colName=colValue
 // Utility method which makes a join query to load a lot of permissions quickly
 // Used by GetRowPermission
@@ -602,7 +601,6 @@ func (dr *DbResource) TruncateTable(typeName string) error {
 
 }
 
-
 // Update the data and set the values using the data map without an validation or transformations
 // Invoked by data import action
 func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{}) error {
@@ -900,7 +898,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					continue
 				}
 
-				if includedRelationMap != nil && includedRelationMap[namespace] {
+				if includedRelationMap != nil && (includedRelationMap[namespace] || includedRelationMap["*"]) {
 					obj, err := dr.GetIdToObject(namespace, referenceIdInt)
 					obj["__type"] = namespace
 
