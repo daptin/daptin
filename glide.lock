@@ -1,5 +1,5 @@
-hash: 649fb3408abf821e191badc63e004c77dfe52a181f790be925f5a8c6c4e07c10
-updated: 2018-03-29T23:34:43.668732919+05:30
+hash: b02bf24ea45809aa44694f1ed8e8c81b2ac64134af35ee2d6449a8f6f7d80e86
+updated: 2018-03-31T17:46:46.594617996+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -28,8 +28,6 @@ imports:
   version: a5409cc587c60d7805e75e66f63274397712290d
 - name: github.com/artpar/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
-- name: github.com/artpar/goagain
-  version: f2d5d7b515c4c1b6244ed9260e04c29800350d35
 - name: github.com/artpar/rclone
   version: 68a0407a350aef9f8bcdfe3a8803cec320ac7ba6
   subpackages:
@@ -120,7 +118,6 @@ imports:
   - private/protocol/rest
   - private/protocol/restxml
   - private/protocol/xml/xmlutil
-  - private/util
   - service/s3
   - service/s3/s3iface
   - service/s3/s3manager
@@ -255,6 +252,8 @@ imports:
   - language/source
   - language/typeInfo
   - language/visitor
+- name: github.com/graphql-go/handler
+  version: f0393b2c10daeebea900292b8e092e73475399d9
 - name: github.com/hashicorp/hcl
   version: 23c074d0eceb2b8a5bfdbb271ab780cde70f05a8
   subpackages:
