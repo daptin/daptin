@@ -68,3 +68,4 @@ import:
   version: ^0.7.5
 - package: github.com/graphql-go/handler
   version: ^0.2.1
+- package: github.com/bamzi/jobrunner

@@ -86,9 +86,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	resource.UpdateExchanges(&initConfig, db)
 	resource.UpdateStreams(&initConfig, db)
 	resource.UpdateMarketplaces(&initConfig, db)
+	err := resource.UpdateCronjobsData(&initConfig, db)
+	resource.CheckErr(err, "Failed to  update cron jobs")
 	resource.UpdateStandardData(&initConfig, db)
 
-	err := resource.UpdateActionTable(&initConfig, db)
+	err = resource.UpdateActionTable(&initConfig, db)
 	resource.CheckErr(err, "Failed to update action table")
 
 	/// end system initialise
@@ -171,6 +173,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	resource.ImportDataFiles(&initConfig, db, cruds)
 
+	initConfig.StartCronJobs(&initConfig, db, cruds, configStore)
 	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
 
 	hostSwitch.handlerMap["api"] = r
@@ -324,7 +327,6 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 					} else {
 						existableTable.Columns = append(existableTable.Columns, newColumnDef)
 					}
-
 				}
 
 			}
