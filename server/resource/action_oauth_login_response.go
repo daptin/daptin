@@ -49,7 +49,7 @@ func GetOauthConnectionDescription(authenticator string, dbResource *DbResource)
 	}
 
 	conf, err := mapToOauthConfig(rows[0], secret)
-
+	log.Infof("[%v] oauth config: %v", authenticator, conf)
 	return conf, rows[0]["reference_id"].(string), err
 
 }
@@ -165,7 +165,7 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 	ctx := context.Background()
 	token, err := conf.Exchange(ctx, code)
 	if err != nil {
-		log.Errorf("Failed to exchange code for token: %v", err)
+		log.Errorf("Failed to exchange code for token in login response: %v", err)
 		return nil, nil, []error{err}
 	}
 
