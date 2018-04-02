@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="300" height="282" src="https://github.com/daptin/daptin/raw/master/daptinweb/static/img/logo_blk.png" alt="Daptin" title="Daptin" />
+  <img width="300" height="282" src="https://github.com/daptin/daptin/raw/master/images/daptin-22-transparent-background-colored.png" alt="Daptin" title="Daptin" />
 </p>
 
 <h1 class="heading-right" align="center">Complete backend for modern applications</h1>
