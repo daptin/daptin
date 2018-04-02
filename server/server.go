@@ -18,7 +18,6 @@ import (
 	"net/http"
 	"github.com/graphql-go/graphql"
 	"fmt"
-	"encoding/json"
 	"github.com/aws/aws-sdk-go/private/util"
 	"github.com/gedex/inflector"
 )
@@ -237,7 +236,24 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	r.GET("/favicon.ico", func(c *gin.Context) {
 
-		file, err := boxRoot.Open("favicon.ico")
+		file, err := boxRoot.Open("static/img/favicon.png")
+		if err != nil {
+			c.AbortWithStatus(404)
+			return
+		}
+
+		fileContents, err := ioutil.ReadAll(file)
+		if err != nil {
+			c.AbortWithStatus(404)
+			return
+		}
+		_, err = c.Writer.Write(fileContents)
+		resource.CheckErr(err, "Failed to write favico")
+	})
+
+	r.GET("/favicon.png", func(c *gin.Context) {
+
+		file, err := boxRoot.Open("static/img/favicon.png")
 		if err != nil {
 			c.AbortWithStatus(404)
 			return
@@ -319,11 +335,39 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
 
 	graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
-	r.GET("/graphql", func(context *gin.Context) {
-		log.Infof("graphql query: %v", context.Query("query"))
-		result := executeQuery(context.Query("query"), *graphqlSchema)
-		json.NewEncoder(context.Writer).Encode(result)
-	})
+	log.Printf("Graphql schema: %v", graphqlSchema)
+	//r.GET("/graphql", func(context *gin.Context) {
+	//	log.Infof("graphql query: %v", context.Query("query"))
+	//	result := executeQuery(context.Query("query"), *graphqlSchema)
+	//	json.NewEncoder(context.Writer).Encode(result)
+	//})
+	//
+	//graphqlHttpHandler := graphqlhandler.New(&graphqlhandler.Config{
+	//	Schema:   graphqlSchema,
+	//	Pretty:   true,
+	//	GraphiQL: true,
+	//})
+	//
+	//// serve HTTP
+	//r.Handle("GET", "/graphql", func(c *gin.Context) {
+	//	graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+	//})
+	//// serve HTTP
+	//r.Handle("POST", "/graphql", func(c *gin.Context) {
+	//	graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+	//})
+	//// serve HTTP
+	//r.Handle("PUT", "/graphql", func(c *gin.Context) {
+	//	graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+	//})
+	//// serve HTTP
+	//r.Handle("PATCH", "/graphql", func(c *gin.Context) {
+	//	graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+	//})
+	//// serve HTTP
+	//r.Handle("DELETE", "/graphql", func(c *gin.Context) {
+	//	graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+	//})
 
 	r.GET("/jsmodel/:typename", handler)
 	r.GET("/stats/:typename", statsHandler)
