@@ -7,8 +7,9 @@
         
         
         
-        <link rel="shortcut icon" href="../../img/favicon.ico">
-        <title>Setting up - Daptin</title>
+        <link rel="shortcut icon" href="../../images/favicon.png">
+        
+        <title>Getting started - Daptin</title>
         <link href="../../css/bootstrap-custom.min.css" rel="stylesheet">
         <link href="../../css/font-awesome-4.5.0.css" rel="stylesheet">
         <link href="../../css/base.css" rel="stylesheet">
@@ -58,121 +59,244 @@
                 <!-- Main navigation -->
                 <ul class="nav navbar-nav">
                     <li >
-                        <a href="../..">Home</a>
+                        <a href="../..">Introduction</a>
                     </li>
                     <li class="dropdown active">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Setting up <b class="caret"></b></a>
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Documentation <b class="caret"></b></a>
                         <ul class="dropdown-menu">
                             
+  <li class="dropdown-submenu">
+    <a href="#">Installation</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../native/">Native</a>
+</li>
+            
+<li >
+    <a href="../heroku/">Heroku</a>
+</li>
+            
+<li >
+    <a href="../docker/">Docker</a>
+</li>
+            
+<li >
+    <a href="../docker-compose/">Docker Compose</a>
+</li>
+            
+<li >
+    <a href="../kubernetes/">Kubernetes</a>
+</li>
+            
+<li >
+    <a href="../database_configuration/">Choose your storage</a>
+</li>
+            
 <li class="active">
-    <a href="./">Setting up</a>
+    <a href="./">Getting started</a>
 </li>
+    </ul>
+  </li>
                             
+  <li class="dropdown-submenu">
+    <a href="#">Setup and data</a>
+    <ul class="dropdown-menu">
+            
 <li >
-    <a href="../entities/">Entities</a>
+    <a href="../entities/">Designing data model</a>
 </li>
-                            
+            
 <li >
-    <a href="../entity_relations/">Entity relations</a>
+    <a href="../entity_relations/">Linking data with one another</a>
 </li>
-                            
-<li >
-    <a href="../../actions-streams/default_actions/">Inbuilt Actions</a>
-</li>
-                            
+            
 <li >
     <a href="../database_configuration/">Database configuration</a>
 </li>
-                        </ul>
-                    </li>
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Concepts <b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            
-  <li class="dropdown-submenu">
-    <a href="#">Storage</a>
-    <ul class="dropdown-menu">
             
 <li >
-    <a href="../../data-modeling/data_storage/">Data storage</a>
+    <a href="../../data-modeling/data_storage/">Data store format</a>
 </li>
             
 <li >
-    <a href="../../cloudstore/cloudstore/">Cloud storage</a>
+    <a href="../data_import/">Import data</a>
 </li>
             
 <li >
-    <a href="../../subsite/subsite/">Subsites</a>
-</li>
-    </ul>
-  </li>
-                            
-  <li class="dropdown-submenu">
-    <a href="#">Auth</a>
-    <ul class="dropdown-menu">
-            
-<li >
-    <a href="../../auth/users_and_usergroups/">Users and groups</a>
-</li>
-            
-<li >
-    <a href="../../auth/authorization/">Authorization</a>
-</li>
-            
-<li >
-    <a href="../../auth/authentication/">Authentication</a>
-</li>
-            
-<li >
-    <a href="../../auth/permissions/">Permission model</a>
-</li>
-    </ul>
-  </li>
-                            
-  <li class="dropdown-submenu">
-    <a href="#">Extend</a>
-    <ul class="dropdown-menu">
-            
-<li >
-    <a href="../../actions-streams/actions/">Actions</a>
-</li>
-            
-<li >
-    <a href="../../extend/marketplace/">Market place</a>
-</li>
-            
-<li >
-    <a href="../../data-modeling/auditing/">Data auditing</a>
-</li>
-            
-<li >
-    <a href="../../data-modeling/data_validation/">Data validation</a>
+    <a href="../../data-modeling/data_validation/">Data validations</a>
 </li>
             
 <li >
     <a href="../../data-modeling/data_conformation/">Data conformations</a>
 </li>
-    </ul>
-  </li>
-                            
-  <li class="dropdown-submenu">
-    <a href="#">Other APIs</a>
-    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../data-modeling/auditing/">Audit</a>
+</li>
             
 <li >
     <a href="../../data-modeling/state_tracking/">State tracking</a>
 </li>
             
 <li >
-    <a href="../../actions-streams/streams/">Data streams</a>
+    <a href="../../extend/data_exchange/">Data exchange and sync</a>
 </li>
             
 <li >
-    <a href="../../extend/oauth_connection/">OAuth connections</a>
+    <a href="../../streams/streams/">Data streams</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">APIs</a>
+    <ul class="dropdown-menu">
+            
+  <li class="dropdown-submenu">
+    <a href="#">CRUD APIs</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../apis/read/">Read, search, filter</a>
 </li>
             
 <li >
-    <a href="../../extend/oauth_token/">OAuth tokens</a>
+    <a href="../../apis/create/">Create</a>
+</li>
+            
+<li >
+    <a href="../../apis/update/">Update</a>
+</li>
+            
+<li >
+    <a href="../../apis/delete/">Delete</a>
+</li>
+            
+<li >
+    <a href="../../apis/relation/">Relations</a>
+</li>
+            
+<li >
+    <a href="../../apis/execute/">Execute</a>
+</li>
+    </ul>
+  </li>
+            
+  <li class="dropdown-submenu">
+    <a href="#">Action APIs</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../actions/actions/">Using actions</a>
+</li>
+            
+<li >
+    <a href="../../actions/default_actions/">Actions list</a>
+</li>
+    </ul>
+  </li>
+            
+  <li class="dropdown-submenu">
+    <a href="#">User APIs</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../actions/signup/">User registration/signup</a>
+</li>
+            
+<li >
+    <a href="../../actions/signin/">User login/signin</a>
+</li>
+    </ul>
+  </li>
+            
+  <li class="dropdown-submenu">
+    <a href="#">State tracking APIs</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../state/machines/">State machines</a>
+</li>
+    </ul>
+  </li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Users</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../auth/guests/">Guests</a>
+</li>
+            
+<li >
+    <a href="../../auth/users/">Adding users</a>
+</li>
+            
+<li >
+    <a href="../../auth/usergroups/">Usergroups</a>
+</li>
+            
+<li >
+    <a href="../../auth/permissions/">Data access permission</a>
+</li>
+            
+<li >
+    <a href="../../auth/social_login/">Social login</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Auth & Auth</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../auth/authentication/">User Authentication</a>
+</li>
+            
+<li >
+    <a href="../../auth/authorization/">Authorization</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Asset and file storage</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../cloudstore/cloudstore/">Connecting with cloud store</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Sub-sites</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../subsite/subsite/">Creating a subsite</a>
+</li>
+            
+<li >
+    <a href="../../subsite/grapes/">Live editing a subsite</a>
+</li>
+            
+<li >
+    <a href="../../subsite/basic_auth/">Basic Authentication</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Sharing</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../extend/marketplace/">Marketplace</a>
 </li>
     </ul>
   </li>
@@ -187,7 +311,7 @@
                     </a>
                 </li>
                     <li >
-                        <a rel="next" href="../..">
+                        <a rel="next" href="../database_configuration/">
                             <i class="fa fa-arrow-left"></i> Previous
                         </a>
                     </li>
@@ -209,15 +333,9 @@
     <ul class="nav bs-sidenav">
         <li class="main active"><a href="#setting-up-daptin">Setting up Daptin</a></li>
             <li><a href="#deploy-and-get-started">Deploy and get started</a></li>
-        <li class="main "><a href="#next">Next</a></li>
-            <li><a href="#become-admin">Become admin</a></li>
-            <li><a href="#usage-roadmap">Usage Roadmap</a></li>
-            <li><a href="#import-data">Import data</a></li>
+        <li class="main "><a href="#port">Port</a></li>
+        <li class="main "><a href="#restart">Restart</a></li>
         <li class="main "><a href="#detailed-instructions">Detailed instructions</a></li>
-            <li><a href="#native-binary">Native binary</a></li>
-            <li><a href="#docker-image">Docker image</a></li>
-            <li><a href="#docker-compose">Docker compose</a></li>
-            <li><a href="#kubernetes-deployment">Kubernetes deployment</a></li>
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
@@ -271,137 +389,13 @@
 </tr>
 </tbody>
 </table>
-<h1 id="next">Next<a class="headerlink" href="#next" title="Permanent link">Link</a></h1>
-<p>The first thing you want to do after deploying a new instance is register yourself as a user on the dashboard. This part can be automated for redistributable applications.</p>
-<h2 id="become-admin">Become admin<a class="headerlink" href="#become-admin" title="Permanent link">Link</a></h2>
-<p>Only the first user can become an <strong>administrator</strong> and only until no one else signs up. If the first user doesn't invoke "Become admin" before another user signs up, then it becomes a public instance which is something you would rarely want.</p>
-<p>When you "Become admin", daptin will restart itself and schedule an update for itself where it makes you <a href="../../auth/authorization/">the owner</a> of everything and update permission of all exposed apis. At this point guest users will not be allowed to invoke sign up process.</p>
-<h2 id="usage-roadmap">Usage Roadmap<a class="headerlink" href="#usage-roadmap" title="Permanent link">Link</a></h2>
-<p>Quick road map to various things you can do from here:</p>
-<ul>
-<li><a href="../../auth/users_and_usergroups/#sign-up">Enable sign up for guests</a></li>
-<li><a href="../entities/">Expose APIs</a></li>
-<li><a href="../../auth/permissions/">Set access permission</a></li>
-<li><a href="http://jsonapi.org/implementations">Get a client library</a> for your frontend</li>
-<li><a href="../../data-modeling/auditing/">Enable Auditing</a> to maintain change logs</li>
-<li><a href="../../data-modeling/data_storage/">Connect to a cloud storage</a></li>
-<li>Host a <a href="../../subsite/subsite/">static-site</a></li>
-</ul>
-<h2 id="import-data">Import data<a class="headerlink" href="#import-data" title="Permanent link">Link</a></h2>
-<ul>
-<li><a href="../../actions-streams/default_actions/#upload-xls">XLS</a></li>
-<li><a href="../../actions-streams/default_actions/#upload-csv">CSV</a></li>
-<li><a href="../../actions-streams/default_actions/#upload-json">JSON</a></li>
-<li><a href="../../actions-streams/default_actions/#upload-schema">Schema</a></li>
-</ul>
-<h1 id="detailed-instructions">Detailed instructions<a class="headerlink" href="#detailed-instructions" title="Permanent link">Link</a></h1>
-<h2 id="native-binary">Native binary<a class="headerlink" href="#native-binary" title="Permanent link">Link</a></h2>
-<p>Daptin is available as a native binary. You can fetch the lastest binary from the releases</p>
-<p><a href="https://github.com/daptin/daptin/releases">https://github.com/daptin/daptin/releases</a></p>
-<p>To start daptin, execute <code>./daptin</code> which will create a local sqlite database and start listening on port 6336. To change the database or port, read below.</p>
-<h2 id="docker-image">Docker image<a class="headerlink" href="#docker-image" title="Permanent link">Link</a></h2>
-<p>Deploy the docker image is on any docker compatible hosting provider (aws, gce, linode, digitalocean, azure)</p>
-<p><a target=_blank href=https://hub.docker.com/r/daptin/daptin/>
-<img class="cloud-provider" src="/images/aws.png">
-<img class="cloud-provider" src="/images/digitalocean.jpg">
-<img class="cloud-provider" src="/images/gce.png">
-<img class="cloud-provider" src="/images/linode.jpg">
-<img class="cloud-provider" src="/images/azure.jpg">
-<img class="cloud-provider" src="/images/docker.png">
-</a>
-<a href="https://hub.docker.com/r/daptin/daptin/">https://hub.docker.com/r/daptin/daptin/</a></p>
-<p>To start daptin on your local machine using docker</p>
-<p><code>docker run -p 8080:8080 daptin/daptin</code></p>
-<h2 id="docker-compose">Docker compose<a class="headerlink" href="#docker-compose" title="Permanent link">Link</a></h2>
-<p>Docker compose is a great tool to bring up a mysql/postgres backed daptin instance</p>
-<div class="admonition example">
-<p class="admonition-title">Example</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">version</span><span class="p p-Indicator">:</span> <span class="s">&#39;3&#39;</span>
-<span class="l l-Scalar l-Scalar-Plain">services</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">web</span><span class="p p-Indicator">:</span>
-        <span class="l l-Scalar l-Scalar-Plain">image</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin/daptin</span>
-        <span class="l l-Scalar l-Scalar-Plain">ports</span><span class="p p-Indicator">:</span>
-            <span class="p p-Indicator">-</span> <span class="s">&quot;8090:8080&quot;</span>
-        <span class="l l-Scalar l-Scalar-Plain">restart</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
-        <span class="l l-Scalar l-Scalar-Plain">environment</span><span class="p p-Indicator">:</span>
-          <span class="l l-Scalar l-Scalar-Plain">DAPTIN_PORT</span><span class="p p-Indicator">:</span> <span class="s">&#39;8080&#39;</span>
-          <span class="l l-Scalar l-Scalar-Plain">DAPTIN_DB_TYPE</span><span class="p p-Indicator">:</span> <span class="s">&#39;mysql&#39;</span>
-          <span class="l l-Scalar l-Scalar-Plain">DAPTIN_DB_CONNECTION_STRING</span><span class="p p-Indicator">:</span> <span class="s">&#39;dev:dev@tcp(mysqldb:3306)/daptin&#39;</span>
-        <span class="l l-Scalar l-Scalar-Plain">depends_on</span><span class="p p-Indicator">:</span>
-            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">mysqldb</span>
-    <span class="l l-Scalar l-Scalar-Plain">mysqldb</span><span class="p p-Indicator">:</span>
-        <span class="l l-Scalar l-Scalar-Plain">image</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">mysql</span>
-        <span class="l l-Scalar l-Scalar-Plain">container_name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">${MYSQL_HOST}</span>
-        <span class="l l-Scalar l-Scalar-Plain">restart</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
-        <span class="l l-Scalar l-Scalar-Plain">env_file</span><span class="p p-Indicator">:</span>
-            <span class="p p-Indicator">-</span> <span class="s">&quot;.env&quot;</span>
-        <span class="l l-Scalar l-Scalar-Plain">environment</span><span class="p p-Indicator">:</span>
-            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">MYSQL_DATABASE=${MYSQL_DATABASE}</span>
-            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}</span>
-            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">MYSQL_USER=${MYSQL_USER}</span>
-            <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">MYSQL_PASSWORD=${MYSQL_PASSWORD}</span>
-        <span class="l l-Scalar l-Scalar-Plain">ports</span><span class="p p-Indicator">:</span>
-            <span class="p p-Indicator">-</span> <span class="s">&quot;8989:3306&quot;</span>
-        <span class="l l-Scalar l-Scalar-Plain">volumes</span><span class="p p-Indicator">:</span>
-            <span class="p p-Indicator">-</span> <span class="s">&quot;./data/db/mysql:/var/lib/mysql&quot;</span>
-</pre></div>
-
-</div>
-<h2 id="kubernetes-deployment">Kubernetes deployment<a class="headerlink" href="#kubernetes-deployment" title="Permanent link">Link</a></h2>
-<p>Daptin can be infinitely scaled on kubernetes</p>
-<div class="admonition example">
-<p class="admonition-title">Example</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">apiVersion</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="l l-Scalar l-Scalar-Plain">kind</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Service</span>
-<span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-instance</span>
-  <span class="l l-Scalar l-Scalar-Plain">labels</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">app</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-<span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">ports</span><span class="p p-Indicator">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">port</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
-  <span class="l l-Scalar l-Scalar-Plain">selector</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">app</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-    <span class="l l-Scalar l-Scalar-Plain">tier</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">production</span>
-<span class="nn">---</span>
-<span class="l l-Scalar l-Scalar-Plain">apiVersion</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">extensions/v1beta1</span>
-<span class="l l-Scalar l-Scalar-Plain">kind</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Deployment</span>
-<span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-daptin</span>
-  <span class="l l-Scalar l-Scalar-Plain">labels</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">app</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-<span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">strategy</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Recreate</span>
-  <span class="l l-Scalar l-Scalar-Plain">template</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="p p-Indicator">:</span>
-      <span class="l l-Scalar l-Scalar-Plain">labels</span><span class="p p-Indicator">:</span>
-        <span class="l l-Scalar l-Scalar-Plain">app</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-        <span class="l l-Scalar l-Scalar-Plain">tier</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">testing</span>
-    <span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
-      <span class="l l-Scalar l-Scalar-Plain">containers</span><span class="p p-Indicator">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">image</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin/daptin:latest</span>
-        <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-        <span class="l l-Scalar l-Scalar-Plain">args</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">[</span><span class="s">&#39;-db_type&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;mysql&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;-db_connection_string&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;user:password@tcp(&lt;mysql_service&gt;:3306)/daptin&#39;</span><span class="p p-Indicator">]</span>
-        <span class="l l-Scalar l-Scalar-Plain">ports</span><span class="p p-Indicator">:</span>
-        <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">containerPort</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
-          <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-<span class="nn">---</span>
-<span class="l l-Scalar l-Scalar-Plain">apiVersion</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">extensions/v1beta1</span>
-<span class="l l-Scalar l-Scalar-Plain">kind</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Ingress</span>
-<span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-test</span>
-<span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">rules</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">host</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">hello.website</span>
-    <span class="l l-Scalar l-Scalar-Plain">http</span><span class="p p-Indicator">:</span>
-      <span class="l l-Scalar l-Scalar-Plain">paths</span><span class="p p-Indicator">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">backend</span><span class="p p-Indicator">:</span>
-          <span class="l l-Scalar l-Scalar-Plain">serviceName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-testing</span>
-          <span class="l l-Scalar l-Scalar-Plain">servicePort</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
-</pre></div>
-
-</div></div>
+<h1 id="port">Port<a class="headerlink" href="#port" title="Permanent link">Link</a></h1>
+<p>Daptin will listen on port 6336 by default. You can change it by using the following argument</p>
+<p><code>-port=8080</code></p>
+<h1 id="restart">Restart<a class="headerlink" href="#restart" title="Permanent link">Link</a></h1>
+<p>Daptin relies on self <code>re-configuration</code> to configure new entities and APIs and changes to the other parts of the ststem. As soon as you upload a schema file, daptin will write the file to disk, and <code>reconfigure</code> itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.</p>
+<p>You can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.</p>
+<h1 id="detailed-instructions">Detailed instructions<a class="headerlink" href="#detailed-instructions" title="Permanent link">Link</a></h1></div>
         </div>
 
         <footer class="col-md-12">

@@ -1,34 +1,62 @@
 site_name: Daptin
 repo_url: https://github.com/daptin/daptin
+site_favicon: images/favicon.png
 pages:
-  - Home: index.md
-  - Setting up:
-      - Setting up: setting-up/settingup.md
-      - Entities: setting-up/entities.md
-      - Entity relations: setting-up/entity_relations.md
-      - Inbuilt Actions: actions-streams/default_actions.md
-      - Database configuration: setting-up/database_configuration.md
-  - Concepts:
-      - Storage:
-          - Data storage: data-modeling/data_storage.md
-          - Cloud storage: cloudstore/cloudstore.md
-          - Subsites: subsite/subsite.md
-      - Auth:
-          - Users and groups: auth/users_and_usergroups.md
-          - Authorization: auth/authorization.md
-          - Authentication: auth/authentication.md
-          - Permission model: auth/permissions.md
-      - Extend:
-          - Actions: actions-streams/actions.md
-          - Market place: extend/marketplace.md
-          - Data auditing: data-modeling/auditing.md
-          - Data validation: data-modeling/data_validation.md
+  - Introduction: index.md
+  - Documentation:
+      - Installation:
+        - Native: setting-up/native.md
+        - Heroku: setting-up/heroku.md
+        - Docker: setting-up/docker.md
+        - Docker Compose: setting-up/docker-compose.md
+        - Kubernetes: setting-up/kubernetes.md
+        - Choose your storage: setting-up/database_configuration.md
+        - Getting started: setting-up/settingup.md
+      - Setup and data:
+          - Designing data model: setting-up/entities.md
+          - Linking data with one another: setting-up/entity_relations.md
+          - Database configuration: setting-up/database_configuration.md
+          - Data store format: data-modeling/data_storage.md
+          - Import data: setting-up/data_import.md
+          - Data validations: data-modeling/data_validation.md
           - Data conformations: data-modeling/data_conformation.md
-      - Other APIs:
+          - Audit: data-modeling/auditing.md
           - State tracking: data-modeling/state_tracking.md
-          - Data streams: actions-streams/streams.md
-          - OAuth connections: extend/oauth_connection.md
-          - OAuth tokens: extend/oauth_token.md
+          - Data exchange and sync: extend/data_exchange.md
+          - Data streams: streams/streams.md
+      - APIs:
+          - CRUD APIs:
+            - Read, search, filter: apis/read.md
+            - Create: apis/create.md
+            - Update: apis/update.md
+            - Delete: apis/delete.md
+            - Relations: apis/relation.md
+            - Execute: apis/execute.md
+          - Action APIs:
+            - Using actions: actions/actions.md
+            - Actions list: actions/default_actions.md
+          - User APIs:
+              - User registration/signup: actions/signup.md
+              - User login/signin: actions/signin.md
+          - State tracking APIs:
+              - State machines: state/machines.md
+      - Users:
+          - Guests: auth/guests.md
+          - Adding users: auth/users.md
+          - Usergroups: auth/usergroups.md
+          - Data access permission: auth/permissions.md
+          - Social login: auth/social_login.md
+      - Auth & Auth:
+          - User Authentication: auth/authentication.md
+          - Authorization: auth/authorization.md
+      - Asset and file storage:
+          - Connecting with cloud store: cloudstore/cloudstore.md
+      - Sub-sites:
+          - Creating a subsite: subsite/subsite.md
+          - Live editing a subsite: subsite/grapes.md
+          - Basic Authentication: subsite/basic_auth.md
+      - Sharing:
+          - Marketplace: extend/marketplace.md
 theme:
   name: mkdocs
   custom_dir: mkdocs-material

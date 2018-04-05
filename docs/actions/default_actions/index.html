@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../images/favicon.png">
+        
+        <title>Actions list - Daptin</title>
+        <link href="../../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome-4.5.0.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../../css/highlight.css">
+        <link href="../../css/theme_extra.css" rel="stylesheet">
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+        <script src="../../js/jquery-1.10.2.min.js"></script>
+        <script src="../../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../../js/highlight.pack.js"></script>
+        <script>
+            (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+            })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+            ga('create', 'UA-114227400-1', 'docs.dapt.in');
+            ga('send', 'pageview');
+        </script>
+<link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet">
+
+    </head>
+
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="../..">Daptin</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                    <li >
+                        <a href="../..">Introduction</a>
+                    </li>
+                    <li class="dropdown active">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Documentation <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Installation</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../setting-up/native/">Native</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/heroku/">Heroku</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/docker/">Docker</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/docker-compose/">Docker Compose</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/kubernetes/">Kubernetes</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/database_configuration/">Choose your storage</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/settingup/">Getting started</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Setup and data</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../setting-up/entities/">Designing data model</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/entity_relations/">Linking data with one another</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/database_configuration/">Database configuration</a>
+</li>
+            
+<li >
+    <a href="../../data-modeling/data_storage/">Data store format</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/data_import/">Import data</a>
+</li>
+            
+<li >
+    <a href="../../data-modeling/data_validation/">Data validations</a>
+</li>
+            
+<li >
+    <a href="../../data-modeling/data_conformation/">Data conformations</a>
+</li>
+            
+<li >
+    <a href="../../data-modeling/auditing/">Audit</a>
+</li>
+            
+<li >
+    <a href="../../data-modeling/state_tracking/">State tracking</a>
+</li>
+            
+<li >
+    <a href="../../extend/data_exchange/">Data exchange and sync</a>
+</li>
+            
+<li >
+    <a href="../../streams/streams/">Data streams</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">APIs</a>
+    <ul class="dropdown-menu">
+            
+  <li class="dropdown-submenu">
+    <a href="#">CRUD APIs</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../apis/read/">Read, search, filter</a>
+</li>
+            
+<li >
+    <a href="../../apis/create/">Create</a>
+</li>
+            
+<li >
+    <a href="../../apis/update/">Update</a>
+</li>
+            
+<li >
+    <a href="../../apis/delete/">Delete</a>
+</li>
+            
+<li >
+    <a href="../../apis/relation/">Relations</a>
+</li>
+            
+<li >
+    <a href="../../apis/execute/">Execute</a>
+</li>
+    </ul>
+  </li>
+            
+  <li class="dropdown-submenu">
+    <a href="#">Action APIs</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../actions/">Using actions</a>
+</li>
+            
+<li class="active">
+    <a href="./">Actions list</a>
+</li>
+    </ul>
+  </li>
+            
+  <li class="dropdown-submenu">
+    <a href="#">User APIs</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../signup/">User registration/signup</a>
+</li>
+            
+<li >
+    <a href="../signin/">User login/signin</a>
+</li>
+    </ul>
+  </li>
+            
+  <li class="dropdown-submenu">
+    <a href="#">State tracking APIs</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../state/machines/">State machines</a>
+</li>
+    </ul>
+  </li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Users</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../auth/guests/">Guests</a>
+</li>
+            
+<li >
+    <a href="../../auth/users/">Adding users</a>
+</li>
+            
+<li >
+    <a href="../../auth/usergroups/">Usergroups</a>
+</li>
+            
+<li >
+    <a href="../../auth/permissions/">Data access permission</a>
+</li>
+            
+<li >
+    <a href="../../auth/social_login/">Social login</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Auth & Auth</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../auth/authentication/">User Authentication</a>
+</li>
+            
+<li >
+    <a href="../../auth/authorization/">Authorization</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Asset and file storage</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../cloudstore/cloudstore/">Connecting with cloud store</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Sub-sites</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../subsite/subsite/">Creating a subsite</a>
+</li>
+            
+<li >
+    <a href="../../subsite/grapes/">Live editing a subsite</a>
+</li>
+            
+<li >
+    <a href="../../subsite/basic_auth/">Basic Authentication</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Sharing</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../extend/marketplace/">Marketplace</a>
+</li>
+    </ul>
+  </li>
+                        </ul>
+                    </li>
+                </ul>
+
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                    <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
+                        <i class="fa fa-search"></i> Search
+                    </a>
+                </li>
+                    <li >
+                        <a rel="next" href="../actions/">
+                            <i class="fa fa-arrow-left"></i> Previous
+                        </a>
+                    </li>
+                    <li >
+                        <a rel="prev" href="../signup/">
+                            Next <i class="fa fa-arrow-right"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://github.com/daptin/daptin/edit/master/docs/actions/default_actions.md"><i class="fa fa-github"></i> Edit on GitHub</a>
+                    </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+        <div class="container">
+                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+        <li class="main active"><a href="#actions">Actions</a></li>
+            <li><a href="#restart-daptin">Restart daptin</a></li>
+            <li><a href="#refresh-marketplace-packages">Refresh marketplace packages</a></li>
+            <li><a href="#generate-random-data">Generate random data</a></li>
+            <li><a href="#install-package-from-market">Install package from market</a></li>
+            <li><a href="#export-data">Export data</a></li>
+            <li><a href="#import-data">Import data</a></li>
+            <li><a href="#upload-file-to-a-cloud-store">Upload file to a cloud store</a></li>
+            <li><a href="#upload-xls">Upload XLS</a></li>
+            <li><a href="#upload-csv">Upload CSV</a></li>
+            <li><a href="#upload-schema">Upload schema</a></li>
+            <li><a href="#download-schema">Download Schema</a></li>
+            <li><a href="#become-administrator">Become administrator</a></li>
+            <li><a href="#sign-up">Sign up</a></li>
+            <li><a href="#sign-in">Sign in</a></li>
+            <li><a href="#oauth-login">Oauth login</a></li>
+            <li><a href="#oauth-login-response">Oauth login response</a></li>
+            <li><a href="#add-data-exchange">Add data exchange</a></li>
+            <li><a href="#publish-package-to-marketplace">Publish package to marketplace</a></li>
+            <li><a href="#update-package-list">Update package list</a></li>
+            <li><a href="#visit-marketplace">Visit marketplace</a></li>
+    </ul>
+</div></div>
+                <div class="col-md-9" role="main">
+
+<h1 id="actions">Actions<a class="headerlink" href="#actions" title="Permanent link">Link</a></h1>
+<p>Use actions to build work flows to carry out tasks like syncing data or emailing your users. You can also give access to these workflows to your users and restrict their access by altering their <strong>permission</strong>.</p>
+<h2 id="restart-daptin">Restart daptin<a class="headerlink" href="#restart-daptin" title="Permanent link">Link</a></h2>
+<p>Restarts daptin immediately and reads file system for new config and data files and apply updates to the APIs as necessary.</p>
+<p>Takes about 15 seconds (async) to reconfigure everything.</p>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo&#39;</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{}}&#39;</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://api.daptin.com:6336/action/world/restart_daptin&#39;</span><span class="p">,</span>
+    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+    <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
+    <span class="nx">body</span>: <span class="kt">dataString</span>
+<span class="p">};</span>
+
+<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+</pre></div>
+
+<h2 id="refresh-marketplace-packages">Refresh marketplace packages<a class="headerlink" href="#refresh-marketplace-packages" title="Permanent link">Link</a></h2>
+<p>Pull updates from marketplace repository. New changes are not applied immediately and these packages should be installed again for updates.</p>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo&#39;</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{&quot;marketplace_id&quot;:&quot;0cbae4bf-961d-43ea-b57b-f7fb07736747&quot;}}&#39;</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://api.daptin.com:6336/action/marketplace/refresh_marketplace_packages&#39;</span><span class="p">,</span>
+    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+    <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
+    <span class="nx">body</span>: <span class="kt">dataString</span>
+<span class="p">};</span>
+
+<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+</pre></div>
+
+<h2 id="generate-random-data">Generate random data<a class="headerlink" href="#generate-random-data" title="Permanent link">Link</a></h2>
+<p>Generate random data of any entity type to play around. Takes in a <code>count</code> parameter and generates that many rows. Daptin uses a fake data generator to generate quality random data for a wide variety of fields.</p>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo&#39;</span><span class="p">,</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{&quot;count&quot;:100,&quot;world_id&quot;:&quot;a82bcd84-db3a-4542-b0ef-80e81fc62f8e&quot;}}&#39;</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://api.daptin.com:6336/action/world/generate_random_data&#39;</span><span class="p">,</span>
+    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+    <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
+    <span class="nx">body</span>: <span class="kt">dataString</span>
+<span class="p">};</span>
+
+<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+</pre></div>
+
+<h2 id="install-package-from-market">Install package from market<a class="headerlink" href="#install-package-from-market" title="Permanent link">Link</a></h2>
+<p>Install a package (data models, relations, actions, sites) from a <a href="../../extend/marketplace/"><strong>market</strong></a> using a <code>package name</code>. This will reconfigure daptin and apply the necessary changes. Note: any updates to this package in the marketplace will not be imported automatically.</p>
+<h2 id="export-data">Export data<a class="headerlink" href="#export-data" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Export data as JSON dump. This will export for a single table if <code>table_name</code> param is specific, else it will export all data.</p>
+</div>
+<h2 id="import-data">Import data<a class="headerlink" href="#import-data" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Import data from dump exported by Daptin. Takes in the following parameters:</p>
+<ul>
+<li>dump_file - json|yaml|toml|hcl</li>
+<li>truncate_before_insert: default <code>false</code>, specify <code>true</code> to tuncate tables before importing</li>
+</ul>
+</div>
+<h2 id="upload-file-to-a-cloud-store">Upload file to a cloud store<a class="headerlink" href="#upload-file-to-a-cloud-store" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Upload file to external store <a href="../../cloudstore/cloudstore/"><strong>cloud_store</strong></a>, may require <a href="../../extend/oauth_connection.nd">oauth token and connection</a>.</p>
+<ul>
+<li>file: any</li>
+</ul>
+</div>
+<h2 id="upload-xls">Upload XLS<a class="headerlink" href="#upload-xls" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Upload xls to entity, takes in the following parameters:</p>
+<ul>
+<li>data_xls_file: xls, xlsx</li>
+<li>entity_name: existing table name or new to create a new entity</li>
+<li>create_if_not_exists: set <code>true</code> if creating a new entity (to avoid typo errors in above)</li>
+<li>add_missing_columns: set <code>true</code> if the file has extra columns which you want to be created</li>
+</ul>
+</div>
+<h2 id="upload-csv">Upload CSV<a class="headerlink" href="#upload-csv" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Upload CSV to entity</p>
+<ul>
+<li>data_xls_file: xls, xlsx</li>
+<li>entity_name: existing table name or new to create a new entity</li>
+<li>create_if_not_exists: set <code>true</code> if creating a new entity (to avoid typo errors in above)</li>
+<li>add_missing_columns: set <code>true</code> if the file has extra columns which you want to be created</li>
+</ul>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Curl</p>
+</div>
+<div class="codehilite"><pre><span></span><span class="nt">curl</span> <span class="s1">&#39;http://api.daptin.com:6336/action/world/upload_csv_to_system_schema&#39;</span> <span class="err">\</span>
+<span class="nt">-H</span> <span class="s1">&#39;Authorization: Bearer &lt;Token&gt;&#39;</span> <span class="err">\</span>
+<span class="nt">--data-binary</span> <span class="s1">&#39;{</span>
+<span class="s1">                &quot;attributes&quot;: {</span>
+<span class="s1">                    &quot;create_if_not_exists&quot;: true,</span>
+<span class="s1">                    &quot;add_missing_columns&quot;: true,</span>
+<span class="s1">                    &quot;data_csv_file&quot;: </span><span class="cp">[</span><span class="p">{</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;file name&gt;.csv&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;file&quot;</span><span class="p">:</span> <span class="s2">&quot;data:text/csv;base64,&lt;File contents base64 here&gt;&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text/csv&quot;</span>
+                    <span class="p">}</span><span class="cp">]</span><span class="s1">,</span>
+<span class="s1">                    &quot;entity_name&quot;: &quot;&lt;entity name&gt;&quot;</span>
+<span class="s1">                  }</span>
+<span class="s1">               }&#39;</span>
+</pre></div>
+
+<div class="admonition note">
+<p class="admonition-title">NodeJS Example</p>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">data</span> <span class="o">=</span>  <span class="s1">&#39;{</span>
+            <span class="s2">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;create_if_not_exists&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+                <span class="s2">&quot;add_missing_columns&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+                <span class="s2">&quot;data_csv_file&quot;</span><span class="p">:</span> <span class="p">[{</span>
+                    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;file name&gt;.csv&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;file&quot;</span><span class="p">:</span> <span class="s2">&quot;data:text/csv;base64,&lt;File contents base64 here&gt;&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text/csv&quot;</span>
+                <span class="p">}],</span>
+                <span class="s2">&quot;entity_name&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;entity name&gt;&quot;</span>
+              <span class="p">}</span>
+          <span class="p">}</span><span class="s1">&#39;</span>
+
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://api.daptin.com:6336/action/world/upload_csv_to_system_schema&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+
+</div>
+<h2 id="upload-schema">Upload schema<a class="headerlink" href="#upload-schema" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Upload entity types or actions or any other config to daptin</p>
+<ul>
+<li>schema_file: json|yaml|toml|hcl</li>
+</ul>
+<p>restart, system_json_schema_update</p>
+</div>
+<h2 id="download-schema">Download Schema<a class="headerlink" href="#download-schema" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Download a JSON config of the current daptin instance. This can be imported at a later stage to recreate a similar instance. Note, this contains only the structure and not the actual data. You can take a <strong>data dump</strong> separately. Or of a particular entity type</p>
+</div>
+<h2 id="become-administrator">Become administrator<a class="headerlink" href="#become-administrator" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Become an admin user of the instance. Only the first user can do this, as long as there is no second user.</p>
+</div>
+<h2 id="sign-up">Sign up<a class="headerlink" href="#sign-up" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Sign up a new user, takes in the following parameters</p>
+<ul>
+<li>name</li>
+<li>email</li>
+<li>password</li>
+<li>passwordConfirm</li>
+</ul>
+<p>Creates these rows :</p>
+<ul>
+<li>a new user</li>
+<li>a new usergroup for the user</li>
+<li>user belongs to the usergroup</li>
+</ul>
+</div>
+<h2 id="sign-in">Sign in<a class="headerlink" href="#sign-in" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Sign in essentially generates a [JWT token] issued by Daptin which can be used in requests to authenticate as a user.</p>
+<ul>
+<li>email</li>
+<li>password</li>
+</ul>
+</div>
+<h2 id="oauth-login">Oauth login<a class="headerlink" href="#oauth-login" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Authenticate via OAuth, this will redirect you to the oauth sign in page of the oauth connection. The response will be handeled by <strong>oauth login response</strong></p>
+</div>
+<h2 id="oauth-login-response">Oauth login response<a class="headerlink" href="#oauth-login-response" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>This action is supposed to handle the oauth login response flow and not supposed to be invoked manually.</p>
+<p>Takes in the following parameters (standard oauth2 params)
+- code
+- state
+- authenticator</p>
+<p>Creates :</p>
+<ul>
+<li>oauth profile exchange: generate a token from oauth provider</li>
+<li>stores the oauth token + refresh token for later user</li>
+</ul>
+</div>
+<h2 id="add-data-exchange">Add data exchange<a class="headerlink" href="#add-data-exchange" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Add new data sync with google-sheets</p>
+<ul>
+<li>name</li>
+<li>sheet_id</li>
+<li>app_key</li>
+</ul>
+<p>Creates a data exchange</p>
+</div>
+<h2 id="publish-package-to-marketplace">Publish package to marketplace<a class="headerlink" href="#publish-package-to-marketplace" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Export the JSON schema of your APIs to be re-used by other users from a <a href="../../extend/marketplace/"><strong>marketplace</strong></a>.</p>
+</div>
+<h2 id="update-package-list">Update package list<a class="headerlink" href="#update-package-list" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Exports the schema of your APIs as a package to a <a href="../../extend/marketplace/"><strong>marketplace</strong></a>. You can later install this package.</p>
+</div>
+<h2 id="visit-marketplace">Visit marketplace<a class="headerlink" href="#visit-marketplace" title="Permanent link">Link</a></h2>
+<div class="admonition note">
+<p>Redirects you to the <a href="../../extend/marketplace/"><strong>marketplace</strong></a> repository</p>
+</div></div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script>var base_url = '../..';</script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/require.js"></script>
+        <script src="../../search/search.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title" id="exampleModalLabel">Search</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    From here you can search these documents. Enter
+                    your search terms below.
+                </p>
+                <form role="form">
+                    <div class="form-group">
+                        <input type="text" class="form-control" placeholder="Search..." id="mkdocs-search-query">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="Keyboard Shortcuts Modal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title" id="exampleModalLabel">Keyboard Shortcuts</h4>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>&larr;</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>&rarr;</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    </body>
+</html>

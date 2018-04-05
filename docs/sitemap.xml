@@ -4,7 +4,7 @@
     
     <url>
      <loc>/</loc>
-     <lastmod>2018-03-29</lastmod>
+     <lastmod>2018-04-06</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -12,38 +12,28 @@
     
         
     <url>
-     <loc>/setting-up/settingup/</loc>
-     <lastmod>2018-03-29</lastmod>
+     <loc></loc>
+     <lastmod></lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>/setting-up/entities/</loc>
-     <lastmod>2018-03-29</lastmod>
+     <loc></loc>
+     <lastmod></lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>/setting-up/entity_relations/</loc>
-     <lastmod>2018-03-29</lastmod>
+     <loc></loc>
+     <lastmod></lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>/actions-streams/default_actions/</loc>
-     <lastmod>2018-03-29</lastmod>
+     <loc></loc>
+     <lastmod></lastmod>
      <changefreq>daily</changefreq>
     </url>
-        
-    <url>
-     <loc>/setting-up/database_configuration/</loc>
-     <lastmod>2018-03-29</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    
-
-    
         
     <url>
      <loc></loc>

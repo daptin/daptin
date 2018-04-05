@@ -1465,7 +1465,7 @@ var StandardTables = []TableInfo{
 var StandardMarketplaces = []Marketplace{
 	{
 		RootPath: "",
-		Endpoint: "https://github.com/daptin/market",
+		Endpoint: "https://github.com/daptin/market.git",
 	},
 }
 
