@@ -36,6 +36,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 		for _, column := range table.Columns {
 
+			log.Printf("Get column type for : %v", column.ColumnType)
 			fields[column.ColumnName] = &graphql.Field{
 				Type: resource.ColumnManager.GetGraphqlType(column.ColumnType),
 				Name: column.Name,
@@ -333,6 +334,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	blueprintHandler := CreateApiBlueprintHandler(&initConfig, cruds)
 	modelHandler := CreateReclineModelHandler()
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
+	resource.InitialiseColumnManager()
 
 	graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
 	log.Printf("Graphql schema: %v", graphqlSchema)
@@ -411,7 +413,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 		resource.CheckErr(err, "Failed to write index html")
 	})
 
-	resource.InitialiseColumnManager()
 
 	//r.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
