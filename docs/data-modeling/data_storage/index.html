@@ -7,8 +7,9 @@
         
         
         
-        <link rel="shortcut icon" href="../../img/favicon.ico">
-        <title>Data storage - Daptin</title>
+        <link rel="shortcut icon" href="../../images/favicon.png">
+        
+        <title>Data store format - Daptin</title>
         <link href="../../css/bootstrap-custom.min.css" rel="stylesheet">
         <link href="../../css/font-awesome-4.5.0.css" rel="stylesheet">
         <link href="../../css/base.css" rel="stylesheet">
@@ -58,121 +59,244 @@
                 <!-- Main navigation -->
                 <ul class="nav navbar-nav">
                     <li >
-                        <a href="../..">Home</a>
+                        <a href="../..">Introduction</a>
                     </li>
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Setting up <b class="caret"></b></a>
+                    <li class="dropdown active">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Documentation <b class="caret"></b></a>
                         <ul class="dropdown-menu">
                             
+  <li class="dropdown-submenu">
+    <a href="#">Installation</a>
+    <ul class="dropdown-menu">
+            
 <li >
-    <a href="../../setting-up/settingup/">Setting up</a>
+    <a href="../../setting-up/native/">Native</a>
 </li>
-                            
+            
 <li >
-    <a href="../../setting-up/entities/">Entities</a>
+    <a href="../../setting-up/heroku/">Heroku</a>
 </li>
-                            
+            
 <li >
-    <a href="../../setting-up/entity_relations/">Entity relations</a>
+    <a href="../../setting-up/docker/">Docker</a>
 </li>
-                            
+            
 <li >
-    <a href="../../actions-streams/default_actions/">Inbuilt Actions</a>
+    <a href="../../setting-up/docker-compose/">Docker Compose</a>
 </li>
+            
+<li >
+    <a href="../../setting-up/kubernetes/">Kubernetes</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/database_configuration/">Choose your storage</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/settingup/">Getting started</a>
+</li>
+    </ul>
+  </li>
                             
+  <li class="dropdown-submenu">
+    <a href="#">Setup and data</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../setting-up/entities/">Designing data model</a>
+</li>
+            
+<li >
+    <a href="../../setting-up/entity_relations/">Linking data with one another</a>
+</li>
+            
 <li >
     <a href="../../setting-up/database_configuration/">Database configuration</a>
 </li>
-                        </ul>
-                    </li>
-                    <li class="dropdown active">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Concepts <b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            
-  <li class="dropdown-submenu">
-    <a href="#">Storage</a>
-    <ul class="dropdown-menu">
             
 <li class="active">
-    <a href="./">Data storage</a>
+    <a href="./">Data store format</a>
 </li>
             
 <li >
-    <a href="../../cloudstore/cloudstore/">Cloud storage</a>
+    <a href="../../setting-up/data_import/">Import data</a>
 </li>
             
 <li >
-    <a href="../../subsite/subsite/">Subsites</a>
-</li>
-    </ul>
-  </li>
-                            
-  <li class="dropdown-submenu">
-    <a href="#">Auth</a>
-    <ul class="dropdown-menu">
-            
-<li >
-    <a href="../../auth/users_and_usergroups/">Users and groups</a>
-</li>
-            
-<li >
-    <a href="../../auth/authorization/">Authorization</a>
-</li>
-            
-<li >
-    <a href="../../auth/authentication/">Authentication</a>
-</li>
-            
-<li >
-    <a href="../../auth/permissions/">Permission model</a>
-</li>
-    </ul>
-  </li>
-                            
-  <li class="dropdown-submenu">
-    <a href="#">Extend</a>
-    <ul class="dropdown-menu">
-            
-<li >
-    <a href="../../actions-streams/actions/">Actions</a>
-</li>
-            
-<li >
-    <a href="../../extend/marketplace/">Market place</a>
-</li>
-            
-<li >
-    <a href="../auditing/">Data auditing</a>
-</li>
-            
-<li >
-    <a href="../data_validation/">Data validation</a>
+    <a href="../data_validation/">Data validations</a>
 </li>
             
 <li >
     <a href="../data_conformation/">Data conformations</a>
 </li>
-    </ul>
-  </li>
-                            
-  <li class="dropdown-submenu">
-    <a href="#">Other APIs</a>
-    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../auditing/">Audit</a>
+</li>
             
 <li >
     <a href="../state_tracking/">State tracking</a>
 </li>
             
 <li >
-    <a href="../../actions-streams/streams/">Data streams</a>
+    <a href="../../extend/data_exchange/">Data exchange and sync</a>
 </li>
             
 <li >
-    <a href="../../extend/oauth_connection/">OAuth connections</a>
+    <a href="../../streams/streams/">Data streams</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">APIs</a>
+    <ul class="dropdown-menu">
+            
+  <li class="dropdown-submenu">
+    <a href="#">CRUD APIs</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../apis/read/">Read, search, filter</a>
 </li>
             
 <li >
-    <a href="../../extend/oauth_token/">OAuth tokens</a>
+    <a href="../../apis/create/">Create</a>
+</li>
+            
+<li >
+    <a href="../../apis/update/">Update</a>
+</li>
+            
+<li >
+    <a href="../../apis/delete/">Delete</a>
+</li>
+            
+<li >
+    <a href="../../apis/relation/">Relations</a>
+</li>
+            
+<li >
+    <a href="../../apis/execute/">Execute</a>
+</li>
+    </ul>
+  </li>
+            
+  <li class="dropdown-submenu">
+    <a href="#">Action APIs</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../actions/actions/">Using actions</a>
+</li>
+            
+<li >
+    <a href="../../actions/default_actions/">Actions list</a>
+</li>
+    </ul>
+  </li>
+            
+  <li class="dropdown-submenu">
+    <a href="#">User APIs</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../actions/signup/">User registration/signup</a>
+</li>
+            
+<li >
+    <a href="../../actions/signin/">User login/signin</a>
+</li>
+    </ul>
+  </li>
+            
+  <li class="dropdown-submenu">
+    <a href="#">State tracking APIs</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../state/machines/">State machines</a>
+</li>
+    </ul>
+  </li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Users</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../auth/guests/">Guests</a>
+</li>
+            
+<li >
+    <a href="../../auth/users/">Adding users</a>
+</li>
+            
+<li >
+    <a href="../../auth/usergroups/">Usergroups</a>
+</li>
+            
+<li >
+    <a href="../../auth/permissions/">Data access permission</a>
+</li>
+            
+<li >
+    <a href="../../auth/social_login/">Social login</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Auth & Auth</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../auth/authentication/">User Authentication</a>
+</li>
+            
+<li >
+    <a href="../../auth/authorization/">Authorization</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Asset and file storage</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../cloudstore/cloudstore/">Connecting with cloud store</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Sub-sites</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../subsite/subsite/">Creating a subsite</a>
+</li>
+            
+<li >
+    <a href="../../subsite/grapes/">Live editing a subsite</a>
+</li>
+            
+<li >
+    <a href="../../subsite/basic_auth/">Basic Authentication</a>
+</li>
+    </ul>
+  </li>
+                            
+  <li class="dropdown-submenu">
+    <a href="#">Sharing</a>
+    <ul class="dropdown-menu">
+            
+<li >
+    <a href="../../extend/marketplace/">Marketplace</a>
 </li>
     </ul>
   </li>
@@ -192,7 +316,7 @@
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="../../cloudstore/cloudstore/">
+                        <a rel="prev" href="../../setting-up/data_import/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -215,7 +339,7 @@
                 <div class="col-md-9" role="main">
 
 <h1 id="data-storage">Data storage<a class="headerlink" href="#data-storage" title="Permanent link">Link</a></h1>
-<p>Daptin relies on a relational database for all data persistence requirements. As covered in the <a href="../../setting-up/settingup/">setting up guide</a> currently the following relational database are supported:</p>
+<p>Daptin relies on a relational database for all data persistence requirements. As covered in the installation currently the following relational database are supported:</p>
 <ul>
 <li>MySQL</li>
 <li>PostgreSQL</li>

@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"time"
 	"github.com/graphql-go/graphql"
+	"log"
 )
 
 type Faker interface {
@@ -381,6 +382,9 @@ func (ctm *ColumnTypeManager) GetBlueprintType(columnType string) string {
 	return ctm.ColumnMap[columnType].BlueprintType
 }
 func (ctm *ColumnTypeManager) GetGraphqlType(columnType string) *graphql.Scalar {
+	if _, ok := ctm.ColumnMap[columnType]; !ok {
+		log.Panic("No column definition for type: %v", columnType)
+	}
 	return ctm.ColumnMap[columnType].GraphqlType
 }
 

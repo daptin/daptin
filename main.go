@@ -79,7 +79,7 @@ func main() {
 		rhs.HostSwitch = &hostSwitch
 	})
 
-	log.Printf("Listening at: %v", *port)
+	log.Printf("Listening at port: %v", *port)
 	err = http.ListenAndServe(*port, &rhs)
 	if err != nil {
 		panic(err)

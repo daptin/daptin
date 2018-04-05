@@ -30,16 +30,30 @@
 
 By following shared conventions, you can increase productivity, take advantage of generalized tooling, and focus on what matters: your application.
 
+## Contents
+
+- Installing
+- Create and import data
+- Using JSON APIs
+  - Fetching and searching
+  - Creating
+  - Updating
+- Adding authentication
+- Adding authorization
+- Exposing sub-set of data over API
+
 Easily consume the following features on any device
 
-- Relations databased backed persistent data exposed as a **JSON API**
-- User registration and login API
+- Relational database backed persistent data
+- CRUD **JSON API**
+- User registration and login system
 - Social login with oauth2: tested with google, github, linkedin
-- *Special* State management APIs
-- Install API Package from [Market place](https://github.com/daptin/market) selectively enabling a variety of features
-- Sync with **cloud storage services** like gdrive, dropbox, b2, s3 and more
-- Manage multiple static websites under separate sub-domain/sub-paths
-- Connect with other services by directly connecting with any external API
+- Extensive state tracking APIs
+- Enable *Data Auditing* from a single switch
+- [Market place](https://github.com/daptin/market) enabling a variety of features
+- **Cloud storage sync** like gdrive, dropbox, b2, s3 and more
+- Manage multiple websites under separate sub-domain/sub-paths
+- Connect with external APIs by using internal extension points
 
 
 - **Database** to easily evolves your data schema & migrates your database [Postgres/MySQL/SQLite]

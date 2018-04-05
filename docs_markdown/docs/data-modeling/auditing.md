@@ -1,10 +1,18 @@
 # Data Audits
 
+To enable recoding of all historical data for a particular entity, enable data audit for it in the worlds configuration.
+
+
+Audits are ready only and cannot be manipulated over api. You can configure the permission for your use case.
+
+
 All changes in daptin can be recorded by enabling **auditing**. History is maintained in separate audit tables which maintain a copy of all columns at each change. Audit table are entities just like regular entities. All Patch/Put/Delete calls to daptin will create an entry in the audit table if the entity is changed.
 
 ## Audit tables
 
-For any entity named ```<X>```, another tables ```<X>_audit``` is added by daptin. The audit table will contain all the columns which are present in the original table, plus an extra column ```is_audit_of``` is added, which contains the ID of the original row. The ```is_audit_of``` is a foreign key column to the parent tables ```id``` column.
+For any entity named ```<X>```, another tables ```<X>_audit``` is added by daptin. Eg if you enable auditing of the `user` table, then a `user_audit` table will be created.
+
+The audit table will contain all the columns which are present in the original table, plus an extra column ```is_audit_of``` is added, which contains the ID of the original row. The ```is_audit_of``` is a foreign key column to the parent tables ```id``` column.
 
 ## Audit row
 

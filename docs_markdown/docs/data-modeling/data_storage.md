@@ -1,6 +1,6 @@
 # Data storage
 
-Daptin relies on a relational database for all data persistence requirements. As covered in the [setting up guide](/setting-up/settingup.md) currently the following relational database are supported:
+Daptin relies on a relational database for all data persistence requirements. As covered in the installation currently the following relational database are supported:
 
 - MySQL
 - PostgreSQL
