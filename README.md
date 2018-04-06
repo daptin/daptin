@@ -65,6 +65,7 @@
 
 **Daptin** is an open-source backend development framework to develop and deploy production-ready JSON API based applications. With Daptin you can design your data model and have a production ready JSON API online in minutes.
 
+Note: documentation is still a work in progress, please create a pull-request if you wish to contribute.
 
 ### Installation
 
