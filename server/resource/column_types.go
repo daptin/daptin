@@ -383,7 +383,8 @@ func (ctm *ColumnTypeManager) GetBlueprintType(columnType string) string {
 }
 func (ctm *ColumnTypeManager) GetGraphqlType(columnType string) *graphql.Scalar {
 	if _, ok := ctm.ColumnMap[columnType]; !ok {
-		log.Panic("No column definition for type: %v", columnType)
+		log.Printf("No column definition for type: %v", columnType)
+		return graphql.String
 	}
 	return ctm.ColumnMap[columnType].GraphqlType
 }

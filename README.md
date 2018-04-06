@@ -1,9 +1,15 @@
-<p align="center">
-  <img width="300" height="282" src="https://github.com/daptin/daptin/raw/master/images/daptin-22-transparent-background-colored.png" alt="Daptin" title="Daptin" />
-</p>
 
-<h1 class="heading-right" align="center">Complete backend for modern applications</h1>
-<p align="center">A modern backend for application developers and testers in the mobile era.</p>
+<h1 align="center">
+  <br>
+  <a href="https://docs.dapt.in"><img width="300" height="282" src="https://github.com/daptin/daptin/raw/master/images/daptin-22-transparent-background-colored.png" alt="Daptin" title="Daptin" /></a>
+  <br>
+  Daptin
+  <br>
+</h1>
+
+
+<h4 align="center">A modern backend for application developers, designers and testers</h4>
+
 
 <p align="center">
     <a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLTVlYzBlMmM4YjMyOTk0MDc5MWJmMzFlMTliNzQwYjcxMzc5Mjk0YzEyZDIwYTljZmE5NDU3Yjk3YzQ3MzhkMzI"><img src="https://img.shields.io/badge/join-on%20slack-orange.svg?longCache=true&style=for-the-badge" /> <a/>
@@ -18,19 +24,50 @@
     <a href='https://semaphoreci.com/artpar/daptin'> <img src='https://semaphoreci.com/api/v1/artpar/daptin/branches/master/badge.svg' alt='Build Status'></a>
 </p>
 
+
 <p align="center">
-	<a href="https://github.com/daptin/daptin/releases">Download</a> ·
-	<a href="https://docs.dapt.in">Documentation</a> ·
+  <a href="#key-features">Key Features</a> •
+  <a href="#how-to-use">How To Use</a>
+</p>
+
+
+<p align="center">
+	<a href="https://github.com/daptin/daptin/releases">Download</a> •
+	<a href="https://docs.dapt.in">Documentation</a> •
 	<a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLTVlYzBlMmM4YjMyOTk0MDc5MWJmMzFlMTliNzQwYjcxMzc5Mjk0YzEyZDIwYTljZmE5NDU3Yjk3YzQ3MzhkMzI">Community</a>
 </p>
 
 ---
 
+![Create entity and add item](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/create_entity_and_add.gif)
+
+
+
+## Key Features
+
+* JSON APIs
+  - create, read, update, delete
+* GraphQL APIs
+  - While you type, LivePreview will automatically scroll to the current location you're editing.
+* Client libraries for all platforms
+* Rich data types
+* Websocket support
+* Sub sites hosting
+* Oauth token and connections
+* Cloud storage sync
+* Action APIs and Relational data APIs
+* Validation and conformation support
+* Daptil will expose all APIs for easy use
+* Fully featured dashboard
+  - Responsive to desktop, mobile and table
+* Cross platform
+  - Windows, Mac and Linux ready.
+
 **Daptin** is an open-source backend development framework to develop and deploy production-ready JSON API based applications. With Daptin you can design your data model and have a production ready JSON API online in minutes.
 
 By following shared conventions, you can increase productivity, take advantage of generalized tooling, and focus on what matters: your application.
 
-## Contents
+## How to use
 
 - Installing
 - Create and import data
