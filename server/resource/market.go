@@ -11,6 +11,7 @@ import (
 type Marketplace struct {
 	Endpoint    string
 	RootPath    string `db:"root_path"`
+	Name        string `db:"name"`
 	Permission  int    `json:"-"`
 	UserId      *int   `json:"-" db:"user_id"`
 	ReferenceId string `json:"-" db:"reference_id"`

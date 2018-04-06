@@ -1,3 +1,11 @@
+Daptin
+===
+
+<a class="github-button" href="https://github.com/daptin/daptin" data-size="large" data-show-count="true" aria-label="Star daptin/daptin on GitHub">Star</a>
+
+
+<img src="/images/logo.png" width="400" style="float: right"/>
+
 Daptin is an **open-source backend** to develop and deploy **production-ready APIs** based applications. With Daptin you can design your data model and have a production ready JSON API online in minutes.
 
 By following shared conventions, you can increase productivity, take advantage of generalized tooling, and focus on what matters: your application.
@@ -21,6 +29,7 @@ Easily consume the following features on any device
 - **Works with all frontend frameworks** like React, Vue.js, Angular, Android, iOS
 - **Very low memory requirement** and horizontally scalable
 - **Can be deployed on a wide range of hardware** arm5,arm6,arm7,arm64,mips,mips64,mips64le,mipsle (or build for your target using go)
+
 
 # Guides
 
@@ -49,20 +58,20 @@ Easily consume the following features on any device
 ## APIs
 
 - CRUD APIs
-  - [Read, search, filter](apis/read.md)
-  - [Create](apis/create.md)
-  - [Update](apis/update.md)
-  - [Delete](apis/delete.md)
-  - [Relations](apis/relation.md)
-  - [Execute](apis/execute.md)
+    - [Read, search, filter](apis/read.md)
+    - [Create](apis/create.md)
+    - [Update](apis/update.md)
+    - [Delete](apis/delete.md)
+    - [Relations](apis/relation.md)
+    - [Execute](apis/execute.md)
 - Action APIs
-  - [Using actions](actions/actions.md)
-  - [Actions list](actions/default_actions.md)
+    - [Using actions](actions/actions.md)
+    - [Actions list](actions/default_actions.md)
 - User APIs
-  - [User registration/signup](actions/signup.md)
-  - [User login/signin](actions/signin.md)
+    - [User registration/signup](actions/signup.md)
+    - [User login/signin](actions/signin.md)
 - State tracking APIs
-  - [State machines](state/machines.md)
+    - [State machines](state/machines.md)
 
 ## Users
 
