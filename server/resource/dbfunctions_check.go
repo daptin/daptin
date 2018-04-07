@@ -16,7 +16,8 @@ func InfoErr(err error, message string) {
 
 }
 
-func CheckErr(err error, message ...interface{}) {
+func CheckErr(err error, message ...interface{}) bool {
+
 	if err != nil {
 		fmtString := message[0].(string)
 		args := make([]interface{}, 0)
@@ -25,7 +26,9 @@ func CheckErr(err error, message ...interface{}) {
 		}
 		args = append(args, err)
 		log.Errorf(fmtString+": %v", args...)
+		return true
 	}
+	return false
 }
 
 func CheckInfo(err error, message ...interface{}) {

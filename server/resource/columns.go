@@ -73,6 +73,29 @@ var SystemExchanges = []ExchangeContract{}
 
 var SystemActions = []Action{
 	{
+		Name:             "sync_site_storage",
+		Label:            "Sync site storage",
+		OnType:           "subsite",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "Path",
+				ColumnName: "path",
+				ColumnType: "label",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "subsite.storage.sync",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"cloud_store_id": "$.cloud_store_id",
+					"path": "~path",
+				},
+			},
+		},
+	},
+	{
 		Name:             "restart_daptin",
 		Label:            "Restart system",
 		OnType:           "world",
@@ -752,13 +775,13 @@ var SystemActions = []Action{
 
 var adminsGroup = []string{"administrators"}
 
-var StandardCronjobs = []Cronjob{
+var StandardTasks = []Task{
 
 }
 
 var StandardTables = []TableInfo{
 	{
-		TableName:     "cron_job",
+		TableName:     "task",
 		IsHidden:      true,
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-clock",

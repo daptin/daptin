@@ -331,6 +331,13 @@ var ColumnTypes = []ColumnType{
 		GraphqlType:   graphql.String,
 	},
 	{
+		Name:          "html",
+		ReclineType:   "string",
+		BlueprintType: "string",
+		DataTypes:     []string{"text"},
+		GraphqlType:   graphql.String,
+	},
+	{
 		Name:          "file",
 		BlueprintType: "file",
 		ReclineType:   "binary",

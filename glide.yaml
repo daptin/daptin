@@ -67,3 +67,5 @@ import:
 - package: github.com/graphql-go/graphql
   version: ^0.7.5
 - package: github.com/bamzi/jobrunner
+- package: github.com/robfig/cron
+  version: ^1.0.0
