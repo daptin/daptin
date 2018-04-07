@@ -31,22 +31,16 @@ Easily consume the following features on any device
 - **Can be deployed on a wide range of hardware** arm5,arm6,arm7,arm64,mips,mips64,mips64le,mipsle (or build for your target using go)
 
 
-# Guides
-
-- [Create a site using a google drive folder](https://medium.com/@012parth/daptin-walk-through-oauth2-google-drive-subsites-and-grapejs-a6de27d9658a)
-- [Creating a todo list backend](https://hackernoon.com/creating-a-todolist-backend-with-persistence-a1e8d7d39f62)
-
 # Documentation
 
 ## Installation
 
-- [Read me first](setting-up/settingup.md)
 - [Native](setting-up/native.md)
 - [Heroku](setting-up/heroku.md)
 - [Docker](setting-up/docker.md)
 - [Docker Compose](setting-up/docker-compose.md)
 - [Kubernetes](setting-up/kubernetes.md)
-- [Choose your storage](setting-up/database_configuration.md)
+- [Choose your data storage](setting-up/database_configuration.md)
 
 ## Setup and data
 
@@ -124,4 +118,9 @@ Quick road map to various things you can do from here:
 * [CSV](/actions/default_actions/#upload-csv)
 * [JSON](/actions/default_actions/#upload-json)
 * [Schema](/actions/default_actions/#upload-schema)
+
+# Guides
+
+- [Create a site using a google drive folder](https://medium.com/@012parth/daptin-walk-through-oauth2-google-drive-subsites-and-grapejs-a6de27d9658a)
+- [Creating a todo list backend](https://hackernoon.com/creating-a-todolist-backend-with-persistence-a1e8d7d39f62)
 
