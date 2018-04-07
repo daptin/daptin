@@ -22,6 +22,7 @@ import (
 	"github.com/gedex/inflector"
 )
 
+var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
 func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*resource.DbResource) *graphql.Schema {
@@ -36,7 +37,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 		for _, column := range table.Columns {
 
-			log.Printf("Get column type for : %v", column.ColumnType)
+			//log.Printf("Get column type for : %v", column.ColumnType)
 			fields[column.ColumnName] = &graphql.Field{
 				Type: resource.ColumnManager.GetGraphqlType(column.ColumnType),
 				Name: column.Name,
@@ -209,7 +210,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	resource.UpdateExchanges(&initConfig, db)
 	resource.UpdateStreams(&initConfig, db)
 	resource.UpdateMarketplaces(&initConfig, db)
-	err := resource.UpdateCronjobsData(&initConfig, db)
+	err := resource.UpdateTasksData(&initConfig, db)
 	resource.CheckErr(err, "Failed to  update cron jobs")
 	resource.UpdateStandardData(&initConfig, db)
 
@@ -313,7 +314,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	resource.ImportDataFiles(&initConfig, db, cruds)
 
-	initConfig.StartCronJobs(&initConfig, db, cruds, configStore)
+	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds)
+	initConfig.ActionPerformers = actionPerformers
+	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
+	TaskScheduler.StartTasks()
+
 	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
 
 	hostSwitch.handlerMap["api"] = r
@@ -335,41 +340,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	modelHandler := CreateReclineModelHandler()
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
 	resource.InitialiseColumnManager()
+	resource.RegisterTranslations()
 
-	graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
-	log.Printf("Graphql schema: %v", graphqlSchema)
-	//r.GET("/graphql", func(context *gin.Context) {
-	//	log.Infof("graphql query: %v", context.Query("query"))
-	//	result := executeQuery(context.Query("query"), *graphqlSchema)
-	//	json.NewEncoder(context.Writer).Encode(result)
-	//})
-	//
-	//graphqlHttpHandler := graphqlhandler.New(&graphqlhandler.Config{
-	//	Schema:   graphqlSchema,
-	//	Pretty:   true,
-	//	GraphiQL: true,
-	//})
-	//
-	//// serve HTTP
-	//r.Handle("GET", "/graphql", func(c *gin.Context) {
-	//	graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	//})
-	//// serve HTTP
-	//r.Handle("POST", "/graphql", func(c *gin.Context) {
-	//	graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	//})
-	//// serve HTTP
-	//r.Handle("PUT", "/graphql", func(c *gin.Context) {
-	//	graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	//})
-	//// serve HTTP
-	//r.Handle("PATCH", "/graphql", func(c *gin.Context) {
-	//	graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	//})
-	//// serve HTTP
-	//r.Handle("DELETE", "/graphql", func(c *gin.Context) {
-	//	graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	//})
+	//graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
+	//log.Printf("Graphql schema: %v", graphqlSchema)
 
 	r.GET("/jsmodel/:typename", handler)
 	r.GET("/stats/:typename", statsHandler)
@@ -379,14 +353,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	r.OPTIONS("/jsmodel/:typename", handler)
 	r.OPTIONS("/apispec.raml", blueprintHandler)
 	r.OPTIONS("/recline_model", modelHandler)
+	r.GET("/system", func(c *gin.Context) {
+		c.AbortWithStatusJSON(200, Stats.Data())
+	})
 
-	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds)
-	initConfig.ActionPerformers = actionPerformers
-	//actionPerforMap := make(map[string]resource.ActionPerformerInterface)
-	//for _, actionPerformer := range actionPerformers {
-	//	actionPerforMap[actionPerformer.Name()] = actionPerformer
-	//}
-	//initConfig.ActionPerformers = actionPerforMap
+
 
 	r.POST("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
 	r.GET("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
@@ -399,6 +370,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
 	websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
+
 	go websocketServer.Listen(r)
 
 	r.NoRoute(func(c *gin.Context) {
@@ -412,7 +384,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 		_, err = c.Writer.Write(fileContents)
 		resource.CheckErr(err, "Failed to write index html")
 	})
-
 
 	//r.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()

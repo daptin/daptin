@@ -690,11 +690,6 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	}
 	defer row.Close()
 
-	//cols, err := row.Columns()
-	//if err != nil {
-	//  return nil, err
-	//}
-
 	results, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), nil)
 	if err != nil {
 		return nil, err

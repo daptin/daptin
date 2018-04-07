@@ -236,6 +236,30 @@ func (resource *DbResource) GetCloudStoreByName(name string) (CloudStore, error)
 
 }
 
+func (resource *DbResource) GetCloudStoreByReferenceId(referenceID string) (CloudStore, error) {
+	var cloudStore CloudStore
+
+	rows, _, err := resource.GetRowsByWhereClause("cloud_store", squirrel.Eq{"reference_id": referenceID})
+
+	if err == nil && len(rows) > 0 {
+		row := rows[0]
+		cloudStore.Name = row["name"].(string)
+		cloudStore.StoreType = row["store_type"].(string)
+		params := make(map[string]interface{})
+		err = json.Unmarshal([]byte(row["store_parameters"].(string)), params)
+		CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
+		cloudStore.StoreParameters = params
+		cloudStore.RootPath = row["root_path"].(string)
+		cloudStore.StoreProvider = row["store_provider"].(string)
+		if row["oauth_token_id"] != nil {
+			cloudStore.OAutoTokenId = row["oauth_token_id"].(string)
+		}
+	}
+
+	return cloudStore, nil
+
+}
+
 func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
 
 	marketPlaces := []Marketplace{}
@@ -266,6 +290,42 @@ func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
 	return marketPlaces, nil
 
 }
+
+func (resource *DbResource) GetAllTasks() ([]Task, error) {
+
+	tasks := []Task{}
+
+	s, v, err := squirrel.Select("t.name", "t.job_type", "t.schedule", "t.active", "t.attributes").
+		From("task t").
+		ToSql()
+	if err != nil {
+		return tasks, err
+	}
+
+	rows, err := resource.db.Queryx(s, v...)
+	if err != nil {
+		return tasks, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var task Task
+		err = rows.Scan(&task.Name, &task.JobType, &task.Schedule, &task.Active, &task.AttributesJson)
+		if err != nil {
+			log.Errorf("Failed to scan task from db to struct: %v", err)
+			continue
+		}
+		err = json.Unmarshal([]byte(task.AttributesJson), &task.Attributes)
+		if CheckErr(err, "Failed to unmarshal attributes for task") {
+			continue
+		}
+		tasks = append(tasks, task)
+	}
+
+	return tasks, nil
+
+}
+
 func (resource *DbResource) GetMarketplaceByReferenceId(referenceId string) (Marketplace, error) {
 
 	marketPlace := Marketplace{}

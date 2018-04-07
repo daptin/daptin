@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"gopkg.in/go-playground/validator.v9"
 	"path/filepath"
 )
 
@@ -38,7 +37,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 	}
 
 	globalInitConfig.Tables = append(globalInitConfig.Tables, resource.StandardTables...)
-	globalInitConfig.Cronjobs = append(globalInitConfig.Cronjobs, resource.StandardCronjobs...)
+	globalInitConfig.Tasks = append(globalInitConfig.Tasks, resource.StandardTasks...)
 	globalInitConfig.Actions = append(globalInitConfig.Actions, resource.SystemActions...)
 	globalInitConfig.Streams = append(globalInitConfig.Streams, resource.StandardStreams...)
 	globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, resource.StandardMarketplaces...)
@@ -86,7 +85,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		globalInitConfig.Imports = append(globalInitConfig.Imports, initConfig.Imports...)
 		globalInitConfig.Streams = append(globalInitConfig.Streams, initConfig.Streams...)
 		globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, initConfig.Marketplaces...)
-		globalInitConfig.Cronjobs = append(globalInitConfig.Cronjobs, initConfig.Cronjobs...)
+		globalInitConfig.Tasks = append(globalInitConfig.Tasks, initConfig.Tasks...)
 		globalInitConfig.Actions = append(globalInitConfig.Actions, initConfig.Actions...)
 		globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, initConfig.StateMachineDescriptions...)
 		globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
@@ -113,7 +112,6 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 	}
 
-	globalInitConfig.Validator = validator.New()
 	return globalInitConfig, errs
 
 }

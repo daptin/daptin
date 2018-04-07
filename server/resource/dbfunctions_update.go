@@ -85,34 +85,34 @@ func UpdateStandardData(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 }
 
-func UpdateCronjobsData(initConfig *CmsConfig, db database.DatabaseConnection) error {
+func UpdateTasksData(initConfig *CmsConfig, db database.DatabaseConnection) error {
 
-	cronJobs, err := GetCronjobs(db)
+	tasks, err := GetTasks(db)
 	if err != nil {
 		return err
 	}
-	cronJobMap := make(map[string]Cronjob)
-	for _, job := range cronJobs {
-		cronJobMap[job.Name] = job
+	taskMap := make(map[string]Task)
+	for _, job := range tasks {
+		taskMap[job.Name] = job
 	}
 
-	newCronjobs := initConfig.Cronjobs
+	newTasks := initConfig.Tasks
 
-	for _, newCronjob := range newCronjobs {
+	for _, newTask := range newTasks {
 
-		_, ok := cronJobMap[newCronjob.Name]
-		cronJobMap[newCronjob.Name] = newCronjob
+		_, ok := taskMap[newTask.Name]
+		taskMap[newTask.Name] = newTask
 		var s string
 		var v []interface{}
 
 		if ok {
-			log.Printf("Updating existing cron job: %v", newCronjob.Name)
+			log.Printf("Updating existing cron job: %v", newTask.Name)
 
 			s, v, err = squirrel.Update("cron_job").
-				Set("active", newCronjob.Active).
-				Set("schedule", newCronjob.Schedule).
-				Set("attributes", toJson(newCronjob.Attributes)).
-				Set("job_type", newCronjob.JobType).ToSql()
+				Set("active", newTask.Active).
+				Set("schedule", newTask.Schedule).
+				Set("attributes", toJson(newTask.Attributes)).
+				Set("job_type", newTask.JobType).ToSql()
 
 		} else {
 
@@ -123,7 +123,7 @@ func UpdateCronjobsData(initConfig *CmsConfig, db database.DatabaseConnection) e
 			refId := uuidRef.String()
 			s, v, err = squirrel.Insert("cron_job").
 				Columns("name", "schedule", "active", "job_type", "reference_id", "attributes", "created_at").
-				Values(newCronjob.Name, newCronjob.Schedule, newCronjob.Active, newCronjob.JobType, refId, toJson(newCronjob.Attributes), time.Now()).
+				Values(newTask.Name, newTask.Schedule, newTask.Active, newTask.JobType, refId, toJson(newTask.Attributes), time.Now()).
 				ToSql()
 
 		}
@@ -139,19 +139,19 @@ func UpdateCronjobsData(initConfig *CmsConfig, db database.DatabaseConnection) e
 
 	}
 
-	finalJobs := make([]Cronjob, 0)
+	finalJobs := make([]Task, 0)
 
-	for _, job := range cronJobMap {
+	for _, job := range taskMap {
 		finalJobs = append(finalJobs, job)
 	}
 
-	initConfig.Cronjobs = finalJobs
+	initConfig.Tasks = finalJobs
 
 	return nil
 
 }
 
-func GetCronjobs(connection database.DatabaseConnection) ([]Cronjob, error) {
+func GetTasks(connection database.DatabaseConnection) ([]Task, error) {
 
 	s, v, err := squirrel.Select("name", "job_type as jobtype", "schedule", "active", "attributes as attributesjson").From("cron_job").Where(squirrel.Eq{"active": true}).ToSql()
 
@@ -164,10 +164,10 @@ func GetCronjobs(connection database.DatabaseConnection) ([]Cronjob, error) {
 		return nil, err
 	}
 
-	jobs := make([]Cronjob, 0)
+	jobs := make([]Task, 0)
 
 	for rows.Next() {
-		var job Cronjob
+		var job Task
 
 		err = rows.StructScan(&job)
 		if err != nil {
