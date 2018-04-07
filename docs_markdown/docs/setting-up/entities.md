@@ -1,6 +1,23 @@
 # Data modeling
 
-Tables are the basic data structure. Tables have columns. Each column has a particular data type. Tables are exposed as JSON APIs under the `/api/` path. Checkout [entity documentation](/setting-up/entities.md) for details.
+Tables are the basic data structure. Tables have columns. Each column has a particular data type. Tables are exposed as JSON APIs under the `/api/` path.
+
+
+# Automatic creation
+
+Import CSV or XLS file and you can let Daptin create the entities for you based on intelligent data pre-processor.
+
+# Manual creation
+
+If you are looking for a more reproducible way, design your entities and create JSON or YAML files. These files can be used again to create an exact same replica.
+
+Multiple schema json files can be uploaded, and changes are merged accordingly.
+
+Lets imagine we were creating a todo application and wanted to keep a track of the following for each todo item
+
+!!! example "Todo list example"
+    - the todo text field - title
+
 
 !!! note "YAML example"
     ```yaml
@@ -34,28 +51,7 @@ Tables are the basic data structure. Tables have columns. Each column has a part
     ```
 
 
-## Automatic creation
-
-Import CSV or XLS file and you can let Daptin create the entities for you based on intelligent data pre-processor.
-
-## Manual creation
-
-If you are looking for a more reproducible way, design your entities and create JSON or YAML files. These files can be used again to create an exact same replica.
-
-Multiple schema json files can be uploaded, and changes are merged accordingly.
-
-Lets imagine we were creating a todo application and wanted to keep a track of the following for each todo item
-
-### Column descriptions
-
-!!! example "Todo list example"
-    - the todo text field - title
-    - a description text field - may or may not be empty
-    - a deadline date field - a date field to capture the deadline
-    - completed - a true/false field, which captures if the todo is done
-    - order - a field to store the priority of each todo
-
-### Data validations
+## Data validations
 
 Along with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo
 
@@ -65,6 +61,7 @@ Along with the fields mentioned above, we might want certain validations and con
 
 Once we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this.
 
+# Example
 
 ## JSON example
 
@@ -170,18 +167,18 @@ Tags: required
 You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.
 
 
-### Online entity designer
+# Online entity designer
 
 The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it. This is a basic designer and more advanced features to customise every aspect of the entity will be added later.
 
 ![Entity designer](/images/create_entity.png)
 
-### Market place
+# Market place
 
 Checkout [marketplace documentation](/extend/marketplace.md)
 
 
-### Column specifications
+# Column specifications
 
 Columns of the entity can be customized:
 
