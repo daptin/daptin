@@ -310,12 +310,20 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	cmd.SetRetries(&rcloneRetries)
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
-	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
-
-	resource.ImportDataFiles(&initConfig, db, cruds)
 
 	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds)
 	initConfig.ActionPerformers = actionPerformers
+
+	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
+
+	// todo : move this somewhere and make it part of something
+	actionHandlerMap := actionPerformersListToMap(actionPerformers)
+	for k, _ := range cruds {
+		cruds[k].ActionHandlerMap = actionHandlerMap
+	}
+
+	resource.ImportDataFiles(&initConfig, db, cruds)
+
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 	TaskScheduler.StartTasks()
 
@@ -357,8 +365,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 		c.AbortWithStatusJSON(200, Stats.Data())
 	})
 
-
-
 	r.POST("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
 	r.GET("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
 
@@ -390,6 +396,14 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	return hostSwitch
 
+}
+func actionPerformersListToMap(interfaces []resource.ActionPerformerInterface) map[string]resource.ActionPerformerInterface {
+	m := make(map[string]resource.ActionPerformerInterface)
+
+	for _, api := range interfaces {
+		m[api.Name()] = api
+	}
+	return m
 }
 
 func MergeTables(existingTables []resource.TableInfo, initConfigTables []resource.TableInfo) []resource.TableInfo {
