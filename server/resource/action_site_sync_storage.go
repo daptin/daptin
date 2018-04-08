@@ -54,8 +54,6 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request ActionRequest, inField
 		}
 	}
 
-	//hostRouter := httprouter.New()
-
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to convert token to json")
 	config.FileSet(cloudStore.StoreProvider, "client_id", oauthConf.ClientID)

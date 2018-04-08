@@ -45,11 +45,6 @@ func CreateGuestActionListHandler(initConfig *CmsConfig) func(*gin.Context) {
 	}
 }
 
-func CreateGetActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cruds map[string]*DbResource) func(*gin.Context) {
-	return func(ginContext *gin.Context) {
-
-	}
-}
 
 type ActionPerformerInterface interface {
 	DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error)
@@ -93,7 +88,6 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 		actionName := ginContext.Param("actionName")
 		actionType := ginContext.Param("typename")
-		//log.Infof("Action name: %v", actionName)
 
 		requestBodyContentType := ginContext.Request.Header.Get("Content-type")
 		log.Printf("Action initiate: body content type: %v", requestBodyContentType)
@@ -108,13 +102,13 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 		req := api2go.Request{
 			PlainRequest: &http.Request{
-				Method: "GET",
+				Method: "POST",
 			},
 		}
 
 		req.PlainRequest = req.PlainRequest.WithContext(ginContext.Request.Context())
 
-		responses, err := cruds["world"].HandleActionRequest(actionRequest, req, actionHandlerMap)
+		responses, err := cruds["world"].HandleActionRequest(actionRequest, req)
 		if err != nil {
 			ginContext.AbortWithStatusJSON(500, err)
 			return
@@ -127,7 +121,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 	}
 }
 
-func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2go.Request, actionHandlerMap map[string]ActionPerformerInterface) ([]ActionResponse, error) {
+func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2go.Request) ([]ActionResponse, error) {
 
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -141,6 +135,7 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 
 	subjectInstanceReferenceId, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
 	if ok {
+		req.PlainRequest.Method = "GET"
 		referencedObject, err := db.FindOne(subjectInstanceReferenceId.(string), req)
 		if err != nil {
 			return nil, err
@@ -171,6 +166,10 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
 	if err != nil {
 		return nil, err
+	}
+
+	if actionRequest.Attributes == nil {
+		actionRequest.Attributes = make(map[string]interface{})
 	}
 
 	for _, field := range action.InFields {
@@ -349,7 +348,7 @@ OutFields:
 			//res, err = cruds[outcome.Type].Create(model, actionRequest)
 
 			actionName := model.GetName()
-			performer, ok := actionHandlerMap[actionName]
+			performer, ok := db.ActionHandlerMap[actionName]
 			if !ok {
 				log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
 				//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
@@ -410,13 +409,14 @@ OutFields:
 		}
 
 		if err != nil {
-			return nil, err
+			return responses, err
 		}
 	}
 
 	return responses, nil
-
 }
+
+
 func BuildActionRequest(closer io.ReadCloser, actionType, actionName string, params gin.Params) (*ActionRequest, error) {
 	bytes, err := ioutil.ReadAll(closer)
 	if err != nil {
