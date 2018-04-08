@@ -91,12 +91,14 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		}
 
 		err = TaskScheduler.AddTask(resource.Task{
-			JobType: "site.storage.sync",
+			EntityName: "site",
+			ActionName: "sync_site_storage",
 			Attributes: map[string]interface{}{
-				"cloud_store_id": cloudStore.ReferenceId,
-				"path":       tempDirectoryPath,
+				"site_id": site.ReferenceId,
+				"path":    tempDirectoryPath,
 			},
-			Schedule: "@every 1m",
+			AsUserEmail: cruds["user"].GetAdminEmailId(),
+			Schedule:    "@every 1m",
 		})
 		resource.CheckErr(err, "Failed to register task to sync storage")
 

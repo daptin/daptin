@@ -295,7 +295,7 @@ func (resource *DbResource) GetAllTasks() ([]Task, error) {
 
 	tasks := []Task{}
 
-	s, v, err := squirrel.Select("t.name", "t.job_type", "t.schedule", "t.active", "t.attributes").
+	s, v, err := squirrel.Select("t.name", "t.action_name", "t.entity_name", "t.schedule", "t.active", "t.attributes", "t.as_user_id").
 		From("task t").
 		ToSql()
 	if err != nil {
@@ -310,7 +310,7 @@ func (resource *DbResource) GetAllTasks() ([]Task, error) {
 
 	for rows.Next() {
 		var task Task
-		err = rows.Scan(&task.Name, &task.JobType, &task.Schedule, &task.Active, &task.AttributesJson)
+		err = rows.Scan(&task.Name, &task.ActionName, &task.EntityName, &task.Schedule, &task.Active, &task.AttributesJson, &task.AsUserEmail)
 		if err != nil {
 			log.Errorf("Failed to scan task from db to struct: %v", err)
 			continue
