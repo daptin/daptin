@@ -73,7 +73,7 @@ type ActiveTaskInstance struct {
 }
 
 func (ati *ActiveTaskInstance) Run() {
-	log.Printf("Execute task [%v] as user %v", ati.Task.ActionName, ati.Task.AsUserEmail)
+	log.Printf("Execute task [%v] as user [%v]", ati.Task.ActionName, ati.Task.AsUserEmail)
 
 	sessionUser := &auth.SessionUser{}
 
