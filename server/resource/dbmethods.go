@@ -148,7 +148,7 @@ func (dr *DbResource) GetObjectPermission(objectType string, referenceId string)
 	resultObject := make(map[string]interface{})
 	err = dr.db.QueryRowx(selectQuery, queryParameters...).MapScan(resultObject)
 	if err != nil {
-		log.Errorf("Failed to scan permission 1: %v", err)
+		log.Errorf("Failed to scan permission 1 [%v]: %v", referenceId, err)
 	}
 	//log.Infof("permi map: %v", resultObject)
 	var perm PermissionInstance
@@ -189,6 +189,7 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	err = dr.db.QueryRowx(s, q...).MapScan(m)
 
 	if err != nil {
+
 		log.Errorf("Failed to scan permission: %v", err)
 		return perm
 	}
@@ -211,11 +212,10 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	return perm
 }
 
-
 // Get list of group permissions for objects of typeName where colName=colValue
 // Utility method which makes a join query to load a lot of permissions quickly
 // Used by GetRowPermission
-func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string, colvalue string) []auth.GroupPermission {
+func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string, colvalue interface{}) []auth.GroupPermission {
 
 	s := make([]auth.GroupPermission, 0)
 
@@ -540,6 +540,45 @@ func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 	return refId
 
 }
+func (dr *DbResource) GetUserIdByUsergroupId(usergroupId int64) string {
+
+	s, q, err := squirrel.Select("u.reference_id").From("user_user_id_has_usergroup_usergroup_id uu").LeftJoin("user u on uu.user_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).OrderBy("uu.created_at").Limit(1).ToSql()
+	if err != nil {
+		log.Errorf("Failed to create sql query: %v", err)
+		return ""
+	}
+
+	var refId string
+
+	err = dr.db.QueryRowx(s, q...).Scan(&refId)
+	if err != nil {
+		log.Errorf("Failed to execute query: %v == %v", s, q)
+		log.Errorf("Failed to scan user group id from the result: %v", err)
+	}
+
+	return refId
+
+}
+
+func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
+
+	s, q, err := squirrel.Select("u.email").From("user_user_id_has_usergroup_usergroup_id uu").LeftJoin("user u on uu.user_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).OrderBy("uu.created_at").Limit(1).ToSql()
+	if err != nil {
+		log.Errorf("Failed to create sql query: %v", err)
+		return ""
+	}
+
+	var email string
+
+	err = dr.db.QueryRowx(s, q...).Scan(&email)
+	if err != nil {
+		log.Errorf("Failed to execute query: %v == %v", s, q)
+		log.Errorf("Failed to scan user group id from the result: %v", err)
+	}
+
+	return email
+
+}
 
 func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId string) (map[string]interface{}, []map[string]interface{}, error) {
 	//log.Infof("Get single row by id: [%v][%v]", typeName, referenceId)
@@ -565,6 +604,29 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 
 	return m, n, err
 
+}
+
+func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val string) (map[string]interface{}, error) {
+	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{column: val}).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := dr.db.Queryx(s, q...)
+
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+
+	m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), nil)
+
+	if len(m) == 0 {
+		log.Infof("No result found for [%v] [%v][%v]", typeName, column, val)
+		return nil, err
+	}
+
+	return m[0], err
 }
 
 func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]interface{}, error) {
@@ -601,7 +663,6 @@ func (dr *DbResource) TruncateTable(typeName string) error {
 	return err
 
 }
-
 
 // Update the data and set the values using the data map without an validation or transformations
 // Invoked by data import action
@@ -689,11 +750,6 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 		return nil, err
 	}
 	defer row.Close()
-
-	//cols, err := row.Columns()
-	//if err != nil {
-	//  return nil, err
-	//}
 
 	results, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), nil)
 	if err != nil {

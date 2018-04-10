@@ -7,14 +7,15 @@ import (
 )
 
 type DbResource struct {
-	model         *api2go.Api2GoModel
-	db            database.DatabaseConnection
-	tableInfo     *TableInfo
-	cruds         map[string]*DbResource
-	ms            *MiddlewareSet
-	configStore   *ConfigStore
-	contextCache  map[string]interface{}
-	defaultGroups []int64
+	model            *api2go.Api2GoModel
+	db               database.DatabaseConnection
+	tableInfo        *TableInfo
+	cruds            map[string]*DbResource
+	ms               *MiddlewareSet
+	ActionHandlerMap map[string]ActionPerformerInterface
+	configStore      *ConfigStore
+	contextCache     map[string]interface{}
+	defaultGroups    []int64
 }
 
 func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, tableInfo *TableInfo) *DbResource {
@@ -62,4 +63,28 @@ func (dr *DbResource) PutContext(key string, val interface{}) {
 
 func (dr *DbResource) GetContext(key string) interface{} {
 	return dr.contextCache[key]
+}
+
+func (dr *DbResource) GetAdminReferenceId() string {
+	cacheVal := dr.GetContext("administrator_reference_id")
+	if cacheVal == nil {
+
+		userRefId := dr.GetUserIdByUsergroupId(2)
+		dr.PutContext("administrator_reference_id", userRefId)
+		return userRefId
+	} else {
+		return cacheVal.(string)
+	}
+}
+
+func (dr *DbResource) GetAdminEmailId() string {
+	cacheVal := dr.GetContext("administrator_email_id")
+	if cacheVal == nil {
+
+		userRefId := dr.GetUserEmailIdByUsergroupId(2)
+		dr.PutContext("administrator_reference_id", userRefId)
+		return userRefId
+	} else {
+		return cacheVal.(string)
+	}
 }
