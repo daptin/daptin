@@ -56,7 +56,7 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 				if !ok {
 					continue
 				}
-				errs := dvm.config.Validator.VarWithValue(colValue, obj, validate.Tags)
+				errs := ValidatorInstance.VarWithValue(colValue, obj, validate.Tags)
 
 				if errs != nil {
 					validationErrors, ok := errs.(validator.ValidationErrors)

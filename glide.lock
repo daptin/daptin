@@ -1,10 +1,12 @@
-hash: 649fb3408abf821e191badc63e004c77dfe52a181f790be925f5a8c6c4e07c10
-updated: 2018-03-29T23:34:43.668732919+05:30
+hash: 19b33512971722827804f053a899ae0a9bcefa28fb51f0cfb8cb6dc0b673e967
+updated: 2018-04-10T15:06:48.510486958+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
   subpackages:
   - compute/metadata
+- name: github.com/abbot/go-http-auth
+  version: b6a92f468f2b01961e796d20e3ec5bbb8a8297d6
 - name: github.com/advance512/yaml
   version: e401b2b026855a4fa8e7014d553ae5bdfccb21cd
 - name: github.com/ahl5esoft/golang-underscore
@@ -16,7 +18,7 @@ imports:
 - name: github.com/araddon/dateparse
   version: ca7e753bd149dae747d76fa7d52b20b920f3a814
 - name: github.com/artpar/api2go
-  version: 3f75374086043688bb67052538aea05375a01448
+  version: 87a5e0f5ab8723b668616073ef0c7dcadf2528e1
   subpackages:
   - jsonapi
   - routing
@@ -28,10 +30,8 @@ imports:
   version: a5409cc587c60d7805e75e66f63274397712290d
 - name: github.com/artpar/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
-- name: github.com/artpar/goagain
-  version: f2d5d7b515c4c1b6244ed9260e04c29800350d35
 - name: github.com/artpar/rclone
-  version: 68a0407a350aef9f8bcdfe3a8803cec320ac7ba6
+  version: f86a03351399cf395fdd33b7ef575c4968ddb26c
   subpackages:
   - backend/alias
   - backend/all
@@ -65,6 +65,8 @@ imports:
   - backend/yandex
   - backend/yandex/api
   - cmd
+  - cmd/serve/httplib
+  - cmd/serve/httplib/httpflags
   - fs
   - fs/accounting
   - fs/asyncreader
@@ -84,6 +86,8 @@ imports:
   - fs/march
   - fs/object
   - fs/operations
+  - fs/rc
+  - fs/rc/rcflags
   - fs/sync
   - fs/walk
   - lib/atexit
@@ -171,6 +175,11 @@ imports:
   - dropbox/async
   - dropbox/file_properties
   - dropbox/files
+  - dropbox/sharing
+  - dropbox/team_common
+  - dropbox/team_policies
+  - dropbox/users
+  - dropbox/users_common
 - name: github.com/etgryphon/stringUp
   version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
 - name: github.com/fsnotify/fsnotify
@@ -201,7 +210,7 @@ imports:
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
 - name: github.com/go-playground/validator
-  version: 8ce234ff024d85b3848e485decba806385d6e276
+  version: 14984d91328f9612b58443cbdf4a077d4fd71091
 - name: github.com/go-sql-driver/mysql
   version: a0583e0143b1624142adab07e0e97fe106d99561
 - name: github.com/gocraft/health
@@ -360,6 +369,8 @@ imports:
   version: a86ea073017a6beddef78c8659e7224e8ca634b0
 - name: github.com/rfjakob/eme
   version: 2222dbd4ba467ab3fc7e8af41562fcfe69c0d770
+- name: github.com/robfig/cron
+  version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
 - name: github.com/sadlil/go-trigger
   version: cfc3d83007cddfc1e31a478aa47cd41de07fac17
 - name: github.com/satori/go.uuid
@@ -506,7 +517,7 @@ imports:
 - name: gopkg.in/go-playground/validator.v8
   version: 5f1438d3fca68893a817e4a66806cea46a9e4ebf
 - name: gopkg.in/go-playground/validator.v9
-  version: 8ce234ff024d85b3848e485decba806385d6e276
+  version: 14984d91328f9612b58443cbdf4a077d4fd71091
   subpackages:
   - translations/en
 - name: gopkg.in/Masterminds/squirrel.v1
