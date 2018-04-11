@@ -2,7 +2,6 @@ package resource
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
@@ -20,12 +19,11 @@ import (
 	"strings"
 
 	"github.com/artpar/conform"
-	english "github.com/go-playground/locales/en"
-	"github.com/go-playground/universal-translator"
 	"gopkg.in/go-playground/validator.v9"
-	en2 "gopkg.in/go-playground/validator.v9/translations/en"
-	"net/url"
 	"strconv"
+	"io"
+	"encoding/json"
+	"net/url"
 )
 
 var guestActions = map[string]Action{}
@@ -47,11 +45,6 @@ func CreateGuestActionListHandler(initConfig *CmsConfig) func(*gin.Context) {
 	}
 }
 
-func CreateGetActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cruds map[string]*DbResource) func(*gin.Context) {
-	return func(ginContext *gin.Context) {
-
-	}
-}
 
 type ActionPerformerInterface interface {
 	DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error)
@@ -63,8 +56,12 @@ type DaptinError struct {
 	Code    string
 }
 
-func NewDaptinError(str string, code string) DaptinError {
-	return DaptinError{
+func (de *DaptinError) Error() string {
+	return de.Message
+}
+
+func NewDaptinError(str string, code string) *DaptinError {
+	return &DaptinError{
 		Message: str,
 		Code:    code,
 	}
@@ -73,15 +70,6 @@ func NewDaptinError(str string, code string) DaptinError {
 func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cruds map[string]*DbResource, actionPerformers []ActionPerformerInterface) func(*gin.Context) {
 
 	actionMap := make(map[string]Action)
-
-	eng := english.New()
-	uni := ut.New(eng, eng)
-	trans, _ := uni.GetTranslator("en")
-
-	err := en2.RegisterDefaultTranslations(initConfig.Validator, trans)
-	if err != nil {
-		log.Errorf("Failed to register translations: %v", err)
-	}
 
 	for _, ac := range initConfig.Actions {
 		actionMap[ac.OnType+":"+ac.Name] = ac
@@ -99,356 +87,31 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 	return func(ginContext *gin.Context) {
 
 		actionName := ginContext.Param("actionName")
-		//log.Infof("Action name: %v", actionName)
+		actionType := ginContext.Param("typename")
 
-		bytes, err := ioutil.ReadAll(ginContext.Request.Body)
+		requestBodyContentType := ginContext.Request.Header.Get("Content-type")
+		log.Printf("Action initiate: body content type: %v", requestBodyContentType)
+
+		actionRequest, err := BuildActionRequest(ginContext.Request.Body, actionType, actionName, ginContext.Params)
+
 		if err != nil {
 			ginContext.Error(err)
 			return
 		}
-
-		requestBodyContentType := ginContext.Request.Header.Get("Content-type")
-		log.Printf("Action initiate: body content type: %v", requestBodyContentType)
-		actionRequest := ActionRequest{}
-		err = json.Unmarshal(bytes, &actionRequest)
-		//CheckErr(err, "Failed to read request body as json")
-		if err != nil {
-			values, err := url.ParseQuery(string(bytes))
-			CheckErr(err, "Failed to parse body as query values")
-			attributesMap := make(map[string]interface{})
-			actionRequest.Attributes = make(map[string]interface{})
-			for key, val := range values {
-				if len(val) > 1 {
-					attributesMap[key] = val
-					actionRequest.Attributes[key] = val
-				} else {
-					attributesMap[key] = val[0]
-					actionRequest.Attributes[key] = val[0]
-				}
-			}
-			attributesMap["__body"] = string(bytes)
-			actionRequest.Attributes = attributesMap
-		}
-
-		actionRequest.Type = ginContext.Param("typename")
-		actionRequest.Action = actionName
-
-		if actionRequest.Attributes == nil {
-			actionRequest.Attributes = make(map[string]interface{})
-		}
-
-		params := ginContext.Params
-		for _, param := range params {
-			actionRequest.Attributes[param.Key] = param.Value
-		}
-
 		//log.Infof("Request body: %v", actionRequest)
 
 		req := api2go.Request{
 			PlainRequest: &http.Request{
-				Method: "GET",
+				Method: "POST",
 			},
 		}
 
 		req.PlainRequest = req.PlainRequest.WithContext(ginContext.Request.Context())
 
-		user := ginContext.Request.Context().Value("user")
-		sessionUser := &auth.SessionUser{}
-
-		if user != nil {
-			sessionUser = user.(*auth.SessionUser)
-		}
-
-		var subjectInstance *api2go.Api2GoModel
-		var subjectInstanceMap map[string]interface{}
-
-		subjectInstanceReferenceId, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
-		if ok {
-			referencedObject, err := cruds[actionRequest.Type].FindOne(subjectInstanceReferenceId.(string), req)
-			if err != nil {
-				ginContext.AbortWithError(400, err)
-				return
-			}
-			subjectInstance = referencedObject.Result().(*api2go.Api2GoModel)
-
-			subjectInstanceMap = subjectInstance.Data
-
-			if subjectInstanceMap == nil {
-				ginContext.AbortWithError(403, errors.New("Forbidden"))
-				return
-			}
-
-			subjectInstanceMap["__type"] = subjectInstance.GetName()
-			permission := cruds[actionRequest.Type].GetRowPermission(subjectInstanceMap)
-
-			if !permission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
-				ginContext.AbortWithError(403, errors.New("Forbidden"))
-				return
-			}
-		}
-
-		if !cruds["world"].IsUserActionAllowed(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action) {
-			ginContext.AbortWithError(403, errors.New("Forbidden"))
-			return
-		}
-
-		log.Infof("Handle event for action [%v]", actionName)
-
-		action, err := cruds["action"].GetActionByName(actionRequest.Type, actionRequest.Action)
-		CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
+		responses, err := cruds["world"].HandleActionRequest(actionRequest, req)
 		if err != nil {
-			ginContext.AbortWithStatus(404)
+			ginContext.AbortWithStatusJSON(500, err)
 			return
-		}
-
-		for _, field := range action.InFields {
-			_, ok := actionRequest.Attributes[field.ColumnName]
-			if !ok {
-				actionRequest.Attributes[field.ColumnName] = ginContext.Query(field.ColumnName)
-			}
-		}
-
-		for _, validation := range action.Validations {
-			errs := initConfig.Validator.VarWithValue(actionRequest.Attributes[validation.ColumnName], actionRequest.Attributes, validation.Tags)
-			if errs != nil {
-				validationErrors := errs.(validator.ValidationErrors)
-				firstError := validationErrors[0]
-				ginContext.JSON(400, NewDaptinError(validation.ColumnName+": "+firstError.Translate(trans), "validation-failed"))
-				//ginContext.AbortWithError(400, errors.New(validationErrors[0].Translate(en1)))
-				return
-			}
-		}
-
-		for _, conformations := range action.Conformations {
-
-			val, ok := actionRequest.Attributes[conformations.ColumnName]
-			if !ok {
-				continue
-			}
-			valStr, ok := val.(string)
-			if !ok {
-				continue
-			}
-			newVal := conform.TransformString(valStr, conformations.Tags)
-			actionRequest.Attributes[conformations.ColumnName] = newVal
-		}
-
-		inFieldMap, err := GetValidatedInFields(actionRequest, action)
-		inFieldMap["attributes"] = actionRequest.Attributes
-
-		if err != nil {
-			ginContext.AbortWithError(400, err)
-			return
-		}
-
-		if sessionUser.UserReferenceId != "" {
-			user, err := cruds["user"].GetReferenceIdToObject("user", sessionUser.UserReferenceId)
-			if err != nil {
-				log.Errorf("Failed to load user: %v", err)
-				return
-			}
-			inFieldMap["user"] = user
-		}
-
-		if subjectInstanceMap != nil {
-			inFieldMap[actionRequest.Type+"_id"] = subjectInstanceMap["reference_id"]
-			inFieldMap["subject"] = subjectInstanceMap
-		}
-
-		responses := make([]ActionResponse, 0)
-
-	OutFields:
-		for _, outcome := range action.OutFields {
-			var responseObjects interface{}
-			responseObjects = nil
-			var responses1 []ActionResponse
-			var errors1 []error
-			var actionResponse ActionResponse
-
-			if len(outcome.Condition) > 0 {
-				outcomeResult, err := evaluateString(outcome.Condition, inFieldMap)
-				CheckErr(err, "Failed to evaluate condition, assuming false by default")
-				if err != nil {
-					continue
-				}
-
-				log.Printf("Evaluated condition [%v] result: %v", outcome.Condition, outcomeResult)
-				boolValue, ok := outcomeResult.(bool)
-				if !ok {
-
-					strVal, ok := outcomeResult.(string)
-					if ok {
-						if strVal == "1" || strings.ToLower(strings.TrimSpace(strVal)) == "true" {
-							log.Printf("Condition is true")
-							// condition is true
-						} else {
-							// condition isn't true
-							log.Printf("Condition is false, skipping outcome")
-							continue
-						}
-
-					} else {
-
-						log.Printf("Failed to convert value to bool, assuming false")
-						continue
-					}
-
-				} else if !boolValue {
-					log.Infof("Outcome [%v][%v] skipped because condition failed [%v]", outcome.Method, outcome.Type, outcome.Condition)
-					continue
-				}
-			}
-
-			model, request, err := BuildOutcome(inFieldMap, outcome)
-			if err != nil {
-				log.Errorf("Failed to build outcome: %v", err)
-				responses = append(responses, NewActionResponse("error", "Failed to build outcome "+outcome.Type))
-				continue
-			}
-
-			request.PlainRequest = request.PlainRequest.WithContext(ginContext.Request.Context())
-			dbResource, _ := cruds[outcome.Type]
-
-			actionResponses := make([]ActionResponse, 0)
-			log.Infof("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
-			switch outcome.Method {
-			case "POST":
-				responseObjects, err = dbResource.CreateWithoutFilter(model, request)
-				CheckErr(err, "Failed to post from action")
-				if err != nil {
-
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
-					responses = append(responses, actionResponse)
-					break OutFields
-				} else {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
-				}
-				actionResponses = append(actionResponses, actionResponse)
-			case "GET":
-
-				request.QueryParams = make(map[string][]string)
-
-				for k, val := range model.Data {
-					request.QueryParams[k] = []string{fmt.Sprintf("%v", val)}
-				}
-
-				responseObjects, _, _, err = dbResource.PaginatedFindAllWithoutFilters(request)
-				CheckErr(err, "Failed to get inside action")
-				if err != nil {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
-					responses = append(responses, actionResponse)
-					break OutFields
-				} else {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
-				}
-				actionResponses = append(actionResponses, actionResponse)
-			case "GET_BY_ID":
-
-				responseObjects, _, err = dbResource.GetSingleRowByReferenceId(outcome.Type, model.Data["reference_id"].(string))
-				CheckErr(err, "Failed to get by id")
-
-				if err != nil {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
-					responses = append(responses, actionResponse)
-					break OutFields
-				} else {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
-				}
-				actionResponses = append(actionResponses, actionResponse)
-			case "UPDATE":
-				responseObjects, err = dbResource.UpdateWithoutFilters(model, request)
-				CheckErr(err, "Failed to update inside action")
-				if err != nil {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName()+". "+err.Error(), "Failed"))
-					responses = append(responses, actionResponse)
-					break OutFields
-				} else {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
-				}
-				actionResponses = append(actionResponses, actionResponse)
-			case "DELETE":
-				err = dbResource.DeleteWithoutFilters(model.Data["reference_id"].(string), request)
-				CheckErr(err, "Failed to delete inside action")
-				if err != nil {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to delete "+model.GetName(), "Failed"))
-					responses = append(responses, actionResponse)
-					break OutFields
-				} else {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
-				}
-				actionResponses = append(actionResponses, actionResponse)
-			case "EXECUTE":
-				//res, err = cruds[outcome.Type].Create(model, request)
-
-				actionName := model.GetName()
-				performer, ok := actionHandlerMap[actionName]
-				if !ok {
-					log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
-					//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
-				} else {
-					var responder api2go.Responder
-					responder, responses1, errors1 = performer.DoAction(actionRequest, model.Data)
-					actionResponses = append(actionResponses, responses1...)
-					if errors1 != nil && len(errors1) > 0 {
-						err = errors1[0]
-					}
-					if responder != nil {
-						responseObjects = responder.Result().(*api2go.Api2GoModel).Data
-					}
-				}
-
-			case "ACTIONRESPONSE":
-				//res, err = cruds[outcome.Type].Create(model, request)
-				log.Infof("Create action response: %v", model.GetName())
-				var actionResponse ActionResponse
-				actionResponse = NewActionResponse(model.GetName(), model.Data)
-				actionResponses = append(actionResponses, actionResponse)
-			default:
-				log.Errorf("Unknown outcome method: %v", outcome.Method)
-			}
-
-			if !outcome.SkipInResponse {
-				responses = append(responses, actionResponses...)
-			}
-
-			if len(responses1) > 0 && outcome.Reference != "" {
-				lst := make([]interface{}, 0)
-				for i, res := range responses1 {
-					inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = res.Attributes
-					lst = append(lst, res.Attributes)
-				}
-				inFieldMap[fmt.Sprintf("%v", outcome.Reference)] = lst
-			}
-
-			if responseObjects != nil && outcome.Reference != "" {
-
-				singleResult, isSingleResult := responseObjects.(map[string]interface{})
-
-				if isSingleResult {
-					inFieldMap[outcome.Reference] = singleResult
-				} else {
-					resultArray, ok := responseObjects.([]map[string]interface{})
-
-					finalArray := make([]map[string]interface{}, 0)
-					if ok {
-						for i, item := range resultArray {
-							finalArray = append(finalArray, item)
-							inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = item
-						}
-					}
-					inFieldMap[outcome.Reference] = finalArray
-
-				}
-			}
-
-			if err != nil {
-				ginContext.AbortWithStatusJSON(400, struct {
-					Message string
-				}{
-					Message: err.Error(),
-				})
-				return
-			}
 		}
 
 		//log.Infof("Final responses: %v", responses)
@@ -457,6 +120,343 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 	}
 }
+
+func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2go.Request) ([]ActionResponse, error) {
+
+	user := req.PlainRequest.Context().Value("user")
+	sessionUser := &auth.SessionUser{}
+
+	if user != nil {
+		sessionUser = user.(*auth.SessionUser)
+	}
+
+	var subjectInstance *api2go.Api2GoModel
+	var subjectInstanceMap map[string]interface{}
+
+	subjectInstanceReferenceId, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
+	if ok {
+		req.PlainRequest.Method = "GET"
+		referencedObject, err := db.FindOne(subjectInstanceReferenceId.(string), req)
+		if err != nil {
+			return nil, err
+		}
+		subjectInstance = referencedObject.Result().(*api2go.Api2GoModel)
+
+		subjectInstanceMap = subjectInstance.Data
+
+		if subjectInstanceMap == nil {
+			return nil, errors.New("forbidden")
+		}
+
+		subjectInstanceMap["__type"] = subjectInstance.GetName()
+		permission := db.GetRowPermission(subjectInstanceMap)
+
+		if !permission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
+			return nil, errors.New("forbidden")
+		}
+	}
+
+	if !db.IsUserActionAllowed(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action) {
+		return nil, errors.New("forbidden")
+	}
+
+	log.Infof("Handle event for action [%v]", actionRequest.Action)
+
+	action, err := db.GetActionByName(actionRequest.Type, actionRequest.Action)
+	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
+	if err != nil {
+		return nil, err
+	}
+
+	if actionRequest.Attributes == nil {
+		actionRequest.Attributes = make(map[string]interface{})
+	}
+
+	for _, field := range action.InFields {
+		_, ok := actionRequest.Attributes[field.ColumnName]
+		if !ok {
+			actionRequest.Attributes[field.ColumnName] = req.PlainRequest.Form.Get(field.ColumnName)
+		}
+	}
+
+	for _, validation := range action.Validations {
+		errs := ValidatorInstance.VarWithValue(actionRequest.Attributes[validation.ColumnName], actionRequest.Attributes, validation.Tags)
+		if errs != nil {
+			validationErrors := errs.(validator.ValidationErrors)
+			firstError := validationErrors[0]
+			return nil, NewDaptinError(validation.ColumnName+": "+firstError.Tag(), "validation-failed")
+		}
+	}
+
+	for _, conformations := range action.Conformations {
+
+		val, ok := actionRequest.Attributes[conformations.ColumnName]
+		if !ok {
+			continue
+		}
+		valStr, ok := val.(string)
+		if !ok {
+			continue
+		}
+		newVal := conform.TransformString(valStr, conformations.Tags)
+		actionRequest.Attributes[conformations.ColumnName] = newVal
+	}
+
+	inFieldMap, err := GetValidatedInFields(actionRequest, action)
+	inFieldMap["attributes"] = actionRequest.Attributes
+
+	if err != nil {
+		return nil, err
+	}
+
+	if sessionUser.UserReferenceId != "" {
+		user, err := db.GetReferenceIdToObject("user", sessionUser.UserReferenceId)
+		if err != nil {
+			return nil, err
+		}
+		inFieldMap["user"] = user
+	}
+
+	if subjectInstanceMap != nil {
+		inFieldMap[actionRequest.Type+"_id"] = subjectInstanceMap["reference_id"]
+		inFieldMap["subject"] = subjectInstanceMap
+	}
+
+	responses := make([]ActionResponse, 0)
+
+OutFields:
+	for _, outcome := range action.OutFields {
+		var responseObjects interface{}
+		responseObjects = nil
+		var responses1 []ActionResponse
+		var errors1 []error
+		var actionResponse ActionResponse
+
+		if len(outcome.Condition) > 0 {
+			outcomeResult, err := evaluateString(outcome.Condition, inFieldMap)
+			CheckErr(err, "Failed to evaluate condition, assuming false by default")
+			if err != nil {
+				continue
+			}
+
+			log.Printf("Evaluated condition [%v] result: %v", outcome.Condition, outcomeResult)
+			boolValue, ok := outcomeResult.(bool)
+			if !ok {
+
+				strVal, ok := outcomeResult.(string)
+				if ok {
+					if strVal == "1" || strings.ToLower(strings.TrimSpace(strVal)) == "true" {
+						log.Printf("Condition is true")
+						// condition is true
+					} else {
+						// condition isn't true
+						log.Printf("Condition is false, skipping outcome")
+						continue
+					}
+
+				} else {
+
+					log.Printf("Failed to convert value to bool, assuming false")
+					continue
+				}
+
+			} else if !boolValue {
+				log.Infof("Outcome [%v][%v] skipped because condition failed [%v]", outcome.Method, outcome.Type, outcome.Condition)
+				continue
+			}
+		}
+
+		model, request, err := BuildOutcome(inFieldMap, outcome)
+		if err != nil {
+			log.Errorf("Failed to build outcome: %v", err)
+			responses = append(responses, NewActionResponse("error", "Failed to build outcome "+outcome.Type))
+			continue
+		}
+
+		request.PlainRequest = request.PlainRequest.WithContext(req.PlainRequest.Context())
+		dbResource, _ := db.cruds[outcome.Type]
+
+		actionResponses := make([]ActionResponse, 0)
+		log.Infof("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
+		switch outcome.Method {
+		case "POST":
+			responseObjects, err = dbResource.CreateWithoutFilter(model, request)
+			CheckErr(err, "Failed to post from action")
+			if err != nil {
+
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
+				responses = append(responses, actionResponse)
+				break OutFields
+			} else {
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+			}
+			actionResponses = append(actionResponses, actionResponse)
+		case "GET":
+
+			request.QueryParams = make(map[string][]string)
+
+			for k, val := range model.Data {
+				request.QueryParams[k] = []string{fmt.Sprintf("%v", val)}
+			}
+
+			responseObjects, _, _, err = dbResource.PaginatedFindAllWithoutFilters(request)
+			CheckErr(err, "Failed to get inside action")
+			if err != nil {
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
+				responses = append(responses, actionResponse)
+				break OutFields
+			} else {
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+			}
+			actionResponses = append(actionResponses, actionResponse)
+		case "GET_BY_ID":
+
+			responseObjects, _, err = dbResource.GetSingleRowByReferenceId(outcome.Type, model.Data["reference_id"].(string))
+			CheckErr(err, "Failed to get by id")
+
+			if err != nil {
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
+				responses = append(responses, actionResponse)
+				break OutFields
+			} else {
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+			}
+			actionResponses = append(actionResponses, actionResponse)
+		case "UPDATE":
+			responseObjects, err = dbResource.UpdateWithoutFilters(model, request)
+			CheckErr(err, "Failed to update inside action")
+			if err != nil {
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName()+". "+err.Error(), "Failed"))
+				responses = append(responses, actionResponse)
+				break OutFields
+			} else {
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+			}
+			actionResponses = append(actionResponses, actionResponse)
+		case "DELETE":
+			err = dbResource.DeleteWithoutFilters(model.Data["reference_id"].(string), request)
+			CheckErr(err, "Failed to delete inside action")
+			if err != nil {
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to delete "+model.GetName(), "Failed"))
+				responses = append(responses, actionResponse)
+				break OutFields
+			} else {
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+			}
+			actionResponses = append(actionResponses, actionResponse)
+		case "EXECUTE":
+			//res, err = cruds[outcome.Type].Create(model, actionRequest)
+
+			actionName := model.GetName()
+			performer, ok := db.ActionHandlerMap[actionName]
+			if !ok {
+				log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
+				//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
+			} else {
+				var responder api2go.Responder
+				responder, responses1, errors1 = performer.DoAction(*actionRequest, model.Data)
+				actionResponses = append(actionResponses, responses1...)
+				if errors1 != nil && len(errors1) > 0 {
+					err = errors1[0]
+				}
+				if responder != nil {
+					responseObjects = responder.Result().(*api2go.Api2GoModel).Data
+				}
+			}
+
+		case "ACTIONRESPONSE":
+			//res, err = cruds[outcome.Type].Create(model, actionRequest)
+			log.Infof("Create action response: %v", model.GetName())
+			var actionResponse ActionResponse
+			actionResponse = NewActionResponse(model.GetName(), model.Data)
+			actionResponses = append(actionResponses, actionResponse)
+		default:
+			log.Errorf("Unknown outcome method: %v", outcome.Method)
+		}
+
+		if !outcome.SkipInResponse {
+			responses = append(responses, actionResponses...)
+		}
+
+		if len(responses1) > 0 && outcome.Reference != "" {
+			lst := make([]interface{}, 0)
+			for i, res := range responses1 {
+				inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = res.Attributes
+				lst = append(lst, res.Attributes)
+			}
+			inFieldMap[fmt.Sprintf("%v", outcome.Reference)] = lst
+		}
+
+		if responseObjects != nil && outcome.Reference != "" {
+
+			singleResult, isSingleResult := responseObjects.(map[string]interface{})
+
+			if isSingleResult {
+				inFieldMap[outcome.Reference] = singleResult
+			} else {
+				resultArray, ok := responseObjects.([]map[string]interface{})
+
+				finalArray := make([]map[string]interface{}, 0)
+				if ok {
+					for i, item := range resultArray {
+						finalArray = append(finalArray, item)
+						inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = item
+					}
+				}
+				inFieldMap[outcome.Reference] = finalArray
+
+			}
+		}
+
+		if err != nil {
+			return responses, err
+		}
+	}
+
+	return responses, nil
+}
+
+
+func BuildActionRequest(closer io.ReadCloser, actionType, actionName string, params gin.Params) (*ActionRequest, error) {
+	bytes, err := ioutil.ReadAll(closer)
+	if err != nil {
+		return nil, err
+	}
+
+	actionRequest := ActionRequest{}
+	err = json.Unmarshal(bytes, &actionRequest)
+	//CheckErr(err, "Failed to read request body as json")
+	if err != nil {
+		values, err := url.ParseQuery(string(bytes))
+		CheckErr(err, "Failed to parse body as query values")
+		attributesMap := make(map[string]interface{})
+		actionRequest.Attributes = make(map[string]interface{})
+		for key, val := range values {
+			if len(val) > 1 {
+				attributesMap[key] = val
+				actionRequest.Attributes[key] = val
+			} else {
+				attributesMap[key] = val[0]
+				actionRequest.Attributes[key] = val[0]
+			}
+		}
+		attributesMap["__body"] = string(bytes)
+		actionRequest.Attributes = attributesMap
+	}
+
+	actionRequest.Type = actionType
+	actionRequest.Action = actionName
+
+	if actionRequest.Attributes == nil {
+		actionRequest.Attributes = make(map[string]interface{})
+	}
+	for _, param := range params {
+		actionRequest.Attributes[param.Key] = param.Value
+	}
+
+	return &actionRequest, nil
+}
+
 func NewClientNotification(notificationType string, message string, title string) map[string]interface{} {
 
 	m := make(map[string]interface{})
@@ -831,7 +831,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 	return val, nil
 }
 
-func GetValidatedInFields(actionRequest ActionRequest, action Action) (map[string]interface{}, error) {
+func GetValidatedInFields(actionRequest *ActionRequest, action Action) (map[string]interface{}, error) {
 
 	dataMap := actionRequest.Attributes
 	finalDataMap := make(map[string]interface{})

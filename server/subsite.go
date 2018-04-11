@@ -1,15 +1,11 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/artpar/go.uuid"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
-	"github.com/artpar/rclone/cmd"
-	"github.com/artpar/rclone/fs/config"
-	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
@@ -18,7 +14,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/stats"
-	"golang.org/x/oauth2"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -46,7 +41,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 	hs.siteMap = make(map[string]resource.SubSite)
 	hs.authMiddleware = authMiddleware
 
-	log.Printf("Cruds before making sub sites: %v", cruds)
+	//log.Printf("Cruds before making sub sits: %v", cruds)
 	sites, err := cruds["site"].GetAllSites()
 	stores, err := cruds["cloud_store"].GetAllCloudStores()
 	cloudStoreMap := make(map[int64]resource.CloudStore)
@@ -76,44 +71,39 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 			continue
 		}
 
+		u, _ := uuid.NewV4()
+		sourceDirectoryName := u.String()
+		tempDirectoryPath, err := ioutil.TempDir("", sourceDirectoryName)
+		if resource.CheckErr(err, "Failed to create temp directory") {
+			continue
+		}
+		subSiteInformation.SourceRoot = tempDirectoryPath
 		cloudStore, ok := cloudStoreMap[*site.CloudStoreId]
 		subSiteInformation.CloudStore = cloudStore
-		storeProvider := cloudStore.StoreProvider
 		if !ok {
 			log.Infof("Site [%v] does not have a associated storage", site.Name)
 			continue
 		}
 
-		oauthTokenId := cloudStore.OAutoTokenId
-
-		token, err := cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
-		oauthConf := &oauth2.Config{}
-		if err != nil {
-			log.Infof("Failed to get oauth token for store sync: %v", err)
-		} else {
-			oauthConf, err := cruds["oauth_token"].GetOauthDescriptionByTokenReferenceId(oauthTokenId)
-			if !token.Valid() {
-				ctx := context.Background()
-				tokenSource := oauthConf.TokenSource(ctx, token)
-				token, err = tokenSource.Token()
-				resource.CheckErr(err, "Failed to get new access token")
-				if token == nil {
-					log.Errorf("We have no token to get the site from storage: %v", cloudStore.ReferenceId)
-					continue
-				}
-				err = cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
-				resource.CheckErr(err, "failed to update access token")
-			}
+		err = cruds["task"].SyncStorageToPath(cloudStore, tempDirectoryPath)
+		if resource.CheckErr(err, "Failed to setup sync to path") {
+			continue
 		}
 
-		u, _ := uuid.NewV4()
-		sourceDirectoryName := u.String()
-		tempDirectoryPath, err := ioutil.TempDir("", sourceDirectoryName)
-
-		//hostRouter := httprouter.New()
-		hostRouter := gin.New()
+		err = TaskScheduler.AddTask(resource.Task{
+			EntityName: "site",
+			ActionName: "sync_site_storage",
+			Attributes: map[string]interface{}{
+				"site_id": site.ReferenceId,
+				"path":    tempDirectoryPath,
+			},
+			AsUserEmail: cruds["user"].GetAdminEmailId(),
+			Schedule:    "@every 10m",
+		})
+		resource.CheckErr(err, "Failed to register task to sync storage")
 
 		subsiteStats := stats.New()
+		hostRouter := gin.New()
 
 		hostRouter.Use(func() gin.HandlerFunc {
 			return func(c *gin.Context) {
@@ -123,40 +113,17 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 			}
 		}())
 
-		subSiteInformation.SourceRoot = tempDirectoryPath
-
-		jsonToken, err := json.Marshal(token)
-		resource.CheckErr(err, "Failed to convert token to json")
-		config.FileSet(storeProvider, "client_id", oauthConf.ClientID)
-		config.FileSet(storeProvider, "type", storeProvider)
-		config.FileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
-		config.FileSet(storeProvider, "token", string(jsonToken))
-		config.FileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-		config.FileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
-
-		args := []string{
-			cloudStore.RootPath,
-			tempDirectoryPath,
-		}
-
-		fsrc, fdst := cmd.NewFsSrcDst(args)
-		log.Infof("Temp dir for site [%v] ==> %v", site.Name, tempDirectoryPath)
-		go cmd.Run(true, true, nil, func() error {
-			if fsrc == nil || fdst == nil {
-				log.Errorf("Either source or destination is empty")
-				return nil
-			}
-			log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
-			if fsrc == nil || fdst == nil {
-				log.Errorf("Source or destination is null")
-				return nil
-			}
-			dir := sync.CopyDir(fdst, fsrc)
-			return dir
+		hostRouter.GET("/stats", func(c *gin.Context) {
+			c.JSON(200, subsiteStats.Data())
 		})
+
 		//hostRouter.ServeFiles("/*filepath", http.Dir(tempDirectoryPath))
 		hostRouter.Use(authMiddleware.AuthCheckMiddleware)
 		hostRouter.Use(static.Serve("/", static.LocalFile(tempDirectoryPath, true)))
+
+		hostRouter.GET("/favicon.ico", func(c *gin.Context) {
+			c.File(tempDirectoryPath + "/favicon.ico")
+		})
 		hostRouter.NoRoute(func(c *gin.Context) {
 			log.Printf("Found no route for %v", c.Request.URL)
 			c.File(tempDirectoryPath + "/index.html")

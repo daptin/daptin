@@ -59,10 +59,6 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 			log.Errorf("Table name is empty, not adding to JSON API, as it will create conflict: %v", table)
 			continue
 		}
-
-		//for _, r := range table.Relations {
-		//log.Infof("Relation :: %v", r.String())
-		//}
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
 
 		res := resource.NewDbResource(model, db, ms, cruds, configStore, &table)
@@ -120,15 +116,6 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 			log.Errorf("Failed to unmarshal json schema: %v", err)
 			continue
 		}
-
-		//for _, col := range t.Columns {
-		//	if col.ForeignKeyData.Namespace != col.ForeignKeyData.TableName {
-		//		col.ForeignKeyData.Namespace = col.ForeignKeyData.TableName
-		//	}
-		//	if col.ForeignKeyData.KeyName != col.ForeignKeyData.ColumnName {
-		//		col.ForeignKeyData.KeyName = col.ForeignKeyData.ColumnName
-		//	}
-		//}
 
 		t.TableName = table_name
 		t.Permission = permission
