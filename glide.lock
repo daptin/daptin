@@ -370,6 +370,8 @@ imports:
   version: a86ea073017a6beddef78c8659e7224e8ca634b0
 - name: github.com/rfjakob/eme
   version: 2222dbd4ba467ab3fc7e8af41562fcfe69c0d770
+- name: github.com/robfig/cron
+  version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
 - name: github.com/sadlil/go-trigger
   version: cfc3d83007cddfc1e31a478aa47cd41de07fac17
 - name: github.com/satori/go.uuid

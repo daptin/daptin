@@ -7,7 +7,7 @@ import:
   version: "1.57"
 - package: github.com/gocraft/health
 - package: github.com/artpar/api2go
-  version: ^2.3.5
+  version: ^2.3.6
 - package: github.com/artpar/api2go-adapter
   version: ^1.0.0
   subpackages:
@@ -69,3 +69,5 @@ import:
 - package: github.com/graphql-go/handler
   version: ^0.2.1
 - package: github.com/bamzi/jobrunner
+- package: github.com/robfig/cron
+  version: ^1.0.0

@@ -66,12 +66,36 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "oauth_token"),
 	api2go.NewTableRelation("site", "has_one", "cloud_store"),
+	api2go.NewTableRelationWithNames("task", "task_executed", "has_one", "user", "as_user_id"),
 }
 
 var SystemSmds = []LoopbookFsmDescription{}
 var SystemExchanges = []ExchangeContract{}
 
 var SystemActions = []Action{
+	{
+		Name:             "sync_site_storage",
+		Label:            "Sync site storage",
+		OnType:           "site",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "Path",
+				ColumnName: "path",
+				ColumnType: "label",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "site.storage.sync",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"cloud_store_id": "$.cloud_store_id",
+					"path":           "~path",
+				},
+			},
+		},
+	},
 	{
 		Name:             "restart_daptin",
 		Label:            "Restart system",
@@ -752,13 +776,13 @@ var SystemActions = []Action{
 
 var adminsGroup = []string{"administrators"}
 
-var StandardCronjobs = []Cronjob{
+var StandardTasks = []Task{
 
 }
 
 var StandardTables = []TableInfo{
 	{
-		TableName:     "cron_job",
+		TableName:     "task",
 		IsHidden:      true,
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-clock",
@@ -771,8 +795,14 @@ var StandardTables = []TableInfo{
 				IsIndexed:  true,
 			},
 			{
-				Name:       "job_type",
-				ColumnName: "job_type",
+				Name:       "action_name",
+				ColumnName: "action_name",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "entity_name",
+				ColumnName: "entity_name",
 				DataType:   "varchar(100)",
 				ColumnType: "label",
 			},

@@ -29,6 +29,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create oauth2 response handler")
 	performers = append(performers, oauth2response)
 
+	storeSyncAction, err := resource.NewSyncSiteStorageActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create oauth2 response handler")
+	performers = append(performers, storeSyncAction)
+
 	oauthProfileExchangePerformer, err := resource.NewOuathProfileExchangePerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create oauth2 profile exchange handler")
 	performers = append(performers, oauthProfileExchangePerformer)
