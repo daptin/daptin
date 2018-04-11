@@ -18,136 +18,13 @@ import (
 	"net/http"
 	"github.com/graphql-go/graphql"
 	"fmt"
-	//graphqlhandler "github.com/graphql-go/handler"
+	graphqlhandler "github.com/graphql-go/handler"
 	//"encoding/json"
-	"github.com/aws/aws-sdk-go/private/util"
-	"github.com/gedex/inflector"
+	//"github.com/aws/aws-sdk-go/private/util"
+	//"github.com/gedex/inflector"
 )
 
 var Stats = stats.New()
-
-func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*resource.DbResource) *graphql.Schema {
-
-	graphqlTypesMap := make(map[string]*graphql.Object)
-	mutations := make(graphql.Fields)
-	query := make(graphql.Fields)
-
-	for _, table := range cmsConfig.Tables {
-
-		fields := make(graphql.Fields)
-
-		for _, column := range table.Columns {
-
-			log.Printf("Get column type for : %v", column.ColumnType)
-			fields[column.ColumnName] = &graphql.Field{
-				Type: resource.ColumnManager.GetGraphqlType(column.ColumnType),
-				Name: column.Name,
-			}
-		}
-
-		objectConfig := graphql.NewObject(graphql.ObjectConfig{
-			Name:   table.TableName,
-			Fields: fields,
-		})
-
-		graphqlTypesMap[table.TableName] = objectConfig
-
-		createFields := make(graphql.FieldConfigArgument)
-
-		for _, column := range table.Columns {
-			if IsStandardColumn(column.ColumnName) {
-				continue
-			}
-
-			if column.IsForeignKey {
-				continue
-			}
-
-			if column.IsNullable {
-				createFields[column.ColumnName] = &graphql.ArgumentConfig{
-					Type: resource.ColumnManager.GetGraphqlType(column.ColumnType),
-				}
-			} else {
-				createFields[column.ColumnName] = &graphql.ArgumentConfig{
-					Type: graphql.NewNonNull(resource.ColumnManager.GetGraphqlType(column.ColumnType)),
-				}
-			}
-
-		}
-
-		mutations["create"+util.Capitalize(table.TableName)] = &graphql.Field{
-			Type:        graphqlTypesMap[table.TableName],
-			Description: "Create a new " + table.TableName,
-			Args:        createFields,
-			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				log.Printf("create resolve params: %v", p)
-				return nil, nil
-			},
-		}
-
-		mutations["update"+util.Capitalize(table.TableName)] = &graphql.Field{
-			Type:        graphqlTypesMap[table.TableName],
-			Description: "Create a new " + table.TableName,
-			Args:        createFields,
-			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				log.Printf("create resolve params: %v", p)
-				return nil, nil
-			},
-		}
-
-		query[table.TableName] = &graphql.Field{
-			Type:        graphqlTypesMap[table.TableName],
-			Description: "Get a single " + table.TableName,
-			Args: graphql.FieldConfigArgument{
-				"id": &graphql.ArgumentConfig{
-					Type:        graphql.String,
-					Description: "id of the " + table.TableName,
-				},
-			},
-			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-
-				//params.Args["id"].(string)
-
-				return nil, nil
-
-			},
-		}
-
-		query[table.TableName+"List"] = &graphql.Field{
-			Type:        graphqlTypesMap[table.TableName],
-			Description: "Get a list of " + inflector.Pluralize(table.TableName),
-			Args: graphql.FieldConfigArgument{
-
-			},
-			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-
-				//params.Args["id"].(string)
-
-				return nil, nil
-
-			},
-		}
-
-	}
-
-	var rootMutation = graphql.NewObject(graphql.ObjectConfig{
-		Name:   "RootMutation",
-		Fields: mutations,
-	});
-	var rootQuery = graphql.NewObject(graphql.ObjectConfig{
-		Name:   "RootQuery",
-		Fields: query,
-	})
-
-	// define schema, with our rootQuery and rootMutation
-	var schema, _ = graphql.NewSchema(graphql.SchemaConfig{
-		Query:    rootQuery,
-		Mutation: rootMutation,
-	})
-
-	return &schema
-
-}
 
 func IsStandardColumn(s string) bool {
 	for _, cols := range resource.StandardColumns {
