@@ -13,6 +13,10 @@ body {
     font-family: 'Varela Round', sans-serif;
 }
 
+strong {
+    color: #534da7;
+}
+
 .rst-content {
     background: #ffffff;
 }
@@ -45,9 +49,15 @@ body {
 
 img.cloud-provider {
     width: 200px;
+    height: 120px;
 }
 
-.navbar-default {
+.wm-toc-li.wm-current, .wm-toc-li.wm-current:hover {
+    background-color: #534da7;
+    color: white;
+}
+
+.navbar {
     background-color: #534da7;
     border-color: #534da7;
 }

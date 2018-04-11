@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">   
+    <link rel="shortcut icon" href="../img/favicon.ico">
+
+    <title></title>
+
+    <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/font-hack/2.018/css/hack.min.css">
+    <link href='//fonts.googleapis.com/css?family=PT+Sans:400,400italic,700,700italic&subset=latin-ext,latin' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,700italic,400,300,600,700&subset=latin-ext,latin' rel='stylesheet' type='text/css'>
+    <link href="../css/base.css" rel="stylesheet">
+    <link href="../css/cinder.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/highlight.css">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+    <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.5.18/webfont.js"></script>
+    <script>
+    WebFont.load({
+        google: {
+            families: ['Open Sans', 'PT Sans']
+        }
+    });
+    </script>
+
+    
+</head>
+
+<body>
+
+    <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+
+            <!-- Main title -->
+
+            <a class="navbar-brand" href="..">Cinder</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                
+                
+                    <li >
+                        <a href="..">Home</a>
+                    </li>
+                
+                
+                
+                    <li class="active">
+                        <a href="./">Specimen</a>
+                    </li>
+                
+                
+                </ul>
+
+            <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
+                            <i class="fa fa-search"></i> Search
+                        </a>
+                    </li>
+                    <li >
+                        <a rel="next" href="..">
+                            <i class="fa fa-arrow-left"></i> Previous
+                        </a>
+                    </li>
+                    <li class="disabled">
+                        <a rel="prev" >
+                            Next <i class="fa fa-arrow-right"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://github.com/chrissimpkins/cinder/edit/master/docs/specimen.md"><i class="fa fa-github"></i> Edit on GitHub</a>
+                    </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+    <div class="container">
+        
+        <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+        <li class="first-level active"><a href="#typography">Typography</a></li>
+            <li class="second-level"><a href="#typefaces">Typefaces</a></li>
+                
+            <li class="second-level"><a href="#body-copy">Body Copy</a></li>
+                
+            <li class="second-level"><a href="#lead-body-copy">Lead Body Copy</a></li>
+                
+            <li class="second-level"><a href="#headings">Headings</a></li>
+                
+            <li class="second-level"><a href="#blockquotes">Blockquotes</a></li>
+                
+            <li class="second-level"><a href="#lists">Lists</a></li>
+                
+            <li class="second-level"><a href="#horizontal-description-lists">Horizontal Description Lists</a></li>
+                
+            <li class="second-level"><a href="#contextual-colors">Contextual Colors</a></li>
+                
+        <li class="first-level "><a href="#code">Code</a></li>
+            <li class="second-level"><a href="#inline-code">Inline Code</a></li>
+                
+        <li class="first-level "><a href="#tables">Tables</a></li>
+            <li class="second-level"><a href="#striped-table">Striped Table</a></li>
+                
+            <li class="second-level"><a href="#bordered-table">Bordered Table</a></li>
+                
+        <li class="first-level "><a href="#buttons">Buttons</a></li>
+            <li class="second-level"><a href="#default-buttons">Default Buttons</a></li>
+                
+            <li class="second-level"><a href="#styled-buttons">Styled Buttons</a></li>
+                
+            <li class="second-level"><a href="#button-sizes">Button Sizes</a></li>
+                
+            <li class="second-level"><a href="#block-level-buttons">Block Level Buttons</a></li>
+                
+    </ul>
+</div></div>
+        <div class="col-md-9" role="main">
+
+<h1>Cinder Theme Specimen</h1>
+
+<h2 id="typography">Typography</h2>
+<h3 id="typefaces">Typefaces</h3>
+<ul>
+<li>Headers: <a href="https://www.google.com/fonts/specimen/PT+Sans">PT Sans</a></li>
+<li>Body: <a href="https://www.google.com/fonts/specimen/Open+Sans">Open Sans</a></li>
+<li>Code: <a href="http://sourcefoundry.org/hack/">Hack</a></li>
+</ul>
+<h3 id="body-copy">Body Copy</h3>
+<p>You think water moves fast? You should see ice. <strong>It moves like it has a mind</strong>. Like it knows it killed the world once and got a taste for murder. <em>After the avalanche, it took us a week to climb out</em>. Now, I don't know exactly when we turned on each other, but I know that seven of us survived the slide... and only five made it out.</p>
+<p>Now we took an oath, that I'm breaking now. <a href="#">We said</a> we'd say it was the snow that killed the other two, but it wasn't.  Nature is lethal but it doesn't hold a candle to man.</p>
+<p>Like inline code?  Here is a string for you <code>010101010</code>.</p>
+<h3 id="lead-body-copy">Lead Body Copy</h3>
+<p class="lead">Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor. Duis mollis, est non commodo luctus.</p>
+
+<h3 id="headings">Headings</h3>
+<p>All HTML headings, <code>&lt;h1&gt;</code> through <code>&lt;h6&gt;</code>, are available. <code>.h1</code> through <code>.h6</code> classes are also available, for when you want to match the font styling of a heading but still want your text to be displayed inline.</p>
+<h1>h1. Heading</h1>
+
+<h2>h2. Heading</h2>
+
+<h3>h3. Heading</h3>
+
+<h4>h4. Heading</h4>
+
+<h5>h5. Heading</h5>
+
+<h6>h6. Heading</h6>
+
+<h1>h1. Heading <small>Secondary text</small></h1>
+
+<h2>h2. Heading <small>Secondary text</small></h2>
+
+<h3>h3. Heading <small>Secondary text</small></h3>
+
+<h4>h4. Heading <small>Secondary text</small></h4>
+
+<h5>h5. Heading <small>Secondary text</small></h5>
+
+<h6>h6. Heading <small>Secondary text</small></h6>
+
+<h3 id="blockquotes">Blockquotes</h3>
+<blockquote>
+  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante.</p>
+  <footer>Someone famous in <cite title="Source Title">Source Title</cite></footer>
+</blockquote>
+
+<h3 id="lists">Lists</h3>
+<ul>
+<li><code>mkdocs new [dir-name]</code> - Create a new project.</li>
+<li><code>mkdocs serve</code> - Start the live-reloading docs server.</li>
+<li><code>mkdocs build</code> - Build the documentation site.</li>
+<li><code>mkdocs help</code> - Print this help message.</li>
+</ul>
+<h3 id="horizontal-description-lists">Horizontal Description Lists</h3>
+<dl class="dl-horizontal">
+  <dt>Something</dt>
+  <dd>This is something</dd>
+  <dt>SomethingElse</dt>
+  <dd>This is something else</dd>
+</dl>
+
+<h3 id="contextual-colors">Contextual Colors</h3>
+<p class="text-muted">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante.</p>
+
+<p class="text-primary">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante.</p>
+
+<p class="text-success">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante.</p>
+
+<p class="text-info">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante.</p>
+
+<p class="text-warning">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante.</p>
+
+<p class="text-danger">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante.</p>
+
+<h2 id="code">Code</h2>
+<h3 id="inline-code">Inline Code</h3>
+<p>This is an example of inline code <code>#import requests</code></p>
+<h3>Preformatted Code Blocks <small>with Syntax Highlighting</small></h3>
+
+<pre><code class="python">def convert_markdown(markdown_source, config, site_navigation=None):
+    """
+    Convert the Markdown source file to HTML as per the config and
+    site_navigation. Return a tuple of the HTML as a string, the parsed table
+    of contents, and a dictionary of any metadata that was specified in the
+    Markdown file.
+    """
+
+    extensions = [
+        RelativePathExtension(site_navigation, config['strict'])
+    ] + config['markdown_extensions']
+
+    return utils.convert_markdown(
+        markdown_source=markdown_source,
+        extensions=extensions,
+        extension_configs=config['mdx_configs']
+    )
+</code></pre>
+
+<h2 id="tables">Tables</h2>
+<h3 id="striped-table">Striped Table</h3>
+<table class="table table-striped">
+  <thead>
+      <tr>
+        <th>#</th>
+        <th>Head 1</th>
+        <th>Head 2</th>
+        <th>Head 3</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <th scope="row">1</th>
+        <td>Box 1</td>
+        <td>Box 2</td>
+        <td>Box 3</td>
+      </tr>
+        <tr>
+        <th scope="row">2</th>
+        <td>Box 4</td>
+        <td>Box 5</td>
+        <td>Box 6</td>
+      </tr>
+      <tr>
+        <th scope="row">3</th>
+        <td>Box 7</td>
+        <td>Box 8</td>
+        <td>Box 9</td>
+      </tr>
+  </tbody>
+</table>
+
+<h3 id="bordered-table">Bordered Table</h3>
+<table class="table table-bordered">
+  <thead>
+      <tr>
+        <th>#</th>
+        <th>Head 1</th>
+        <th>Head 2</th>
+        <th>Head 3</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <th scope="row">1</th>
+        <td>Box 1</td>
+        <td>Box 2</td>
+        <td>Box 3</td>
+      </tr>
+        <tr>
+        <th scope="row">2</th>
+        <td>Box 4</td>
+        <td>Box 5</td>
+        <td>Box 6</td>
+      </tr>
+      <tr>
+        <th scope="row">3</th>
+        <td>Box 7</td>
+        <td>Box 8</td>
+        <td>Box 9</td>
+      </tr>
+  </tbody>
+</table>
+
+<h2 id="buttons">Buttons</h2>
+<h3 id="default-buttons">Default Buttons</h3>
+<p><a class="btn btn-default" href="#" role="button">Link</a>
+<button class="btn btn-default" type="submit">Button</button>
+<input class="btn btn-default" type="button" value="Input">
+<input class="btn btn-default" type="submit" value="Submit"></p>
+<h3 id="styled-buttons">Styled Buttons</h3>
+<!-- Standard button -->
+
+<p><button type="button" class="btn btn-default">Default</button></p>
+<!-- Provides extra visual weight and identifies the primary action in a set of buttons -->
+
+<p><button type="button" class="btn btn-primary">Primary</button></p>
+<!-- Indicates a successful or positive action -->
+
+<p><button type="button" class="btn btn-success">Success</button></p>
+<!-- Contextual button for informational alert messages -->
+
+<p><button type="button" class="btn btn-info">Info</button></p>
+<!-- Indicates caution should be taken with this action -->
+
+<p><button type="button" class="btn btn-warning">Warning</button></p>
+<!-- Indicates a dangerous or potentially negative action -->
+
+<p><button type="button" class="btn btn-danger">Danger</button></p>
+<h3 id="button-sizes">Button Sizes</h3>
+<p>
+  <button type="button" class="btn btn-primary btn-lg">Large button</button>
+  <button type="button" class="btn btn-default btn-lg">Large button</button>
+</p>
+
+<p>
+  <button type="button" class="btn btn-primary">Default button</button>
+  <button type="button" class="btn btn-default">Default button</button>
+</p>
+
+<p>
+  <button type="button" class="btn btn-primary btn-sm">Small button</button>
+  <button type="button" class="btn btn-default btn-sm">Small button</button>
+</p>
+
+<p>
+  <button type="button" class="btn btn-primary btn-xs">Extra small button</button>
+  <button type="button" class="btn btn-default btn-xs">Extra small button</button>
+</p>
+
+<h3 id="block-level-buttons">Block Level Buttons</h3>
+<p><button type="button" class="btn btn-primary btn-lg btn-block">Block level button</button>
+<button type="button" class="btn btn-default btn-lg btn-block">Block level button</button></p></div>
+        
+    </div>
+
+    <footer class="col-md-12 text-center">
+        <hr>
+        <p>
+        <small>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p></small>
+    </footer>
+
+    <script src="../js/jquery-1.10.2.min.js"></script>
+    <script src="../js/bootstrap-3.0.3.min.js"></script>
+    <script src="../js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <script>
+    var base_url = '..';
+    </script>
+    <script data-main="../mkdocs/js/search.js" src="../mkdocs/js/require.js"></script>
+    <script src="../js/base.js"></script>
+    <script src="../search/require.js"></script>
+    <script src="../search/search.js"></script>
+
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span aria-hidden="true">&times;</span>
+                        <span class="sr-only">Close</span>
+                    </button>
+                    <h4 class="modal-title" id="exampleModalLabel">Search</h4>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        From here you can search these documents. Enter your search terms below.
+                    </p>
+                    <form role="form">
+                        <div class="form-group">
+                            <input type="text" class="form-control" placeholder="Search..." id="mkdocs-search-query">
+                        </div>
+                    </form>
+                    <div id="mkdocs-search-results"></div>
+                </div>
+                <div class="modal-footer">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </body>
+
+</html>

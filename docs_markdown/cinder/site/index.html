@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">   
+    <link rel="shortcut icon" href="./img/favicon.ico">
+
+    <title></title>
+
+    <link href="./css/bootstrap-custom.min.css" rel="stylesheet">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/font-hack/2.018/css/hack.min.css">
+    <link href='//fonts.googleapis.com/css?family=PT+Sans:400,400italic,700,700italic&subset=latin-ext,latin' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,700italic,400,300,600,700&subset=latin-ext,latin' rel='stylesheet' type='text/css'>
+    <link href="./css/base.css" rel="stylesheet">
+    <link href="./css/cinder.css" rel="stylesheet">
+    <link rel="stylesheet" href="./css/highlight.css">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+    <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.5.18/webfont.js"></script>
+    <script>
+    WebFont.load({
+        google: {
+            families: ['Open Sans', 'PT Sans']
+        }
+    });
+    </script>
+
+    
+</head>
+
+<body>
+
+    <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+
+            <!-- Main title -->
+
+            <a class="navbar-brand" href=".">Cinder</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                
+                
+                    <li class="active">
+                        <a href=".">Home</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="specimen/">Specimen</a>
+                    </li>
+                
+                
+                </ul>
+
+            <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
+                            <i class="fa fa-search"></i> Search
+                        </a>
+                    </li>
+                    <li class="disabled">
+                        <a rel="next" >
+                            <i class="fa fa-arrow-left"></i> Previous
+                        </a>
+                    </li>
+                    <li >
+                        <a rel="prev" href="specimen/">
+                            Next <i class="fa fa-arrow-right"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://github.com/chrissimpkins/cinder/edit/master/docs/index.md"><i class="fa fa-github"></i> Edit on GitHub</a>
+                    </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+    <div class="container">
+        
+        <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+        <li class="first-level active"><a href="#about">About</a></li>
+        <li class="first-level "><a href="#install">Install</a></li>
+            <li class="second-level"><a href="#install-mkdocs-create-a-new-project">Install MkDocs &amp; Create a New Project</a></li>
+                
+            <li class="second-level"><a href="#install-the-cinder-theme">Install the Cinder Theme</a></li>
+                
+                <li class="third-level"><a href="#1-install-with-pip">1. Install with pip</a></li>
+                <li class="third-level"><a href="#2-manual-install">2. Manual Install</a></li>
+        <li class="first-level "><a href="#test-with-a-local-site-server">Test with a Local Site Server</a></li>
+        <li class="first-level "><a href="#create-your-site">Create Your Site</a></li>
+            <li class="second-level"><a href="#add-content-with-markdown-syntax">Add Content with Markdown Syntax</a></li>
+                
+            <li class="second-level"><a href="#add-new-pages">Add New Pages</a></li>
+                
+        <li class="first-level "><a href="#build-your-site">Build Your Site</a></li>
+        <li class="first-level "><a href="#site-customization">Site Customization</a></li>
+            <li class="second-level"><a href="#site-favicon">Site Favicon</a></li>
+                
+            <li class="second-level"><a href="#add-your-own-css-stylesheets">Add Your Own CSS Stylesheets</a></li>
+                
+            <li class="second-level"><a href="#add-your-own-javascript">Add Your Own JavaScript</a></li>
+                
+            <li class="second-level"><a href="#github-or-bitbucket-repository-link">Github or Bitbucket Repository Link</a></li>
+                
+            <li class="second-level"><a href="#license-declaration-and-link">License Declaration and Link</a></li>
+                
+        <li class="first-level "><a href="#issues">Issues</a></li>
+        <li class="first-level "><a href="#license">License</a></li>
+    </ul>
+</div></div>
+        <div class="col-md-9" role="main">
+
+<h1>Cinder Theme <small>for MkDocs</small></h1>
+
+<h2 id="about">About</h2>
+<p>Cinder is a clean, responsive theme for static documentation sites that are generated with <a href="https://github.com/mkdocs/mkdocs">MkDocs</a>. It's built on the <a href="http://getbootstrap.com/">Bootstrap framework</a> and includes pre-packaged syntax highlighting (<a href="https://highlightjs.org/">highlight.js</a>), icons (<i class="fa fa-flag"></i> <a href="https://fortawesome.github.io/Font-Awesome/">FontAwesome</a>), and a smashingly legible type scheme to get your message out to your users.</p>
+<p>You are looking at the theme and can see a selection of the theme elements on the <a href="./specimen/">Specimen page</a>.</p>
+<h2 id="install">Install</h2>
+<p><strong><em>Required</em></strong>: Python 2.6+ or 3.3+</p>
+<h3 id="install-mkdocs-create-a-new-project">Install MkDocs &amp; Create a New Project</h3>
+<p>If you haven't installed MkDocs yet, use the following command to install it:</p>
+<pre><code class="nohighlight">$ pip install mkdocs</code></pre>
+
+<p>Next, navigate to a clean directory and create a new MkDocs project with the following command:</p>
+<pre><code class="nohighlight">$ mkdocs new [projectname]</code></pre>
+
+<p>Replace <code>[projectname]</code> with the name of your project (without the brackets).</p>
+<p>Then navigate to the root of your project directory:</p>
+<pre><code class="nohighlight">$ cd [projectname]</code></pre>
+
+<h3 id="install-the-cinder-theme">Install the Cinder Theme</h3>
+<p>Choose one of the following install approaches:</p>
+<h4 id="1-install-with-pip">1. Install with pip</h4>
+<p>If you are using MkDocs v0.15.0 or higher, you can install the Cinder theme with pip using the command:</p>
+<pre><code class="nohighlight">$ pip install mkdocs-cinder</code></pre>
+
+<p>MkDocs projects use a YAML settings file called <code>mkdocs.yml</code>.  This is located in the root of your project directory after you use the <code>mkdocs new</code> command.  Open the file in a text editor and modify it to define Cinder in the <code>theme</code> setting as follows (note that this is case-sensitive):</p>
+<pre><code class="yaml">site_name: [YOURPROJECT]
+theme: cinder
+pages:
+- Home: index.md
+</code></pre>
+
+<p><strong>Theme Updates</strong>: If you choose the pip install approach, you can update your Cinder theme to new releases with the command <code>$ pip install --upgrade mkdocs-cinder</code>.  Then re-build your static site files (see instructions below).</p>
+<h4 id="2-manual-install">2. Manual Install</h4>
+<p>Download the Cinder theme archive.</p>
+<p><a href="https://github.com/chrissimpkins/cinder/archive/v0.10.0.zip"><button type="button" class="btn btn-success"><i class="fa fa-cloud-download"></i>  Download Cinder v0.10.0</button></a></p>
+<p>Unpack the contents of the archive into a directory named <code>cinder</code> at the top level of your MkDocs project directory.</p>
+<p>Your project directory should now look like this:</p>
+<pre><code class="nohighlight">.
+├── mkdocs.yml
+├── cinder
+│     ├── css
+│     ├── img
+│     ├── js
+│     ├── base.html
+│     ├── content.html
+│     ├── 404.html
+│     ├── nav-sub.html
+│     ├── nav.html
+│     └── toc.html
+└── docs
+      └── index.md
+</code></pre>
+
+<p>MkDocs projects use a YAML settings file called <code>mkdocs.yml</code>.  This is located in the root of your project directory after you use the <code>mkdocs new</code> command.  Open the file in a text editor and modify it to include the <code>theme_dir</code> setting as follows:</p>
+<pre><code class="yaml">site_name: [YOURPROJECT]
+theme_dir: cinder
+pages:
+- Home: index.md
+</code></pre>
+
+<p><strong>Theme Updates</strong>: If you choose the manual install approach, you can update your Cinder theme by downloading the new cinder.zip release archive and including it in your project. Then re-build your static site files (see instructions below).</p>
+<h2 id="test-with-a-local-site-server">Test with a Local Site Server</h2>
+<p>Use the following command to establish a local server for your site:</p>
+<pre><code class="nohighlight">$ mkdocs serve</code></pre>
+
+<p>Then open your site in any browser at the URL <code>http://localhost:8000</code>.</p>
+<h2 id="create-your-site">Create Your Site</h2>
+<h3 id="add-content-with-markdown-syntax">Add Content with Markdown Syntax</h3>
+<p>Get to work on your site home page by opening the <code>docs/index.md</code> file and editing it in Markdown syntax.  The HTML automatically updates in the browser when you save the Markdown file if you use the MkDocs server (see command above).</p>
+<h3 id="add-new-pages">Add New Pages</h3>
+<p>Add new pages to your site by creating a new Markdown file in your <code>docs</code> directory, then linking to the new page in the <code>mkdocs.yml</code> file.  This uses a <code>Page Name : Markdown file</code> syntax.</p>
+<p>For example, to add an About page using a Markdown file that is located on the path <code>docs/about.md</code>, you would format the <code>mkdocs.yml</code> file as follows:</p>
+<pre><code class="yaml">site_name: [YOURPROJECT]
+theme_dir: cinder
+pages:
+- Home: index.md
+- About: about.md</code></pre>
+
+<p>Add additional pages to your site by repeating the above series of steps.</p>
+<h2 id="build-your-site">Build Your Site</h2>
+<p>Build your site files with the command:</p>
+<pre><code class="nohighlight">$ mkdocs build</code></pre>
+
+<p>Your site files are built in the <code>site</code> directory and are ready to use.  Deploy the contents of the <code>site</code> directory to your web server.</p>
+<h2 id="site-customization">Site Customization</h2>
+<p>The following are a few common customizations that you might be interested in.  For much more detail about the configuration of your site, check out the <a href="https://github.com/mkdocs/mkdocs/blob/master/docs/user-guide/configuration.md">MkDocs Configuration documentation</a>.</p>
+<h3 id="site-favicon">Site Favicon</h3>
+<p>Place your site favicon image file in the top level of your docs directory and then include a new <code>site_favicon:</code> field in the <code>mkdocs.yml</code> file:</p>
+<pre><code class="yaml">site_name: [YOURPROJECT]
+theme_dir: cinder
+site_favicon: favicon.ico
+pages:
+  - Home: index.md
+  - About: about.md</code></pre>
+
+<h3 id="add-your-own-css-stylesheets">Add Your Own CSS Stylesheets</h3>
+<p>Create a <code>css</code> directory inside your <code>docs</code> directory and add your CSS files.  You can overwrite any of the Cinder styles in your CSS files.  Then include your CSS files in the <code>mkdocs.yml</code> file with the <code>extra_css</code> field:</p>
+<pre><code class="yaml">site_name: [YOURPROJECT]
+theme_dir: cinder
+extra_css:
+  - "css/mystyle.css"
+  - "css/myotherstyle.css"
+pages:
+  - Home: index.md
+  - About: about.md</code></pre>
+
+<p>Your CSS styles fall at the end of the cascade and will override all styles included in the theme (including Bootstrap and default Cinder styles).  You can find the Cinder and Bootstrap CSS files on the paths <code>cinder/css/cinder.css</code> and <code>cinder/css/bootstrap.min.css</code>, respectively.</p>
+<h3 id="add-your-own-javascript">Add Your Own JavaScript</h3>
+<p>Create a <code>js</code> directory inside your <code>docs</code> directory and add your JS files.  Then include your JS files in the <code>mkdocs.yml</code> file with the <code>extra_js</code> field:</p>
+<pre><code class="yaml">site_name: [YOURPROJECT]
+theme_dir: cinder
+extra_js:
+  - "js/myscript.js"
+  - "js/myotherscript.js"
+pages:
+  - Home: index.md
+  - About: about.md</code></pre>
+
+<h3 id="github-or-bitbucket-repository-link">Github or Bitbucket Repository Link</h3>
+<p>Include the <code>repo_url</code> field and define it with your repository URL:</p>
+<pre><code class="yaml">site_name: [YOURPROJECT]
+theme_dir: cinder
+repo_url: "https://github.com/chrissimpkins/cinder"
+pages:
+  - Home: index.md
+  - About: about.md</code></pre>
+
+<p>The link appears at the upper right hand corner of your site.</p>
+<h3 id="license-declaration-and-link">License Declaration and Link</h3>
+<p>The Cinder theme displays your license declaration in the footer if you include a <code>copyright</code> field and define it with the text (and optionally the HTML link) that you would like to display:</p>
+<pre><code class="yaml">site_name: [YOURPROJECT]
+theme_dir: cinder
+copyright: "Cinder is licensed under the &lt;a href='https://github.com/chrissimpkins/cinder/blob/master/LICENSE.md'&gt;MIT license</a>"
+pages:
+  - Home: index.md
+  - About: about.md</code></pre>
+
+<h2 id="issues">Issues</h2>
+<p>If you have any issues with the theme, please report them on the Cinder repository:</p>
+<p><a href="https://github.com/chrissimpkins/cinder/issues/new"><button class="btn btn-primary" type="submit">Report Issue</button></a>
+<a href="https://github.com/chrissimpkins/cinder/issues"><button class="btn btn-primary" type="submit">Active Issues</button></a></p>
+<h2 id="license">License</h2>
+<p>Cinder is licensed under the MIT license. The full text of the license is available <a href="https://github.com/chrissimpkins/cinder/blob/master/LICENSE.md">here</a>.</p></div>
+        
+    </div>
+
+    <footer class="col-md-12 text-center">
+        <hr>
+        <p>
+        <small>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p></small>
+    </footer>
+
+    <script src="./js/jquery-1.10.2.min.js"></script>
+    <script src="./js/bootstrap-3.0.3.min.js"></script>
+    <script src="./js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <script>
+    var base_url = '.';
+    </script>
+    <script data-main="./mkdocs/js/search.js" src="./mkdocs/js/require.js"></script>
+    <script src="./js/base.js"></script>
+    <script src="./search/require.js"></script>
+    <script src="./search/search.js"></script>
+
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span aria-hidden="true">&times;</span>
+                        <span class="sr-only">Close</span>
+                    </button>
+                    <h4 class="modal-title" id="exampleModalLabel">Search</h4>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        From here you can search these documents. Enter your search terms below.
+                    </p>
+                    <form role="form">
+                        <div class="form-group">
+                            <input type="text" class="form-control" placeholder="Search..." id="mkdocs-search-query">
+                        </div>
+                    </form>
+                    <div id="mkdocs-search-results"></div>
+                </div>
+                <div class="modal-footer">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </body>
+
+</html>

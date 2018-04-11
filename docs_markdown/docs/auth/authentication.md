@@ -9,11 +9,11 @@ The authentication token is a JWT token issued by daptin on sign in action. User
 
 ## Server side
 
-Daptin uses oAuth2 based authentication strategy. HTTP calls are checked for ```Authorization``` header, and if present, validates the token as a JWT token.
+Daptin uses oAuth2 based authentication strategy. HTTP calls are checked for ```Authorization``` header, and if present, validated as a JWT token. The JWT token should have been issued by daptin earlier and should not have expired. To see how to generate JWT token, checkout the [sing-in action](/actions/signin.md).
 
-The JWT token contains the issuer info (Daptin in this case) plus basic user profile (email). The JWT token has a one hour expiry from the time of issue.
+The JWT token contains the issuer information (daptin) plus basic user profile (email). The JWT token has a one hour (configurable) expiry from the time of issue.
 
-If the token is absent or invalid, the user is considered as a guest. Guests also have certain permissions. Checkout the [Authorization docs](authorization.md) for details. 
+If the token is absent or invalid, the user is considered as a guest. Guests also have certain permissions. Checkout the [Authorization docs](/auth/authorization.md) for details.
 
 ## Client side
 
