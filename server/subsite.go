@@ -98,7 +98,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 				"path":    tempDirectoryPath,
 			},
 			AsUserEmail: cruds["user"].GetAdminEmailId(),
-			Schedule:    "@every 1m",
+			Schedule:    "@every 10m",
 		})
 		resource.CheckErr(err, "Failed to register task to sync storage")
 
