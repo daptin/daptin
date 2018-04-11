@@ -1,6 +1,32 @@
-# Entity relations
+# Data relations
 
 A data oriented system with no relational knowledge of the data is next to an Excel sheet. Specifying relations in your data is the most important thing after creating your entities.
+
+Relations are constraints among tables and help you keep clean and consistent data. Relational data is easily accessible over APIs using a path structure like `/api/<entityName>/<id>/<relationName>` and the response is consistent with [JSONAPI.org](https://JSONAPI.org).
+
+Checkout the [relation apis](/apis/relation.md) exposed by daptin.
+
+!!! note "YAML example"
+    ```yaml
+    Relations:
+    - Subject: todo
+      Relation: has_one
+      Object: project
+    ```
+
+!!! note "JSON example"
+    ```json
+    {
+      "Relations": [
+        {
+          "Subject": "todo",
+          "Relation": "has_one",
+          "Object": "project"
+        }
+      ]
+    }
+    ```
+
 
 ## Relations in JSON/YAML schema
 
@@ -44,12 +70,15 @@ has_many | many related objects | Yes
 
 Every entity created on daptin has at least two relations
 
-Relation Type | Related Entity 
---- | ---
-belongs | user
-has many | usergroup
+Relation Type | Related Entity | Purpose
+--- | --- | ---
+belongs | user | owner of the object
+has many | usergroup | belongs to usergroup
 
-To understand why these two relations will always exist, checkout [daptin authorization model](/auth/authorization.md)
+
+These relations help you precisely control the authorization for each user.
+
+Read more about [authorization and permissions](/auth/authorization.md)
 
 
 ## Multiple relation

@@ -1,10 +1,13 @@
-# Entites
+# Data modeling
 
-## Automatic creation
+Tables are the basic data structure. Tables have columns. Each column has a particular data type. Tables are exposed as JSON APIs under the `/api/` path.
+
+
+# Automatic creation
 
 Import CSV or XLS file and you can let Daptin create the entities for you based on intelligent data pre-processor.
 
-## Manual creation
+# Manual creation
 
 If you are looking for a more reproducible way, design your entities and create JSON or YAML files. These files can be used again to create an exact same replica.
 
@@ -12,14 +15,43 @@ Multiple schema json files can be uploaded, and changes are merged accordingly.
 
 Lets imagine we were creating a todo application and wanted to keep a track of the following for each todo item
 
-
 !!! example "Todo list example"
     - the todo text field - title
-    - a description text field - may or may not be empty
-    - a deadline date field - a date field to capture the deadline
-    - completed - a true/false field, which captures if the todo is done
-    - order - a field to store the priority of each todo
 
+
+!!! note "YAML example"
+    ```yaml
+    Tables:
+    - TableName: todo
+      Columns:
+      - Name: title
+        DataType: varchar(500)
+        ColumnType: label
+        IsIndexed: true
+    ```
+
+
+!!! note "JSON example"
+    ```json
+    {
+      "Tables": [
+        {
+          "TableName": "todo",
+          "Columns": [
+            {
+              "Name": "title",
+              "DataType": "varchar(500)",
+              "ColumnType": "label",
+              "IsIndexed": true
+            }
+          ]
+        }
+      ]
+    }
+    ```
+
+
+## Data validations
 
 Along with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo
 
@@ -29,21 +61,13 @@ Along with the fields mentioned above, we might want certain validations and con
 
 Once we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this.
 
-### Online entity designer
+# Example
 
-The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it. This is a basic designer and more advanced features to customise every aspect of the entity will be added later.
+## JSON example
 
-![Entity designer](/images/create_entity.png)
+JSON files are the primary way to create new entities in daptin. The above two ways ultimately create a JSON file or fetch from the market.
 
-### Market place
-
-Checkout [marketplace documentation](/extend/marketplace.md)
-
-### JSON / YAML files
-
-JSON/YAML files are the primary way to create new entites in daptin. The above two ways ultimatele create a JSON file or fetch from the market.
-
-The JSON for our hypothetical todo entity will look as follows:
+The JSON for our `todo` entity will look as follows:
 
 ```json
     {
@@ -98,7 +122,10 @@ The JSON for our hypothetical todo entity will look as follows:
 - Column Type: The type of the column. Daptin supports a variety of types and these allow daptin to give you useful options in future (eg for viewing a timeline, a date/datetime column is required)
 - Default value: Columns can have default values, which is used a new row is created and no value for that column is specified.
 
-While the same description in YAML will look as follows
+
+## YAML example
+
+YAML example for `todo` entity is as follows
 
 ```yaml
 Tables:
@@ -139,7 +166,19 @@ Tags: required
 
 You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.
 
-### Column specifications
+
+# Online entity designer
+
+The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it. This is a basic designer and more advanced features to customise every aspect of the entity will be added later.
+
+![Entity designer](/images/create_entity.png)
+
+# Market place
+
+Checkout [marketplace documentation](/extend/marketplace.md)
+
+
+# Column specifications
 
 Columns of the entity can be customized:
 
@@ -191,15 +230,3 @@ Type Name | Description | Example
 	 file|uploads, connect storage for using this|
 	 url| Urls/links| http://docs.dapt.in
 
-## Excel file upload
-
-Excel upload provides an easy way to create entities. This takes away the complexity of writing each column type. Daptin uses a combination of rules to identify columns and their types based on the data in the excel.
-
-You can upload data from XLS. Daptin will take care of going through your XLS file and identifying column types. This is one of the easiest and fastest ways to create entities and uploading data in daptin. You can specify relations among entities later from the online designer.
-
-
-## Restart
-
-Daptin relies on self restarts to configure new entities and apis. As soon as you upload a schema file, daptin will write the file to disk, and restart itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.
-
-You can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.

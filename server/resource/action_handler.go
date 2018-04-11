@@ -826,7 +826,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 		val = fieldString
 
 	}
-	log.Printf("Evaluated string path [%v] => %v", fieldString, val)
+	//log.Printf("Evaluated string path [%v] => %v", fieldString, val)
 
 	return val, nil
 }
