@@ -333,11 +333,181 @@
         <div class="container">
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
+        <li class="main active"><a href="#get-apientityname">GET /api/&lt;entityName&gt;</a></li>
+            <li><a href="#parameters">Parameters</a></li>
+        <li class="main "><a href="#response">Response</a></li>
+        <li class="main "><a href="#examples">Examples</a></li>
+            <li><a href="#curl-example">Curl example</a></li>
+            <li><a href="#jquery-ajax-example">jQuery ajax example</a></li>
+            <li><a href="#node-js-example">Node js example</a></li>
+            <li><a href="#python-example">Python example</a></li>
+            <li><a href="#php-example">PHP example</a></li>
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
 
+<h1 id="get-apientityname">GET /api/&lt;entityName&gt;<a class="headerlink" href="#get-apientityname" title="Permanent link">Link</a></h1>
+<h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">Link</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>parameter type</th>
+<th>default value</th>
+<th>example value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>page[number]</td>
+<td>integer</td>
+<td>1</td>
+<td>5</td>
+</tr>
+<tr>
+<td>page[size]</td>
+<td>integer</td>
+<td>10</td>
+<td>100</td>
+</tr>
+<tr>
+<td>query</td>
+<td>json base64</td>
+<td>[]</td>
+<td>[{'column': 'name' 'operator': 'eq' 'value': 'england'}]</td>
+</tr>
+<tr>
+<td>group</td>
+<td>string</td>
+<td>-</td>
+<td>[{'column': 'name' 'order': 'desc'}]</td>
+</tr>
+<tr>
+<td>included_relations</td>
+<td>comma separated string</td>
+<td>-</td>
+<td>user post author</td>
+</tr>
+<tr>
+<td>sort</td>
+<td>comma seaparated string</td>
+<td>-</td>
+<td>created_at amount guest_count</td>
+</tr>
+<tr>
+<td>filter</td>
+<td>string</td>
+<td>-</td>
+<td>england</td>
+</tr>
+</tbody>
+</table>
+<h1 id="response">Response<a class="headerlink" href="#response" title="Permanent link">Link</a></h1>
+<div class="admonition note">
+<p class="admonition-title">Response example</p>
+<div class="codehilite"><pre><span></span>{
+    &quot;links&quot;: {
+        &quot;current_page&quot;: 1,
+        &quot;from&quot;: 0,
+        &quot;last_page&quot;: 1,
+        &quot;per_page&quot;: 10,
+        &quot;to&quot;: 10,
+        &quot;total&quot;: 1
+    },
+    &quot;data&quot;: [{
+        &quot;type&quot;: &quot;book&quot;,
+        &quot;id&quot;: &quot;29d11cb3-3fad-4972-bf3b-9cfc6da9e6a6&quot;,
+        &quot;attributes&quot;: {
+            &quot;__type&quot;: &quot;book&quot;,
+            &quot;confirmed&quot;: 0,
+            &quot;created_at&quot;: &quot;2018-04-05 15:47:29&quot;,
+            &quot;title&quot;: &quot;book title&quot;,
+            &quot;name&quot;: &quot;book name&quot;,
+            &quot;permission&quot;: 127127127,
+            &quot;reference_id&quot;: &quot;29d11cb3-3fad-4972-bf3b-9cfc6da9e6a6&quot;,
+            &quot;updated_at&quot;: null,
+            &quot;user_id&quot;: &quot;696c98d3-3b8b-41da-a510-08e6948cf661&quot;
+        },
+        &quot;relationships&quot;: {
+            &quot;author_id&quot;: {
+                &quot;links&quot;: {
+                    &quot;related&quot;: &quot;/api/book/&lt;book-id/author_id&quot;,
+                    &quot;self&quot;: &quot;/api/book/&lt;book-id&gt;/relationships/author_id&quot;
+                },
+                &quot;data&quot;: []
+            }
+        }
+    }]
+}
+</pre></div>
+
 </div>
+<h1 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">Link</a></h1>
+<h2 id="curl-example">Curl example<a class="headerlink" href="#curl-example" title="Permanent link">Link</a></h2>
+<div class="codehilite"><pre><span></span>curl &#39;/api/&lt;entityName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39; \
+  -H &#39;Authorization: Bearer &lt;AccessToken&gt;&#39;
+</pre></div>
+
+
+<h2 id="jquery-ajax-example">jQuery ajax example<a class="headerlink" href="#jquery-ajax-example" title="Permanent link">Link</a></h2>
+<div class="codehilite"><pre><span></span>$.ajax({
+    method: &quot;GET&quot;,
+    url: &#39;/api/&lt;entityName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39;,
+    success: function(response){
+        console.log(response.data);
+    }
+  })
+</pre></div>
+
+
+<h2 id="node-js-example">Node js example<a class="headerlink" href="#node-js-example" title="Permanent link">Link</a></h2>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer &lt;AccessToken&gt;&#39;</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;/api/&lt;entityName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span><span class="p">,</span>
+    <span class="nx">headers</span>: <span class="kt">headers</span>
+<span class="p">};</span>
+
+<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+</pre></div>
+
+
+<h2 id="python-example">Python example<a class="headerlink" href="#python-example" title="Permanent link">Link</a></h2>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;AccessToken&gt;&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">params</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="s1">&#39;sort&#39;</span><span class="p">,</span> <span class="s1">&#39;-created_at&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;page[number]&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;page[size]&#39;</span><span class="p">,</span> <span class="s1">&#39;10&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://api.daptin.com:6336/api/laptop&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+</pre></div>
+
+
+<h2 id="php-example">PHP example<a class="headerlink" href="#php-example" title="Permanent link">Link</a></h2>
+<div class="codehilite"><pre><span></span><span class="cp">&lt;?php</span>
+<span class="k">include</span><span class="p">(</span><span class="s1">&#39;vendor/rmccue/requests/library/Requests.php&#39;</span><span class="p">);</span>
+<span class="nx">Requests</span><span class="o">::</span><span class="na">register_autoloader</span><span class="p">();</span>
+<span class="nv">$headers</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
+    <span class="s1">&#39;Authorization&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;Bearer &lt;AccessToken&gt;&#39;</span>
+<span class="p">);</span>
+<span class="nv">$response</span> <span class="o">=</span> <span class="nx">Requests</span><span class="o">::</span><span class="na">get</span><span class="p">(</span><span class="s1">&#39;http://api.daptin.com:6336/api/laptop?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span><span class="p">,</span> <span class="nv">$headers</span><span class="p">);</span>
+</pre></div></div>
         </div>
 
         <footer class="col-md-12">
