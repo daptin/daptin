@@ -333,11 +333,102 @@
         <div class="container">
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
+        <li class="main active"><a href="#create-api">Create API</a></li>
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
 
+<h1 id="create-api">Create API<a class="headerlink" href="#create-api" title="Permanent link">Link</a></h1>
+<div class="admonition note">
+<p class="admonition-title">Curl Example</p>
+<div class="codehilite"><pre><span></span>curl &#39;/api/&lt;EntityName&gt;&#39;
+    -H &#39;Authorization: Bearer &lt;Token&gt;&#39;
+    --data-binary &#39;{
+                &quot;data&quot;: {
+                    &quot;type&quot;: &quot;&lt;EntityName&gt;&quot;,
+                    &quot;attributes&quot;: {
+                        &quot;name&quot;: &quot;name&quot;
+                    }
+                }
+           }&#39;
+</pre></div>
+
 </div>
+<div class="admonition note">
+<p class="admonition-title">Nodejs example</p>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{</span>
+<span class="s1">                    &quot;data&quot;: {</span>
+<span class="s1">                        &quot;type&quot;: &quot;&lt;EntityName&gt;&quot;,</span>
+<span class="s1">                        &quot;attributes&quot;: {</span>
+<span class="s1">                            &quot;name&quot;: &quot;name&quot;</span>
+<span class="s1">                        }</span>
+<span class="s1">                    }</span>
+<span class="s1">                  }&#39;</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;/api/&lt;EntityName&gt;&#39;</span><span class="p">,</span>
+    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+    <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
+    <span class="nx">body</span>: <span class="kt">dataString</span>
+<span class="p">};</span>
+
+<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+</pre></div>
+
+</div>
+<div class="admonition note">
+<p class="admonition-title">Python example</p>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;{</span>
+            <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;EntityName&gt;&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;name&quot;</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span><span class="s1">&#39;</span>
+
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;/api/&lt;EntityName&gt;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+
+</div>
+<div class="admonition note">
+<p class="admonition-title">PHP Example</p>
+<div class="codehilite"><pre><span></span><span class="cp">&lt;?php</span>
+<span class="k">include</span><span class="p">(</span><span class="s1">&#39;vendor/rmccue/requests/library/Requests.php&#39;</span><span class="p">);</span>
+<span class="nx">Requests</span><span class="o">::</span><span class="na">register_autoloader</span><span class="p">();</span>
+<span class="nv">$headers</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
+    <span class="s1">&#39;Authorization&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
+<span class="p">);</span>
+<span class="nv">$data</span> <span class="o">=</span> <span class="s1">&#39;{</span>
+<span class="s1">            &quot;data&quot;: {</span>
+<span class="s1">                &quot;type&quot;: &quot;&lt;EntityName&gt;&quot;,</span>
+<span class="s1">                &quot;attributes&quot;: {</span>
+<span class="s1">                    &quot;name&quot;: &quot;name&quot;</span>
+<span class="s1">                }</span>
+<span class="s1">            }</span>
+<span class="s1">         }&#39;</span><span class="p">;</span>
+<span class="nv">$response</span> <span class="o">=</span> <span class="nx">Requests</span><span class="o">::</span><span class="na">post</span><span class="p">(</span><span class="s1">&#39;/api/&lt;EntityName&gt;&#39;</span><span class="p">,</span> <span class="nv">$headers</span><span class="p">,</span> <span class="nv">$data</span><span class="p">);</span>
+</pre></div>
+
+</div></div>
         </div>
 
         <footer class="col-md-12">
