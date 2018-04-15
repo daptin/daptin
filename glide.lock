@@ -1,5 +1,5 @@
-hash: 41048e6dfecce1ca0c8a7acf69e9a2385dc2bc974c9dcf258d9341b19ca00bc4
-updated: 2018-04-12T00:38:34.214361911+05:30
+hash: fb5f20a5fb878995ad71371962b23083fd5c77269ef461a79fd1127d30ab2a00
+updated: 2018-04-13T23:41:36.763230018+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -183,8 +183,6 @@ imports:
   version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
-- name: github.com/gedex/inflector
-  version: 16278e9db8130ac7ec405dc174cfb94344f16325
 - name: github.com/GeertJohan/go.rice
   version: c02ca9a983da5807ddf7d796784928f5be4afd09
   subpackages:
@@ -267,6 +265,8 @@ imports:
   - language/visitor
 - name: github.com/graphql-go/handler
   version: f0393b2c10daeebea900292b8e092e73475399d9
+- name: github.com/graphql-go/relay
+  version: 54350098cfe5942bc76186efa1f29ca286f6d54d
 - name: github.com/hashicorp/hcl
   version: 23c074d0eceb2b8a5bfdbb271ab780cde70f05a8
   subpackages:
