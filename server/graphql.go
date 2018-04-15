@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/context"
 	"github.com/artpar/api2go"
 	"net/http"
-	"encoding/base64"
+//	"encoding/base64"
 	"encoding/json"
 	"errors"
 	//"fmt"
@@ -65,11 +65,27 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	})
 	rootFields := make(graphql.Fields)
 
+	//queryObject := graphql.NewInputObject(graphql.InputObjectConfig{
+	//	Fields: graphql.Fields{
+	//		"column": &graphql.Field{
+	//			Name: "column",
+	//			Type: graphql.String,
+	//		},
+	//		"value": &graphql.Field{
+	//			Name: "column",
+	//			Type: graphql.String,
+	//		},
+	//		"operator": &graphql.Field{
+	//			Name: "column",
+	//			Type: graphql.String,
+	//		},
+	//	},
+	//})
+
 	for _, table := range cmsConfig.Tables {
 
-
-	allFields := make(graphql.FieldConfigArgument)
-	uniqueFields := make(graphql.FieldConfigArgument)
+		allFields := make(graphql.FieldConfigArgument)
+		uniqueFields := make(graphql.FieldConfigArgument)
 
 		if strings.Contains(table.TableName, "_has_") {
 			continue
@@ -110,8 +126,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			Fields: fields,
 		})
 
-
-
 		inputTypesMap[table.TableName] = todoType
 
 		//
@@ -128,11 +142,35 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 		//}
 		//
 
-
 		rootFields[table.TableName] = &graphql.Field{
 			Type:        graphql.NewList(inputTypesMap[table.TableName]),
 			Description: "Find all " + table.TableName,
-			Args:        graphql.FieldConfigArgument{},
+			Args: graphql.FieldConfigArgument{
+				"filter": &graphql.ArgumentConfig{
+					Type:         graphql.String,
+					Description:  "filter data by keyword",
+					DefaultValue: "",
+				},
+				"query": &graphql.ArgumentConfig{
+					Type: graphql.NewInputObject(graphql.InputObjectConfig{
+						Name:        table.TableName + "Query",
+						Description: "query results",
+						Fields: graphql.InputObjectConfigFieldMap{
+							"column": &graphql.InputObjectFieldConfig{
+								Type: graphql.String,
+							},
+							"operator": &graphql.InputObjectFieldConfig{
+								Type: graphql.String,
+							},
+							"value": &graphql.InputObjectFieldConfig{
+								Type: graphql.String,
+							},
+						},
+					}),
+					Description:  "filter results by search query",
+					DefaultValue: "",
+				},
+			},
 			//Args:        uniqueFields,
 			Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
 				return func(params graphql.ResolveParams) (interface{}, error) {
@@ -141,18 +179,22 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 					filters := make([]resource.Query, 0)
 
-					for keyName, value := range params.Args {
 
-						if _, ok := uniqueFields[keyName]; !ok {
-							continue
-						}
-
+					query, isQueried := params.Args["query"]
+					if isQueried {
+						queryMap := query.(map[string]interface{})
 						query := resource.Query{
-							ColumnName: keyName,
-							Operator:   "is",
-							Value:      value.(string),
+							ColumnName: queryMap["column"].(string),
+							Operator:   queryMap["operator"].(string),
+							Value:      queryMap["value"].(string),
 						}
 						filters = append(filters, query)
+					}
+
+					filter, isFiltered := params.Args["filter"]
+
+					if !isFiltered {
+						filter = ""
 					}
 
 					pr := &http.Request{
@@ -160,13 +202,13 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					}
 					pr = pr.WithContext(params.Context)
 
-
 					jsStr, err := json.Marshal(filters)
 					req := api2go.Request{
 						PlainRequest: pr,
 
 						QueryParams: map[string][]string{
-							"query": {base64.StdEncoding.EncodeToString(jsStr)},
+							"query":  {string(jsStr)},
+							"filter": {filter.(string)},
 						},
 					}
 
@@ -339,17 +381,14 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	//	Fields: rootFields,
 	//})
 
-
-
 	// root query
 	// we just define a trivial example here, since root query is required.
 	// Test with curl
 	// curl -g 'http://localhost:8080/graphql?query={lastTodo{id,text,done}}'
 	var rootQuery = graphql.NewObject(graphql.ObjectConfig{
-		Name: "RootQuery",
+		Name:   "RootQuery",
 		Fields: rootFields,
 	})
-
 
 	//addTodoMutation := relay.MutationWithClientMutationID(relay.MutationConfig{
 	//	Name: "AddTodo",
@@ -757,8 +796,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	//	//	//}(table),
 	//	//}
 	//
-
-
 
 	//
 	//var rootMutation = graphql.NewObject(graphql.ObjectConfig{
