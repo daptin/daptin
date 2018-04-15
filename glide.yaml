@@ -71,3 +71,4 @@ import:
 - package: github.com/bamzi/jobrunner
 - package: github.com/robfig/cron
   version: ^1.0.0
+- package: github.com/graphql-go/relay
