@@ -69,7 +69,6 @@ Note: documentation is still a work in progress, please create a pull-request if
 
 ### Installation
 
-- [Read me first](https://docs.dapt.in/setting-up/settingup)
 - [Native](https://docs.dapt.in/setting-up/native)
 - [Heroku](https://docs.dapt.in/setting-up/heroku)
 - [Docker](https://docs.dapt.in/setting-up/docker)
