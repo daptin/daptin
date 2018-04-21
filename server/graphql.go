@@ -153,7 +153,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				},
 				"query": &graphql.ArgumentConfig{
 					Type: graphql.NewInputObject(graphql.InputObjectConfig{
-						Name:        table.TableName + "Query",
+						Name:        table.TableName + "_query",
 						Description: "query results",
 						Fields: graphql.InputObjectConfigFieldMap{
 							"column": &graphql.InputObjectFieldConfig{
