@@ -69,59 +69,60 @@ Note: documentation is still a work in progress, please create a pull-request if
 
 ### Installation
 
-- [Read me first](setting-up/settingup.md)
-- [Native](setting-up/native.md)
-- [Heroku](setting-up/heroku.md)
-- [Docker](setting-up/docker.md)
-- [Docker Compose](setting-up/docker-compose.md)
-- [Kubernetes](setting-up/kubernetes.md)
-- [Choose your storage](setting-up/database_configuration.md)
+- [Read me first](https://docs.dapt.in/setting-up/settingup)
+- [Native](https://docs.dapt.in/setting-up/native)
+- [Heroku](https://docs.dapt.in/setting-up/heroku)
+- [Docker](https://docs.dapt.in/setting-up/docker)
+- [Docker Compose](https://docs.dapt.in/setting-up/docker-compose)
+- [Kubernetes](https://docs.dapt.in/setting-up/kubernetes)
+- [Choose your storage](https://docs.dapt.in/setting-up/database_configuration)
 
 ### Setup and data
 
-- [Designing data model](setting-up/entities.md)
-- [Linking data with one another](setting-up/entity_relations.md)
-- [Database configuration](setting-up/database_configuration.md)
-- [Import data](setting-up/data_import.md)
+- [Designing data model](https://docs.dapt.in/setting-up/entities)
+- [Linking data with one another](https://docs.dapt.in/setting-up/entity_relations)
+- [Database configuration](https://docs.dapt.in/setting-up/database_configuration)
+- [Import data](https://docs.dapt.in/setting-up/data_import)
 
 ### APIs
 
 - CRUD APIs
-    - [Read, search, filter](apis/read.md)
-    - [Create](apis/create.md)
-    - [Update](apis/update.md)
-    - [Delete](apis/delete.md)
-    - [Relations](apis/relation.md)
-    - [Execute](apis/execute.md)
+    - [Read, search, filter](https://docs.dapt.in/apis/read)
+    - [Create](https://docs.dapt.in/apis/create)
+    - [Update](https://docs.dapt.in/apis/update)
+    - [Delete](https://docs.dapt.in/apis/delete)
+    - [Relations](https://docs.dapt.in/apis/relation)
+    - [Execute](https://docs.dapt.in/apis/execute)
 - Action APIs
-    - [Using actions](actions/actions.md)
-    - [Actions list](actions/default_actions.md)
+    - [Using actions](https://docs.dapt.in/actions/actions)
+    - [Actions list](https://docs.dapt.in/actions/default_actions)
 - User APIs
-    - [User registration/signup](actions/signup.md)
-    - [User login/signin](actions/signin.md)
+    - [User registration/signup](https://docs.dapt.in/actions/signup)
+    - [User login/signin](https://docs.dapt.in/actions/signin)
 - State tracking APIs
-    - [State machines](state/machines.md)
+    - [State machines](https://docs.dapt.in/state/machines)
 
 ### Users
 
-- [Guests](auth/guests.md)
-- [Adding users](auth/users.md)
-- [Usergroups](auth/usergroups.md)
-- [Data access permission](auth/permissions.md)
-- [Social login](auth/social_login.md)
+- [Guests](https://docs.dapt.in/auth/guests)
+- [Adding users](https://docs.dapt.in/auth/users)
+- [Usergroups](https://docs.dapt.in/auth/usergroups)
+- [Data access permission](https://docs.dapt.in/auth/permissions)
+- [Social login](https://docs.dapt.in/auth/social_login)
 
 ### Auth & Auth
 
-- [User Authentication](auth/authentication.md)
-- [Authorization](auth/authorization.md)
+- [User Authentication](https://docs.dapt.in/auth/authentication)
+- [Authorization](https://docs.dapt.in/auth/authorization)
 
 ### Asset and file storage
 
-- [Cloud storage](cloudstore/cloudstore.md)
+- [Cloud storage](https://docs.dapt.in/cloudstore/cloudstore)
 
 ### Sub-sites
 
-- [Creating a subsite](subsite/subsite.md)
+- [Creating a subsite](https://docs.dapt.in/subsite/subsite)
+
 
 
 
