@@ -9,10 +9,12 @@ import (
 	"golang.org/x/net/context"
 	"github.com/artpar/api2go"
 	"net/http"
-//	"encoding/base64"
+	//	"encoding/base64"
 	"encoding/json"
 	"errors"
 	//"fmt"
+	"fmt"
+	"github.com/artpar/api2go/jsonapi"
 )
 
 // Capitalize capitalizes the first character of the string.
@@ -65,23 +67,66 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	})
 	rootFields := make(graphql.Fields)
 
-	//queryObject := graphql.NewInputObject(graphql.InputObjectConfig{
-	//	Fields: graphql.Fields{
-	//		"column": &graphql.Field{
-	//			Name: "column",
-	//			Type: graphql.String,
-	//		},
-	//		"value": &graphql.Field{
-	//			Name: "column",
-	//			Type: graphql.String,
-	//		},
-	//		"operator": &graphql.Field{
-	//			Name: "column",
-	//			Type: graphql.String,
-	//		},
-	//	},
-	//})
+	pageConfig := graphql.ArgumentConfig{
+		Type: graphql.NewInputObject(graphql.InputObjectConfig{
+			Name:        "page",
+			Description: "Page size and number",
+			Fields: graphql.InputObjectConfigFieldMap{
+				"number": &graphql.InputObjectFieldConfig{
+					Type:         graphql.Int,
+					DefaultValue: 1,
+					Description:  "page number to fetch",
+				},
+				"size": &graphql.InputObjectFieldConfig{
+					Type:         graphql.Int,
+					DefaultValue: 10,
+					Description:  "number of records in one page",
+				},
+			},
+		}),
+		Description:  "filter results by search query",
+		DefaultValue: "",
+	}
 
+	queryArgument := graphql.ArgumentConfig{
+		Type: graphql.NewInputObject(graphql.InputObjectConfig{
+			Name:        "query",
+			Description: "query results",
+			Fields: graphql.InputObjectConfigFieldMap{
+				"column": &graphql.InputObjectFieldConfig{
+					Type: graphql.String,
+				},
+				"operator": &graphql.InputObjectFieldConfig{
+					Type: graphql.String,
+				},
+				"value": &graphql.InputObjectFieldConfig{
+					Type: graphql.String,
+				},
+			},
+		}),
+		Description:  "filter results by search query",
+		DefaultValue: "",
+	}
+
+	filterArgument := graphql.ArgumentConfig{
+		Type:         graphql.String,
+		Description:  "filter data by keyword",
+		DefaultValue: "",
+	}
+
+	for _, table := range cmsConfig.Tables {
+		todoType := graphql.NewObject(graphql.ObjectConfig{
+			Name: table.TableName,
+			Interfaces: []*graphql.Interface{
+				nodeDefinitions.NodeInterface,
+			},
+			Fields:      graphql.Fields{},
+			Description: table.TableName,
+		})
+
+		inputTypesMap[table.TableName] = todoType
+
+	}
 	for _, table := range cmsConfig.Tables {
 
 		allFields := make(graphql.FieldConfigArgument)
@@ -94,9 +139,9 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 		for _, column := range table.Columns {
 
-			//if column.IsForeignKey {
-			//	continue
-			//}
+			if column.IsForeignKey {
+				continue
+			}
 
 			allFields[table.TableName+"."+column.ColumnName] = &graphql.ArgumentConfig{
 				Type: resource.ColumnManager.GetGraphqlType(column.ColumnType),
@@ -116,60 +161,64 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				Description: column.ColumnDescription,
 			}
 		}
+
+		for _, relation := range table.Relations {
+
+			targetName := relation.GetSubjectName()
+			targetObject := relation.GetSubject()
+			if relation.Subject == table.TableName {
+				targetName = relation.GetObjectName()
+				targetObject = relation.GetObject()
+			}
+
+			log.Printf("Add relation: %v == %v ~ %v", table.TableName, targetName, targetObject)
+
+			switch relation.Relation {
+			case "belongs_to":
+				fields[targetName] = &graphql.Field{
+					Type:        graphql.NewNonNull(inputTypesMap[targetObject]),
+					Description: fmt.Sprintf("Belongs to %v", relation.Subject),
+				}
+			case "has_one":
+				fields[targetName] = &graphql.Field{
+					Type:        inputTypesMap[targetObject],
+					Description: fmt.Sprintf("Has one %v", relation.Subject),
+				}
+
+			case "has_many":
+				fields[targetName] = &graphql.Field{
+					Type:        graphql.NewList(inputTypesMap[targetObject]),
+					Description: fmt.Sprintf("Has many %v", relation.Subject),
+				}
+
+			case "has_many_and_belongs_to_many":
+				fields[targetName] = &graphql.Field{
+					Type:        graphql.NewList(inputTypesMap[targetObject]),
+					Description: fmt.Sprintf("Related %v", relation.Subject),
+				}
+
+			}
+
+		}
+
 		fields["id"] = &graphql.Field{
 			Description: "The ID of an object",
 			Type:        graphql.NewNonNull(graphql.ID),
 		}
 
-		todoType := graphql.NewObject(graphql.ObjectConfig{
-			Name:   table.TableName,
-			Fields: fields,
-		})
+		for fieldName, config := range fields {
+			inputTypesMap[table.TableName].AddFieldConfig(fieldName, config)
+		}
 
-		inputTypesMap[table.TableName] = todoType
-
-		//
-		//rootFields[table.TableName] = &graphql.Field{
-		//	Type:        inputTypesMap[table.TableName],
-		//	Args:        graphql.FieldConfigArgument{},
-		//	Description: fmt.Sprintf("Get a single %v", table.TableName),
-		//	Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-		//		log.Printf("Resolve %v", p.Args)
-		//		//req := api2go.
-		//		//resources[table.TableName].PaginatedFindAll(req)
-		//		return nil, nil
-		//	},
-		//}
-		//
+		// all table names query field
 
 		rootFields[table.TableName] = &graphql.Field{
 			Type:        graphql.NewList(inputTypesMap[table.TableName]),
 			Description: "Find all " + table.TableName,
 			Args: graphql.FieldConfigArgument{
-				"filter": &graphql.ArgumentConfig{
-					Type:         graphql.String,
-					Description:  "filter data by keyword",
-					DefaultValue: "",
-				},
-				"query": &graphql.ArgumentConfig{
-					Type: graphql.NewInputObject(graphql.InputObjectConfig{
-						Name:        table.TableName + "_query",
-						Description: "query results",
-						Fields: graphql.InputObjectConfigFieldMap{
-							"column": &graphql.InputObjectFieldConfig{
-								Type: graphql.String,
-							},
-							"operator": &graphql.InputObjectFieldConfig{
-								Type: graphql.String,
-							},
-							"value": &graphql.InputObjectFieldConfig{
-								Type: graphql.String,
-							},
-						},
-					}),
-					Description:  "filter results by search query",
-					DefaultValue: "",
-				},
+				"filter": &filterArgument,
+				"query":  &queryArgument,
+				"page":   &pageConfig,
 			},
 			//Args:        uniqueFields,
 			Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
@@ -179,16 +228,17 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 					filters := make([]resource.Query, 0)
 
-
 					query, isQueried := params.Args["query"]
 					if isQueried {
-						queryMap := query.(map[string]interface{})
-						query := resource.Query{
-							ColumnName: queryMap["column"].(string),
-							Operator:   queryMap["operator"].(string),
-							Value:      queryMap["value"].(string),
+						queryMap, ok := query.(map[string]interface{})
+						if ok {
+							query := resource.Query{
+								ColumnName: queryMap["column"].(string),
+								Operator:   queryMap["operator"].(string),
+								Value:      queryMap["value"].(string),
+							}
+							filters = append(filters, query)
 						}
-						filters = append(filters, query)
 					}
 
 					filter, isFiltered := params.Args["filter"]
@@ -202,13 +252,34 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					}
 					pr = pr.WithContext(params.Context)
 
+					pageNumber := 1
+					pageSize := 10
+					pageParams, ok := params.Args["page"]
+					if ok {
+						pageParamsMap, ok := pageParams.(map[string]interface{})
+						if ok {
+							pageSizeNew, ok := pageParamsMap["size"]
+							if ok {
+								pageSize, ok = pageSizeNew.(int)
+							}
+							pageNumberNew, ok := pageParamsMap["number"]
+							if ok {
+								pageNumber, ok = pageNumberNew.(int)
+							}
+						}
+
+					}
+
 					jsStr, err := json.Marshal(filters)
 					req := api2go.Request{
 						PlainRequest: pr,
 
 						QueryParams: map[string][]string{
-							"query":  {string(jsStr)},
-							"filter": {filter.(string)},
+							"query":              {string(jsStr)},
+							"filter":             {filter.(string)},
+							"page[number]":       {fmt.Sprintf("%v", pageNumber)},
+							"page[size]":         {fmt.Sprintf("%v", pageSize)},
+							"included_relations": {"*"},
 						},
 					}
 
@@ -222,7 +293,30 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					results := responder.Result().([]*api2go.Api2GoModel)
 
 					for _, r := range results {
-						items = append(items, r.Data)
+
+						included := r.Includes
+						includedMap := make(map[string]jsonapi.MarshalIdentifier)
+
+						for _, included := range included {
+							includedMap[included.GetID()] = included
+						}
+
+						data := r.Data
+
+						for key, val := range data {
+							strVal, ok := val.(string)
+							if !ok {
+								continue
+							}
+							fObj, ok := includedMap[strVal]
+
+							if ok {
+								data[key] = fObj.GetAttributes()
+							}
+						}
+
+						items = append(items, data)
+
 					}
 
 					return items, err
@@ -374,7 +468,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 		//	}(table),
 		//}
 	}
-	//rootFields["node"] = nodeDefinitions.NodeField
+	rootFields["node"] = nodeDefinitions.NodeField
 
 	//rootQuery := graphql.NewObject(graphql.ObjectConfig{
 	//	Name:   "RootQuery",
