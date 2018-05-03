@@ -917,6 +917,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 		return responseArray, nil, err
 	}
 
+	objMap := make(map[string]interface{})
 	includes := make([][]map[string]interface{}, 0)
 
 	for _, row := range responseArray {
@@ -948,6 +949,13 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					referenceIdInt, err = strconv.ParseInt(stringIntId, 10, 64)
 					CheckErr(err, "Failed to convert string id to int id")
 				}
+				key := fmt.Sprintf("%v-%v", namespace, referenceIdInt)
+				objCached, ok := objMap[key]
+				if ok {
+					localInclude = append(localInclude, objCached.(map[string]interface{}))
+					continue
+				}
+
 				refId, err := dr.GetIdToReferenceId(namespace, referenceIdInt)
 
 				row[key] = refId
