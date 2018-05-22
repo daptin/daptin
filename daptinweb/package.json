@@ -33,6 +33,7 @@
     "module": "^1.2.5",
     "moment": "^2.19.3",
     "npm-font-open-sans": "^1.1.0",
+    "hoek": "^5.0.3",
     "open-iconic": "^1.1.1",
     "quicktype": "^0.9.18",
     "react": "^15.6.1",
