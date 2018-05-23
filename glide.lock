@@ -1,5 +1,5 @@
-hash: e95deeb4308f0518bba705e2d76db016ef26fe119af4fff27b9904f3873b3acd
-updated: 2018-05-23T13:14:01.799968275+05:30
+hash: e57de0db0d867013447a065abf87a76ced9fbe2bedb9c075c6cec9bfd61d0d9f
+updated: 2018-05-23T13:25:18.43037173+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -31,14 +31,49 @@ imports:
 - name: github.com/artpar/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/artpar/rclone
-  version: db537152f44402b499726cbf8c0162eb51856582
+  version: 5ad0ca00c36962e245a0ee20b30d5e97d8243cd6
   subpackages:
+  - backend/alias
   - backend/all
+  - backend/amazonclouddrive
+  - backend/azureblob
+  - backend/b2
+  - backend/b2/api
+  - backend/box
+  - backend/box/api
+  - backend/cache
+  - backend/crypt
+  - backend/crypt/pkcs7
+  - backend/drive
+  - backend/dropbox
+  - backend/dropbox/dbhash
+  - backend/ftp
+  - backend/googlecloudstorage
+  - backend/http
+  - backend/hubic
+  - backend/local
+  - backend/mega
+  - backend/onedrive
+  - backend/onedrive/api
+  - backend/onedrive/quickxorhash
+  - backend/opendrive
+  - backend/pcloud
+  - backend/pcloud/api
+  - backend/qingstor
+  - backend/s3
+  - backend/sftp
+  - backend/swift
+  - backend/webdav
+  - backend/webdav/api
+  - backend/webdav/odrvcookie
+  - backend/yandex
+  - backend/yandex/api
   - cmd
   - cmd/serve/httplib
   - cmd/serve/httplib/httpflags
   - fs
   - fs/accounting
+  - fs/asyncreader
   - fs/config
   - fs/config/configflags
   - fs/config/flags
@@ -50,13 +85,21 @@ imports:
   - fs/fshttp
   - fs/fspath
   - fs/hash
+  - fs/list
   - fs/log
   - fs/march
+  - fs/object
   - fs/operations
   - fs/rc
   - fs/rc/rcflags
   - fs/sync
+  - fs/walk
   - lib/atexit
+  - lib/dircache
+  - lib/oauthutil
+  - lib/pacer
+  - lib/readers
+  - lib/rest
 - name: github.com/artpar/resty
   version: cbd85f7cf881b5d8f42fd8a8b66d9461193762c9
 - name: github.com/aws/aws-sdk-go
@@ -304,67 +347,6 @@ imports:
   version: 06020f85339e21b2478f756a78e295255ffa4d6a
 - name: github.com/ncw/go-acd
   version: 96a49aad3fc3889629f2eceb004927386884bd92
-- name: github.com/ncw/rclone
-  version: 7bf2d389a8339fa3f0bbd443c955e2373a3373db
-  subpackages:
-  - backend/alias
-  - backend/amazonclouddrive
-  - backend/azureblob
-  - backend/b2
-  - backend/b2/api
-  - backend/box
-  - backend/box/api
-  - backend/cache
-  - backend/crypt
-  - backend/crypt/pkcs7
-  - backend/drive
-  - backend/dropbox
-  - backend/dropbox/dbhash
-  - backend/ftp
-  - backend/googlecloudstorage
-  - backend/http
-  - backend/hubic
-  - backend/local
-  - backend/mega
-  - backend/onedrive
-  - backend/onedrive/api
-  - backend/onedrive/quickxorhash
-  - backend/opendrive
-  - backend/pcloud
-  - backend/pcloud/api
-  - backend/qingstor
-  - backend/s3
-  - backend/sftp
-  - backend/swift
-  - backend/webdav
-  - backend/webdav/api
-  - backend/webdav/odrvcookie
-  - backend/yandex
-  - backend/yandex/api
-  - cmd/serve/httplib
-  - fs
-  - fs/accounting
-  - fs/asyncreader
-  - fs/config
-  - fs/config/flags
-  - fs/config/obscure
-  - fs/driveletter
-  - fs/filter
-  - fs/fserrors
-  - fs/fshttp
-  - fs/hash
-  - fs/list
-  - fs/march
-  - fs/object
-  - fs/operations
-  - fs/rc
-  - fs/walk
-  - lib/atexit
-  - lib/dircache
-  - lib/oauthutil
-  - lib/pacer
-  - lib/readers
-  - lib/rest
 - name: github.com/ncw/swift
   version: c95c6e5c2d1a3d37fc44c8c6dc9e231c7500667d
 - name: github.com/patrickmn/go-cache
