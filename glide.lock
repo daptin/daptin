@@ -1,5 +1,5 @@
-hash: 19b33512971722827804f053a899ae0a9bcefa28fb51f0cfb8cb6dc0b673e967
-updated: 2018-04-10T15:06:48.510486958+05:30
+hash: e95deeb4308f0518bba705e2d76db016ef26fe119af4fff27b9904f3873b3acd
+updated: 2018-05-23T13:14:01.799968275+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -31,45 +31,14 @@ imports:
 - name: github.com/artpar/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/artpar/rclone
-  version: f86a03351399cf395fdd33b7ef575c4968ddb26c
+  version: db537152f44402b499726cbf8c0162eb51856582
   subpackages:
-  - backend/alias
   - backend/all
-  - backend/amazonclouddrive
-  - backend/azureblob
-  - backend/b2
-  - backend/b2/api
-  - backend/box
-  - backend/box/api
-  - backend/cache
-  - backend/crypt
-  - backend/crypt/pkcs7
-  - backend/drive
-  - backend/dropbox
-  - backend/dropbox/dbhash
-  - backend/ftp
-  - backend/googlecloudstorage
-  - backend/http
-  - backend/hubic
-  - backend/local
-  - backend/onedrive
-  - backend/onedrive/api
-  - backend/pcloud
-  - backend/pcloud/api
-  - backend/qingstor
-  - backend/s3
-  - backend/sftp
-  - backend/swift
-  - backend/webdav
-  - backend/webdav/api
-  - backend/yandex
-  - backend/yandex/api
   - cmd
   - cmd/serve/httplib
   - cmd/serve/httplib/httpflags
   - fs
   - fs/accounting
-  - fs/asyncreader
   - fs/config
   - fs/config/configflags
   - fs/config/flags
@@ -81,21 +50,13 @@ imports:
   - fs/fshttp
   - fs/fspath
   - fs/hash
-  - fs/list
   - fs/log
   - fs/march
-  - fs/object
   - fs/operations
   - fs/rc
   - fs/rc/rcflags
   - fs/sync
-  - fs/walk
   - lib/atexit
-  - lib/dircache
-  - lib/oauthutil
-  - lib/pacer
-  - lib/readers
-  - lib/rest
 - name: github.com/artpar/resty
   version: cbd85f7cf881b5d8f42fd8a8b66d9461193762c9
 - name: github.com/aws/aws-sdk-go
@@ -210,7 +171,7 @@ imports:
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
 - name: github.com/go-playground/validator
-  version: 14984d91328f9612b58443cbdf4a077d4fd71091
+  version: f28cb45dc0f0f406ba2015cdb59a5203ad220bc2
 - name: github.com/go-sql-driver/mysql
   version: a0583e0143b1624142adab07e0e97fe106d99561
 - name: github.com/gocraft/health
@@ -343,6 +304,67 @@ imports:
   version: 06020f85339e21b2478f756a78e295255ffa4d6a
 - name: github.com/ncw/go-acd
   version: 96a49aad3fc3889629f2eceb004927386884bd92
+- name: github.com/ncw/rclone
+  version: 7bf2d389a8339fa3f0bbd443c955e2373a3373db
+  subpackages:
+  - backend/alias
+  - backend/amazonclouddrive
+  - backend/azureblob
+  - backend/b2
+  - backend/b2/api
+  - backend/box
+  - backend/box/api
+  - backend/cache
+  - backend/crypt
+  - backend/crypt/pkcs7
+  - backend/drive
+  - backend/dropbox
+  - backend/dropbox/dbhash
+  - backend/ftp
+  - backend/googlecloudstorage
+  - backend/http
+  - backend/hubic
+  - backend/local
+  - backend/mega
+  - backend/onedrive
+  - backend/onedrive/api
+  - backend/onedrive/quickxorhash
+  - backend/opendrive
+  - backend/pcloud
+  - backend/pcloud/api
+  - backend/qingstor
+  - backend/s3
+  - backend/sftp
+  - backend/swift
+  - backend/webdav
+  - backend/webdav/api
+  - backend/webdav/odrvcookie
+  - backend/yandex
+  - backend/yandex/api
+  - cmd/serve/httplib
+  - fs
+  - fs/accounting
+  - fs/asyncreader
+  - fs/config
+  - fs/config/flags
+  - fs/config/obscure
+  - fs/driveletter
+  - fs/filter
+  - fs/fserrors
+  - fs/fshttp
+  - fs/hash
+  - fs/list
+  - fs/march
+  - fs/object
+  - fs/operations
+  - fs/rc
+  - fs/walk
+  - lib/atexit
+  - lib/dircache
+  - lib/oauthutil
+  - lib/pacer
+  - lib/readers
+  - lib/rest
 - name: github.com/ncw/swift
   version: c95c6e5c2d1a3d37fc44c8c6dc9e231c7500667d
 - name: github.com/patrickmn/go-cache
@@ -370,7 +392,7 @@ imports:
 - name: github.com/rfjakob/eme
   version: 2222dbd4ba467ab3fc7e8af41562fcfe69c0d770
 - name: github.com/robfig/cron
-  version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
+  version: b41be1df696709bb6395fe435af20370037c0b4c
 - name: github.com/sadlil/go-trigger
   version: cfc3d83007cddfc1e31a478aa47cd41de07fac17
 - name: github.com/satori/go.uuid
@@ -405,6 +427,8 @@ imports:
   - scanner
   - token
   - types
+- name: github.com/t3rm1n4l/go-mega
+  version: 3ba49835f4db01d6329782cbdc7a0a8bb3a26c5f
 - name: github.com/tealeg/xlsx
   version: 92caefe99f99872a8fb943097ed2bd47491d0b86
 - name: github.com/thoas/stats
@@ -517,7 +541,7 @@ imports:
 - name: gopkg.in/go-playground/validator.v8
   version: 5f1438d3fca68893a817e4a66806cea46a9e4ebf
 - name: gopkg.in/go-playground/validator.v9
-  version: 14984d91328f9612b58443cbdf4a077d4fd71091
+  version: f28cb45dc0f0f406ba2015cdb59a5203ad220bc2
   subpackages:
   - translations/en
 - name: gopkg.in/Masterminds/squirrel.v1
