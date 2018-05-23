@@ -14,4 +14,4 @@ RUN ls -lah /opt/daptin/daptin
 
 EXPOSE 8080
 RUN export
-ENTRYPOINT ["/opt/daptin/daptin", "-runtime", "release", "-port", "8080"]
+ENTRYPOINT ["/opt/daptin/daptin", "-runtime", "release", "-port", ":8080"]

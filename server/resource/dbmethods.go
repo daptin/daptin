@@ -653,6 +653,7 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 }
 
 func (dr *DbResource) TruncateTable(typeName string) error {
+	log.Printf("Truncate table: %v", typeName)
 
 	s, q, err := squirrel.Delete(typeName).ToSql()
 	if err != nil {
