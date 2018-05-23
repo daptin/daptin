@@ -128,7 +128,6 @@ imports:
   - private/protocol/rest
   - private/protocol/restxml
   - private/protocol/xml/xmlutil
-  - private/util
   - service/s3
   - service/s3/s3iface
   - service/s3/s3manager
@@ -188,8 +187,6 @@ imports:
   version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
-- name: github.com/gedex/inflector
-  version: 16278e9db8130ac7ec405dc174cfb94344f16325
 - name: github.com/GeertJohan/go.rice
   version: c02ca9a983da5807ddf7d796784928f5be4afd09
   subpackages:
@@ -270,6 +267,10 @@ imports:
   - language/source
   - language/typeInfo
   - language/visitor
+- name: github.com/graphql-go/handler
+  version: f0393b2c10daeebea900292b8e092e73475399d9
+- name: github.com/graphql-go/relay
+  version: 54350098cfe5942bc76186efa1f29ca286f6d54d
 - name: github.com/hashicorp/hcl
   version: 23c074d0eceb2b8a5bfdbb271ab780cde70f05a8
   subpackages:
