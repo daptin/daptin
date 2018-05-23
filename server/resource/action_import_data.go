@@ -94,7 +94,16 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 	for tableName, importedDatas := range imports {
 
 		if truncate_before_insert {
-			err := d.cruds[tableName].TruncateTable(tableName)
+
+			instance, ok := d.cruds[tableName]
+
+			if !ok {
+				log.Infof("Wanted to truncate table, but no instance yet: ", tableName)
+				d.cruds["world"].TruncateTable(tableName)
+				continue
+			}
+
+			err := instance.TruncateTable(tableName)
 			if err != nil {
 				log.Errorf("Failed to truncate table before importing data: %v", err)
 			}
