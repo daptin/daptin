@@ -48,9 +48,9 @@ type PaginationData struct {
 }
 
 type Query struct {
-	ColumnName string `json:"column"`
-	Operator   string `json:"operator"`
-	Value      string `json:"value"`
+	ColumnName string      `json:"column"`
+	Operator   string      `json:"operator"`
+	Value      interface{} `json:"value"`
 }
 
 type Group struct {
@@ -83,6 +83,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	query, ok := req.QueryParams["query"]
 	queries := make([]Query, 0)
 	if ok {
+		if len(query) > 1 {
+			//api2go will split the values on comma to give array of values
+			//so we join it back to read it as json
+			query[0] = strings.Join(query, ",")
+		}
 		log.Printf("Found query in request: %s", query[0])
 		err = json.Unmarshal([]byte(query[0]), &queries)
 		if CheckErr(err, "Failed to unmarshal query as json, using as a filter instead") {
@@ -247,9 +252,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		for _, filterQuery := range queries {
 			switch filterQuery.Operator {
 			case "contains":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), "%"+filterQuery.Value)
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value))
 			case "not contains":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not like ?", prefix+filterQuery.ColumnName), "%"+filterQuery.Value)
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value))
 			case "is":
 				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 			case "is not":
@@ -261,7 +266,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			case "more then":
 				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 			case "any of":
-				vals := strings.Split(filterQuery.Value, ",")
+				vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
 				valsInterface := make([]interface{}, len(vals))
 				for i, v := range vals {
 					valsInterface[i] = v
@@ -269,7 +274,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
 				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
 			case "none of":
-				vals := strings.Split(filterQuery.Value, ",")
+				vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
 				valsInterface := make([]interface{}, len(vals))
 				for i, v := range vals {
 					valsInterface[i] = v
