@@ -17,6 +17,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create data export performer")
 	performers = append(performers, exportDataPerformer)
 
+	exportCsvDataPerformer, err := resource.NewExportCsvDataPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create csv data export performer")
+	performers = append(performers, exportCsvDataPerformer)
+
 	importDataPerformer, err := resource.NewImportDataPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create data import performer")
 	performers = append(performers, importDataPerformer)

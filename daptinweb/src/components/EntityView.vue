@@ -56,9 +56,15 @@
             :to="{name: 'Action', params: {actionname: 'export_data', tablename: 'world'}, query: {world_id: worldReferenceId}}"
             class="btn btn-box-tool"><i
             class="fas fa-download fa-2x  grey"></i></router-link>
+          <router-link
+            :to="{name: 'Action', params: {actionname: 'export_csv_data', tablename: 'world'}, query: {world_id: worldReferenceId}}"
+            class="btn btn-box-tool"><i
+            class="fas fa-bars fa-2x  grey"></i></router-link>
         </div>
 
       </div>
+
+
     </section>
 
 
@@ -79,11 +85,13 @@
                     :json-api-model-name="selectedTable" v-if="selectedTable && !showAddEdit"></table-view>
 
       </template>
+
       <template v-else-if="currentViewType == 'recline-view'">
         <recline-view @newRow="newRow()" @editRow="editRow"
                       :finder="finder" ref="tableview1" :view-mode="viewMode" :json-api="jsonApi"
                       :json-api-model-name="selectedTable" v-if="selectedTable && !showAddEdit"></recline-view>
       </template>
+
       <template v-else-if="currentViewType == 'voyager-view'">
         <voyager-view @newRow="newRow()" @editRow="editRow"
                       :finder="finder" ref="tableview1" :view-mode="viewMode" :json-api="jsonApi"

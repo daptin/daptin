@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"regexp"
+	log "github.com/sirupsen/logrus"
 	"sort"
 	"strings"
 )
@@ -54,7 +55,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 	builder = builder.OrderBy(req.Order...)
 
 	// functionName(param1, param2)
-	querySyntax, err := regexp.Compile("([a-zA-Z0-9]+)\\( *([^,]+) *, *([^)]+) *\\)")
+	querySyntax, err := regexp.Compile("([a-zA-Z0-9]+)\\(([^,]+?),(.+)\\)")
 	CheckErr(err, "Failed to build query regex")
 	for _, filter := range req.Filter {
 
@@ -64,13 +65,13 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 
 			parts := querySyntax.FindStringSubmatch(filter)
 
-			functionName := parts[1]
+			functionName := strings.TrimSpace(parts[1])
 			leftVal := strings.TrimSpace(parts[2])
 			rightVal := strings.TrimSpace(parts[3])
 
 			function := builder.Where
 			if len(req.GroupBy) > 0 {
-				function = builder.Having
+				//function = builder.Having
 			}
 
 			switch functionName {
@@ -78,7 +79,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 				builder = function(squirrel.Eq{leftVal: rightVal})
 			case "neq":
 				builder = function(fmt.Sprintf("%s != %s", leftVal, rightVal))
-			case "le":
+			case "lt":
 				builder = function(fmt.Sprintf("%s < %s", leftVal, rightVal))
 			case "lte":
 				builder = function(fmt.Sprintf("%s <= %s", leftVal, rightVal))
@@ -104,7 +105,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 		return AggregateData{}, err
 	}
 
-	//log.Infof("Stats query: %v == %v", sql, args)
+	log.Infof("Stats query: %v == %v", sql, args)
 	res, err := dr.db.Queryx(sql, args...)
 	CheckErr(err, "Failed to query stats: %v", err)
 	if err != nil {

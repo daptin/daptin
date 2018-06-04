@@ -245,6 +245,23 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "export_csv_data",
+		Label:            "Export CSV data",
+		OnType:           "world",
+		InstanceOptional: true,
+		InFields:         []api2go.ColumnInfo{},
+		OutFields: []Outcome{
+			{
+				Type:   "__csv_data_export",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"world_reference_id": "$.reference_id",
+					"table_name":         "$.table_name",
+				},
+			},
+		},
+	},
+	{
 		Name:             "import_data",
 		Label:            "Import data from dump",
 		OnType:           "world",
