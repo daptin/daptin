@@ -7,6 +7,14 @@ docker-tag := daptin/daptin
 bin/$(app): *.go
 	go build -o $@
 
+docker: docker-daptin-binary
+	cd docker_dir && cp ../daptin-linux-amd64 main && docker build -t daptin/daptin  . && cd ..
+
+
+docker-daptin-binary:
+	xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  .
+
+
 $(static-app): *.go
 	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 \
 		go build  -ldflags='-extldflags "-static"' -a -installsuffix cgo -o $(static-app)

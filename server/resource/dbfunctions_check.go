@@ -9,10 +9,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func InfoErr(err error, message string) {
+func InfoErr(err error, message string) bool {
 	if err != nil {
 		log.Infof("%v: %v", message, err)
+		return true
 	}
+	return false
 
 }
 
