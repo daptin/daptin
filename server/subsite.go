@@ -167,6 +167,7 @@ var apiPaths = map[string]bool{
 	"api":     true,
 	"action":  true,
 	"meta":    true,
+	"stats":    true,
 	"jsmodel": true,
 }
 
