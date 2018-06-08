@@ -14,7 +14,9 @@ import (
 	"strconv"
 	"strings"
 	"github.com/artpar/go.uuid"
+	"time"
 )
+const DATE_LAYOUT = "2006-01-02 15:04:05"
 
 // Check if a user identified by userReferenceId and belonging to userGroups is allowed to invoke an action `actionName` on type `typeName`
 // Called before invoking an action from the /action/** api
@@ -930,6 +932,15 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 			columnInfo, ok := columnMap[key]
 			if !ok {
 				continue
+			}
+
+			if val != nil && columnInfo.ColumnType == "datetime" {
+				parsedValue, err := time.Parse(DATE_LAYOUT, val.(string))
+				if InfoErr(err, "Failed to parse time from: %v", err) {
+					row[key] = nil
+					continue
+				}
+				row[key] = parsedValue
 			}
 
 			if !columnInfo.IsForeignKey {
