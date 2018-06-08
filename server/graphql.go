@@ -28,6 +28,7 @@ func Capitalize(s string) string {
 //var todoType *graphql.Object
 //var userType *graphql.Object
 
+
 var nodeDefinitions *relay.NodeDefinitions
 var todosConnection *relay.GraphQLConnectionDefinitions
 
@@ -127,6 +128,20 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 		inputTypesMap[table.TableName] = todoType
 
 	}
+
+	tableColumnMap := map[string]map[string]api2go.ColumnInfo{
+
+	}
+
+	for _, table := range cmsConfig.Tables {
+		columnMap := map[string]api2go.ColumnInfo{}
+
+		for _, col := range table.Columns {
+			columnMap[col.ColumnName] = col
+		}
+		tableColumnMap[table.TableName] = columnMap
+	}
+
 	for _, table := range cmsConfig.Tables {
 
 		allFields := make(graphql.FieldConfigArgument)
@@ -292,6 +307,8 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 					results := responder.Result().([]*api2go.Api2GoModel)
 
+					columnMap := tableColumnMap[table.TableName]
+
 					for _, r := range results {
 
 						included := r.Includes
@@ -304,15 +321,24 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						data := r.Data
 
 						for key, val := range data {
+							colInfo, ok := columnMap[key]
+							if !ok {
+								continue
+							}
+
 							strVal, ok := val.(string)
 							if !ok {
 								continue
 							}
-							fObj, ok := includedMap[strVal]
 
-							if ok {
-								data[key] = fObj.GetAttributes()
+							if colInfo.IsForeignKey {
+								fObj, ok := includedMap[strVal]
+
+								if ok {
+									data[key] = fObj.GetAttributes()
+								}
 							}
+
 						}
 
 						items = append(items, data)

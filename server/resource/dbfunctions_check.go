@@ -9,9 +9,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func InfoErr(err error, message string) bool {
+func InfoErr(err error, message ...interface{}) bool {
 	if err != nil {
-		log.Infof("%v: %v", message, err)
+		fmtString := message[0].(string)
+		args := make([]interface{}, 0)
+		if len(message) > 1 {
+			args = message[1:]
+		}
+		args = append(args, err)
+		log.Infof(fmtString+": %v", args...)
 		return true
 	}
 	return false

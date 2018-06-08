@@ -12,7 +12,7 @@ docker: docker-daptin-binary
 
 
 docker-daptin-binary:
-	xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  .
+	rm -rf rice-box.go && rice embed-go && xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  .
 
 
 $(static-app): *.go
