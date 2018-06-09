@@ -46,9 +46,6 @@ func main() {
 	//assetsRoot, err := rice.FindBox("assets")
 	//resource.CheckErr(err, "Failed to open %s/static", assetsSource)
 	boxRoot1, err := rice.FindBox("daptinweb/dist/")
-	if err != nil {
-		panic(err)
-	}
 
 	var boxRoot http.FileSystem
 	if err != nil {
