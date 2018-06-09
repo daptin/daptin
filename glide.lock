@@ -1,5 +1,5 @@
-hash: e57de0db0d867013447a065abf87a76ced9fbe2bedb9c075c6cec9bfd61d0d9f
-updated: 2018-05-23T13:25:18.43037173+05:30
+hash: 207e7e29c126f78525124ded79894187b2f48fcd4f5be90f1778bfa4a58d6ff2
+updated: 2018-06-09T14:10:39.133819374+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -213,7 +213,9 @@ imports:
 - name: github.com/go-playground/validator
   version: f28cb45dc0f0f406ba2015cdb59a5203ad220bc2
 - name: github.com/go-sql-driver/mysql
-  version: a0583e0143b1624142adab07e0e97fe106d99561
+  version: d523deb1b23d913de5bdada721a6071e71283618
+- name: github.com/gocarina/gocsv
+  version: a5c9099e2484f1551abb9433885e158610a25f4b
 - name: github.com/gocraft/health
   version: 8675af27fef0dc5c973d0957f1b1b50ffac513f9
   subpackages:
@@ -341,7 +343,7 @@ imports:
 - name: github.com/mattn/go-isatty
   version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/mattn/go-sqlite3
-  version: 6c771bb9887719704b210e87e934f08be014bdb1
+  version: 323a32be5a2421b8c7087225079c6c900ec397cd
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
@@ -371,7 +373,7 @@ imports:
   - hotp
   - totp
 - name: github.com/PuerkitoBio/goquery
-  version: a86ea073017a6beddef78c8659e7224e8ca634b0
+  version: dc2ec5c7ca4d9aae063b79b9f581dd3ea6afd2b2
 - name: github.com/rfjakob/eme
   version: 2222dbd4ba467ab3fc7e8af41562fcfe69c0d770
 - name: github.com/robfig/cron
