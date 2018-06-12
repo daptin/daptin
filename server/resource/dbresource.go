@@ -18,7 +18,7 @@ type DbResource struct {
 	defaultGroups    []int64
 }
 
-func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, tableInfo *TableInfo) *DbResource {
+func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, tableInfo TableInfo) *DbResource {
 	//log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
 	return &DbResource{
 		model:         model,
@@ -26,7 +26,7 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms
 		ms:            ms,
 		configStore:   configStore,
 		cruds:         cruds,
-		tableInfo:     tableInfo,
+		tableInfo:     &tableInfo,
 		defaultGroups: GroupNamesToIds(db, tableInfo.DefaultGroups),
 		contextCache:  make(map[string]interface{}),
 	}

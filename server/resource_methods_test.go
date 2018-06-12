@@ -44,7 +44,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	ms := BuildMiddlewareSet(&initConfig, &cruds)
 	for _, table := range initConfig.Tables {
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
-		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, &table)
+		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, table)
 		cruds[table.TableName] = res
 	}
 
@@ -73,7 +73,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	err := resource.UpdateActionTable(&initConfig, wrapper)
 	resource.CheckErr(err, "Failed to update action table")
 
-	dbResource := resource.NewDbResource(nil, wrapper, &ms, cruds, configStore, &resource.TableInfo{})
+	dbResource := resource.NewDbResource(nil, wrapper, &ms, cruds, configStore, resource.TableInfo{})
 	return wrapper, dbResource
 }
 
@@ -82,7 +82,7 @@ func GetResourceWithName(name string) (*InMemoryTestDatabase, *resource.DbResour
 
 	cols := []api2go.ColumnInfo{}
 	model := api2go.NewApi2GoModel(name, cols, 0, nil)
-	tableInfo := &resource.TableInfo{
+	tableInfo := resource.TableInfo{
 		TableName: name,
 	}
 
