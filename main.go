@@ -39,7 +39,7 @@ func main() {
 
 	gin.SetMode(*runtimeMode)
 
-	envy.Parse("DAPTIN") // looks for DAPTIN_PORT
+	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
 
 	stream.AddSink(&health.WriterSink{os.Stdout})
@@ -81,7 +81,7 @@ func main() {
 		panic(err)
 	}
 
-	log.Printf("Why end now ?")
+	log.Printf("Why quit now ?")
 }
 
 type RestartHandlerServer struct {

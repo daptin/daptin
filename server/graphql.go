@@ -169,8 +169,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			}
 
 			graphqlType := resource.ColumnManager.GetGraphqlType(column.ColumnType)
-			log.Printf("Add column: %v == %v", table.TableName+"."+column.ColumnName, graphqlType)
-			//done[table.TableName+"."+column.ColumnName] = true
 			fields[column.ColumnName] = &graphql.Field{
 				Type:        graphqlType,
 				Description: column.ColumnDescription,
