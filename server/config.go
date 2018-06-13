@@ -64,14 +64,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 		initConfig := resource.CmsConfig{}
 		err = viper.Unmarshal(&initConfig)
-		//err = viper.UnmarshalKey("tables", &initConfig.Relations)
-		//err = viper.UnmarshalKey("tables", &initConfig.Streams)
-		//err = viper.UnmarshalKey("tables", &initConfig.ExchangeContracts)
-		//err = viper.UnmarshalKey("tables", &initConfig.StateMachineDescriptions)
-		//err = viper.UnmarshalKey("tables", &initConfig.Actions)
-		//err = viper.UnmarshalKey("tables", &initConfig.Imports)
-		//all := viper.AllSettings()
-		//log.Infof("All settings", all)
+
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -90,11 +83,6 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, initConfig.StateMachineDescriptions...)
 		globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
 
-		//for _, table := range initConfig.Tables {
-		//	for _, col := range table.Columns {
-		//		log.Infof("Table: %v: %v", table.TableName, col.Name)
-		//	}
-		//}
 
 		for _, action := range initConfig.Actions {
 			log.Infof("Action [%v][%v]", fileName, action.Name)

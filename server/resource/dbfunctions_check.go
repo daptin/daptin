@@ -76,7 +76,6 @@ func CheckRelations(config *CmsConfig) {
 		existingRelations := config.Tables[i].Relations
 
 		if table.TableName != "usergroup" &&
-			table.TableName != "world_column" &&
 			!table.IsJoinTable &&
 			!EndsWithCheck(table.TableName, "_audit") {
 			relation := api2go.NewTableRelation(table.TableName, "belongs_to", "user")

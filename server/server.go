@@ -19,9 +19,6 @@ import (
 	"github.com/graphql-go/graphql"
 	"fmt"
 	graphqlhandler "github.com/graphql-go/handler"
-	//"encoding/json"
-	//"github.com/aws/aws-sdk-go/private/util"
-	//"github.com/gedex/inflector"
 )
 
 var TaskScheduler resource.TaskScheduler
@@ -64,38 +61,14 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	allTables := MergeTables(existingTables, initConfig.Tables)
 
 	initConfig.Tables = allTables
+
+	// rclone config load
 	config.LoadConfig()
 	fs.Config.DryRun = false
 	fs.Config.LogLevel = 200
 	fs.Config.StatsLogLevel = 200
 
-	resource.CheckRelations(&initConfig)
-	resource.CheckAuditTables(&initConfig)
-	//AddStateMachines(&initConfig, db)
-	tx, errb := db.Beginx()
-	//_, errb := db.Exec("begin")
-	resource.CheckErr(errb, "Failed to begin transaction")
-
-	resource.CheckAllTableStatus(&initConfig, db, tx)
-	resource.CreateRelations(&initConfig, tx)
-	resource.CreateUniqueConstraints(&initConfig, tx)
-	resource.CreateIndexes(&initConfig, tx)
-	resource.UpdateWorldTable(&initConfig, tx)
-	resource.UpdateWorldColumnTable(&initConfig, tx)
-	errc := tx.Commit()
-	resource.CheckErr(errc, "Failed to commit transaction")
-
-	resource.UpdateStateMachineDescriptions(&initConfig, db)
-	resource.UpdateExchanges(&initConfig, db)
-	resource.UpdateStreams(&initConfig, db)
-	resource.UpdateMarketplaces(&initConfig, db)
-	err := resource.UpdateTasksData(&initConfig, db)
-	resource.CheckErr(err, "Failed to  update cron jobs")
-	resource.UpdateStandardData(&initConfig, db)
-
-	err = resource.UpdateActionTable(&initConfig, db)
-	resource.CheckErr(err, "Failed to update action table")
-
+	initialiseResources(&initConfig, db)
 	/// end system initialise
 
 	r := gin.Default()
@@ -305,6 +278,34 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	CleanUpConfigFiles()
 
 	return hostSwitch
+
+}
+func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseConnection) {
+	resource.CheckRelations(initConfig)
+	resource.CheckAuditTables(initConfig)
+	//AddStateMachines(&initConfig, db)
+	tx, errb := db.Beginx()
+	//_, errb := db.Exec("begin")
+	resource.CheckErr(errb, "Failed to begin transaction")
+
+	resource.CheckAllTableStatus(initConfig, db, tx)
+	resource.CreateRelations(initConfig, tx)
+	resource.CreateUniqueConstraints(initConfig, tx)
+	resource.CreateIndexes(initConfig, tx)
+	resource.UpdateWorldTable(initConfig, tx)
+	errc := tx.Commit()
+	resource.CheckErr(errc, "Failed to commit transaction")
+
+	resource.UpdateStateMachineDescriptions(initConfig, db)
+	resource.UpdateExchanges(initConfig, db)
+	resource.UpdateStreams(initConfig, db)
+	resource.UpdateMarketplaces(initConfig, db)
+	err := resource.UpdateTasksData(initConfig, db)
+	resource.CheckErr(err, "Failed to  update cron jobs")
+	resource.UpdateStandardData(initConfig, db)
+
+	err = resource.UpdateActionTable(initConfig, db)
+	resource.CheckErr(err, "Failed to update action table")
 
 }
 func actionPerformersListToMap(interfaces []resource.ActionPerformerInterface) map[string]resource.ActionPerformerInterface {

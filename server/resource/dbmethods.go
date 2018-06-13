@@ -128,7 +128,7 @@ func (dr *DbResource) GetObjectPermission(objectType string, referenceId string)
 	var selectQuery string
 	var queryParameters []interface{}
 	var err error
-	if objectType == "usergroup" || objectType == "world_column" {
+	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = squirrel.
 			Select("permission", "id").
 			From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
@@ -257,9 +257,6 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 
 	refId, err := dr.GetIdToReferenceId(objType, objectId)
 
-	if objType == "world_column" {
-		return s
-	}
 	if objType == "usergroup" {
 
 		if err != nil {

@@ -85,7 +85,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 	res, err := db.Queryx("select table_name, permission, default_permission, " +
 		"world_schema_json, is_top_level, is_hidden, is_state_tracking_enabled, default_order" +
-		" from world where table_name not like '%_has_%' and table_name not like '%_audit' and table_name not in ('world', 'world_column', 'action', 'user', 'usergroup')")
+		" from world where table_name not like '%_has_%' and table_name not like '%_audit' and table_name not in ('world', 'action', 'user', 'usergroup')")
 	if err != nil {
 		log.Infof("Failed to select from world table: %v", err)
 		return ts, err

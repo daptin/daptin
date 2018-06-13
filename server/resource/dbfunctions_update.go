@@ -584,67 +584,6 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db database.DatabaseC
 	}
 }
 
-func UpdateWorldColumnTable(initConfig *CmsConfig, db *sqlx.Tx) {
-
-	for _, table := range initConfig.Tables {
-
-		var worldid int
-
-		db.QueryRowx("select id from world where table_name = ?", table.TableName).Scan(&worldid)
-		for _, col := range table.Columns {
-			u, _ := uuid.NewV4()
-			mapData := make(map[string]interface{})
-			mapData["name"] = col.Name
-			mapData["world_id"] = worldid
-			mapData["is_unique"] = col.IsUnique
-			mapData["data_type"] = col.DataType
-			mapData["is_indexed"] = col.IsIndexed
-			mapData["permission"] = auth.DEFAULT_PERMISSION
-			mapData["column_type"] = col.ColumnType
-			mapData["column_name"] = col.ColumnName
-			mapData["column_description"] = col.ColumnDescription
-			mapData["is_nullable"] = col.IsNullable
-			mapData["reference_id"] = u.String()
-			mapData["default_value"] = col.DefaultValue
-			mapData["is_primary_key"] = col.IsPrimaryKey
-			mapData["is_foreign_key"] = col.IsForeignKey
-			mapData["include_in_api"] = col.ExcludeFromApi
-			mapData["foreign_key_data"] = col.ForeignKeyData.String()
-			mapData["is_auto_increment"] = col.IsAutoIncrement
-
-			var colInfo api2go.ColumnInfo
-			err := db.QueryRowx("select name, is_unique, data_type, is_indexed, permission, column_type, column_name, column_description, is_nullable, default_value, is_primary_key, is_foreign_key, include_in_api, foreign_key_data, is_auto_increment from world_column where world_id = ? and column_name = ? ", worldid, col.ColumnName).StructScan(&colInfo)
-			if err != nil {
-				//log.Infof("Failed to scan world column: ", err)
-				//log.Infof("No existing row for TableColumn[%v][%v]: %v", table.TableName, col.ColumnName, err)
-
-				query, args, err := squirrel.Insert("world_column").SetMap(mapData).ToSql()
-				if err != nil {
-					log.Errorf("Failed to create insert query: %v", err)
-					continue
-				}
-
-				//log.Infof("Query for insert: %v", query)
-
-				_, err = db.Exec(query, args...)
-				if err != nil {
-					log.Errorf("Failed to insert new row in world_column: %v", err)
-				}
-
-			} else {
-
-				query, args, err := squirrel.Update("world_column").SetMap(mapData).Where(squirrel.Eq{"world_id": worldid}).Where(squirrel.Eq{"column_name": col.ColumnName}).ToSql()
-				CheckErr(err, "Failed to create update query for world_column")
-
-				_, err = db.Exec(query, args...)
-				if err != nil {
-					log.Errorf("Failed to insert new row in world_column: %v", err)
-				}
-				//log.Infof("Picked for from db [%v][%v] :  [%v]", table.TableName, colInfo.ColumnName, colInfo.DefaultValue)
-			}
-		}
-	}
-}
 
 func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) error {
 
