@@ -361,6 +361,8 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 						existableTable.Columns[colIndex].IsNullable = newColumnDef.IsNullable
 						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
 						existableTable.Columns[colIndex].Options = newColumnDef.Options
+						existableTable.Columns[colIndex].DataType = newColumnDef.DataType
+						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
 
 					} else {
 						existableTable.Columns = append(existableTable.Columns, newColumnDef)

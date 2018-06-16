@@ -108,7 +108,12 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 		req.PlainRequest = req.PlainRequest.WithContext(ginContext.Request.Context())
 
-		responses, err := cruds["world"].HandleActionRequest(actionRequest, req)
+		actionCrudResource, ok := cruds[actionType]
+		if !ok {
+			actionCrudResource = cruds["world"]
+		}
+
+		responses, err := actionCrudResource.HandleActionRequest(actionRequest, req)
 		if err != nil {
 			ginContext.AbortWithStatusJSON(500, err)
 			return
