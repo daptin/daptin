@@ -60,7 +60,6 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	resource.CreateUniqueConstraints(&initConfig, tx)
 	resource.CreateIndexes(&initConfig, tx)
 	resource.UpdateWorldTable(&initConfig, tx)
-	resource.UpdateWorldColumnTable(&initConfig, tx)
 	errc := tx.Commit()
 	resource.CheckErr(errc, "Failed to commit transaction")
 

@@ -21,7 +21,7 @@ var stream = health.NewStream()
 func init() {
 	//goagain.Strategy = goagain.Double
 	log.SetFlags(log.Lmicroseconds | log.Lshortfile)
-	log.SetPrefix(fmt.Sprintf("pid:%d ", syscall.Getpid()))
+	log.SetPrefix(fmt.Sprintf("Daptin Process ID: %d ", syscall.Getpid()))
 }
 
 func main() {
