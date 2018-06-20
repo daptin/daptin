@@ -178,7 +178,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		}
 	}
 
-	if len(returnMap) == 0 {
+	if len(results) != 0 && len(returnMap) == 0 {
 		return returnMap, api2go.NewHTTPError(fmt.Errorf("%v", "forbidden"), pc.String(), 403)
 	}
 
