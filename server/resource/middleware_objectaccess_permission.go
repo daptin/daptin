@@ -7,6 +7,7 @@ import (
 
 	"github.com/daptin/daptin/server/auth"
 	//"strings"
+	"fmt"
 )
 
 type ObjectAccessPermissionChecker struct {
@@ -18,7 +19,8 @@ func (pc *ObjectAccessPermissionChecker) String() string {
 
 func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
 
-	if results == nil || len(results) < 1 {
+	originalCount := len(results)
+	if results == nil || originalCount < 1 {
 		return results, nil
 	}
 
@@ -138,8 +140,8 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		}
 
 		originalRowReference := map[string]interface{}{
-			"__type":              result["__type"],
-			"reference_id":        result["reference_id"],
+			"__type":                result["__type"],
+			"reference_id":          result["reference_id"],
 			"relation_reference_id": result["relation_reference_id"],
 		}
 		permission := dr.GetRowPermission(originalRowReference)
@@ -174,6 +176,10 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		} else {
 			continue
 		}
+	}
+
+	if len(returnMap) == 0 {
+		return returnMap, api2go.NewHTTPError(fmt.Errorf("%v", "forbidden"), pc.String(), 403)
 	}
 
 	return returnMap, nil
