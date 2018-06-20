@@ -4,12 +4,10 @@ import (
 	"github.com/artpar/rclone/cmd"
 	log "github.com/sirupsen/logrus"
 
-	"context"
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/gin-gonic/gin/json"
-	"golang.org/x/oauth2"
 	"strings"
 )
 
@@ -34,25 +32,8 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request ActionRequest, inField
 
 	oauthTokenId := cloudStore.OAutoTokenId
 
-	token, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
-	oauthConf := &oauth2.Config{}
-	if err != nil {
-		log.Infof("Failed to get oauth token for store sync: %v", err)
-	} else {
-		oauthConf, err := d.cruds["oauth_token"].GetOauthDescriptionByTokenReferenceId(oauthTokenId)
-		if !token.Valid() {
-			ctx := context.Background()
-			tokenSource := oauthConf.TokenSource(ctx, token)
-			token, err = tokenSource.Token()
-			CheckErr(err, "Failed to get new access token")
-			if token == nil {
-				log.Errorf("we have no token to get the site from storage: %v", cloudStore.ReferenceId)
-			} else {
-				err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
-				CheckErr(err, "failed to update access token")
-			}
-		}
-	}
+	token, oauthConf, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+	CheckErr(err, "Failed to get oauth2 token for storage sync")
 
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to convert token to json")

@@ -65,7 +65,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
 	if dr.model.GetName() == "usergroup" && len(req.QueryParams) > 2 {
 		for key := range req.QueryParams {
-			if EndsWithCheck(key, "_id") {
+			if EndsWithCheck(key, "Name") && req.QueryParams[key][0] == "usergroup_id" {
 				isRelatedGroupRequest = true
 			}
 		}
@@ -252,9 +252,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		for _, filterQuery := range queries {
 			switch filterQuery.Operator {
 			case "contains":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value) + "%")
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
 			case "not contains":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value) + "%")
+				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
 			case "is":
 				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 			case "is not":
@@ -302,7 +302,10 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		if rel.GetSubject() == dr.model.GetName() {
 
 			//log.Infof("Forward Relation %v", rel.String())
-			queries, ok := req.QueryParams[rel.GetObject()+"_id"]
+			queries, ok := req.QueryParams[rel.GetObjectName()]
+			if !ok {
+				queries, ok = req.QueryParams[rel.GetObject() + "_id"]
+			}
 			if !ok || len(queries) < 1 {
 				continue
 			}
@@ -353,6 +356,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		} else if rel.GetObject() == dr.model.GetName() {
 
 			subjectNameList, ok := req.QueryParams[rel.GetSubject()+"Name"]
+			if !ok {
+				continue
+			}
 			//log.Infof("Reverse Relation %v", rel.String())
 
 			var subjectName string
@@ -360,13 +366,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			api2go give us two params for each relationship
 			<entityName> -> the name of the column which is used to reference, usually <entity>_id but you name it something for special relations in the config
 			*/
-			if !ok {
-				subjectName = rel.GetSubjectName()
-			} else {
-				subjectName = subjectNameList[0]
-				if subjectName != rel.GetObjectName() {
-					continue
-				}
+			subjectName = subjectNameList[0]
+			if subjectName != rel.GetObjectName() {
+				continue
 			}
 
 			switch rel.Relation {

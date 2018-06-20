@@ -90,18 +90,8 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 	var response *resty.Response
 	var err error
 
-	//switch methodString {
-	//case "get":
-	//	response, err = client.Get(urlString)
-	//case "post":
-	//	response, err = client.Post(urlString)
-	//case "put":
-	//	response, err = client.Put(urlString)
-	//case "patch":
-	//	response, err = client.Patch(urlString)
-	//case "delete":
+
 	response, err = client.Execute(methodString, urlString)
-	//}
 	responseMap := make(map[string]interface{})
 
 	responseHeaders := response.Header()

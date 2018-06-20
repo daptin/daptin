@@ -184,8 +184,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				targetObject = relation.GetObject()
 			}
 
-			log.Printf("Add relation: %v == %v ~ %v", table.TableName, targetName, targetObject)
-
 			switch relation.Relation {
 			case "belongs_to":
 				fields[targetName] = &graphql.Field{

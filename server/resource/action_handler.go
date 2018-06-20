@@ -24,6 +24,7 @@ import (
 	"io"
 	"encoding/json"
 	"net/url"
+	"github.com/artpar/go.uuid"
 )
 
 var guestActions = map[string]Action{}
@@ -44,7 +45,6 @@ func CreateGuestActionListHandler(initConfig *CmsConfig) func(*gin.Context) {
 		c.JSON(200, guestActions)
 	}
 }
-
 
 type ActionPerformerInterface interface {
 	DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error)
@@ -88,9 +88,6 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 		actionName := ginContext.Param("actionName")
 		actionType := ginContext.Param("typename")
-
-		requestBodyContentType := ginContext.Request.Header.Get("Content-type")
-		log.Printf("Action initiate: body content type: %v", requestBodyContentType)
 
 		actionRequest, err := BuildActionRequest(ginContext.Request.Body, actionType, actionName, ginContext.Params)
 
@@ -301,7 +298,12 @@ OutFields:
 			request.QueryParams = make(map[string][]string)
 
 			for k, val := range model.Data {
-				request.QueryParams[k] = []string{fmt.Sprintf("%v", val)}
+				if k == "query" {
+					request.QueryParams[k] = []string{toJson(val)}
+				} else {
+
+					request.QueryParams[k] = []string{fmt.Sprintf("%v", val)}
+				}
 			}
 
 			responseObjects, _, _, err = dbResource.PaginatedFindAllWithoutFilters(request)
@@ -420,7 +422,6 @@ OutFields:
 
 	return responses, nil
 }
-
 
 func BuildActionRequest(closer io.ReadCloser, actionType, actionName string, params gin.Params) (*ActionRequest, error) {
 	bytes, err := ioutil.ReadAll(closer)
@@ -598,6 +599,10 @@ func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) (inte
 	for key, val := range contextMap {
 		vm.Set(key, val)
 	}
+	vm.Set("uuid", func() string {
+		u, _ := uuid.NewV4()
+		return u.String()
+	})
 	v, err := vm.RunString(unsafe) // Here be dragons (risky code)
 
 	if err != nil {

@@ -193,11 +193,13 @@ type AuthMiddleware struct {
 	userCrud          ResourceAdapter
 	userGroupCrud     ResourceAdapter
 	userUserGroupCrud ResourceAdapter
+	issuer            string
 }
 
-func NewAuthMiddlewareBuilder(db database.DatabaseConnection) *AuthMiddleware {
+func NewAuthMiddlewareBuilder(db database.DatabaseConnection, issuer string) *AuthMiddleware {
 	return &AuthMiddleware{
-		db: db,
+		db:     db,
+		issuer: issuer,
 	}
 }
 
@@ -224,11 +226,12 @@ func NewAuthMiddleware(db database.DatabaseConnection, userCrud ResourceAdapter,
 
 var jwtMiddleware *jwtmiddleware.JWTMiddleware
 
-func InitJwtMiddleware(secret []byte) {
+func InitJwtMiddleware(secret []byte, issuer string) {
 	jwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
 		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
 			return secret, nil
 		},
+		Issuer: issuer,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err string) {
 			//log.Infof("Guest request [%v]: %v", err, r.Header)
 		},

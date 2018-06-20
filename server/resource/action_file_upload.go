@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	//"os"
 	"archive/zip"
-	"context"
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
@@ -129,20 +128,8 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 		log.Infof("No oauth token set for target store")
 	} else {
 		oauthTokenId := oauthTokenId1.(string)
-		token, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
-		if err != nil {
-			log.Infof("Failed to get oauth token for store sync: %v", err)
-		} else {
-			oauthConf, err = d.cruds["oauth_token"].GetOauthDescriptionByTokenReferenceId(oauthTokenId)
-			if !token.Valid() {
-				ctx := context.Background()
-				tokenSource := oauthConf.TokenSource(ctx, token)
-				token, err = tokenSource.Token()
-				CheckErr(err, "Failed to get new access token")
-				err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
-				CheckErr(err, "failed to update access token")
-			}
-		}
+		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+		CheckErr(err, "Failed to get oauth2 token for store sync")
 	}
 
 	jsonToken, err := json.Marshal(token)
