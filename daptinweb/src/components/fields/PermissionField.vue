@@ -256,7 +256,7 @@
     <el-row>
       <el-button @click="clearAll">Clear all</el-button>
       <el-button @click="enableAll">Enable all</el-button>
-      <el-button @click="toggleSelectionAll">Toggle selection</el-button>
+      <el-button @click="toggleSelectionAll">Toggle</el-button>
     </el-row>
   </div>
 
