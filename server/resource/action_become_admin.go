@@ -9,8 +9,7 @@ import (
   Become administrator of daptin action implementation
 */
 type BecomeAdminActionPerformer struct {
-	responseAttrs map[string]interface{}
-	cruds         map[string]*DbResource
+	cruds map[string]*DbResource
 }
 
 // Name of the action

@@ -9,6 +9,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create become admin performer")
 	performers = append(performers, becomeAdminPerformer)
 
+	makeResponsePerformer, err := resource.NewMakeResponsePerformer()
+	resource.CheckErr(err, "Failed to create make response performer")
+	performers = append(performers, makeResponsePerformer)
+
 	downloadConfigPerformer, err := resource.NewDownloadCmsConfigPerformer(initConfig)
 	resource.CheckErr(err, "Failed to create download config performer")
 	performers = append(performers, downloadConfigPerformer)
