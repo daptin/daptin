@@ -37,8 +37,6 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 
 func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, objects []map[string]interface{}) ([]map[string]interface{}, error) {
 
-	var err error
-
 	reqmethod := req.PlainRequest.Method
 	//log.Infof("Generate events for objects", reqmethod)
 	switch reqmethod {
@@ -59,7 +57,7 @@ func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Re
 	//currentUserId := context.Get(req.PlainRequest, "user_id").(string)
 	//currentUserGroupId := context.Get(req.PlainRequest, "usergroup_id").([]string)
 
-	return objects, err
+	return objects, nil
 
 }
 

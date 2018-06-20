@@ -9,7 +9,6 @@ import (
 	"github.com/artpar/conform"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/universal-translator"
-	"github.com/pkg/errors"
 	"gopkg.in/go-playground/validator.v9"
 )
 
@@ -61,9 +60,10 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 				if errs != nil {
 					validationErrors, ok := errs.(validator.ValidationErrors)
 					if !ok {
-						return nil, errs
+						return nil, api2go.NewHTTPError(errs, "failed to validate incoming data", 400)
 					}
-					return nil, errors.New(strings.Replace(validationErrors[0].Translate(dvm.translator), "for ''", fmt.Sprintf("'%v'", validate.ColumnName), 1))
+					httpErr := api2go.NewHTTPError(errs, strings.Replace(validationErrors[0].Translate(dvm.translator), "for ''", fmt.Sprintf("'%v'", validate.ColumnName), 1), 400)
+					return nil, httpErr
 				}
 
 			}

@@ -45,7 +45,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 			return results, nil
 		} else {
 			//notIncludedMapCache[referenceId] = true
-			return nil, ErrUnauthorized
+			return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
 		}
 	} else if tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
 		//log.Infof("[TableAccessPermissionChecker] Result not to be included: %v", result["reference_id"])
@@ -54,12 +54,12 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 		return results, nil
 	}
 
-	return nil, ErrUnauthorized
+	return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
 }
 
 var (
 	// Error Unauthorized
-	ErrUnauthorized = errors.New("Unauthorized")
+	ErrUnauthorized = errors.New("forbidden")
 )
 
 // Intercept before implemetation for entity level authentication check
@@ -81,25 +81,25 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 	//log.Printf("[TableAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), tableOwnership)
 	if req.PlainRequest.Method == "GET" {
 		if !tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
-			return nil, ErrUnauthorized
+			return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
 		}
 	} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" {
 		if !tableOwnership.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups) {
-			return nil, ErrUnauthorized
+			return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
 
 		}
 	} else if req.PlainRequest.Method == "POST" {
 		if !tableOwnership.CanCreate(sessionUser.UserReferenceId, sessionUser.Groups) {
-			return nil, ErrUnauthorized
+			return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
 
 		}
 	} else if req.PlainRequest.Method == "DELETE" {
 		if !tableOwnership.CanDelete(sessionUser.UserReferenceId, sessionUser.Groups) {
-			return nil, ErrUnauthorized
+			return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
 
 		}
 	} else {
-		return nil, ErrUnauthorized
+		return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
 	}
 
 	return results, nil
