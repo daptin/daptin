@@ -43,7 +43,7 @@ const WorldManager = function () {
   };
 
   that.trackObjectEvent = function (typeName, stateMachineRefId, eventName) {
-    console.log("change object track", getToken())
+    console.log("change object track", getToken());
     return axios({
       url: appconfig.apiRoot + "/track/event/" + stateMachineRefId + "/" + eventName,
       url: appconfig.apiRoot + "/track/event/" + typeName + "/" + stateMachineRefId + "/" + eventName,
@@ -68,9 +68,9 @@ const WorldManager = function () {
     }).then(function (r) {
       if (r.status == 200) {
         var r = r.data;
-        console.log("Loaded Model inside :", typeName)
+        console.log("Loaded Model inside :", typeName);
         if (r.Actions.length > 0) {
-          console.log("Register actions", typeName, r.Actions,)
+          console.log("Register actions", typeName, r.Actions,);
           actionManager.addAllActions(r.Actions);
         }
         that.stateMachines[typeName] = r.StateMachines;
@@ -98,12 +98,12 @@ const WorldManager = function () {
     } else {
       console.log("failed to get column types")
     }
-  })
+  });
 
   that.getColumnFieldTypes = function () {
-    console.log("Get column field types", that.columnTypes)
+    console.log("Get column field types", that.columnTypes);
     return that.columnTypes;
-  }
+  };
 
   that.isStateMachineEnabled = function (typeName) {
     return that.stateMachineEnabled[typeName] == true;
@@ -157,7 +157,7 @@ const WorldManager = function () {
   that.worlds = [];
 
   that.getWorlds = function () {
-    console.log("GET WORLDS", that.worlds)
+    console.log("GET WORLDS", that.worlds);
     return that.worlds;
   };
   that.getWorldByName = function (name) {
@@ -173,7 +173,7 @@ const WorldManager = function () {
 
   that.getSystemActions = function () {
     return that.systemActions;
-  }
+  };
 
   that.reclineFieldTypeMap = {};
 
@@ -181,14 +181,14 @@ const WorldManager = function () {
   axios({
     url: appconfig.apiRoot + '/recline_model'
   }).then(function (res) {
-    console.log("recline field type map", res)
+    console.log("recline field type map", res);
     that.reclineFieldTypeMap = res.data;
   });
 
   that.getReclineModel = function (tableName, callback) {
     that.getColumnKeys(tableName, function (columnsModel) {
       var columns = columnsModel.ColumnModel;
-      console.log("build recline model", columns)
+      console.log("build recline model", columns);
 
 
       var colNames = Object.keys(columns);
@@ -196,7 +196,7 @@ const WorldManager = function () {
 
       for (var i = 0; i < colNames.length; i++) {
         let colName = colNames[i];
-        var colType = columns[colName]
+        var colType = columns[colName];
         if (colType.ColumnType == "hidden") {
           continue;
         }
@@ -240,7 +240,7 @@ const WorldManager = function () {
 
       }
 
-      console.log("recline model", reclineModel)
+      console.log("recline model", reclineModel);
       callback(reclineModel);
       return reclineModel;
 
@@ -270,7 +270,7 @@ const WorldManager = function () {
 
     return promise;
 
-  }
+  };
 
   that.loadModels = function () {
 
@@ -296,12 +296,11 @@ const WorldManager = function () {
 
               jsonApi.findAll('world', {
                 page: {number: 1, size: 500},
-                include: ['world_column']
               }).then(function (res) {
                 res = res.data;
                 that.worlds = res;
-                store.commit("SET_WORLDS", res)
-                console.log("Get all worlds result", res)
+                store.commit("SET_WORLDS", res);
+                console.log("Get all worlds result", res);
                 // resolve("Stuff worked!");
                 var total = res.length;
 
