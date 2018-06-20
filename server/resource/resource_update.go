@@ -569,10 +569,10 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 					joinReference, _, err := dr.cruds[referencedRelation.GetJoinTableName()].GetRowsByWhereClause(referencedRelation.GetJoinTableName(),
 						squirrel.Eq{
-							  relationName: otherObjectId,
-							  hostRelationName: idInt,
-							},
-						)
+							relationName:     otherObjectId,
+							hostRelationName: idInt,
+						},
+					)
 					if err != nil {
 						log.Errorf("Referenced relation not found: %v", err)
 						continue

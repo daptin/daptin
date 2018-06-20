@@ -138,8 +138,15 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	r.GET("/config", CreateConfigHandler(configStore))
 
-	authMiddleware := auth.NewAuthMiddlewareBuilder(db)
-	auth.InitJwtMiddleware([]byte(jwtSecret))
+	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend")
+	resource.CheckErr(err, "No default jwt token issuer set")
+	if err != nil {
+		uid, _ := uuid.NewV4()
+		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
+		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
+	}
+	authMiddleware := auth.NewAuthMiddlewareBuilder(db, jwtTokenIssuer)
+	auth.InitJwtMiddleware([]byte(jwtSecret), jwtTokenIssuer)
 	r.Use(authMiddleware.AuthCheckMiddleware)
 
 	cruds := make(map[string]*resource.DbResource)

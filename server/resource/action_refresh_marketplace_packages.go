@@ -33,13 +33,13 @@ func (d *RefreshMarketplacePackagelistPerformer) DoAction(request ActionRequest,
 		}
 		d.cmsConfig.MarketplaceHandlers[marketReferenceId] = handler
 		go handler.RefreshRepository()
-		return nil, marketResfreshSuccessResponse, nil
+		return nil, marketRefreshSuccessResponse, nil
 	}
 	err := marketplaceHandler.RefreshRepository()
-	return nil, marketResfreshSuccessResponse, []error{err}
+	return nil, marketRefreshSuccessResponse, []error{err}
 }
 
-var marketResfreshSuccessResponse = []ActionResponse{
+var marketRefreshSuccessResponse = []ActionResponse{
 	NewActionResponse("client.notify", map[string]interface{}{
 		"type":    "success",
 		"message": "Marketplace package list is being refreshed",

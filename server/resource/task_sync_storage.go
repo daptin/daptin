@@ -2,9 +2,7 @@ package resource
 
 import (
 	"strings"
-	"golang.org/x/oauth2"
 	log "github.com/sirupsen/logrus"
-	"context"
 	"encoding/json"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/cmd"
@@ -15,25 +13,8 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, tempDirectoryPat
 
 	oauthTokenId := cloudStore.OAutoTokenId
 
-	token, err := res.GetTokenByTokenReferenceId(oauthTokenId)
-	oauthConf := &oauth2.Config{}
-	if err != nil {
-		log.Infof("Failed to get oauth token for store sync: %v", err)
-	} else {
-		oauthConf, err := res.GetOauthDescriptionByTokenReferenceId(oauthTokenId)
-		if !token.Valid() {
-			ctx := context.Background()
-			tokenSource := oauthConf.TokenSource(ctx, token)
-			token, err = tokenSource.Token()
-			CheckErr(err, "Failed to get new access token")
-			if token == nil {
-				log.Errorf("we have no token to get the site from storage: %v", cloudStore.ReferenceId)
-			} else {
-				err = res.UpdateAccessTokenByTokenReferenceId(oauthTokenId, token.AccessToken, token.Expiry.Unix())
-				CheckErr(err, "failed to update access token")
-			}
-		}
-	}
+	token, oauthConf, err := res.GetTokenByTokenReferenceId(oauthTokenId)
+	CheckErr(err, "Failed to get oauth2 token for scheduled storage sync")
 
 	//hostRouter := httprouter.New()
 

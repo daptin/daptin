@@ -53,6 +53,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create random data generator")
 	performers = append(performers, randomDataGenerator)
 
+	oauth2tokenGenerator, err := resource.NewGenerateOauth2TokenPerformer(configStore, cruds)
+	resource.CheckErr(err, "Failed to create oauth2 token generator")
+	performers = append(performers, oauth2tokenGenerator)
+
 	marketplacePackage, err := resource.NewMarketplacePackageInstaller(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create marketplace package install performer")
 	performers = append(performers, marketplacePackage)

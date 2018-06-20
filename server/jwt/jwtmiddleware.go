@@ -21,6 +21,7 @@ type TokenExtractor func(r *http.Request) (string, error)
 
 // Options is a struct for specifying configuration options for the middleware.
 type Options struct {
+	Issuer string
 	// The function that will return the Key to validate the JWT.
 	// It can be either a shared secret or a public key.
 	// Default value: nil
@@ -205,6 +206,11 @@ func (m *JWTMiddleware) CheckJWT(w http.ResponseWriter, r *http.Request) (*jwt.T
 		m.logf("Error parsing token: %v", err)
 		m.Options.ErrorHandler(w, r, err.Error())
 		return nil, fmt.Errorf("Error parsing token: %v", err)
+	}
+
+
+	if parsedToken.Header["iss"] != m.Options.Issuer {
+		return nil, fmt.Errorf("Invalid issuer: %v", parsedToken.Header["iss"])
 	}
 
 	if m.Options.SigningMethod != nil && m.Options.SigningMethod.Alg() != parsedToken.Header["alg"] {

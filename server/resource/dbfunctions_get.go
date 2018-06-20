@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"context"
 )
 
 func GetObjectByWhereClause(objType string, db database.DatabaseConnection, queries ...squirrel.Eq) ([]map[string]interface{}, error) {
@@ -464,7 +465,8 @@ func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId st
 
 }
 
-func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oauth2.Token, error) {
+func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oauth2.Token, *oauth2.Config, error) {
+	oauthConf := &oauth2.Config{}
 
 	var access_token, refresh_token, token_type string
 	var expires_in int64
@@ -473,13 +475,13 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 		Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 
 	if err != nil {
-		return nil, err
+		return nil, oauthConf, err
 	}
 
 	err = resource.db.QueryRowx(s, v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
 
 	if err != nil {
-		return nil, err
+		return nil, oauthConf, err
 	}
 
 	secret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
@@ -496,7 +498,28 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 	token.TokenType = "Bearer"
 	token.Expiry = time.Unix(expires_in, 0)
 
-	return &token, err
+	// check validity and refresh if required
+	oauthConf, err = resource.GetOauthDescriptionByTokenReferenceId(referenceId)
+	if err != nil {
+		log.Infof("Failed to get oauth token configuration for token refresh: %v", err)
+	} else {
+		if !token.Valid() {
+			ctx := context.Background()
+			tokenSource := oauthConf.TokenSource(ctx, &token)
+			refreshedToken, err := tokenSource.Token()
+			CheckErr(err, "Failed to get new oauth2 access token")
+			if refreshedToken == nil {
+				log.Errorf("Failed to obtain a valid oauth2 token: %v", referenceId)
+				return nil, oauthConf, err
+			} else {
+				token = *refreshedToken
+				err = resource.UpdateAccessTokenByTokenReferenceId(referenceId, refreshedToken.AccessToken, refreshedToken.Expiry.Unix())
+				CheckErr(err, "failed to update access token")
+			}
+		}
+	}
+
+	return &token, oauthConf, err
 
 }
 

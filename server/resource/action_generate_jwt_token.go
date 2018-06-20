@@ -12,8 +12,10 @@ import (
 )
 
 type GenerateJwtTokenActionPerformer struct {
-	cruds  map[string]*DbResource
-	secret []byte
+	cruds          map[string]*DbResource
+	secret         []byte
+	tokenLifeTime  int
+	jwtTokenIssuer string
 }
 
 func (d *GenerateJwtTokenActionPerformer) Name() string {
@@ -37,6 +39,8 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 	if !skipPasswordCheck {
 		if inFieldMap["password"] != nil {
 			password = inFieldMap["password"].(string)
+		} else {
+			return nil, nil, []error{fmt.Errorf("email or password is empty")}
 		}
 	}
 
@@ -64,8 +68,8 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 				"email":   existingUser["email"],
 				"name":    existingUser["name"],
 				"nbf":     time.Now().Unix(),
-				"exp":     time.Now().Add(3 * 24 * time.Hour).Unix(),
-				"iss":     "daptin",
+				"exp":     time.Now().Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),
+				"iss":     d.jwtTokenIssuer,
 				"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5Hash(strings.ToLower(existingUser["email"].(string)))),
 				"iat":     time.Now(),
 				"jti":     u.String(),
@@ -116,9 +120,27 @@ func NewGenerateJwtTokenPerformer(configStore *ConfigStore, cruds map[string]*Db
 
 	secret, _ := configStore.GetConfigValueFor("jwt.secret", "backend")
 
+	tokenLifeTimeHours, err := configStore.GetConfigIntValueFor("jwt.token.life.hours", "backend")
+	CheckErr(err, "No default jwt token life time set in configuration")
+	if err != nil {
+		err = configStore.SetConfigIntValueFor("jwt.token.life.hours", 24*3, "backend")
+		CheckErr(err, "Failed to store default jwt token life time")
+		tokenLifeTimeHours = 24 * 3 // 3 days
+	}
+
+	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend")
+	CheckErr(err, "No default jwt token issuer set")
+	if err != nil {
+		uid, _ := uuid.NewV4()
+		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
+		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
+	}
+
 	handler := GenerateJwtTokenActionPerformer{
-		secret: []byte(secret),
-		cruds:  cruds,
+		secret:         []byte(secret),
+		cruds:          cruds,
+		tokenLifeTime:  tokenLifeTimeHours,
+		jwtTokenIssuer: jwtTokenIssuer,
 	}
 
 	return &handler, nil
