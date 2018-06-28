@@ -78,7 +78,7 @@ func CheckRelations(config *CmsConfig) {
 		if table.TableName != "usergroup" &&
 			!table.IsJoinTable &&
 			!EndsWithCheck(table.TableName, "_audit") {
-			relation := api2go.NewTableRelation(table.TableName, "belongs_to", "user")
+			relation := api2go.NewTableRelation(table.TableName, "belongs_to", "user_account")
 			relationGroup := api2go.NewTableRelation(table.TableName, "has_many", "usergroup")
 
 			if !relationsDone[relation.Hash()] {
@@ -95,7 +95,7 @@ func CheckRelations(config *CmsConfig) {
 
 		}
 
-		userRelation := api2go.NewTableRelation(table.TableName+"_state", "belongs_to", "user")
+		userRelation := api2go.NewTableRelation(table.TableName+"_state", "belongs_to", "user_account")
 		userGroupRelation := api2go.NewTableRelation(table.TableName+"_state", "has_many", "usergroup")
 
 		if len(existingRelations) > 0 {

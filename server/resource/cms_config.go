@@ -7,6 +7,7 @@ import (
 	"gopkg.in/Masterminds/squirrel.v1"
 	"gopkg.in/go-playground/validator.v9"
 	"time"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 type CmsConfig struct {
@@ -169,7 +170,7 @@ func (c *ConfigStore) SetDefaultEnv(env string) {
 func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, error) {
 	var val string
 
-	s, v, err := squirrel.Select("value").
+	s, v, err := statementbuilder.Squirrel.Select("value").
 		From(settingsTableName).
 		Where(squirrel.Eq{"name": key}).
 		Where(squirrel.Eq{"configstate": "enabled"}).
@@ -188,7 +189,7 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, error) {
 	var val int
 
-	s, v, err := squirrel.Select("value").
+	s, v, err := statementbuilder.Squirrel.Select("value").
 		From(settingsTableName).
 		Where(squirrel.Eq{"name": key}).
 		Where(squirrel.Eq{"configstate": "enabled"}).
@@ -206,7 +207,7 @@ func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, 
 
 func (c *ConfigStore) GetWebConfig() map[string]string {
 
-	s, v, err := squirrel.Select("name", "value").
+	s, v, err := statementbuilder.Squirrel.Select("name", "value").
 		From(settingsTableName).
 		Where(squirrel.Eq{"configtype": "web"}).
 		Where(squirrel.Eq{"configstate": "enabled"}).
@@ -234,7 +235,7 @@ func (c *ConfigStore) GetWebConfig() map[string]string {
 func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype string) error {
 	var previousValue string
 
-	s, v, err := squirrel.Select("value").
+	s, v, err := statementbuilder.Squirrel.Select("value").
 		From(settingsTableName).
 		Where(squirrel.Eq{"name": key}).
 		Where(squirrel.Eq{"configstate": "enabled"}).
@@ -248,7 +249,7 @@ func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype strin
 	if err != nil {
 
 		// row doesnt exist
-		s, v, err := squirrel.Insert(settingsTableName).
+		s, v, err := statementbuilder.Squirrel.Insert(settingsTableName).
 			Columns("name", "configstate", "configtype", "configenv", "value").
 			Values(key, "enabled", configtype, c.defaultEnv, val).ToSql()
 
@@ -261,7 +262,7 @@ func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype strin
 
 		// row already exists
 
-		s, v, err := squirrel.Update(settingsTableName).
+		s, v, err := statementbuilder.Squirrel.Update(settingsTableName).
 			Set("value", val).
 			Set("previous_value", previousValue).
 			Where(squirrel.Eq{"name": key}).
@@ -281,7 +282,7 @@ func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype strin
 func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype string) error {
 	var previousValue string
 
-	s, v, err := squirrel.Select("value").
+	s, v, err := statementbuilder.Squirrel.Select("value").
 		From(settingsTableName).
 		Where(squirrel.Eq{"name": key}).
 		Where(squirrel.Eq{"configstate": "enabled"}).
@@ -295,7 +296,7 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 	if err != nil {
 
 		// row doesnt exist
-		s, v, err := squirrel.Insert(settingsTableName).
+		s, v, err := statementbuilder.Squirrel.Insert(settingsTableName).
 			Columns("name", "configstate", "configtype", "configenv", "value").
 			Values(key, "enabled", configtype, c.defaultEnv, val).ToSql()
 
@@ -308,7 +309,7 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 
 		// row already exists
 
-		s, v, err := squirrel.Update(settingsTableName).
+		s, v, err := statementbuilder.Squirrel.Update(settingsTableName).
 			Set("value", val).
 			Set("previous_value", previousValue).
 			Where(squirrel.Eq{"name": key}).
@@ -327,7 +328,7 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 
 func NewConfigStore(db database.DatabaseConnection) (*ConfigStore, error) {
 	var cs ConfigStore
-	s, v, err := squirrel.Select("count(*)").From(settingsTableName).ToSql()
+	s, v, err := statementbuilder.Squirrel.Select("count(*)").From(settingsTableName).ToSql()
 	CheckErr(err, "Failed to create sql for config check table")
 	if err != nil {
 		return &cs, err

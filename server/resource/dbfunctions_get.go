@@ -11,12 +11,13 @@ import (
 	"strings"
 	"time"
 	"context"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 func GetObjectByWhereClause(objType string, db database.DatabaseConnection, queries ...squirrel.Eq) ([]map[string]interface{}, error) {
 	result := make([]map[string]interface{}, 0)
 
-	builder := squirrel.Select("*").From(objType)
+	builder := statementbuilder.Squirrel.Select("*").From(objType)
 
 	for _, q := range queries {
 		builder = builder.Where(q)
@@ -86,7 +87,7 @@ func GetWorldTableMapBy(col string, db database.DatabaseConnection) (map[string]
 
 func GetAdminUserIdAndUserGroupId(db database.DatabaseConnection) (int64, int64) {
 	var userCount int
-	s, v, err := squirrel.Select("count(*)").From("user").ToSql()
+	s, v, err := statementbuilder.Squirrel.Select("count(*)").From("user_account").ToSql()
 	err = db.QueryRowx(s, v...).Scan(&userCount)
 	CheckErr(err, "Failed to get user count")
 
@@ -94,20 +95,20 @@ func GetAdminUserIdAndUserGroupId(db database.DatabaseConnection) (int64, int64)
 	var userGroupId int64
 
 	if userCount < 2 {
-		s, v, err := squirrel.Select("id").From("user").OrderBy("id").Limit(1).ToSql()
+		s, v, err := statementbuilder.Squirrel.Select("id").From("user_account").OrderBy("id").Limit(1).ToSql()
 		CheckErr(err, "Failed to create select user sql")
 		err = db.QueryRowx(s, v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
-		s, v, err = squirrel.Select("id").From("usergroup").Limit(1).ToSql()
+		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSql()
 		CheckErr(err, "Failed to create user group sql")
 		err = db.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
 	} else {
-		s, v, err := squirrel.Select("id").From("user").Where(squirrel.NotEq{"email": "guest@cms.go"}).OrderBy("id").Limit(1).ToSql()
+		s, v, err := statementbuilder.Squirrel.Select("id").From("user_account").Where(squirrel.NotEq{"email": "guest@cms.go"}).OrderBy("id").Limit(1).ToSql()
 		CheckErr(err, "Failed to create select user sql")
 		err = db.QueryRowx(s, v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
-		s, v, err = squirrel.Select("id").From("usergroup").Limit(1).ToSql()
+		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSql()
 		CheckErr(err, "Failed to create user group sql")
 		err = db.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
@@ -123,7 +124,7 @@ type SubSite struct {
 	Path         string
 	CloudStoreId *int64 `db:"cloud_store_id"`
 	Permission   PermissionInstance
-	UserId       *int64 `db:"user_id"`
+	UserId       *int64 `db:"user_account_id"`
 	ReferenceId  string `db:"reference_id"`
 }
 
@@ -173,7 +174,7 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 		cloudStore.ReferenceId = storeMap["reference_id"].(string)
 		CheckErr(err, "Failed to parse permission as int in loading stores")
 		cloudStore.Permission = resource.GetObjectPermission("cloud_store", cloudStore.ReferenceId)
-		cloudStore.UserId = storeMap["user_id"].(string)
+		cloudStore.UserId = storeMap["user_account_id"].(string)
 
 		createdAt, ok := storeMap["created_at"].(time.Time)
 		if !ok {
@@ -265,7 +266,7 @@ func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
 
 	marketPlaces := []Marketplace{}
 
-	s, v, err := squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s.user_id", "s.reference_id").
+	s, v, err := statementbuilder.Squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s.user_account_id", "s.reference_id").
 		From("marketplace s").
 		ToSql()
 	if err != nil {
@@ -296,7 +297,7 @@ func (resource *DbResource) GetAllTasks() ([]Task, error) {
 
 	tasks := []Task{}
 
-	s, v, err := squirrel.Select("t.name", "t.action_name", "t.entity_name", "t.schedule", "t.active", "t.attributes", "t.as_user_id").
+	s, v, err := statementbuilder.Squirrel.Select("t.name", "t.action_name", "t.entity_name", "t.schedule", "t.active", "t.attributes", "t.as_user_id").
 		From("task t").
 		ToSql()
 	if err != nil {
@@ -331,7 +332,7 @@ func (resource *DbResource) GetMarketplaceByReferenceId(referenceId string) (Mar
 
 	marketPlace := Marketplace{}
 
-	s, v, err := squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s.user_id", "s.reference_id").
+	s, v, err := statementbuilder.Squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s.user_account_id", "s.reference_id").
 		From("marketplace s").Where(squirrel.Eq{"reference_id": referenceId}).
 		ToSql()
 	if err != nil {
@@ -347,7 +348,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	sites := []SubSite{}
 
-	s, v, err := squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s.user_id", "s.path", "s.reference_id", "s.id").
+	s, v, err := statementbuilder.Squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s.user_account_id", "s.path", "s.reference_id", "s.id").
 		From("site s").
 		ToSql()
 	if err != nil {
@@ -379,7 +380,7 @@ func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Conf
 
 	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
-	s, v, err := squirrel.
+	s, v, err := statementbuilder.Squirrel.
 		Select("oc.client_id", "oc.client_secret", "oc.redirect_uri", "oc.auth_url", "oc.token_url", "oc.scope").
 		From("oauth_token ot").Join("oauth_connect oc").
 		JoinClause("on oc.id = ot.oauth_connect_id").
@@ -424,7 +425,7 @@ func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId st
 
 	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
-	s, v, err := squirrel.
+	s, v, err := statementbuilder.Squirrel.
 		Select("oc.client_id", "oc.client_secret", "oc.redirect_uri", "oc.auth_url", "oc.token_url", "oc.scope").
 		From("oauth_token ot").Join("oauth_connect oc").
 		JoinClause("on oc.id = ot.oauth_connect_id").
@@ -471,7 +472,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 	var access_token, refresh_token, token_type string
 	var expires_in int64
 	var token oauth2.Token
-	s, v, err := squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
+	s, v, err := statementbuilder.Squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
 		Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 
 	if err != nil {
@@ -528,7 +529,7 @@ func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 	var access_token, refresh_token, token_type string
 	var expires_in int64
 	var token oauth2.Token
-	s, v, err := squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
+	s, v, err := statementbuilder.Squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
 		Where(squirrel.Eq{"id": id}).ToSql()
 
 	if err != nil {
@@ -564,7 +565,7 @@ func (resource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, err
 	var access_token, refresh_token, token_type string
 	var expires_in int64
 	var token oauth2.Token
-	s, v, err := squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
+	s, v, err := statementbuilder.Squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
 		Where(squirrel.Eq{"token_type": name}).OrderBy("created_at desc").Limit(1).ToSql()
 
 	if err != nil {
