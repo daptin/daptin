@@ -11,6 +11,7 @@ import (
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
 	"time"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 // Update an object
@@ -275,7 +276,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 		colsList = append(colsList, "version")
 		valsList = append(valsList, data.GetNextVersion())
 
-		builder := squirrel.Update(dr.model.GetName())
+		builder := statementbuilder.Squirrel.Update(dr.model.GetName())
 
 		for i := range colsList {
 			//log.Infof("cols to set: %v == %v", colsList[i], valsList[i])
@@ -327,7 +328,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 		log.Infof("[%v][%v] Not creating an audit row", data.GetTableName(), data.GetID())
 	}
 
-	//query, vals, err = squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": id}).ToSql()
+	//query, vals, err = statementbuilder.Squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": id}).ToSql()
 	//if err != nil {
 	//	log.Errorf("Failed to create select query: %v", err)
 	//	return nil, err
@@ -428,7 +429,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					}
 				}
 
-				//relUpdateQuery, vars, err = squirrel.Update(rel.GetSubject()).
+				//relUpdateQuery, vars, err = statementbuilder.Squirrel.Update(rel.GetSubject()).
 				//    Set(rel.GetObjectName(), intId).Where(squirrel.Eq{"reference_id": val}).ToSql()
 
 				//if err != nil {

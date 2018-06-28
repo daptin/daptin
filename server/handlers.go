@@ -11,6 +11,7 @@ import (
 	"gopkg.in/Masterminds/squirrel.v1"
 	"io/ioutil"
 	"net/http"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmManager, cruds map[string]*resource.DbResource, db database.DatabaseConnection) func(context *gin.Context) {
@@ -85,7 +86,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 			resource.CheckErr(err, "Failed to create audit for [%v]", objectStateMachine.GetTableName())
 		}
 
-		s, v, err := squirrel.Update(typename+"_state").
+		s, v, err := statementbuilder.Squirrel.Update(typename + "_state").
 			Set("current_state", nextState).
 			Set("version", stateObject["version"].(int64)+1).
 			Where(squirrel.Eq{"reference_id": stateMachineId}).ToSql()
@@ -168,7 +169,7 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 
 		resp, err := cruds[typename+"_state"].Create(api2go.NewApi2GoModelWithData(typename+"_state", nil, 0, nil, newStateMachine), req)
 
-		//s, v, err := squirrel.Insert(typename + "_state").SetMap(newStateMachine).ToSql()
+		//s, v, err := statementbuilder.Squirrel.Insert(typename + "_state").SetMap(newStateMachine).ToSql()
 		//if err != nil {
 		//  log.Errorf("Failed to create state insert query: %v", err)
 		//  gincontext.AbortWithError(500, err)

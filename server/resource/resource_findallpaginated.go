@@ -11,10 +11,11 @@ import (
 	"net/url"
 	"encoding/json"
 	"encoding/base64"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 func (dr *DbResource) GetTotalCount() uint64 {
-	s, v, err := squirrel.Select("count(*)").From(dr.model.GetName()).ToSql()
+	s, v, err := statementbuilder.Squirrel.Select("count(*)").From(dr.model.GetName()).ToSql()
 	if err != nil {
 		log.Errorf("Failed to generate count query for %v: %v", dr.model.GetName(), err)
 		return 0
@@ -118,7 +119,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				reqFieldMap[name] = true
 			}
 		}
-		reqFieldMap["user_id"] = true
+		reqFieldMap["user_account_id"] = true
 	}
 
 	pageSize := uint64(10)
@@ -211,8 +212,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		finalCols = append(finalCols, prefix+"reference_id")
 	}
 
-	queryBuilder := squirrel.Select(finalCols...).From(m.GetTableName()).Offset(pageNumber).Limit(pageSize)
-	countQueryBuilder := squirrel.Select("count(*)").From(m.GetTableName()).Offset(0).Limit(1)
+	queryBuilder := statementbuilder.Squirrel.Select(finalCols...).From(m.GetTableName()).Offset(pageNumber).Limit(pageSize)
+	countQueryBuilder := statementbuilder.Squirrel.Select("count(*)").From(m.GetTableName()).Offset(0).Limit(1)
 
 	infos := dr.model.GetColumns()
 
