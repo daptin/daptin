@@ -211,6 +211,8 @@
           jsonApi.update(currentTableType, row).then(function () {
             that.setTable();
             that.showAddEdit = false;
+          }, function(err){
+            console.log("failed to save row", err)
           });
         } else {
           var that = this;
@@ -220,7 +222,7 @@
             that.showAddEdit = false;
             that.$refs.tableview1.reloadData(currentTableType);
           }, function (r) {
-            console.error(r)
+            console.error("failed to save row", r)
           });
         }
 
@@ -333,7 +335,7 @@
       let selectedInstanceId = that.$route.params.refId;
 
       if (!tableName) {
-        tableName = "user";
+        tableName = "user_account";
       }
 
 
