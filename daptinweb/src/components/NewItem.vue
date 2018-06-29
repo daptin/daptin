@@ -207,7 +207,7 @@
           ],
           Relations: [{
             Relation: "belongs_to",
-            Object: "user"
+            Object: "user_account"
           }, {
             Relation: "has_many",
             Object: "usergroup"

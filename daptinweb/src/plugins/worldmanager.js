@@ -279,8 +279,8 @@ const WorldManager = function () {
 
 
       // do a thing, possibly async, then…
-      that.modelLoader("user", function (columnKeys) {
-        jsonApi.define("user", that.GetJsonApiModel(columnKeys.ColumnModel));
+      that.modelLoader("user_account", function (columnKeys) {
+        jsonApi.define("user_account", that.GetJsonApiModel(columnKeys.ColumnModel));
         that.modelLoader("usergroup", function (columnKeys) {
           jsonApi.define("usergroup", that.GetJsonApiModel(columnKeys.ColumnModel));
 
