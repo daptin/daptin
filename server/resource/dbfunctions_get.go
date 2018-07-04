@@ -174,6 +174,7 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 		cloudStore.ReferenceId = storeMap["reference_id"].(string)
 		CheckErr(err, "Failed to parse permission as int in loading stores")
 		cloudStore.Permission = resource.GetObjectPermission("cloud_store", cloudStore.ReferenceId)
+
 		cloudStore.UserId = storeMap["user_account_id"].(string)
 
 		createdAt, ok := storeMap["created_at"].(time.Time)
