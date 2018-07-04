@@ -15,6 +15,7 @@ import (
 	"strings"
 	"github.com/artpar/go.uuid"
 	"time"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 const DATE_LAYOUT = "2006-01-02 15:04:05"
@@ -41,8 +42,17 @@ func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []a
 func (dr *DbResource) GetActionByName(typeName string, actionName string) (Action, error) {
 	var a ActionRow
 
-	err := dr.db.QueryRowx("select a.action_name as name, w.table_name as ontype, a.label, action_schema as action_schema, a.reference_id as referenceid from action a join world w on w.id = a.world_id where w.table_name = ? and a.action_name = ? limit 1", typeName, actionName).StructScan(&a)
 	var action Action
+
+	sql, args, err := statementbuilder.Squirrel.Select("a.action_name as name", "w.table_name as ontype",
+		"a.label", "action_schema as action_schema", "a.reference_id as referenceid").From("action a").
+		Join("world w on w.id = a.world_id").Where("w.table_name = ?", typeName).Where("a.action_name = ?", actionName).Limit(1).ToSql()
+
+	if err != nil {
+		return action, err
+	}
+
+	err = dr.db.QueryRowx(sql, args...).StructScan(&a)
 	if err != nil {
 		log.Errorf("Failed to scan action: %v", err)
 		return action, err
@@ -64,10 +74,16 @@ func (dr *DbResource) GetActionByName(typeName string, actionName string) (Actio
 func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 	action := make([]Action, 0)
 
-	rows, err := dr.db.Queryx("select a.action_name as name, w.table_name as ontype, a.label, action_schema as action_schema,"+
-		" a.instance_optional as instance_optional, a.reference_id as referenceid from action a"+
-		" join world w on w.id = a.world_id"+
-		" where w.table_name = ? ", typeName)
+	sql, args, err := statementbuilder.Squirrel.Select("a.action_name as name",
+		"w.table_name as ontype", "a.label", "action_schema as action_schema", "a.instance_optional as instance_optional",
+		"a.reference_id as referenceid").From("action a").Join("world w on w.id = a.world_id").Where(squirrel.Eq{
+		"w.table_name": typeName,
+	}).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := dr.db.Queryx(sql, args...)
 	if err != nil {
 		log.Errorf("Failed to scan action: %v", err)
 		return action, err
@@ -129,13 +145,13 @@ func (dr *DbResource) GetObjectPermission(objectType string, referenceId string)
 	var queryParameters []interface{}
 	var err error
 	if objectType == "usergroup" {
-		selectQuery, queryParameters, err = squirrel.
+		selectQuery, queryParameters, err = statementbuilder.Squirrel.
 			Select("permission", "id").
 			From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
 			ToSql()
 	} else {
-		selectQuery, queryParameters, err = squirrel.
-			Select("user_id", "permission", "id").
+		selectQuery, queryParameters, err = statementbuilder.Squirrel.
+			Select("user_account_id", "permission", "id").
 			From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
 			ToSql()
 
@@ -155,9 +171,9 @@ func (dr *DbResource) GetObjectPermission(objectType string, referenceId string)
 	}
 	//log.Infof("permi map: %v", resultObject)
 	var perm PermissionInstance
-	if resultObject["user_id"] != nil {
+	if resultObject["user_account_id"] != nil {
 
-		user, err := dr.GetIdToReferenceId("user", resultObject["user_id"].(int64))
+		user, err := dr.GetIdToReferenceId("user_account", resultObject["user_account_id"].(int64))
 		if err == nil {
 			perm.UserId = user
 		}
@@ -182,7 +198,7 @@ func (dr *DbResource) GetObjectPermission(objectType string, referenceId string)
 // Return a NoPermissionToAnyone if no such object exist
 func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colName string, colValue string) PermissionInstance {
 	var perm PermissionInstance
-	s, q, err := squirrel.Select("user_id", "permission", "id").From(objectType).Where(squirrel.Eq{colName: colValue}).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("user_account_id", "permission", "id").From(objectType).Where(squirrel.Eq{colName: colValue}).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
 		return perm
@@ -198,9 +214,9 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	}
 
 	//log.Infof("permi map: %v", m)
-	if m["user_id"] != nil {
+	if m["user_account_id"] != nil {
 
-		user, err := dr.GetIdToReferenceId("user", m["user_id"].(int64))
+		user, err := dr.GetIdToReferenceId("user_account", m["user_account_id"].(int64))
 		if err == nil {
 			perm.UserId = user
 		}
@@ -231,8 +247,15 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 
 	//log.Infof("Join string: %v: ", rel.GetJoinString())
 
-	sql := fmt.Sprintf("select usergroup.reference_id as GroupReferenceId, j1.reference_id as RelationReferenceId, j1.permission from %s join %s where %s.%s = ?", rel.Subject, rel.GetJoinString(), rel.Subject, colName)
-	res, err := dr.db.Queryx(sql, colvalue)
+	sql, args, err := statementbuilder.Squirrel.Select("usergroup.reference_id as \"GroupReferenceId\"",
+		"j1.reference_id as \"RelationReferenceId\"", "j1.permission").From(rel.Subject).Join(rel.GetJoinString()).
+		Where(fmt.Sprintf("%s.%s = ?", rel.Subject, colName), colvalue).ToSql()
+	if err != nil {
+		log.Errorf("Failed to create permission select query", err)
+		return s
+	}
+
+	res, err := dr.db.Queryx(sql, args...)
 	//log.Infof("Group select sql: %v", sql)
 	if err != nil {
 
@@ -272,10 +295,13 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 		return s
 	}
 
-	res, err := dr.db.Queryx(
-		fmt.Sprintf("select ug.reference_id as GroupReferenceId, uug.reference_id as RelationReferenceId, uug.permission "+
-			"from usergroup ug "+
-			"join %s_%s_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id and uug.%s_id = ?", objType, objType, objType), objectId)
+	sql, args, err := statementbuilder.Squirrel.Select("ug.reference_id as \"GroupReferenceId\"",
+		"uug.reference_id as RelationReferenceId", "uug.permission").From("usergroup ug").
+		Join(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id", objType, objType)).
+		Where(fmt.Sprintf("uug.%s_id = ?", objType), objectId).ToSql()
+
+	res, err := dr.db.Queryx(sql, args...)
+
 	if err != nil {
 		log.Errorf("Failed to query object group by object id [%v][%v] == %v", objType, objectId, err)
 		return s
@@ -315,7 +341,7 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 func (d *DbResource) GetUserPassword(email string) (string, error) {
 	passwordHash := ""
 
-	existingUsers, _, err := d.cruds["user"].GetRowsByWhereClause("user", squirrel.Eq{"email": email})
+	existingUsers, _, err := d.cruds["user_account"].GetRowsByWhereClause("user", squirrel.Eq{"email": email})
 	if err != nil {
 		return passwordHash, err
 	}
@@ -333,7 +359,7 @@ func (d *DbResource) GetUserPassword(email string) (string, error) {
 // deprecated
 func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
 
-	query, arg, err := squirrel.Select("id").From("usergroup").Where(squirrel.Eq{"name": groupName}).ToSql()
+	query, arg, err := statementbuilder.Squirrel.Select("id").From("usergroup").Where(squirrel.Eq{"name": groupName}).ToSql()
 	if err != nil {
 		return 0, err
 	}
@@ -358,13 +384,13 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 
 	for _, crud := range dbResource.cruds {
 
-		if crud.model.GetName() == "user_user_id_has_usergroup_usergroup_id" {
+		if crud.model.GetName() == "user_account_user_account_id_has_usergroup_usergroup_id" {
 			continue
 		}
 
-		if crud.model.HasColumn("user_id") {
-			q, v, err := squirrel.Update(crud.model.GetName()).
-				Set("user_id", userId).
+		if crud.model.HasColumn("user_account_id") {
+			q, v, err := statementbuilder.Squirrel.Update(crud.model.GetName()).
+				Set("user_account_id", userId).
 				Set("permission", auth.DEFAULT_PERMISSION).
 				ToSql()
 			if err != nil {
@@ -386,8 +412,8 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 	adminUsergroupId, err := dbResource.UserGroupNameToId("administrators")
 	reference_id, err := uuid.NewV4()
 
-	query, args, err := squirrel.Insert("user_user_id_has_usergroup_usergroup_id").
-		Columns("user_id", "usergroup_id", "permission", "reference_id").
+	query, args, err := statementbuilder.Squirrel.Insert("user_account_user_account_id_has_usergroup_usergroup_id").
+		Columns("user_account_id", "usergroup_id", "permission", "reference_id").
 		Values(userId, adminUsergroupId, auth.DEFAULT_PERMISSION.IntValue(), reference_id.String()).
 		ToSql()
 
@@ -428,12 +454,12 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 	var perm PermissionInstance
 
 	if rowType != "usergroup" {
-		if row["user_id"] != nil {
-			uid, _ := row["user_id"].(string)
+		if row["user_account_id"] != nil {
+			uid, _ := row["user_account_id"].(string)
 			perm.UserId = uid
 		} else {
 			row, _ = dr.GetReferenceIdToObject(rowType, refId.(string))
-			u := row["user_id"]
+			u := row["user_account_id"]
 			if u != nil {
 				uid, _ := u.(string)
 				perm.UserId = uid
@@ -501,7 +527,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 
 func (dr *DbResource) GetRowsByWhereClause(typeName string, where ...squirrel.Eq) ([]map[string]interface{}, [][]map[string]interface{}, error) {
 
-	stmt := squirrel.Select("*").From(typeName)
+	stmt := statementbuilder.Squirrel.Select("*").From(typeName)
 
 	for _, w := range where {
 		stmt = stmt.Where(w)
@@ -524,7 +550,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where ...squirrel.Eq
 
 func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 
-	s, q, err := squirrel.Select("usergroup_id").From("user_user_id_has_usergroup_usergroup_id").Where(squirrel.NotEq{"usergroup_id": 1}).Where(squirrel.Eq{"user_id": userId}).OrderBy("created_at").Limit(1).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("usergroup_id").From("user_account_user_account_id_has_usergroup_usergroup_id").Where(squirrel.NotEq{"usergroup_id": 1}).Where(squirrel.Eq{"user_account_id": userId}).OrderBy("created_at").Limit(1).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create sql query: %v", err)
 		return 0
@@ -534,7 +560,7 @@ func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 
 	err = dr.db.QueryRowx(s, q...).Scan(&refId)
 	if err != nil {
-		log.Errorf("Failed to scan user group id from the result: %v", err)
+		log.Errorf("Failed to scan user group id from the result 1: %v", err)
 	}
 
 	return refId
@@ -542,7 +568,7 @@ func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 }
 func (dr *DbResource) GetUserIdByUsergroupId(usergroupId int64) string {
 
-	s, q, err := squirrel.Select("u.reference_id").From("user_user_id_has_usergroup_usergroup_id uu").LeftJoin("user u on uu.user_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).OrderBy("uu.created_at").Limit(1).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("u.reference_id").From("user_account_user_account_id_has_usergroup_usergroup_id uu").LeftJoin("user u on uu.user_account_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).OrderBy("uu.created_at").Limit(1).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create sql query: %v", err)
 		return ""
@@ -553,7 +579,7 @@ func (dr *DbResource) GetUserIdByUsergroupId(usergroupId int64) string {
 	err = dr.db.QueryRowx(s, q...).Scan(&refId)
 	if err != nil {
 		log.Errorf("Failed to execute query: %v == %v", s, q)
-		log.Errorf("Failed to scan user group id from the result: %v", err)
+		log.Errorf("Failed to scan user group id from the result 2: %v", err)
 	}
 
 	return refId
@@ -562,7 +588,9 @@ func (dr *DbResource) GetUserIdByUsergroupId(usergroupId int64) string {
 
 func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 
-	s, q, err := squirrel.Select("u.email").From("user_user_id_has_usergroup_usergroup_id uu").LeftJoin("user u on uu.user_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).OrderBy("uu.created_at").Limit(1).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("u.email").From("user_account_id_user_account_id_has_usergroup_usergroup_id uu").
+		LeftJoin("user u on uu.user_account_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).
+		OrderBy("uu.created_at").Limit(1).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create sql query: %v", err)
 		return ""
@@ -573,7 +601,7 @@ func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 	err = dr.db.QueryRowx(s, q...).Scan(&email)
 	if err != nil {
 		log.Errorf("Failed to execute query: %v == %v", s, q)
-		log.Errorf("Failed to scan user group id from the result: %v", err)
+		log.Errorf("Failed to scan user group id from the result 3: %v", err)
 	}
 
 	return email
@@ -582,7 +610,7 @@ func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 
 func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId string) (map[string]interface{}, []map[string]interface{}, error) {
 	//log.Infof("Get single row by id: [%v][%v]", typeName, referenceId)
-	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create select query by ref id: %v", referenceId)
 		return nil, nil, err
@@ -607,7 +635,7 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 }
 
 func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val string) (map[string]interface{}, error) {
-	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{column: val}).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(squirrel.Eq{column: val}).ToSql()
 	if err != nil {
 		return nil, err
 	}
@@ -630,7 +658,7 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 }
 
 func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]interface{}, error) {
-	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"id": id}).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(squirrel.Eq{"id": id}).ToSql()
 	if err != nil {
 		return nil, err
 	}
@@ -655,7 +683,7 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 func (dr *DbResource) TruncateTable(typeName string) error {
 	log.Printf("Truncate table: %v", typeName)
 
-	s, q, err := squirrel.Delete(typeName).ToSql()
+	s, q, err := statementbuilder.Squirrel.Delete(typeName).ToSql()
 	if err != nil {
 		return err
 	}
@@ -680,7 +708,7 @@ func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{})
 
 	}
 
-	sqlString, args, err := squirrel.Insert(typeName).Columns(cols...).Values(vals...).ToSql()
+	sqlString, args, err := statementbuilder.Squirrel.Insert(typeName).Columns(cols...).Values(vals...).ToSql()
 
 	if err != nil {
 		return err
@@ -695,7 +723,7 @@ func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{})
 // Utility method for loading all objects having low count
 // Can be used by actions
 func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, error) {
-	s, q, err := squirrel.Select("*").From(typeName).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).ToSql()
 	if err != nil {
 		return nil, err
 	}
@@ -718,7 +746,7 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 // Utility method for loading all objects having low count
 // Can be used by actions
 func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{}, error) {
-	s, q, err := squirrel.Select("*").From(typeName).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).ToSql()
 	if err != nil {
 		return nil, err
 	}
@@ -739,7 +767,7 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 // Used internally, can be used by actions
 func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string) (map[string]interface{}, error) {
 	//log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
-	s, q, err := squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
 		return nil, err
 	}
@@ -769,7 +797,7 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 // Converts the queries to sql and run query with where clause
 // Returns list of reference_ids
 func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...squirrel.Eq) ([]string, error) {
-	builder := squirrel.Select("reference_id").From(typeName)
+	builder := statementbuilder.Squirrel.Select("reference_id").From(typeName)
 
 	for _, qu := range queries {
 		builder = builder.Where(qu)
@@ -804,7 +832,7 @@ func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...sq
 // Converts the queries to sql and run query with where clause
 // Returns  list of internal database integer ids
 func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...squirrel.Eq) ([]int64, error) {
-	builder := squirrel.Select("id").From(typeName)
+	builder := statementbuilder.Squirrel.Select("id").From(typeName)
 
 	for _, qu := range queries {
 		builder = builder.Where(qu)
@@ -838,7 +866,7 @@ func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...squirrel.Eq
 // Lookup an integer id and return a string reference id of an object of type `typeName`
 func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, error) {
 
-	s, q, err := squirrel.Select("reference_id").From(typeName).Where(squirrel.Eq{"id": id}).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("reference_id").From(typeName).Where(squirrel.Eq{"id": id}).ToSql()
 	if err != nil {
 		return "", err
 	}
@@ -854,7 +882,7 @@ func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, err
 func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (int64, error) {
 
 	var id int64
-	s, q, err := squirrel.Select("id").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("id").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
 		return 0, err
 	}
@@ -868,7 +896,7 @@ func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (i
 // returns list of values of the column
 func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectColumn, matchColumn string, values []string) ([]interface{}, error) {
 
-	s, q, err := squirrel.Select(selectColumn).From(typeName).Where(squirrel.Eq{matchColumn: values}).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select(selectColumn).From(typeName).Where(squirrel.Eq{matchColumn: values}).ToSql()
 	if err != nil {
 		return nil, err
 	}

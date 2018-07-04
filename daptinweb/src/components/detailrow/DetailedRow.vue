@@ -380,7 +380,7 @@
                 let relationJsonApiModel = that.jsonApi.modelFor(item.type);
 
 
-                if (item.type == "user" || item.type == "usergroup") {
+                if (item.type == "user_account" || item.type == "usergroup") {
 
 
                   that.relations.push({

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 func CheckSystemSecrets(store *resource.ConfigStore) error {
@@ -83,9 +84,15 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 	ts := make([]resource.TableInfo, 0)
 
-	res, err := db.Queryx("select table_name, permission, default_permission, " +
-		"world_schema_json, is_top_level, is_hidden, is_state_tracking_enabled, default_order" +
-		" from world where table_name not like '%_has_%' and table_name not like '%_audit' and table_name not in ('world', 'action', 'user', 'usergroup')")
+	sql, args, err := statementbuilder.Squirrel.Select("table_name", "permission", "default_permission",
+		"world_schema_json", "is_top_level", "is_hidden", "is_state_tracking_enabled", "default_order",
+	).From("world").Where("table_name not like '%_has_%'").Where("table_name not like '%_audit'").Where("table_name not in (?,?,?,?)",
+		"world", "action", "user_account", "usergroup").ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := db.Queryx(sql, args...)
 	if err != nil {
 		log.Infof("Failed to select from world table: %v", err)
 		return ts, err

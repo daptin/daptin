@@ -14,6 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strings"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 type CmsUser interface {
@@ -362,7 +363,14 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			var referenceId string
 			var userId int64
 			var userGroups []GroupPermission
-			err := a.db.QueryRowx("select u.id, u.reference_id from user u where email = ?", email).Scan(&userId, &referenceId)
+
+			sql, args, err := statementbuilder.Squirrel.Select("u.id", "u.reference_id").From("user_account u").Where("email = ?", email).ToSql()
+			if err != nil {
+				log.Errorf("Failed to create select query for user table")
+				return false, true, req
+			}
+
+			err = a.db.QueryRowx(sql, args...).Scan(&userId, &referenceId)
 
 			if err != nil {
 				log.Errorf("Failed to scan user from db: %v", err)
@@ -371,7 +379,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				mapData["name"] = name
 				mapData["email"] = email
 
-				newUser := api2go.NewApi2GoModelWithData("user", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
+				newUser := api2go.NewApi2GoModelWithData("user_account", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
 
 				req1 := api2go.Request{
 					PlainRequest: &http.Request{
@@ -400,19 +408,25 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 				userGroups = make([]GroupPermission, 0)
 				mapData = make(map[string]interface{})
-				mapData["user_id"] = referenceId
+				mapData["user_account_id"] = referenceId
 				mapData["usergroup_id"] = userGroupId
 
-				newUserUserGroup := api2go.NewApi2GoModelWithData("user_user_id_has_usergroup_usergroup_id", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
+				newUserUserGroup := api2go.NewApi2GoModelWithData("user_account_user_account_id_has_usergroup_usergroup_id", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
 
 				uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req1)
 				if err != nil {
 					log.Errorf("Failed to create user-usergroup relation: %v", err)
 				}
-				log.Infof("Userug: %v", uug)
+				log.Infof("User ug: %v", uug)
 
 			} else {
-				rows, err := a.db.Queryx("select ug.reference_id as GroupReferenceId, uug.reference_id as RelationReferenceId, uug.permission from usergroup ug join user_user_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id where uug.user_id = ?", userId)
+
+				sql, args, err := statementbuilder.Squirrel.Select("ug.reference_id as \"GroupReferenceId\"",
+					"uug.reference_id as \"RelationReferenceId\"", "uug.permission").From("usergroup ug").
+					Join("user_account_user_account_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id").Where("uug.user_account_id = ?", userId).ToSql()
+
+				rows, err := a.db.Queryx(sql, args...)
+
 				if err != nil {
 					log.Errorf("Failed to get user group permissions: %v", err)
 				} else {

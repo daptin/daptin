@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 // Create a new object. Newly created object/struct must be in Responder.
@@ -63,7 +64,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			continue
 		}
 
-		if col.ColumnName == "user_id" && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" {
+		if col.ColumnName == "user_account_id" && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
 			continue
 		}
 
@@ -255,13 +256,13 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	colsList = append(colsList, "created_at")
 	valsList = append(valsList, time.Now())
 
-	if sessionUser.UserId != 0 && dr.model.HasColumn("user_id") && dr.model.GetName() != "user_user_id_has_usergroup_usergroup_id" {
+	if sessionUser.UserId != 0 && dr.model.HasColumn("user_account_id") && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
 
-		colsList = append(colsList, "user_id")
+		colsList = append(colsList, "user_account_id")
 		valsList = append(valsList, sessionUser.UserId)
 	}
 
-	query, vals, err := squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
+	query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create insert query: %v", err)
 		return nil, err
@@ -290,7 +291,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		u, _ := uuid.NewV4()
 		nuuid := u.String()
 
-		belogsToUserGroupSql, q, err := squirrel.
+		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
 			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
@@ -309,7 +310,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		u, _ := uuid.NewV4()
 		nuuid := u.String()
 
-		belogsToUserGroupSql, q, err := squirrel.
+		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
 			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
@@ -327,9 +328,9 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		u, _ := uuid.NewV4()
 		nuuid := u.String()
 
-		belogsToUserGroupSql, q, err := squirrel.
-			Insert("user_user_id_has_usergroup_usergroup_id").
-			Columns("user_id", "usergroup_id", "reference_id", "permission").
+		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
+			Insert("user_account_user_account_id_has_usergroup_usergroup_id").
+			Columns("user_account_id", "usergroup_id", "reference_id", "permission").
 			Values(sessionUser.UserId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
 		//log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
@@ -338,14 +339,14 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
 		}
 
-	} else if dr.model.GetName() == "user" {
+	} else if dr.model.GetName() == "user_account" {
 
 		adminUserId, _ := GetAdminUserIdAndUserGroupId(dr.db)
 		log.Infof("Associate new user with user: %v", adminUserId)
 
-		belogsToUserGroupSql, q, err := squirrel.
-			Update("user").
-			Set("user_id", adminUserId).
+		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
+			Update("user_account").
+			Set("user_account_id", adminUserId).
 			Where(squirrel.Eq{"id": createdResource["id"]}).ToSql()
 
 		//log.Infof("Query: %v", belogsToUserGroupSql)

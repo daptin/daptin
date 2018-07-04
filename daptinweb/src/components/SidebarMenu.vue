@@ -6,12 +6,12 @@
         <span class="page">Dashboard</span>
       </router-link>
     </li>
-    <li class="pageLink" v-on:click="toggleMenu">
-      <router-link :to="{name: 'AllInOne', params: {}}">
-        <i class="fas fa-align-justify"></i>
-        <span class="page">All</span>
-      </router-link>
-    </li>
+    <!--<li class="pageLink" v-on:click="toggleMenu">-->
+      <!--<router-link :to="{name: 'AllInOne', params: {}}">-->
+        <!--<i class="fas fa-align-justify"></i>-->
+        <!--<span class="page">All</span>-->
+      <!--</router-link>-->
+    <!--</li>-->
     <li class="treeview">
       <a href="#">
         <i class="fas fa-book"></i>
@@ -23,7 +23,7 @@
       <ul class="treeview-menu">
 
         <li class="pageLink" v-on:click="toggleMenu" v-for="w in topWorlds"
-            v-if="w.table_name != 'user' && w.table_name != 'usergroup'">
+            v-if="w.table_name != 'user_account' && w.table_name != 'usergroup'">
           <router-link :class="w.table_name + '-link'" :to="{name: 'Entity', params: {tablename: w.table_name}}">
             <span class="page">{{w.table_name | titleCase}}</span>
           </router-link>
@@ -42,9 +42,9 @@
       </a>
       <ul class="treeview-menu">
         <li class="pageLink" v-on:click="toggleMenu">
-          <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'user'}}">
+          <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'user_account'}}">
             <i class="fa fa-user"></i>
-            <span class="page">User</span>
+            <span class="page">User account</span>
           </router-link>
         </li>
         <li class="pageLink" v-on:click="toggleMenu">

@@ -65,7 +65,7 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "oauth_token"),
 	api2go.NewTableRelation("site", "has_one", "cloud_store"),
-	api2go.NewTableRelationWithNames("task", "task_executed", "has_one", "user", "as_user_id"),
+	api2go.NewTableRelationWithNames("task", "task_executed", "has_one", "user_account", "as_user_id"),
 }
 
 var SystemSmds = []LoopbookFsmDescription{}
@@ -179,7 +179,7 @@ var SystemActions = []Action{
 					"count":             "~count",
 					"table_name":        "$.table_name",
 					"user_reference_id": "$user.reference_id",
-					"user_id":           "$user.id",
+					"user_account_id":           "$user.id",
 				},
 			},
 		},
@@ -467,7 +467,7 @@ var SystemActions = []Action{
 				Type:   "__become_admin",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"user_id": "$user.id",
+					"user_account_id": "$user.id",
 					"user":    "~user",
 				},
 			},
@@ -477,7 +477,7 @@ var SystemActions = []Action{
 		Name:             "signup",
 		Label:            "Sign up",
 		InstanceOptional: true,
-		OnType:           "user",
+		OnType:           "user_account",
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -530,7 +530,7 @@ var SystemActions = []Action{
 		},
 		OutFields: []Outcome{
 			{
-				Type:      "user",
+				Type:      "user_account",
 				Method:    "POST",
 				Reference: "user",
 				Attributes: map[string]interface{}{
@@ -549,11 +549,11 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:      "user_user_id_has_usergroup_usergroup_id",
+				Type:      "user_account_user_account_id_has_usergroup_usergroup_id",
 				Method:    "POST",
 				Reference: "user_usergroup",
 				Attributes: map[string]interface{}{
-					"user_id":      "$user.reference_id",
+					"user_account_id":      "$user.reference_id",
 					"usergroup_id": "$usergroup.reference_id",
 				},
 			},
@@ -581,7 +581,7 @@ var SystemActions = []Action{
 		Name:             "signin",
 		Label:            "Sign in",
 		InstanceOptional: true,
-		OnType:           "user",
+		OnType:           "user_account",
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "email",
@@ -667,7 +667,7 @@ var SystemActions = []Action{
 				Reference:      "auth",
 				Attributes: map[string]interface{}{
 					"authenticator":     "~authenticator",
-					"user_id":           "~user.id",
+					"user_account_id":           "~user.id",
 					"user_reference_id": "~user.reference_id",
 					"state":             "~state",
 					"code":              "~code",
@@ -687,7 +687,7 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:           "user",
+				Type:           "user_account",
 				Method:         "GET",
 				Reference:      "user",
 				SkipInResponse: true,
@@ -697,7 +697,7 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:           "user",
+				Type:           "user_account",
 				Method:         "POST",
 				Reference:      "user",
 				SkipInResponse: true,
@@ -719,12 +719,12 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:           "user_user_id_has_usergroup_usergroup_id",
+				Type:           "user_account_user_account_id_has_usergroup_usergroup_id",
 				Method:         "POST",
 				SkipInResponse: true,
 				Condition:      "!!user || (!user.length && !user.reference_id)",
 				Attributes: map[string]interface{}{
-					"user_id":      "$user.reference_id",
+					"user_account_id":      "$user.reference_id",
 					"usergroup_id": "$usergroup.reference_id",
 				},
 			},
@@ -1025,7 +1025,7 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName:     "user",
+		TableName:     "user_account",
 		Icon:          "fa-child",
 		DefaultGroups: []string{"users"},
 		Columns: []api2go.ColumnInfo{
@@ -1419,7 +1419,7 @@ var StandardStreams = []StreamContract{
 	},
 	{
 		StreamName:     "transformed_user",
-		RootEntityName: "user",
+		RootEntityName: "user_account",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "transformed_user_name",
@@ -1468,7 +1468,7 @@ type TableInfo struct {
 	Relations              []api2go.TableRelation
 	IsTopLevel             bool     `db:"is_top_level"`
 	Permission             int64
-	UserId                 uint64   `db:"user_id"`
+	UserId                 uint64   `db:"user_account_id"`
 	IsHidden               bool     `db:"is_hidden"`
 	IsJoinTable            bool     `db:"is_join_table"`
 	IsStateTrackingEnabled bool     `db:"is_state_tracking_enabled"`

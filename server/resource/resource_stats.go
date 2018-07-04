@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"sort"
 	"strings"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 type TimeStamp string
@@ -45,10 +46,17 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 
 	sort.Strings(req.GroupBy)
 	projections := req.ProjectColumn
+
+	for i, project := range projections {
+		if project == "count" {
+			projections[i] = "count(*) as count"
+		}
+	}
+
 	for _, group := range req.GroupBy {
 		projections = append(projections, group)
 	}
-	selectBuilder := squirrel.Select(projections...)
+	selectBuilder := statementbuilder.Squirrel.Select(projections...)
 	builder := selectBuilder.From(req.RootEntity)
 	builder = builder.GroupBy(req.GroupBy...)
 
