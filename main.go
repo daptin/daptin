@@ -13,6 +13,7 @@ import (
 	"github.com/sadlil/go-trigger"
 	"os"
 	"syscall"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 // Save the stream as a global variable
@@ -56,6 +57,7 @@ func main() {
 		//assetsStatic = assetsRoot.HTTPBox()
 		boxRoot = boxRoot1.HTTPBox()
 	}
+	statementbuilder.InitialiseStatementBuilder(*db_type)
 	db, err := server.GetDbConnection(*db_type, *connection_string)
 	if err != nil {
 		panic(err)

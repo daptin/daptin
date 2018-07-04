@@ -37,8 +37,8 @@ func CreateGuestActionListHandler(initConfig *CmsConfig) func(*gin.Context) {
 		actionMap[ac.OnType+":"+ac.Name] = ac
 	}
 
-	guestActions["user:signup"] = actionMap["user:signup"]
-	guestActions["user:signin"] = actionMap["user:signin"]
+	guestActions["user:signup"] = actionMap["user_account:signup"]
+	guestActions["user:signin"] = actionMap["user_account:signin"]
 
 	return func(c *gin.Context) {
 
@@ -212,7 +212,7 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 	}
 
 	if sessionUser.UserReferenceId != "" {
-		user, err := db.GetReferenceIdToObject("user", sessionUser.UserReferenceId)
+		user, err := db.GetReferenceIdToObject("user_account", sessionUser.UserReferenceId)
 		if err != nil {
 			return nil, err
 		}
@@ -309,11 +309,11 @@ OutFields:
 			responseObjects, _, _, err = dbResource.PaginatedFindAllWithoutFilters(request)
 			CheckErr(err, "Failed to get inside action")
 			if err != nil {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to get "+model.GetName()+". "+err.Error(), "Failed"))
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+				actionResponse = NewActionResponse(actionRequest.Type, responseObjects)
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "GET_BY_ID":
@@ -326,7 +326,7 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+				actionResponse = NewActionResponse(actionRequest.Type, responseObjects)
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "UPDATE":
@@ -337,7 +337,7 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+				actionResponse = NewActionResponse(actionRequest.Type, responseObjects)
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "DELETE":
@@ -348,7 +348,7 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Deleted "+model.GetName(), "Success"))
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "EXECUTE":

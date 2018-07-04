@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 // Delete an object
@@ -72,7 +73,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 				joinTableName := rel.GetJoinTableName()
 				//columnName := rel.GetSubjectName()
 
-				joinIdQuery, vals, err := squirrel.Select("reference_id").From(joinTableName).Where(squirrel.Eq{rel.GetSubjectName(): parentId}).ToSql()
+				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id").From(joinTableName).Where(squirrel.Eq{rel.GetSubjectName(): parentId}).ToSql()
 				CheckErr(err, "Failed to create query for getting join ids")
 
 				if err == nil {
@@ -103,7 +104,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 				joinTableName := rel.GetJoinTableName()
 				//columnName := rel.GetSubjectName()
 
-				joinIdQuery, vals, err := squirrel.Select("reference_id").From(joinTableName).Where(squirrel.Eq{rel.GetSubjectName(): parentId}).ToSql()
+				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id").From(joinTableName).Where(squirrel.Eq{rel.GetSubjectName(): parentId}).ToSql()
 				CheckErr(err, "Failed to create query for getting join ids")
 
 				if err == nil {
@@ -193,7 +194,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 				//columnName := rel.GetSubjectName()
 
-				joinIdQuery, vals, err := squirrel.Select("reference_id").From(joinTableName).Where(squirrel.Eq{rel.GetObjectName(): parentId}).ToSql()
+				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id").From(joinTableName).Where(squirrel.Eq{rel.GetObjectName(): parentId}).ToSql()
 				CheckErr(err, "Failed to create query for getting join ids")
 
 				if err == nil {
@@ -252,8 +253,8 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 	}
 
-	//queryBuilder := squirrel.Update(m.GetTableName()).Set("deleted_at", time.Now()).Where(squirrel.Eq{"reference_id": id})
-	queryBuilder := squirrel.Delete(m.GetTableName()).Where(squirrel.Eq{"reference_id": id})
+	//queryBuilder := statementbuilder.Squirrel.Update(m.GetTableName()).Set("deleted_at", time.Now()).Where(squirrel.Eq{"reference_id": id})
+	queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName()).Where(squirrel.Eq{"reference_id": id})
 
 	sql1, args, err := queryBuilder.ToSql()
 	if err != nil {

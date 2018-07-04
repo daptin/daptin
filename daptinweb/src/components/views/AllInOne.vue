@@ -134,7 +134,7 @@
 
               statsManger
                 .getStats(w.TableName, {
-                  column: ["count(*)"]
+                  column: ["count"]
                 })
                 .then(
                   function (stats) {
@@ -142,7 +142,7 @@
                     console.log("Stats received", stats);
 
                     const rows = stats.data;
-                    const totalCount = rows[0]["count(*)"];
+                    const totalCount = rows[0]["count"];
                     w.Count = totalCount;
                   },
                   function (error) {
@@ -174,7 +174,7 @@
 
                 if (onWorld.is_hidden == "1") {
                   actionGroups["System"].push(action);
-                } else if (onWorld.table_name == "user") {
+                } else if (onWorld.table_name == "user_account") {
                   actionGroups["User"].push(action);
                 } else if (onWorld.table_name == "usergroup") {
                   actionGroups["User"].push(action);

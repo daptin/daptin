@@ -48,7 +48,7 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 		return nil, nil, []error{fmt.Errorf("email or password is empty")}
 	}
 
-	existingUsers, _, err := d.cruds["user"].GetRowsByWhereClause("user", squirrel.Eq{"email": email})
+	existingUsers, _, err := d.cruds["user_account"].GetRowsByWhereClause("user_account", squirrel.Eq{"email": email})
 
 	responseAttrs := make(map[string]interface{})
 	if err != nil || len(existingUsers) < 1 {

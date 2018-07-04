@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
+	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 type fsmManager struct {
@@ -23,7 +24,7 @@ type StateMachineInstance struct {
 
 func (fsm *fsmManager) getStateMachineInstance(objType string, objId int64, machineInstanceId string) (StateMachineInstance, error) {
 
-	s, v, err := squirrel.Select("current_state", objType+"_smd", "is_state_of_"+objType, "id", "created_at", "permission").
+	s, v, err := statementbuilder.Squirrel.Select("current_state", objType+"_smd", "is_state_of_"+objType, "id", "created_at", "permission").
 		From(objType + "_state").
 		Where(squirrel.Eq{"reference_id": machineInstanceId}).
 		Where(squirrel.Eq{"is_state_of_" + objType: objId}).ToSql()
@@ -42,7 +43,12 @@ func (fsm *fsmManager) getStateMachineInstance(objType string, objId int64, mach
 		return res, err
 	}
 
-	res.CurrestState = string(responseMap["current_state"].([]uint8))
+	currentStateString, ok := responseMap["current_state"].(string)
+	if !ok {
+		currentStateString = string(responseMap["current_state"].([]uint8))
+	}
+	res.CurrestState = currentStateString
+
 	res.StateMachineId = responseMap[objType+"_smd"].(int64)
 	res.ObjectId = responseMap["is_state_of_"+objType].(int64)
 
@@ -73,7 +79,7 @@ type LoopbookFsmDescription struct {
 
 func (fsm *fsmManager) stateMachineRunnerFor(currentState string, typeName string, machineId int64) (*loopfsm.FSM, error) {
 
-	s, v, err := squirrel.Select("initial_state", "events").From("smd").Where(squirrel.Eq{"id": machineId}).ToSql()
+	s, v, err := statementbuilder.Squirrel.Select("initial_state", "events").From("smd").Where(squirrel.Eq{"id": machineId}).ToSql()
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +154,7 @@ func (fsm *fsmManager) ApplyEvent(subject map[string]interface{}, stateMachineEv
 }
 func ReferenceIdToIntegerId(typeName string, referenceId string, db database.DatabaseConnection) (int64, error) {
 
-	s, v, err := squirrel.Select("id").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+	s, v, err := statementbuilder.Squirrel.Select("id").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
 		return 0, err
 	}

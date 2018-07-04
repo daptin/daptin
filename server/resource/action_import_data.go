@@ -29,7 +29,7 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 	if isUserPresent {
 		userMap := user.(map[string]interface{})
 		userReferenceId = userMap["reference_id"].(string)
-		userIdInt, err = d.cruds["user"].GetReferenceIdToId("user", userReferenceId)
+		userIdInt, err = d.cruds["user_account"].GetReferenceIdToId("user_account", userReferenceId)
 		if err != nil {
 			log.Errorf("Failed to get user id from user reference id: %v", err)
 		}
@@ -120,7 +120,7 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 				data := row.(map[string]interface{})
 
 				if isUserPresent {
-					data["user_id"] = userIdInt
+					data["user_account"] = userIdInt
 				}
 
 				err := d.cruds[tableName].DirectInsert(tableName, data)

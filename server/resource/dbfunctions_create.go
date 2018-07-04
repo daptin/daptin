@@ -42,12 +42,13 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 				continue
 			}
 
-			indexName := GetMD5Hash("index_join_" + table.TableName + "_" + "_unique")
+			indexName := "i" + GetMD5Hash("index_join_"+table.TableName+"_"+"_unique")
 			alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + strings.Join(cols, ", ") + ")"
 			log.Infof("Create unique index sql: %v", alterTable)
 			_, err := db.Exec(alterTable)
 			if err != nil {
 				log.Infof("Table[%v] Column[%v]: Failed to create unique join index: %v", table.TableName, cols, err)
+				db.Exec("COMMIT ")
 			}
 		}
 	}
@@ -284,7 +285,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 
 			log.Infof("From table [%v] to table [%v]", fromTable, targetTable)
 			isNullable := false
-			if targetTable == "user" || targetTable == "usergroup" || relation2 == "has_one" {
+			if targetTable == "user_account" || targetTable == "usergroup" || relation2 == "has_one" {
 				isNullable = true
 			}
 
@@ -324,7 +325,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 					}
 
 					log.Infof("Add column [%v] to table [%v]", col.ColumnName, t.TableName)
-					if targetTable != "user" && relation.GetRelation() == "belongs_to" {
+					if targetTable != "user_account" && relation.GetRelation() == "belongs_to" {
 						config.Tables[i].IsTopLevel = false
 						log.Infof("Table [%v] is not top level == %v", t.TableName, targetTable)
 					}
@@ -387,7 +388,6 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			log.Infof("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
 
 			config.Tables = append(config.Tables, newTable)
-
 
 		} else if relation2 == "has_many_and_belongs_to_many" {
 
@@ -498,6 +498,7 @@ func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) {
 	log.Infof("Create table query")
 	log.Println(createTableQuery)
 	_, err := db.Exec(createTableQuery)
+	db.Exec("COMMIT ")
 	if err != nil {
 		log.Errorf("Failed to create table: %v", err)
 	}
@@ -532,7 +533,7 @@ func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
 		columnStrings = append(columnStrings, columnLine)
 	}
 	columnString := strings.Join(columnStrings, ",\n  ")
-	createTableQuery += columnString + ")"
+	createTableQuery += columnString + ");"
 	return createTableQuery
 }
 
@@ -542,6 +543,10 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 
 	if datatype == "" {
 		datatype = "varchar(50)"
+	}
+
+	if BeginsWith(datatype, "int(") && sqlDriverName == "postgres" {
+		datatype = "INTEGER"
 	}
 
 	columnParams := []string{c.ColumnName, datatype}
@@ -559,8 +564,10 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 	if c.IsAutoIncrement {
 		if sqlDriverName == "sqlite3" {
 			columnParams = append(columnParams, "PRIMARY KEY")
-		} else {
+		} else if sqlDriverName == "mysql" {
 			columnParams = append(columnParams, "AUTO_INCREMENT PRIMARY KEY")
+		} else if sqlDriverName == "postgres" {
+			columnParams = []string{c.ColumnName, "SERIAL", "PRIMARY KEY"}
 		}
 	} else if c.IsPrimaryKey {
 		columnParams = append(columnParams, "PRIMARY KEY")

@@ -191,9 +191,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	hostSwitch.handlerMap["api"] = r
 	hostSwitch.handlerMap["dashboard"] = r
 
-	authMiddleware.SetUserCrud(cruds["user"])
+	authMiddleware.SetUserCrud(cruds["user_account"])
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
-	authMiddleware.SetUserUserGroupCrud(cruds["user_user_id_has_usergroup_usergroup_id"])
+	authMiddleware.SetUserUserGroupCrud(cruds["user_account_user_account_id_has_usergroup_usergroup_id"])
 
 	fsmManager := resource.NewFsmManager(db, cruds)
 

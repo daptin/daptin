@@ -13,7 +13,7 @@ type Marketplace struct {
 	RootPath    string `db:"root_path"`
 	Name        string `db:"name"`
 	Permission  int    `json:"-"`
-	UserId      *int   `json:"-" db:"user_id"`
+	UserId      *int   `json:"-" db:"user_account_id"`
 	ReferenceId string `json:"-" db:"reference_id"`
 }
 

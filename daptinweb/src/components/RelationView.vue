@@ -278,7 +278,7 @@
       let selectedInstanceId = that.$route.params.refId;
 
       if (!tableName) {
-        tableName = "user";
+        tableName = "user_account";
       }
       console.log("Set table 1", tableName, subTableName);
       that.$store.commit("SET_SELECTED_TABLE", tableName);
