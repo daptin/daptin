@@ -46,6 +46,13 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 
 	sort.Strings(req.GroupBy)
 	projections := req.ProjectColumn
+
+	for i, project := range projections {
+		if project == "count" {
+			projections[i] = "count(*) as count"
+		}
+	}
+
 	for _, group := range req.GroupBy {
 		projections = append(projections, group)
 	}
