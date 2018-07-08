@@ -328,7 +328,7 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 
 	var count int
 
-	err := dbResource.db.QueryRow("select count(*) from user where email != 'guest@cms.go'").Scan(&count)
+	err := dbResource.db.QueryRow("select count(*) from user_account where email != 'guest@cms.go'").Scan(&count)
 	if err != nil {
 		return false
 	}
