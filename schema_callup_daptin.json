@@ -1,0 +1,63 @@
+{
+  "Tables": [
+    {
+      "TableName": "intent",
+      "Columns": [
+        {
+          "Name": "dialogflow_id",
+          "ColumnName": "dialogflow_id",
+          "DataType": "varchar(100)",
+          "ColumnType": "alias",
+          "IsUnique": true
+        }
+      ]
+    }
+  ],
+  "Actions": [
+    {
+      "Name": "mark_as_correct",
+      "Label": "Mark as correct",
+      "OnType": "ticket",
+      "InstanceOptional": false,
+      "InFields": [
+      ],
+      "OutFields": [
+        {
+          "Method": "GET_BY_ID",
+          "Type": "intent",
+          "Reference": "intent",
+          "Attributes": {
+            "reference_id": "$.predicted_intent"
+          }
+        },
+        {
+          "Method": "EXECUTE",
+          "Type": "$network.request",
+          "Attributes": {
+            "Url": "!'https://dialogflow.googleapis.com/v2/projects/Nestaway-Shardul/agent/intents/' + intent.dialogflow_id",
+            "Method": "PATCH",
+            "Headers": {
+              "Authorization": "Bearer ya29.c.El_dBU2pXsoCVjqdzUNCuvOONtNZPvU2piN0Hkeq735vrqyVAGdX5ULv-Kw26_lRE3tAzVpHKy328B4FPqwzXnLHwp2Id4rVIN0m8V9YsHWTK06wX4G_2prFJswQMiKJPQ"
+            },
+            "Body": {
+              "name": "$intent.intent_name",
+              "displayName": "$intent.intent_name",
+              "webhookState": "WEBHOOK_STATE_UNSPECIFIED",
+              "trainingPhrases": [
+                {
+                  "type": "EXAMPLE",
+                  "name": "$intent.intent_name",
+                  "parts": [
+                    {
+                      "text": "$subject.description"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
