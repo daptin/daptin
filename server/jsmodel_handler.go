@@ -183,7 +183,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		}
 
 		for _, rel := range selectedTable.Relations {
-			//log.Infof("Relation [%v][%v]", selectedTable.TableName, rel.String())
+			log.Infof("Relation [%v][%v]", selectedTable.TableName, rel.String())
 
 			if rel.GetSubject() == selectedTable.TableName {
 				r := "hasMany"
@@ -212,7 +212,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 				continue
 			}
 
-			res[col.ColumnName] = NewJsonApiRelation(col.Name, col.ColumnName, "hasMany", col.ColumnType)
+			//res[col.ColumnName] = NewJsonApiRelation(col.Name, col.ColumnName, "hasOne", col.ColumnType)
 		}
 
 		res["__type"] = api2go.ColumnInfo{

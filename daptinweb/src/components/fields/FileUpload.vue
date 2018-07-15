@@ -87,7 +87,6 @@
             return isFileTypeOkay;
           }
 
-
         }
 
         var that = this;

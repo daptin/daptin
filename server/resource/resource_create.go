@@ -8,6 +8,7 @@ import (
 	"github.com/artpar/go.uuid"
 	//"strconv"
 	"fmt"
+	"encoding/json"
 	"github.com/araddon/dateparse"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/pkg/errors"
@@ -94,32 +95,82 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		}
 
 		if col.IsForeignKey {
-			log.Infof("Convert reference_id to id %v[%v]", col.ForeignKeyData.Namespace, val)
-			valString := val.(string)
-			var uId interface{}
-			var err error
-			if valString == "" {
-				uId = nil
-			} else {
-				foreignObject, err := dr.GetReferenceIdToObject(col.ForeignKeyData.Namespace, valString)
+
+			switch col.ForeignKeyData.DataSource {
+			case "self":
+
+				log.Infof("Convert reference_id to id %v[%v]", col.ForeignKeyData.Namespace, val)
+				valString := val.(string)
+				var uId interface{}
+				var err error
+				if valString == "" {
+					uId = nil
+				} else {
+					foreignObject, err := dr.GetReferenceIdToObject(col.ForeignKeyData.Namespace, valString)
+					if err != nil {
+						return nil, err
+					}
+
+					foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.Namespace, valString)
+
+					if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+						uId = foreignObject["id"]
+					} else {
+						log.Printf("User cannot refer this object")
+						ok = false
+					}
+
+				}
 				if err != nil {
 					return nil, err
 				}
+				val = uId
 
-				foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.Namespace, valString)
+			case "cloud_store":
 
-				if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
-					uId = foreignObject["id"]
-				} else {
-					log.Printf("User cannot refer this object")
-					ok = false
+				uploadActionPerformer, err := NewFileUploadActionPerformer(dr.cruds)
+				CheckErr(err, "Failed to create upload action performer")
+				log.Infof("created upload action performer")
+				if err != nil {
+					continue
 				}
 
+				actionRequestParameters := make(map[string]interface{})
+				actionRequestParameters["file"] = val
+
+				log.Infof("Get cloud store details: %v", col.ForeignKeyData.Namespace)
+				cloudStore, err := dr.GetCloudStoreByName(col.ForeignKeyData.Namespace)
+				CheckErr(err, "Failed to get cloud storage details")
+				if err != nil {
+					continue
+				}
+
+				log.Infof("Cloud storage: %v", cloudStore)
+
+				actionRequestParameters["oauth_token_id"] = cloudStore.OAutoTokenId
+				actionRequestParameters["store_provider"] = cloudStore.StoreProvider
+				actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
+
+				log.Infof("Initiate file upload action")
+				_, _, errs := uploadActionPerformer.DoAction(ActionRequest{}, actionRequestParameters)
+				if errs != nil && len(errs) > 0 {
+					log.Errorf("Failed to upload attachments: %v", errs)
+				}
+
+				files := val.([]interface{})
+				for i := range files {
+					file := files[i].(map[string]interface{})
+					delete(file, "file")
+					files[i] = file
+				}
+				val, err = json.Marshal(files)
+				CheckErr(err, "Failed to marshal file data to column")
+
+			default:
+				CheckErr(errors.New("undefined foreign key"), "Data source: %v", col.ForeignKeyData.DataSource)
+
 			}
-			if err != nil {
-				return nil, err
-			}
-			val = uId
+
 		}
 		var err error
 
@@ -270,7 +321,8 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 	_, err = dr.db.Exec(query, vals...)
 	if err != nil {
-		log.Infof("Insert query: %v == %v", query, vals)
+		log.Infof("Insert query: %v", query)
+		//log.Infof("Insert values: %v", vals)
 		log.Errorf("Failed to execute insert query: %v", err)
 		return nil, err
 	}

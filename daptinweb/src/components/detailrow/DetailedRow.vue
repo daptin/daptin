@@ -418,7 +418,7 @@
             continue;
           }
 
-          if (item.type == "photo") {
+          if (item.type.indexOf("image.") == 0) {
             this.imageFields.push(item)
             continue;
           }

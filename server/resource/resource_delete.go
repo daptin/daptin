@@ -92,7 +92,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 						for _, id := range ids {
 							log.Infof("Delete relation with [%v][%v]", joinTableName, id)
 							_, err = dr.cruds[joinTableName].Delete(id, req)
-							CheckErr(err, "Failed to delete join")
+							CheckErr(err, "Failed to delete join 1")
 						}
 
 					}
@@ -122,7 +122,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 						for _, id := range ids {
 							_, err = dr.cruds[joinTableName].Delete(id, req)
-							CheckErr(err, "Failed to delete join")
+							CheckErr(err, "Failed to delete join 2")
 						}
 
 					}
@@ -212,7 +212,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 						for _, id := range ids {
 							_, err = dr.cruds[joinTableName].Delete(id, req)
-							CheckErr(err, "Failed to delete join")
+							CheckErr(err, "Failed to delete join 3")
 						}
 
 					}

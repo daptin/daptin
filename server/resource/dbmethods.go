@@ -1043,6 +1043,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 					resolvedFilesList, err := dr.GetFileFromCloudStore(columnInfo.ForeignKeyData, foreignFilesList)
 					CheckErr(err, "Failed to resolve file from cloud store")
+					row[key] = resolvedFilesList
 					for _, file := range resolvedFilesList {
 						file["__type"] = columnInfo.ColumnType
 						localInclude = append(localInclude, file)
