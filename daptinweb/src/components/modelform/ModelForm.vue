@@ -167,6 +167,7 @@
         return inputType;
       },
       getInputType(columnMeta) {
+        console.log("get input type for", columnMeta);
         let inputType = columnMeta.ColumnType;
         if (inputType.indexOf(".") > 0) {
           const inputTypeParts = inputType.split(".");

@@ -248,8 +248,43 @@ const WorldManager = function () {
     })
   };
 
-
   jsonApi.define("image.png|jpg|jpeg|gif|tiff", {
+    "__type": "value",
+    "contents": "value",
+    "name": "value",
+    "reference_id": "value",
+    "src": "value",
+    "type": "value"
+  });
+
+  jsonApi.define("image.png|jpg", {
+    "__type": "value",
+    "contents": "value",
+    "name": "value",
+    "reference_id": "value",
+    "src": "value",
+    "type": "value"
+  });
+
+  jsonApi.define("image.jpg|png", {
+    "__type": "value",
+    "contents": "value",
+    "name": "value",
+    "reference_id": "value",
+    "src": "value",
+    "type": "value"
+  });
+
+  jsonApi.define("image.png", {
+    "__type": "value",
+    "contents": "value",
+    "name": "value",
+    "reference_id": "value",
+    "src": "value",
+    "type": "value"
+  });
+
+  jsonApi.define("image.gif", {
     "__type": "value",
     "contents": "value",
     "name": "value",

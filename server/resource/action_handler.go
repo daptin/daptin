@@ -112,7 +112,11 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 
 		responses, err := actionCrudResource.HandleActionRequest(actionRequest, req)
 		if err != nil {
-			ginContext.AbortWithStatusJSON(500, err)
+			if httpErr, ok := err.(api2go.HTTPError); ok {
+				ginContext.AbortWithStatusJSON(httpErr.Status(), err)
+			} else {
+				ginContext.AbortWithStatusJSON(500, err)
+			}
 			return
 		}
 
@@ -147,19 +151,19 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 		subjectInstanceMap = subjectInstance.Data
 
 		if subjectInstanceMap == nil {
-			return nil, errors.New("forbidden")
+			return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 		}
 
 		subjectInstanceMap["__type"] = subjectInstance.GetName()
 		permission := db.GetRowPermission(subjectInstanceMap)
 
 		if !permission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
-			return nil, errors.New("forbidden")
+			return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 		}
 	}
 
 	if !db.IsUserActionAllowed(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action) {
-		return nil, errors.New("forbidden")
+		return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 	}
 
 	log.Infof("Handle event for action [%v]", actionRequest.Action)

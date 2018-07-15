@@ -14,6 +14,8 @@ docker: docker-daptin-binary
 docker-daptin-binary:
 	rm -rf rice-box.go && rice embed-go && xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  .
 
+dashboard:
+
 
 $(static-app): *.go
 	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 \

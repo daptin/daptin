@@ -179,7 +179,7 @@ var SystemActions = []Action{
 					"count":             "~count",
 					"table_name":        "$.table_name",
 					"user_reference_id": "$user.reference_id",
-					"user_account_id":           "$user.id",
+					"user_account_id":   "$user.id",
 				},
 			},
 		},
@@ -468,7 +468,7 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"user_account_id": "$user.id",
-					"user":    "~user",
+					"user":            "~user",
 				},
 			},
 		},
@@ -553,8 +553,8 @@ var SystemActions = []Action{
 				Method:    "POST",
 				Reference: "user_usergroup",
 				Attributes: map[string]interface{}{
-					"user_account_id":      "$user.reference_id",
-					"usergroup_id": "$usergroup.reference_id",
+					"user_account_id": "$user.reference_id",
+					"usergroup_id":    "$usergroup.reference_id",
 				},
 			},
 			{
@@ -667,7 +667,7 @@ var SystemActions = []Action{
 				Reference:      "auth",
 				Attributes: map[string]interface{}{
 					"authenticator":     "~authenticator",
-					"user_account_id":           "~user.id",
+					"user_account_id":   "~user.id",
 					"user_reference_id": "~user.reference_id",
 					"state":             "~state",
 					"code":              "~code",
@@ -724,8 +724,8 @@ var SystemActions = []Action{
 				SkipInResponse: true,
 				Condition:      "!!user || (!user.length && !user.reference_id)",
 				Attributes: map[string]interface{}{
-					"user_account_id":      "$user.reference_id",
-					"usergroup_id": "$usergroup.reference_id",
+					"user_account_id": "$user.reference_id",
+					"usergroup_id":    "$usergroup.reference_id",
 				},
 			},
 			{

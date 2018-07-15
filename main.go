@@ -59,6 +59,7 @@ func main() {
 	}
 	statementbuilder.InitialiseStatementBuilder(*db_type)
 	db, err := server.GetDbConnection(*db_type, *connection_string)
+	db.SetMaxOpenConns(500)
 	if err != nil {
 		panic(err)
 	}

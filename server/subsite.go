@@ -167,7 +167,7 @@ var apiPaths = map[string]bool{
 	"api":     true,
 	"action":  true,
 	"meta":    true,
-	"stats":    true,
+	"stats":   true,
 	"jsmodel": true,
 }
 
@@ -189,7 +189,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if abort {
 			w.Header().Set("WWW-Authenticate", `Basic realm="`+hostName+`"`)
 			w.WriteHeader(401)
-			w.Write([]byte("Unauthorised.\n"))
+			w.Write([]byte("unauthorised"))
 		} else if ok {
 			userI := r.Context().Value("user")
 			var user *auth.SessionUser
@@ -207,7 +207,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			} else {
 				w.Header().Set("WWW-Authenticate", `Basic realm="`+hostName+`"`)
 				w.WriteHeader(401)
-				w.Write([]byte("Unauthorised.\n"))
+				w.Write([]byte("unauthorised"))
 			}
 		}
 		return

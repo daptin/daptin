@@ -90,7 +90,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				continue
 			}
 
-			//log.Infof("Check column: [%v]  (%v) => (%v) ", col.ColumnName, change.OldValue, change.NewValue)
+			log.Infof("Check column: [%v]  (%v) => (%v) ", col.ColumnName, change.OldValue, change.NewValue)
 
 			var val interface{}
 			val = change.NewValue
@@ -343,12 +343,12 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 	for _, rel := range dr.model.GetRelations() {
 		relationName := rel.GetRelation()
 
-		if relationName == "belongs_to" || relationName == "has_one" {
-			continue
-		}
-
 		log.Infof("Check relation in Update: %v", rel.String())
 		if rel.GetSubject() == dr.model.GetName() {
+
+			if relationName == "belongs_to" || relationName == "has_one" {
+				continue
+			}
 
 			val11, ok := attrs[rel.GetObjectName()]
 			if !ok || len(val11.([]map[string]interface{})) < 1 {
@@ -547,11 +547,12 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				break
 			}
 		}
-		log.Infof("Delete [%v] relation: [%v][%v]", referencedRelation.GetRelation(), relationName, deleteRelations)
-
 		if referencedRelation.GetRelation() == "" {
 			continue
 		}
+
+		log.Infof("Delete [%v] relation: [%v][%v]", referencedRelation.GetRelation(), relationName, deleteRelations)
+
 
 		for _, deleteId := range deleteRelations {
 
@@ -585,6 +586,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						log.Errorf("Failed to delete relation [%v][%v]: %v", referencedRelation.GetSubject(), referencedRelation.GetObjectName(), err)
 					}
 				} else {
+					// has_one or belongs_to
 					// todo: write code for belongs_to and has_one relation reference deletes
 					// check for relation side and update the appropriate column
 
@@ -598,6 +600,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						selfSubjectName = referencedRelation.GetObjectName()
 						targetTypeName = referencedRelation.GetSubject()
 						//targetSubjectName = referencedRelation.GetSubjectName()
+					} else {
 
 					}
 

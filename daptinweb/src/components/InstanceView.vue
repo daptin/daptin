@@ -19,7 +19,8 @@
           <template v-else>
             {{crumb.label}}
           </template>
-        </li>      </ol>
+        </li>
+      </ol>
       <div class="pull-right">
         <div class="ui icon buttons">
           <button class="btn btn-box-tool" @click.prevent="editRow()"><i
@@ -33,75 +34,74 @@
     </section>
     <section class="content">
 
-        <div class="col-md-12" v-if="showAddEdit">
-          <div class="row" v-if="selectedAction != null">
-            <action-view @cancel="showAddEdit = false" @action-complete="showAddEdit = false"
-                         :action-manager="actionManager" :action="selectedAction"
-                         :json-api="jsonApi" :model="selectedRow"></action-view>
+      <div class="col-md-12" v-if="showAddEdit">
+        <div class="row" v-if="selectedAction != null">
+          <action-view @cancel="showAddEdit = false" @action-complete="showAddEdit = false"
+                       :action-manager="actionManager" :action="selectedAction"
+                       :json-api="jsonApi" :model="selectedRow"></action-view>
+        </div>
+        <div class="row" v-if="rowBeingEdited != null">
+          <model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
+                      @cancel="showAddEdit = false"
+                      v-bind:model="rowBeingEdited"
+                      v-bind:meta="selectedTableColumns" ref="modelform"></model-form>
+        </div>
+      </div>
+      <div class="col-md-9">
+
+        <detailed-table-row :model="selectedRow" v-if="selectedRow" :json-api="jsonApi"
+                            :json-api-model-name="selectedTable"></detailed-table-row>
+
+        <!--<div class="row" v-if="showAddEdit && rowBeingEdited != null">-->
+
+
+        <!--<model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"-->
+        <!--v-if="selectedSubTable"-->
+        <!--@cancel="showAddEdit = false"-->
+        <!--v-bind:model="rowBeingEdited"-->
+        <!--v-bind:meta="subTableColumns" ref="modelform"></model-form>-->
+
+
+        <!--</div>-->
+
+
+      </div>
+      <div class="col-md-3">
+
+
+        <div class="row" v-if="stateMachines != null && stateMachines.length > 0">
+          <div class="col-md-12">
+            <h2>Start Tracking</h2>
           </div>
-          <div class="row" v-if="rowBeingEdited != null">
-            <model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"
-                        @cancel="showAddEdit = false"
-                        v-bind:model="rowBeingEdited"
-                        v-bind:meta="selectedTableColumns" ref="modelform"></model-form>
+          <div class="col-md-12" v-for="a, k in stateMachines">
+            <button class="btn btn-default" style="width: 100%" @click="addStateMachine(a)">{{a.label}}</button>
           </div>
         </div>
-        <div class="col-md-9">
-
-          <detailed-table-row :model="selectedRow" v-if="selectedRow" :json-api="jsonApi"
-                              :json-api-model-name="selectedTable"></detailed-table-row>
-
-          <!--<div class="row" v-if="showAddEdit && rowBeingEdited != null">-->
 
 
-            <!--<model-form @save="saveRow(rowBeingEdited)" :json-api="jsonApi"-->
-                        <!--v-if="selectedSubTable"-->
-                        <!--@cancel="showAddEdit = false"-->
-                        <!--v-bind:model="rowBeingEdited"-->
-                        <!--v-bind:meta="subTableColumns" ref="modelform"></model-form>-->
-
-
-          <!--</div>-->
-
-
-        </div>
-        <div class="col-md-3">
-
-
-          <div class="row" v-if="stateMachines != null && stateMachines.length > 0">
-            <div class="col-md-12">
-              <h2>Start Tracking</h2>
-            </div>
-            <div class="col-md-12" v-for="a, k in stateMachines">
-              <button class="btn btn-default" style="width: 100%" @click="addStateMachine(a)">{{a.label}}</button>
-            </div>
+        <div class="row" v-if="actions != null">
+          <div class="col-md-12">
+            <h2>Actions</h2>
           </div>
-
-
-          <div class="row" v-if="actions != null">
-            <div class="col-md-12">
-              <h2>Actions</h2>
-            </div>
-            <div class="col-md-12" v-for="a, k in actions" v-if="!a.InstanceOptional">
-              <button class="btn btn-default" style="width: 100%" @click="doAction(a)">{{a.Label}}</button>
-            </div>
+          <div class="col-md-12" v-for="a, k in actions" v-if="!a.InstanceOptional">
+            <button class="btn btn-default" style="width: 100%" @click="doAction(a)">{{a.Label}}</button>
           </div>
-
-          <div class="row" v-if="visibleWorlds.length > 0">
-            <div class="col-md-12">
-              <h2>Related</h2>
-            </div>
-            <div class="col-md-12" v-for="world in visibleWorlds">
-              <router-link v-if="selectedInstanceReferenceId" style=" width: 100%" class="btn btn-default"
-                           :to="{name: 'Relation', params: {tablename: selectedTable, refId: selectedInstanceReferenceId, subTable: world.table_name}}">
-                {{world.table_name | titleCase}}
-              </router-link>
-            </div>
-          </div>
-
-
         </div>
 
+        <div class="row" v-if="visibleWorlds.length > 0">
+          <div class="col-md-12">
+            <h2>Related</h2>
+          </div>
+          <div class="col-md-12" v-for="world in visibleWorlds">
+            <router-link v-if="selectedInstanceReferenceId" style=" width: 100%" class="btn btn-default"
+                         :to="{name: 'Relation', params: {tablename: selectedTable, refId: selectedInstanceReferenceId, subTable: world.table_name}}">
+              {{world.table_name | titleCase}}
+            </router-link>
+          </div>
+        </div>
+
+
+      </div>
 
 
       <div class="col-md-12" v-if="objectStates.length > 0">
@@ -140,8 +140,7 @@
   import worldManager from "../plugins/worldmanager"
   import jsonApi from "../plugins/jsonapi"
   import actionManager from "../plugins/actionmanager"
-  import {mapGetters} from 'vuex'
-  import {mapState} from 'vuex'
+  import {mapGetters, mapState} from 'vuex'
 
 
   export default {
@@ -226,7 +225,7 @@
 
         var newRow = {};
         var keys = Object.keys(row);
-        for (var i=0;i<keys.length;i++){
+        for (var i = 0; i < keys.length; i++) {
           if (row[keys[i]] != null) {
             newRow[keys[i]] = row[keys[i]];
           }
@@ -288,6 +287,8 @@
 
         that.$store.commit("SET_SELECTED_INSTANCE_REFERENCE_ID", selectedInstanceId);
         console.log("Get instance: ", tableName, selectedInstanceId);
+
+
         jsonApi.find(tableName, selectedInstanceId).then(function (res) {
           console.log("got object", arguments);
           res = res.data;
