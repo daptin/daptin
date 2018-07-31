@@ -1,7 +1,7 @@
 
 <h1 align="center">
   <br>
-  <a href="https://docs.dapt.in"><img width="300" height="282" src="https://github.com/daptin/daptin/raw/master/images/daptin-22-transparent-background-colored.png" alt="Daptin" title="Daptin" /></a>
+  <a href="https://docs.dapt.in"><img width="100" height="100" src="https://github.com/daptin/daptin/raw/master/images/daptin-22-transparent-background-colored.png" alt="Daptin" title="Daptin" /></a>
   <br>
   Daptin
   <br>
