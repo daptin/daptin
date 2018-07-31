@@ -38,9 +38,10 @@
   <a href="#getting-started">Getting Started</a>
 </p>
 
+**Daptin** is a headless CMS framework to develop and deploy production-ready JSON API based applications.
+
 
 ---
-
 
 
 ## Features
@@ -58,25 +59,23 @@
   - Read and Mutations APIs for all tables
   - One level of relationship fetching
 * Client SDK libraries for all platforms
-  -
 * Rich data types
   - Column types ranging from number to json to file/image assets
 * Sub sites hosting
   - Expose multiple websites from a single instance
   - Connect multiple domains/sub-domains
-* Pluggable Social Authentication
+* Pluggable Social Auth, Basic Auth or Username/Password Auth
 * Cloud storage
   - Connect to external cloud storage services seamlessly
   - Pull data/Push data
 * Action APIs
-  - Define workflows
+  - Define work-flows
   - Expose custom endpoints for other services
 * Ready to use web dashboard
   - Responsive to desktop, mobile and table
 * Cross platform
   - Windows, Mac, Linux and more
 
-**Daptin** is a headless CMS framework to develop and deploy production-ready JSON API based applications.
 
 ![Create entity and add item](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/create_entity_and_add.gif)
 
