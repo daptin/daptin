@@ -52,6 +52,7 @@
   - Single/Multiple Relation to self
 * CRUD JSON APIs' for all tables
   - Create, Read, Update, Delete
+  - Sort, filter, search, group by single/multiple columns
   - Authentication and Group based authorization
   - pluggable middleware, conformations and normalizations
   - trigger actions/pipelines
