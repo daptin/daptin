@@ -54,8 +54,8 @@
   - Create, Read, Update, Delete
   - Sort, filter, search, group by single/multiple columns
   - Authentication and Group based authorization
-  - pluggable middleware, conformations and normalizations
-  - trigger actions/pipelines
+  - Pluggable middleware, conformations and normalizations
+  - Trigger actions/pipelines
 * GraphQL APIs
   - Read and Mutations APIs for all tables
   - One level of relationship fetching
