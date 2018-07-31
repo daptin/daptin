@@ -1,5 +1,5 @@
-hash: 3078353a5ab69c4ca65972ec5a5c82027f7160c686e960698c13e34905daaa1d
-updated: 2018-07-14T17:55:44.967991848+05:30
+hash: 3925b7e7759f2cae15d13420da82af266b80821688894827542a8f2c662a6807
+updated: 2018-07-31T14:45:45.762703677+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -18,7 +18,7 @@ imports:
 - name: github.com/araddon/dateparse
   version: ca7e753bd149dae747d76fa7d52b20b920f3a814
 - name: github.com/artpar/api2go
-  version: 940b8de72ef05efa84ac49639ab596fb4bbba9eb
+  version: 23a3d58fceb72c1bdb8aceac2d3a7c964db35d67
   subpackages:
   - jsonapi
   - routing
@@ -31,7 +31,7 @@ imports:
 - name: github.com/artpar/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/artpar/rclone
-  version: fb13b01c036740034030c79ad8559f2bed59813a
+  version: 0a7cfc573a9810714ff3c1c3402d47814d640a1c
   subpackages:
   - backend/alias
   - backend/all
@@ -76,6 +76,8 @@ imports:
   - fs/asyncreader
   - fs/config
   - fs/config/configflags
+  - fs/config/configmap
+  - fs/config/configstruct
   - fs/config/flags
   - fs/config/obscure
   - fs/driveletter
@@ -132,17 +134,14 @@ imports:
   - service/s3/s3iface
   - service/s3/s3manager
   - service/sts
-- name: github.com/Azure/azure-sdk-for-go
-  version: 57da6001a1d275435ae24b8a39c04828d9623321
+- name: github.com/Azure/azure-pipeline-go
+  version: 7571e8eb0876932ab505918ff7ed5107773e5ee2
   subpackages:
-  - storage
-- name: github.com/Azure/go-autorest
-  version: 809ed2ef5c4c9a60c3c2f3aa9cc11f3a7c2ce59d
+  - pipeline
+- name: github.com/Azure/azure-storage-blob-go
+  version: 197d1c0aea1b9eedbbaee0a1a32bf81e879bde80
   subpackages:
-  - autorest
-  - autorest/adal
-  - autorest/azure
-  - autorest/date
+  - 2018-03-28/azblob
 - name: github.com/bamzi/jobrunner
   version: 273175f8b6ebabab8a639a4e6260a5c50fbf016a
 - name: github.com/boombuler/barcode
@@ -176,6 +175,7 @@ imports:
   subpackages:
   - dropbox
   - dropbox/async
+  - dropbox/common
   - dropbox/file_properties
   - dropbox/files
   - dropbox/sharing
@@ -336,8 +336,6 @@ imports:
   version: bcc3636384ce80a109a6039432b30ff5b82476ee
 - name: github.com/magiconair/properties
   version: 49d762b9817ba1c2e9d0c69183c2b4a8b8f1d934
-- name: github.com/marstr/guid
-  version: 8bdf7d1a087ccc975cf37dd6507da50698fd19ca
 - name: github.com/mattn/go-colorable
   version: 586e6dcca296d085100876beb6dbf02287a247f7
 - name: github.com/mattn/go-isatty
@@ -350,24 +348,6 @@ imports:
   version: 06020f85339e21b2478f756a78e295255ffa4d6a
 - name: github.com/ncw/go-acd
   version: 96a49aad3fc3889629f2eceb004927386884bd92
-- name: github.com/ncw/rclone
-  version: 99201f8ba40dcef6fc5284212b550a54c5ee3953
-  subpackages:
-  - backend/dropbox/dbhash
-  - backend/onedrive/quickxorhash
-  - cmd/serve/httplib
-  - fs
-  - fs/accounting
-  - fs/asyncreader
-  - fs/config
-  - fs/config/obscure
-  - fs/driveletter
-  - fs/fserrors
-  - fs/fshttp
-  - fs/fspath
-  - fs/hash
-  - fs/rc
-  - lib/readers
 - name: github.com/ncw/swift
   version: c95c6e5c2d1a3d37fc44c8c6dc9e231c7500667d
 - name: github.com/patrickmn/go-cache
@@ -398,14 +378,12 @@ imports:
   version: b41be1df696709bb6395fe435af20370037c0b4c
 - name: github.com/sadlil/go-trigger
   version: cfc3d83007cddfc1e31a478aa47cd41de07fac17
-- name: github.com/satori/go.uuid
-  version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/sergi/go-diff
   version: 2fc9cd33b5f86077aa3e0f442fa0476a9fa9a1dc
   subpackages:
   - diffmatchpatch
 - name: github.com/sirupsen/logrus
-  version: c155da19408a8799da419ed3eeb0cb5db0ad5dbc
+  version: 3e01752db0189b9157070a0e1668a620f9a85da2
 - name: github.com/skratchdot/open-golang
   version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
   subpackages:
@@ -538,7 +516,6 @@ imports:
   - internal/modules
   - internal/remote_api
   - internal/urlfetch
-  - log
   - urlfetch
 - name: gopkg.in/gin-gonic/gin.v1
   version: d459835d2b077e44f7c9b453505ee29881d5d12d

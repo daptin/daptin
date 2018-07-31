@@ -31,6 +31,7 @@
     "jwt-decode": "^2.2.0",
     "kingtable": "^2.0.0",
     "module": "^1.2.5",
+    "https-proxy-agent": "2.2.0",
     "moment": "^2.19.3",
     "npm-font-open-sans": "^1.1.0",
     "hoek": "^5.0.3",
