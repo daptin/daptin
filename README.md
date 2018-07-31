@@ -8,7 +8,7 @@
 </h1>
 
 
-<h4 align="center">A modern backend for application developers, designers and testers</h4>
+<h4 align="center">Headless CMS</h4>
 
 
 <p align="center">
@@ -25,11 +25,6 @@
 </p>
 
 
-<p align="center">
-  <a href="#key-features">Key Features</a> •
-  <a href="#getting-started">Getting Started</a>
-</p>
-
 
 <p align="center">
 	<a href="https://github.com/daptin/daptin/releases">Download</a> •
@@ -37,35 +32,53 @@
 	<a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLTVlYzBlMmM4YjMyOTk0MDc5MWJmMzFlMTliNzQwYjcxMzc5Mjk0YzEyZDIwYTljZmE5NDU3Yjk3YzQ3MzhkMzI">Community</a>
 </p>
 
+
+<p align="center">
+  <a href="#key-features">Features</a> •
+  <a href="#getting-started">Getting Started</a>
+</p>
+
+
 ---
 
-![Create entity and add item](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/create_entity_and_add.gif)
 
 
+## Features
 
-## Key Features
-
-* JSON APIs
-  - create, read, update, delete
+* Extensive Data Modeling system
+  - Unique/Primary keys
+  - Single/Multiple Relation to other entities
+  - Single/Multiple Relation to self
+* CRUD JSON APIs' for all tables
+  - Create, Read, Update, Delete
+  - Authentication and Group based authorization
+  - pluggable middleware, conformations and normalizations
+  - trigger actions/pipelines
 * GraphQL APIs
-  - work in progress
-* Client libraries for all platforms
+  - Read and Mutations APIs for all tables
+  - One level of relationship fetching
+* Client SDK libraries for all platforms
+  -
 * Rich data types
-* Websocket support
+  - Column types ranging from number to json to file/image assets
 * Sub sites hosting
-* Oauth token and connections
-* Cloud storage sync
-* Action APIs and Relational data APIs
-* Validation and conformation support
-* Daptil will expose all APIs for easy use
-* Fully featured dashboard
+  - Expose multiple websites from a single instance
+  - Connect multiple domains/sub-domains
+* Pluggable Social Authentication
+* Cloud storage
+  - Connect to external cloud storage services seamlessly
+  - Pull data/Push data
+* Action APIs
+  - Define workflows
+  - Expose custom endpoints for other services
+* Ready to use web dashboard
   - Responsive to desktop, mobile and table
 * Cross platform
-  - Windows, Mac and Linux ready.
+  - Windows, Mac, Linux and more
 
-**Daptin** is an open-source backend development framework to develop and deploy production-ready JSON API based applications. With Daptin you can design your data model and have a production ready JSON API online in minutes.
+**Daptin** is a headless CMS framework to develop and deploy production-ready JSON API based applications.
 
-Note: documentation is still a work in progress, please create a pull-request if you wish to contribute.
+![Create entity and add item](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/create_entity_and_add.gif)
 
 ### Installation
 
@@ -124,7 +137,6 @@ Note: documentation is still a work in progress, please create a pull-request if
 
 
 
-
 ## Client library
 
 |                                                                                |                                                                        |                                                                                |
@@ -180,21 +192,6 @@ RAML spec is auto generated for each endpoint exposed. This can be use to genera
 ![Create entity and add item](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/create_entity_and_add.gif)
 ![Generate random data to show tables](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/generate_random_show_tables.gif)
 
-Use the following APIs
-
-- [JSON](http://jsonapi.org) based CRUD+eXecute APIs for all your entities
-- Authentication and authorization with user management
-- Access control for data
-- Extensible system with useful integrations (eg sync data updates to 3rd party api)
-- [Client libraries](http://jsonapi.org/implementations/) to consume JSON API seamlessly
-
-
-- Sub site hosting (SSH) without the need to run separate server
-- An events-actions-outcomes framework to extend system
-- Data-as-objects (instead of just strings)
-
-Compared to building JSON APIs directly, Daptin provides APIs that makes writing fast frontend apps simpler.
-
 
 ## Why Daptin?
 
@@ -221,11 +218,11 @@ However, JSON APIs for data manipulation by themselves weren't enough. Building 
 
 ## Tech Goals
 
-- Zero config start (sqlite db for fresh install, mysql/postgres is recommanded for serious use)
+- Zero config start (sqlite db for no-config install, mysql/postgres is recommended for serious use)
 - A closely knit set of functionality which work together
-- Completely configurable at runtime, can be run without any dev help
-- Stateless(Horizontally scalable)
-- Try to piggyback on used/known standards
+- Completely configurable at runtime
+- Stateless (Horizontally scalable)
+- Piggyback on used/known standards
 - Runnable on all types on devices
 - Cross platform app using [qt](https://github.com/therecipe/qt) (very long term goal. A responsive website for now.)
 
@@ -239,14 +236,12 @@ However, JSON APIs for data manipulation by themselves weren't enough. Building 
 * [x] Authorization based on a slightly modified linux FS permission model
 * [x] Objects and action chains
 * [x] State tracking using state machine
-* [ ] Native tag support for user defined entities
 * [x] Data connectors -> Incoming/Outgoing data
 * [x] Plugin system -> Grow the system according to your needs
 * [x] Native support for different data types (geo location/time/colors/measurements)
 * [x] Configurable intelligent Validation for data in the APIs
 * [x] Pages/Sub-sites -> Create a sub-site for a target audiance
-* [ ] Define events all around the system
-* [ ] Ability to define hooks on events from UI
+* [x] Define events all around the system
 * [x] Data conversion/exchange/transformations
 * [x] Live editor for subsites - grapesjs
 * [x] Store connectors for storing big files/subsites - rclone
@@ -258,13 +253,3 @@ However, JSON APIs for data manipulation by themselves weren't enough. Building 
 ### Documentation
 
 - Checkout the [documentation for daptin](http://docs.dapt.in)
-
-
-## Tech stack
-
-
-Backend | Frontend | Standards | Frameworks
----|---|---|---
-[Golang](golang.org) | [BootStrap](http://getbootstrap.com/) | [RAML](raml.org) | [CoPilot Theme](https://copilot.mistergf.io)
-[Api2go](https://github.com/manyminds/api2go) |  | [JsonAPI](jsonapi.org) | [VueJS](https://vuejs.org/v2/guide/)
-[rclone](https://github.com/ncw/rclone) |  [grapesJs](grapesjs.com) | | [Element UI](https://element.eleme.io)
