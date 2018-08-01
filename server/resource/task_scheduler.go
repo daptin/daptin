@@ -95,7 +95,7 @@ func (ati *ActiveTaskInstance) Run() {
 	req := api2go.Request{
 		PlainRequest: pr,
 	}
-	res, err := ati.DbResource.cruds[ati.ActionRequest.Type].HandleActionRequest(&ati.ActionRequest, req)
+	res, err := ati.DbResource.Cruds[ati.ActionRequest.Type].HandleActionRequest(&ati.ActionRequest, req)
 	//_, _, err := ati.ActionPerformer.DoAction(ati.ActionRequest, ati.Task.Attributes)
 
 	if err != nil {

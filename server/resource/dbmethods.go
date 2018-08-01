@@ -290,7 +290,7 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 			GroupReferenceId:    refId,
 			ObjectReferenceId:   refId,
 			RelationReferenceId: refId,
-			Permission:          auth.ParsePermission(dr.cruds["usergroup"].model.GetDefaultPermission()),
+			Permission:          auth.ParsePermission(dr.Cruds["usergroup"].model.GetDefaultPermission()),
 		})
 		return s
 	}
@@ -341,7 +341,7 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 func (d *DbResource) GetUserPassword(email string) (string, error) {
 	passwordHash := ""
 
-	existingUsers, _, err := d.cruds["user_account"].GetRowsByWhereClause("user", squirrel.Eq{"email": email})
+	existingUsers, _, err := d.Cruds["user_account"].GetRowsByWhereClause("user", squirrel.Eq{"email": email})
 	if err != nil {
 		return passwordHash, err
 	}
@@ -382,7 +382,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 		return false
 	}
 
-	for _, crud := range dbResource.cruds {
+	for _, crud := range dbResource.Cruds {
 
 		if crud.model.GetName() == "user_account_user_account_id_has_usergroup_usergroup_id" {
 			continue
@@ -470,7 +470,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 
 	loc := strings.Index(rowType, "_has_")
 	//log.Infof("Location [%v]: %v", dr.model.GetName(), loc)
-	if loc == -1 && dr.cruds[rowType].model.HasMany("usergroup") {
+	if loc == -1 && dr.Cruds[rowType].model.HasMany("usergroup") {
 
 		perm.UserGroupId = dr.GetObjectUserGroupsByWhere(rowType, "reference_id", refId.(string))
 
@@ -486,7 +486,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 				GroupReferenceId:    originalGroupIdStr,
 				ObjectReferenceId:   refId.(string),
 				RelationReferenceId: refId.(string),
-				Permission:          auth.ParsePermission(dr.cruds["usergroup"].model.GetDefaultPermission()),
+				Permission:          auth.ParsePermission(dr.Cruds["usergroup"].model.GetDefaultPermission()),
 			},
 		}
 	} else if loc > -1 {
@@ -542,7 +542,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where ...squirrel.Eq
 	}
 	defer rows.Close()
 
-	m1, include, err := dr.ResultToArrayOfMap(rows, dr.cruds[typeName].model.GetColumnMap(), map[string]bool{"*": true})
+	m1, include, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), map[string]bool{"*": true})
 
 	return m1, include, err
 
@@ -618,7 +618,7 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 
 	rows, err := dr.db.Queryx(s, q...)
 	defer rows.Close()
-	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.cruds[typeName].model.GetColumnMap(), map[string]bool{"*": true})
+	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), map[string]bool{"*": true})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -647,7 +647,7 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 	}
 	defer row.Close()
 
-	m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), nil)
+	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 
 	if len(m) == 0 {
 		log.Infof("No result found for [%v] [%v][%v]", typeName, column, val)
@@ -670,7 +670,7 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 	}
 	defer row.Close()
 
-	m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), nil)
+	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 
 	if len(m) == 0 {
 		log.Infof("No result found for [%v][%v]", typeName, id)
@@ -697,7 +697,7 @@ func (dr *DbResource) TruncateTable(typeName string) error {
 // Invoked by data import action
 func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{}) error {
 
-	columnMap := dr.cruds[typeName].model.GetColumnMap()
+	columnMap := dr.Cruds[typeName].model.GetColumnMap()
 
 	cols := make([]string, 0)
 	vals := make([]interface{}, 0)
@@ -735,7 +735,7 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 	}
 	defer row.Close()
 
-	m, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), nil)
+	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 
 	return m, err
 }
@@ -780,7 +780,7 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	}
 	defer row.Close()
 
-	results, _, err := dr.ResultToArrayOfMap(row, dr.cruds[typeName].model.GetColumnMap(), nil)
+	results, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 	if err != nil {
 		return nil, err
 	}

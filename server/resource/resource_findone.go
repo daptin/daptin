@@ -75,7 +75,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		if BeginsWith(incType, "image.") {
 			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, nil, 0, nil, inc))
 		} else {
-			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dr.cruds[incType].model.GetColumns(), int64(p), dr.cruds[incType].model.GetRelations(), inc))
+			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dr.Cruds[incType].model.GetColumns(), int64(p), dr.Cruds[incType].model.GetRelations(), inc))
 		}
 	}
 

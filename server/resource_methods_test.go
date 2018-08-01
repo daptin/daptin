@@ -123,10 +123,41 @@ func TestStoreToken(t *testing.T) {
 	defer wrapper.db.Close()
 	wrapper.ResetQueries()
 	token := oauth2.Token{}
-	dbResource.StoreToken(&token, "type", "ref_id")
+
+	//newUser := map[string]interface{}{
+	//	"email":    "test@gmail.com",
+	//	"password": "test",
+	//	"name":     "test",
+	//}
+
+	//userModel := api2go.NewApi2GoModelWithData("user_account", nil, 0, nil, newUser)
+	//httpRequest := &http.Request{
+	//
+	//}
+
+	//ctx := context.Background()
+	//sessionUser := &auth.SessionUser{
+	//
+	//}
+	//httpRequest = httpRequest.WithContext(context.WithValue(ctx, "user", sessionUser))
+	//apiRequest := api2go.Request{
+	//	PlainRequest: httpRequest,
+	//}
+
+	//userResponse, err := dbResource.Cruds["user_account"].CreateWithoutFilter(userModel, apiRequest)
+	//log.Printf("New user: %v", userResponse)
+
+	users, err := dbResource.Cruds["user_account"].GetAllRawObjects("user_account")
+	if err != nil {
+		t.Errorf("Failed to get users: %v", err)
+		t.Fail()
+		return
+	}
+	user := users[0]
+	err = dbResource.StoreToken(&token, "type", "ref_id", user["reference_id"].(string))
 
 	if !wrapper.HasExecuted("SELECT * FROM oauth_connect WHERE reference_id =") {
-		t.Errorf("Expected query not fired")
+		t.Errorf("Expected query not fired: %v", err)
 		t.Fail()
 	}
 

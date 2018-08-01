@@ -280,7 +280,7 @@ OutFields:
 		}
 
 		request.PlainRequest = request.PlainRequest.WithContext(req.PlainRequest.Context())
-		dbResource, _ := db.cruds[outcome.Type]
+		dbResource, _ := db.Cruds[outcome.Type]
 
 		actionResponses := make([]ActionResponse, 0)
 		log.Infof("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
@@ -356,7 +356,7 @@ OutFields:
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "EXECUTE":
-			//res, err = cruds[outcome.Type].Create(model, actionRequest)
+			//res, err = Cruds[outcome.Type].Create(model, actionRequest)
 
 			actionName := model.GetName()
 			performer, ok := db.ActionHandlerMap[actionName]
@@ -376,7 +376,7 @@ OutFields:
 			}
 
 		case "ACTIONRESPONSE":
-			//res, err = cruds[outcome.Type].Create(model, actionRequest)
+			//res, err = Cruds[outcome.Type].Create(model, actionRequest)
 			log.Infof("Create action response: %v", model.GetName())
 			var actionResponse ActionResponse
 			actionResponse = NewActionResponse(model.GetName(), model.Data)

@@ -533,7 +533,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 			}
 
 			incType := include["__type"].(string)
-			model := api2go.NewApi2GoModelWithData(incType, dr.cruds[incType].model.GetColumns(), int64(perm), dr.cruds[incType].model.GetRelations(), include)
+			model := api2go.NewApi2GoModelWithData(incType, dr.Cruds[incType].model.GetColumns(), int64(perm), dr.Cruds[incType].model.GetRelations(), include)
 
 			a.Includes = append(a.Includes, model)
 		}

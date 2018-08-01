@@ -10,7 +10,7 @@ type DbResource struct {
 	model            *api2go.Api2GoModel
 	db               database.DatabaseConnection
 	tableInfo        *TableInfo
-	cruds            map[string]*DbResource
+	Cruds            map[string]*DbResource
 	ms               *MiddlewareSet
 	ActionHandlerMap map[string]ActionPerformerInterface
 	configStore      *ConfigStore
@@ -25,7 +25,7 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms
 		db:            db,
 		ms:            ms,
 		configStore:   configStore,
-		cruds:         cruds,
+		Cruds:         cruds,
 		tableInfo:     &tableInfo,
 		defaultGroups: GroupNamesToIds(db, tableInfo.DefaultGroups),
 		contextCache:  make(map[string]interface{}),

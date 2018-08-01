@@ -128,7 +128,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 			case "cloud_store":
 
-				uploadActionPerformer, err := NewFileUploadActionPerformer(dr.cruds)
+				uploadActionPerformer, err := NewFileUploadActionPerformer(dr.Cruds)
 				CheckErr(err, "Failed to create upload action performer")
 				log.Infof("created upload action performer")
 				if err != nil {
