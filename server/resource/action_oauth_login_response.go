@@ -29,7 +29,7 @@ func (d *OauthLoginResponseActionPerformer) Name() string {
 
 func GetOauthConnectionDescription(authenticator string, dbResource *DbResource) (*oauth2.Config, string, error) {
 
-	rows, _, err := dbResource.cruds["oauth_connect"].GetRowsByWhereClause("oauth_connect", squirrel.Eq{"name": authenticator})
+	rows, _, err := dbResource.Cruds["oauth_connect"].GetRowsByWhereClause("oauth_connect", squirrel.Eq{"name": authenticator})
 
 	if err != nil {
 		log.Errorf("Failed to get oauth connection details for in response handler  [%v]", authenticator)
@@ -56,7 +56,7 @@ func GetOauthConnectionDescription(authenticator string, dbResource *DbResource)
 
 func GetOauthConnectionById(authenticatorId int64, dbResource *DbResource) (*oauth2.Config, string, error) {
 
-	connectDetails, err := dbResource.cruds["oauth_connect"].GetIdToObject("oauth_connect", authenticatorId)
+	connectDetails, err := dbResource.Cruds["oauth_connect"].GetIdToObject("oauth_connect", authenticatorId)
 
 	if err != nil {
 		log.Errorf("Failed to get oauth connection details for in response handler  [%v]", authenticatorId)
@@ -120,7 +120,7 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 	storeToken["token_type"] = token_type
 	storeToken["oauth_connect_id"] = oauth_connect_reference_id
 
-	userId, err := dr.GetReferenceIdToId("user", user_reference_id)
+	userId, err := dr.GetReferenceIdToId("user_account", user_reference_id)
 
 	if err != nil {
 		return err
@@ -139,7 +139,7 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 
 	model := api2go.NewApi2GoModelWithData("oauth_token", nil, auth.DEFAULT_PERMISSION.IntValue(), nil, storeToken)
 
-	_, err = dr.cruds["oauth_token"].CreateWithoutFilter(model, req)
+	_, err = dr.Cruds["oauth_token"].CreateWithoutFilter(model, req)
 	return err
 }
 

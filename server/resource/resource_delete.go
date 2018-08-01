@@ -32,7 +32,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 		log.Infof("Object [%v][%v] has been changed, trying to audit in %v", apiModel.GetTableName(), apiModel.GetID(), auditModel.GetTableName())
 		if auditModel.GetTableName() != "" {
 			//auditModel.Data["deleted_at"] = time.Now()
-			creator, ok := dr.cruds[auditModel.GetTableName()]
+			creator, ok := dr.Cruds[auditModel.GetTableName()]
 			if !ok {
 				log.Errorf("No creator for audit type: %v", auditModel.GetTableName())
 			} else {
@@ -91,7 +91,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 						for _, id := range ids {
 							log.Infof("Delete relation with [%v][%v]", joinTableName, id)
-							_, err = dr.cruds[joinTableName].Delete(id, req)
+							_, err = dr.Cruds[joinTableName].Delete(id, req)
 							CheckErr(err, "Failed to delete join 1")
 						}
 
@@ -121,7 +121,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 						}
 
 						for _, id := range ids {
-							_, err = dr.cruds[joinTableName].Delete(id, req)
+							_, err = dr.Cruds[joinTableName].Delete(id, req)
 							CheckErr(err, "Failed to delete join 2")
 						}
 
@@ -153,12 +153,12 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 					},
 				}
 
-				_, allRelatedObjects, err := dr.cruds[rel.GetSubject()].PaginatedFindAll(subRequest)
+				_, allRelatedObjects, err := dr.Cruds[rel.GetSubject()].PaginatedFindAll(subRequest)
 				CheckErr(err, "Failed to get related objects of: %v", rel.GetSubject())
 
 				results := allRelatedObjects.Result().([]*api2go.Api2GoModel)
 				for _, result := range results {
-					_, err := dr.cruds[rel.GetSubject()].Delete(result.GetID(), req)
+					_, err := dr.Cruds[rel.GetSubject()].Delete(result.GetID(), req)
 					CheckErr(err, "Failed to delete related object before deleting parent")
 				}
 
@@ -179,12 +179,12 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 					},
 				}
 
-				_, allRelatedObjects, err := dr.cruds[rel.GetSubject()].PaginatedFindAll(subRequest)
+				_, allRelatedObjects, err := dr.Cruds[rel.GetSubject()].PaginatedFindAll(subRequest)
 				CheckErr(err, "Failed to get related objects of: %v", rel.GetSubject())
 
 				results := allRelatedObjects.Result().([]*api2go.Api2GoModel)
 				for _, result := range results {
-					_, err := dr.cruds[rel.GetSubject()].Delete(result.GetID(), req)
+					_, err := dr.Cruds[rel.GetSubject()].Delete(result.GetID(), req)
 					CheckErr(err, "Failed to delete related object before deleting parent")
 				}
 
@@ -211,7 +211,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 						}
 
 						for _, id := range ids {
-							_, err = dr.cruds[joinTableName].Delete(id, req)
+							_, err = dr.Cruds[joinTableName].Delete(id, req)
 							CheckErr(err, "Failed to delete join 3")
 						}
 
@@ -238,12 +238,12 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 					},
 				}
 
-				_, allRelatedObjects, err := dr.cruds[joinTableName].PaginatedFindAll(subRequest)
+				_, allRelatedObjects, err := dr.Cruds[joinTableName].PaginatedFindAll(subRequest)
 				CheckErr(err, "Failed to get related objects of: %v", joinTableName)
 
 				results := allRelatedObjects.Result().([]*api2go.Api2GoModel)
 				for _, result := range results {
-					_, err := dr.cruds[joinTableName].Delete(result.GetID(), req)
+					_, err := dr.Cruds[joinTableName].Delete(result.GetID(), req)
 					CheckErr(err, "Failed to delete related object before deleting parent")
 				}
 

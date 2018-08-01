@@ -122,7 +122,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 				case "cloud_store":
 
-					uploadActionPerformer, err := NewFileUploadActionPerformer(dr.cruds)
+					uploadActionPerformer, err := NewFileUploadActionPerformer(dr.Cruds)
 					CheckErr(err, "Failed to create upload action performer")
 					log.Infof("created upload action performer")
 					if err != nil {
@@ -303,7 +303,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 		auditModel := data.GetAuditModel()
 		log.Infof("Object [%v][%v] has been changed, trying to audit in %v", data.GetTableName(), data.GetID(), auditModel.GetTableName())
 		if auditModel.GetTableName() != "" {
-			creator, ok := dr.cruds[auditModel.GetTableName()]
+			creator, ok := dr.Cruds[auditModel.GetTableName()]
 			if !ok {
 				log.Errorf("No creator for audit type: %v", auditModel.GetTableName())
 			} else {
@@ -375,7 +375,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						Method: "POST",
 					}
 					pr = pr.WithContext(req.PlainRequest.Context())
-					_, err := dr.cruds[rel.GetJoinTableName()].Create(modl, api2go.Request{
+					_, err := dr.Cruds[rel.GetJoinTableName()].Create(modl, api2go.Request{
 						PlainRequest: pr,
 					})
 					if err != nil {
@@ -412,7 +412,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 					updateForeignRow := make(map[string]interface{})
 
-					updateForeignRow, err = dr.cruds[rel.GetSubject()].GetReferenceIdToObject(rel.GetSubject(), valMap[rel.GetSubjectName()].(string))
+					updateForeignRow, err = dr.Cruds[rel.GetSubject()].GetReferenceIdToObject(rel.GetSubject(), valMap[rel.GetSubjectName()].(string))
 					if err != nil {
 						log.Infof("Failed to get object by reference id: %v", err)
 						continue
@@ -423,7 +423,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						rel.GetObjectName(): updatedResource["reference_id"].(string),
 					})
 
-					_, err := dr.cruds[rel.GetSubject()].Update(model, req)
+					_, err := dr.Cruds[rel.GetSubject()].Update(model, req)
 					if err != nil {
 						log.Errorf("Failed to update [%v][%v]: %v", rel.GetObject(), updatedResource["reference_id"], err)
 					}
@@ -453,7 +453,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, auth.DEFAULT_PERMISSION.IntValue(), nil, updateForeignRow)
 
-					_, err := dr.cruds[rel.GetSubject()].Update(model, req)
+					_, err := dr.Cruds[rel.GetSubject()].Update(model, req)
 					if err != nil {
 						log.Errorf("Failed to update [%v][%v]: %v", rel.GetObject(), updatedResource["reference_id"], err)
 					}
@@ -480,7 +480,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						PlainRequest: pre,
 					}
 
-					_, err := dr.cruds[rel.GetJoinTableName()].Create(modl, req1)
+					_, err := dr.Cruds[rel.GetJoinTableName()].Create(modl, req1)
 
 					if err != nil {
 						log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
@@ -504,7 +504,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					req1 := api2go.Request{
 						PlainRequest: pre,
 					}
-					_, err := dr.cruds[rel.GetJoinTableName()].Create(modl, req1)
+					_, err := dr.Cruds[rel.GetJoinTableName()].Create(modl, req1)
 
 					if err != nil {
 						log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
@@ -569,7 +569,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 				if referencedRelation.Relation == "has_many" || referencedRelation.Relation == "has_many_and_belongs_to_many" {
 
-					joinReference, _, err := dr.cruds[referencedRelation.GetJoinTableName()].GetRowsByWhereClause(referencedRelation.GetJoinTableName(),
+					joinReference, _, err := dr.Cruds[referencedRelation.GetJoinTableName()].GetRowsByWhereClause(referencedRelation.GetJoinTableName(),
 						squirrel.Eq{
 							relationName:     otherObjectId,
 							hostRelationName: idInt,
@@ -581,7 +581,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					}
 
 					joinReferenceObject := joinReference[0]
-					err = dr.cruds[referencedRelation.GetJoinTableName()].DeleteWithoutFilters(joinReferenceObject["reference_id"].(string), req)
+					err = dr.Cruds[referencedRelation.GetJoinTableName()].DeleteWithoutFilters(joinReferenceObject["reference_id"].(string), req)
 					if err != nil {
 						log.Errorf("Failed to delete relation [%v][%v]: %v", referencedRelation.GetSubject(), referencedRelation.GetObjectName(), err)
 					}
@@ -616,7 +616,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					}
 
 					modelToUpdate.SetAttributes(updatedAttributes)
-					_, err = dr.cruds[referencedTypeName].Update(modelToUpdate, req)
+					_, err = dr.Cruds[referencedTypeName].Update(modelToUpdate, req)
 					CheckErr(err, "Failed to update object to remove reference")
 
 				}

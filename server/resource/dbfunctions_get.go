@@ -60,7 +60,7 @@ func GetActionMapByTypeName(db database.DatabaseConnection) (map[string]map[stri
 
 		_, ok = typeActionMap[worldIdString][actioName]
 		if ok {
-			log.Infof("Action [%v][%v] already exisys", worldIdString, actioName)
+			log.Infof("Action [%v][%v] already exists", worldIdString, actioName)
 		}
 		typeActionMap[worldIdString][actioName] = action
 	}
