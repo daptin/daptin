@@ -107,7 +107,7 @@ func mapToOauthConfig(authConnectorData map[string]interface{}, secret string) (
 	return conf, nil
 }
 
-func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_connect_reference_id string) error {
+func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_connect_reference_id string, user_reference_id string) error {
 	storeToken := make(map[string]interface{})
 
 	storeToken["access_token"] = token.AccessToken
@@ -120,7 +120,13 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 	storeToken["token_type"] = token_type
 	storeToken["oauth_connect_id"] = oauth_connect_reference_id
 
-	sessionUser := &auth.SessionUser{0, "", nil}
+	userId, err := dr.GetReferenceIdToId("user", user_reference_id)
+
+	if err != nil {
+		return err
+	}
+
+	sessionUser := &auth.SessionUser{userId, user_reference_id, nil}
 
 	pr := &http.Request{
 		Method: "POST",
@@ -133,7 +139,7 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 
 	model := api2go.NewApi2GoModelWithData("oauth_token", nil, auth.DEFAULT_PERMISSION.IntValue(), nil, storeToken)
 
-	_, err := dr.cruds["oauth_token"].CreateWithoutFilter(	model, req)
+	_, err = dr.cruds["oauth_token"].CreateWithoutFilter(model, req)
 	return err
 }
 
@@ -155,6 +161,7 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 
 	authenticator := inFieldMap["authenticator"].(string)
 	code := inFieldMap["code"].(string)
+	user_reference_id := inFieldMap["user_reference_id"].(string)
 
 	conf, authReferenceId, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"])
 
@@ -169,7 +176,7 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 		return nil, nil, []error{err}
 	}
 
-	err = d.cruds["oauth_token"].StoreToken(token, authenticator, authReferenceId)
+	err = d.cruds["oauth_token"].StoreToken(token, authenticator, authReferenceId, user_reference_id)
 	CheckErr(err, "Failed to store new auth token")
 
 	responseAttrs := make(map[string]interface{})

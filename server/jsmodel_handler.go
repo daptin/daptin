@@ -183,7 +183,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		}
 
 		for _, rel := range selectedTable.Relations {
-			log.Infof("Relation [%v][%v]", selectedTable.TableName, rel.String())
+			//log.Infof("Relation [%v][%v]", selectedTable.TableName, rel.String())
 
 			if rel.GetSubject() == selectedTable.TableName {
 				r := "hasMany"
