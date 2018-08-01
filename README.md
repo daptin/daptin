@@ -38,7 +38,7 @@
   <a href="#getting-started">Getting Started</a>
 </p>
 
-**Daptin** is a headless CMS framework to develop and deploy production-ready JSON API based applications.
+**Daptin** is a headless CMS framework to develop and deploy production-ready JSON API based servers.
 
 
 ---
