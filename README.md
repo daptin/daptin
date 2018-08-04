@@ -46,10 +46,12 @@
 
 ## Features
 
-* Extensive Data Modeling system
+* Declarative Data Modeling system
   - Unique/Primary keys
-  - Single/Multiple Relation to other entities
-  - Single/Multiple Relation to self
+  - Single/Multiple Relation
+  - Normalizations and conformations
+  - Middleware
+  - Scripting using JS
 * CRUD JSON APIs' for all tables
   - Create, Read, Update, Delete
   - Sort, filter, search, group by single/multiple columns
