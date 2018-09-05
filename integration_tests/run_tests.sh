@@ -2,7 +2,7 @@
 set -x
 
 docker-compose down
-
+docker network create my_net
 testcase=$1
 echo "Running test case $testcase"
 
@@ -19,7 +19,7 @@ docker-compose up -d --force-recreate
 ip=`docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' daptin`
 echo "ip: $ip"
 
-until $(curl --max-time 5 http://$ip:8080/api/user -H "Hostname: dashboard"); do
+until $(curl --max-time 5 http://$ip:8080/api/user_account -H "Hostname: dashboard"); do
     ip=`docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' daptin`
     printf '.'
     sleep 5

@@ -840,6 +840,12 @@ var StandardTables = []TableInfo{
 				DataType:   "text",
 				ColumnType: "json",
 			},
+			{
+				Name:       "job_type",
+				ColumnName: "job_type",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+			},
 		},
 	},
 	{

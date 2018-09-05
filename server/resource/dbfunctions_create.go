@@ -185,7 +185,7 @@ func CheckAuditTables(config *CmsConfig) {
 			c.IsPrimaryKey = false
 			c.IsAutoIncrement = false
 
-			log.Infof("Add column to table [%v] == [%v]", auditTableName, c)
+			//log.Infof("Add column to table [%v] == [%v]", auditTableName, c)
 			columnsCopy = append(columnsCopy, c)
 
 		}
@@ -283,7 +283,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			fromTable := relation.Subject
 			targetTable := relation.Object
 
-			log.Infof("From table [%v] to table [%v]", fromTable, targetTable)
+			//log.Infof("From table [%v] to table [%v]", fromTable, targetTable)
 			isNullable := false
 			if targetTable == "user_account" || targetTable == "usergroup" || relation2 == "has_one" {
 				isNullable = true
@@ -324,10 +324,10 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 						config.Tables[i].Columns = c
 					}
 
-					log.Infof("Add column [%v] to table [%v]", col.ColumnName, t.TableName)
+					//log.Infof("Add column [%v] to table [%v]", col.ColumnName, t.TableName)
 					if targetTable != "user_account" && relation.GetRelation() == "belongs_to" {
 						config.Tables[i].IsTopLevel = false
-						log.Infof("Table [%v] is not top level == %v", t.TableName, targetTable)
+						//log.Infof("Table [%v] is not top level == %v", t.TableName, targetTable)
 					}
 				}
 
@@ -384,8 +384,8 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			newTable.Columns = append(newTable.Columns, col2)
 			newTable.AddRelation(relation)
 			//newTable.Relations = append(newTable.Relations, relation)
-			log.Infof("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
-			log.Infof("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
+			//log.Infof("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
+			//log.Infof("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
 
 			config.Tables = append(config.Tables, newTable)
 
@@ -430,8 +430,8 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			newTable.Columns = append(newTable.Columns, col2)
 			newTable.AddRelation(relation)
 			//newTable.Relations = append(newTable.Relations, relation)
-			log.Infof("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
-			log.Infof("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
+			//log.Infof("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
+			//log.Infof("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
 
 			config.Tables = append(config.Tables, newTable)
 

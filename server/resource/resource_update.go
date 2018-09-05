@@ -90,7 +90,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				continue
 			}
 
-			log.Infof("Check column: [%v]  (%v) => (%v) ", col.ColumnName, change.OldValue, change.NewValue)
+			//log.Infof("Check column: [%v]  (%v) => (%v) ", col.ColumnName, change.OldValue, change.NewValue)
 
 			var val interface{}
 			val = change.NewValue
@@ -343,7 +343,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 	for _, rel := range dr.model.GetRelations() {
 		relationName := rel.GetRelation()
 
-		log.Infof("Check relation in Update: %v", rel.String())
+		//log.Infof("Check relation in Update: %v", rel.String())
 		if rel.GetSubject() == dr.model.GetName() {
 
 			if relationName == "belongs_to" || relationName == "has_one" {
