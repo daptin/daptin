@@ -7,11 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/daptin/daptin/server/auth"
-	"github.com/gin-gonic/gin/internal/json"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
 	"time"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"encoding/json"
 )
 
 // Update an object
