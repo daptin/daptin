@@ -7,10 +7,10 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/csvmap"
-	"github.com/gin-gonic/gin/json"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strings"
+	"encoding/json"
 )
 
 type UploadCsvFileToEntityPerformer struct {

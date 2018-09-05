@@ -11,12 +11,12 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
-	"github.com/gin-gonic/gin/json"
 	"golang.org/x/oauth2"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"encoding/json"
 )
 
 type FileUploadActionPerformer struct {

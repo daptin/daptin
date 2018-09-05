@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/gin-gonic/gin/json"
 	log "github.com/sirupsen/logrus"
+	"encoding/json"
 )
 
 type ExportDataPerformer struct {
