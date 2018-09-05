@@ -109,7 +109,7 @@ func UpdateTasksData(initConfig *CmsConfig, db database.DatabaseConnection) erro
 		if ok {
 			log.Printf("Updating existing cron job: %v", newTask.Name)
 
-			s, v, err = statementbuilder.Squirrel.Update("cron_job").
+			s, v, err = statementbuilder.Squirrel.Update("task").
 				Set("active", newTask.Active).
 				Set("schedule", newTask.Schedule).
 				Set("attributes", toJson(newTask.Attributes)).
@@ -124,7 +124,7 @@ func UpdateTasksData(initConfig *CmsConfig, db database.DatabaseConnection) erro
 				return err
 			}
 			refId := uuidRef.String()
-			s, v, err = statementbuilder.Squirrel.Insert("cron_job").
+			s, v, err = statementbuilder.Squirrel.Insert("task").
 				Columns("name", "schedule", "active", "action_name", "entity_name", "reference_id", "attributes", "created_at").
 				Values(newTask.Name, newTask.Schedule, newTask.Active, newTask.ActionName, newTask.EntityName, refId, toJson(newTask.Attributes), time.Now()).
 				ToSql()
@@ -156,7 +156,7 @@ func UpdateTasksData(initConfig *CmsConfig, db database.DatabaseConnection) erro
 
 func GetTasks(connection database.DatabaseConnection) ([]Task, error) {
 
-	s, v, err := statementbuilder.Squirrel.Select("name", "job_type as jobtype", "schedule", "active", "attributes as attributesjson", "as_user_id as AsUserEmail").From("cron_job").Where(squirrel.Eq{"active": true}).ToSql()
+	s, v, err := statementbuilder.Squirrel.Select("name", "job_type as jobtype", "schedule", "active", "attributes as attributesjson", "as_user_id as AsUserEmail").From("task").Where(squirrel.Eq{"active": true}).ToSql()
 
 	if err != nil {
 		return nil, err
