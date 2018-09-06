@@ -60,20 +60,17 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 			continue
 		}
 
-		if table.IsJoinTable {
-			continue
-		}
-		log.Infof("Add Resources To Api2Go: %v", table.TableName)
-
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
 
 		res := resource.NewDbResource(model, db, ms, cruds, configStore, table)
 
 		cruds[table.TableName] = res
 
-		if table.TableName == "task" {
-			log.Printf("hi")
+		if table.IsJoinTable {
+			continue
 		}
+
+		log.Infof("Add Resources To Api2Go: %v", table.TableName)
 
 		func() {
 			defer func() {
