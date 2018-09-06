@@ -589,7 +589,7 @@ func (dr *DbResource) GetUserIdByUsergroupId(usergroupId int64) string {
 func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 
 	s, q, err := statementbuilder.Squirrel.Select("u.email").From("user_account_user_account_id_has_usergroup_usergroup_id uu").
-		LeftJoin("user u on uu.user_account_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).
+		LeftJoin("user_account u on uu.user_account_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).
 		OrderBy("uu.created_at").Limit(1).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create sql query: %v", err)
