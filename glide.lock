@@ -476,11 +476,6 @@ imports:
   - internal
   - jws
   - jwt
-- name: golang.org/x/sys
-  version: 7ddbeae9ae08c6a06a59597f0c9edbc5ff2444ce
-  subpackages:
-  - unix
-  - windows
 - name: golang.org/x/text
   version: b19bf474d317b857955b12035d2c5acb57ce8b01
   subpackages:
