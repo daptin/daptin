@@ -173,7 +173,7 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 		cloudStore.Id = id
 		cloudStore.ReferenceId = storeMap["reference_id"].(string)
 		CheckErr(err, "Failed to parse permission as int in loading stores")
-		cloudStore.Permission = resource.GetObjectPermission("cloud_store", cloudStore.ReferenceId)
+		cloudStore.Permission = resource.GetObjectPermissionByReferenceId("cloud_store", cloudStore.ReferenceId)
 
 		cloudStore.UserId = storeMap["user_account_id"].(string)
 
@@ -368,7 +368,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 		if err != nil {
 			log.Errorf("Failed to scan site from db to struct: %v", err)
 		}
-		perm := resource.GetObjectPermission("site", site.ReferenceId)
+		perm := resource.GetObjectPermissionByReferenceId("site", site.ReferenceId)
 		site.Permission = perm
 		sites = append(sites, site)
 	}

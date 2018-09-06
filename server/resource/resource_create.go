@@ -111,7 +111,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 						return nil, err
 					}
 
-					foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.Namespace, valString)
+					foreignObjectPermission := dr.GetObjectPermissionByReferenceId(col.ForeignKeyData.Namespace, valString)
 
 					if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 						uId = foreignObject["id"]

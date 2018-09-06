@@ -109,7 +109,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 							return nil, err
 						}
 
-						foreignObjectPermission := dr.GetObjectPermission(col.ForeignKeyData.Namespace, valString)
+						foreignObjectPermission := dr.GetObjectPermissionByReferenceId(col.ForeignKeyData.Namespace, valString)
 
 						if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 							val = foreignObject["id"]
@@ -556,7 +556,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 		for _, deleteId := range deleteRelations {
 
-			otherObjectPermission := dr.GetObjectPermission(referencedTypeName, deleteId)
+			otherObjectPermission := dr.GetObjectPermissionByReferenceId(referencedTypeName, deleteId)
 
 			if otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 
