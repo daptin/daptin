@@ -8,6 +8,7 @@ import (
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/daptin/daptin/server/auth"
 )
 
 // Delete an object
@@ -23,6 +24,14 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 		return err
 	}
 	apiModel := api2go.NewApi2GoModelWithData(dr.model.GetTableName(), nil, 0, nil, data)
+
+	user := req.PlainRequest.Context().Value("user")
+	sessionUser := &auth.SessionUser{}
+
+	if user != nil {
+		sessionUser = user.(*auth.SessionUser)
+
+	}
 
 	m := dr.model
 	//log.Infof("Get all resource type: %v\n", m)
@@ -89,10 +98,27 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 							ids = append(ids, s)
 						}
 
+						canDeleteAllIds := true
+
 						for _, id := range ids {
-							log.Infof("Delete relation with [%v][%v]", joinTableName, id)
-							_, err = dr.Cruds[joinTableName].Delete(id, req)
-							CheckErr(err, "Failed to delete join 1")
+
+							otherObjectPermission := dr.GetObjectPermission(rel.GetObject(), id)
+
+							if !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+								canDeleteAllIds = false
+								break
+							}
+
+						}
+
+						if canDeleteAllIds {
+							for _, id := range ids {
+								log.Infof("Delete relation with [%v][%v]", joinTableName, id)
+								err = dr.Cruds[joinTableName].DeleteWithoutFilters(id, req)
+								CheckErr(err, "Failed to delete join 1")
+							}
+						} else {
+							return fmt.Errorf("the request objected could not be detached from all relations since the user is unauthorized")
 						}
 
 					}
@@ -120,9 +146,27 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 							ids = append(ids, s)
 						}
 
+						canDeleteAllIds := true
+
 						for _, id := range ids {
-							_, err = dr.Cruds[joinTableName].Delete(id, req)
-							CheckErr(err, "Failed to delete join 2")
+
+							otherObjectPermission := dr.GetObjectPermission(rel.GetObject(), id)
+
+							if !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+								canDeleteAllIds = false
+								break
+							}
+
+						}
+
+						if canDeleteAllIds {
+							for _, id := range ids {
+								log.Infof("Delete relation with [%v][%v]", joinTableName, id)
+								err = dr.Cruds[joinTableName].DeleteWithoutFilters(id, req)
+								CheckErr(err, "Failed to delete join 2")
+							}
+						} else {
+							return fmt.Errorf("the request objected could not be detached from all relations since the user is unauthorized")
 						}
 
 					}
