@@ -119,7 +119,7 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 // Get permission of an action by typeId and actionName
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
-// Special utility function for actions, for other objects use GetObjectPermission
+// Special utility function for actions, for other objects use GetObjectPermissionByReferenceId
 func (dr *DbResource) GetActionPermissionByName(worldId int64, actionName string) (PermissionInstance, error) {
 
 	refId, err := dr.GetReferenceIdByWhereClause("action", squirrel.Eq{"action_name": actionName}, squirrel.Eq{"world_id": worldId})
@@ -130,16 +130,16 @@ func (dr *DbResource) GetActionPermissionByName(worldId int64, actionName string
 	if refId == nil || len(refId) < 1 {
 		return PermissionInstance{}, errors.New(fmt.Sprintf("Failed to find action [%v] on [%v]", actionName, worldId))
 	}
-	permissions := dr.GetObjectPermission("action", refId[0])
+	permissions := dr.GetObjectPermissionByReferenceId("action", refId[0])
 
 	return permissions, nil
 }
 
-// Get permission of an GetObjectPermission by typeName and string referenceId
+// Get permission of an GetObjectPermissionByReferenceId by typeName and string referenceId
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
-func (dr *DbResource) GetObjectPermission(objectType string, referenceId string) PermissionInstance {
+func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, referenceId string) PermissionInstance {
 
 	var selectQuery string
 	var queryParameters []interface{}
@@ -191,7 +191,63 @@ func (dr *DbResource) GetObjectPermission(objectType string, referenceId string)
 	return perm
 }
 
-// Get permission of an GetObjectPermission by typeName and string referenceId with a simple where clause colName = colValue
+// Get permission of an GetObjectPermissionById by typeName and string referenceId
+// Loads the owner, usergroup and guest permission of the action from the database
+// Return a PermissionInstance
+// Return a NoPermissionToAnyone if no such object exist
+func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) PermissionInstance {
+
+	var selectQuery string
+	var queryParameters []interface{}
+	var err error
+	if objectType == "usergroup" {
+		selectQuery, queryParameters, err = statementbuilder.Squirrel.
+			Select("permission", "id").
+			From(objectType).Where(squirrel.Eq{"id": id}).
+			ToSql()
+	} else {
+		selectQuery, queryParameters, err = statementbuilder.Squirrel.
+			Select("user_account_id", "permission", "id").
+			From(objectType).Where(squirrel.Eq{"id": id}).
+			ToSql()
+
+	}
+
+	if err != nil {
+		log.Errorf("Failed to create sql: %v", err)
+		return PermissionInstance{
+			"", []auth.GroupPermission{}, auth.NewPermission(auth.None, auth.None, auth.None),
+		}
+	}
+
+	resultObject := make(map[string]interface{})
+	err = dr.db.QueryRowx(selectQuery, queryParameters...).MapScan(resultObject)
+	if err != nil {
+		log.Errorf("Failed to scan permission 1 [%v]: %v", id, err)
+	}
+	//log.Infof("permi map: %v", resultObject)
+	var perm PermissionInstance
+	if resultObject["user_account_id"] != nil {
+
+		user, err := dr.GetIdToReferenceId("user_account", resultObject["user_account_id"].(int64))
+		if err == nil {
+			perm.UserId = user
+		}
+
+	}
+
+	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, resultObject["id"].(int64))
+
+	perm.Permission = auth.ParsePermission(resultObject["permission"].(int64))
+	if err != nil {
+		log.Errorf("Failed to scan permission 2: %v", err)
+	}
+
+	//log.Infof("PermissionInstance for [%v]: %v", typeName, perm)
+	return perm
+}
+
+// Get permission of an GetObjectPermissionByReferenceId by typeName and string referenceId with a simple where clause colName = colValue
 // Use carefully
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
@@ -494,7 +550,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 		//for colName, colValue := range row {
 		//	if EndsWithCheck(colName, "_id") && colName != "reference_id" {
 		//		if colName != "usergroup_id" {
-		//			return dr.GetObjectPermission(strings.Split(rowType, "_"+colName)[0], colValue.(string))
+		//			return dr.GetObjectPermissionByReferenceId(strings.Split(rowType, "_"+colName)[0], colValue.(string))
 		//		}
 		//	}
 		//}

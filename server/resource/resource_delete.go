@@ -82,7 +82,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 				joinTableName := rel.GetJoinTableName()
 				//columnName := rel.GetSubjectName()
 
-				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id").From(joinTableName).Where(squirrel.Eq{rel.GetSubjectName(): parentId}).ToSql()
+				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id", rel.GetObjectName()).From(joinTableName).Where(squirrel.Eq{rel.GetSubjectName(): parentId}).ToSql()
 				CheckErr(err, "Failed to create query for getting join ids")
 
 				if err == nil {
@@ -91,18 +91,19 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 					CheckErr(err, "Failed to query for join ids")
 					if err == nil {
 
-						ids := []string{}
+						ids := map[string]int64{}
 						for res.Next() {
-							var s string
-							res.Scan(&s)
-							ids = append(ids, s)
+							var relationReferenceId string
+							var objectReferenceId int64
+							res.Scan(&relationReferenceId, &objectReferenceId)
+							ids[relationReferenceId] = objectReferenceId
 						}
 
 						canDeleteAllIds := true
 
-						for _, id := range ids {
+						for _, objectId := range ids {
 
-							otherObjectPermission := dr.GetObjectPermission(rel.GetObject(), id)
+							otherObjectPermission := dr.GetObjectPermissionById(rel.GetObject(), objectId)
 
 							if !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 								canDeleteAllIds = false
@@ -112,9 +113,9 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 						}
 
 						if canDeleteAllIds {
-							for _, id := range ids {
-								log.Infof("Delete relation with [%v][%v]", joinTableName, id)
-								err = dr.Cruds[joinTableName].DeleteWithoutFilters(id, req)
+							for relationId, _ := range ids {
+								log.Infof("Delete relation with [%v][%v]", joinTableName, relationId)
+								err = dr.Cruds[joinTableName].DeleteWithoutFilters(relationId, req)
 								CheckErr(err, "Failed to delete join 1")
 							}
 						} else {
@@ -150,7 +151,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 						for _, id := range ids {
 
-							otherObjectPermission := dr.GetObjectPermission(rel.GetObject(), id)
+							otherObjectPermission := dr.GetObjectPermissionByReferenceId(rel.GetObject(), id)
 
 							if !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 								canDeleteAllIds = false
