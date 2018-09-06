@@ -91,7 +91,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 		log.Printf("Found query in request: %s", query[0])
 		err = json.Unmarshal([]byte(query[0]), &queries)
-		if CheckErr(err, "Failed to unmarshal query as json, using as a filter instead") {
+		if CheckInfo(err, "Failed to unmarshal query as json, using as a filter instead") {
 			req.QueryParams["filter"] = query
 		}
 		log.Printf("Query: %v", queries)

@@ -39,7 +39,7 @@ func CheckErr(err error, message ...interface{}) bool {
 	return false
 }
 
-func CheckInfo(err error, message ...interface{}) {
+func CheckInfo(err error, message ...interface{}) bool {
 	if err != nil {
 		fmtString := message[0].(string)
 		args := make([]interface{}, 0)
@@ -48,7 +48,9 @@ func CheckInfo(err error, message ...interface{}) {
 		}
 		args = append(args, err)
 		log.Infof(fmtString+": %v", args...)
+		return true
 	}
+	return false
 }
 
 func CheckRelations(config *CmsConfig) {
