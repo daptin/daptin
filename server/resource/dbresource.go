@@ -80,9 +80,8 @@ func (dr *DbResource) GetAdminReferenceId() string {
 func (dr *DbResource) GetAdminEmailId() string {
 	cacheVal := dr.GetContext("administrator_email_id")
 	if cacheVal == nil {
-
 		userRefId := dr.GetUserEmailIdByUsergroupId(2)
-		dr.PutContext("administrator_reference_id", userRefId)
+		dr.PutContext("administrator_email_id", userRefId)
 		return userRefId
 	} else {
 		return cacheVal.(string)
