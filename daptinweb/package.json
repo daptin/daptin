@@ -57,6 +57,9 @@
   "devDependencies": {
     "autoprefixer": "^6.7.2",
     "babel-core": "^6.22.1",
+    "atob": ">=2.1.0",
+    "deep-extend": ">=0.5.1",
+    "randomatic": ">=3.0.0",
     "babel-eslint": "^7.1.1",
     "ecstatic": "^2.0.0",
     "babel-loader": "^6.2.10",
