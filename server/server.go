@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/go.uuid"
@@ -12,13 +13,12 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/gin-gonic/gin"
+	"github.com/graphql-go/graphql"
+	graphqlhandler "github.com/graphql-go/handler"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/stats"
 	"io/ioutil"
 	"net/http"
-	"github.com/graphql-go/graphql"
-	"fmt"
-	graphqlhandler "github.com/graphql-go/handler"
 )
 
 var TaskScheduler resource.TaskScheduler

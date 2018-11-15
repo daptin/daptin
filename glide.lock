@@ -1,5 +1,5 @@
 hash: 3925b7e7759f2cae15d13420da82af266b80821688894827542a8f2c662a6807
-updated: 2018-09-06T14:42:19.362509539+05:30
+updated: 2018-11-15T16:47:20.638026+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -211,9 +211,9 @@ imports:
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
 - name: github.com/go-playground/validator
-  version: e69e9a28bb62b977fdc58d051f1bb477b7cbe486
+  version: 1fa3c8d6336562f0a3f95c73593ee2b57ff4da11
 - name: github.com/go-sql-driver/mysql
-  version: d523deb1b23d913de5bdada721a6071e71283618
+  version: 72cd26f257d44c1114970e19afddcd812016007e
 - name: github.com/gocarina/gocsv
   version: a5c9099e2484f1551abb9433885e158610a25f4b
 - name: github.com/gocraft/health
@@ -315,6 +315,8 @@ imports:
   subpackages:
   - dataframe
   - series
+- name: github.com/konsorten/go-windows-terminal-sequences
+  version: 5c8c8bd35d3832f5d134ae1e1e375b69a4d25242
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - name: github.com/labstack/echo
@@ -341,7 +343,7 @@ imports:
 - name: github.com/mattn/go-isatty
   version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/mattn/go-sqlite3
-  version: 25ecb14adfc7543176f7d85291ec7dba82c6f7e4
+  version: c7c4067b79cc51e6dfdcef5c702e74b1e0fa7c75
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
@@ -355,7 +357,7 @@ imports:
 - name: github.com/pelletier/go-toml
   version: 4e9e0ee19b60b13eb79915933f44d8ed5f268bdd
 - name: github.com/pengsrc/go-shared
-  version: 454950d6a0782c34427d4f29b46c6bf447256f20
+  version: ""
   subpackages:
   - check
   - convert
@@ -383,7 +385,7 @@ imports:
   subpackages:
   - diffmatchpatch
 - name: github.com/sirupsen/logrus
-  version: 3e01752db0189b9157070a0e1668a620f9a85da2
+  version: bcd833dfe83d3cebad139e4a29ed79cb2318bf95
 - name: github.com/skratchdot/open-golang
   version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
   subpackages:
@@ -522,11 +524,11 @@ imports:
 - name: gopkg.in/go-playground/validator.v8
   version: 5f1438d3fca68893a817e4a66806cea46a9e4ebf
 - name: gopkg.in/go-playground/validator.v9
-  version: e69e9a28bb62b977fdc58d051f1bb477b7cbe486
+  version: 1fa3c8d6336562f0a3f95c73593ee2b57ff4da11
   subpackages:
   - translations/en
 - name: gopkg.in/Masterminds/squirrel.v1
-  version: ba9c5a05a8f46889ec7a9c2916f2dcf271074b58
+  version: 3ba160b0147ff6bb7375178c07fe0da94865c8a6
 - name: gopkg.in/src-d/go-billy.v3
   version: c329b7bc7b9d24905d2bc1b85bfa29f7ae266314
   subpackages:
