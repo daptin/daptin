@@ -4,7 +4,7 @@ import:
   subpackages:
   - embedded
 - package: github.com/artpar/rclone
-  version: "1.61"
+  version: "1.63"
 - package: github.com/gocraft/health
 - package: github.com/artpar/api2go
   version: ^2.3.8
@@ -58,13 +58,15 @@ import:
   version: ^9.5.0
   subpackages:
   - translations/en
+- package: github.com/pengsrc/go-shared
+  version: 1ef04317652833067e47e2ee9815f1f254a7a1da
 - package: github.com/artpar/resty
   version: ^1.0.1
 - package: github.com/PuerkitoBio/goquery
   version: ^1.1.0
 - package: github.com/digitalocean/godo
   version: ~1.1.1
-- package: github.com/thaos/satus
+- package: github.com/thoas/stats
 - package: github.com/graphql-go/graphql
   version: ^0.7.5
 - package: github.com/graphql-go/handler

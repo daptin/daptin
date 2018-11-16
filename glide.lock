@@ -1,5 +1,5 @@
-hash: 3925b7e7759f2cae15d13420da82af266b80821688894827542a8f2c662a6807
-updated: 2018-11-15T16:47:20.638026+05:30
+hash: b52a326da9ddc7cd01245f16653b2ad6917d47bf569a80eba1dd55ce0126a9c4
+updated: 2018-11-16T11:10:28.909675+05:30
 imports:
 - name: cloud.google.com/go
   version: 24ab414b448dd710f8d7555126880a377ea1a1f4
@@ -373,7 +373,7 @@ imports:
   - hotp
   - totp
 - name: github.com/PuerkitoBio/goquery
-  version: dc2ec5c7ca4d9aae063b79b9f581dd3ea6afd2b2
+  version: 2d2796f41742ece03e8086188fa4db16a3a0b458
 - name: github.com/rfjakob/eme
   version: 2222dbd4ba467ab3fc7e8af41562fcfe69c0d770
 - name: github.com/robfig/cron
