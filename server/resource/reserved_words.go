@@ -380,6 +380,7 @@ var ReservedWords = []string{
 	"last",
 	"last_insert_id",
 	"lateral",
+	"lead",
 	"leading",
 	"least",
 	"leave",
