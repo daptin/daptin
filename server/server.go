@@ -5,7 +5,6 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/go.uuid"
-	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/daptin/daptin/server/auth"
@@ -76,7 +75,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	r.Use(func() gin.HandlerFunc {
 		return func(c *gin.Context) {
 			beginning, recorder := Stats.Begin(c.Writer)
-			defer Stats.End(beginning, recorder)
+			defer Stats.End(beginning, stats.WithRecorder(recorder))
 			c.Next()
 		}
 	}())
@@ -166,7 +165,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 		rcloneRetries = 5
 		configStore.SetConfigIntValueFor("rclone.retries", rcloneRetries, "backend")
 	}
-	cmd.SetRetries(&rcloneRetries)
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 
