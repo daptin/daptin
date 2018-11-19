@@ -108,7 +108,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		hostRouter.Use(func() gin.HandlerFunc {
 			return func(c *gin.Context) {
 				beginning, recorder := subsiteStats.Begin(c.Writer)
-				defer Stats.End(beginning, recorder)
+				defer Stats.End(beginning, stats.WithRecorder(recorder))
 				c.Next()
 			}
 		}())

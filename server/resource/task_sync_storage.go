@@ -1,12 +1,13 @@
 package resource
 
 import (
-	"strings"
-	log "github.com/sirupsen/logrus"
 	"encoding/json"
-	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/cmd"
+	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
+	"github.com/artpar/rclone/lib/pacer"
+	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, tempDirectoryPath string) error {
@@ -33,6 +34,8 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, tempDirectoryPat
 	}
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
+	pacer := pacer.Pacer{}
+	pacer.SetRetries(5)
 	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
 	go cmd.Run(true, true, nil, func() error {
 		if fsrc == nil || fdst == nil {
