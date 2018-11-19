@@ -47,7 +47,7 @@ import:
 - package: github.com/sirupsen/logrus
   version: ^1.0.2
 - package: github.com/pengsrc/go-shared
-  version: 0.2.0
+  version: ^0.2.0
 - package: golang.org/x/crypto
   subpackages:
   - bcrypt

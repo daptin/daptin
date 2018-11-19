@@ -356,13 +356,6 @@ imports:
   version: a3647f8e31d79543b2d0f0ae2fe5c379d72cedc0
 - name: github.com/pelletier/go-toml
   version: 4e9e0ee19b60b13eb79915933f44d8ed5f268bdd
-- name: github.com/pengsrc/go-shared
-  version: ""
-  subpackages:
-  - check
-  - convert
-  - json
-  - yaml
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/sftp
@@ -430,19 +423,6 @@ imports:
   version: 43880d236f695d39c62cf7aa4ebd4508c258e6c0
 - name: github.com/xanzy/ssh-agent
   version: ba9c9e33906f58169366275e3450db66139a31a9
-- name: github.com/yunify/qingstor-sdk-go
-  version: 088fbd27bd49adf215d02a05c36c5ac2d243d1f1
-  subpackages:
-  - config
-  - logger
-  - request
-  - request/builder
-  - request/data
-  - request/errors
-  - request/signer
-  - request/unpacker
-  - service
-  - utils
 - name: golang.org/x/crypto
   version: 81e90905daefcd6fd217b62423c0908922eadb30
   subpackages:
