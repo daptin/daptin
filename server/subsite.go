@@ -144,10 +144,6 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 	return hs
 }
 
-func NewStaticFsWithDefaultIndex(system http.Dir, pageOn404 string) http.FileSystem {
-	return &StaticFsWithDefaultIndex{system: system, pageOn404: pageOn404}
-}
-
 type StaticFsWithDefaultIndex struct {
 	system    http.FileSystem
 	pageOn404 string
@@ -189,7 +185,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if abort {
 			w.Header().Set("WWW-Authenticate", `Basic realm="`+hostName+`"`)
 			w.WriteHeader(401)
-			w.Write([]byte("unauthorised"))
+			w.Write([]byte("unauthorized"))
 		} else if ok {
 			userI := r.Context().Value("user")
 			var user *auth.SessionUser
