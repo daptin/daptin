@@ -1,17 +1,17 @@
 package resource
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/daptin/daptin/server/database"
+	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"strconv"
 	"strings"
 	"time"
-	"context"
-	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 func GetObjectByWhereClause(objType string, db database.DatabaseConnection, queries ...squirrel.Eq) ([]map[string]interface{}, error) {
@@ -126,6 +126,7 @@ type SubSite struct {
 	Permission   PermissionInstance
 	UserId       *int64 `db:"user_account_id"`
 	ReferenceId  string `db:"reference_id"`
+	Enable       *int64 `db:"enable"`
 }
 
 type CloudStore struct {
@@ -349,7 +350,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	sites := []SubSite{}
 
-	s, v, err := statementbuilder.Squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s.user_account_id", "s.path", "s.reference_id", "s.id").
+	s, v, err := statementbuilder.Squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s.user_account_id", "s.path", "s.reference_id", "s.id", "s.enable").
 		From("site s").
 		ToSql()
 	if err != nil {

@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"strings"
 
+	"encoding/base64"
+	"encoding/json"
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/url"
-	"encoding/json"
-	"encoding/base64"
-	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 func (dr *DbResource) GetTotalCount() uint64 {
@@ -89,12 +89,14 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			//so we join it back to read it as json
 			query[0] = strings.Join(query, ",")
 		}
-		log.Printf("Found query in request: %s", query[0])
-		err = json.Unmarshal([]byte(query[0]), &queries)
-		if CheckInfo(err, "Failed to unmarshal query as json, using as a filter instead") {
-			req.QueryParams["filter"] = query
+		if query[0][0] == '[' {
+			log.Printf("Found query in request: %s", query[0])
+			err = json.Unmarshal([]byte(query[0]), &queries)
+			if CheckInfo(err, "Failed to unmarshal query as json, using as a filter instead") {
+				req.QueryParams["filter"] = query
+			}
+			log.Printf("Query: %v", queries)
 		}
-		log.Printf("Query: %v", queries)
 	}
 
 	groups, ok := req.QueryParams["group"]
@@ -305,7 +307,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			//log.Infof("Forward Relation %v", rel.String())
 			queries, ok := req.QueryParams[rel.GetObjectName()]
 			if !ok {
-				queries, ok = req.QueryParams[rel.GetObject() + "_id"]
+				queries, ok = req.QueryParams[rel.GetObject()+"_id"]
 			}
 			if !ok || len(queries) < 1 {
 				continue
@@ -542,6 +544,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	}
 
 	//log.Infof("Offset, limit: %v, %v", pageNumber, pageSize)
+	log.Info("Pagination :%v", pagination)
 
 	return uint(pagination.TotalCount), NewResponse(nil, result, 200, &api2go.Pagination{
 		Next:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageSize+pagination.PageNumber)},
