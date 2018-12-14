@@ -1,5 +1,5 @@
-hash: 40326029ae302e25f177a70392ad9bb8fb6dd73483a9eff46c7acdefdb877363
-updated: 2018-12-10T13:34:35.242821+05:30
+hash: 5336a6c10c2b602704374d7d00010489e95c1b9d6e32ce665fa3b7c9f0d1fc37
+updated: 2018-12-10T13:52:34.696924+05:30
 imports:
 - name: cloud.google.com/go
   version: fa2eb35540bd3aa374a170dd14d8c5ed18407e66
@@ -31,7 +31,7 @@ imports:
 - name: github.com/artpar/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/artpar/rclone
-  version: 7794aa1950723d380629d1c0fdb84fb0d8122d8c
+  version: 63df2f329427b11c7f131aa536a83b33be93d795
   subpackages:
   - backend/alias
   - backend/all
@@ -67,7 +67,10 @@ imports:
   - backend/swift
   - backend/union
   - backend/webdav
+  - backend/webdav/api
+  - backend/webdav/odrvcookie
   - backend/yandex
+  - backend/yandex/api
   - cmd
   - cmd/serve/httplib
   - cmd/serve/httplib/httpflags
@@ -407,42 +410,6 @@ imports:
   version: 94122c33edd36123c84d5368cfb2b69df93a0ec8
 - name: github.com/ncw/go-acd
   version: 887eb06ab6a255fbf5744b5812788e884078620a
-- name: github.com/ncw/rclone
-  version: e7684b7ed5d2b325c2ce7790e8c0a663cc0a870b
-  subpackages:
-  - backend/crypt
-  - backend/crypt/pkcs7
-  - backend/dropbox/dbhash
-  - backend/onedrive/quickxorhash
-  - backend/webdav/api
-  - backend/webdav/odrvcookie
-  - backend/yandex/api
-  - cmd/serve/httplib
-  - fs
-  - fs/accounting
-  - fs/asyncreader
-  - fs/config
-  - fs/config/configmap
-  - fs/config/configstruct
-  - fs/config/obscure
-  - fs/driveletter
-  - fs/filter
-  - fs/fserrors
-  - fs/fshttp
-  - fs/fspath
-  - fs/hash
-  - fs/list
-  - fs/march
-  - fs/object
-  - fs/operations
-  - fs/rc
-  - fs/version
-  - fs/walk
-  - lib/dircache
-  - lib/oauthutil
-  - lib/pacer
-  - lib/readers
-  - lib/rest
 - name: github.com/ncw/swift
   version: 6f342da371d063863f2f354f183e4ab0ef72d287
 - name: github.com/patrickmn/go-cache

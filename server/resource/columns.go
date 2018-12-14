@@ -792,9 +792,7 @@ var SystemActions = []Action{
 
 var adminsGroup = []string{"administrators"}
 
-var StandardTasks = []Task{
-
-}
+var StandardTasks = []Task{}
 
 var StandardTables = []TableInfo{
 	{
@@ -1396,6 +1394,12 @@ var StandardTables = []TableInfo{
 				ColumnType: "label",
 				DataType:   "varchar(100)",
 			},
+			{
+				Name:         "enable",
+				ColumnName:   "enable",
+				ColumnType:   "truefalse",
+				DefaultValue: "1",
+			},
 		},
 	},
 }
@@ -1466,13 +1470,13 @@ var StandardData = []api2go.Api2GoModel{
 }
 
 type TableInfo struct {
-	TableName              string   `db:"table_name"`
+	TableName              string `db:"table_name"`
 	TableId                int
-	DefaultPermission      int64    `db:"default_permission"`
+	DefaultPermission      int64 `db:"default_permission"`
 	Columns                []api2go.ColumnInfo
 	StateMachines          []LoopbookFsmDescription
 	Relations              []api2go.TableRelation
-	IsTopLevel             bool     `db:"is_top_level"`
+	IsTopLevel             bool `db:"is_top_level"`
 	Permission             int64
 	UserId                 uint64   `db:"user_account_id"`
 	IsHidden               bool     `db:"is_hidden"`
