@@ -254,4 +254,4 @@ However, JSON APIs for data manipulation by themselves weren't enough. Building 
 
 ### Documentation
 
-- Checkout the [documentation for daptin](http://docs.dapt.in)
+- Checkout the [documentation for daptin](https://daptin.github.io/docs/)
