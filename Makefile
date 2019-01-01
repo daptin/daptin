@@ -8,10 +8,10 @@ bin/$(app): *.go
 	go build -o $@
 
 docker: docker-daptin-binary
-	cd docker_dir && cp ../daptin-linux-amd64 main && docker build -t daptin/daptin  . && cd ..
+	cd docker_dir && cp ../Dockerfile Dockerfile && cp ../daptin-linux-amd64 main && docker build -t daptin/daptin  . && cd ..
 
 
-docker-daptin-binary:
+docker-daptin-binary: daptin-linux-amd64
 	rm -rf rice-box.go && rice embed-go && xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  .
 
 dashboard:
@@ -34,4 +34,4 @@ serve-container:
 	docker run -it --rm --env-file=.env -p 8081:8080 $(docker-tag)
 
 clean:
-	rm -rf bin build
+	rm -rf bin build daptin-linux-amd64

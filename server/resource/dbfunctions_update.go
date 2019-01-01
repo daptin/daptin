@@ -11,6 +11,7 @@ import (
 	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
+	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -20,7 +21,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 func (resource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken string, expiresIn int64) error {
@@ -454,9 +454,9 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 			s, v, err = statementbuilder.Squirrel.
 				Insert("data_exchange").
 				Columns("permission", "name", "source_attributes", "source_type", "target_attributes", "target_type",
-				"attributes", "options", "created_at", "user_account_id", "reference_id").
+					"attributes", "options", "created_at", "user_account_id", "reference_id").
 				Values(auth.DEFAULT_PERMISSION, exchange.Name, sourceAttrsJson, exchange.SourceType, targetAttrsJson, exchange.TargetType,
-				attrsJson, optionsJson, time.Now(), adminId, u.String()).
+					attrsJson, optionsJson, time.Now(), adminId, u.String()).
 				ToSql()
 
 			_, err = db.Exec(s, v...)
@@ -843,7 +843,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 	s, v, err := statementbuilder.Squirrel.Select("count(*)").From("user_account").ToSql()
 	err = tx.QueryRowx(s, v...).Scan(&userCount)
 	CheckErr(err, "Failed to get user count")
-	//log.Infof("Current user grou")
+	//log.Infof("Current user group")
 	if userCount < 1 {
 		systemHasNoAdmin = true
 		u, _ := uuid.NewV4()
