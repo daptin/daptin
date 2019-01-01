@@ -206,8 +206,14 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	if isRelatedGroupRequest {
 		//log.Infof("Switch permission to join table j1 instead of %v%v", prefix, "permission")
-		finalCols = append(finalCols, "j1.permission")
-		finalCols = append(finalCols, "j1.reference_id as relation_reference_id")
+		if dr.model.GetName() == "usergroup" {
+			finalCols = append(finalCols, "usergroup.permission")
+			finalCols = append(finalCols, "usergroup.reference_id as relation_reference_id")
+		} else {
+			finalCols = append(finalCols, "usergroup_id.permission")
+			finalCols = append(finalCols, "usergroup_id.reference_id as relation_reference_id")
+
+		}
 		finalCols = append(finalCols, prefix+"reference_id as reference_id")
 	} else {
 		finalCols = append(finalCols, prefix+"permission")
@@ -304,7 +310,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 		if rel.GetSubject() == dr.model.GetName() {
 
-			//log.Infof("Forward Relation %v", rel.String())
 			queries, ok := req.QueryParams[rel.GetObjectName()]
 			if !ok {
 				queries, ok = req.QueryParams[rel.GetObject()+"_id"]
@@ -312,6 +317,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			if !ok || len(queries) < 1 {
 				continue
 			}
+			log.Infof("Forward Relation %v", rel.String())
 
 			objectNameList, ok := req.QueryParams[rel.GetObject()+"Name"]
 
@@ -322,47 +328,51 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			*/
 			if !ok {
 				objectName = rel.GetObjectName()
+				ok = true
 			} else {
 				objectName = objectNameList[0]
 				if objectName != rel.GetSubjectName() {
-					continue
+					ok = false
 				}
 			}
-			ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetObject(), "id", "reference_id", queries)
-			//log.Infof("Converted ids: %v", ids)
-			if err != nil {
-				log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
-				continue
-			}
-			switch rel.Relation {
-			case "has_one":
-				if len(ids) < 1 {
+			if ok {
+
+				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetObject(), "id", "reference_id", queries)
+				//log.Infof("Converted ids: %v", ids)
+				if err != nil {
+					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
 					continue
 				}
-				queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
-				countQueryBuilder = countQueryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
-				break
+				switch rel.Relation {
+				case "has_one":
+					if len(ids) < 1 {
+						continue
+					}
+					queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
+					countQueryBuilder = countQueryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
+					break
 
-			case "belongs_to":
-				queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
-				countQueryBuilder = countQueryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
-				break
+				case "belongs_to":
+					queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
+					countQueryBuilder = countQueryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
+					break
 
-			case "has_many":
-				wh := squirrel.Eq{}
-				wh[rel.GetObject()+".id"] = ids
-				queryBuilder = queryBuilder.Join(rel.GetJoinString()).Where(wh)
-				countQueryBuilder = countQueryBuilder.Join(rel.GetJoinString()).Where(wh)
+				case "has_many":
+					wh := squirrel.Eq{}
+					wh[rel.GetObjectName()+".id"] = ids
+					queryBuilder = queryBuilder.Join(rel.GetJoinString()).Where(wh)
+					countQueryBuilder = countQueryBuilder.Join(rel.GetJoinString()).Where(wh)
 
+				}
 			}
-
-		} else if rel.GetObject() == dr.model.GetName() {
+		}
+		if rel.GetObject() == dr.model.GetName() {
 
 			subjectNameList, ok := req.QueryParams[rel.GetSubject()+"Name"]
 			if !ok {
 				continue
 			}
-			//log.Infof("Reverse Relation %v", rel.String())
+			log.Infof("Reverse Relation %v", rel.String())
 
 			var subjectName string
 			/**
@@ -381,8 +391,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				if len(subjectId) < 1 {
 					continue
 				}
-				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
-				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
+				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
+				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 				break
 
 			case "belongs_to":
@@ -398,8 +408,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 					continue
 				}
 
-				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubject() + ".id": ids})
-				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubject() + ".id": ids})
+				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".id": ids})
+				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".id": ids})
 				break
 			case "has_many":
 				subjectId := req.QueryParams[rel.GetSubject()+"_id"]
@@ -407,8 +417,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 					continue
 				}
 				//log.Infof("Has many [%v] : [%v] === %v", dr.model.GetName(), subjectId, req.QueryParams)
-				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
-				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.Subject + ".reference_id": subjectId})
+				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
+				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 
 			}
 
@@ -465,8 +475,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	total1 := dr.GetTotalCountBySelectBuilder(countQueryBuilder)
 
-	if pageNumber < pageSize {
-		pageNumber = pageSize
+	if pageSize < 1 {
+		pageSize = 10
 	}
 
 	paginationData := &PaginationData{
@@ -544,6 +554,13 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	}
 
 	//log.Infof("Offset, limit: %v, %v", pageNumber, pageSize)
+
+	if pagination == nil {
+		pagination = &PaginationData{
+			PageNumber: 1,
+			PageSize:   10,
+		}
+	}
 	log.Info("Pagination :%v", pagination)
 
 	return uint(pagination.TotalCount), NewResponse(nil, result, 200, &api2go.Pagination{

@@ -1398,6 +1398,7 @@ var StandardTables = []TableInfo{
 				Name:         "enable",
 				ColumnName:   "enable",
 				ColumnType:   "truefalse",
+				DataType:     "bool",
 				DefaultValue: "1",
 			},
 		},

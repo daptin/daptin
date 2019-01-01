@@ -46,7 +46,7 @@ build:
   goarm:
     - 6
     - 7
-#
+  #
   # List of combinations of GOOS + GOARCH + GOARM to ignore.
   # Default is empty.
   ignore:

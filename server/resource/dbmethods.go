@@ -6,16 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"io/ioutil"
 	"strconv"
 	"strings"
-	"github.com/artpar/go.uuid"
 	"time"
-	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 const DATE_LAYOUT = "2006-01-02 15:04:05"
@@ -303,8 +303,8 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 
 	//log.Infof("Join string: %v: ", rel.GetJoinString())
 
-	sql, args, err := statementbuilder.Squirrel.Select("usergroup.reference_id as \"GroupReferenceId\"",
-		"j1.reference_id as \"RelationReferenceId\"", "j1.permission").From(rel.Subject).Join(rel.GetJoinString()).
+	sql, args, err := statementbuilder.Squirrel.Select("usergroup_id.reference_id as \"GroupReferenceId\"",
+		rel.GetJoinTableName()+".reference_id as \"RelationReferenceId\"", rel.GetJoinTableName()+".permission").From(rel.Subject).Join(rel.GetJoinString()).
 		Where(fmt.Sprintf("%s.%s = ?", rel.Subject, colName), colvalue).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create permission select query", err)
@@ -316,6 +316,7 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 	if err != nil {
 
 		log.Errorf("Failed to get object groups by where clause: %v", err)
+		log.Errorf("Query: %s == [%v]", sql, args)
 		return s
 	}
 	defer res.Close()
