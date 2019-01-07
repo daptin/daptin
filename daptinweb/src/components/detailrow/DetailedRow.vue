@@ -14,7 +14,8 @@
               <button @click="initiateDelete" type="button" class="btn btn-box-tool">
                 <span class="fa fa-2x fa-times red"></span>
               </button>
-              <button @click="editPermission" v-if="jsonApiModelName == 'usergroup'" type="button" class="btn btn-box-tool">
+              <button @click="editPermission" v-if="jsonApiModelName == 'usergroup'" type="button"
+                      class="btn btn-box-tool">
                 <span class="fas fa-edit fa-2x grey"></span>
               </button>
 
@@ -39,7 +40,7 @@
               <tbody>
               <tr v-for="col in normalFields" :id="col.name" v-if="col.value != ''">
                 <td style="width: 50%"><b> {{col.label}} </b></td>
-                <td :style="col.style"> {{col.value}} </td>
+                <td :style="col.style"> {{col.value}}</td>
               </tr>
               </tbody>
             </table>
@@ -73,7 +74,7 @@
                     <tbody>
                     <tr v-for="col in normalFields" :id="col.name">
                       <td><b> {{col.label}} </b></td>
-                      <td :style="col.style"> {{col.value}} </td>
+                      <td :style="col.style" v-html="col.value"></td>
                     </tr>
                     </tbody>
                   </table>
@@ -137,8 +138,9 @@
 
 <script>
 
-  import worldManager from "../../plugins/worldmanager"
-  import {Notification} from "element-ui"
+  import worldManager from "../../plugins/worldmanager";
+  var markdown_renderer = require('markdown-it')();
+  import {Notification} from "element-ui";
 
   export default {
     props: {
@@ -198,7 +200,8 @@
         } else {
           console.log("start to save this row", that.jsonApiModelName, that.relations);
 
-          var typeName = that.jsonApiModelName + "_" + that.jsonApiModelName + "_id_has_" + relatedRow["type"] + "_" + relatedRow["type"] + "_id", relatedRow;
+          var typeName = that.jsonApiModelName + "_" + that.jsonApiModelName + "_id_has_" + relatedRow["type"] + "_" + relatedRow["type"] + "_id",
+            relatedRow;
           console.log("typename is", typeName);
           that.jsonApi.update(typeName, relatedRow).then(function (r) {
             that.$notify.success("Added " + relation.type);
@@ -437,6 +440,11 @@
             item.style = "width: 100%; min-height: 20px;"
           }
 
+          if (item.type == "markdown") {
+            item.originalValue = item.value;
+            item.value = markdown_renderer.render(item.originalValue);
+          }
+
           if (item.name == "reference_id") {
             continue
           }
@@ -488,9 +496,6 @@
         for (var i = 0; i < that.normalFields.length; i++) {
           var field = that.normalFields[i];
           if (field.type == "json") {
-
-//            var element = document.getElementById(field.name)
-//            var element = jQuery("#" + field.name).find(".description")[0];
             try {
               field.formattedValue = JSON.stringify(JSON.parse(field.originalValue), null, 4);
             } catch (e) {
