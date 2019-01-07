@@ -7,7 +7,8 @@
       </div>
     </div>
     <div class="box-body">
-      <div :class="{'col-md-12': relations.length == 0 && !hasPermissionField, 'col-md-6': relations.length > 0 || hasPermissionField }">
+      <div
+        :class="{'col-md-12': relations.length == 0 && !hasPermissionField, 'col-md-6': relations.length > 0 || hasPermissionField }">
         <vue-form-generator :schema="formModel" :model="model"></vue-form-generator>
       </div>
       <div class="col-md-3" v-if="relations.length > 0">
@@ -203,13 +204,13 @@
             inputType = "jsonEditor";
             break;
           case "yaml":
-            inputType = "jsonEditor";
+            inputType = "textArea";
             break;
           case "html":
-            inputType = "jsonEditor";
+            inputType = "textArea";
             break;
           case "markdown":
-            inputType = "jsonEditor";
+            inputType = "textArea";
             break;
           default:
             inputType = "input";

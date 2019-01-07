@@ -3,12 +3,12 @@ package resource
 import (
 	"fmt"
 	"github.com/artpar/go.uuid"
+	"github.com/graphql-go/graphql"
 	"github.com/icrowley/fake"
 	validator2 "gopkg.in/go-playground/validator.v9"
+	"log"
 	"math/rand"
 	"time"
-	"github.com/graphql-go/graphql"
-	"log"
 )
 
 type Faker interface {
@@ -332,6 +332,13 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "html",
+		ReclineType:   "string",
+		BlueprintType: "string",
+		DataTypes:     []string{"text"},
+		GraphqlType:   graphql.String,
+	},
+	{
+		Name:          "markdown",
 		ReclineType:   "string",
 		BlueprintType: "string",
 		DataTypes:     []string{"text"},
