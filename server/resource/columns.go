@@ -73,6 +73,29 @@ var SystemExchanges = []ExchangeContract{}
 
 var SystemActions = []Action{
 	{
+		Name:             "remove_column",
+		Label:            "Delete column",
+		OnType:           "world",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "column_name",
+				ColumnName: "column_name",
+				ColumnType: "label",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "world.column.delete",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"world_id":    "$.reference_id",
+					"column_name": "~column_name",
+				},
+			},
+		},
+	},
+	{
 		Name:             "sync_site_storage",
 		Label:            "Sync site storage",
 		OnType:           "site",

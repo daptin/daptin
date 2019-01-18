@@ -307,6 +307,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 
 			// there are going to be 2 tables sometimes which will be marked as "not top tables", so we cannot break after first match
 			for i, t := range config.Tables {
+
 				if t.TableName == fromTable {
 					noMatch = false
 					c := t.Columns
@@ -322,6 +323,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 					if !exists {
 						c = append(c, col)
 						config.Tables[i].Columns = c
+						config.Tables[i].Columns = append(config.Tables[i].Columns, relation.Columns...)
 					}
 
 					//log.Infof("Add column [%v] to table [%v]", col.ColumnName, t.TableName)
@@ -382,6 +384,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			}
 
 			newTable.Columns = append(newTable.Columns, col2)
+			newTable.Columns = append(newTable.Columns, relation.Columns...)
 			newTable.AddRelation(relation)
 			//newTable.Relations = append(newTable.Relations, relation)
 			//log.Infof("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
@@ -428,6 +431,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			}
 
 			newTable.Columns = append(newTable.Columns, col2)
+			newTable.Columns = append(newTable.Columns, relation.Columns...)
 			newTable.AddRelation(relation)
 			//newTable.Relations = append(newTable.Relations, relation)
 			//log.Infof("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
@@ -435,48 +439,6 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 
 			config.Tables = append(config.Tables, newTable)
 
-			//if targetTable != "usergroup" {
-			//
-			//	stateTable := TableInfo{
-			//		TableName: newTable.TableName + "_state",
-			//		Columns: []api2go.ColumnInfo{
-			//			{
-			//				ColumnName: "state",
-			//				Name:       "state",
-			//				ColumnType: "label",
-			//				DataType:   "varchar(100)",
-			//				IsNullable: false,
-			//			},
-			//			{
-			//				ColumnName:   "smd_id",
-			//				Name:         "smd_id",
-			//				ColumnType:   "alias",
-			//				IsForeignKey: true,
-			//				DataType:     "int(11)",
-			//				IsNullable:   false,
-			//				ForeignKeyData: api2go.ForeignKeyData{
-			//					TableName:  "smd",
-			//					ColumnName: "id",
-			//					DataSource: "self",
-			//				},
-			//			},
-			//			{
-			//				ColumnName:   newTable.TableName + "_id",
-			//				Name:         newTable.TableName + "_id",
-			//				ColumnType:   "alias",
-			//				DataType:     "int(11)",
-			//				IsForeignKey: true,
-			//				IsNullable:   false,
-			//				ForeignKeyData: api2go.ForeignKeyData{
-			//					TableName:  newTable.TableName,
-			//					ColumnName: "id",
-			//					DataSource: "self",
-			//				},
-			//			},
-			//		},
-			//	}
-			//	config.Tables = append(config.Tables, stateTable)
-			//}
 		} else {
 			log.Errorf("Failed to identify relation type: %v", relation)
 		}
