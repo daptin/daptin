@@ -7,7 +7,7 @@ import:
   version: "1.66"
 - package: github.com/gocraft/health
 - package: github.com/artpar/api2go
-  version: ^2.3.9
+  version: ^2.4.0
 - package: github.com/artpar/api2go-adapter
   version: ^1.0.0
   subpackages:
