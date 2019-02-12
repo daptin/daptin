@@ -2,36 +2,14 @@
 
 
   <div class="row">
-    <div class="col-md-12" style="min-height: 70px;">
-      <!--<div class="pull-left">-->
-      <!--</div>-->
-
+    <div v-if="viewMode != 'table'" class="col-md-12" style="min-height: 70px;">
       <vuetable-pagination :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
 
     </div>
     <div class="col-md-12" style="position: relative; height: 700px;">
-      <!-- TableView -->
-
-      <vuetable v-if="viewMode == 'table'" ref="vuetable"
-                :json-api="jsonApi"
-                :finder="finder"
-                track-by="id"
-                detail-row-component="detailed-table-row"
-                @vuetable:cell-clicked="onCellClicked"
-                pagination-path="links"
-                data-path="data"
-                @@vuetable:save-row="saveRow"
-                :perPage="10000"
-                :css="css.table"
-                :json-api-model-name="jsonApiModelName"
-                @pagination-data="onPaginationData"
-                :api-mode="true"
-                :query-params="{ sort: 'sort', page: 'page[number]', perPage: 'page[size]' }"
-                :load-on-start="autoload">
-        <template slot="actions" slot-scope="props">
-
-        </template>
-      </vuetable>
+      <template v-if="viewMode == 'table'">
+        <div id="tableView"></div>
+      </template>
 
       <vuecard v-if="viewMode == 'card'" ref="vuetable"
                :json-api="jsonApi"
@@ -93,6 +71,7 @@
 
 <script>
   import {Notification} from 'element-ui';
+  import Spreadsheet from "x-data-spreadsheet";
 
   export default {
     name: 'table-view',
@@ -126,6 +105,7 @@
         selectedWorld: null,
         selectedWorldColumns: [],
         tableData: [],
+        sheet: null,
         selectedRow: {},
         css: {
           table: {
@@ -240,6 +220,7 @@
         const that = this;
         console.log("Reload data in tableview by [reloadData]", tableName, that.finder)
 
+
         if (!tableName) {
           tableName = that.selectedWorld;
         }
@@ -264,12 +245,75 @@
 
         setTimeout(function () {
           try {
-            that.$refs.vuetable.changePage(1);
-            that.$refs.vuetable.reinit();
+            if (that.viewMode == "card") {
+              // that.$refs.vuetable.changePage(1);
+              that.$refs.vuetable.reinit();
+            } else {
+
+
+              if (!that.sheet) {
+                that.sheet = new Spreadsheet("#tableView");
+                that.sheet.change(function (d) {
+                  console.log("that sheet data changed", arguments);
+                });
+              }
+
+              console.log("load data for table");
+              that.jsonApi.builderStack = that.finder;
+              that.jsonApi.get({
+                page: {
+                  number: 1,
+                  size: 1000,
+                }
+              }).then(function (data) {
+
+                var spreadSheetData = {};
+                var rows = data.data;
+
+                for (var i = 0; i < rows.length; i++) {
+                  var j = 0;
+                  spreadSheetData[i] = {};
+                  for (var column in that.selectedWorldColumns) {
+                    // console.log("spps s", i, column, column, rows[i])
+                    if (rows[i][column] instanceof Array) {
+                      spreadSheetData[i][j] = {
+                        text: rows[i][column].join(",")
+                      };
+                    } else if (rows[i][column] instanceof Object) {
+                      spreadSheetData[i][j] = {
+                        text: JSON.stringify(rows[i][column])
+                      };
+                    } else {
+                      spreadSheetData[i][j] = {
+                        text: rows[i][column]
+                      };
+
+                    }
+                    j += 1;
+                  }
+                }
+
+                // console.log("loaded data", data, spreadSheetData);
+                that.sheet
+                  .loadData({
+                    borders: [
+                      ['thin', '#0366d6'],
+                    ],
+                    styles: [
+                      {bgcolor: '#f4f5f8', wrapText: true, color: '#900b09', bbi: 0, bti: 0, bri: 0, bli: 0},
+                    ],
+                    merges: [
+                      [[2, 2], [3, 3]],
+                    ],
+                    cellmm: spreadSheetData,
+                  }) // load data
+
+              })
+            }
           } catch (e) {
             console.log("probably table doesnt exist yet", e)
           }
-        }, 16);
+        }, 36);
       }
     },
     mounted() {
@@ -290,6 +334,11 @@
         setTimeout(function () {
           that.reloadData(that.selectedWorld);
         }, 100)
+      },
+      'viewMode': function (newViewMode) {
+        if (newViewMode == "table") {
+          this.reloadData(this.selectedTable)
+        }
       }
     }
   }
