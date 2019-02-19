@@ -80,24 +80,6 @@
   - Windows, Mac, Linux and more
 
 
-![Create entity and add item](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/create_entity_and_add.gif)
-
-### Installation
-
-- [Native](https://docs.dapt.in/setting-up/native)
-- [Heroku](https://docs.dapt.in/setting-up/heroku)
-- [Docker](https://docs.dapt.in/setting-up/docker)
-- [Docker Compose](https://docs.dapt.in/setting-up/docker-compose)
-- [Kubernetes](https://docs.dapt.in/setting-up/kubernetes)
-- [Choose your storage](https://docs.dapt.in/setting-up/database_configuration)
-
-### Setup and data
-
-- [Designing data model](https://docs.dapt.in/setting-up/entities)
-- [Linking data with one another](https://docs.dapt.in/setting-up/entity_relations)
-- [Database configuration](https://docs.dapt.in/setting-up/database_configuration)
-- [Import data](https://docs.dapt.in/setting-up/data_import)
-
 ### APIs
 
 - CRUD APIs
@@ -124,10 +106,6 @@
 - [Data access permission](https://docs.dapt.in/auth/permissions)
 - [Social login](https://docs.dapt.in/auth/social_login)
 
-### Auth & Auth
-
-- [User Authentication](https://docs.dapt.in/auth/authentication)
-- [Authorization](https://docs.dapt.in/auth/authorization)
 
 ### Asset and file storage
 

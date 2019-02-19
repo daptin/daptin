@@ -95,7 +95,7 @@ request(options, callback);
 
 ## Install package from market
 
-Install a package (data models, relations, actions, sites) from a [**market**](/extend/marketplace.md) using a ```package name```. This will reconfigure daptin and apply the necessary changes. Note: any updates to this package in the marketplace will not be imported automatically.
+Install a package (data models, relations, actions, sites) from a [**market**](/extend/marketplace) using a ```package name```. This will reconfigure daptin and apply the necessary changes. Note: any updates to this package in the marketplace will not be imported automatically.
 
 
 ## Export data
@@ -115,7 +115,7 @@ Install a package (data models, relations, actions, sites) from a [**market**](/
 ## Upload file to a cloud store
 
 !!! note ""
-    Upload file to external store [**cloud_store**](/cloudstore/cloudstore.md), may require [oauth token and connection](/extend/oauth_connection.nd).
+    Upload file to external store [**cloud_store**](/cloudstore/cloudstore), may require [oauth token and connection](/extend/oauth_connection.nd).
 
     - file: any
 
@@ -268,16 +268,16 @@ curl 'http://api.daptin.com:6336/action/world/upload_csv_to_system_schema' \
 ## Publish package to marketplace
 
 !!! note ""
-    Export the JSON schema of your APIs to be re-used by other users from a [**marketplace**](/extend/marketplace.md).
+    Export the JSON schema of your APIs to be re-used by other users from a [**marketplace**](/extend/marketplace).
 
 ## Update package list
 
 !!! note ""
-    Exports the schema of your APIs as a package to a [**marketplace**](/extend/marketplace.md). You can later install this package.
+    Exports the schema of your APIs as a package to a [**marketplace**](/extend/marketplace). You can later install this package.
 
 
 ## Visit marketplace
 
 !!! note ""
-    Redirects you to the [**marketplace**](/extend/marketplace.md) repository
+    Redirects you to the [**marketplace**](/extend/marketplace) repository
 

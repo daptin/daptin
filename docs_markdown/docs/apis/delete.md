@@ -4,7 +4,7 @@ Delete a row from a table
 
 !!! note "Curl example"
     ```bash
-    curl '/api/user/a5b9add2-ea56-4717-a785-7dee71a2ae46' -X DELETE  -H 'Authorization: Bearer <Token>'
+    curl '/api/user_account/a5b9add2-ea56-4717-a785-7dee71a2ae46' -X DELETE  -H 'Authorization: Bearer <Token>'
     ```
 
 !!! note "Nodejs example"
@@ -16,7 +16,7 @@ Delete a row from a table
     };
     
     var options = {
-        url: '/api/user/a5b9add2-ea56-4717-a785-7dee71a2ae46',
+        url: '/api/user_account/a5b9add2-ea56-4717-a785-7dee71a2ae46',
         method: 'DELETE',
         headers: headers
     };
@@ -39,7 +39,7 @@ Delete a row from a table
         'Authorization': 'Bearer <Token>',
     }
 
-    response = requests.delete('/api/user/a5b9add2-ea56-4717-a785-7dee71a2ae46', headers=headers)
+    response = requests.delete('/api/user_account/a5b9add2-ea56-4717-a785-7dee71a2ae46', headers=headers)
     ```
 
 !!! note "PHP example"
@@ -50,5 +50,5 @@ Delete a row from a table
     $headers = array(
         'Authorization' => 'Bearer <Token>'
     );
-    $response = Requests::delete('/api/user/a5b9add2-ea56-4717-a785-7dee71a2ae46', $headers);
+    $response = Requests::delete('/api/user_account/a5b9add2-ea56-4717-a785-7dee71a2ae46', $headers);
     ```
