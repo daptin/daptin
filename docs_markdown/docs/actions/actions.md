@@ -32,7 +32,7 @@ An action is performed on an entity. Lets also remember that ```world``` is an e
 		Name:             "signup",
 		Label:            "Sign up",
 		InstanceOptional: true,
-		OnType:           "user",
+		OnType:           "user_account",
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -85,7 +85,7 @@ An action is performed on an entity. Lets also remember that ```world``` is an e
 		},
 		OutFields: {
 			{
-				Type:      "user",
+				Type:      "user_account",
 				Method:    "POST",
 				Reference: "user",
 				Attributes: {
@@ -150,7 +150,7 @@ Label is for humans
 
 ## OnType
 
-		OnType:           "user",
+		OnType:           "user_account",
 
 The primary type of entity on which the action happens. This is used to know where the actions should come up on the UI
 
@@ -173,7 +173,7 @@ This is a set of inputs which the user need to fill in to initiate that action. 
 - Password
 - Confirm password
 
-Note that the ColumnInfo structure is the same one we used to [define tables](/setting-up/entities.md).
+Note that the ColumnInfo structure is the same one we used to [define tables](/setting-up/entities).
 
 
 ## Validations
@@ -226,7 +226,7 @@ We have defined three outcomes in our "Sign Up" action.
 
 
 			{
-				Type:      "user",
+				Type:      "user_account",
 				Method:    "POST",
 				Reference: "user",
 				Attributes: map[string]interface{}{

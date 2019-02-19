@@ -1,36 +1,45 @@
-# Setting up Daptin
+## Accessing web dashboard
 
-Daptin is built in golang and a static artifact is available for most targets
+Open up the dashboard on http://localhost:8080/
 
-## Deploy and get started
+You will be presented with the Sign-in screen. If you are on a freshly created instance, then you need to create a user first.
 
-| Deployment preference      | Getting started                                                                                                               |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Heroku                     | [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/daptin/daptin) |
-| Docker                     | docker run -p 8080:8080 daptin/daptin                                                                                         |
-| Kubernetes                 | [Service & Deployment YAML](#kubernetes)                                                                                      |
-| Development                | go get github.com/daptin/daptin                                                                                               |
-| Linux (386/amd64/arm5,6,7) | [Download static linux builds](https://github.com/daptin/daptin/releases)                                                     |
-| Windows                    | go get github.com/daptin/daptin                                                                                               |
-| OS X                       | go get github.com/daptin/daptin                                                                                               |
-| Load testing               | [Docker compose](#docker-compose)                                                                                             |
-| Raspberry Pi               | [Linux arm 7 static build](https://github.com/daptin/daptin/releases)                                                         |
+## First user
+
+Use the dashboard to sign-up as the first user or call the sign-up API manually to create the first user.
+
+<img src="/images/signup.png" width="300px">
+
+## Logging in dashboard
+
+<img src="/images/signin.png" width="300px">
+
+## Become Administrator
+
+On the main screen of the dashboard under "Users" heading, locate the "Become admin" button.
+
+<img src="/images/users_and_groups.png" width="600px">
+
+Clicking this will make the following changes:
+
+- Disallow the sign-up API for guests
+- Disallow the sign-in API for guests
+- Makes you the owner of all the data
+
+## Enable sign-up
+
+Enable sign-up action by navigating to:
+
+You need to change two settings to allow guests to signup (after becoming admin)
+
+Since the "Sign in" action is defined on user_account entity, you need to allow guests to execute
+
+Dashboard -> All tables -> Search "User" and locate the "User account" entity -> Edit -> Permissions -> Guests -> Check "Execute strict"
+
+<img src="/images/execute.png" width="600px">
 
 
+Also allow guests to execute the sign-up action itself
 
-# Port
-
-Daptin will listen on port 6336 by default. You can change it by using the following argument
-
-```-port=8080```
-
-# Restart
-
-Daptin relies on self ```re-configuration``` to configure new entities and APIs and changes to the other parts of the ststem. As soon as you upload a schema file, daptin will write the file to disk, and ```reconfigure``` itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.
-
-You can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.
-
-
-# Detailed instructions
-
+Dashboard -> Actions -> Search "Signup" -> Edit -> Permissions -> Guest -> Check "Execute strict"
 

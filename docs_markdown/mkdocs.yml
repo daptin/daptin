@@ -2,72 +2,47 @@ site_name: Daptin
 repo_url: https://github.com/daptin/daptin
 site_favicon: images/favicon.png
 pages:
-  - Introduction: index.md
-  - Documentation:
-      - Installation:
-        - Native: setting-up/native.md
-        - Heroku: setting-up/heroku.md
-        - Docker: setting-up/docker.md
-        - Docker Compose: setting-up/docker-compose.md
-        - Kubernetes: setting-up/kubernetes.md
-        - Choose your storage: setting-up/database_configuration.md
-        - Getting started: setting-up/settingup.md
-      - Setup and data:
-          - Designing data model: setting-up/entities.md
-          - Linking data with one another: setting-up/entity_relations.md
-          - Database configuration: setting-up/database_configuration.md
-          - Data store format: data-modeling/data_storage.md
-          - Import data: setting-up/data_import.md
-          - Data validations: data-modeling/data_validation.md
-          - Data conformations: data-modeling/data_conformation.md
-          - Audit: data-modeling/auditing.md
-          - State tracking: data-modeling/state_tracking.md
-          - Data exchange and sync: extend/data_exchange.md
-          - Data streams: streams/streams.md
-      - APIs:
-          - CRUD APIs:
-            - Read, search, filter: apis/read.md
-            - Create: apis/create.md
-            - Update: apis/update.md
-            - Delete: apis/delete.md
-            - Relations: apis/relation.md
-            - Execute: apis/execute.md
-          - Action APIs:
-            - Using actions: actions/actions.md
-            - Actions list: actions/default_actions.md
-          - User APIs:
-              - User registration/signup: actions/signup.md
-              - User login/signin: actions/signin.md
-          - State tracking APIs:
-              - State machines: state/machines.md
-      - Users:
-          - Guests: auth/guests.md
-          - Adding users: auth/users.md
-          - Usergroups: auth/usergroups.md
-          - Data access permission: auth/permissions.md
-          - Social login: auth/social_login.md
-      - Auth & Auth:
-          - User Authentication: auth/authentication.md
-          - Authorization: auth/authorization.md
-      - Asset and file storage:
-          - Connecting with cloud store: cloudstore/cloudstore.md
-      - Sub-sites:
-          - Creating a subsite: subsite/subsite.md
-          - Live editing a subsite: subsite/grapes.md
-          - Basic Authentication: subsite/basic_auth.md
-      - Sharing:
-          - Marketplace: extend/marketplace.md
+- Introduction: index.md
+- Walkthrus:
+  - Making a todo list: setting-up/native.md
+- Installation: setting-up/installation.md
+- Getting started: setting-up/settingup.md
+- User management: setting-up/access.md
+- Data model: setting-up/data_modeling.md
+- API reference:
+  - CRUD:
+    - Read, search, filter: apis/read.md
+    - Create: apis/create.md
+    - Update: apis/update.md
+    - Delete: apis/delete.md
+    - Relations: apis/relation.md
+    - Execute: apis/execute.md
+  - Action APIs:
+    - Using actions: actions/actions.md
+    - Actions list: actions/default_actions.md
+  - State tracking: state/machines.md
+- Asset and file storage:
+  - Connecting with cloud store: cloudstore/cloudstore.md
+- Sub-sites:
+  - Creating a subsite: subsite/subsite.md
+  - Live editing a subsite: subsite/grapes.md
+  - Basic Authentication: subsite/basic_auth.md
+- Sharing:
+  - Marketplace: extend/marketplace.md
+- Reference:
+  - Data store format: data-modeling/data_storage.md
+  - Data exchange and sync: extend/data_exchange.md
+  - Data streams: streams/streams.md
 theme:
-  name: mkdocs
-  custom_dir: mkdocs-material
+  name: readthedocs
 extra_css:
-  - css/theme_extra.css
+- css/theme_extra.css
 google_analytics: ['UA-114227400-1', 'docs.dapt.in']
 markdown_extensions:
-  - toc:
-      permalink: Link
-  - admonition
-  - codehilite
-  - pymdownx.superfences
-  - pymdownx.tasklist
-  - pymdownx.magiclink
+- toc:
+    permalink: Link
+- admonition
+- codehilite
+- pymdownx.superfences
+- pymdownx.tasklist
+- pymdownx.magiclink

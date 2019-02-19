@@ -40,8 +40,8 @@ Datin can work with the following storage services:
 
 If the service you wan to integrate with requires authentication, create the following:
 
-- An [oauth connection](/extend/oauth_connection.md)
-- An [oauth token](/extend/oauth_token.md) generated from the above connection
+- An [oauth connection](/extend/oauth_connection)
+- An [oauth token](/extend/oauth_token) generated from the above connection
 
 ### Steps
 
