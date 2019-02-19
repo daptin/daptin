@@ -3,8 +3,6 @@ repo_url: https://github.com/daptin/daptin
 site_favicon: images/favicon.png
 pages:
 - Introduction: index.md
-- Walkthrus:
-  - Making a todo list: setting-up/native.md
 - Installation: setting-up/installation.md
 - Getting started: setting-up/settingup.md
 - User management: setting-up/access.md
