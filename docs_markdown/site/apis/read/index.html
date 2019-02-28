@@ -127,6 +127,15 @@
         </ul>
     
 
+    <li class="toctree-l4"><a href="#filtering">Filtering</a></li>
+    
+        <ul>
+        
+            <li><a class="toctree-l5" href="#example">Example</a></li>
+        
+        </ul>
+    
+
     </ul>
                 </li>
                 <li class="toctree-l3">
@@ -303,13 +312,13 @@
 <td>query</td>
 <td>json base64</td>
 <td>[]</td>
-<td>[{'column': 'name' 'operator': 'eq' 'value': 'england'}]</td>
+<td>[{"column": "name", "operator": "is", "value": "england"}]</td>
 </tr>
 <tr>
 <td>group</td>
 <td>string</td>
 <td>-</td>
-<td>[{'column': 'name' 'order': 'desc'}]</td>
+<td>[{"column": "name", "order": "desc"}]</td>
 </tr>
 <tr>
 <td>included_relations</td>
@@ -431,6 +440,71 @@ $headers = array(
     'Authorization' =&amp;gt; 'Bearer &amp;lt;AccessToken&amp;gt;'
 );
 $response = Requests::get('http://api.daptin.com:6336/api/laptop?sort=&amp;amp;page[number]=1&amp;amp;page[size]=10', $headers);</code></pre>
+
+
+<h1 id="filtering">Filtering<a class="headerlink" href="#filtering" title="Permanent link">Link</a></h1>
+<p>Used to search items in a table that matche the filter's conditions. Filters follow the syntax <code>query=[{"column": "&lt;column_name&gt;", "operator": "&lt;compare-operator&gt;", "value":"&lt;value&gt;"}]</code></p>
+<table>
+<thead>
+<tr>
+<th>Daptin operator</th>
+<th>SQL compare operator</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>contains</td>
+<td>like  '%\<value>'</td>
+</tr>
+<tr>
+<td>not contains</td>
+<td>not like  '%\<value>'</td>
+</tr>
+<tr>
+<td>is</td>
+<td>=</td>
+</tr>
+<tr>
+<td>is not</td>
+<td>!=</td>
+</tr>
+<tr>
+<td>before</td>
+<td>&lt;</td>
+</tr>
+<tr>
+<td>less then</td>
+<td>&lt;</td>
+</tr>
+<tr>
+<td>after</td>
+<td>&gt;</td>
+</tr>
+<tr>
+<td>more then</td>
+<td>&gt;</td>
+</tr>
+<tr>
+<td>any of</td>
+<td>in</td>
+</tr>
+<tr>
+<td>none of</td>
+<td>not in</td>
+</tr>
+<tr>
+<td>is empty</td>
+<td>is null</td>
+</tr>
+<tr>
+<td>is not empty</td>
+<td>is not null</td>
+</tr>
+</tbody>
+</table>
+<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">Link</a></h2>
+<pre class="codehilite"><code>curl '/api/world?query=[{&quot;column&quot;: &quot;is_hidden&quot;, &quot;operator&quot;: &quot;any of&quot;, &quot;value&quot;:&quot;1,0&quot;}] \
+  -H 'Authorization: Bearer &amp;lt;AccessToken&amp;gt;'</code></pre>
               
             </div>
           </div>
