@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"github.com/GeertJohan/go.rice"
 	"github.com/daptin/daptin/server"
+	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/gocraft/health"
 	"github.com/jamiealquiza/envy"
+	"github.com/sadlil/go-trigger"
 	"log"
 	"net/http"
-	"github.com/sadlil/go-trigger"
 	"os"
 	"syscall"
-	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 // Save the stream as a global variable
@@ -58,6 +58,8 @@ func main() {
 		boxRoot = boxRoot1.HTTPBox()
 	}
 	statementbuilder.InitialiseStatementBuilder(*db_type)
+
+
 	db, err := server.GetDbConnection(*db_type, *connection_string)
 	db.SetMaxOpenConns(500)
 	if err != nil {

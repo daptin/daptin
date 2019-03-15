@@ -168,7 +168,16 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 
-	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds)
+	mailDaemon, err := StartMailServer(cruds["mails"])
+
+	if err == nil {
+		err = mailDaemon.Start()
+		if err != nil {
+			log.Errorf("Failed to start mail daemon: %s", err)
+		}
+	}
+
+	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon)
 	initConfig.ActionPerformers = actionPerformers
 
 	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
@@ -182,6 +191,16 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	resource.ImportDataFiles(&initConfig, db, cruds)
 
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
+
+	err = TaskScheduler.AddTask(resource.Task{
+		EntityName: "mail_server",
+		ActionName: "sync_mail_servers",
+		Attributes: map[string]interface{}{
+		},
+		AsUserEmail: cruds["user_account"].GetAdminEmailId(),
+		Schedule:    "@every 10m",
+	})
+
 	TaskScheduler.StartTasks()
 
 	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
@@ -259,13 +278,21 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	r.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
 	r.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
 
-	r.POST("/site/content/load", CreateSubSiteContentHandler(&initConfig, cruds, db))
+	loader := CreateSubSiteContentHandler(&initConfig, cruds, db)
+	r.POST("/site/content/load", loader)
+	r.GET("/site/content/load", loader)
 	r.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
 	webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
 	websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
 
 	go websocketServer.Listen(r)
+
+	if err == nil {
+		log.Printf("Server Mail Started!")
+	} else {
+		log.Printf("Failed to start email server: %v", err)
+	}
 
 	r.NoRoute(func(c *gin.Context) {
 		file, err := boxRoot.Open("index.html")

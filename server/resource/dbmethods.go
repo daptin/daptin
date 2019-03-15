@@ -394,7 +394,20 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 
 }
 
-// Returns the bCrypt password hash of a user by looking up on email
+// Returns the user account row of a user by looking up on email
+func (d *DbResource) GetUserAccountRowByEmail(email string) (map[string]interface{}, error) {
+
+	user, _, err := d.Cruds["user_account"].GetRowsByWhereClause("user", squirrel.Eq{"email": email})
+
+	if len(user) > 0 {
+
+		return user[0], err
+	}
+
+	return nil, errors.New("no such user")
+
+}
+
 func (d *DbResource) GetUserPassword(email string) (string, error) {
 	passwordHash := ""
 

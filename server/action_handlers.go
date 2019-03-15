@@ -1,8 +1,11 @@
 package server
 
-import "github.com/daptin/daptin/server/resource"
+import (
+	"github.com/daptin/daptin/server/resource"
+	"github.com/flashmob/go-guerrilla"
+)
 
-func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource) []resource.ActionPerformerInterface {
+func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon) []resource.ActionPerformerInterface {
 	performers := make([]resource.ActionPerformerInterface, 0)
 
 	becomeAdminPerformer, err := resource.NewBecomeAdminPerformer(initConfig, cruds)
@@ -64,6 +67,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	marketplacePackage, err := resource.NewMarketplacePackageInstaller(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create marketplace package install performer")
 	performers = append(performers, marketplacePackage)
+
+	mailServerSync, err := resource.NewMailServersSyncActionPerformer(cruds, mailDaemon)
+	resource.CheckErr(err, "Failed to create mail server sync performer")
+	performers = append(performers, mailServerSync)
 
 	refreshMarketPlaceHandler, err := resource.NewRefreshMarketplacePackagelistPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create marketplace package refresh performer")
