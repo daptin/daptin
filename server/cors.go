@@ -52,8 +52,9 @@ type CorsMiddleware struct {
 func CorsMiddlewareFunc(c *gin.Context) {
 	//log.Infof("middleware ")
 
-	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Access-Control-Allow-Origin", c.Request.Header.Get("Origin"))
 	c.Header("Access-Control-Allow-Methods", "POST,GET,DELETE,PUT,OPTIONS,PATCH")
+	c.Header("Access-Control-Allow-Credentials", "true")
 	c.Header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With")
 
 	if c.Request.Method == "OPTIONS" {

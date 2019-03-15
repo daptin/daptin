@@ -612,7 +612,7 @@ func GetSubSiteFromContext(context *gin.Context, siteMap map[string]resource.Sub
 		log.Infof("Failed to parse referrer as url: %v", err)
 	}
 
-	subsite, ok := siteMap[parsed.Host]
+	subsite, ok := siteMap[strings.Split(parsed.Host, ":")[0]]
 
 	if !ok {
 		pathParts := strings.Split(parsed.Path, "/")
