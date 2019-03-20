@@ -88,6 +88,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create csv upload performer")
 	performers = append(performers, csvUploadPerformer)
 
+	enableGraphqlPerformer, err := resource.NewGraphqlEnablePerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create enable graphql performer")
+	performers = append(performers, enableGraphqlPerformer)
+
 	fileUploadPerformer, err := resource.NewFileUploadActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, fileUploadPerformer)

@@ -6,12 +6,12 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"io/ioutil"
 	"net/http"
-	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmManager, cruds map[string]*resource.DbResource, db database.DatabaseConnection) func(context *gin.Context) {
@@ -169,13 +169,6 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 
 		resp, err := cruds[typename+"_state"].Create(api2go.NewApi2GoModelWithData(typename+"_state", nil, 0, nil, newStateMachine), req)
 
-		//s, v, err := statementbuilder.Squirrel.Insert(typename + "_state").SetMap(newStateMachine).ToSql()
-		//if err != nil {
-		//  log.Errorf("Failed to create state insert query: %v", err)
-		//  gincontext.AbortWithError(500, err)
-		//}
-
-		//_, err = db.Exec(s, v...)
 		if err != nil {
 			log.Errorf("Failed to execute state insert query: %v", err)
 			gincontext.AbortWithError(500, err)

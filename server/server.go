@@ -46,12 +46,11 @@ func executeQuery(query string, schema graphql.Schema) *graphql.Result {
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	/// Start system initialise
-
 	log.Infof("Load config files")
 	initConfig, errs := LoadConfigFiles()
 	if errs != nil {
 		for _, err := range errs {
-			log.Errorf("Failed to load config file: %v", err)
+			log.Errorf("Failed to load config indexFile: %v", err)
 		}
 	}
 
@@ -122,8 +121,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	})
 
 	configStore, err := resource.NewConfigStore(db)
-	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
+	resource.CheckErr(err, "Failed to get config store")
 
+	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
 	if err != nil {
 		u, _ := uuid.NewV4()
 		newSecret := u.String()
@@ -131,7 +131,17 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 		jwtSecret = newSecret
 	}
 
-	resource.CheckErr(err, "Failed to get config store")
+	enableGraphql, err := configStore.GetConfigValueFor("graphql.enable", "backend")
+	if err != nil {
+		configStore.SetConfigValueFor("graphql.enable", fmt.Sprintf("%v", initConfig.EnableGraphQL), "backend")
+	} else {
+		if enableGraphql == "true" {
+			initConfig.EnableGraphQL = true
+		} else {
+			initConfig.EnableGraphQL = false
+		}
+	}
+
 	err = CheckSystemSecrets(configStore)
 	resource.CheckErr(err, "Failed to initialise system secrets")
 
@@ -228,39 +238,37 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	resource.InitialiseColumnManager()
 	resource.RegisterTranslations()
 
-	graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
-	//r.GET("/graphql", func(context *gin.Context) {
-	//	log.Infof("graphql query: %v", context.Query("query"))
-	//	result := executeQuery(context.Query("query"), *graphqlSchema)
-	//	json.NewEncoder(context.Writer).Encode(result)
-	//})
+	if initConfig.EnableGraphQL {
 
-	graphqlHttpHandler := graphqlhandler.New(&graphqlhandler.Config{
-		Schema:   graphqlSchema,
-		Pretty:   true,
-		GraphiQL: true,
-	})
+		graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
 
-	// serve HTTP
-	r.Handle("GET", "/graphql", func(c *gin.Context) {
-		graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	})
-	// serve HTTP
-	r.Handle("POST", "/graphql", func(c *gin.Context) {
-		graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	})
-	// serve HTTP
-	r.Handle("PUT", "/graphql", func(c *gin.Context) {
-		graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	})
-	// serve HTTP
-	r.Handle("PATCH", "/graphql", func(c *gin.Context) {
-		graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	})
-	// serve HTTP
-	r.Handle("DELETE", "/graphql", func(c *gin.Context) {
-		graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	})
+		graphqlHttpHandler := graphqlhandler.New(&graphqlhandler.Config{
+			Schema:   graphqlSchema,
+			Pretty:   true,
+			GraphiQL: true,
+		})
+
+		// serve HTTP
+		r.Handle("GET", "/graphql", func(c *gin.Context) {
+			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+		})
+		// serve HTTP
+		r.Handle("POST", "/graphql", func(c *gin.Context) {
+			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+		})
+		// serve HTTP
+		r.Handle("PUT", "/graphql", func(c *gin.Context) {
+			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+		})
+		// serve HTTP
+		r.Handle("PATCH", "/graphql", func(c *gin.Context) {
+			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+		})
+		// serve HTTP
+		r.Handle("DELETE", "/graphql", func(c *gin.Context) {
+			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+		})
+	}
 
 	r.GET("/jsmodel/:typename", handler)
 	r.GET("/stats/:typename", statsHandler)
@@ -290,15 +298,16 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	go websocketServer.Listen(r)
 
+	indexFile, err := boxRoot.Open("index.html")
+	indexFileContents, err := ioutil.ReadAll(indexFile)
+
 	r.NoRoute(func(c *gin.Context) {
-		file, err := boxRoot.Open("index.html")
 		resource.CheckErr(err, "Failed to open index.html")
 		if err != nil {
 			c.AbortWithStatus(500)
 			return
 		}
-		fileContents, err := ioutil.ReadAll(file)
-		_, err = c.Writer.Write(fileContents)
+		_, err = c.Writer.Write(indexFileContents)
 		resource.CheckErr(err, "Failed to write index html")
 	})
 
@@ -308,6 +317,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	return hostSwitch
 
 }
+
 func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseConnection) {
 	resource.CheckRelations(initConfig)
 	resource.CheckAuditTables(initConfig)
@@ -336,6 +346,7 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 	resource.CheckErr(err, "Failed to update action table")
 
 }
+
 func actionPerformersListToMap(interfaces []resource.ActionPerformerInterface) map[string]resource.ActionPerformerInterface {
 	m := make(map[string]resource.ActionPerformerInterface)
 

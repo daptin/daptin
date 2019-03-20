@@ -1,14 +1,14 @@
 package server
 
 import (
-	"strings"
-	"github.com/graphql-go/graphql"
+	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
-	"log"
+	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/relay"
 	"golang.org/x/net/context"
-	"github.com/artpar/api2go"
+	"log"
 	"net/http"
+	"strings"
 	//	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -17,20 +17,7 @@ import (
 	"github.com/artpar/api2go/jsonapi"
 )
 
-// Capitalize capitalizes the first character of the string.
-func Capitalize(s string) string {
-	if len(s) == 1 {
-		return strings.ToUpper(s)
-	}
-	return strings.ToUpper(s[0:1]) + s[1:]
-}
-
-//var todoType *graphql.Object
-//var userType *graphql.Object
-
-
 var nodeDefinitions *relay.NodeDefinitions
-var todosConnection *relay.GraphQLConnectionDefinitions
 
 var Schema graphql.Schema
 
@@ -43,6 +30,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	inputTypesMap := make(map[string]*graphql.Object)
 	//outputTypesMap := make(map[string]graphql.Output)
 	//connectionMap := make(map[string]*relay.GraphQLConnectionDefinitions)
+
 	nodeDefinitions = relay.NewNodeDefinitions(relay.NodeDefinitionsConfig{
 		IDFetcher: func(id string, info graphql.ResolveInfo, ctx context.Context) (interface{}, error) {
 			resolvedID := relay.FromGlobalID(id)
@@ -66,6 +54,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			return nil
 		},
 	})
+
 	rootFields := make(graphql.Fields)
 
 	pageConfig := graphql.ArgumentConfig{
@@ -90,7 +79,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	}
 
 	queryArgument := graphql.ArgumentConfig{
-		Type: graphql.NewInputObject(graphql.InputObjectConfig{
+		Type: graphql.NewList(graphql.NewInputObject(graphql.InputObjectConfig{
 			Name:        "query",
 			Description: "query results",
 			Fields: graphql.InputObjectConfigFieldMap{
@@ -104,7 +93,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					Type: graphql.String,
 				},
 			},
-		}),
+		})),
 		Description:  "filter results by search query",
 		DefaultValue: "",
 	}
@@ -116,7 +105,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	}
 
 	for _, table := range cmsConfig.Tables {
-		todoType := graphql.NewObject(graphql.ObjectConfig{
+		tableType := graphql.NewObject(graphql.ObjectConfig{
 			Name: table.TableName,
 			Interfaces: []*graphql.Interface{
 				nodeDefinitions.NodeInterface,
@@ -125,7 +114,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			Description: table.TableName,
 		})
 
-		inputTypesMap[table.TableName] = todoType
+		inputTypesMap[table.TableName] = tableType
 
 	}
 
@@ -159,12 +148,16 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			}
 
 			allFields[table.TableName+"."+column.ColumnName] = &graphql.ArgumentConfig{
-				Type: resource.ColumnManager.GetGraphqlType(column.ColumnType),
+				Type:         resource.ColumnManager.GetGraphqlType(column.ColumnType),
+				DefaultValue: column.DefaultValue,
+				Description:  column.ColumnDescription,
 			}
 
 			if column.IsUnique || column.IsPrimaryKey {
 				uniqueFields[table.TableName+"."+column.ColumnName] = &graphql.ArgumentConfig{
-					Type: resource.ColumnManager.GetGraphqlType(column.ColumnType),
+					Type:         resource.ColumnManager.GetGraphqlType(column.ColumnType),
+					DefaultValue: column.DefaultValue,
+					Description:  column.ColumnDescription,
 				}
 			}
 
@@ -241,14 +234,17 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 					query, isQueried := params.Args["query"]
 					if isQueried {
-						queryMap, ok := query.(map[string]interface{})
+						queryMap, ok := query.([]interface{})
 						if ok {
-							query := resource.Query{
-								ColumnName: queryMap["column"].(string),
-								Operator:   queryMap["operator"].(string),
-								Value:      queryMap["value"].(string),
+							for _, qu := range queryMap {
+								q := qu.(map[string]interface{})
+								query := resource.Query{
+									ColumnName: q["column"].(string),
+									Operator:   q["operator"].(string),
+									Value:      q["value"].(string),
+								}
+								filters = append(filters, query)
 							}
-							filters = append(filters, query)
 						}
 					}
 
