@@ -168,13 +168,15 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 
-	mailDaemon, err := StartMailServer(cruds["mails"])
+	mailDaemon, err := StartMailServer(cruds["mail"])
 
 	if err == nil {
 		err = mailDaemon.Start()
 		if err != nil {
 			log.Errorf("Failed to start mail daemon: %s", err)
 		}
+	} else {
+		log.Errorf("Failed to start mail daemon: %s", err)
 	}
 
 	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon)
@@ -287,12 +289,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
 
 	go websocketServer.Listen(r)
-
-	if err == nil {
-		log.Printf("Server Mail Started!")
-	} else {
-		log.Printf("Failed to start email server: %v", err)
-	}
 
 	r.NoRoute(func(c *gin.Context) {
 		file, err := boxRoot.Open("index.html")

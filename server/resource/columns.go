@@ -1472,7 +1472,7 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName:     "mails",
+		TableName:     "mail",
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
