@@ -30,6 +30,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		Tables:                   make([]resource.TableInfo, 0),
 		Relations:                make([]api2go.TableRelation, 0),
 		Imports:                  make([]resource.DataFileImport, 0),
+		EnableGraphQL:            false,
 		Actions:                  make([]resource.Action, 0),
 		StateMachineDescriptions: make([]resource.LoopbookFsmDescription, 0),
 		Streams:                  make([]resource.StreamContract, 0),
@@ -83,7 +84,6 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, initConfig.StateMachineDescriptions...)
 		globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
 
-
 		for _, action := range initConfig.Actions {
 			log.Infof("Action [%v][%v]", fileName, action.Name)
 		}
@@ -94,6 +94,10 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 		for _, smd := range initConfig.StateMachineDescriptions {
 			log.Infof("Marketplace [%v][%v]", fileName, smd.Name, smd.InitialState)
+		}
+
+		if initConfig.EnableGraphQL {
+			globalInitConfig.EnableGraphQL = true
 		}
 
 		//log.Infof("File added to config, deleting %v", fileName)
