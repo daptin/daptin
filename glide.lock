@@ -1,5 +1,5 @@
-hash: bdfb732bb648ff1314a1585a3cd7ce93fe72e82bec94e78a31e73cbf5e7ed445
-updated: 2019-03-03T22:40:54.819296+05:30
+hash: 5c08595c4150bbd5b041cb11e7a0af6b42a1733b84efecec6d482b865b613b9f
+updated: 2019-03-29T15:27:02.171095+05:30
 imports:
 - name: cloud.google.com/go
   version: a5c6324a6e84f1a1119c5901431b09275b9f091b
@@ -113,6 +113,8 @@ imports:
   - lib/rest
 - name: github.com/artpar/resty
   version: cbd85f7cf881b5d8f42fd8a8b66d9461193762c9
+- name: github.com/asaskevich/EventBus
+  version: 68a521d7cbbb7a859c2608b06342f384b3bd5f5a
 - name: github.com/aws/aws-sdk-go
   version: 8234000fff968de811646c75b200b0c713f800ec
   subpackages:
@@ -219,6 +221,14 @@ imports:
   - utils
 - name: github.com/etgryphon/stringUp
   version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
+- name: github.com/flashmob/go-guerrilla
+  version: cb550348c44e511bc1a6f71262f59ff41c85ed2c
+  subpackages:
+  - backends
+  - log
+  - mail
+  - mail/rfc5321
+  - response
 - name: github.com/fsnotify/fsnotify
   version: ccc981bf80385c528a65fbfdd49bf2d8da22aa23
 - name: github.com/GeertJohan/go.rice
@@ -291,7 +301,7 @@ imports:
 - name: github.com/gorilla/mux
   version: ef912dd76ebe9d9848c6e0fd80eaebccc9a11631
 - name: github.com/graphql-go/graphql
-  version: 08943645bf265d192b32f2100cdff2428f7ae7c5
+  version: 2b0b7340d2285b861482047fbf5de0488e021bea
   subpackages:
   - gqlerrors
   - language/ast
@@ -429,7 +439,7 @@ imports:
   subpackages:
   - diffmatchpatch
 - name: github.com/sirupsen/logrus
-  version: e1e72e9de974bd926e5c56f83753fba2df402ce5
+  version: dae0fa8d5b0c810a8ab733fbd5510c7cae84eca4
 - name: github.com/skratchdot/open-golang
   version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
   subpackages:
@@ -534,7 +544,7 @@ imports:
   subpackages:
   - errgroup
 - name: golang.org/x/sys
-  version: 9a3f9b0469bbc6b8802087ae5c0af9f61502de01
+  version: 7dca6fe1f43775aa6d1334576870ff63f978f539
   subpackages:
   - unix
   - windows
