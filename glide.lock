@@ -1,5 +1,5 @@
-hash: 5c08595c4150bbd5b041cb11e7a0af6b42a1733b84efecec6d482b865b613b9f
-updated: 2019-03-29T15:27:02.171095+05:30
+hash: 5e436d7414f58bd88bfce530b8ef18c30c142a2f107ee11f2b3ff586041982a9
+updated: 2019-03-29T16:21:25.352628+05:30
 imports:
 - name: cloud.google.com/go
   version: a5c6324a6e84f1a1119c5901431b09275b9f091b
@@ -113,6 +113,8 @@ imports:
   - lib/rest
 - name: github.com/artpar/resty
   version: cbd85f7cf881b5d8f42fd8a8b66d9461193762c9
+- name: github.com/artpar/stats
+  version: fc5c06ed3df0e436bc483ccc97053cd98930ca61
 - name: github.com/asaskevich/EventBus
   version: 68a521d7cbbb7a859c2608b06342f384b3bd5f5a
 - name: github.com/aws/aws-sdk-go
@@ -468,8 +470,6 @@ imports:
   version: 854bf31d998b151cf5f94529c815bc4c67322949
 - name: github.com/tealeg/xlsx
   version: dbf71b6a931e7096340690e009e40c914eb1fc3a
-- name: github.com/thoas/stats
-  version: fc5c06ed3df0e436bc483ccc97053cd98930ca61
 - name: github.com/ugorji/go
   version: 772ced7fd4c2f6322c07537a9a93b68d74551fa6
   subpackages:
