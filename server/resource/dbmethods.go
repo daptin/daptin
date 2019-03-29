@@ -307,7 +307,7 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 		rel.GetJoinTableName()+".reference_id as \"RelationReferenceId\"", rel.GetJoinTableName()+".permission").From(rel.Subject).Join(rel.GetJoinString()).
 		Where(fmt.Sprintf("%s.%s = ?", rel.Subject, colName), colvalue).ToSql()
 	if err != nil {
-		log.Errorf("Failed to create permission select query", err)
+		log.Errorf("Failed to create permission select query: %v", err)
 		return s
 	}
 

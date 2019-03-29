@@ -182,7 +182,7 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 
 	err = c.db.QueryRowx(s, v...).Scan(&val)
 	if err != nil {
-		log.Infof("Failed to scan config value: ", err)
+		log.Infof("Failed to scan config value: %v", err)
 	}
 	return val, err
 }
@@ -201,7 +201,7 @@ func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, 
 
 	err = c.db.QueryRowx(s, v...).Scan(&val)
 	if err != nil {
-		log.Infof("Failed to scan config value: ", err)
+		log.Infof("Failed to scan config value: %v", err)
 	}
 	return val, err
 }

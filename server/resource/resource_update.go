@@ -203,7 +203,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 				secret, err := dr.configStore.GetConfigValueFor("encryption.secret", "backend")
 				if err != nil {
-					log.Error("Failed to get secret from config: %v", err)
+					log.Errorf("Failed to get secret from config: %v", err)
 					val = ""
 				} else {
 					val, err = Encrypt([]byte(secret), val.(string))

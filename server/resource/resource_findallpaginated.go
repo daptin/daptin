@@ -561,7 +561,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 			PageSize:   10,
 		}
 	}
-	log.Info("Pagination :%v", pagination)
+	log.Infof("Pagination :%v", pagination)
 
 	return uint(pagination.TotalCount), NewResponse(nil, result, 200, &api2go.Pagination{
 		Next:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageSize+pagination.PageNumber)},
