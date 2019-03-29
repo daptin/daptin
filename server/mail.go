@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-func StartMailServer(resource *resource.DbResource) (*guerrilla.Daemon, error) {
+func StartSMTPMailServer(resource *resource.DbResource) (*guerrilla.Daemon, error) {
 
 	servers, err := resource.GetAllObjects("mail_server")
 
@@ -20,6 +20,8 @@ func StartMailServer(resource *resource.DbResource) (*guerrilla.Daemon, error) {
 
 	serverConfig := make([]guerrilla.ServerConfig, 0)
 	hosts := []string{}
+
+
 
 	for _, server := range servers {
 

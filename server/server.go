@@ -12,7 +12,6 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/gin-gonic/gin"
-	"github.com/graphql-go/graphql"
 	graphqlhandler "github.com/graphql-go/handler"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/stats"
@@ -22,26 +21,6 @@ import (
 
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
-
-func IsStandardColumn(s string) bool {
-	for _, cols := range resource.StandardColumns {
-		if cols.ColumnName == s {
-			return true
-		}
-	}
-	return false
-}
-
-func executeQuery(query string, schema graphql.Schema) *graphql.Result {
-	result := graphql.Do(graphql.Params{
-		Schema:        schema,
-		RequestString: query,
-	})
-	if len(result.Errors) > 0 {
-		fmt.Printf("wrong result, unexpected errors: %v", result.Errors)
-	}
-	return result
-}
 
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
@@ -178,12 +157,17 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 
-	mailDaemon, err := StartMailServer(cruds["mail"])
+	mailDaemon, err := StartSMTPMailServer(cruds["mail"])
+
+
+	StartImpsServer(cruds["mail"])
 
 	if err == nil {
 		err = mailDaemon.Start()
 		if err != nil {
 			log.Errorf("Failed to start mail daemon: %s", err)
+		} else {
+			log.Infof("Started mail server")
 		}
 	} else {
 		log.Errorf("Failed to start mail daemon: %s", err)
@@ -315,6 +299,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	CleanUpConfigFiles()
 
 	return hostSwitch
+
+}
+func StartImpsServer(dbResource *resource.DbResource) {
 
 }
 

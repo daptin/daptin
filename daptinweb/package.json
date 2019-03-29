@@ -56,7 +56,7 @@
     "vuedraggable": "^2.14.1",
     "vuex": "^2.0.0",
     "vuex-router-sync": "^4.1.2",
-    "x-data-spreadsheet": "^1.0.3"
+    "x-data-spreadsheet": "^1.0.11"
   },
   "devDependencies": {
     "atob": ">=2.1.0",

@@ -1418,6 +1418,13 @@ var StandardTables = []TableInfo{
 				DataType:     "bool",
 				DefaultValue: "1",
 			},
+			{
+				Name:         "enable_https",
+				ColumnName:   "enable_https",
+				ColumnType:   "truefalse",
+				DataType:     "bool",
+				DefaultValue: "0",
+			},
 		},
 	},
 	{
@@ -1450,11 +1457,11 @@ var StandardTables = []TableInfo{
 				ColumnType: "measurement",
 			},
 			{
-				Name:         "tls",
-				ColumnName:   "tls",
-				DataType:     "json",
-				ColumnType:   "json",
-				IsNullable:   true,
+				Name:       "tls",
+				ColumnName: "tls",
+				DataType:   "json",
+				ColumnType: "json",
+				IsNullable: true,
 			},
 			{
 				Name:       "max_clients",
