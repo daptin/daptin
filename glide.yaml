@@ -66,7 +66,7 @@ import:
   version: ^1.1.0
 - package: github.com/digitalocean/godo
   version: ~1.1.1
-- package: github.com/thoas/stats
+- package: github.com/artpar/stats
   version: fc5c06ed3df0e436bc483ccc97053cd98930ca61
 - package: github.com/graphql-go/graphql
   version: ^0.7.7

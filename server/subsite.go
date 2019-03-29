@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
-	"github.com/thoas/stats"
+	"github.com/artpar/stats"
 	"io/ioutil"
 	"net/http"
 	"net/url"
