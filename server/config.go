@@ -93,7 +93,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		}
 
 		for _, smd := range initConfig.StateMachineDescriptions {
-			log.Infof("Marketplace [%v][%v]", fileName, smd.Name, smd.InitialState)
+			log.Infof("Marketplace [%v][%v][%v]", fileName, smd.Name, smd.InitialState)
 		}
 
 		if initConfig.EnableGraphQL {

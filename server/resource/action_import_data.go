@@ -98,7 +98,7 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 			instance, ok := d.cruds[tableName]
 
 			if !ok {
-				log.Infof("Wanted to truncate table, but no instance yet: ", tableName)
+				log.Infof("Wanted to truncate table, but no instance yet: %v", tableName)
 				d.cruds["world"].TruncateTable(tableName)
 				continue
 			}
