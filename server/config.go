@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"os"
 	"path/filepath"
 )
 
@@ -45,7 +46,8 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 	globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
 	globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
 
-	files, err := filepath.Glob("schema_*.*")
+	schemaPath, _ := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
+	files, err := filepath.Glob(schemaPath + "schema_*.*")
 	log.Infof("Found files to load: %v", files)
 
 	if err != nil {
