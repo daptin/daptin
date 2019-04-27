@@ -159,9 +159,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	mailDaemon, err := StartSMTPMailServer(cruds["mail"])
 
-
-	StartImpsServer(cruds["mail"])
-
 	if err == nil {
 		err = mailDaemon.Start()
 		if err != nil {
@@ -296,14 +293,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	})
 
 	//r.Run(fmt.Sprintf(":%v", *port))
-	CleanUpConfigFiles()
+	// CleanUpConfigFiles()
 
 	return hostSwitch
 
 }
-func StartImpsServer(dbResource *resource.DbResource) {
 
-}
 
 func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseConnection) {
 	resource.CheckRelations(initConfig)

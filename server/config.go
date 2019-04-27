@@ -50,7 +50,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 	files, err := filepath.Glob(schemaPath + "schema_*.*")
 	log.Infof("Found files to load: %v", files)
 
-	if err != nil {
+		if err != nil {
 		errs = append(errs, err)
 		return globalInitConfig, errs
 	}
