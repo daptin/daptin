@@ -212,7 +212,7 @@ var SystemActions = []Action{
 	//	Name: "update_config",
 	//	Label: "Update configuration",
 	//	OnType: "world",
-	//	InstanceOptional: true,
+	//	InstanceOptional: true,name
 	//	InFields: []api2go.ColumnInfo{
 	//		{
 	//			Name: "default_storage",
@@ -1416,7 +1416,7 @@ var StandardTables = []TableInfo{
 				ColumnName:   "enable",
 				ColumnType:   "truefalse",
 				DataType:     "bool",
-				DefaultValue: "1",
+				DefaultValue: "true",
 			},
 			{
 				Name:         "enable_https",
