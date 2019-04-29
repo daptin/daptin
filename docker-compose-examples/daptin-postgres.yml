@@ -12,7 +12,7 @@ services:
     - PORT=8080
     - DAPTIN_PORT=8080
     links:
-    - daptinmysqldb:daptinmysqldb
+    - daptinpostgresdb:daptinpostgresdb
     depends_on:
     - "daptinpostgresdb"
     networks:
@@ -21,9 +21,9 @@ services:
     image: postgres
     restart: always
     environment:
-    - POSTGRES_PASSWORD: daptin123
-    - POSTGRES_USER: daptin
-    - POSTGRES_DB: daptin
+    - POSTGRES_PASSWORD=daptin123
+    - POSTGRES_USER=daptin
+    - POSTGRES_DB=daptin
     networks:
     - my_net
 networks:

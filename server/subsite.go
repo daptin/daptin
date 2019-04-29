@@ -6,6 +6,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/artpar/go.uuid"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
+	"github.com/artpar/stats"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
@@ -13,7 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
-	"github.com/artpar/stats"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -59,7 +59,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 	for _, site := range sites {
 
-		if *site.Enable == 0 {
+		if !site.Enable {
 			continue
 		}
 
