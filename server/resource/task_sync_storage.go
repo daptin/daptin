@@ -47,7 +47,7 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, tempDirectoryPat
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-		dir := sync.CopyDir(fdst, fsrc)
+		dir := sync.CopyDir(fdst, fsrc, true)
 		return dir
 	})
 
