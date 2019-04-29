@@ -61,7 +61,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request ActionRequest, inField
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-		dir := sync.CopyDir(fdst, fsrc)
+		dir := sync.CopyDir(fdst, fsrc, true)
 		return dir
 	})
 

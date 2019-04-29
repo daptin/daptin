@@ -1,5 +1,5 @@
-hash: 5e436d7414f58bd88bfce530b8ef18c30c142a2f107ee11f2b3ff586041982a9
-updated: 2019-03-29T16:21:25.352628+05:30
+hash: 5515e33ae097700f4431632e52fe219a3236bda4a647820a6af90aefbfd2374a
+updated: 2019-04-29T13:50:23.381733+05:30
 imports:
 - name: cloud.google.com/go
   version: a5c6324a6e84f1a1119c5901431b09275b9f091b
@@ -29,7 +29,7 @@ imports:
 - name: github.com/artpar/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/artpar/rclone
-  version: a9e1469cc153bffe7703cb1a2a907f70cdce4670
+  version: dc525e165a5ec4568ad40cae6af70b435e7b8fe6
   subpackages:
   - backend/alias
   - backend/all
@@ -51,6 +51,7 @@ imports:
   - backend/hubic
   - backend/jottacloud
   - backend/jottacloud/api
+  - backend/koofr
   - backend/local
   - backend/mega
   - backend/onedrive
@@ -255,7 +256,7 @@ imports:
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
 - name: github.com/go-playground/validator
-  version: b199fa0642d29caca62b6a99d65cc981ba5edc3b
+  version: 46b4b1e301c24cac870ffcb4ba5c8a703d1ef475
 - name: github.com/go-sourcemap/sourcemap
   version: b019cc30c1eaa584753491b0d8f8c1534bf1eb44
   subpackages:
@@ -364,6 +365,10 @@ imports:
   - series
 - name: github.com/konsorten/go-windows-terminal-sequences
   version: 5c8c8bd35d3832f5d134ae1e1e375b69a4d25242
+- name: github.com/koofr/go-httpclient
+  version: 03786175608a2f5e76523fc489cad8bee2f20fbc
+- name: github.com/koofr/go-koofrclient
+  version: 7f327592caff2f24d64635e29bf560db6a2e4db5
 - name: github.com/kr/fs
   version: 1455def202f6e05b95cc7bfc7e8ae67ae5141eba
 - name: github.com/labstack/echo
@@ -441,7 +446,7 @@ imports:
   subpackages:
   - diffmatchpatch
 - name: github.com/sirupsen/logrus
-  version: dae0fa8d5b0c810a8ab733fbd5510c7cae84eca4
+  version: 8bdbc7bcc01dcbb8ec23dc8a28e332258d25251f
 - name: github.com/skratchdot/open-golang
   version: 75fb7ed4208cf72d323d7d02fd1a5964a7a9073c
   subpackages:
@@ -592,7 +597,7 @@ imports:
 - name: gopkg.in/go-playground/validator.v8
   version: 5f1438d3fca68893a817e4a66806cea46a9e4ebf
 - name: gopkg.in/go-playground/validator.v9
-  version: b199fa0642d29caca62b6a99d65cc981ba5edc3b
+  version: 46b4b1e301c24cac870ffcb4ba5c8a703d1ef475
   subpackages:
   - translations/en
 - name: gopkg.in/Masterminds/squirrel.v1
