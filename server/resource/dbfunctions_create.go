@@ -17,7 +17,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 		for _, column := range table.Columns {
 
 			if column.IsUnique {
-				indexName := GetMD5Hash("index_" + table.TableName + "_" + column.ColumnName + "_unique")
+				indexName := "i" + GetMD5Hash(table.TableName+"_"+column.ColumnName+"_unique")
 				alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + column.ColumnName + ")"
 				log.Infof("Create unique index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
@@ -547,6 +547,13 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 
 	if BeginsWith(datatype, "int(") && sqlDriverName == "postgres" {
 		datatype = "INTEGER"
+	}
+	if BeginsWith(datatype, "varbinary") && sqlDriverName == "postgres" {
+		datatype = strings.Replace(datatype, "varbinary", "bit", 1)
+	}
+
+	if BeginsWith(datatype, "blob") && sqlDriverName == "postgres" {
+		datatype = "bytea"
 	}
 
 	columnParams := []string{c.ColumnName, datatype}
