@@ -47,6 +47,11 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 	globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
 
 	schemaPath, _ := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
+
+	if schemaPath[len(schemaPath) - 1] != '/' {
+		schemaPath = schemaPath + "/"
+	}
+
 	files, err := filepath.Glob(schemaPath + "schema_*.*")
 	log.Infof("Found files to load: %v", files)
 
