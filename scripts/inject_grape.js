@@ -79,13 +79,15 @@
   loadjs([
     'https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.0/jquery.min.js',
     'https://cdn.ckeditor.com/4.7.1/standard/ckeditor.js',
-      "//dashboard." + window.location.hostname +'/static/grapesjs/grapes.min.js',
-      "//dashboard." + window.location.hostname +'/static/grapesjs/css/grapes.min.css',
+      // "//dashboard." + window.location.hostname +'/static/grapesjs/grapes.min.js',
+      // "//dashboard." + window.location.hostname +'/static/grapesjs/css/grapes.min.css',
+      "https://cdnjs.cloudflare.com/ajax/libs/grapesjs/0.12.17/css/grapes.min.css",
+      "https://cdnjs.cloudflare.com/ajax/libs/grapesjs/0.12.17/grapes.min.js",
     'https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js',
-    'https://cdn.rawgit.com/artf/grapesjs-navbar/master/dist/grapesjs-navbar.min.js',
-    'https://cdn.rawgit.com/artf/grapesjs-blocks-basic/master/dist/grapesjs-blocks-basic.min.js',
-    'https://cdn.rawgit.com/artf/grapesjs-plugin-forms/master/dist/grapesjs-plugin-forms.min.js',
-    'https://cdn.rawgit.com/artf/grapesjs-plugin-ckeditor/master/dist/grapesjs-plugin-ckeditor.min.js'
+    'https://cdn.jsdelivr.net/gh/artf/grapesjs-navbar@master/dist/grapesjs-navbar.min.js',
+    'https://cdn.jsdelivr.net/gh/artf/grapesjs-blocks-basic@master/dist/grapesjs-blocks-basic.min.js',
+    'https://cdn.jsdelivr.net/gh/artf/grapesjs-plugin-forms@master/dist/grapesjs-plugin-forms.min.js',
+    'https://cdn.jsdelivr.net/gh/artf/grapesjs-plugin-ckeditor@master/dist/grapesjs-plugin-ckeditor.min.js'
 
   ], 'goms', {
     success: function () {
@@ -107,8 +109,8 @@
           type: 'remote',
           stepsBeforeSave: 5,
           autosave: true,
-          urlStore: "//dashboard." + window.location.hostname + '/site/content/store?path=' + window.location.pathname,
-          urlLoad: "//dashboard." + window.location.hostname + '/site/content/load',
+          urlStore: "//dashboard." + window.location.hostname + ":" + window.location.port + '/site/content/store?path=' + window.location.pathname,
+          urlLoad: "//dashboard." + window.location.hostname + ":" + window.location.port + '/site/content/load?path=' + window.location.pathname,
           autoload: true,
           contentTypeJson: true,
           storeComponents: false,

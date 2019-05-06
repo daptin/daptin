@@ -26,7 +26,7 @@ Restart is required to reflect changes.
       - the domain should be pointing to the daptin instance
     - Choose a **name**
     - **Path**: select a sub directory name to expose this sub-site. Your sub-site will be accessible at domain.com/<path>
-    - **Cloud store Id**: choose an existing [cloud store](/cloudstore/cloudstore.md).
+    - **Cloud store Id**: choose an existing [cloud store](/cloudstore/cloudstore).
 
     Restart to enable serving the site.
 

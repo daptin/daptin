@@ -12,10 +12,9 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/gin-gonic/gin"
-	"github.com/graphql-go/graphql"
 	graphqlhandler "github.com/graphql-go/handler"
 	log "github.com/sirupsen/logrus"
-	"github.com/thoas/stats"
+	"github.com/artpar/stats"
 	"io/ioutil"
 	"net/http"
 )
@@ -23,35 +22,14 @@ import (
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
-func IsStandardColumn(s string) bool {
-	for _, cols := range resource.StandardColumns {
-		if cols.ColumnName == s {
-			return true
-		}
-	}
-	return false
-}
-
-func executeQuery(query string, schema graphql.Schema) *graphql.Result {
-	result := graphql.Do(graphql.Params{
-		Schema:        schema,
-		RequestString: query,
-	})
-	if len(result.Errors) > 0 {
-		fmt.Printf("wrong result, unexpected errors: %v", result.Errors)
-	}
-	return result
-}
-
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	/// Start system initialise
-
 	log.Infof("Load config files")
 	initConfig, errs := LoadConfigFiles()
 	if errs != nil {
 		for _, err := range errs {
-			log.Errorf("Failed to load config file: %v", err)
+			log.Errorf("Failed to load config indexFile: %v", err)
 		}
 	}
 
@@ -122,8 +100,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	})
 
 	configStore, err := resource.NewConfigStore(db)
-	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
+	resource.CheckErr(err, "Failed to get config store")
 
+	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
 	if err != nil {
 		u, _ := uuid.NewV4()
 		newSecret := u.String()
@@ -131,7 +110,17 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 		jwtSecret = newSecret
 	}
 
-	resource.CheckErr(err, "Failed to get config store")
+	enableGraphql, err := configStore.GetConfigValueFor("graphql.enable", "backend")
+	if err != nil {
+		configStore.SetConfigValueFor("graphql.enable", fmt.Sprintf("%v", initConfig.EnableGraphQL), "backend")
+	} else {
+		if enableGraphql == "true" {
+			initConfig.EnableGraphQL = true
+		} else {
+			initConfig.EnableGraphQL = false
+		}
+	}
+
 	err = CheckSystemSecrets(configStore)
 	resource.CheckErr(err, "Failed to initialise system secrets")
 
@@ -168,7 +157,20 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 
-	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds)
+	mailDaemon, err := StartSMTPMailServer(cruds["mail"])
+
+	if err == nil {
+		err = mailDaemon.Start()
+		if err != nil {
+			log.Errorf("Failed to start mail daemon: %s", err)
+		} else {
+			log.Infof("Started mail server")
+		}
+	} else {
+		log.Errorf("Failed to start mail daemon: %s", err)
+	}
+
+	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon)
 	initConfig.ActionPerformers = actionPerformers
 
 	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
@@ -182,6 +184,16 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	resource.ImportDataFiles(&initConfig, db, cruds)
 
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
+
+	err = TaskScheduler.AddTask(resource.Task{
+		EntityName: "mail_server",
+		ActionName: "sync_mail_servers",
+		Attributes: map[string]interface{}{
+		},
+		AsUserEmail: cruds["user_account"].GetAdminEmailId(),
+		Schedule:    "@every 10m",
+	})
+
 	TaskScheduler.StartTasks()
 
 	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
@@ -207,39 +219,37 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	resource.InitialiseColumnManager()
 	resource.RegisterTranslations()
 
-	graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
-	//r.GET("/graphql", func(context *gin.Context) {
-	//	log.Infof("graphql query: %v", context.Query("query"))
-	//	result := executeQuery(context.Query("query"), *graphqlSchema)
-	//	json.NewEncoder(context.Writer).Encode(result)
-	//})
+	if initConfig.EnableGraphQL {
 
-	graphqlHttpHandler := graphqlhandler.New(&graphqlhandler.Config{
-		Schema:   graphqlSchema,
-		Pretty:   true,
-		GraphiQL: true,
-	})
+		graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
 
-	// serve HTTP
-	r.Handle("GET", "/graphql", func(c *gin.Context) {
-		graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	})
-	// serve HTTP
-	r.Handle("POST", "/graphql", func(c *gin.Context) {
-		graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	})
-	// serve HTTP
-	r.Handle("PUT", "/graphql", func(c *gin.Context) {
-		graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	})
-	// serve HTTP
-	r.Handle("PATCH", "/graphql", func(c *gin.Context) {
-		graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	})
-	// serve HTTP
-	r.Handle("DELETE", "/graphql", func(c *gin.Context) {
-		graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
-	})
+		graphqlHttpHandler := graphqlhandler.New(&graphqlhandler.Config{
+			Schema:   graphqlSchema,
+			Pretty:   true,
+			GraphiQL: true,
+		})
+
+		// serve HTTP
+		r.Handle("GET", "/graphql", func(c *gin.Context) {
+			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+		})
+		// serve HTTP
+		r.Handle("POST", "/graphql", func(c *gin.Context) {
+			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+		})
+		// serve HTTP
+		r.Handle("PUT", "/graphql", func(c *gin.Context) {
+			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+		})
+		// serve HTTP
+		r.Handle("PATCH", "/graphql", func(c *gin.Context) {
+			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+		})
+		// serve HTTP
+		r.Handle("DELETE", "/graphql", func(c *gin.Context) {
+			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
+		})
+	}
 
 	r.GET("/jsmodel/:typename", handler)
 	r.GET("/stats/:typename", statsHandler)
@@ -259,7 +269,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	r.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
 	r.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
 
-	r.POST("/site/content/load", CreateSubSiteContentHandler(&initConfig, cruds, db))
+	loader := CreateSubSiteContentHandler(&initConfig, cruds, db)
+	r.POST("/site/content/load", loader)
+	r.GET("/site/content/load", loader)
 	r.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
 	webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
@@ -267,24 +279,27 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 
 	go websocketServer.Listen(r)
 
+	indexFile, err := boxRoot.Open("index.html")
+	indexFileContents, err := ioutil.ReadAll(indexFile)
+
 	r.NoRoute(func(c *gin.Context) {
-		file, err := boxRoot.Open("index.html")
 		resource.CheckErr(err, "Failed to open index.html")
 		if err != nil {
 			c.AbortWithStatus(500)
 			return
 		}
-		fileContents, err := ioutil.ReadAll(file)
-		_, err = c.Writer.Write(fileContents)
+		_, err = c.Writer.Write(indexFileContents)
 		resource.CheckErr(err, "Failed to write index html")
 	})
 
 	//r.Run(fmt.Sprintf(":%v", *port))
-	CleanUpConfigFiles()
+	// CleanUpConfigFiles()
 
 	return hostSwitch
 
 }
+
+
 func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseConnection) {
 	resource.CheckRelations(initConfig)
 	resource.CheckAuditTables(initConfig)
@@ -313,6 +328,7 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 	resource.CheckErr(err, "Failed to update action table")
 
 }
+
 func actionPerformersListToMap(interfaces []resource.ActionPerformerInterface) map[string]resource.ActionPerformerInterface {
 	m := make(map[string]resource.ActionPerformerInterface)
 

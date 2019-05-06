@@ -1,0 +1,32 @@
+version: '2'
+services:
+  daptin:
+    image: daptin/daptin
+    container_name: daptin
+    restart: always
+    ports:
+    - "8090:8080"
+    environment:
+    - DAPTIN_DB_TYPE=postgres
+    - DAPTIN_DB_CONNECTION_STRING=host=daptinpostgresdb user=daptin password=daptin123 dbname=daptin sslmode=disable
+    - PORT=8080
+    - DAPTIN_PORT=8080
+    links:
+    - daptinpostgresdb:daptinpostgresdb
+    depends_on:
+    - "daptinpostgresdb"
+    networks:
+    - my_net
+  daptinpostgresdb:
+    image: postgres
+    restart: always
+    environment:
+    - POSTGRES_PASSWORD=daptin123
+    - POSTGRES_USER=daptin
+    - POSTGRES_DB=daptin
+    networks:
+    - my_net
+networks:
+  my_net:
+    external:
+      name: my_net

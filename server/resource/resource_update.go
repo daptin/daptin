@@ -1,17 +1,17 @@
 package resource
 
 import (
+	"encoding/json"
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
 	//"reflect"
 	"errors"
 	"fmt"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/statementbuilder"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
 	"time"
-	"github.com/daptin/daptin/server/statementbuilder"
-	"encoding/json"
 )
 
 // Update an object
@@ -203,7 +203,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 				secret, err := dr.configStore.GetConfigValueFor("encryption.secret", "backend")
 				if err != nil {
-					log.Error("Failed to get secret from config: %v", err)
+					log.Errorf("Failed to get secret from config: %v", err)
 					val = ""
 				} else {
 					val, err = Encrypt([]byte(secret), val.(string))
@@ -316,7 +316,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				}
 				_, err := creator.Create(auditModel, auditCreateRequest)
 				if err != nil {
-					log.Errorf("Failed to create audit entry: %v", err)
+					log.Errorf("Failed to create audit entry: %v\n%v", err, auditModel)
 				} else {
 					log.Infof("[%v][%v] Created audit record", auditModel.GetTableName(), data.GetID())
 					//log.Infof("ReferenceId for change: %v", resp.Result())
@@ -552,7 +552,6 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 		}
 
 		log.Infof("Delete [%v] relation: [%v][%v]", referencedRelation.GetRelation(), relationName, deleteRelations)
-
 
 		for _, deleteId := range deleteRelations {
 

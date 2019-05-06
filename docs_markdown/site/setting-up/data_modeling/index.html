@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  <link rel="shortcut icon" href="../../images/favicon.png">
+  
+  <title>Data model - Daptin</title>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
+  <link href="../../css/theme_extra.css" rel="stylesheet">
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Data model";
+    var mkdocs_page_input_path = "setting-up/data_modeling.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+  
+  <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-114227400-1', 'docs.dapt.in');
+      ga('send', 'pageview');
+  </script>
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> Daptin</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+	<ul class="current">
+	  
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../..">Introduction</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../installation/">Installation</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../settingup/">Getting started</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../access/">User management</a>
+	    </li>
+          
+            <li class="toctree-l1 current">
+		
+    <a class="current" href="./">Data model</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l2"><a href="#automatic-creation">Automatic creation</a></li>
+    
+
+    <li class="toctree-l2"><a href="#manual-creation">Manual creation</a></li>
+    
+        <ul>
+        
+            <li><a class="toctree-l3" href="#data-validations">Data validations</a></li>
+        
+            <li><a class="toctree-l3" href="#online-entity-designer">Online entity designer</a></li>
+        
+            <li><a class="toctree-l3" href="#market-place">Market place</a></li>
+        
+            <li><a class="toctree-l3" href="#column-specifications">Column specifications</a></li>
+        
+            <li><a class="toctree-l3" href="#column-types">Column types</a></li>
+        
+        </ul>
+    
+
+    <li class="toctree-l2"><a href="#data-relations">Data relations</a></li>
+    
+        <ul>
+        
+            <li><a class="toctree-l3" href="#relations-in-jsonyaml-schema">Relations in JSON/YAML schema</a></li>
+        
+            <li><a class="toctree-l3" href="#relations-types">Relations types</a></li>
+        
+            <li><a class="toctree-l3" href="#default-relations">Default relations</a></li>
+        
+            <li><a class="toctree-l3" href="#multiple-relation">Multiple relation</a></li>
+        
+            <li><a class="toctree-l3" href="#sql-constraints">SQL constraints</a></li>
+        
+            <li><a class="toctree-l3" href="#importing-data">Importing data</a></li>
+        
+        </ul>
+    
+
+    <li class="toctree-l2"><a href="#data-conformations">Data conformations</a></li>
+    
+        <ul>
+        
+            <li><a class="toctree-l3" href="#data-auditing">Data Auditing</a></li>
+        
+        </ul>
+    
+
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <span class="caption-text">API reference</span>
+    <ul class="subnav">
+                <li class="">
+                    
+    <span class="caption-text">CRUD</span>
+    <ul class="subnav">
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../apis/read/">Read, search, filter</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../apis/create/">Create</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../apis/update/">Update</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../apis/delete/">Delete</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../apis/relation/">Relations</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../apis/execute/">Execute</a>
+                </li>
+    </ul>
+                </li>
+                <li class="">
+                    
+    <span class="caption-text">Action APIs</span>
+    <ul class="subnav">
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../actions/actions/">Using actions</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../actions/default_actions/">Actions list</a>
+                </li>
+    </ul>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../../state/machines/">State tracking</a>
+                </li>
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Asset and file storage</span>
+    <ul class="subnav">
+                <li class="">
+                    
+    <a class="" href="../../cloudstore/cloudstore/">Connecting with cloud store</a>
+                </li>
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Sub-sites</span>
+    <ul class="subnav">
+                <li class="">
+                    
+    <a class="" href="../../subsite/subsite/">Creating a subsite</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../../subsite/grapes/">Live editing a subsite</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../../subsite/basic_auth/">Basic Authentication</a>
+                </li>
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Sharing</span>
+    <ul class="subnav">
+                <li class="">
+                    
+    <a class="" href="../../extend/marketplace/">Marketplace</a>
+                </li>
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Reference</span>
+    <ul class="subnav">
+                <li class="">
+                    
+    <a class="" href="../../data-modeling/data_storage/">Data store format</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../../streams/streams/">Data streams</a>
+                </li>
+    </ul>
+	    </li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">Daptin</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Data model</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        <a href="https://github.com/daptin/daptin/edit/master/docs/setting-up/data_modeling.md"
+          class="icon icon-github"> Edit on GitHub</a>
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <p>Tables are the basic data structure. Tables have columns. Each column has a particular data type. Tables are exposed as JSON APIs under the <code>/api/&lt;entityName&gt;</code> path.</p>
+<h1 id="automatic-creation">Automatic creation<a class="headerlink" href="#automatic-creation" title="Permanent link">Link</a></h1>
+<p>Import CSV or XLS file and you can let Daptin create the entities for you based on intelligent data pre-processor.</p>
+<h1 id="manual-creation">Manual creation<a class="headerlink" href="#manual-creation" title="Permanent link">Link</a></h1>
+<p>If you are looking for a more reproducible way, design your entities and create JSON or YAML files. These files can be used again to create an exact same replica.</p>
+<p>Multiple schema json files can be uploaded, and changes are merged accordingly.</p>
+<p>Lets imagine we were creating a todo application and wanted to keep a track of the following for each todo item</p>
+<div class="admonition example">
+<p class="admonition-title">Todo list example</p>
+<ul>
+<li>the todo text field - title</li>
+</ul>
+</div>
+<div class="admonition note">
+<p class="admonition-title">YAML example</p>
+<pre class="codehilite"><code class="language-yaml">Tables:
+- TableName: todo
+  Columns:
+  - Name: title
+    DataType: varchar(500)
+    ColumnType: label
+    IsIndexed: true</code></pre>
+
+</div>
+<div class="admonition note">
+<p class="admonition-title">JSON example</p>
+<pre class="codehilite"><code class="language-json">{
+  "Tables": [
+    {
+      "TableName": "todo",
+      "Columns": [
+        {
+          "Name": "title",
+          "DataType": "varchar(500)",
+          "ColumnType": "label",
+          "IsIndexed": true
+        }
+      ]
+    }
+  ]
+}</code></pre>
+
+</div>
+<h2 id="data-validations">Data validations<a class="headerlink" href="#data-validations" title="Permanent link">Link</a></h2>
+<p>Along with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo</p>
+<div class="admonition example">
+<p class="admonition-title">Validations</p>
+<ul>
+<li>title cannot be empty</li>
+<li>order has to be numeric</li>
+</ul>
+</div>
+<p>Once we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this.</p>
+<p>Daptin uses the excellent <a href="https://github.com/go-playground/validator">go-playground/validator</a> library to provide extensive validations when creating and updating data.</p>
+<p>It gives us the following unique features:</p>
+<ul>
+<li>Cross Field and Cross Struct validations by using validation tags or custom validators.</li>
+<li>Slice, Array and Map diving, which allows any or all levels of a multidimensional field to be validated.</li>
+</ul>
+<h3 id="example">Example<a class="headerlink" href="#example" title="Permanent link">Link</a></h3>
+<h3 id="json-example">JSON example<a class="headerlink" href="#json-example" title="Permanent link">Link</a></h3>
+<p>JSON files are the primary way to create new entities in daptin. The above two ways ultimately create a JSON file or fetch from the market.</p>
+<p>The JSON for our <code>todo</code> entity will look as follows:</p>
+<pre class="codehilite"><code class="language-json">    {
+        "Tables": [{
+            "TableName": "todo",
+            "Columns": [{
+                    "Name": "title",
+                    "DataType": "varchar(500)",
+                    "ColumnType": "label",
+                    "IsIndexed": true
+                },
+                {
+                    "Name": "completed",
+                    "DataType": "int(1)",
+                    "ColumnType": "truefalse",
+                    "DefaultValue": "false"
+                },
+                {
+                    "Name": "deadline",
+                    "DataType": "date",
+                    "ColumnType": "date",
+                    "IsNullable": true
+                },
+                {
+                    "Name": "order",
+                    "ColumnName": "item_order",
+                    "DataType": "int(4)",
+                    "ColumnType": "measurement",
+                    "DefaultValue": "10"
+                },
+                {
+                    "Name": "text",
+                    "DataType": "text",
+                    "ColumnType": "content",
+                    "IsNullable": true
+                }
+            ],
+            "Conformations": [{
+                "ColumnName": "order",
+                "Tags": "numeric"
+            }],
+            "validations": [{
+                "ColumnName": "title",
+                "Tags": "required"
+            }]
+]}</code></pre>
+
+<ul>
+<li>Name: Name is a human readable name</li>
+<li>Column Name: Name of the column in the table</li>
+<li>Column Type: The type of the column. Daptin supports a variety of types and these allow daptin to give you useful options in future (eg for viewing a timeline, a date/datetime column is required)</li>
+<li>Default value: Columns can have default values, which is used a new row is created and no value for that column is specified.</li>
+</ul>
+<h3 id="yaml-example">YAML example<a class="headerlink" href="#yaml-example" title="Permanent link">Link</a></h3>
+<p>YAML example for <code>todo</code> entity is as follows</p>
+<pre class="codehilite"><code class="language-yaml">Tables:
+- TableName: todo
+  Columns:
+  - Name: title
+    DataType: varchar(500)
+    ColumnType: label
+    IsIndexed: true
+  - Name: url
+    DataType: varchar(200)
+    ColumnType: url
+    IsNullable: true
+  - Name: completed
+    DataType: int(1)
+    ColumnType: truefalse
+    DefaultValue: 'false'
+  - Name: schedule
+    DataType: date
+    ColumnType: date
+    IsNullable: true
+  - Name: order
+    ColumnName: item_order
+    DataType: int(4)
+    ColumnType: measurement
+    DefaultValue: '10'
+  - Name: text
+    DataType: text
+    ColumnType: content
+    IsNullable: true
+  Conformations:
+  - ColumnName: order
+    Tags: numeric
+  Validations:
+  - ColumnName: title
+Tags: required</code></pre>
+
+<p>You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.</p>
+<h2 id="online-entity-designer">Online entity designer<a class="headerlink" href="#online-entity-designer" title="Permanent link">Link</a></h2>
+<p>The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it. This is a basic designer and more advanced features to customise every aspect of the entity will be added later.</p>
+<p><img alt="Entity designer" src="/images/create_entity.png" /></p>
+<h2 id="market-place">Market place<a class="headerlink" href="#market-place" title="Permanent link">Link</a></h2>
+<p>Checkout <a href="/extend/marketplace">marketplace documentation</a></p>
+<h2 id="column-specifications">Column specifications<a class="headerlink" href="#column-specifications" title="Permanent link">Link</a></h2>
+<p>Columns of the entity can be customized:</p>
+<table>
+<thead>
+<tr>
+<th>Property Name</th>
+<th>Property Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>string</td>
+<td>human readable name, can be skipped</td>
+</tr>
+<tr>
+<td>ColumnName</td>
+<td>string</td>
+<td>column name in the table</td>
+</tr>
+<tr>
+<td>ColumnDescription</td>
+<td>string</td>
+<td>human readable description</td>
+</tr>
+<tr>
+<td>ColumnType</td>
+<td>string</td>
+<td>column type is a rich type of the column</td>
+</tr>
+<tr>
+<td>IsIndexed</td>
+<td>boolean</td>
+<td>true to add an index on this column</td>
+</tr>
+<tr>
+<td>IsUnique</td>
+<td>boolean</td>
+<td>true to set a unique constraint on this column</td>
+</tr>
+<tr>
+<td>IsNullable</td>
+<td>boolean</td>
+<td>are null values allowed</td>
+</tr>
+<tr>
+<td>Permission</td>
+<td>uint64</td>
+<td>permission column (check authorization docs)</td>
+</tr>
+<tr>
+<td>DataType</td>
+<td>string</td>
+<td>the column type inside the database</td>
+</tr>
+<tr>
+<td>DefaultValue</td>
+<td>string</td>
+<td>default value if any (has to be inside single quotes for static values</td>
+</tr>
+</tbody>
+</table>
+<h2 id="column-types">Column types<a class="headerlink" href="#column-types" title="Permanent link">Link</a></h2>
+<p>Daptin supports a variety of rich data types, which helps it to automatically make intelligent decisions and validations. Here is a list of all column types and what should they be used for</p>
+<table>
+<thead>
+<tr>
+<th>Type Name</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>an identity column, mostly for internal purposes</td>
+<td>1</td>
+</tr>
+<tr>
+<td>alias</td>
+<td>a foreign key column</td>
+<td>uuid v4</td>
+</tr>
+<tr>
+<td>date</td>
+<td>full date, no time</td>
+<td>2017-12-30</td>
+</tr>
+<tr>
+<td>time</td>
+<td>time/time interval, no date</td>
+<td>12:34:54</td>
+</tr>
+<tr>
+<td>day</td>
+<td>day of the month</td>
+<td>1 to 31</td>
+</tr>
+<tr>
+<td>month</td>
+<td>month of the year</td>
+<td>1 to 12</td>
+</tr>
+<tr>
+<td>year</td>
+<td>Year</td>
+<td>2017</td>
+</tr>
+<tr>
+<td>minute</td>
+<td>minute of the hour</td>
+<td>0 to 59</td>
+</tr>
+<tr>
+<td>hour</td>
+<td>hour of the dat</td>
+<td>0 - 23</td>
+</tr>
+<tr>
+<td>datetime</td>
+<td>date + time (not stored as timestamp, served at date time string)</td>
+<td>2017-12-30T12:34:54</td>
+</tr>
+<tr>
+<td>email</td>
+<td>email</td>
+<td><a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#116;&#101;&#115;&#116;&#64;&#100;&#111;&#109;&#97;&#105;&#110;&#46;&#99;&#111;&#109;">&#116;&#101;&#115;&#116;&#64;&#100;&#111;&#109;&#97;&#105;&#110;&#46;&#99;&#111;&#109;</a></td>
+</tr>
+<tr>
+<td>name</td>
+<td>column to be used as name of the entity</td>
+<td>daptin</td>
+</tr>
+<tr>
+<td>json</td>
+<td>JSON data</td>
+<td><code>{}</code></td>
+</tr>
+<tr>
+<td>password</td>
+<td>password - are bcrypted with cost 11</td>
+<td>$2a$11$z/VlxycDgZ...</td>
+</tr>
+<tr>
+<td>value</td>
+<td>value is enumeration type</td>
+<td>completed</td>
+</tr>
+<tr>
+<td>truefalse</td>
+<td>boolean</td>
+<td>1</td>
+</tr>
+<tr>
+<td>timestamp</td>
+<td>timestamp (stored as timestamp, served as timestamp)</td>
+<td>123123123</td>
+</tr>
+<tr>
+<td>location.latitude</td>
+<td>only latitude</td>
+<td>34.2938</td>
+</tr>
+<tr>
+<td>location</td>
+<td>latitude + longitude in geoJson format</td>
+<td>[34.223,64.123]</td>
+</tr>
+<tr>
+<td>location.longitude</td>
+<td>only longitude</td>
+<td>64.123</td>
+</tr>
+<tr>
+<td>location.altitude</td>
+<td>only altitude</td>
+<td>34</td>
+</tr>
+<tr>
+<td>color</td>
+<td>hex color string</td>
+<td>#ABCDE1</td>
+</tr>
+<tr>
+<td>rating.10</td>
+<td>rating on a scale of 10</td>
+<td>8</td>
+</tr>
+<tr>
+<td>measurement</td>
+<td>numeric column</td>
+<td>534</td>
+</tr>
+<tr>
+<td>label</td>
+<td>a label for the entity, similar to name but can be more than one</td>
+<td>red</td>
+</tr>
+<tr>
+<td>content</td>
+<td>larger contents - texts/html/json/yaml</td>
+<td>very long text</td>
+</tr>
+<tr>
+<td>file</td>
+<td>uploads, connect storage for using this</td>
+<td></td>
+</tr>
+<tr>
+<td>url</td>
+<td>Urls/links</td>
+<td><a href="http://docs.dapt.in">http://docs.dapt.in</a></td>
+</tr>
+</tbody>
+</table>
+<h1 id="data-relations">Data relations<a class="headerlink" href="#data-relations" title="Permanent link">Link</a></h1>
+<p>A data oriented system with no relational knowledge of the data is next to an Excel sheet. Specifying relations in your data is the most important thing after creating your entities.</p>
+<p>Relations are constraints among tables and help you keep clean and consistent data. Relational data is easily accessible over APIs using a path structure like <code>/api/&lt;entityName&gt;/&lt;id&gt;/&lt;relationName&gt;</code> and the response is consistent with <a href="https://JSONAPI.org">JSONAPI.org</a>.</p>
+<p>Checkout the <a href="/apis/relation">relation apis</a> exposed by daptin.</p>
+<div class="admonition note">
+<p class="admonition-title">YAML example</p>
+<pre class="codehilite"><code class="language-yaml">Relations:
+- Subject: todo
+  Relation: has_one
+  Object: project</code></pre>
+
+</div>
+<div class="admonition note">
+<p class="admonition-title">JSON example</p>
+<pre class="codehilite"><code class="language-json">{
+  "Relations": [
+    {
+      "Subject": "todo",
+      "Relation": "has_one",
+      "Object": "project"
+    }
+  ]
+}</code></pre>
+
+</div>
+<h2 id="relations-in-jsonyaml-schema">Relations in JSON/YAML schema<a class="headerlink" href="#relations-in-jsonyaml-schema" title="Permanent link">Link</a></h2>
+<p>When uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.</p>
+<p>Continuing with our example of todos, lets say we want to group todo's in "projects" and each todo can belong to only a single project.</p>
+<p>Lets design a "project" entity:</p>
+<pre class="codehilite"><code class="language-yaml">- TableName: project
+  Columns:
+  - Name: name
+    DataType: varchar(200)
+    ColumnType: name
+    IsIndexed: true</code></pre>
+
+<p>A very simple table with just a name column. Now we can tell daptin about the relation between todos and projects</p>
+<pre class="codehilite"><code class="language-yaml">Relations:
+- Subject: todo
+  Relation: has_one
+  Object: project</code></pre>
+
+<p>This tells daptin that todo "has_one" project.</p>
+<h2 id="relations-types">Relations types<a class="headerlink" href="#relations-types" title="Permanent link">Link</a></h2>
+<p>Any entity can be associated to any other entity (or to itself) as one of the follows</p>
+<table>
+<thead>
+<tr>
+<th>Relation Name</th>
+<th>Relation Descriptio</th>
+<th>Can be empty</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>belongs_to</td>
+<td>a single object relation</td>
+<td>No</td>
+</tr>
+<tr>
+<td>has_one</td>
+<td>a single object relation</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>has_many</td>
+<td>many related objects</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h2 id="default-relations">Default relations<a class="headerlink" href="#default-relations" title="Permanent link">Link</a></h2>
+<p>Every entity created on daptin has at least two relations</p>
+<table>
+<thead>
+<tr>
+<th>Relation Type</th>
+<th>Related Entity</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>belongs</td>
+<td>user</td>
+<td>owner of the object</td>
+</tr>
+<tr>
+<td>has many</td>
+<td>usergroup</td>
+<td>belongs to usergroup</td>
+</tr>
+</tbody>
+</table>
+<p>These relations help you precisely control the authorization for each user.</p>
+<p>Read more about <a href="/auth/authorization">authorization and permissions</a></p>
+<h2 id="multiple-relation">Multiple relation<a class="headerlink" href="#multiple-relation" title="Permanent link">Link</a></h2>
+<p>There can be a scenario where two entities are related in more then 1 way. Consider the following example</p>
+<ul>
+<li>A blog entity</li>
+<li>A post entity</li>
+<li>Blog has many posts</li>
+<li>Each blog can have a "highlighted post" (blog has one "highlighted post")</li>
+</ul>
+<p>To achieve the above scenario, our schema would look like as follows</p>
+<pre class="codehilite"><code class="language-yaml">Tables:
+- TableName: blog
+  Columns:
+  - Name: title
+    DataType: varchar(500)
+    ColumnType: label
+  - Name: view_count
+    DataType: int(11)
+    ColumnType: measurement
+- TableName: post
+  Columns:
+  - Name: title
+    DataType: varchar(200)
+    ColumnType: label
+  - Name: body
+    DataType: text
+    ColumnType: content
+- TableName: comment
+  Columns:
+  - Name: body
+    DataType: text
+    ColumnType: content
+  - Name: likes_count
+    ColumnName: likes_count
+    DataType: int(11)
+    ColumnType: measurement
+Relations:
+- Subject: comment
+  Relation: belongs_to
+  Object: post
+- Subject: post
+  Relation: belongs_to
+  Object: blog                   // this is our post belongs to blog relation
+- Subject: blog
+  Relation: has_one
+  Object: post
+  ObjectName: current_post
+  SubjectName: current_post_of   // this is our highlighted post relation</code></pre>
+
+<p>Notice the "SubjectName" and "ObjectName" keys which helps to name our relations more intuitively.</p>
+<h2 id="sql-constraints">SQL constraints<a class="headerlink" href="#sql-constraints" title="Permanent link">Link</a></h2>
+<h3 id="belongs-to">belongs to<a class="headerlink" href="#belongs-to" title="Permanent link">Link</a></h3>
+<ul>
+<li>A column is added to the subject entity, which refers to the Object entity, set to non nullable</li>
+</ul>
+<h3 id="has-one">has one<a class="headerlink" href="#has-one" title="Permanent link">Link</a></h3>
+<ul>
+<li>Same as above, but nullable</li>
+</ul>
+<h3 id="has-many">has many<a class="headerlink" href="#has-many" title="Permanent link">Link</a></h3>
+<ul>
+<li>A join table is created</li>
+</ul>
+<h2 id="importing-data">Importing data<a class="headerlink" href="#importing-data" title="Permanent link">Link</a></h2>
+<p>Upload one of these files:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Schema JSON</td>
+<td>Create schema and apis</td>
+</tr>
+<tr>
+<td>CSV</td>
+<td>Auto create entity and upload data</td>
+</tr>
+<tr>
+<td>XLSX</td>
+<td>Auto create entity and upload data</td>
+</tr>
+<tr>
+<td>Data JSON</td>
+<td>Upload data from dumps</td>
+</tr>
+</tbody>
+</table>
+<h3 id="excel-file-upload">Excel file upload<a class="headerlink" href="#excel-file-upload" title="Permanent link">Link</a></h3>
+<p>Excel upload provides an easy way to create entities. This takes away the complexity of writing each column type. Daptin uses a combination of rules to identify columns and their types based on the data in the excel.</p>
+<p>You can upload data from XLS. Daptin will take care of going through your XLS file and identifying column types. This is one of the easiest and fastest ways to create entities and uploading data in daptin. You can specify relations among entities later from the online designer.</p>
+<h3 id="csv-file-upload">CSV file upload<a class="headerlink" href="#csv-file-upload" title="Permanent link">Link</a></h3>
+<p>CSV upload provides an easy way to create entities. This takes away the complexity of writing each column type. Daptin uses a combination of rules to identify columns and their types based on the data in the csv.</p>
+<p>You can upload data from CSV. Daptin will take care of going through your XLS file and identifying column types. This is one of the easiest and fastest ways to create entities and uploading data in daptin. You can specify relations among entities later from the online designer.</p>
+<h1 id="data-conformations">Data conformations<a class="headerlink" href="#data-conformations" title="Permanent link">Link</a></h1>
+<p>Daptin uses the excellent <a href="https://github.com/leebenson/conform">leebenson/conform</a> library to apply conformations on data before storing them in the database</p>
+<ul>
+<li>Conform: keep user input in check (go, golang)</li>
+<li>Trim, sanitize, and modify struct string fields in place, based on tags.</li>
+</ul>
+<p>Use it for names, e-mail addresses, URL slugs, or any other form field where formatting matters.</p>
+<p>Conform doesn't attempt any kind of validation on your fields.</p>
+<h2 id="data-auditing">Data Auditing<a class="headerlink" href="#data-auditing" title="Permanent link">Link</a></h2>
+<p>To enable recoding of all historical data for a particular entity, enable data audit for it in the worlds configuration.</p>
+<p>Audits are ready only and cannot be manipulated over api. You can configure the permission for your use case.</p>
+<p>All changes in daptin can be recorded by enabling <strong>auditing</strong>. History is maintained in separate audit tables which maintain a copy of all columns at each change. Audit table are entities just like regular entities. All Patch/Put/Delete calls to daptin will create an entry in the audit table if the entity is changed.</p>
+<h3 id="audit-tables">Audit tables<a class="headerlink" href="#audit-tables" title="Permanent link">Link</a></h3>
+<p>For any entity named <code>&lt;X&gt;</code>, another tables <code>&lt;X&gt;_audit</code> is added by daptin. Eg if you enable auditing of the <code>user_account</code> table, then a <code>user_account_audit</code> table will be created.</p>
+<p>The audit table will contain all the columns which are present in the original table, plus an extra column <code>is_audit_of</code> is added, which contains the ID of the original row. The <code>is_audit_of</code> is a foreign key column to the parent tables <code>id</code> column.</p>
+<h3 id="audit-row">Audit row<a class="headerlink" href="#audit-row" title="Permanent link">Link</a></h3>
+<p>Each row in the audit table is the copy of the original row just before it is being modified. The audit rows can be accessed just like any other relation.</p>
+<h3 id="audit-table-permissions">Audit table permissions<a class="headerlink" href="#audit-table-permissions" title="Permanent link">Link</a></h3>
+<p>By default, everyone has the access to create audit row, and no one has the access to update or delete them. These permissions can be changed, but it is not recommended at present.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Permission</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Audit table permission</td>
+<td>007007007</td>
+</tr>
+<tr>
+<td>Audit object permission</td>
+<td>003003003</td>
+</tr>
+</tbody>
+</table>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../../apis/read/" class="btn btn-neutral float-right" title="Read, search, filter">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="../access/" class="btn btn-neutral" title="User management"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/daptin/daptin/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+        <span><a href="../access/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../../apis/read/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme.js" defer></script>
+      <script src="../../search/main.js" defer></script>
+
+</body>
+</html>

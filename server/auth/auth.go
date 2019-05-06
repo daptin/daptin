@@ -421,8 +421,8 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 			} else {
 
-				sql, args, err := statementbuilder.Squirrel.Select("ug.reference_id as \"GroupReferenceId\"",
-					"uug.reference_id as \"RelationReferenceId\"", "uug.permission").From("usergroup ug").
+				sql, args, err := statementbuilder.Squirrel.Select("ug.reference_id as \"groupreferenceid\"",
+					"uug.reference_id as \"relationreferenceid\"", "uug.permission").From("usergroup ug").
 					Join("user_account_user_account_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id").Where("uug.user_account_id = ?", userId).ToSql()
 
 				rows, err := a.db.Queryx(sql, args...)
@@ -486,8 +486,8 @@ type SessionUser struct {
 }
 
 type GroupPermission struct {
-	GroupReferenceId    string `db:"GroupReferenceId"`
-	ObjectReferenceId   string `db:"ObjectReferenceId"`
-	RelationReferenceId string `db:"RelationReferenceId"`
+	GroupReferenceId    string `db:"groupreferenceid"`
+	ObjectReferenceId   string `db:"objectreferenceid"`
+	RelationReferenceId string `db:"relationreferenceid"`
 	Permission          ObjectPermission
 }

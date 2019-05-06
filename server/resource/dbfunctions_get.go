@@ -126,7 +126,7 @@ type SubSite struct {
 	Permission   PermissionInstance
 	UserId       *int64 `db:"user_account_id"`
 	ReferenceId  string `db:"reference_id"`
-	Enable       *int64 `db:"enable"`
+	Enable       bool `db:"enable"`
 }
 
 type CloudStore struct {

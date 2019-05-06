@@ -119,6 +119,23 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "sync_mail_servers",
+		Label:            "Sync Mail Servers",
+		OnType:           "mail_server",
+		InstanceOptional: true,
+		InFields: []api2go.ColumnInfo{
+
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "mail.servers.sync",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+				},
+			},
+		},
+	},
+	{
 		Name:             "restart_daptin",
 		Label:            "Restart system",
 		OnType:           "world",
@@ -218,7 +235,7 @@ var SystemActions = []Action{
 	//	Name: "update_config",
 	//	Label: "Update configuration",
 	//	OnType: "world",
-	//	InstanceOptional: true,
+	//	InstanceOptional: true,name
 	//	InFields: []api2go.ColumnInfo{
 	//		{
 	//			Name: "default_storage",
@@ -1422,7 +1439,177 @@ var StandardTables = []TableInfo{
 				ColumnName:   "enable",
 				ColumnType:   "truefalse",
 				DataType:     "bool",
-				DefaultValue: "1",
+				DefaultValue: "true",
+			},
+			{
+				Name:         "enable_https",
+				ColumnName:   "enable_https",
+				ColumnType:   "truefalse",
+				DataType:     "bool",
+				DefaultValue: "false",
+			},
+		},
+	},
+	{
+		TableName:     "mail_server",
+		IsHidden:      false,
+		DefaultGroups: adminsGroup,
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "hostname",
+				ColumnName: "hostname",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+			},
+			{
+				Name:         "is_enabled",
+				ColumnName:   "is_enabled",
+				DataType:     "int(1)",
+				ColumnType:   "truefalse",
+				DefaultValue: "false",
+			},
+			{
+				Name:       "listen_interface",
+				ColumnName: "listen_interface",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "max_size",
+				ColumnName: "max_size",
+				DataType:   "int(11)",
+				ColumnType: "measurement",
+			},
+			{
+				Name:       "tls",
+				ColumnName: "tls",
+				DataType:   "json",
+				ColumnType: "json",
+				IsNullable: true,
+			},
+			{
+				Name:       "max_clients",
+				ColumnName: "max_clients",
+				DataType:   "int(11)",
+				ColumnType: "measurement",
+			},
+			{
+				Name:         "xclient_on",
+				ColumnName:   "xclient_on",
+				DataType:     "bool",
+				ColumnType:   "truefalse",
+				DefaultValue: "false",
+			},
+		},
+	},
+	{
+		TableName:     "mail",
+		IsHidden:      false,
+		DefaultGroups: adminsGroup,
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "message_id",
+				ColumnName: "message_id",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "mail_id",
+				ColumnName: "mail_id",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "from_address",
+				ColumnName: "from_address",
+				DataType:   "varchar(200)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "to_address",
+				ColumnName: "to_address",
+				DataType:   "varchar(200)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "reply_to_address",
+				ColumnName: "reply_to_address",
+				DataType:   "varchar(200)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "sender_address",
+				ColumnName: "sender_address",
+				DataType:   "varchar(200)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "subject",
+				ColumnName: "subject",
+				DataType:   "varchar(200)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "body",
+				ColumnName: "body",
+				DataType:   "varchar(16)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "mail",
+				ColumnName: "mail",
+				ColumnType: "gzip",
+				DataType:   "blob",
+			},
+			{
+				Name:       "spam_score",
+				ColumnName: "spam_score",
+				ColumnType: "measurement",
+				DataType:   "float",
+			},
+			{
+				Name:       "hash",
+				ColumnName: "hash",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "content_type",
+				ColumnName: "content_type",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "recipient",
+				ColumnName: "recipient",
+				DataType:   "varchar(200)",
+				ColumnType: "label",
+			},
+			{
+				Name:         "has_attachment",
+				ColumnName:   "has_attachment",
+				DataType:     "bool",
+				ColumnType:   "truefalse",
+				DefaultValue: "false",
+			},
+			{
+				Name:       "ip_addr",
+				ColumnName: "ip_addr",
+				DataType:   "varbinary(16)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "return_path",
+				ColumnName: "return_path",
+				DataType:   "VARCHAR(255)",
+				ColumnType: "content",
+			},
+			{
+				Name:         "is_tls",
+				ColumnName:   "is_tls",
+				DataType:     "bool",
+				ColumnType:   "truefalse",
+				DefaultValue: "false",
 			},
 		},
 	},

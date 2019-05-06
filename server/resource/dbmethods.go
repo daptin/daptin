@@ -303,11 +303,11 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 
 	//log.Infof("Join string: %v: ", rel.GetJoinString())
 
-	sql, args, err := statementbuilder.Squirrel.Select("usergroup_id.reference_id as \"GroupReferenceId\"",
-		rel.GetJoinTableName()+".reference_id as \"RelationReferenceId\"", rel.GetJoinTableName()+".permission").From(rel.Subject).Join(rel.GetJoinString()).
+	sql, args, err := statementbuilder.Squirrel.Select("usergroup_id.reference_id as \"groupreferenceid\"",
+		rel.GetJoinTableName()+".reference_id as \"relationreferenceid\"", rel.GetJoinTableName()+".permission").From(rel.Subject).Join(rel.GetJoinString()).
 		Where(fmt.Sprintf("%s.%s = ?", rel.Subject, colName), colvalue).ToSql()
 	if err != nil {
-		log.Errorf("Failed to create permission select query", err)
+		log.Errorf("Failed to create permission select query: %v", err)
 		return s
 	}
 
@@ -352,8 +352,8 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 		return s
 	}
 
-	sql, args, err := statementbuilder.Squirrel.Select("ug.reference_id as \"GroupReferenceId\"",
-		"uug.reference_id as RelationReferenceId", "uug.permission").From("usergroup ug").
+	sql, args, err := statementbuilder.Squirrel.Select("ug.reference_id as \"groupreferenceid\"",
+		"uug.reference_id as relationreferenceid", "uug.permission").From("usergroup ug").
 		Join(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id", objType, objType)).
 		Where(fmt.Sprintf("uug.%s_id = ?", objType), objectId).ToSql()
 
@@ -394,7 +394,20 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 
 }
 
-// Returns the bCrypt password hash of a user by looking up on email
+// Returns the user account row of a user by looking up on email
+func (d *DbResource) GetUserAccountRowByEmail(email string) (map[string]interface{}, error) {
+
+	user, _, err := d.Cruds["user_account"].GetRowsByWhereClause("user", squirrel.Eq{"email": email})
+
+	if len(user) > 0 {
+
+		return user[0], err
+	}
+
+	return nil, errors.New("no such user")
+
+}
+
 func (d *DbResource) GetUserPassword(email string) (string, error) {
 	passwordHash := ""
 

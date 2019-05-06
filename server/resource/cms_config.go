@@ -3,15 +3,16 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/database"
+	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"gopkg.in/go-playground/validator.v9"
 	"time"
-	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 type CmsConfig struct {
 	Tables                   []TableInfo
+	EnableGraphQL            bool
 	Imports                  []DataFileImport
 	StateMachineDescriptions []LoopbookFsmDescription
 	Relations                []api2go.TableRelation
@@ -181,7 +182,7 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 
 	err = c.db.QueryRowx(s, v...).Scan(&val)
 	if err != nil {
-		log.Infof("Failed to scan config value: ", err)
+		log.Infof("Failed to scan config value: %v", err)
 	}
 	return val, err
 }
@@ -200,7 +201,7 @@ func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, 
 
 	err = c.db.QueryRowx(s, v...).Scan(&val)
 	if err != nil {
-		log.Infof("Failed to scan config value: ", err)
+		log.Infof("Failed to scan config value: %v", err)
 	}
 	return val, err
 }
