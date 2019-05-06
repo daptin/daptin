@@ -48,6 +48,10 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 	schemaPath, _ := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
 
+	if len(schemaPath) == 0 {
+		schemaPath = "."
+	}
+
 	if schemaPath[len(schemaPath)-1] != '/' {
 		schemaPath = schemaPath + "/"
 	}
