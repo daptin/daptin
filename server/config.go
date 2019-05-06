@@ -48,14 +48,16 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 	schemaPath, _ := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
 
-	if schemaPath[len(schemaPath) - 1] != '/' {
+	if schemaPath[len(schemaPath)-1] != '/' {
 		schemaPath = schemaPath + "/"
 	}
 
+	files1, err := filepath.Glob("schema_*.*")
 	files, err := filepath.Glob(schemaPath + "schema_*.*")
+	files = append(files, files1...)
 	log.Infof("Found files to load: %v", files)
 
-		if err != nil {
+	if err != nil {
 		errs = append(errs, err)
 		return globalInitConfig, errs
 	}

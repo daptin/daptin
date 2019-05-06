@@ -370,7 +370,8 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				return false, true, req
 			}
 
-			err = a.db.QueryRowx(sql, args...).Scan(&userId, &referenceId)
+			rowx := a.db.QueryRowx(sql, args...)
+			err = rowx.Scan(&userId, &referenceId)
 
 			if err != nil {
 				log.Errorf("Failed to scan user from db: %v", err)

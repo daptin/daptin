@@ -460,7 +460,7 @@ func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) {
 	log.Infof("Create table query")
 	log.Println(createTableQuery)
 	_, err := db.Exec(createTableQuery)
-	db.Exec("COMMIT ")
+	//db.Exec("COMMIT ")
 	if err != nil {
 		log.Errorf("Failed to create table: %v", err)
 	}

@@ -2,13 +2,13 @@ package resource
 
 import (
 	"fmt"
+	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"regexp"
-	log "github.com/sirupsen/logrus"
 	"sort"
 	"strings"
-	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 type TimeStamp string
@@ -116,6 +116,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 	log.Infof("Stats query: %v == %v", sql, args)
 	res, err := dr.db.Queryx(sql, args...)
 	CheckErr(err, "Failed to query stats: %v", err)
+	defer res.Close()
 	if err != nil {
 		return AggregateData{}, err
 	}

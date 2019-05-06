@@ -26,6 +26,7 @@ type Task struct {
 type TaskScheduler interface {
 	StartTasks()
 	AddTask(task Task) error
+	StopTasks()
 }
 
 type DefaultTaskScheduler struct {
@@ -47,6 +48,10 @@ func NewTaskScheduler(cmsConfig *CmsConfig, cruds map[string]*DbResource, config
 		activeTasks: make([]*ActiveTaskInstance, 0),
 	}
 	return dts
+}
+
+func (dts *DefaultTaskScheduler) StopTasks() {
+	dts.cronService.Stop()
 }
 
 func (dts *DefaultTaskScheduler) StartTasks() {
