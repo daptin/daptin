@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-xgo --targets=linux/*,darwin/*,windows-6.0/* .
+xgo -ldflags='-extldflags "-static"' --targets=linux/*,darwin/*,windows-6.0/* .

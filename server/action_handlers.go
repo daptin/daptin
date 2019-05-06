@@ -1,8 +1,11 @@
 package server
 
-import "github.com/daptin/daptin/server/resource"
+import (
+	"github.com/daptin/daptin/server/resource"
+	"github.com/flashmob/go-guerrilla"
+)
 
-func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource) []resource.ActionPerformerInterface {
+func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon) []resource.ActionPerformerInterface {
 	performers := make([]resource.ActionPerformerInterface, 0)
 
 	becomeAdminPerformer, err := resource.NewBecomeAdminPerformer(initConfig, cruds)
@@ -65,6 +68,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create marketplace package install performer")
 	performers = append(performers, marketplacePackage)
 
+	mailServerSync, err := resource.NewMailServersSyncActionPerformer(cruds, mailDaemon)
+	resource.CheckErr(err, "Failed to create mail server sync performer")
+	performers = append(performers, mailServerSync)
+
 	refreshMarketPlaceHandler, err := resource.NewRefreshMarketplacePackagelistPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create marketplace package refresh performer")
 	performers = append(performers, refreshMarketPlaceHandler)
@@ -80,6 +87,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	csvUploadPerformer, err := resource.NewUploadCsvFileToEntityPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create csv upload performer")
 	performers = append(performers, csvUploadPerformer)
+
+	enableGraphqlPerformer, err := resource.NewGraphqlEnablePerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create enable graphql performer")
+	performers = append(performers, enableGraphqlPerformer)
 
 	fileUploadPerformer, err := resource.NewFileUploadActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create restart performer")

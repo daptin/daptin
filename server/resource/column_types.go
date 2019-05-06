@@ -353,6 +353,14 @@ var ColumnTypes = []ColumnType{
 		GraphqlType:   graphql.String,
 	},
 	{
+		Name:          "json",
+		BlueprintType: "string",
+		ReclineType:   "string",
+		Validations:   []string{"text"},
+		DataTypes:     []string{"JSON"},
+		GraphqlType:   graphql.String,
+	},
+	{
 		Name:          "image",
 		BlueprintType: "file",
 		ReclineType:   "binary",

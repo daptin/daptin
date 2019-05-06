@@ -7,8 +7,8 @@
 |--------------------|--------------------------|----------------|-----------------------------------------------------------|
 | page[number]       |  integer                 |  1             |  5                                                        |
 | page[size]         |  integer                 |  10            |  100                                                      |
-| query              |  json base64             |  []            |  [{'column': 'name' 'operator': 'eq' 'value': 'england'}] |
-| group              |  string                  |  -             |  [{'column': 'name' 'order': 'desc'}]                     |
+| query              |  json base64             |  []            | [{"column": "name", "operator": "is", "value": "england"}] |
+| group              |  string                  |  -             |  [{"column": "name", "order": "desc"}]                     |
 | included_relations |  comma separated string  |  -             |  user post author                                         |
 | sort               |  comma seaparated string |  -             |  created_at amount guest_count                            |
 | filter             |  string                  |  -             |  england                                                  |
@@ -126,4 +126,26 @@
     );
     $response = Requests::get('http://api.daptin.com:6336/api/laptop?sort=&page[number]=1&page[size]=10', $headers);
 
+# Filtering
 
+Used to search items in a table that matche the filter's conditions. Filters follow the syntax `query=[{"column": "<column_name>", "operator": "<compare-operator>", "value":"<value>"}]`
+
+| Daptin operator|  SQL compare operator  |
+|----------------|------------------------|
+| contains       |  like  '%\<value>'     |
+| not contains   |  not like  '%\<value>' |
+| is             |  =                     |
+| is not         |  !=                    |
+| before         |  <                     |
+| less then      |  <                     |
+| after          |  >                     |
+|  more then     |  >                     |
+|  any of        |  in                    |
+|  none of       |  not in                |
+|  is empty      |  is null               |
+|  is not empty  |  is not null           |
+
+## Example
+
+    curl '/api/world?query=[{"column": "is_hidden", "operator": "any of", "value":"1,0"}] \
+      -H 'Authorization: Bearer <AccessToken>'

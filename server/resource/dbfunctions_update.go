@@ -260,8 +260,8 @@ func UpdateMarketplaces(initConfig *CmsConfig, db database.DatabaseConnection) {
 			existingMarketPlaces[marketplace.Endpoint] = marketplace
 			u, _ := uuid.NewV4()
 
-			s, v, err := statementbuilder.Squirrel.Insert("marketplace").Columns("endpoint", "root_path", "reference_id", "permission", "user_account_id").
-				Values(marketplace.Endpoint, schema, u.String(), auth.DEFAULT_PERMISSION, adminUserId).ToSql()
+			s, v, err := statementbuilder.Squirrel.Insert("marketplace").Columns("endpoint", "name", "root_path", "reference_id", "permission", "user_account_id").
+				Values(marketplace.Endpoint, marketplace.Name, schema, u.String(), auth.DEFAULT_PERMISSION, adminUserId).ToSql()
 
 			_, err = db.Exec(s, v...)
 			CheckErr(err, "Failed to insert into db about marketplace [%v]: %v", marketplace.Endpoint, err)
@@ -656,7 +656,7 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 				log.Errorf("Failed to insert action [%v]: %v", action.Name, err)
 			}
 		} else {
-			log.Infof("Action [%v] is new, adding action: %v @ %v", action.Name, action.OnType)
+			log.Infof("Action [%v] is new, adding action: @ %v", action.Name, action.OnType)
 
 			actionSchema, _ := json.Marshal(action)
 

@@ -32,6 +32,8 @@
     "jsoneditor": "^5.11.0",
     "jwt-decode": "^2.2.0",
     "kingtable": "^2.0.0",
+    "less": "^3.9.0",
+    "less-loader": "^4.1.0",
     "markdown-it": "^8.4.2",
     "module": "^1.2.5",
     "moment": "^2.19.3",
@@ -53,7 +55,8 @@
     "vue2-ace": "^1.0.6",
     "vuedraggable": "^2.14.1",
     "vuex": "^2.0.0",
-    "vuex-router-sync": "^4.1.2"
+    "vuex-router-sync": "^4.1.2",
+    "x-data-spreadsheet": "^1.0.11"
   },
   "devDependencies": {
     "atob": ">=2.1.0",

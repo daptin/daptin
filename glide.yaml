@@ -4,10 +4,10 @@ import:
   subpackages:
   - embedded
 - package: github.com/artpar/rclone
-  version: "1.66"
+  version: "1.71"
 - package: github.com/gocraft/health
 - package: github.com/artpar/api2go
-  version: ^2.3.9
+  version: ^2.4.0
 - package: github.com/artpar/api2go-adapter
   version: ^1.0.0
   subpackages:
@@ -66,10 +66,10 @@ import:
   version: ^1.1.0
 - package: github.com/digitalocean/godo
   version: ~1.1.1
-- package: github.com/thoas/stats
+- package: github.com/artpar/stats
   version: fc5c06ed3df0e436bc483ccc97053cd98930ca61
 - package: github.com/graphql-go/graphql
-  version: ^0.7.5
+  version: ^0.7.7
 - package: github.com/graphql-go/handler
   version: ^0.2.1
 - package: github.com/bamzi/jobrunner

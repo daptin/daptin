@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"os"
 	"path/filepath"
 )
 
@@ -30,6 +31,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		Tables:                   make([]resource.TableInfo, 0),
 		Relations:                make([]api2go.TableRelation, 0),
 		Imports:                  make([]resource.DataFileImport, 0),
+		EnableGraphQL:            false,
 		Actions:                  make([]resource.Action, 0),
 		StateMachineDescriptions: make([]resource.LoopbookFsmDescription, 0),
 		Streams:                  make([]resource.StreamContract, 0),
@@ -44,10 +46,16 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 	globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
 	globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
 
-	files, err := filepath.Glob("schema_*.*")
+	schemaPath, _ := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
+
+	if schemaPath[len(schemaPath) - 1] != '/' {
+		schemaPath = schemaPath + "/"
+	}
+
+	files, err := filepath.Glob(schemaPath + "schema_*.*")
 	log.Infof("Found files to load: %v", files)
 
-	if err != nil {
+		if err != nil {
 		errs = append(errs, err)
 		return globalInitConfig, errs
 	}
@@ -83,7 +91,6 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, initConfig.StateMachineDescriptions...)
 		globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
 
-
 		for _, action := range initConfig.Actions {
 			log.Infof("Action [%v][%v]", fileName, action.Name)
 		}
@@ -93,7 +100,11 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		}
 
 		for _, smd := range initConfig.StateMachineDescriptions {
-			log.Infof("Marketplace [%v][%v]", fileName, smd.Name, smd.InitialState)
+			log.Infof("Marketplace [%v][%v][%v]", fileName, smd.Name, smd.InitialState)
+		}
+
+		if initConfig.EnableGraphQL {
+			globalInitConfig.EnableGraphQL = true
 		}
 
 		//log.Infof("File added to config, deleting %v", fileName)

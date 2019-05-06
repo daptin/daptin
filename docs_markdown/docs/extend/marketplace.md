@@ -13,13 +13,16 @@ Market places are git based repositories where you can keep your collections of 
 - If your packages are not at the root, then enter a path to the subpackages
 - Or leave this path empty
 
-Click submit to add this. Remember to "Sync repository" once before installing a package.
+Click submit to add this.
+
+!!! note
+    Remember to "Sync repository" once before installing a package.
 
 Syncing makes a local clone of the git repository for usage, or pulls for changes if it exists already.
 
 ## Example of a market place git repository
 
-[Checkout a dummy market place](https://github.com/artpar/daptin-marketplace-dummy) with a couple of packages to be used
+[Checkout a dummy market place](https://github.com/artpar/daptin-marketplace-dummy) with a couple of packages available
 
 - Blog
 - Construction project management system

@@ -28,7 +28,7 @@ func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields m
 	userReferenceId := ""
 	//userIdInt := uint64(1)
 	var err error
-	log.Info("%v", inFields)
+	log.Infof("%v", inFields)
 
 	if inFields["user_reference_id"] != nil {
 		userReferenceId = inFields["user_reference_id"].(string)
