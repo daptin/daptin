@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/GeertJohan/go.rice"
 	"github.com/daptin/daptin/server"
+	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/flashmob/go-guerrilla"
 	"github.com/gin-gonic/gin"
 	"github.com/gocraft/health"
 	"github.com/jamiealquiza/envy"
@@ -14,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"syscall"
+	"time"
 )
 
 // Save the stream as a global variable
@@ -60,22 +63,39 @@ func main() {
 	statementbuilder.InitialiseStatementBuilder(*db_type)
 
 	db, err := server.GetDbConnection(*db_type, *connection_string)
-	db.SetMaxOpenConns(500)
+	db.SetMaxIdleConns(20)
+	db.SetMaxOpenConns(50)
+	db.SetConnMaxLifetime(300 * time.Second)
 	if err != nil {
 		panic(err)
 	}
 	log.Printf("Connection acquired from database")
 
 	var hostSwitch server.HostSwitch
+	var mailDaemon *guerrilla.Daemon
+	var taskScheduler resource.TaskScheduler
 
-	hostSwitch = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler = server.Main(boxRoot, db)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
 
 	trigger.On("restart", func() {
 		log.Printf("Trigger restart")
-		hostSwitch = server.Main(boxRoot, db)
+
+		taskScheduler.StartTasks()
+		mailDaemon.Shutdown()
+		err = db.Close()
+		if err != nil {
+			log.Printf("Failed to close DB connections: %v", err)
+		}
+
+		db, err = server.GetDbConnection(*db_type, *connection_string)
+		db.SetMaxIdleConns(2)
+		db.SetMaxOpenConns(50)
+		db.SetConnMaxLifetime(20 * time.Second)
+
+		hostSwitch, mailDaemon, taskScheduler = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
 

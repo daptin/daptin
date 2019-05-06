@@ -7,14 +7,15 @@ import (
 	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
+	"github.com/artpar/stats"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
+	"github.com/flashmob/go-guerrilla"
 	"github.com/gin-gonic/gin"
 	graphqlhandler "github.com/graphql-go/handler"
 	log "github.com/sirupsen/logrus"
-	"github.com/artpar/stats"
 	"io/ioutil"
 	"net/http"
 )
@@ -22,7 +23,7 @@ import (
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon, resource.TaskScheduler) {
 
 	/// Start system initialise
 	log.Infof("Load config files")
@@ -293,12 +294,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) HostSwitch {
 	})
 
 	//r.Run(fmt.Sprintf(":%v", *port))
-	// CleanUpConfigFiles()
+	CleanUpConfigFiles()
 
-	return hostSwitch
+	return hostSwitch, mailDaemon, TaskScheduler
 
 }
-
 
 func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseConnection) {
 	resource.CheckRelations(initConfig)

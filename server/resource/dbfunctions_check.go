@@ -334,11 +334,15 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 
 	s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
 	//log.Infof("Sql: %v", s)
-	columns, err := db.QueryRowx(s).Columns()
+	rowx := tx.QueryRowx(s)
+	columns, err := rowx.Columns()
 	if err != nil {
 		log.Infof("Failed to select * from %v: %v", tableInfo.TableName, err)
 		CreateTable(tableInfo, tx)
 		return
+	} else {
+		var dest map[string]interface{}
+		rowx.Scan(&dest)
 	}
 
 	for _, col := range columns {

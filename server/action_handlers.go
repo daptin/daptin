@@ -88,6 +88,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create csv upload performer")
 	performers = append(performers, csvUploadPerformer)
 
+	columnDeletePerformer, err := resource.NewDeleteWorldColumnPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create column delete performer")
+	performers = append(performers, columnDeletePerformer)
+
 	enableGraphqlPerformer, err := resource.NewGraphqlEnablePerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create enable graphql performer")
 	performers = append(performers, enableGraphqlPerformer)

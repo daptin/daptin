@@ -89,6 +89,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 					res, err := dr.db.Queryx(joinIdQuery, vals...)
 					CheckErr(err, "Failed to query for join ids")
+					defer res.Close()
 					if err == nil {
 
 						ids := map[string]int64{}
@@ -138,6 +139,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 					res, err := dr.db.Queryx(joinIdQuery, vals...)
 					CheckErr(err, "Failed to query for join ids")
+					defer res.Close()
 					if err == nil {
 
 						ids := []string{}
@@ -246,6 +248,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 					res, err := dr.db.Queryx(joinIdQuery, vals...)
 					CheckErr(err, "Failed to query for join ids")
+					defer res.Close()
 					if err == nil {
 
 						ids := []string{}

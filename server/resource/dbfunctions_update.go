@@ -475,9 +475,9 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	rows, err := db.Queryx(s, v...)
 	CheckErr(err, "Failed to query existing exchanges")
+	defer rows.Close()
 
 	if err == nil {
-		defer rows.Close()
 		for rows.Next() {
 
 			var name, source_type, target_type string

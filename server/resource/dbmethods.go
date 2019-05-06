@@ -180,7 +180,11 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 
 	}
 
-	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, resultObject["id"].(int64))
+	i, ok := resultObject["id"].(int64)
+	if !ok {
+		return perm
+	}
+	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, i)
 
 	perm.Permission = auth.ParsePermission(resultObject["permission"].(int64))
 	if err != nil {
@@ -385,7 +389,8 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 
 	var count int
 
-	err := dbResource.db.QueryRow("select count(*) from user_account where email != 'guest@cms.go'").Scan(&count)
+	row := dbResource.db.QueryRow("select count(*) from user_account where email != 'guest@cms.go'")
+	err := row.Scan(&count)
 	if err != nil {
 		return false
 	}
