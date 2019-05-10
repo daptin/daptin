@@ -292,14 +292,15 @@
           }
 
 
-          if (!that.model[columnMeta.ColumnName] && columnMeta.DefaultValue) {
+          if (!that.model["reference_id"]) {
 
-            if (columnMeta.DefaultValue[0] == "'") {
-              that.model[columnMeta.ColumnName] = columnMeta.DefaultValue.substring(1, columnMeta.DefaultValue.length - 1);
-            } else {
-              that.model[columnMeta.ColumnName] = columnMeta.DefaultValue;
+            if (!that.model[columnMeta.ColumnName] && columnMeta.DefaultValue) {
+              if (columnMeta.DefaultValue[0] == "'") {
+                that.model[columnMeta.ColumnName] = columnMeta.DefaultValue.substring(1, columnMeta.DefaultValue.length - 1);
+              } else {
+                that.model[columnMeta.ColumnName] = columnMeta.DefaultValue;
+              }
             }
-
           }
 
           if (columnMeta.ColumnType == "truefalse") {

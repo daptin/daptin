@@ -2,9 +2,8 @@
 
 
   <div class="row">
-    <div v-if="viewMode != 'table'" class="col-md-12" style="min-height: 70px;">
+    <div v-if="viewMode != 'table'" class="col-md-12">
       <vuetable-pagination :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
-
     </div>
     <div class="col-md-12" style="position: relative; height: 700px;">
       <template v-if="viewMode == 'table'">
