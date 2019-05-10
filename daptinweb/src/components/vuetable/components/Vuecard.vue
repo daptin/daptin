@@ -2,7 +2,7 @@
   <div :class="['vuecard', 'row', css.tableClass]">
 
     <div v-cloak class="vuecard-body">
-      <div class="col-md-4" v-for="(item, index) in tableData" >
+      <div class="col-md-4" v-for="(item, index) in tableData">
         <div @dblclick="onRowDoubleClicked(item, $event)" :item-index="index" @click="onRowClicked(item, $event)"
              :render="onRowChanged(item)" :class="[onRowClass(item, index), 'box']" style="min-height: 250px">
           <div class="box-header">
@@ -85,6 +85,8 @@
 </template>
 
 <script>
+  var markdown_renderer = require('markdown-it')();
+
   export default {
     props: {
       loadOnStart: {
@@ -115,7 +117,7 @@
       },
       queryParams: {
         type: Object,
-        default () {
+        default() {
           return {
             sort: 'sort',
             page: 'page',
@@ -125,31 +127,31 @@
       },
       appendParams: {
         type: Object,
-        default () {
+        default() {
           return {}
         }
       },
       httpOptions: {
         type: Object,
-        default () {
+        default() {
           return {}
         }
       },
       perPage: {
         type: Number,
-        default () {
+        default() {
           return 10
         }
       },
       sortOrder: {
         type: Array,
-        default () {
+        default() {
           return []
         }
       },
       multiSort: {
         type: Boolean,
-        default () {
+        default() {
           return false
         }
       },
@@ -189,7 +191,7 @@
       },
       css: {
         type: Object,
-        default () {
+        default() {
           return {
             tableClass: 'ui blue selectable celled stackable attached table',
             loadingClass: 'loading',
@@ -221,7 +223,7 @@
         default: null
       }
     },
-    data () {
+    data() {
       return {
         eventPrefix: 'vuecard:',
         tableFields: [],
@@ -233,7 +235,7 @@
         visibleDetailRows: [],
       }
     },
-    created () {
+    created() {
       this.normalizeFields();
       this.$nextTick(function () {
         this.emit1('initialized', this.tableFields)
@@ -247,7 +249,7 @@
       }
     },
     computed: {
-      useDetailRow () {
+      useDetailRow() {
         if (this.tableData && this.tableData[0] && this.detailRowComponent !== '' && typeof this.tableData[0][this.trackBy] === 'undefined') {
           this.warn('You need to define unique row identifier in order for detail-row feature to work. Use `track-by` prop to define one!');
           return false
@@ -255,7 +257,7 @@
 
         return this.detailRowComponent !== ''
       },
-      countVisibleFields () {
+      countVisibleFields() {
         return this.tableFields.filter(function (field) {
           return field.visible
         }).length
@@ -278,7 +280,7 @@
       }
     },
     methods: {
-      normalizeFields () {
+      normalizeFields() {
         var that = this;
 //        console.log("vuecard for ", this.jsonApiModelName)
         let modelFor = this.jsonApi.modelFor(this.jsonApiModelName);
@@ -310,6 +312,12 @@
 
           if (fieldType == "encrypted") {
             field.visible = false;
+          }
+          if (fieldType.indexOf && fieldType.indexOf("image.") == 0) {
+            field.callback = function (val, row) {
+              console.log("render image on card", val);
+              return "Image preview not available"
+            }
           }
 
           if (typeof fieldType == "object") {
@@ -353,6 +361,12 @@
             field.visible = false;
           }
 
+          if (fieldType == "markdown") {
+            field.callback = function (val, row) {
+              return markdown_renderer.render(val)
+            }
+          }
+
           if (fieldType == "label") {
             field.callback = function (val, row) {
 //              console.log("callback for label field", val, arguments);
@@ -380,30 +394,22 @@
           titleClass: 'center aligned',
           dataClass: 'center aligned',
         };
-//        self.tableFields.unshift({
-//          name: '__slot:actions',
-////          title: '<button class="ui button" @click="newRow()"><i class="fa fa-plus"></i> Add '+ this.jsonApiModelName +'</button>',
-//          title: '',
-//          visible: true,
-//          titleClass: 'center aligned',
-//          dataClass: 'center aligned',
-//        });
       },
-      setData (data) {
+      setData(data) {
         this.apiMode = false;
         this.tableData = data
       },
       titleCase(str) {
         return this.$parent.titleCase(str);
       },
-      setTitle (str) {
+      setTitle(str) {
         if (this.isSpecialField(str)) {
           return ''
         }
 
         return this.titleCase(str)
       },
-      renderTitle (field) {
+      renderTitle(field) {
         let title = (typeof field.title === 'undefined') ? field.name.replace(/\.\_/g, ' ') : field.title;
 
         if (title.length > 0 && this.isInCurrentSortGroup(field)) {
@@ -413,7 +419,7 @@
 
         return title
       },
-      isSpecialField (fieldName) {
+      isSpecialField(fieldName) {
         return fieldName.slice(0, 2) === '__'
       },
       titleCase: function (str) {
@@ -421,16 +427,16 @@
           .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
           .join(' ')
       },
-      camelCase (str, delimiter = '_') {
+      camelCase(str, delimiter = '_') {
         let self = this;
         return str.split(delimiter).map(function (item) {
           return self.titleCase(item)
         }).join('')
       },
-      notIn (str, arr) {
+      notIn(str, arr) {
         return arr.indexOf(str) === -1
       },
-      loadData (success = this.loadSuccess, failed = this.loadFailed) {
+      loadData(success = this.loadSuccess, failed = this.loadFailed) {
         var that = this;
         if (!this.apiMode) return;
 
@@ -447,7 +453,7 @@
           failed
         )
       },
-      loadSuccess (response) {
+      loadSuccess(response) {
 //        console.log("load success", response);
         this.emit1('load-success', response);
 
@@ -471,12 +477,12 @@
           that.emit1('loaded')
         })
       },
-      loadFailed (response) {
+      loadFailed(response) {
         console.error('load-error', response);
         this.emit1('load-error', response);
         this.emit1('loaded')
       },
-      transform (data) {
+      transform(data) {
         let func = 'transform';
 
         if (this.parentFunctionExists(func)) {
@@ -485,25 +491,25 @@
 
         return data
       },
-      parentFunctionExists (func) {
+      parentFunctionExists(func) {
         return (func !== '' && typeof this.$parent[func] === 'function')
       },
-      callParentFunction (func, args, defaultValue = null) {
+      callParentFunction(func, args, defaultValue = null) {
         if (this.parentFunctionExists(func)) {
           return this.$parent[func].call(this.$parent, args)
         }
 
         return defaultValue
       },
-      emit1 (eventName, args) {
+      emit1(eventName, args) {
         this.$emit(eventName, args)
       },
-      warn (msg) {
+      warn(msg) {
         if (!this.silent) {
           console.warn(msg)
         }
       },
-      getAllQueryParams () {
+      getAllQueryParams() {
         let params = {};
         params[this.queryParams.sort] = this.getSortParam();
         params[this.queryParams.page] = this.currentPage;
@@ -526,7 +532,7 @@
           return (sort.direction === 'desc' ? '' : '-') + sort.field
         }).join(',')
       },
-      getDefaultSortParam () {
+      getDefaultSortParam() {
         let result = '';
 
         for (let i = 0; i < this.sortOrder.length; i++) {
@@ -539,19 +545,19 @@
 
         return result;
       },
-      extractName (string) {
+      extractName(string) {
         return string.split(':')[0].trim()
       },
-      extractArgs (string) {
+      extractArgs(string) {
         return string.split(':')[1]
       },
-      isSortable (field) {
+      isSortable(field) {
         return !(typeof field.sortField === 'undefined')
       },
-      isInCurrentSortGroup (field) {
+      isInCurrentSortGroup(field) {
         return this.currentSortOrderPosition(field) !== false;
       },
-      currentSortOrderPosition (field) {
+      currentSortOrderPosition(field) {
         if (!this.isSortable(field)) {
           return false
         }
@@ -564,10 +570,10 @@
 
         return false;
       },
-      fieldIsInSortOrderPosition (field, i) {
+      fieldIsInSortOrderPosition(field, i) {
         return this.sortOrder[i].field === field.name && this.sortOrder[i].sortField === field.sortField
       },
-      orderBy (field, event) {
+      orderBy(field, event) {
         if (!this.isSortable(field) || !this.apiMode) return;
 
         let key = this.multiSortKey.toLowerCase() + 'Key';
@@ -582,7 +588,7 @@
         this.currentPage = 1;    // reset page index
         this.loadData()
       },
-      multiColumnSort (field) {
+      multiColumnSort(field) {
         let i = this.currentSortOrderPosition(field);
 
         if (i === false) { //this field is not in the sort array yet
@@ -601,7 +607,7 @@
           }
         }
       },
-      singleColumnSort (field) {
+      singleColumnSort(field) {
         if (this.sortOrder.length === 0) {
           this.clearSortOrder()
         }
@@ -618,14 +624,14 @@
         this.sortOrder[0].field = field.name;
         this.sortOrder[0].sortField = field.sortField
       },
-      clearSortOrder () {
+      clearSortOrder() {
         this.sortOrder.push({
           field: '',
           sortField: '',
           direction: 'asc'
         });
       },
-      sortIcon (field) {
+      sortIcon(field) {
         let cls = '';
         let i = this.currentSortOrderPosition(field);
 
@@ -635,7 +641,7 @@
 
         return cls;
       },
-      sortIconOpacity (field) {
+      sortIconOpacity(field) {
         /*
          * fields with stronger precedence have darker color
          *
@@ -661,10 +667,10 @@
 
         return opacity
       },
-      hasCallback (item) {
+      hasCallback(item) {
         return item.callback ? true : false
       },
-      callCallback (field, item) {
+      callCallback(field, item) {
         if (!this.hasCallback(field)) return;
 
         if (typeof(field.callback) == 'function') {
@@ -684,7 +690,7 @@
 
         return null
       },
-      getObjectValue (object, path, defaultValue) {
+      getObjectValue(object, path, defaultValue) {
         defaultValue = (typeof defaultValue === 'undefined') ? null : defaultValue;
 
         let obj = object;
@@ -701,7 +707,7 @@
         }
         return obj
       },
-      toggleCheckbox (dataItem, fieldName, event) {
+      toggleCheckbox(dataItem, fieldName, event) {
         let isChecked = event.target.checked;
         let idColumn = this.trackBy;
 
@@ -718,26 +724,26 @@
         }
         this.emit1('vuecard:checkbox-toggled', isChecked, dataItem)
       },
-      selectId (key) {
+      selectId(key) {
         if (!this.isSelectedRow(key)) {
           this.selectedTo.push(key)
         }
       },
-      unselectId (key) {
+      unselectId(key) {
         this.selectedTo = this.selectedTo.filter(function (item) {
           return item !== key
         })
       },
-      isSelectedRow (key) {
+      isSelectedRow(key) {
         return this.selectedTo.indexOf(key) >= 0
       },
-      rowSelected (dataItem, fieldName){
+      rowSelected(dataItem, fieldName) {
         let idColumn = this.trackBy;
         let key = dataItem[idColumn];
 
         return this.isSelectedRow(key)
       },
-      checkCheckboxesState (fieldName) {
+      checkCheckboxesState(fieldName) {
         if (!this.tableData) return;
 
         let self = this;
@@ -778,7 +784,7 @@
           return true
         }
       },
-      toggleAllCheckboxes (fieldName, event) {
+      toggleAllCheckboxes(fieldName, event) {
         let self = this;
         let isChecked = event.target.checked;
         let idColumn = this.trackBy;
@@ -794,33 +800,33 @@
         }
         this.emit1('vuecard:checkbox-toggled-all', isChecked)
       },
-      gotoPreviousPage () {
+      gotoPreviousPage() {
         if (this.currentPage > 1) {
           this.currentPage--;
           this.loadData()
         }
       },
-      gotoNextPage () {
+      gotoNextPage() {
         if (this.currentPage < this.tablePagination.last_page) {
           this.currentPage++;
           this.loadData()
         }
       },
-      gotoPage (page) {
+      gotoPage(page) {
         if (page != this.currentPage && (page > 0 && page <= this.tablePagination.last_page)) {
           this.currentPage = page;
           this.loadData()
         }
       },
-      isVisibleDetailRow (rowId) {
+      isVisibleDetailRow(rowId) {
         return this.visibleDetailRows.indexOf(rowId) >= 0
       },
-      showDetailRow (rowId) {
+      showDetailRow(rowId) {
         if (!this.isVisibleDetailRow(rowId)) {
           this.visibleDetailRows.push(rowId)
         }
       },
-      hideDetailRow (rowId) {
+      hideDetailRow(rowId) {
         if (this.isVisibleDetailRow(rowId)) {
           this.visibleDetailRows.splice(
             this.visibleDetailRows.indexOf(rowId),
@@ -828,34 +834,34 @@
           )
         }
       },
-      toggleDetailRow (rowId) {
+      toggleDetailRow(rowId) {
         if (this.isVisibleDetailRow(rowId)) {
           this.hideDetailRow(rowId)
         } else {
           this.showDetailRow(rowId)
         }
       },
-      showField (index) {
+      showField(index) {
         if (index < 0 || index > this.tableFields.length) return;
 
         this.tableFields[index].visible = true
       },
-      hideField (index) {
+      hideField(index) {
         if (index < 0 || index > this.tableFields.length) return;
 
         this.tableFields[index].visible = false
       },
-      toggleField (index) {
+      toggleField(index) {
         if (index < 0 || index > this.tableFields.length) return;
 
         this.tableFields[index].visible = !this.tableFields[index].visible
       },
-      renderIconTag (classes, options = '') {
+      renderIconTag(classes, options = '') {
         return this.renderIcon === null
           ? `<i class="${classes.join(' ')}" ${options}></i>`
           : this.renderIcon(classes, options)
       },
-      onRowClass (dataItem, index) {
+      onRowClass(dataItem, index) {
         if (this.rowClassCallback !== '') {
           this.warn('"row-class-callback" prop is deprecated, please use "row-class" prop instead.');
           return
@@ -867,30 +873,30 @@
 
         return this.rowClass
       },
-      onRowChanged (dataItem) {
+      onRowChanged(dataItem) {
         this.emit1('row-changed', dataItem);
         return true
       },
-      onRowClicked (dataItem, event) {
+      onRowClicked(dataItem, event) {
         this.emit1(this.eventPrefix + 'row-clicked', dataItem, event);
         return true
       },
-      onRowDoubleClicked (dataItem, event) {
+      onRowDoubleClicked(dataItem, event) {
         this.emit1(this.eventPrefix + 'row-dblclicked', dataItem, event)
       },
-      onDetailRowClick (dataItem, event) {
+      onDetailRowClick(dataItem, event) {
         this.emit1(this.eventPrefix + 'detail-row-clicked', dataItem, event)
       },
-      onCellClicked (dataItem, field, event) {
+      onCellClicked(dataItem, field, event) {
         this.emit1(this.eventPrefix + 'cell-clicked', dataItem, field, event)
       },
-      onCellDoubleClicked (dataItem, field, event) {
+      onCellDoubleClicked(dataItem, field, event) {
         this.emit1(this.eventPrefix + 'cell-dblclicked', dataItem, field, event)
       },
       /*
        * API for externals
        */
-      changePage (page) {
+      changePage(page) {
 //        console.log("set page", page);
         if (page === 'prev') {
           this.gotoPreviousPage()
@@ -900,20 +906,20 @@
           this.gotoPage(page)
         }
       },
-      reload () {
+      reload() {
 
         this.loadData()
       },
-      refresh () {
+      refresh() {
         this.currentPage = 1;
         this.loadData()
       },
-      resetData () {
+      resetData() {
         this.tableData = null;
         this.tablePagination = null;
         this.emit1('data-reset')
       },
-      reinit () {
+      reinit() {
         this.normalizeFields();
         this.$nextTick(function () {
           this.emit1('initialized', this.tableFields)
@@ -928,7 +934,7 @@
       },
     }, // end: methods
     watch: {
-      'multiSort' (newVal, oldVal) {
+      'multiSort'(newVal, oldVal) {
         if (newVal === false && this.sortOrder.length > 1) {
           this.sortOrder.splice(1);
           this.loadData();
