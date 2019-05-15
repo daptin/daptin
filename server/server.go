@@ -10,8 +10,10 @@ import (
 	"github.com/artpar/stats"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
+	"github.com/daptin/daptin/server/mail"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
+	"github.com/emersion/go-imap/server"
 	"github.com/flashmob/go-guerrilla"
 	"github.com/gin-gonic/gin"
 	graphqlhandler "github.com/graphql-go/handler"
@@ -169,6 +171,29 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		}
 	} else {
 		log.Errorf("Failed to start mail daemon: %s", err)
+	}
+
+	// Create a memory backend
+	enableImapServer, err := configStore.GetConfigValueFor("imap.enabled", "backend")
+	if err == nil && enableImapServer == "true" {
+		imapListenInterface, err := configStore.GetConfigValueFor("imap.listen_interface", "backend")
+		if err != nil {
+			configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend")
+			imapListenInterface = ":1143"
+		}
+		be := mail.NewImapServer(cruds)
+
+		// Create a new server
+		s := server.New(be)
+		s.Addr = imapListenInterface
+		// Since we will use this server for testing only, we can allow plain text
+		// authentication over unencrypted connections
+		s.AllowInsecureAuth = true
+
+		log.Println("Starting IMAP server at localhost:1143")
+		if err := s.ListenAndServe(); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon)
