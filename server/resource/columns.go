@@ -1291,6 +1291,13 @@ var StandardTables = []TableInfo{
 				DefaultValue: "false",
 				ColumnType:   "truefalse",
 			},
+			{
+				Name:         "access_type_offline",
+				ColumnName:   "access_type_offline",
+				DataType:     "boolean",
+				DefaultValue: "false",
+				ColumnType:   "truefalse",
+			},
 		},
 	},
 	{

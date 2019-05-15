@@ -126,7 +126,7 @@ type SubSite struct {
 	Permission   PermissionInstance
 	UserId       *int64 `db:"user_account_id"`
 	ReferenceId  string `db:"reference_id"`
-	Enable       bool `db:"enable"`
+	Enable       bool   `db:"enable"`
 }
 
 type CloudStore struct {
@@ -176,7 +176,9 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 		CheckErr(err, "Failed to parse permission as int in loading stores")
 		cloudStore.Permission = resource.GetObjectPermissionByReferenceId("cloud_store", cloudStore.ReferenceId)
 
-		cloudStore.UserId = storeMap["user_account_id"].(string)
+		if storeMap["user_account_id"] != nil {
+			cloudStore.UserId = storeMap["user_account_id"].(string)
+		}
 
 		createdAt, ok := storeMap["created_at"].(time.Time)
 		if !ok {
