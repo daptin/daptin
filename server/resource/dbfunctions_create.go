@@ -285,7 +285,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 
 			//log.Infof("From table [%v] to table [%v]", fromTable, targetTable)
 			isNullable := false
-			if targetTable == "user_account" || targetTable == "usergroup" || relation2 == "has_one" {
+			if targetTable == USER_ACCOUNT_TABLE_NAME || targetTable == "usergroup" || relation2 == "has_one" {
 				isNullable = true
 			}
 
@@ -327,7 +327,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 					}
 
 					//log.Infof("Add column [%v] to table [%v]", col.ColumnName, t.TableName)
-					if targetTable != "user_account" && relation.GetRelation() == "belongs_to" {
+					if targetTable != USER_ACCOUNT_TABLE_NAME && relation.GetRelation() == "belongs_to" {
 						config.Tables[i].IsTopLevel = false
 						//log.Infof("Table [%v] is not top level == %v", t.TableName, targetTable)
 					}
@@ -504,7 +504,7 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 	datatype := c.DataType
 
 	if datatype == "" {
-		datatype = "varchar(50)"
+		datatype = "varchar(100)"
 	}
 
 	if BeginsWith(datatype, "int(") && sqlDriverName == "postgres" {

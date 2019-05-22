@@ -169,19 +169,39 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 						}
 						pr := &http.Request{}
 
-						user, err := dbResource.GetUserAccountRowByEmail(to)
+						//mail_server, err := dbResource.GetObjectByWhereClause("mail_server", "hostname", e.RcptTo[i].Host)
+
+						mailAccount, err := dbResource.GetUserMailAccountRowByEmail(e.RcptTo[i].String())
+
+						if err != nil {
+							continue
+						}
+
+						mailBox, err := dbResource.GetMailAccountBox(mailAccount["id"].(int64), "INBOX")
+
+						if err != nil {
+							mailBox, err = dbResource.CreateMailAccountBox(
+								mailAccount["reference_id"].(string),
+								mailAccount["user_account_id"].(string),
+								"INBOX")
+							if err != nil {
+								continue
+							}
+						}
+
+						//user, err := dbResource.GetUserAccountRowByEmail(to)
 
 						sessionUser := &auth.SessionUser{
 						}
 
-						if err == nil {
-
-							sessionUser = &auth.SessionUser{
-								UserId:          user["id"].(int64),
-								UserReferenceId: user["reference_id"].(string),
-								Groups:          []auth.GroupPermission{},
-							}
-						}
+						//if err == nil {
+						//
+						//	sessionUser = &auth.SessionUser{
+						//		UserId:          user["id"].(int64),
+						//		UserReferenceId: user["reference_id"].(string),
+						//		Groups:          []auth.GroupPermission{},
+						//	}
+						//}
 
 						pr = pr.WithContext(context.WithValue(context.Background(), "user", sessionUser))
 
@@ -205,12 +225,14 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 								"reply_to_address": replyTo,
 								"recipient":        recipient,
 								"has_attachment":   0,
-								"ip_addr":          s.ip2bint(e.RemoteIP).Bytes(),
+								"ip_addr":          e.RemoteIP,
 								"return_path":      trimToLimit(e.MailFrom.String(), 255),
 								"is_tls":           e.TLS,
+								"mail_box_id":      mailBox["reference_id"],
+								"user_account_id":  mailAccount["user_account_id"],
 							},
 						}
-						_, err = dbResource.CreateWithoutFilter(&model, *req)
+						_, err = dbResource.Cruds["mail"].CreateWithoutFilter(&model, *req)
 
 						if err != nil {
 							return backends.NewResult(fmt.Sprint("554 Error: could not save email")), backends.StorageError
@@ -220,7 +242,7 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 					// continue to the next Processor in the decorator chain
 					return p.Process(e, task)
 				} else if task == backends.TaskValidateRcpt {
-					// if you need to validate the e.Rcpt then change to:
+					// if you need to validate the e.Rcpt then change to:¬
 					if len(e.RcptTo) > 0 {
 						// since this is called each time a recipient is added
 						// validate only the _last_ recipient that was appended

@@ -120,7 +120,7 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 	storeToken["token_type"] = token_type
 	storeToken["oauth_connect_id"] = oauth_connect_reference_id
 
-	userId, err := dr.GetReferenceIdToId("user_account", user_reference_id)
+	userId, err := dr.GetReferenceIdToId(USER_ACCOUNT_TABLE_NAME, user_reference_id)
 
 	if err != nil {
 		return err

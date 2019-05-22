@@ -1,4 +1,4 @@
-package mail
+package resource
 
 import (
 	"github.com/emersion/go-imap"

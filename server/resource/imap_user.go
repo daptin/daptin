@@ -1,11 +1,13 @@
-package mail
+package resource
 
 import "github.com/emersion/go-imap/backend"
 
 type DaptinImapUser struct {
-	username  string
-	password  string
-	mailboxes map[string]*backend.Mailbox
+	dbResource             map[string]*DbResource
+	username               string
+	mailboxes              map[string]*backend.Mailbox
+	mailAccountId          int64
+	mailAccountReferenceId string
 }
 
 // User represents a user in the mail storage system. A user operation always
@@ -17,13 +19,16 @@ func (diu *DaptinImapUser) Username() string {
 
 // ListMailboxes returns a list of mailboxes belonging to this user. If
 // subscribed is set to true, only returns subscribed mailboxes.
-func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]DaptinMailbox, error) {
+func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, error) {
+
+	mailBoxes, err := diu.dbResource["mail_box"].MailBo
+
 	return nil, nil
 }
 
 // GetMailbox returns a mailbox. If it doesn't exist, it returns
 // ErrNoSuchMailbox.
-func (diu *DaptinImapUser) GetMailbox(name string) (DaptinMailbox, error) {
+func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 	return nil, nil
 
 }

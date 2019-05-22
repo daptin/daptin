@@ -121,7 +121,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				reqFieldMap[name] = true
 			}
 		}
-		reqFieldMap["user_account_id"] = true
+		reqFieldMap[USER_ACCOUNT_ID_COLUMN] = true
 	}
 
 	pageSize := uint64(10)

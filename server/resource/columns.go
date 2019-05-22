@@ -65,7 +65,10 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "oauth_token"),
 	api2go.NewTableRelation("site", "has_one", "cloud_store"),
-	api2go.NewTableRelationWithNames("task", "task_executed", "has_one", "user_account", "as_user_id"),
+	api2go.NewTableRelation("mail_account", "belongs_to", "mail_server"),
+	api2go.NewTableRelation("mail_box", "belongs_to", "mail_account"),
+	api2go.NewTableRelation("mail", "belongs_to", "mail_box"),
+	api2go.NewTableRelationWithNames("task", "task_executed", "has_one", USER_ACCOUNT_TABLE_NAME, "as_user_id"),
 }
 
 var SystemSmds = []LoopbookFsmDescription{}
@@ -517,7 +520,7 @@ var SystemActions = []Action{
 		Name:             "signup",
 		Label:            "Sign up",
 		InstanceOptional: true,
-		OnType:           "user_account",
+		OnType:           USER_ACCOUNT_TABLE_NAME,
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -570,7 +573,7 @@ var SystemActions = []Action{
 		},
 		OutFields: []Outcome{
 			{
-				Type:      "user_account",
+				Type:      USER_ACCOUNT_TABLE_NAME,
 				Method:    "POST",
 				Reference: "user",
 				Attributes: map[string]interface{}{
@@ -621,7 +624,7 @@ var SystemActions = []Action{
 		Name:             "signin",
 		Label:            "Sign in",
 		InstanceOptional: true,
-		OnType:           "user_account",
+		OnType:           USER_ACCOUNT_TABLE_NAME,
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "email",
@@ -727,7 +730,7 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:           "user_account",
+				Type:           USER_ACCOUNT_TABLE_NAME,
 				Method:         "GET",
 				Reference:      "user",
 				SkipInResponse: true,
@@ -737,7 +740,7 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:           "user_account",
+				Type:           USER_ACCOUNT_TABLE_NAME,
 				Method:         "POST",
 				Reference:      "user",
 				SkipInResponse: true,
@@ -1069,7 +1072,7 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
-		TableName:     "user_account",
+		TableName:     USER_ACCOUNT_TABLE_NAME,
 		Icon:          "fa-child",
 		DefaultGroups: []string{"users"},
 		Columns: []api2go.ColumnInfo{
@@ -1473,32 +1476,35 @@ var StandardTables = []TableInfo{
 				ColumnName:   "is_enabled",
 				DataType:     "int(1)",
 				ColumnType:   "truefalse",
-				DefaultValue: "false",
+				DefaultValue: "true",
 			},
 			{
-				Name:       "listen_interface",
-				ColumnName: "listen_interface",
-				DataType:   "varchar(100)",
-				ColumnType: "label",
+				Name:         "listen_interface",
+				ColumnName:   "listen_interface",
+				DataType:     "varchar(100)",
+				ColumnType:   "label",
+				DefaultValue: "'0.0.0.0'",
 			},
 			{
-				Name:       "max_size",
-				ColumnName: "max_size",
-				DataType:   "int(11)",
-				ColumnType: "measurement",
+				Name:         "max_size",
+				ColumnName:   "max_size",
+				DataType:     "int(11)",
+				ColumnType:   "measurement",
+				DefaultValue: "10000",
 			},
 			{
 				Name:       "tls",
 				ColumnName: "tls",
-				DataType:   "json",
+				DataType:   "text",
 				ColumnType: "json",
 				IsNullable: true,
 			},
 			{
-				Name:       "max_clients",
-				ColumnName: "max_clients",
-				DataType:   "int(11)",
-				ColumnType: "measurement",
+				Name:         "max_clients",
+				ColumnName:   "max_clients",
+				DataType:     "int(11)",
+				ColumnType:   "measurement",
+				DefaultValue: "20",
 			},
 			{
 				Name:         "xclient_on",
@@ -1506,6 +1512,45 @@ var StandardTables = []TableInfo{
 				DataType:     "bool",
 				ColumnType:   "truefalse",
 				DefaultValue: "false",
+			},
+		},
+	},
+	{
+		TableName:     "mail_account",
+		IsHidden:      false,
+		DefaultGroups: adminsGroup,
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "username",
+				ColumnName: "username",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+				IsUnique:   true,
+			},
+			{
+				Name:       "password",
+				ColumnName: "password",
+				ColumnType: "password",
+			},
+		},
+	},
+	{
+		TableName:     "mail_box",
+		IsHidden:      false,
+		DefaultGroups: adminsGroup,
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "name",
+				ColumnName: "name",
+				DataType:   "varchar(100)",
+				ColumnType: "label",
+			},
+			{
+				Name:         "subscribed",
+				ColumnName:   "subscribed",
+				DataType:     "truefalse",
+				ColumnType:   "bool",
+				DefaultValue: "true",
 			},
 		},
 	},
@@ -1602,7 +1647,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "ip_addr",
 				ColumnName: "ip_addr",
-				DataType:   "varbinary(16)",
+				DataType:   "varchar(30)",
 				ColumnType: "label",
 			},
 			{
@@ -1647,7 +1692,7 @@ var StandardStreams = []StreamContract{
 	},
 	{
 		StreamName:     "transformed_user",
-		RootEntityName: "user_account",
+		RootEntityName: USER_ACCOUNT_TABLE_NAME,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "transformed_user_name",
