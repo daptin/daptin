@@ -8,13 +8,13 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/jwt"
+	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strings"
-	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 type CmsUser interface {
@@ -51,7 +51,7 @@ type AuthPermission int64
 const None AuthPermission = iota
 
 const (
-	Peek          AuthPermission = 1 << iota
+	Peek AuthPermission = 1 << iota
 	ReadStrict
 	CreateStrict
 	UpdateStrict

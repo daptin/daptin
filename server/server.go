@@ -10,7 +10,6 @@ import (
 	"github.com/artpar/stats"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
-	"github.com/daptin/daptin/server/mail"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/emersion/go-imap/server"
@@ -20,6 +19,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 var TaskScheduler resource.TaskScheduler
@@ -181,18 +181,27 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend")
 			imapListenInterface = ":1143"
 		}
-		be := mail.NewImapServer(cruds)
+		imapBackend := resource.NewImapServer(cruds)
 
 		// Create a new server
-		s := server.New(be)
+		s := server.New(imapBackend)
 		s.Addr = imapListenInterface
+		s.Debug = os.Stdout
 		// Since we will use this server for testing only, we can allow plain text
 		// authentication over unencrypted connections
 		s.AllowInsecureAuth = true
 
-		log.Println("Starting IMAP server at localhost:1143")
-		if err := s.ListenAndServe(); err != nil {
-			log.Fatal(err)
+		log.Printf("Starting IMAP server at %s\n", imapListenInterface)
+
+		go func() {
+			if err := s.ListenAndServe(); err != nil {
+				log.Fatal(err)
+			}
+		}()
+
+	} else {
+		if err != nil {
+			configStore.SetConfigValueFor("imap.enabled", "false", "backend")
 		}
 	}
 
@@ -216,7 +225,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		ActionName: "sync_mail_servers",
 		Attributes: map[string]interface{}{
 		},
-		AsUserEmail: cruds["user_account"].GetAdminEmailId(),
+		AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(),
 		Schedule:    "@every 10m",
 	})
 
@@ -227,7 +236,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	hostSwitch.handlerMap["api"] = r
 	hostSwitch.handlerMap["dashboard"] = r
 
-	authMiddleware.SetUserCrud(cruds["user_account"])
+	authMiddleware.SetUserCrud(cruds[resource.USER_ACCOUNT_TABLE_NAME])
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
 	authMiddleware.SetUserUserGroupCrud(cruds["user_account_user_account_id_has_usergroup_usergroup_id"])
 

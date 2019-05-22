@@ -87,7 +87,7 @@ func GetWorldTableMapBy(col string, db database.DatabaseConnection) (map[string]
 
 func GetAdminUserIdAndUserGroupId(db database.DatabaseConnection) (int64, int64) {
 	var userCount int
-	s, v, err := statementbuilder.Squirrel.Select("count(*)").From("user_account").ToSql()
+	s, v, err := statementbuilder.Squirrel.Select("count(*)").From(USER_ACCOUNT_TABLE_NAME).ToSql()
 	err = db.QueryRowx(s, v...).Scan(&userCount)
 	CheckErr(err, "Failed to get user count")
 
@@ -95,7 +95,7 @@ func GetAdminUserIdAndUserGroupId(db database.DatabaseConnection) (int64, int64)
 	var userGroupId int64
 
 	if userCount < 2 {
-		s, v, err := statementbuilder.Squirrel.Select("id").From("user_account").OrderBy("id").Limit(1).ToSql()
+		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).OrderBy("id").Limit(1).ToSql()
 		CheckErr(err, "Failed to create select user sql")
 		err = db.QueryRowx(s, v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
@@ -104,7 +104,7 @@ func GetAdminUserIdAndUserGroupId(db database.DatabaseConnection) (int64, int64)
 		err = db.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
 	} else {
-		s, v, err := statementbuilder.Squirrel.Select("id").From("user_account").Where(squirrel.NotEq{"email": "guest@cms.go"}).OrderBy("id").Limit(1).ToSql()
+		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).Where(squirrel.NotEq{"email": "guest@cms.go"}).OrderBy("id").Limit(1).ToSql()
 		CheckErr(err, "Failed to create select user sql")
 		err = db.QueryRowx(s, v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
@@ -176,8 +176,8 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 		CheckErr(err, "Failed to parse permission as int in loading stores")
 		cloudStore.Permission = resource.GetObjectPermissionByReferenceId("cloud_store", cloudStore.ReferenceId)
 
-		if storeMap["user_account_id"] != nil {
-			cloudStore.UserId = storeMap["user_account_id"].(string)
+		if storeMap[USER_ACCOUNT_ID_COLUMN] != nil {
+			cloudStore.UserId = storeMap[USER_ACCOUNT_ID_COLUMN].(string)
 		}
 
 		createdAt, ok := storeMap["created_at"].(time.Time)
@@ -270,7 +270,7 @@ func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
 
 	marketPlaces := []Marketplace{}
 
-	s, v, err := statementbuilder.Squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s.user_account_id", "s.reference_id").
+	s, v, err := statementbuilder.Squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s."+USER_ACCOUNT_ID_COLUMN, "s.reference_id").
 		From("marketplace s").
 		ToSql()
 	if err != nil {
@@ -336,7 +336,7 @@ func (resource *DbResource) GetMarketplaceByReferenceId(referenceId string) (Mar
 
 	marketPlace := Marketplace{}
 
-	s, v, err := statementbuilder.Squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s.user_account_id", "s.reference_id").
+	s, v, err := statementbuilder.Squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s."+USER_ACCOUNT_ID_COLUMN, "s.reference_id").
 		From("marketplace s").Where(squirrel.Eq{"reference_id": referenceId}).
 		ToSql()
 	if err != nil {
@@ -352,7 +352,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	sites := []SubSite{}
 
-	s, v, err := statementbuilder.Squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s.user_account_id", "s.path", "s.reference_id", "s.id", "s.enable").
+	s, v, err := statementbuilder.Squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s."+USER_ACCOUNT_ID_COLUMN, "s.path", "s.reference_id", "s.id", "s.enable").
 		From("site s").
 		ToSql()
 	if err != nil {

@@ -34,7 +34,7 @@ func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields m
 		userReferenceId = inFields["user_reference_id"].(string)
 	}
 
-	userIdInt, _ := strconv.ParseInt(inFields["user_account_id"].(string), 10, 32)
+	userIdInt, _ := strconv.ParseInt(inFields[USER_ACCOUNT_ID_COLUMN].(string), 10, 32)
 
 	//userIdInt, err = d.Cruds["user"].GetReferenceIdToId("user", userReferenceId)
 	if err != nil {

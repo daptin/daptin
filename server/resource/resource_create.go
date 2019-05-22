@@ -4,18 +4,18 @@ import (
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
+	"encoding/json"
 	//"reflect"
 	"github.com/artpar/go.uuid"
 	//"strconv"
 	"fmt"
-	"encoding/json"
 	"github.com/araddon/dateparse"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/pkg/errors"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 // Create a new object. Newly created object/struct must be in Responder.
@@ -65,7 +65,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			continue
 		}
 
-		if col.ColumnName == "user_account_id" && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
+		if col.ColumnName == USER_ACCOUNT_ID_COLUMN && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
 			continue
 		}
 
@@ -87,7 +87,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 		if col.ColumnName == "reference_id" {
 			s := val.(string)
-			if len(s) == 36 {
+			if len(s) > 0 {
 				newUuid = s
 			} else {
 				continue
@@ -283,19 +283,6 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		valsList = append(valsList, val)
 	}
 
-	//for _, rel := range dr.model.GetRelations() {
-	//  if rel.Relation == "belongs_to" || rel.Relation == "has_one" {
-	//
-	//    log.Infof("Relations : %v == %v", rel.Object, attrs)
-	//    val, ok := attrs[rel.Object + "_id"]
-	//    if ok {
-	//      colsList = append(colsList, rel.Object + "_id")
-	//      valsList = append(valsList, val)
-	//    }
-	//
-	//  }
-	//}
-
 	if !InArray(colsList, "reference_id") {
 		colsList = append(colsList, "reference_id")
 		valsList = append(valsList, newUuid)
@@ -307,9 +294,9 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	colsList = append(colsList, "created_at")
 	valsList = append(valsList, time.Now())
 
-	if sessionUser.UserId != 0 && dr.model.HasColumn("user_account_id") && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
+	if sessionUser.UserId != 0 && dr.model.HasColumn(USER_ACCOUNT_ID_COLUMN) && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
 
-		colsList = append(colsList, "user_account_id")
+		colsList = append(colsList, USER_ACCOUNT_ID_COLUMN)
 		valsList = append(valsList, sessionUser.UserId)
 	}
 
@@ -382,7 +369,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
 			Insert("user_account_user_account_id_has_usergroup_usergroup_id").
-			Columns("user_account_id", "usergroup_id", "reference_id", "permission").
+			Columns(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "reference_id", "permission").
 			Values(sessionUser.UserId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
 		//log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
@@ -391,14 +378,14 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
 		}
 
-	} else if dr.model.GetName() == "user_account" {
+	} else if dr.model.GetName() == USER_ACCOUNT_TABLE_NAME {
 
 		adminUserId, _ := GetAdminUserIdAndUserGroupId(dr.db)
 		log.Infof("Associate new user with user: %v", adminUserId)
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
-			Update("user_account").
-			Set("user_account_id", adminUserId).
+			Update(USER_ACCOUNT_TABLE_NAME).
+			Set(USER_ACCOUNT_ID_COLUMN, adminUserId).
 			Where(squirrel.Eq{"id": createdResource["id"]}).ToSql()
 
 		//log.Infof("Query: %v", belogsToUserGroupSql)
