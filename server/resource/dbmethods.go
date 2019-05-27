@@ -450,12 +450,92 @@ func (d *DbResource) CreateMailAccountBox(mailAccountId string, userId string, m
 			"name":            mailBoxName,
 			"user_account_id": userId,
 			"mail_account_id": mailAccountId,
+			"uidvalidity":     time.Now().Unix(),
+			"nextuid":         1,
+			"subscribed":      true,
+			"attributes":      "",
+			"status":          "",
 		},
 	}, api2go.Request{
 		PlainRequest: &http.Request{
 
 		},
 	})
+
+}
+
+// Returns the user mail account box row of a user
+func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) (error) {
+
+	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
+		squirrel.Eq{
+			"mail_account_id": mailAccountId,
+			"name":            mailBoxName,
+		},
+	)
+	if err != nil || len(box) == 0 {
+		return errors.New("mailbox does not exist")
+	}
+
+	query, args, err := statementbuilder.Squirrel.Delete("mail").Where(squirrel.Eq{"mail_box_id": box[0]["id"]}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = d.db.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+
+	query, args, err = statementbuilder.Squirrel.Delete("mail_box").Where(squirrel.Eq{"id": box[0]["id"]}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = d.db.Exec(query, args...)
+
+	return err
+
+}
+
+// Returns the user mail account box row of a user
+func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) (error) {
+
+	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
+		squirrel.Eq{
+			"mail_account_id": mailAccountId,
+			"name":            oldBoxName,
+		},
+	)
+	if err != nil || len(box) == 0 {
+		return errors.New("mailbox does not exist")
+	}
+
+	query, args, err := statementbuilder.Squirrel.Update("mail_box").Set("name", newBoxName).Where(squirrel.Eq{"id": box[0]["id"]}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = d.db.Exec(query, args...)
+
+	return err
+
+}
+
+// Returns the user mail account box row of a user
+func (d *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool) (error) {
+
+	query, args, err := statementbuilder.Squirrel.Update("mail_box").Set("subscribed", subscribed).Where(squirrel.Eq{
+		"mail_account_id": mailAccountId,
+		"name":            mailBoxName,
+	}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = d.db.Exec(query, args...)
+
+	return err
 
 }
 
@@ -845,6 +925,34 @@ func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{})
 // Can be used by actions
 func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, error) {
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := dr.db.Queryx(s, q...)
+
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+
+	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
+
+	return m, err
+}
+
+// Get all rows from the table `typeName`
+// Returns an array of Map object, each object has the column name to value mapping
+// Utility method for loading all objects having low count
+// Can be used by actions
+func (dr *DbResource) GetAllObjectsWithWhere(typeName string, where ...squirrel.Eq) ([]map[string]interface{}, error) {
+	query := statementbuilder.Squirrel.Select("*").From(typeName)
+
+	for _, w := range where {
+		query = query.Where(w)
+	}
+
+	s, q, err := query.ToSql()
 	if err != nil {
 		return nil, err
 	}

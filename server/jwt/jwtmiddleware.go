@@ -208,7 +208,6 @@ func (m *JWTMiddleware) CheckJWT(w http.ResponseWriter, r *http.Request) (*jwt.T
 		return nil, fmt.Errorf("Error parsing token: %v", err)
 	}
 
-
 	if parsedToken.Claims.(jwt.MapClaims)["iss"] != m.Options.Issuer {
 		return nil, fmt.Errorf("Invalid issuer: %v", parsedToken.Header["iss"])
 	}

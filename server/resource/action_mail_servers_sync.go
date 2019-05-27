@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/flashmob/go-guerrilla"
-	"github.com/flashmob/go-guerrilla/backends"
+	"github.com/artpar/go-guerrilla"
+	"github.com/artpar/go-guerrilla/backends"
 	"log"
 	"strconv"
 )

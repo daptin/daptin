@@ -21,7 +21,7 @@ func (be *DaptinImapBackend) Login(username, password string) (backend.User, err
 		return &DaptinImapUser{
 			username:               username,
 			mailAccountId:          userMailAccount["id"].(int64),
-			mailAccountReferenceId: userMailAccount["id"].(string),
+			mailAccountReferenceId: userMailAccount["reference_id"].(string),
 			dbResource:             be.cruds,
 		}, nil
 	}

@@ -3,6 +3,7 @@ package resource
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/columntypes"
@@ -10,7 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strings"
-	"encoding/json"
 )
 
 type UploadCsvFileToEntityPerformer struct {

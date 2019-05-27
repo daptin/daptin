@@ -2,6 +2,7 @@ package resource
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/conform"
@@ -12,7 +13,6 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
-	"encoding/json"
 )
 
 type UploadXlsFileToEntityPerformer struct {

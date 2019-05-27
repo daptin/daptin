@@ -1,10 +1,17 @@
 package resource
 
-import "github.com/emersion/go-imap/backend"
+import (
+	"errors"
+	"github.com/emersion/go-imap"
+	"github.com/emersion/go-imap/backend"
+	"gopkg.in/Masterminds/squirrel.v1"
+	"strings"
+)
 
 type DaptinImapUser struct {
 	dbResource             map[string]*DbResource
 	username               string
+	userAccountId          int64
 	mailboxes              map[string]*backend.Mailbox
 	mailAccountId          int64
 	mailAccountReferenceId string
@@ -21,15 +28,61 @@ func (diu *DaptinImapUser) Username() string {
 // subscribed is set to true, only returns subscribed mailboxes.
 func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, error) {
 
-	mailBoxes, err := diu.dbResource["mail_box"].MailBo
+	var boxes []backend.Mailbox
+	mailBoxes, err := diu.dbResource["mail_box"].GetAllObjectsWithWhere("mail_box", squirrel.Eq{"mail_account_id": diu.mailAccountId})
+	if err != nil {
+		return boxes, err
+	}
 
-	return nil, nil
+	for _, box := range mailBoxes {
+		mb := DaptinImapMailBox{
+			dbResource: diu.dbResource,
+			name:       box["name"].(string),
+			mailBoxId:  box["id"].(int64),
+			info: imap.MailboxInfo{
+				Attributes: strings.Split(box["attributes"].(string), ";"),
+				Delimiter:  "\\",
+				Name:       box["name"].(string),
+			},
+		}
+		boxes = append(boxes, &mb)
+	}
+
+	return boxes, nil
 }
 
 // GetMailbox returns a mailbox. If it doesn't exist, it returns
 // ErrNoSuchMailbox.
 func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
-	return nil, nil
+
+	box, err := diu.dbResource["mail_box"].GetAllObjectsWithWhere("mail_box",
+		squirrel.Eq{
+			"mail_account_id": diu.mailAccountId,
+			"name":            name,
+		},
+	)
+	if err != nil || len(box) == 0 {
+		return nil, err
+	}
+
+	mbStatus, err := diu.dbResource["mail_box"].GetMailBoxStatus(diu.mailAccountId, box[0]["id"].(int64))
+	if err != nil {
+		return nil, err
+	}
+
+	mb := DaptinImapMailBox{
+		dbResource: diu.dbResource,
+		name:       box[0]["name"].(string),
+		mailBoxId:  box[0]["id"].(int64),
+		info: imap.MailboxInfo{
+			Attributes: strings.Split(box[0]["attributes"].(string), ";"),
+			Delimiter:  "\\",
+			Name:       box[0]["name"].(string),
+		},
+		status: *mbStatus,
+	}
+
+	return &mb, nil
 
 }
 
@@ -52,7 +105,25 @@ func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 // used in the previous incarnation of the mailbox UNLESS the new incarnation
 // has a different unique identifier validity value.
 func (diu *DaptinImapUser) CreateMailbox(name string) error {
-	return nil
+
+	box, err := diu.dbResource["mail_box"].GetAllObjectsWithWhere("mail_box",
+		squirrel.Eq{
+			"mail_account_id": diu.mailAccountId,
+			"name":            name,
+		},
+	)
+	if err == nil || len(box) > 1 {
+		return errors.New("mailbox already exists")
+	}
+
+	mailAccount, err := diu.dbResource["mail_box"].GetUserMailAccountRowByEmail(diu.username)
+
+	_, err = diu.dbResource["mail_box"].CreateMailAccountBox(
+		mailAccount["reference_id"].(string),
+		mailAccount["user_account_id"].(string),
+		name)
+
+	return err
 
 }
 
@@ -68,8 +139,7 @@ func (diu *DaptinImapUser) CreateMailbox(name string) error {
 // reuse the identifiers of the former incarnation, UNLESS the new incarnation
 // has a different unique identifier validity value.
 func (diu *DaptinImapUser) DeleteMailbox(name string) error {
-	return nil
-
+	return diu.dbResource["mail"].DeleteMailAccountBox(diu.mailAccountId, name)
 }
 
 // RenameMailbox changes the name of a mailbox. It is an error to attempt to
@@ -98,7 +168,7 @@ func (diu *DaptinImapUser) DeleteMailbox(name string) error {
 // empty.  If the server implementation supports inferior hierarchical names
 // of INBOX, these are unaffected by a rename of INBOX.
 func (diu *DaptinImapUser) RenameMailbox(existingName, newName string) error {
-	return nil
+	return diu.dbResource["mail_box"].RenameMailAccountBox(diu.mailAccountId, existingName, newName)
 
 }
 
@@ -106,5 +176,4 @@ func (diu *DaptinImapUser) RenameMailbox(existingName, newName string) error {
 // client closed the connection.
 func (diu *DaptinImapUser) Logout() error {
 	return nil
-
 }

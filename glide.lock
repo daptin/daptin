@@ -224,7 +224,7 @@ imports:
   - utils
 - name: github.com/etgryphon/stringUp
   version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
-- name: github.com/flashmob/go-guerrilla
+- name: github.com/artpar/go-guerrilla
   version: cb550348c44e511bc1a6f71262f59ff41c85ed2c
   subpackages:
   - backends

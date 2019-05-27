@@ -1,10 +1,10 @@
 package resource
 
 import (
+	"encoding/json"
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
-	"encoding/json"
 	//"reflect"
 	"github.com/artpar/go.uuid"
 	//"strconv"
