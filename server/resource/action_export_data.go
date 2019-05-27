@@ -2,10 +2,10 @@ package resource
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
-	"encoding/json"
 )
 
 type ExportDataPerformer struct {

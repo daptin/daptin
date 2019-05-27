@@ -3,10 +3,10 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/artpar/go-guerrilla"
+	"github.com/artpar/go-guerrilla/backends"
+	"github.com/artpar/go-guerrilla/log"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/flashmob/go-guerrilla"
-	"github.com/flashmob/go-guerrilla/backends"
-	"github.com/flashmob/go-guerrilla/log"
 	"strconv"
 )
 
@@ -20,8 +20,6 @@ func StartSMTPMailServer(resource *resource.DbResource) (*guerrilla.Daemon, erro
 
 	serverConfig := make([]guerrilla.ServerConfig, 0)
 	hosts := []string{}
-
-
 
 	for _, server := range servers {
 

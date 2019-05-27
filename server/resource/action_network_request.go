@@ -90,7 +90,6 @@ func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldM
 	var response *resty.Response
 	var err error
 
-
 	response, err = client.Execute(methodString, urlString)
 	responseMap := make(map[string]interface{})
 

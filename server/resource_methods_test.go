@@ -3,6 +3,7 @@ package server
 import (
 	"database/sql"
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/oauth2"
@@ -10,7 +11,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"github.com/daptin/daptin/server/resource"
 )
 
 func GetDb() *InMemoryTestDatabase {

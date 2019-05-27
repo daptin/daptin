@@ -1,8 +1,8 @@
 package server
 
 import (
+	"github.com/artpar/go-guerrilla"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/flashmob/go-guerrilla"
 )
 
 func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon) []resource.ActionPerformerInterface {

@@ -1,15 +1,18 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/artpar/go-guerrilla/backends"
+	"github.com/artpar/go-guerrilla/mail"
+	"github.com/artpar/go-guerrilla/response"
+	"github.com/artpar/parsemail"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/flashmob/go-guerrilla/backends"
-	"github.com/flashmob/go-guerrilla/mail"
-	"github.com/flashmob/go-guerrilla/response"
+	"log"
 	"math/big"
 	"net"
 	"net/http"
@@ -156,6 +159,11 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 							contentType = trimToLimit(v[0], 255)
 						}
 
+						parsedMail, err := parsemail.Parse(bytes.NewReader(e.Data.Bytes()))
+						if err != nil {
+							log.Printf("Failed to parse email body: %v", err)
+						}
+
 						var mailBody interface{}
 						// `mail` column
 						if body == "redis" {
@@ -188,6 +196,7 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 								continue
 							}
 						}
+						nextUid := mailBox["nextuid"].(int64)
 
 						//user, err := dbResource.GetUserAccountRowByEmail(to)
 
@@ -221,18 +230,23 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 								"mail":             mailBody,
 								"spam_score":       0,
 								"hash":             hash,
+								"uid":              nextUid,
 								"content_type":     contentType,
 								"reply_to_address": replyTo,
 								"recipient":        recipient,
-								"has_attachment":   0,
+								"has_attachment":   len(parsedMail.Attachments) > 0,
 								"ip_addr":          e.RemoteIP,
 								"return_path":      trimToLimit(e.MailFrom.String(), 255),
 								"is_tls":           e.TLS,
 								"mail_box_id":      mailBox["reference_id"],
 								"user_account_id":  mailAccount["user_account_id"],
+								"seen":             false,
+								"recent":           true,
 							},
 						}
 						_, err = dbResource.Cruds["mail"].CreateWithoutFilter(&model, *req)
+						err1 := dbResource.Cruds["mail"].IncrementMailBoxUid(mailBox["id"].(int64), nextUid+1)
+						resource.CheckErr(err1, "Failed to increment uid for mailbox")
 
 						if err != nil {
 							return backends.NewResult(fmt.Sprint("554 Error: could not save email")), backends.StorageError

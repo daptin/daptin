@@ -3,7 +3,10 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/database"
+	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/emersion/go-imap"
 	"github.com/jmoiron/sqlx"
+	"gopkg.in/Masterminds/squirrel.v1"
 )
 
 type DbResource struct {
@@ -86,4 +89,147 @@ func (dr *DbResource) GetAdminEmailId() string {
 	} else {
 		return cacheVal.(string)
 	}
+}
+
+func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, stop uint32) ([]map[string]interface{}, error) {
+
+	q := statementbuilder.Squirrel.Select("*").From("mail").Where(squirrel.Eq{
+		"mail_box_id": mailBoxId,
+	}).Where(squirrel.GtOrEq{
+		"uid": start,
+	})
+
+	if stop > 0 {
+		q = q.Limit(uint64(stop - start + 1))
+	}
+
+	query, args, err := q.ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := dr.db.Queryx(query, args...)
+
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+
+	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds["mail"].model.GetColumnMap(), nil)
+
+	return m, err
+
+}
+
+func (dr *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32, stop uint32) ([]map[string]interface{}, error) {
+
+	q := statementbuilder.Squirrel.Select("*").From("mail").Where(squirrel.Eq{
+		"mail_box_id": mailBoxId,
+	}).Where(squirrel.GtOrEq{
+		"uid": start,
+	})
+
+	if stop > 0 {
+		q = q.Where(squirrel.LtOrEq{
+			"uid": stop,
+		})
+	}
+
+	query, args, err := q.ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := dr.db.Queryx(query, args...)
+
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+
+	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds["mail"].model.GetColumnMap(), nil)
+
+	return m, err
+
+}
+
+func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*imap.MailboxStatus, error) {
+
+	var unseenCount int64
+	var recentCount int64
+	var uidValidity int64
+	var uidNext int64
+	var messgeCount int64
+
+	q4, v4, e4 := statementbuilder.Squirrel.Select("count(*)").From("mail").Where(squirrel.Eq{
+		"mail_box_id": mailBoxId,
+		"seen":        false,
+	}).ToSql()
+
+	if e4 != nil {
+		return nil, e4
+	}
+
+	r4 := dr.db.QueryRowx(q4, v4...)
+	r4.Scan(&messgeCount)
+
+	q1, v1, e1 := statementbuilder.Squirrel.Select("count(*)").From("mail").Where(squirrel.Eq{
+		"mail_box_id": mailBoxId,
+		"seen":        false,
+	}).ToSql()
+
+	if e1 != nil {
+		return nil, e1
+	}
+
+	r := dr.db.QueryRowx(q1, v1...)
+	r.Scan(&unseenCount)
+
+	q2, v2, e2 := statementbuilder.Squirrel.Select("count(*)").From("mail").Where(squirrel.Eq{
+		"mail_box_id": mailBoxId,
+		"seen":        false,
+	}).ToSql()
+
+	if e2 != nil {
+		return nil, e2
+	}
+
+	r2 := dr.db.QueryRowx(q2, v2...)
+	r2.Scan(&recentCount)
+
+	q3, v3, e3 := statementbuilder.Squirrel.Select("uidvalidity", "nextuid").From("mail_box").Where(squirrel.Eq{
+		"id": mailBoxId,
+	}).ToSql()
+
+	if e3 != nil {
+		return nil, e3
+	}
+
+	r3 := dr.db.QueryRowx(q3, v3...)
+	r3.Scan(&uidValidity, &uidNext)
+
+	st := imap.NewMailboxStatus("", []imap.StatusItem{imap.StatusUnseen, imap.StatusMessages, imap.StatusRecent, imap.StatusUidNext, imap.StatusUidValidity})
+
+	err := st.Parse([]interface{}{
+		"MESSAGE", messgeCount,
+		"UNSEEN", unseenCount,
+		"RECENT", recentCount,
+		"UIDVALIDITY", uidValidity,
+		"UIDNEXT", uidNext,
+	})
+
+	return st, err
+}
+
+func (dr *DbResource) IncrementMailBoxUid(mailBoxId int64, nextUid int64) error {
+
+	query, args, err := statementbuilder.Squirrel.Update("mail_box").Set("nextuid", nextUid).Where(squirrel.Eq{"id": mailBoxId}).ToSql()
+	if err != nil {
+		return err
+	}
+	_, err = dr.db.Exec(query, args...)
+	return err
+
 }
