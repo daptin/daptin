@@ -36,9 +36,10 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 
 	for _, box := range mailBoxes {
 		mb := DaptinImapMailBox{
-			dbResource: diu.dbResource,
-			name:       box["name"].(string),
-			mailBoxId:  box["id"].(int64),
+			dbResource:    diu.dbResource,
+			name:          box["name"].(string),
+			mailBoxId:     box["id"].(int64),
+			userAccountId: box["user_account_id"].(int64),
 			info: imap.MailboxInfo{
 				Attributes: strings.Split(box["attributes"].(string), ";"),
 				Delimiter:  "\\",
@@ -70,12 +71,16 @@ func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 		return nil, err
 	}
 
+	mbStatus.Name = box[0]["name"].(string)
+	mbStatus.Flags = strings.Split(box[0]["flags"].(string), ",")
+	mbStatus.PermanentFlags = strings.Split(box[0]["permanent_flags"].(string), ",")
+
 	mb := DaptinImapMailBox{
 		dbResource: diu.dbResource,
 		name:       box[0]["name"].(string),
 		mailBoxId:  box[0]["id"].(int64),
 		info: imap.MailboxInfo{
-			Attributes: strings.Split(box[0]["attributes"].(string), ";"),
+			Attributes: strings.Split(box[0]["attributes"].(string), ","),
 			Delimiter:  "\\",
 			Name:       box[0]["name"].(string),
 		},
@@ -112,7 +117,7 @@ func (diu *DaptinImapUser) CreateMailbox(name string) error {
 			"name":            name,
 		},
 	)
-	if err == nil || len(box) > 1 {
+	if len(box) > 1 {
 		return errors.New("mailbox already exists")
 	}
 
