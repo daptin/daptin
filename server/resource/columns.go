@@ -1513,6 +1513,20 @@ var StandardTables = []TableInfo{
 				ColumnType:   "truefalse",
 				DefaultValue: "false",
 			},
+			{
+				Name:         "authentication_required",
+				ColumnName:   "authentication_required",
+				DataType:     "bool",
+				ColumnType:   "truefalse",
+				DefaultValue: "false",
+			},
+			{
+				Name:         "authentication_types",
+				ColumnName:   "authentication_types",
+				DataType:     "varchar(100)",
+				ColumnType:   "label",
+				DefaultValue: "",
+			},
 		},
 	},
 	{
@@ -1557,7 +1571,7 @@ var StandardTables = []TableInfo{
 				ColumnName:   "uidvalidity",
 				DataType:     "int(11)",
 				ColumnType:   "value",
-				DefaultValue: "true",
+				DefaultValue: "1",
 			},
 			{
 				Name:         "nextuid",
@@ -1608,6 +1622,12 @@ var StandardTables = []TableInfo{
 				ColumnName: "from_address",
 				DataType:   "varchar(200)",
 				ColumnType: "label",
+			},
+			{
+				Name:       "internal_date",
+				ColumnName: "internal_date",
+				DataType:   "timestamp",
+				ColumnType: "datetime",
 			},
 			{
 				Name:       "to_address",
@@ -1710,10 +1730,30 @@ var StandardTables = []TableInfo{
 				DefaultValue: "true",
 			},
 			{
+				Name:         "deleted",
+				ColumnName:   "deleted",
+				DataType:     "bool",
+				ColumnType:   "truefalse",
+				DefaultValue: "false",
+			},
+			{
 				Name:       "uid",
 				ColumnName: "uid",
 				DataType:   "int(11)",
 				ColumnType: "value",
+			},
+			{
+				Name:       "size",
+				ColumnName: "size",
+				DataType:   "int(11)",
+				ColumnType: "value",
+			},
+			{
+				Name:         "flags",
+				ColumnName:   "flags",
+				DataType:     "varchar(100)",
+				ColumnType:   "label",
+				DefaultValue: "'\\RECENT'",
 			},
 		},
 	},

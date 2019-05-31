@@ -445,7 +445,7 @@ func (d *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName string) 
 // Returns the user mail account box row of a user
 func (d *DbResource) CreateMailAccountBox(mailAccountId string, userId string, mailBoxName string) (map[string]interface{}, error) {
 
-	return d.Cruds["mail_box"].CreateWithoutFilter(api2go.Api2GoModel{
+	return d.Cruds["mail_box"].CreateWithoutFilter(&api2go.Api2GoModel{
 		Data: map[string]interface{}{
 			"name":            mailBoxName,
 			"user_account_id": userId,
@@ -454,7 +454,8 @@ func (d *DbResource) CreateMailAccountBox(mailAccountId string, userId string, m
 			"nextuid":         1,
 			"subscribed":      true,
 			"attributes":      "",
-			"status":          "",
+			"flags":           "\\*",
+			"permanent_flags": "\\*",
 		},
 	}, api2go.Request{
 		PlainRequest: &http.Request{

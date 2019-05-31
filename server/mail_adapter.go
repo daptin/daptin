@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/artpar/go-guerrilla/authenticators"
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go-guerrilla/response"
@@ -87,7 +89,69 @@ func trimToLimit(str string, limit int) string {
 	return ret
 }
 
-func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decorator {
+type DaptinSmtpAuthenticator struct {
+	dbResource *resource.DbResource
+	config     backends.BackendConfig
+}
+
+func (dsa *DaptinSmtpAuthenticator) VerifyLOGIN(login, passwordBase64 string) bool {
+
+	username, err := base64.StdEncoding.DecodeString(login)
+	if err != nil {
+		return false
+	}
+	mailAccount, err := dsa.dbResource.GetUserMailAccountRowByEmail(string(username))
+	if err != nil {
+		return false
+	}
+	password, err := base64.StdEncoding.DecodeString(passwordBase64)
+	if err != nil {
+		return false
+	}
+
+	if resource.BcryptCheckStringHash(string(password), mailAccount["password"].(string)) {
+		return true
+	}
+
+	return false
+}
+
+//VerifyPLAIN(login, password string) bool
+//VerifyGSSAPI(login, password string) bool
+//VerifyDIGESTMD5(login, password string) bool
+//VerifyMD5(login, password string) bool
+func (dsa *DaptinSmtpAuthenticator) VerifyCRAMMD5(challenge, authString string) bool {
+	return false
+}
+func (dsa *DaptinSmtpAuthenticator) GenerateCRAMMD5Challenge() (string, error) {
+	return "", nil
+}
+func (dsa *DaptinSmtpAuthenticator) ExtractLoginFromAuthString(authString string) string {
+	return ""
+}
+func (dsa *DaptinSmtpAuthenticator) DecodeLogin(login string) (string, error) {
+	username, err := base64.StdEncoding.DecodeString(login)
+	return string(username), err
+}
+
+func (dsa *DaptinSmtpAuthenticator) GetAdvertiseAuthentication(authType []string) string {
+	return "250-AUTH " + strings.Join(authType, " ") + "\r\n"
+}
+
+func (dsa *DaptinSmtpAuthenticator) GetMailSize(login string, defaultSize int64) int64 {
+	return 10000
+}
+
+func DaptinSmtpAuthenticatorCreator(dbResource *resource.DbResource) func(config backends.BackendConfig) authenticators.Authenticator {
+	return func(config backends.BackendConfig) authenticators.Authenticator {
+		return &DaptinSmtpAuthenticator{
+			dbResource: dbResource,
+			config:     config,
+		}
+	}
+}
+
+func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decorator {
 
 	return func() backends.Decorator {
 		var config *SQLProcessorConfig
@@ -159,22 +223,26 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 							contentType = trimToLimit(v[0], 255)
 						}
 
-						parsedMail, err := parsemail.Parse(bytes.NewReader(e.Data.Bytes()))
+						mailBytes := e.Data.Bytes()
+						parsedMail, err := parsemail.Parse(bytes.NewReader(mailBytes))
 						if err != nil {
 							log.Printf("Failed to parse email body: %v", err)
 						}
 
+						log.Printf("Authorized login: %v", e.AuthorizedLogin)
+
 						var mailBody interface{}
+						var mailSize int
 						// `mail` column
 						if body == "redis" {
 							// data already saved in redis
 							mailBody = ""
 						} else if co != nil {
 							// use a compressor (automatically adds e.DeliveryHeader)
-							mailBody = co.String()
-						} else {
-							mailBody = e.String()
+							//mailBytes = []byte(co.String())
 						}
+						mailSize = len(mailBytes)
+						mailBody = base64.StdEncoding.EncodeToString(mailBytes)
 						pr := &http.Request{}
 
 						//mail_server, err := dbResource.GetObjectByWhereClause("mail_server", "hostname", e.RcptTo[i].Host)
@@ -233,6 +301,7 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 								"uid":              nextUid,
 								"content_type":     contentType,
 								"reply_to_address": replyTo,
+								"internal_date":    parsedMail.Date,
 								"recipient":        recipient,
 								"has_attachment":   len(parsedMail.Attachments) > 0,
 								"ip_addr":          e.RemoteIP,
@@ -242,9 +311,12 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 								"user_account_id":  mailAccount["user_account_id"],
 								"seen":             false,
 								"recent":           true,
+								"flags":            "RECENT",
+								"size":             mailSize,
 							},
 						}
 						_, err = dbResource.Cruds["mail"].CreateWithoutFilter(&model, *req)
+						resource.CheckErr(err, "Failed to store mail")
 						err1 := dbResource.Cruds["mail"].IncrementMailBoxUid(mailBox["id"].(int64), nextUid+1)
 						resource.CheckErr(err1, "Failed to increment uid for mailbox")
 
