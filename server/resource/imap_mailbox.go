@@ -226,6 +226,30 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 // SearchMessages searches messages. The returned list must contain UIDs if
 // uid is set to true, or sequence numbers otherwise.
 func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCriteria) ([]uint32, error) {
+
+	httpRequest := http.Request{
+
+	}
+
+	queries := make([]Query, 0)
+
+	if criteria.Uid != nil {
+
+
+
+		queries = append(queries, Query{
+			ColumnName: "uid",
+			Operator: "contains",
+			Value: criteria.Uid.Set,
+		})
+	}
+
+	searchRequest := api2go.Request{
+		PlainRequest: &httpRequest,
+	}
+
+	dimb.dbResource["mail"].PaginatedFindAllWithoutFilters(searchRequest)
+
 	return nil, nil
 }
 
