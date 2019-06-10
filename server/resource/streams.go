@@ -3,7 +3,7 @@ package resource
 import (
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/kniren/gota/dataframe"
+	"github.com/go-gota/gota/dataframe"
 )
 
 // StreamProcess handles the Read operations, and applies transformations on the data the create a new view
@@ -93,12 +93,26 @@ func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint
 
 		switch transformation.Operation {
 		case "select":
-			indexes := transformation.Attributes["columns"].([]string)
-			df = df.Select(indexes)
+			indexes := transformation.Attributes["columns"].([]interface{})
+
+			cols := make([]string, 0)
+			for _, idx := range indexes {
+				cols = append(cols, idx.(string))
+			}
+			df = df.Select(cols)
 		case "rename":
 			oldName := transformation.Attributes["oldName"].(string)
 			newName := transformation.Attributes["newName"].(string)
 			df = df.Rename(newName, oldName)
+		case "drop":
+			indexes := transformation.Attributes["columns"].([]interface{})
+
+			cols := make([]string, 0)
+			for _, idx := range indexes {
+				cols = append(cols, idx.(string))
+			}
+			df = df.Drop(cols)
+
 		}
 
 	}
