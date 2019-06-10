@@ -93,25 +93,23 @@ func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint
 
 		switch transformation.Operation {
 		case "select":
-			indexes := transformation.Attributes["columns"].([]interface{})
-
-			cols := make([]string, 0)
-			for _, idx := range indexes {
-				cols = append(cols, idx.(string))
+			var indexes interface{}
+			indexes, ok := transformation.Attributes["columns"].([]string)
+			if !ok {
+				indexes = makeIndexArray(transformation.Attributes["columns"].([]interface{}))
 			}
-			df = df.Select(cols)
+			df = df.Select(indexes)
 		case "rename":
 			oldName := transformation.Attributes["oldName"].(string)
 			newName := transformation.Attributes["newName"].(string)
 			df = df.Rename(newName, oldName)
 		case "drop":
-			indexes := transformation.Attributes["columns"].([]interface{})
-
-			cols := make([]string, 0)
-			for _, idx := range indexes {
-				cols = append(cols, idx.(string))
+			var indexes interface{}
+			indexes, ok := transformation.Attributes["columns"].([]string)
+			if !ok {
+				indexes = makeIndexArray(transformation.Attributes["columns"].([]interface{}))
 			}
-			df = df.Drop(cols)
+			df = df.Drop(indexes)
 
 		}
 
@@ -128,6 +126,48 @@ func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint
 
 	newResponder := NewResponse(nil, newList, responder.StatusCode(), &responder.Pagination)
 	return totalCount, newResponder, nil
+}
+
+func makeIndexArray(indexes []interface{}) interface{} {
+
+	if len(indexes) == 0 {
+		return []string{}
+	}
+
+	switch indexes[0].(type) {
+	case []int:
+		retArr := make([][]int, 0)
+		for _, v := range indexes {
+			retArr = append(retArr, v.([]int))
+		}
+		return retArr
+	case int:
+		retArr := make([]int, 0)
+		for _, v := range indexes {
+			retArr = append(retArr, v.(int))
+		}
+		return retArr
+	case []bool:
+		retArr := make([][]bool, 0)
+		for _, v := range indexes {
+			retArr = append(retArr, v.([]bool))
+		}
+		return retArr
+	case string:
+		retArr := make([]string, 0)
+		for _, v := range indexes {
+			retArr = append(retArr, v.(string))
+		}
+		return retArr
+	case []string:
+		retArr := make([][]string, 0)
+		for _, v := range indexes {
+			retArr = append(retArr, v.([]string))
+		}
+		return retArr
+	}
+	return []string{}
+
 }
 
 // Creates a new stream processor which will apply the given contract
