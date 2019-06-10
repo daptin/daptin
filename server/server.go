@@ -1,10 +1,14 @@
 package server
 
 import (
+	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/go-guerrilla"
+	"github.com/artpar/go-imap"
+	"github.com/artpar/go-imap/server"
 	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
@@ -13,8 +17,13 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
-	"github.com/emersion/go-imap/server"
+	"github.com/emersion/go-sasl"
 	"github.com/gin-gonic/gin"
+	"github.com/icrowley/fake"
+	"strings"
+	"time"
+
+	//"github.com/gin-gonic/gin"
 	graphqlhandler "github.com/graphql-go/handler"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -65,6 +74,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		c.JSON(http.StatusOK, Stats.Data())
 	})
 
+	// 6 UID FETCH 1:2 (UID)
 	r.Use(CorsMiddlewareFunc)
 	r.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
 
@@ -187,14 +197,121 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		s := server.New(imapBackend)
 		s.Addr = imapListenInterface
 		s.Debug = os.Stdout
+
+		s.EnableAuth(sasl.Login, func(conn server.Conn) sasl.Server {
+			return sasl.NewLoginServer(func(username, password string) error {
+				user, err := conn.Server().Backend.Login(conn.Info(), username, password)
+				if err != nil {
+					return err
+				}
+
+				ctx := conn.Context()
+				ctx.State = imap.AuthenticatedState
+				ctx.User = user
+				return nil
+			})
+		})
+
+		s.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
+
+			return &Crammd5{
+				dbResource:  cruds["mail"],
+				conn:        conn,
+				imapBackend: imapBackend,
+			}
+		})
+		s.EnableAuth("GSSAPI", func(conn server.Conn) sasl.Server {
+
+			return &Crammd5{
+				dbResource:  cruds["mail"],
+				conn:        conn,
+				imapBackend: imapBackend,
+			}
+		})
+
+		var LocalhostCert = []byte(`-----BEGIN CERTIFICATE-----
+MIIETzCCAregAwIBAgIQH/X44kGApj052IIhHfJrszANBgkqhkiG9w0BAQsFADBh
+MR4wHAYDVQQKExVta2NlcnQgZGV2ZWxvcG1lbnQgQ0ExGzAZBgNVBAsMEmFydHBh
+ckBhYmJhZC5sb2NhbDEiMCAGA1UEAwwZbWtjZXJ0IGFydHBhckBhYmJhZC5sb2Nh
+bDAeFw0xOTA2MTAwNDU3MjdaFw0yOTA2MTAwNDU3MjdaMEQxJzAlBgNVBAoTHm1r
+Y2VydCBkZXZlbG9wbWVudCBjZXJ0aWZpY2F0ZTEZMBcGA1UECwwQcm9vdEBhYmJh
+ZC5sb2NhbDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAN2pi0zl9EJH
+qtKBdlaEXoOU4YwHdzwxyfExcBeCMjyAkHPRPnWZKEJfgDc5WcF7wr/kxHCTrUhI
+RwRz/o5BIIjZmMrswFdCxZ74lKgHpYZl5s2+VAKgmAUhFOV33t/uL9tK2HevqfXi
+FaseVIENIjKkdVHOwOfRcRbd2rmB3QV+b+sb82etqnnkPxIdVE9cHMaHVFIBiGe9
+95LMPwrnq4aeHdATapVC4R6T6CK/dl2lzH95P61QsBa7t/awJ4EzcAMpUbEutEEw
+BZy24heKgKaw+mOHuyCcuOff8EJ/hsf6VqoPzNJz0sZcbiQlXdRK7Ibmu5hZjQTc
+bp3Ql+Bj2Q8CAwEAAaOBnzCBnDAOBgNVHQ8BAf8EBAMCBaAwEwYDVR0lBAwwCgYI
+KwYBBQUHAwEwDAYDVR0TAQH/BAIwADAfBgNVHSMEGDAWgBRs0GlUpxTRlDw0D+eF
+O8+2CRuc2TBGBgNVHREEPzA9ggpkYXB0aW4uY29tggwqLmRhcHRpbi5jb22CCWxv
+Y2FsaG9zdIcEfwAAAYcQAAAAAAAAAAAAAAAAAAAAATANBgkqhkiG9w0BAQsFAAOC
+AYEARMqj64kOfU7WHVgiOvsvTAxsyc9b7tmez5tid0o6VFBzH7XHq6uUJmMy21nm
+3h8K2O/ovRlzXIMtfUjWYirSAoy0frkMXe6A7oZojpgFOjDJ699N7MDKiQ6ijzRc
+gA9qVgK/ATrmVCtd9HlHgSbcXhaf3YUR++icvT5+3osvyNkGrNWRI+TyfogXj81e
+7UCqnZjFOJidA6RZbMnCgoOS2+2P2CnUVkMazibd9Hc158dI9Hg9VyntnTOl4nWw
+8rDfauWbg0AOus/q8qnPcZDR6DahC6piEgWeyC1P6dBDFDYMmCMIegGfgcZmA70T
+S50eo3+VlsDuRmtg5Dfh4zC6Bb/rx0CBx9KJid8f1eBUQ4EFYaZDPQ3XBWDvduVe
+TjjoGFkD5QRz/601bFVP6/DqDcjDbxbjyarWfxTu1nHukKkxemb265zLhtVwAbfd
+SoGwaheGW0/zeaGZGQwnL4hCkJokHagmsSg3ZynqoinNVrJJBKfisucmzUlC365P
+uBww
+-----END CERTIFICATE-----`)
+
+		// LocalhostKey is the private key for localhostCert.
+		var LocalhostKey = []byte(`-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDdqYtM5fRCR6rS
+gXZWhF6DlOGMB3c8McnxMXAXgjI8gJBz0T51mShCX4A3OVnBe8K/5MRwk61ISEcE
+c/6OQSCI2ZjK7MBXQsWe+JSoB6WGZebNvlQCoJgFIRTld97f7i/bSth3r6n14hWr
+HlSBDSIypHVRzsDn0XEW3dq5gd0Ffm/rG/Nnrap55D8SHVRPXBzGh1RSAYhnvfeS
+zD8K56uGnh3QE2qVQuEek+giv3Zdpcx/eT+tULAWu7f2sCeBM3ADKVGxLrRBMAWc
+tuIXioCmsPpjh7sgnLjn3/BCf4bH+laqD8zSc9LGXG4kJV3USuyG5ruYWY0E3G6d
+0JfgY9kPAgMBAAECggEAQ4XuRVKXgclLJC0D238fO34S5xEvJUsVdT/WIZMrsnqH
+hoBrQm+RcAafjDMQQHxu6v3JSXHzC13ZJGYhWTxFqOqAPPC59tsEUFTxE+6gYbyQ
+/oPIG7TIGmflcbF+V0C7m1XFc1Azug9RAnuOynExxbOLeYw9/2AxzwFuK6x/o7g7
+N1pTKS2BLUyC4trn19llo1Vf8tX9mSKjlluQy/ewF2LP/zhZSw50Qts3KMcuBXGx
+BF4YjGjHSOELmZh+sM7ZZasfKxJ9QnCF2cqXSvVydDo20TwOwZKvcsJDmwpVcLqX
+H4cHJLFfO4A3aBBOhu+Cs1uHjs3VXRSvv/mo3G+oQQKBgQDnp4TSQ/C2thhQTOO/
+GXAznBXZo4FLdzk6YodOvfLYC7/e6xL7QYz1U4BxrGEVy3EMKmJ1798e8OctHIk7
+AV+wI4AL2QBx5sMNFAjb9+CXl/Gqhbk+U4fjnmc+bsNy9vR/qvjlIt/Jp9y85zeF
+QSO6/xTlLLHpe1J293OUv9nstwKBgQD09TInZ1U1fFMjC6BWjCDGLNC8//rFFKAR
+jTjLEYCY0DuN6PJfywUS6ZoHKHoXKe60qaFRHqAk83T6iHExAlirwqylu6QSyxeQ
+vWcSnoAJqHY7j84uC+Vf6WEEwAN4XImcmT8in9MtbEPZI8ytjN6K5XNsHOc9ORYW
+XY+6xy5OaQKBgGc8Gk7yBBYItHEksuH43i3Bw2MIIJiW+yPvwMjwkYaCRfF75Suf
+nMe/fKAr5+Akl66KPPK+ATrytLM/4lAvXotKZsfg3vfjlM0BPql4n9gu2H3bth/2
+bbqcXvpNtkBHmdJDSUQj9IMTkaWFjRKPYvL0tkUjU+3vDWMDB7kkfmOlAoGAbWJE
+iCXzfdPLiB279onSZMxEVfF0uKbSJ6RJVRy2sQZjYaZA/Re6Z0ybNFEV29wktNX+
+rCuh1X5FoU5mRT1H/UMMN2HIDYBVQJPjQAQ5JpbsXQKFTjiPr7mWUjmwEwI3jQ89
+iyeVdHYhAgijcGg0RA/b784kUEl6nHghI4WoHukCgYEAgZMXR1uCqsvmTEe2jkPX
+sS6Lb/Elxq5uRlEays/t19zzc7S4kU+VT02oUYHUQm7VSQmHLvqD7lrgKjVS4ihc
+aMgXlWWI/k15RrrmdE3HMkV0HfPnZVrRsilZTYF4mTCvEehQVMGhDGHgrxGY4nTE
+fagus7nZFuPIRAU1dz5Ni1g=
+-----END PRIVATE KEY-----`)
+
+		cert, err := tls.X509KeyPair(LocalhostCert, LocalhostKey)
+		if err != nil {
+			log.Printf("Failed to load cert: %v", err)
+		}
+
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: false,
+			Certificates:       []tls.Certificate{cert},
+		}
+
 		// Since we will use this server for testing only, we can allow plain text
 		// authentication over unencrypted connections
-		s.AllowInsecureAuth = true
+		s.AllowInsecureAuth = false
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		s.TLSConfig = tlsConfig
+		//idleExt := idle.NewExtension()
+		//s.Enable(idleExt)
 
 		log.Printf("Starting IMAP server at %s\n", imapListenInterface)
 
 		go func() {
-			if err := s.ListenAndServe(); err != nil {
+			if err := s.ListenAndServeTLS(); err != nil {
 				log.Fatal(err)
 			}
 		}()
@@ -332,6 +449,39 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	return hostSwitch, mailDaemon, TaskScheduler
 
+}
+
+type Crammd5 struct {
+	dbResource  *resource.DbResource
+	conn        server.Conn
+	challenge   string
+	imapBackend *resource.DaptinImapBackend
+}
+
+// Begins or continues challenge-response authentication. If the client
+// supplies an initial response, response is non-nil.
+//
+// If the authentication is finished, done is set to true. If the
+// authentication has failed, an error is returned.
+func (c *Crammd5) Next(response []byte) (challenge []byte, done bool, err error) {
+
+	log.Printf("Client sent: %v", string(response))
+
+	if string(response) == "" {
+		newChallenge := fmt.Sprintf("<%v.%v.%v>", fake.DigitsN(8), time.Now().UnixNano(), "daptin")
+		c.challenge = newChallenge
+		return []byte(""), false, nil
+		return []byte(base64.StdEncoding.EncodeToString([]byte(newChallenge))), false, nil
+	}
+
+	parts := strings.SplitN(string(response), " ", 2)
+
+	_, err = c.imapBackend.LoginMd5(c.conn.Info(), parts[0], c.challenge, parts[1])
+	if err != nil {
+		return []byte("OK"), true, err
+	}
+
+	return []byte("OK"), false, nil
 }
 
 func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseConnection) {

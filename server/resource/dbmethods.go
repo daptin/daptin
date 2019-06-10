@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -389,7 +390,7 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 
 	var count int
 
-	row := dbResource.db.QueryRow("select count(*) from " + USER_ACCOUNT_TABLE_NAME + " where email != 'guest@cms.go'")
+	row := dbResource.db.QueryRowx("select count(*) from " + USER_ACCOUNT_TABLE_NAME + " where email != 'guest@cms.go'")
 	err := row.Scan(&count)
 	if err != nil {
 		return false
@@ -443,12 +444,16 @@ func (d *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName string) 
 }
 
 // Returns the user mail account box row of a user
-func (d *DbResource) CreateMailAccountBox(mailAccountId string, userId string, mailBoxName string) (map[string]interface{}, error) {
+func (d *DbResource) CreateMailAccountBox(mailAccountId string, sessionUser *auth.SessionUser, mailBoxName string) (map[string]interface{}, error) {
 
-	return d.Cruds["mail_box"].CreateWithoutFilter(&api2go.Api2GoModel{
+	httpRequest := &http.Request{
+		Method: "POST",
+	}
+
+	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
+	resp, err := d.Cruds["mail_box"].Create(&api2go.Api2GoModel{
 		Data: map[string]interface{}{
 			"name":            mailBoxName,
-			"user_account_id": userId,
 			"mail_account_id": mailAccountId,
 			"uidvalidity":     time.Now().Unix(),
 			"nextuid":         1,
@@ -458,10 +463,10 @@ func (d *DbResource) CreateMailAccountBox(mailAccountId string, userId string, m
 			"permanent_flags": "\\*",
 		},
 	}, api2go.Request{
-		PlainRequest: &http.Request{
-
-		},
+		PlainRequest: httpRequest,
 	})
+
+	return resp.Result().(*api2go.Api2GoModel).Data, err
 
 }
 
@@ -737,7 +742,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where ...squirrel.Eq
 
 	s, q, err := stmt.ToSql()
 
-	log.Infof("Select query: %v == [%v]", s, q)
+	//log.Infof("Select query: %v == [%v]", s, q)
 	rows, err := dr.db.Queryx(s, q...)
 	if err != nil {
 		return nil, nil, err
@@ -815,6 +820,32 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create select query by ref id: %v", referenceId)
+		return nil, nil, err
+	}
+
+	rows, err := dr.db.Queryx(s, q...)
+	defer rows.Close()
+	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), map[string]bool{"*": true})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(resultRows) < 1 {
+		return nil, nil, errors.New("No such entity")
+	}
+
+	m := resultRows[0]
+	n := includeRows[0]
+
+	return m, n, err
+
+}
+
+func (dr *DbResource) GetSingleRowById(typeName string, id int64) (map[string]interface{}, []map[string]interface{}, error) {
+	//log.Infof("Get single row by id: [%v][%v]", typeName, referenceId)
+	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(squirrel.Eq{"id": id}).ToSql()
+	if err != nil {
+		log.Errorf("Failed to create select query by id: %v", id)
 		return nil, nil, err
 	}
 

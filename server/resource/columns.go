@@ -1537,7 +1537,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "username",
 				ColumnName: "username",
-				DataType:   "varchar(100)",
+				DataType:   "varchar(10¬0)",
 				ColumnType: "label",
 				IsUnique:   true,
 			},
@@ -1545,6 +1545,11 @@ var StandardTables = []TableInfo{
 				Name:       "password",
 				ColumnName: "password",
 				ColumnType: "password",
+			},
+			{
+				Name:       "password_md5",
+				ColumnName: "password_md5",
+				ColumnType: "md5-bcrypt",
 			},
 		},
 	},
@@ -1656,7 +1661,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "body",
 				ColumnName: "body",
-				DataType:   "varchar(16)",
+				DataType:   "text",
 				ColumnType: "label",
 			},
 			{
@@ -1680,8 +1685,8 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "content_type",
 				ColumnName: "content_type",
-				DataType:   "varchar(100)",
-				ColumnType: "label",
+				DataType:   "text",
+				ColumnType: "content",
 			},
 			{
 				Name:       "recipient",
@@ -1737,12 +1742,6 @@ var StandardTables = []TableInfo{
 				DefaultValue: "false",
 			},
 			{
-				Name:       "uid",
-				ColumnName: "uid",
-				DataType:   "int(11)",
-				ColumnType: "value",
-			},
-			{
 				Name:       "size",
 				ColumnName: "size",
 				DataType:   "int(11)",
@@ -1751,9 +1750,9 @@ var StandardTables = []TableInfo{
 			{
 				Name:         "flags",
 				ColumnName:   "flags",
-				DataType:     "varchar(100)",
+				DataType:     "varchar(500)",
 				ColumnType:   "label",
-				DefaultValue: "'\\RECENT'",
+				DefaultValue: "'\\\\RECENT'",
 			},
 		},
 	},

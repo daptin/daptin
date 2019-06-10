@@ -12,11 +12,10 @@ import (
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go-guerrilla/response"
 	"github.com/artpar/parsemail"
+	"github.com/bjarneh/latinx"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
 	"log"
-	"math/big"
-	"net"
 	"net/http"
 	"strings"
 )
@@ -51,18 +50,6 @@ type SQLProcessorConfig struct {
 type SQLProcessor struct {
 	cache  stmtCache
 	config *SQLProcessorConfig
-}
-
-// for storing ip addresses in the ip_addr column
-func (s *SQLProcessor) ip2bint(ip string) *big.Int {
-	bint := big.NewInt(0)
-	addr := net.ParseIP(ip)
-	if strings.Index(ip, "::") > 0 {
-		bint.SetBytes(addr.To16())
-	} else {
-		bint.SetBytes(addr.To4())
-	}
-	return bint
 }
 
 func (s *SQLProcessor) fillAddressFromHeader(e *mail.Envelope, headerKey string) string {
@@ -193,12 +180,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 					var co Compressor
 					// a compressor was set by the Compress processor
 					if c, ok := e.Values["zlib-compressor"]; ok {
-						body = "gzip"
 						co = c.(Compressor)
-					}
-					// was saved in redis by the Redis processor
-					if _, ok := e.Values["redis"]; ok {
-						body = "redis"
 					}
 
 					for i := range e.RcptTo {
@@ -225,6 +207,17 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 
 						mailBytes := e.Data.Bytes()
 						parsedMail, err := parsemail.Parse(bytes.NewReader(mailBytes))
+						body = parsedMail.TextBody
+
+						if strings.Index(parsedMail.Header.Get("Content-type"), "iso-8859-1") > -1 {
+							converter := latinx.Get(latinx.ISO_8859_1)
+							textBodyBytes, err := converter.Decode([]byte(body))
+							if err != nil {
+								log.Printf("Failed to convert iso 8859 to utf8: %v", err)
+							}
+							body = string(textBodyBytes)
+						}
+
 						if err != nil {
 							log.Printf("Failed to parse email body: %v", err)
 						}
@@ -253,22 +246,24 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 							continue
 						}
 
+						user, _, err := dbResource.GetSingleRowByReferenceId("user_account", mailAccount["user_account_id"].(string))
+
+						sessionUser := &auth.SessionUser{
+							UserId:          user["id"].(int64),
+							UserReferenceId: user["reference_id"].(string),
+							Groups:          dbResource.GetObjectUserGroupsByWhere("user_account", "id", user["id"].(int64)),
+						}
+
 						mailBox, err := dbResource.GetMailAccountBox(mailAccount["id"].(int64), "INBOX")
 
 						if err != nil {
 							mailBox, err = dbResource.CreateMailAccountBox(
 								mailAccount["reference_id"].(string),
-								mailAccount["user_account_id"].(string),
+								sessionUser,
 								"INBOX")
 							if err != nil {
 								continue
 							}
-						}
-						nextUid := mailBox["nextuid"].(int64)
-
-						//user, err := dbResource.GetUserAccountRowByEmail(to)
-
-						sessionUser := &auth.SessionUser{
 						}
 
 						//if err == nil {
@@ -288,17 +283,17 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 
 						model := api2go.Api2GoModel{
 							Data: map[string]interface{}{
-								"message_id":       mid,
-								"mail_id":          hash,
-								"from_address":     trimToLimit(e.MailFrom.String(), 255),
-								"to_address":       to,
-								"sender_address":   sender,
-								"subject":          trimToLimit(e.Subject, 255),
-								"body":             body,
-								"mail":             mailBody,
-								"spam_score":       0,
-								"hash":             hash,
-								"uid":              nextUid,
+								"message_id":     mid,
+								"mail_id":        hash,
+								"from_address":   trimToLimit(e.MailFrom.String(), 255),
+								"to_address":     to,
+								"sender_address": sender,
+								"subject":        trimToLimit(e.Subject, 255),
+								"body":           body,
+								"mail":           mailBody,
+								"spam_score":     0,
+								"hash":           hash,
+								//"uid":              nextUid,
 								"content_type":     contentType,
 								"reply_to_address": replyTo,
 								"internal_date":    parsedMail.Date,
@@ -317,8 +312,8 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 						}
 						_, err = dbResource.Cruds["mail"].CreateWithoutFilter(&model, *req)
 						resource.CheckErr(err, "Failed to store mail")
-						err1 := dbResource.Cruds["mail"].IncrementMailBoxUid(mailBox["id"].(int64), nextUid+1)
-						resource.CheckErr(err1, "Failed to increment uid for mailbox")
+						//err1 := dbResource.Cruds["mail"].IncrementMailBoxUid(mailBox["id"].(int64), nextUid+1)
+						//resource.CheckErr(err1, "Failed to increment uid for mailbox")
 
 						if err != nil {
 							return backends.NewResult(fmt.Sprint("554 Error: could not save email")), backends.StorageError

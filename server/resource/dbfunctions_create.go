@@ -495,7 +495,7 @@ func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
 		columnStrings = append(columnStrings, columnLine)
 	}
 	columnString := strings.Join(columnStrings, ",\n  ")
-	createTableQuery += columnString + ");"
+	createTableQuery += columnString + ") CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 	return createTableQuery
 }
 
@@ -545,6 +545,11 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 	if c.DefaultValue != "" {
 		columnParams = append(columnParams, "default "+c.DefaultValue)
 	}
+
+	//if sqlDriverName == "mysql" && (c.DataType == "text" || BeginsWith(c.DataType, "varchar(")) {
+	//	columnParams = append(columnParams, "CHARACTER SET utf8mb4")
+	//	columnParams = append(columnParams, "COLLATE utf8mb4_unicode_ci")
+	//}
 
 	columnLine := strings.Join(columnParams, " ")
 	return columnLine
