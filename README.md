@@ -38,11 +38,23 @@
   <a href="#getting-started">Getting Started</a>
 </p>
 
-**Daptin** is a headless CMS framework to develop and deploy production-ready JSON API based servers.
+**Daptin** is a headless CMS server for building reusable APIs for accessing the database. Daptin takes in your desired structure of table via a YAML/JSON configuration file, creates those tables in the database of your choice (mysql/postgres/sqlite) and provides you frequently used features built in:
+
+* Versioning of the data
+* GET all, GET by id, Search by filter API with pagination
+* Create, update and delete API
+* Authentication and authorization
+* JSON API endpoint
+* Graphql endpoint
 
 
+Get Started
 ---
 
+* [Native binary](https://docs.dapt.in/setting-up/installation/#native-binary)
+* [Heroku](https://docs.dapt.in/setting-up/installation/#heroku-deployment)
+* [Docker image](https://docs.dapt.in/setting-up/installation/#docker-image)
+* [Kubernetes YAML](https://docs.dapt.in/setting-up/installation/#kubernetes-deployment)
 
 ## Features
 
@@ -50,7 +62,6 @@
   - Unique/Primary keys
   - Single/Multiple Relation
   - Normalizations and conformations
-  - Middleware
   - Scripting using JS
 * CRUD JSON APIs' for all tables
   - Create, Read, Update, Delete
