@@ -689,7 +689,7 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 	return nil
 }
 
-func ImportDataFiles(initConfig *CmsConfig, db database.DatabaseConnection, cruds map[string]*DbResource) {
+func ImportDataFiles(initConfig *CmsConfig, db sqlx.Ext, cruds map[string]*DbResource) {
 	importCount := len(initConfig.Imports)
 
 	if importCount == 0 {

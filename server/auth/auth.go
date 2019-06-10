@@ -216,15 +216,6 @@ func (a *AuthMiddleware) SetUserUserGroupCrud(curd ResourceAdapter) {
 	a.userUserGroupCrud = curd
 }
 
-func NewAuthMiddleware(db database.DatabaseConnection, userCrud ResourceAdapter, userGroupCrud ResourceAdapter, userUserGroupCrud ResourceAdapter) *AuthMiddleware {
-	return &AuthMiddleware{
-		db:                db,
-		userCrud:          userCrud,
-		userGroupCrud:     userGroupCrud,
-		userUserGroupCrud: userUserGroupCrud,
-	}
-}
-
 var jwtMiddleware *jwtmiddleware.JWTMiddleware
 
 func InitJwtMiddleware(secret []byte, issuer string) {

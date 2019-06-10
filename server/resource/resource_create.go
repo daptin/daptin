@@ -1,8 +1,10 @@
 package resource
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	//"reflect"
@@ -17,6 +19,23 @@ import (
 	"strings"
 	"time"
 )
+
+func NewFromDbResourceWithTransaction(resources *DbResource, tx *sqlx.Tx) *DbResource {
+
+	return &DbResource{
+		Cruds:            resources.Cruds,
+		configStore:      resources.configStore,
+		model:            resources.model,
+		db:               tx,
+		connection:       resources.connection,
+		ActionHandlerMap: resources.ActionHandlerMap,
+		contextCache:     resources.contextCache,
+		defaultGroups:    resources.defaultGroups,
+		ms:               resources.ms,
+		tableInfo:        resources.tableInfo,
+	}
+
+}
 
 // Create a new object. Newly created object/struct must be in Responder.
 // Possible Responder status codes are:
@@ -99,7 +118,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			switch col.ForeignKeyData.DataSource {
 			case "self":
 
-				log.Infof("Convert reference_id to id %v[%v]", col.ForeignKeyData.Namespace, val)
+				//log.Infof("Convert reference_id to id %v[%v]", col.ForeignKeyData.Namespace, val)
 				valString := val.(string)
 				var uId interface{}
 				var err error
@@ -174,12 +193,29 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		}
 		var err error
 
-		if col.ColumnType == "password" {
+		if col.ColumnType == "password" || col.ColumnType == "bcrypt" {
 			val, err = BcryptHashString(val.(string))
 			if err != nil {
 				log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
 				val = ""
 			}
+		}
+
+		if col.ColumnType == "md5-bcrypt" {
+			digest := md5.New()
+			digest.Write([]byte(val.(string)))
+			hash := fmt.Sprintf("%x", digest.Sum(nil))
+			val, err = BcryptHashString(hash)
+			if err != nil {
+				log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
+				val = ""
+			}
+		}
+
+		if col.ColumnType == "md5" {
+			digest := md5.New()
+			digest.Write([]byte(val.(string)))
+			val = fmt.Sprintf("%x", digest.Sum(nil))
 		}
 
 		if col.ColumnType == "datetime" {
@@ -335,7 +371,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
-		log.Infof("Query for default group belonging: %v", belogsToUserGroupSql)
+		//log.Infof("Query for default group belonging: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 
 		if err != nil {

@@ -336,8 +336,8 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 	for i := 0; i < columnCount; i++ {
 		colName := headerRow.Cells[i].Value
 		if len(colName) < 1 {
-			err = errors.New(fmt.Sprintf("Column %d name has less then 3 characters", i+1))
-			return
+			//err = errors.New(fmt.Sprintf("Column %d name has less then 3 characters", i+1))
+			break
 		}
 		//columnNames = append(columnNames, colName)
 		properColumnNames = append(properColumnNames, SmallSnakeCaseText(colName))

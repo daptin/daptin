@@ -1,5 +1,5 @@
-hash: 5515e33ae097700f4431632e52fe219a3236bda4a647820a6af90aefbfd2374a
-updated: 2019-05-27T11:17:00.511857+05:30
+hash: 26f1d9e94cec34a8b04c157ed5a5ff35beb65ad644078782c01c26189dd07bf8
+updated: 2019-06-10T10:54:17.536386+05:30
 imports:
 - name: cloud.google.com/go
   version: a5c6324a6e84f1a1119c5901431b09275b9f091b
@@ -34,6 +34,15 @@ imports:
   - log
   - mail
   - response
+- name: github.com/artpar/go-imap
+  version: 835b93885dd020260866c1573258e3278aa57d3a
+  subpackages:
+  - backend
+  - backend/backendutil
+  - commands
+  - responses
+  - server
+  - utf7
 - name: github.com/artpar/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/artpar/parsemail
@@ -181,6 +190,8 @@ imports:
   - winterm
 - name: github.com/bamzi/jobrunner
   version: 273175f8b6ebabab8a639a4e6260a5c50fbf016a
+- name: github.com/bjarneh/latinx
+  version: 4dfe9ba2a293f28a5e06fc7ffe56b1d71a47b8c8
 - name: github.com/boombuler/barcode
   version: 34fff276c74eba9c3506f0c6f4064dbaa67d8da3
   subpackages:
@@ -223,16 +234,15 @@ imports:
   - dropbox/team_policies
   - dropbox/users
   - dropbox/users_common
-- name: github.com/emersion/go-imap
-  version: b06b4667998f2225e24328b5d78b1c8b3c0d5ff8
+- name: github.com/emersion/go-message
+  version: 279601330b8856146ab0365d05c817d762aa1a6c
   subpackages:
-  - backend
-  - commands
-  - responses
-  - server
-  - utf7
+  - charset
+  - textproto
 - name: github.com/emersion/go-sasl
   version: 7e096a0a6197b89989e8cc31016daa67c8c62051
+- name: github.com/emersion/go-textwrapper
+  version: d0e65e56babe3f687ff94c1d764ca0e6aa7723ee
 - name: github.com/emirpasic/gods
   version: 7c131f6714175bd4ce484da1f348260c79db3069
   subpackages:
@@ -410,6 +420,8 @@ imports:
   version: 3fb116b820352b7f0c281308a4d6250c22d94e27
 - name: github.com/mattn/go-sqlite3
   version: c7c4067b79cc51e6dfdcef5c702e74b1e0fa7c75
+- name: github.com/mholt/certmagic
+  version: 0030c3ed9a43567fe81571f0750141725f468c55
 - name: github.com/mitchellh/go-homedir
   version: ae18d6b8b3205b561c79e8e5f69bff09736185f4
 - name: github.com/mitchellh/mapstructure
@@ -441,7 +453,7 @@ imports:
 - name: github.com/pkg/sftp
   version: 08de04f133f27844173471167014e1a753655ac8
 - name: github.com/pquerna/otp
-  version: be78767b3e392ce45ea73444451022a6fc32ad0d
+  version: 43bebefda392017900e7a7b237b4c914c6a55b50
   subpackages:
   - hotp
   - totp
@@ -571,7 +583,12 @@ imports:
   - cases
   - collate
   - encoding
+  - encoding/charmap
+  - encoding/internal
   - encoding/internal/identifier
+  - encoding/japanese
+  - encoding/simplifiedchinese
+  - encoding/traditionalchinese
   - internal
   - internal/colltab
   - internal/language

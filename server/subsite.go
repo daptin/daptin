@@ -653,22 +653,6 @@ func NewScriptGrapeAsset(src string) GrapeAsset {
 	}
 }
 
-func EndsWith(str string, endsWith string) (string, bool) {
-	if len(endsWith) > len(str) {
-		return "", false
-	}
-
-	if len(endsWith) == len(str) && endsWith != str {
-		return "", false
-	}
-
-	suffix := str[len(str)-len(endsWith):]
-	prefix := str[:len(str)-len(endsWith)]
-
-	i := suffix == endsWith
-	return prefix, i
-
-}
 
 func EndsWithCheck(str string, endsWith string) bool {
 	if len(endsWith) > len(str) {

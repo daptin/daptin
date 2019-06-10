@@ -1,10 +1,11 @@
 package resource
 
 import (
+	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/artpar/go-imap"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
-	"github.com/emersion/go-imap"
 	"github.com/jmoiron/sqlx"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"strings"
@@ -12,7 +13,8 @@ import (
 
 type DbResource struct {
 	model            *api2go.Api2GoModel
-	db               database.DatabaseConnection
+	db               sqlx.Ext
+	connection       database.DatabaseConnection
 	tableInfo        *TableInfo
 	Cruds            map[string]*DbResource
 	ms               *MiddlewareSet
@@ -27,6 +29,7 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms
 	return &DbResource{
 		model:         model,
 		db:            db,
+		connection:    db,
 		ms:            ms,
 		configStore:   configStore,
 		Cruds:         cruds,
@@ -126,14 +129,16 @@ func (dr *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32
 	q := statementbuilder.Squirrel.Select("*").From("mail").Where(squirrel.Eq{
 		"mail_box_id": mailBoxId,
 	}).Where(squirrel.GtOrEq{
-		"uid": start,
+		"id": start,
 	})
 
 	if stop > 0 {
 		q = q.Where(squirrel.LtOrEq{
-			"uid": stop,
+			"id": stop,
 		})
 	}
+
+	q = q.OrderBy("id asc")
 
 	query, args, err := q.ToSql()
 
@@ -197,7 +202,7 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 	r2 := dr.db.QueryRowx(q2, v2...)
 	r2.Scan(&recentCount)
 
-	q3, v3, e3 := statementbuilder.Squirrel.Select("uidvalidity", "nextuid").From("mail_box").Where(squirrel.Eq{
+	q3, v3, e3 := statementbuilder.Squirrel.Select("uidvalidity").From("mail_box").Where(squirrel.Eq{
 		"id": mailBoxId,
 	}).ToSql()
 
@@ -206,7 +211,9 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 	}
 
 	r3 := dr.db.QueryRowx(q3, v3...)
-	r3.Scan(&uidValidity, &uidNext)
+	r3.Scan(&uidValidity)
+
+	uidNext, _ = dr.GetMailboxNextUid(mailBoxId)
 
 	st := imap.NewMailboxStatus("", []imap.StatusItem{imap.StatusUnseen, imap.StatusMessages, imap.StatusRecent, imap.StatusUidNext, imap.StatusUidValidity})
 
@@ -221,19 +228,9 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 	return st, err
 }
 
-func (dr *DbResource) IncrementMailBoxUid(mailBoxId int64, nextUid int64) error {
-
-	query, args, err := statementbuilder.Squirrel.Update("mail_box").Set("nextuid", nextUid).Where(squirrel.Eq{"id": mailBoxId}).ToSql()
-	if err != nil {
-		return err
-	}
-	_, err = dr.db.Exec(query, args...)
-	return err
-
-}
 func (dr *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
 
-	query, args, err := statementbuilder.Squirrel.Select("min(uid)").From("mail").Where(
+	query, args, err := statementbuilder.Squirrel.Select("min(id)").From("mail").Where(
 		squirrel.Eq{
 			"mail_box_id": mailBoxId,
 			"seen":        false,
@@ -266,7 +263,7 @@ func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags st
 		if flag == "\\SEEN" {
 			seen = true
 		}
-		if flag == "\\EXPUNGE" {
+		if flag == "\\EXPUNGE" || flag == "\\DELETED" {
 			deleted = true
 		}
 	}
@@ -291,7 +288,7 @@ func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags st
 }
 func (dr *DbResource) ExpungeMailBox(mailBoxId int64) error {
 
-	query, args, err := statementbuilder.Squirrel.Delete("mail").Where(
+	selectQuery, args, err := statementbuilder.Squirrel.Select("id").From("mail").Where(
 		squirrel.Eq{
 			"mail_box_id": mailBoxId,
 			"deleted":     true,
@@ -302,7 +299,51 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) error {
 		return err
 	}
 
-	_, err = dr.db.Exec(query, args...)
+	rows, err := dr.db.Queryx(selectQuery, args...)
+	if err != nil {
+		return err
+	}
+
+	ids := make([]interface{}, 0)
+
+	for rows.Next() {
+		var id int64
+		rows.Scan(&id)
+		ids = append(ids, id)
+	}
+
+	if len(ids) < 1 {
+		return nil
+	}
+
+	questionMarks := strings.Join(strings.Split(strings.Trim(strings.Repeat("?;", len(ids)), ";"), ";"), ",")
+	_, err = dr.db.Exec(fmt.Sprintf("delete from mail_mail_id_has_usergroup_usergroup_id where mail_id in (%s)", questionMarks), ids...)
+	if err != nil {
+		return err
+	}
+
+	_, err = dr.db.Exec(fmt.Sprintf("delete from mail where id in (%s)", questionMarks), ids...)
+	if err != nil {
+		return err
+	}
+
 	return err
+
+}
+
+func (dr *DbResource) GetMailboxNextUid(mailBoxId int64) (uint32, error) {
+
+	var uidNext int64
+	q5, v5, e5 := statementbuilder.Squirrel.Select("max(id)").From("mail").Where(squirrel.Eq{
+		"mail_box_id": mailBoxId,
+	}).ToSql()
+
+	if e5 != nil {
+		return 1, e5
+	}
+
+	r5 := dr.db.QueryRowx(q5, v5...)
+	err := r5.Scan(&uidNext)
+	return uint32(int32(uidNext) + 1), err
 
 }

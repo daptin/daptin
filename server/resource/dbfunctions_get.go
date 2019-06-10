@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"gopkg.in/Masterminds/squirrel.v1"
@@ -85,7 +86,7 @@ func GetWorldTableMapBy(col string, db database.DatabaseConnection) (map[string]
 
 }
 
-func GetAdminUserIdAndUserGroupId(db database.DatabaseConnection) (int64, int64) {
+func GetAdminUserIdAndUserGroupId(db sqlx.Ext) (int64, int64) {
 	var userCount int
 	s, v, err := statementbuilder.Squirrel.Select("count(*)").From(USER_ACCOUNT_TABLE_NAME).ToSql()
 	err = db.QueryRowx(s, v...).Scan(&userCount)

@@ -2,10 +2,12 @@ package resource
 
 import (
 	"errors"
-	"github.com/emersion/go-imap"
-	"github.com/emersion/go-imap/backend"
+	"github.com/artpar/go-imap"
+	"github.com/artpar/go-imap/backend"
+	"github.com/daptin/daptin/server/auth"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"strings"
+	"sync"
 )
 
 type DaptinImapUser struct {
@@ -15,6 +17,7 @@ type DaptinImapUser struct {
 	mailboxes              map[string]*backend.Mailbox
 	mailAccountId          int64
 	mailAccountReferenceId string
+	sessionUser            *auth.SessionUser
 }
 
 // User represents a user in the mail storage system. A user operation always
@@ -30,16 +33,22 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 
 	var boxes []backend.Mailbox
 	mailBoxes, err := diu.dbResource["mail_box"].GetAllObjectsWithWhere("mail_box", squirrel.Eq{"mail_account_id": diu.mailAccountId})
-	if err != nil {
+	if err != nil || len(mailBoxes) == 0 {
 		return boxes, err
 	}
 
 	for _, box := range mailBoxes {
+		if box["user_account_id"] == nil {
+			continue
+		}
+		s := box["user_account_id"].(string)
 		mb := DaptinImapMailBox{
-			dbResource:    diu.dbResource,
-			name:          box["name"].(string),
-			mailBoxId:     box["id"].(int64),
-			userAccountId: box["user_account_id"].(int64),
+			dbResource:         diu.dbResource,
+			name:               box["name"].(string),
+			sessionUser:        diu.sessionUser,
+			mailBoxReferenceId: box["reference_id"].(string),
+			mailBoxId:          box["id"].(int64),
+			userAccountId:      s,
 			info: imap.MailboxInfo{
 				Attributes: strings.Split(box["attributes"].(string), ";"),
 				Delimiter:  "\\",
@@ -62,8 +71,12 @@ func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 			"name":            name,
 		},
 	)
-	if err != nil || len(box) == 0 {
+	if err != nil {
 		return nil, err
+	}
+
+	if len(box) == 0 {
+		return nil, errors.New("no such mailbox")
 	}
 
 	mbStatus, err := diu.dbResource["mail_box"].GetMailBoxStatus(diu.mailAccountId, box[0]["id"].(int64))
@@ -76,9 +89,12 @@ func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 	mbStatus.PermanentFlags = strings.Split(box[0]["permanent_flags"].(string), ",")
 
 	mb := DaptinImapMailBox{
-		dbResource: diu.dbResource,
-		name:       box[0]["name"].(string),
-		mailBoxId:  box[0]["id"].(int64),
+		dbResource:         diu.dbResource,
+		name:               box[0]["name"].(string),
+		sessionUser:        diu.sessionUser,
+		mailBoxId:          box[0]["id"].(int64),
+		lock:               sync.Mutex{},
+		mailBoxReferenceId: box[0]["reference_id"].(string),
 		info: imap.MailboxInfo{
 			Attributes: strings.Split(box[0]["attributes"].(string), ","),
 			Delimiter:  "\\",
@@ -125,7 +141,7 @@ func (diu *DaptinImapUser) CreateMailbox(name string) error {
 
 	_, err = diu.dbResource["mail_box"].CreateMailAccountBox(
 		mailAccount["reference_id"].(string),
-		mailAccount["user_account_id"].(string),
+		diu.sessionUser,
 		name)
 
 	return err
