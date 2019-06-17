@@ -28,7 +28,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
-	"os"
 )
 
 var TaskScheduler resource.TaskScheduler
@@ -196,7 +195,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		// Create a new server
 		s := server.New(imapBackend)
 		s.Addr = imapListenInterface
-		s.Debug = os.Stdout
+		//s.Debug = os.Stdout
 
 		s.EnableAuth(sasl.Login, func(conn server.Conn) sasl.Server {
 			return sasl.NewLoginServer(func(username, password string) error {
@@ -298,7 +297,7 @@ fagus7nZFuPIRAU1dz5Ni1g=
 
 		// Since we will use this server for testing only, we can allow plain text
 		// authentication over unencrypted connections
-		s.AllowInsecureAuth = false
+		s.AllowInsecureAuth = true
 
 		if err != nil {
 			log.Fatal(err)
@@ -311,7 +310,7 @@ fagus7nZFuPIRAU1dz5Ni1g=
 		log.Printf("Starting IMAP server at %s\n", imapListenInterface)
 
 		go func() {
-			if err := s.ListenAndServeTLS(); err != nil {
+			if err := s.ListenAndServe(); err != nil {
 				log.Fatal(err)
 			}
 		}()

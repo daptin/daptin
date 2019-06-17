@@ -119,7 +119,11 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			case "self":
 
 				//log.Infof("Convert reference_id to id %v[%v]", col.ForeignKeyData.Namespace, val)
-				valString := val.(string)
+				valString, ok := val.(string)
+				if !ok {
+					log.Errorf("Expected string in foreign key column[%v], found %v", col.ColumnName, val)
+					return nil, errors.New("unexpected value in foreign key column")
+				}
 				var uId interface{}
 				var err error
 				if valString == "" {
