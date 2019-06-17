@@ -41,14 +41,13 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 		if box["user_account_id"] == nil {
 			continue
 		}
-		s := box["user_account_id"].(string)
 		mb := DaptinImapMailBox{
 			dbResource:         diu.dbResource,
 			name:               box["name"].(string),
 			sessionUser:        diu.sessionUser,
 			mailBoxReferenceId: box["reference_id"].(string),
+			sequenceToMail:     make(map[uint32]*imap.Message),
 			mailBoxId:          box["id"].(int64),
-			userAccountId:      s,
 			info: imap.MailboxInfo{
 				Attributes: strings.Split(box["attributes"].(string), ";"),
 				Delimiter:  "\\",
@@ -93,7 +92,9 @@ func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 		name:               box[0]["name"].(string),
 		sessionUser:        diu.sessionUser,
 		mailBoxId:          box[0]["id"].(int64),
+		mailAccountId:      diu.mailAccountId,
 		lock:               sync.Mutex{},
+		sequenceToMail:     make(map[uint32]*imap.Message),
 		mailBoxReferenceId: box[0]["reference_id"].(string),
 		info: imap.MailboxInfo{
 			Attributes: strings.Split(box[0]["attributes"].(string), ","),

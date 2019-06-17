@@ -75,9 +75,6 @@ func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password strin
 }
 
 func NewImapServer(cruds map[string]*DbResource) *DaptinImapBackend {
-	user := &DaptinImapUser{}
-
-	user.mailboxes = map[string]*backend.Mailbox{}
 	return &DaptinImapBackend{
 		cruds: cruds,
 	}

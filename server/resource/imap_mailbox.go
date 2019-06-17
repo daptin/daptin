@@ -28,17 +28,16 @@ import (
 )
 
 type DaptinImapMailBox struct {
-	name                   string
-	sessionUser            *auth.SessionUser
-	dbResource             map[string]*DbResource
-	mailAccountId          int64
-	mailAccountReferenceId string
-	userAccountId          string
-	lock                   sync.Mutex
-	mailBoxId              int64
-	mailBoxReferenceId     string
-	info                   imap.MailboxInfo
-	status                 imap.MailboxStatus
+	name               string
+	sessionUser        *auth.SessionUser
+	dbResource         map[string]*DbResource
+	mailAccountId      int64
+	lock               sync.Mutex
+	mailBoxId          int64
+	mailBoxReferenceId string
+	info               imap.MailboxInfo
+	status             imap.MailboxStatus
+	sequenceToMail     map[uint32]*imap.Message
 }
 
 // Name returns this mailbox name.
@@ -146,7 +145,24 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 		if uid {
 			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, seq.Start, seq.Stop)
 		} else {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, seq.Start, seq.Stop)
+			startAt := seq.Start
+			stopAt := seq.Stop
+
+			for {
+
+				if dimb.sequenceToMail[startAt] == nil {
+					break
+				}
+
+				ch <- dimb.sequenceToMail[startAt]
+				startAt = startAt + 1
+			}
+
+			if startAt > stopAt {
+				continue
+			}
+
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, startAt, stopAt)
 		}
 
 		if err != nil {
@@ -199,6 +215,17 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
 					header, err := textproto.ReadHeader(bodyReader)
 
+					if item == imap.FetchBody {
+						flagList := strings.Split(mailContent["flags"].(string), ",")
+						if HasFlag(flagList, imap.RecentFlag) {
+							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
+							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), strings.Join(newFlags, ","))
+							if err != nil {
+								log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
+							}
+						}
+
+					}
 					bs, err := backendutil.FetchBodyStructure(header, bodyReader, item == imap.FetchBodyStructure)
 					if err != nil {
 						log.Printf("Failed to fetch body structure for email [%v] == %v", mailContent["id"], err)
@@ -209,6 +236,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 				case imap.FetchFlags:
 					flagList := strings.Split(mailContent["flags"].(string), ",")
 					returnMail.Flags = flagList
+
 				case imap.FetchInternalDate:
 					returnMail.InternalDate = mailContent["internal_date"].(time.Time)
 				case imap.FetchRFC822Size:
@@ -228,15 +256,22 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 						break
 					}
 
-					l, err := backendutil.FetchBodySection(header, bodyReader, section)
-					if err != nil {
-						log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
-						skipMail = true
-						break
+					if !section.Peek {
+						flagList := strings.Split(mailContent["flags"].(string), ",")
+						if HasFlag(flagList, imap.RecentFlag) {
+							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
+							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), strings.Join(newFlags, ","))
+							if err != nil {
+								log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
+							}
+						}
 					}
 
-					if !section.Peek {
-						log.Printf("Mark as non recent: %v", section)
+					l, err := backendutil.FetchBodySection(header, bodyReader, section)
+					if err != nil || l.Len() == 0 {
+						log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
+						// skipMail = true
+						// break
 					}
 
 					returnMail.Body[section] = l
@@ -253,6 +288,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 			//	continue
 			//}
 
+			dimb.sequenceToMail[seqNo] = returnMail
 			ch <- returnMail
 			seqNo += 1
 		}
@@ -374,7 +410,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 	//log.Printf("%v length of the new message", len(mailBody), parsedmail.From, parsedmail.Subject)
 
 	textBody := parsedmail.TextBody
-	if strings.Index(parsedmail.Header.Get("Content-type"), "iso-8859-1") > -1 {
+	if strings.Index(strings.ToLower(parsedmail.Header.Get("Content-type")), "iso-8859-1") > -1 {
 		converter := latinx.Get(latinx.ISO_8859_1)
 		textBodyBytes, err := converter.Decode([]byte(textBody))
 		if err != nil {
@@ -439,7 +475,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 			"return_path":      "",
 			"is_tls":           false,
 			"mail_box_id":      dimb.mailBoxReferenceId,
-			"user_account_id":  dimb.userAccountId,
+			"user_account_id":  dimb.sessionUser.UserId,
 			"seen":             false,
 			"recent":           true,
 			"flags":            strings.Join(flags, ","),
@@ -570,20 +606,20 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 		}
 
 		for _, mail := range mails {
-			mail["mail_box_id"] = destinationMailBoxId
+			mail["mail_box_id"] = destinationMailBoxId["reference_id"]
 
 			delete(mail, "reference_id")
 			delete(mail, "updated_at")
 			delete(mail, "created_at")
 			delete(mail, "id")
-
+			mail["recent"] = true
 			mailFlags := strings.Split(mail["flags"].(string), ",")
 			if !HasFlag(mailFlags, "\\Recent") {
 				mailFlags = append(mailFlags, "\\Recent")
 				mail["flags"] = strings.Join(mailFlags, ",")
 			}
 
-			_, err = dimb.dbResource["mail_box"].CreateWithoutFilter(&api2go.Api2GoModel{
+			_, err = dimb.dbResource["mail"].CreateWithoutFilter(&api2go.Api2GoModel{
 				Data: mail,
 			}, req)
 		}
@@ -599,7 +635,8 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 // via an expunge update.
 func (dimb *DaptinImapMailBox) Expunge() error {
 
-	err := dimb.dbResource["mail_box"].ExpungeMailBox(dimb.mailBoxId)
+	deleteCount, err := dimb.dbResource["mail_box"].ExpungeMailBox(dimb.mailBoxId)
+	log.Printf("%v messages were deleted", deleteCount)
 
 	if err != nil {
 		log.Printf("Failed to expunge mails: %v", err)

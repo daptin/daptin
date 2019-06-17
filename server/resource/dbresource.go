@@ -99,6 +99,7 @@ func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, sto
 
 	q := statementbuilder.Squirrel.Select("*").From("mail").Where(squirrel.Eq{
 		"mail_box_id": mailBoxId,
+		"deleted": false,
 	}).Offset(uint64(start - 1))
 
 	if stop > 0 {
@@ -128,6 +129,7 @@ func (dr *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32
 
 	q := statementbuilder.Squirrel.Select("*").From("mail").Where(squirrel.Eq{
 		"mail_box_id": mailBoxId,
+		"deleted": false,
 	}).Where(squirrel.GtOrEq{
 		"id": start,
 	})
@@ -286,7 +288,7 @@ func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags st
 	return err
 
 }
-func (dr *DbResource) ExpungeMailBox(mailBoxId int64) error {
+func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 
 	selectQuery, args, err := statementbuilder.Squirrel.Select("id").From("mail").Where(
 		squirrel.Eq{
@@ -296,12 +298,12 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) error {
 	).ToSql()
 
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	rows, err := dr.db.Queryx(selectQuery, args...)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	ids := make([]interface{}, 0)
@@ -313,21 +315,21 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) error {
 	}
 
 	if len(ids) < 1 {
-		return nil
+		return 0, nil
 	}
 
 	questionMarks := strings.Join(strings.Split(strings.Trim(strings.Repeat("?;", len(ids)), ";"), ";"), ",")
 	_, err = dr.db.Exec(fmt.Sprintf("delete from mail_mail_id_has_usergroup_usergroup_id where mail_id in (%s)", questionMarks), ids...)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	_, err = dr.db.Exec(fmt.Sprintf("delete from mail where id in (%s)", questionMarks), ids...)
+	result, err := dr.db.Exec(fmt.Sprintf("delete from mail where id in (%s)", questionMarks), ids...)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return err
+	return result.RowsAffected()
 
 }
 
