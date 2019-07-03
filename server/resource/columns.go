@@ -62,6 +62,7 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("world", "has_many", "smd"),
 	api2go.NewTableRelation("oauth_token", "has_one", "oauth_connect"),
 	api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
+	api2go.NewTableRelation("user_account", "has_one", "user_otp_account"),
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "oauth_token"),
 	api2go.NewTableRelation("site", "has_one", "cloud_store"),
@@ -75,6 +76,80 @@ var SystemSmds = []LoopbookFsmDescription{}
 var SystemExchanges = []ExchangeContract{}
 
 var SystemActions = []Action{
+	{
+		Name:             "register_otp",
+		Label:            "Register Mobile Number",
+		OnType:           USER_ACCOUNT_TABLE_NAME,
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "mobile_number",
+				ColumnName: "mobile_number",
+				ColumnType: "label",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "otp.register.begin",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"email":  "$.email",
+					"mobile": "~mobile_number",
+				},
+			},
+		},
+	},
+	{
+		Name:             "verify_mobile_number",
+		Label:            "Verify Mobile Number",
+		OnType:           "user_otp_account",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "otp",
+				ColumnName: "otp",
+				ColumnType: "label",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "otp.login.verify",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"otp":    "~otp",
+					"mobile": "$.mobile_number",
+				},
+			},
+		},
+	},
+	{
+		Name:             "verify_otp",
+		Label:            "Login with OTP",
+		OnType:           "user_account",
+		InstanceOptional: true,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "otp",
+				ColumnName: "otp",
+				ColumnType: "label",
+			},
+			{
+				Name:       "mobile_number",
+				ColumnName: "mobile_number",
+				ColumnType: "label",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "otp.login.verify",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"otp":    "~otp",
+					"mobile": "~mobile_number",
+				},
+			},
+		},
+	},
 	{
 		Name:             "remove_column",
 		Label:            "Delete column",
@@ -1068,6 +1143,33 @@ var StandardTables = []TableInfo{
 				DataType:   "text",
 				IsNullable: false,
 				ColumnType: "json",
+			},
+		},
+	},
+	{
+		TableName:     "user_otp_account",
+		Icon:          "fa-child",
+		DefaultGroups: []string{},
+		Columns: []api2go.ColumnInfo{
+			{
+				ColumnName: "mobile_number",
+				IsIndexed:  true,
+				DataType:   "varchar(20)",
+				ColumnType: "label",
+			},
+			{
+				ColumnName:     "otp_secret",
+				IsIndexed:      true,
+				ExcludeFromApi: true,
+				DataType:       "varchar(100)",
+				ColumnType:     "encrypted",
+			},
+			{
+				ColumnName:   "verified",
+				DataType:     "int(1)",
+				DefaultValue: "0",
+				ColumnType:   "truefalse",
+				Name:         "verified",
 			},
 		},
 	},

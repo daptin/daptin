@@ -76,7 +76,7 @@ func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inField
 
 func NewOauthLoginBeginActionPerformer(initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
 
-	secret, err := configStore.GetConfigValueFor("otp.secret", "backend")
+	secret, err := configStore.GetConfigValueFor("totp.secret", "backend")
 	if err != nil {
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      "site.daptin.com",
@@ -89,7 +89,7 @@ func NewOauthLoginBeginActionPerformer(initConfig *CmsConfig, cruds map[string]*
 			log.Errorf("Failed to generate code: %v", err)
 			return nil, err
 		}
-		configStore.SetConfigValueFor("otp.secret", key.Secret(), "backend")
+		configStore.SetConfigValueFor("totp.secret", key.Secret(), "backend")
 		secret = key.Secret()
 	}
 
