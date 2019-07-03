@@ -137,8 +137,8 @@ func NewGenerateJwtTokenPerformer(configStore *ConfigStore, cruds map[string]*Db
 	}
 
 	handler := GenerateJwtTokenActionPerformer{
-		secret:         []byte(secret),
 		cruds:          cruds,
+		secret:         []byte(secret),
 		tokenLifeTime:  tokenLifeTimeHours,
 		jwtTokenIssuer: jwtTokenIssuer,
 	}

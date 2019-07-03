@@ -437,6 +437,34 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 	}
 
+	for _, rel := range dr.tableInfo.Relations {
+		if rel.Relation == "has_one" && rel.Object == dr.tableInfo.TableName {
+			log.Printf("Need to update foreign key column in table %s", rel.SubjectName)
+
+			foreignObjectId, ok := attrs[rel.SubjectName]
+			if !ok || foreignObjectId == nil {
+				continue
+			}
+
+			updateRelatedTable, args, err := statementbuilder.Squirrel.Update(rel.Subject).Set(rel.ObjectName, createdResource["id"]).Where(
+				squirrel.Eq{
+					"reference_id": foreignObjectId,
+				}).ToSql()
+
+			if err != nil {
+				log.Printf("Failed to create update foreign key sql: %s", err)
+				continue
+			}
+
+			_, err = dr.db.Exec(updateRelatedTable, args...)
+
+			if err != nil {
+				log.Printf("Zero rows were affected: %v", err)
+			}
+
+		}
+	}
+
 	delete(createdResource, "id")
 	createdResource["__type"] = dr.model.GetName()
 

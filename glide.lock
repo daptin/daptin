@@ -1,5 +1,5 @@
-hash: 26f1d9e94cec34a8b04c157ed5a5ff35beb65ad644078782c01c26189dd07bf8
-updated: 2019-06-10T10:54:17.536386+05:30
+hash: fc5ef0c9e390accf9952a4549498ab1da396328ae344b13c06862055b14e02c5
+updated: 2019-07-02T14:01:12.009494+05:30
 imports:
 - name: cloud.google.com/go
   version: a5c6324a6e84f1a1119c5901431b09275b9f091b
@@ -138,7 +138,7 @@ imports:
 - name: github.com/asaskevich/EventBus
   version: 68a521d7cbbb7a859c2608b06342f384b3bd5f5a
 - name: github.com/aws/aws-sdk-go
-  version: 8234000fff968de811646c75b200b0c713f800ec
+  version: 892e2b1c287ab828befdfb4ada461a36ec21783e
   subpackages:
   - aws
   - aws/awserr
@@ -167,6 +167,7 @@ imports:
   - private/protocol
   - private/protocol/eventstream
   - private/protocol/eventstream/eventstreamapi
+  - private/protocol/json/jsonutil
   - private/protocol/query
   - private/protocol/query/queryutil
   - private/protocol/rest
@@ -175,6 +176,7 @@ imports:
   - service/s3
   - service/s3/s3iface
   - service/s3/s3manager
+  - service/sns
   - service/sts
 - name: github.com/Azure/azure-pipeline-go
   version: b8e3409182fd52e74f7d7bdfbff5833591b3b655
@@ -421,7 +423,7 @@ imports:
 - name: github.com/mattn/go-sqlite3
   version: c7c4067b79cc51e6dfdcef5c702e74b1e0fa7c75
 - name: github.com/mholt/certmagic
-  version: 0030c3ed9a43567fe81571f0750141725f468c55
+  version: c7a9fdb178168514647c1fc65bf76e56e788949c
 - name: github.com/mitchellh/go-homedir
   version: ae18d6b8b3205b561c79e8e5f69bff09736185f4
 - name: github.com/mitchellh/mapstructure
