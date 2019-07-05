@@ -733,7 +733,7 @@ func ImportDataFiles(initConfig *CmsConfig, db sqlx.Ext, cruds map[string]*DbRes
 		}
 
 		importSuccess := false
-
+		log.Printf("Uploaded file is type: %v", importFile.FileType)
 		switch importFile.FileType {
 
 		case "json":
@@ -767,7 +767,12 @@ func ImportDataFiles(initConfig *CmsConfig, db sqlx.Ext, cruds map[string]*DbRes
 			}
 
 			importSuccess = true
-			ImportDataMapArray(data, cruds[importFile.Entity], req)
+			errors := ImportDataMapArray(data, cruds[importFile.Entity], req)
+			if len(errors) > 0 {
+				for _, err := range errors {
+					log.Errorf("Error while importing json data: %v", err)
+				}
+			}
 
 		case "csv":
 
@@ -783,7 +788,12 @@ func ImportDataFiles(initConfig *CmsConfig, db sqlx.Ext, cruds map[string]*DbRes
 			for i, h := range header {
 				header[i] = SmallSnakeCaseText(h)
 			}
-			ImportDataStringArray(data, header, importFile.Entity, cruds[importFile.Entity], req)
+			errors := ImportDataStringArray(data, header, importFile.Entity, cruds[importFile.Entity], req)
+			if len(errors) > 0 {
+				for _, err := range errors {
+					log.Errorf("Error while importing json data: %v", err)
+				}
+			}
 
 		default:
 			CheckErr(errors.New("unknown file type"), "Failed to import [%v]: [%v]", importFile.FileType, importFile.FilePath)
