@@ -124,7 +124,7 @@ func (d *OuathProfileExchangePerformer) DoAction(request ActionRequest, inFieldM
 	}
 
 	responder := api2go.Response{
-		Res: api2go.NewApi2GoModelWithData("oauth_profile", nil, 0, nil , tokenResponse),
+		Res: api2go.NewApi2GoModelWithData("oauth_profile", nil, 0, nil, tokenResponse),
 	}
 
 	return responder, []ActionResponse{

@@ -120,7 +120,7 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 	storeToken["token_type"] = token_type
 	storeToken["oauth_connect_id"] = oauth_connect_reference_id
 
-	userId, err := dr.GetReferenceIdToId("user_account", user_reference_id)
+	userId, err := dr.GetReferenceIdToId(USER_ACCOUNT_TABLE_NAME, user_reference_id)
 
 	if err != nil {
 		return err
@@ -211,7 +211,7 @@ func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFi
 
 func NewOauthLoginResponseActionPerformer(initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
 
-	secret, err := configStore.GetConfigValueFor("otp.secret", "backend")
+	secret, err := configStore.GetConfigValueFor("totp.secret", "backend")
 	if err != nil {
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      "site.daptin.com",
@@ -224,7 +224,7 @@ func NewOauthLoginResponseActionPerformer(initConfig *CmsConfig, cruds map[strin
 			log.Errorf("Failed to generate code: %v", err)
 			return nil, err
 		}
-		configStore.SetConfigValueFor("otp.secret", key.Secret(), "backend")
+		configStore.SetConfigValueFor("totp.secret", key.Secret(), "backend")
 		secret = key.Secret()
 	}
 

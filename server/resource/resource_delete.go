@@ -5,10 +5,10 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"fmt"
+	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/statementbuilder"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
-	"github.com/daptin/daptin/server/statementbuilder"
-	"github.com/daptin/daptin/server/auth"
 )
 
 // Delete an object

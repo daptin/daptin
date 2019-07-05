@@ -101,7 +101,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 				"site_id": site.ReferenceId,
 				"path":    tempDirectoryPath,
 			},
-			AsUserEmail: cruds["user_account"].GetAdminEmailId(),
+			AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(),
 			Schedule:    "@every 10m",
 		})
 		resource.CheckErr(err, "Failed to register task to sync storage")
@@ -653,22 +653,6 @@ func NewScriptGrapeAsset(src string) GrapeAsset {
 	}
 }
 
-func EndsWith(str string, endsWith string) (string, bool) {
-	if len(endsWith) > len(str) {
-		return "", false
-	}
-
-	if len(endsWith) == len(str) && endsWith != str {
-		return "", false
-	}
-
-	suffix := str[len(str)-len(endsWith):]
-	prefix := str[:len(str)-len(endsWith)]
-
-	i := suffix == endsWith
-	return prefix, i
-
-}
 
 func EndsWithCheck(str string, endsWith string) bool {
 	if len(endsWith) > len(str) {

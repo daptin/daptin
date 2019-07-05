@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -13,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"io/ioutil"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -151,7 +153,7 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 			ToSql()
 	} else {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
-			Select("user_account_id", "permission", "id").
+			Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").
 			From(objectType).Where(squirrel.Eq{"reference_id": referenceId}).
 			ToSql()
 
@@ -171,9 +173,9 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 	}
 	//log.Infof("permi map: %v", resultObject)
 	var perm PermissionInstance
-	if resultObject["user_account_id"] != nil {
+	if resultObject[USER_ACCOUNT_ID_COLUMN] != nil {
 
-		user, err := dr.GetIdToReferenceId("user_account", resultObject["user_account_id"].(int64))
+		user, err := dr.GetIdToReferenceId(USER_ACCOUNT_TABLE_NAME, resultObject[USER_ACCOUNT_ID_COLUMN].(int64))
 		if err == nil {
 			perm.UserId = user
 		}
@@ -211,7 +213,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 			ToSql()
 	} else {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
-			Select("user_account_id", "permission", "id").
+			Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").
 			From(objectType).Where(squirrel.Eq{"id": id}).
 			ToSql()
 
@@ -231,13 +233,12 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 	}
 	//log.Infof("permi map: %v", resultObject)
 	var perm PermissionInstance
-	if resultObject["user_account_id"] != nil {
+	if resultObject[USER_ACCOUNT_ID_COLUMN] != nil {
 
-		user, err := dr.GetIdToReferenceId("user_account", resultObject["user_account_id"].(int64))
+		user, err := dr.GetIdToReferenceId(USER_ACCOUNT_TABLE_NAME, resultObject["user_account_id"].(int64))
 		if err == nil {
 			perm.UserId = user
 		}
-
 	}
 
 	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, resultObject["id"].(int64))
@@ -258,7 +259,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 // Return a NoPermissionToAnyone if no such object exist
 func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colName string, colValue string) PermissionInstance {
 	var perm PermissionInstance
-	s, q, err := statementbuilder.Squirrel.Select("user_account_id", "permission", "id").From(objectType).Where(squirrel.Eq{colName: colValue}).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Where(squirrel.Eq{colName: colValue}).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
 		return perm
@@ -276,7 +277,7 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	//log.Infof("permi map: %v", m)
 	if m["user_account_id"] != nil {
 
-		user, err := dr.GetIdToReferenceId("user_account", m["user_account_id"].(int64))
+		user, err := dr.GetIdToReferenceId(USER_ACCOUNT_TABLE_NAME, m[USER_ACCOUNT_ID_COLUMN].(int64))
 		if err == nil {
 			perm.UserId = user
 		}
@@ -389,7 +390,7 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 
 	var count int
 
-	row := dbResource.db.QueryRow("select count(*) from user_account where email != 'guest@cms.go'")
+	row := dbResource.db.QueryRowx("select count(*) from " + USER_ACCOUNT_TABLE_NAME + " where email != 'guest@cms.go'")
 	err := row.Scan(&count)
 	if err != nil {
 		return false
@@ -402,7 +403,7 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 // Returns the user account row of a user by looking up on email
 func (d *DbResource) GetUserAccountRowByEmail(email string) (map[string]interface{}, error) {
 
-	user, _, err := d.Cruds["user_account"].GetRowsByWhereClause("user", squirrel.Eq{"email": email})
+	user, _, err := d.Cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", squirrel.Eq{"email": email})
 
 	if len(user) > 0 {
 
@@ -413,10 +414,141 @@ func (d *DbResource) GetUserAccountRowByEmail(email string) (map[string]interfac
 
 }
 
+// Returns the user account row of a user by looking up on email
+func (d *DbResource) GetUserMailAccountRowByEmail(username string) (map[string]interface{}, error) {
+
+	mailAccount, _, err := d.Cruds["mail_account"].GetRowsByWhereClause("mail_account",
+		squirrel.Eq{"username": username})
+
+	if len(mailAccount) > 0 {
+
+		return mailAccount[0], err
+	}
+
+	return nil, errors.New("no such mail account")
+
+}
+
+// Returns the user mail account box row of a user
+func (d *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName string) (map[string]interface{}, error) {
+
+	mailAccount, _, err := d.Cruds["mail_box"].GetRowsByWhereClause("mail_box", squirrel.Eq{"mail_account_id": mailAccountId}, squirrel.Eq{"name": mailBoxName})
+
+	if len(mailAccount) > 0 {
+
+		return mailAccount[0], err
+	}
+
+	return nil, errors.New("no such mail box")
+
+}
+
+// Returns the user mail account box row of a user
+func (d *DbResource) CreateMailAccountBox(mailAccountId string, sessionUser *auth.SessionUser, mailBoxName string) (map[string]interface{}, error) {
+
+	httpRequest := &http.Request{
+		Method: "POST",
+	}
+
+	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
+	resp, err := d.Cruds["mail_box"].Create(&api2go.Api2GoModel{
+		Data: map[string]interface{}{
+			"name":            mailBoxName,
+			"mail_account_id": mailAccountId,
+			"uidvalidity":     time.Now().Unix(),
+			"nextuid":         1,
+			"subscribed":      true,
+			"attributes":      "",
+			"flags":           "\\*",
+			"permanent_flags": "\\*",
+		},
+	}, api2go.Request{
+		PlainRequest: httpRequest,
+	})
+
+	return resp.Result().(*api2go.Api2GoModel).Data, err
+
+}
+
+// Returns the user mail account box row of a user
+func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) (error) {
+
+	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
+		squirrel.Eq{
+			"mail_account_id": mailAccountId,
+			"name":            mailBoxName,
+		},
+	)
+	if err != nil || len(box) == 0 {
+		return errors.New("mailbox does not exist")
+	}
+
+	query, args, err := statementbuilder.Squirrel.Delete("mail").Where(squirrel.Eq{"mail_box_id": box[0]["id"]}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = d.db.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+
+	query, args, err = statementbuilder.Squirrel.Delete("mail_box").Where(squirrel.Eq{"id": box[0]["id"]}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = d.db.Exec(query, args...)
+
+	return err
+
+}
+
+// Returns the user mail account box row of a user
+func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) (error) {
+
+	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
+		squirrel.Eq{
+			"mail_account_id": mailAccountId,
+			"name":            oldBoxName,
+		},
+	)
+	if err != nil || len(box) == 0 {
+		return errors.New("mailbox does not exist")
+	}
+
+	query, args, err := statementbuilder.Squirrel.Update("mail_box").Set("name", newBoxName).Where(squirrel.Eq{"id": box[0]["id"]}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = d.db.Exec(query, args...)
+
+	return err
+
+}
+
+// Returns the user mail account box row of a user
+func (d *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool) (error) {
+
+	query, args, err := statementbuilder.Squirrel.Update("mail_box").Set("subscribed", subscribed).Where(squirrel.Eq{
+		"mail_account_id": mailAccountId,
+		"name":            mailBoxName,
+	}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = d.db.Exec(query, args...)
+
+	return err
+
+}
+
 func (d *DbResource) GetUserPassword(email string) (string, error) {
 	passwordHash := ""
 
-	existingUsers, _, err := d.Cruds["user_account"].GetRowsByWhereClause("user", squirrel.Eq{"email": email})
+	existingUsers, _, err := d.Cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", squirrel.Eq{"email": email})
 	if err != nil {
 		return passwordHash, err
 	}
@@ -463,9 +595,9 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 			continue
 		}
 
-		if crud.model.HasColumn("user_account_id") {
+		if crud.model.HasColumn(USER_ACCOUNT_ID_COLUMN) {
 			q, v, err := statementbuilder.Squirrel.Update(crud.model.GetName()).
-				Set("user_account_id", userId).
+				Set(USER_ACCOUNT_ID_COLUMN, userId).
 				Set("permission", auth.DEFAULT_PERMISSION).
 				ToSql()
 			if err != nil {
@@ -488,7 +620,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 	reference_id, err := uuid.NewV4()
 
 	query, args, err := statementbuilder.Squirrel.Insert("user_account_user_account_id_has_usergroup_usergroup_id").
-		Columns("user_account_id", "usergroup_id", "permission", "reference_id").
+		Columns(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "permission", "reference_id").
 		Values(userId, adminUsergroupId, auth.DEFAULT_PERMISSION.IntValue(), reference_id.String()).
 		ToSql()
 
@@ -529,12 +661,12 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 	var perm PermissionInstance
 
 	if rowType != "usergroup" {
-		if row["user_account_id"] != nil {
-			uid, _ := row["user_account_id"].(string)
+		if row[USER_ACCOUNT_ID_COLUMN] != nil {
+			uid, _ := row[USER_ACCOUNT_ID_COLUMN].(string)
 			perm.UserId = uid
 		} else {
 			row, _ = dr.GetReferenceIdToObject(rowType, refId.(string))
-			u := row["user_account_id"]
+			u := row[USER_ACCOUNT_ID_COLUMN]
 			if u != nil {
 				uid, _ := u.(string)
 				perm.UserId = uid
@@ -610,7 +742,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where ...squirrel.Eq
 
 	s, q, err := stmt.ToSql()
 
-	log.Infof("Select query: %v == [%v]", s, q)
+	//log.Infof("Select query: %v == [%v]", s, q)
 	rows, err := dr.db.Queryx(s, q...)
 	if err != nil {
 		return nil, nil, err
@@ -664,7 +796,7 @@ func (dr *DbResource) GetUserIdByUsergroupId(usergroupId int64) string {
 func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 
 	s, q, err := statementbuilder.Squirrel.Select("u.email").From("user_account_user_account_id_has_usergroup_usergroup_id uu").
-		LeftJoin("user_account u on uu.user_account_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).
+		LeftJoin(USER_ACCOUNT_TABLE_NAME + " u on uu." + USER_ACCOUNT_ID_COLUMN + " = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).
 		OrderBy("uu.created_at").Limit(1).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create sql query: %v", err)
@@ -688,6 +820,32 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create select query by ref id: %v", referenceId)
+		return nil, nil, err
+	}
+
+	rows, err := dr.db.Queryx(s, q...)
+	defer rows.Close()
+	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), map[string]bool{"*": true})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(resultRows) < 1 {
+		return nil, nil, errors.New("No such entity")
+	}
+
+	m := resultRows[0]
+	n := includeRows[0]
+
+	return m, n, err
+
+}
+
+func (dr *DbResource) GetSingleRowById(typeName string, id int64) (map[string]interface{}, []map[string]interface{}, error) {
+	//log.Infof("Get single row by id: [%v][%v]", typeName, referenceId)
+	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(squirrel.Eq{"id": id}).ToSql()
+	if err != nil {
+		log.Errorf("Failed to create select query by id: %v", id)
 		return nil, nil, err
 	}
 
@@ -799,6 +957,34 @@ func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{})
 // Can be used by actions
 func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, error) {
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := dr.db.Queryx(s, q...)
+
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+
+	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
+
+	return m, err
+}
+
+// Get all rows from the table `typeName`
+// Returns an array of Map object, each object has the column name to value mapping
+// Utility method for loading all objects having low count
+// Can be used by actions
+func (dr *DbResource) GetAllObjectsWithWhere(typeName string, where ...squirrel.Eq) ([]map[string]interface{}, error) {
+	query := statementbuilder.Squirrel.Select("*").From(typeName)
+
+	for _, w := range where {
+		query = query.Where(w)
+	}
+
+	s, q, err := query.ToSql()
 	if err != nil {
 		return nil, err
 	}
@@ -1114,7 +1300,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					continue
 				}
 
-				if includedRelationMap != nil && (includedRelationMap[namespace] || includedRelationMap["*"]) {
+				if includedRelationMap != nil && (includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"]) {
 
 					resolvedFilesList, err := dr.GetFileFromCloudStore(columnInfo.ForeignKeyData, foreignFilesList)
 					CheckErr(err, "Failed to resolve file from cloud store")

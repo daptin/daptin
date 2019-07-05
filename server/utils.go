@@ -6,12 +6,12 @@ import (
 	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
-	"github.com/daptin/daptin/server/statementbuilder"
 )
 
 func CheckSystemSecrets(store *resource.ConfigStore) error {
@@ -93,7 +93,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 	sql, args, err := statementbuilder.Squirrel.Select("table_name", "permission", "default_permission",
 		"world_schema_json", "is_top_level", "is_hidden", "is_state_tracking_enabled", "default_order",
 	).From("world").Where("table_name not like '%_has_%'").Where("table_name not like '%_audit'").Where("table_name not in (?,?,?,?)",
-		"world", "action", "user_account", "usergroup").ToSql()
+		"world", "action", resource.USER_ACCOUNT_TABLE_NAME, "usergroup").ToSql()
 	if err != nil {
 		return nil, err
 	}

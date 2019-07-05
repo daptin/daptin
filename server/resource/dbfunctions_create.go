@@ -285,7 +285,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 
 			//log.Infof("From table [%v] to table [%v]", fromTable, targetTable)
 			isNullable := false
-			if targetTable == "user_account" || targetTable == "usergroup" || relation2 == "has_one" {
+			if targetTable == USER_ACCOUNT_TABLE_NAME || targetTable == "usergroup" || relation2 == "has_one" {
 				isNullable = true
 			}
 
@@ -327,7 +327,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 					}
 
 					//log.Infof("Add column [%v] to table [%v]", col.ColumnName, t.TableName)
-					if targetTable != "user_account" && relation.GetRelation() == "belongs_to" {
+					if targetTable != USER_ACCOUNT_TABLE_NAME && relation.GetRelation() == "belongs_to" {
 						config.Tables[i].IsTopLevel = false
 						//log.Infof("Table [%v] is not top level == %v", t.TableName, targetTable)
 					}
@@ -495,7 +495,7 @@ func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
 		columnStrings = append(columnStrings, columnLine)
 	}
 	columnString := strings.Join(columnStrings, ",\n  ")
-	createTableQuery += columnString + ");"
+	createTableQuery += columnString + ") CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 	return createTableQuery
 }
 
@@ -504,7 +504,7 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 	datatype := c.DataType
 
 	if datatype == "" {
-		datatype = "varchar(50)"
+		datatype = "varchar(100)"
 	}
 
 	if BeginsWith(datatype, "int(") && sqlDriverName == "postgres" {
@@ -545,6 +545,11 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 	if c.DefaultValue != "" {
 		columnParams = append(columnParams, "default "+c.DefaultValue)
 	}
+
+	//if sqlDriverName == "mysql" && (c.DataType == "text" || BeginsWith(c.DataType, "varchar(")) {
+	//	columnParams = append(columnParams, "CHARACTER SET utf8mb4")
+	//	columnParams = append(columnParams, "COLLATE utf8mb4_unicode_ci")
+	//}
 
 	columnLine := strings.Join(columnParams, " ")
 	return columnLine

@@ -18,13 +18,13 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/artpar/conform"
-	"gopkg.in/go-playground/validator.v9"
-	"strconv"
-	"io"
 	"encoding/json"
-	"net/url"
+	"github.com/artpar/conform"
 	"github.com/artpar/go.uuid"
+	"gopkg.in/go-playground/validator.v9"
+	"io"
+	"net/url"
+	"strconv"
 )
 
 var guestActions = map[string]Action{}
@@ -216,7 +216,7 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 	}
 
 	if sessionUser.UserReferenceId != "" {
-		user, err := db.GetReferenceIdToObject("user_account", sessionUser.UserReferenceId)
+		user, err := db.GetReferenceIdToObject(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId)
 		if err != nil {
 			return nil, err
 		}

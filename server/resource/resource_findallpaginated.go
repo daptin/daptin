@@ -61,7 +61,7 @@ type Group struct {
 
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
 func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[string]interface{}, [][]map[string]interface{}, *PaginationData, error) {
-	log.Infof("Find all row by params: [%v]: %v", dr.model.GetName(), req.QueryParams)
+	//log.Infof("Find all row by params: [%v]: %v", dr.model.GetName(), req.QueryParams)
 	var err error
 	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
 	if dr.model.GetName() == "usergroup" && len(req.QueryParams) > 2 {
@@ -90,12 +90,12 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			query[0] = strings.Join(query, ",")
 		}
 		if query[0][0] == '[' {
-			log.Printf("Found query in request: %s", query[0])
+			//log.Printf("Found query in request: %s", query[0])
 			err = json.Unmarshal([]byte(query[0]), &queries)
 			if CheckInfo(err, "Failed to unmarshal query as json, using as a filter instead") {
 				req.QueryParams["filter"] = query
 			}
-			log.Printf("Query: %v", queries)
+			//log.Printf("Query: %v", queries)
 		}
 	}
 
@@ -121,7 +121,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				reqFieldMap[name] = true
 			}
 		}
-		reqFieldMap["user_account_id"] = true
+		reqFieldMap[USER_ACCOUNT_ID_COLUMN] = true
 	}
 
 	pageSize := uint64(10)
@@ -256,49 +256,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 	}
 
-	if len(queries) > 0 {
-
-		for _, filterQuery := range queries {
-			switch filterQuery.Operator {
-			case "contains":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
-			case "not contains":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
-			case "is":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-			case "is not":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-			case "before":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-			case "after":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-			case "more then":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-			case "any of":
-				vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
-				valsInterface := make([]interface{}, len(vals))
-				for i, v := range vals {
-					valsInterface[i] = v
-				}
-				questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
-			case "none of":
-				vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
-				valsInterface := make([]interface{}, len(vals))
-				for i, v := range vals {
-					valsInterface[i] = v
-				}
-				questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
-			case "less then":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-			case "is empty":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
-			case "is not empty":
-				queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
-			}
-		}
-	}
+	queryBuilder = addFilters(queryBuilder, queries, prefix)
 
 	if len(groupings) > 0 && false {
 		for _, groupBy := range groupings {
@@ -453,7 +411,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		return nil, nil, nil, err
 	}
 
-	stmt, err := dr.db.Preparex(sql1)
+	stmt, err := dr.connection.Preparex(sql1)
 	if err != nil {
 		log.Infof("Findall select query sql: %v == %v", sql1, args)
 		log.Errorf("Failed to prepare sql: %v", err)
@@ -487,6 +445,55 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	return results, includes, paginationData, err
 
+}
+func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix string) squirrel.SelectBuilder {
+
+	if len(queries) == 0 {
+		return queryBuilder
+	}
+
+	for _, filterQuery := range queries {
+		switch filterQuery.Operator {
+		case "contains":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
+		case "not contains":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
+		case "is":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		case "is not":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		case "before":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		case "after":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		case "more then":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		case "any of":
+			vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
+			valsInterface := make([]interface{}, len(vals))
+			for i, v := range vals {
+				valsInterface[i] = v
+			}
+			questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
+		case "none of":
+			vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
+			valsInterface := make([]interface{}, len(vals))
+			for i, v := range vals {
+				valsInterface[i] = v
+			}
+			questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
+		case "less then":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		case "is empty":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
+		case "is not empty":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
+		}
+	}
+
+	return queryBuilder
 }
 
 func (dr *DbResource) FindAll(req api2go.Request) (response api2go.Responder, err error) {

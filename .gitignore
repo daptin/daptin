@@ -20,3 +20,6 @@ _*.*
 daptin
 migration.sql
 .vscode/
+daptin.db
+daptin.sql
+temp/
