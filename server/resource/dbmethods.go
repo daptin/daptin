@@ -1300,7 +1300,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					continue
 				}
 
-				if includedRelationMap != nil && (includedRelationMap[namespace] || includedRelationMap["*"]) {
+				if includedRelationMap != nil && (includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"]) {
 
 					resolvedFilesList, err := dr.GetFileFromCloudStore(columnInfo.ForeignKeyData, foreignFilesList)
 					CheckErr(err, "Failed to resolve file from cloud store")

@@ -195,6 +195,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		// Create a new server
 		s := server.New(imapBackend)
 		s.Addr = imapListenInterface
+
 		//s.Debug = os.Stdout
 
 		s.EnableAuth(sasl.Login, func(conn server.Conn) sasl.Server {
@@ -219,15 +220,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 				imapBackend: imapBackend,
 			}
 		})
-		s.EnableAuth("GSSAPI", func(conn server.Conn) sasl.Server {
-
-			return &Crammd5{
-				dbResource:  cruds["mail"],
-				conn:        conn,
-				imapBackend: imapBackend,
-			}
-		})
-
 		var LocalhostCert = []byte(`-----BEGIN CERTIFICATE-----
 MIIETzCCAregAwIBAgIQH/X44kGApj052IIhHfJrszANBgkqhkiG9w0BAQsFADBh
 MR4wHAYDVQQKExVta2NlcnQgZGV2ZWxvcG1lbnQgQ0ExGzAZBgNVBAsMEmFydHBh
@@ -444,7 +436,7 @@ fagus7nZFuPIRAU1dz5Ni1g=
 	})
 
 	//r.Run(fmt.Sprintf(":%v", *port))
-	CleanUpConfigFiles()
+	// CleanUpConfigFiles()
 
 	return hostSwitch, mailDaemon, TaskScheduler
 
