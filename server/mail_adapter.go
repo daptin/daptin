@@ -1,17 +1,21 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/artpar/go-guerrilla/authenticators"
+	"github.com/artpar/go-guerrilla/backends"
+	"github.com/artpar/go-guerrilla/mail"
+	"github.com/artpar/go-guerrilla/response"
+	"github.com/artpar/parsemail"
+	"github.com/bjarneh/latinx"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/flashmob/go-guerrilla/backends"
-	"github.com/flashmob/go-guerrilla/mail"
-	"github.com/flashmob/go-guerrilla/response"
-	"math/big"
-	"net"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -48,18 +52,6 @@ type SQLProcessor struct {
 	config *SQLProcessorConfig
 }
 
-// for storing ip addresses in the ip_addr column
-func (s *SQLProcessor) ip2bint(ip string) *big.Int {
-	bint := big.NewInt(0)
-	addr := net.ParseIP(ip)
-	if strings.Index(ip, "::") > 0 {
-		bint.SetBytes(addr.To16())
-	} else {
-		bint.SetBytes(addr.To4())
-	}
-	return bint
-}
-
 func (s *SQLProcessor) fillAddressFromHeader(e *mail.Envelope, headerKey string) string {
 	if v, ok := e.Header[headerKey]; ok {
 		addr, err := mail.NewAddress(v[0])
@@ -84,7 +76,69 @@ func trimToLimit(str string, limit int) string {
 	return ret
 }
 
-func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decorator {
+type DaptinSmtpAuthenticator struct {
+	dbResource *resource.DbResource
+	config     backends.BackendConfig
+}
+
+func (dsa *DaptinSmtpAuthenticator) VerifyLOGIN(login, passwordBase64 string) bool {
+
+	username, err := base64.StdEncoding.DecodeString(login)
+	if err != nil {
+		return false
+	}
+	mailAccount, err := dsa.dbResource.GetUserMailAccountRowByEmail(string(username))
+	if err != nil {
+		return false
+	}
+	password, err := base64.StdEncoding.DecodeString(passwordBase64)
+	if err != nil {
+		return false
+	}
+
+	if resource.BcryptCheckStringHash(string(password), mailAccount["password"].(string)) {
+		return true
+	}
+
+	return false
+}
+
+//VerifyPLAIN(login, password string) bool
+//VerifyGSSAPI(login, password string) bool
+//VerifyDIGESTMD5(login, password string) bool
+//VerifyMD5(login, password string) bool
+func (dsa *DaptinSmtpAuthenticator) VerifyCRAMMD5(challenge, authString string) bool {
+	return false
+}
+func (dsa *DaptinSmtpAuthenticator) GenerateCRAMMD5Challenge() (string, error) {
+	return "", nil
+}
+func (dsa *DaptinSmtpAuthenticator) ExtractLoginFromAuthString(authString string) string {
+	return ""
+}
+func (dsa *DaptinSmtpAuthenticator) DecodeLogin(login string) (string, error) {
+	username, err := base64.StdEncoding.DecodeString(login)
+	return string(username), err
+}
+
+func (dsa *DaptinSmtpAuthenticator) GetAdvertiseAuthentication(authType []string) string {
+	return "250-AUTH " + strings.Join(authType, " ") + "\r\n"
+}
+
+func (dsa *DaptinSmtpAuthenticator) GetMailSize(login string, defaultSize int64) int64 {
+	return 10000
+}
+
+func DaptinSmtpAuthenticatorCreator(dbResource *resource.DbResource) func(config backends.BackendConfig) authenticators.Authenticator {
+	return func(config backends.BackendConfig) authenticators.Authenticator {
+		return &DaptinSmtpAuthenticator{
+			dbResource: dbResource,
+			config:     config,
+		}
+	}
+}
+
+func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decorator {
 
 	return func() backends.Decorator {
 		var config *SQLProcessorConfig
@@ -126,12 +180,7 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 					var co Compressor
 					// a compressor was set by the Compress processor
 					if c, ok := e.Values["zlib-compressor"]; ok {
-						body = "gzip"
 						co = c.(Compressor)
-					}
-					// was saved in redis by the Redis processor
-					if _, ok := e.Values["redis"]; ok {
-						body = "redis"
 					}
 
 					for i := range e.RcptTo {
@@ -156,32 +205,75 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 							contentType = trimToLimit(v[0], 255)
 						}
 
+						mailBytes := e.Data.Bytes()
+						parsedMail, err := parsemail.Parse(bytes.NewReader(mailBytes))
+						body = parsedMail.TextBody
+
+						if strings.Index(parsedMail.Header.Get("Content-type"), "iso-8859-1") > -1 {
+							converter := latinx.Get(latinx.ISO_8859_1)
+							textBodyBytes, err := converter.Decode([]byte(body))
+							if err != nil {
+								log.Printf("Failed to convert iso 8859 to utf8: %v", err)
+							}
+							body = string(textBodyBytes)
+						}
+
+						if err != nil {
+							log.Printf("Failed to parse email body: %v", err)
+						}
+
+						log.Printf("Authorized login: %v", e.AuthorizedLogin)
+
 						var mailBody interface{}
+						var mailSize int
 						// `mail` column
 						if body == "redis" {
 							// data already saved in redis
 							mailBody = ""
 						} else if co != nil {
 							// use a compressor (automatically adds e.DeliveryHeader)
-							mailBody = co.String()
-						} else {
-							mailBody = e.String()
+							//mailBytes = []byte(co.String())
 						}
+						mailSize = len(mailBytes)
+						mailBody = base64.StdEncoding.EncodeToString(mailBytes)
 						pr := &http.Request{}
 
-						user, err := dbResource.GetUserAccountRowByEmail(to)
+						//mail_server, err := dbResource.GetObjectByWhereClause("mail_server", "hostname", e.RcptTo[i].Host)
+
+						mailAccount, err := dbResource.GetUserMailAccountRowByEmail(e.RcptTo[i].String())
+
+						if err != nil {
+							continue
+						}
+
+						user, _, err := dbResource.GetSingleRowByReferenceId("user_account", mailAccount["user_account_id"].(string))
 
 						sessionUser := &auth.SessionUser{
+							UserId:          user["id"].(int64),
+							UserReferenceId: user["reference_id"].(string),
+							Groups:          dbResource.GetObjectUserGroupsByWhere("user_account", "id", user["id"].(int64)),
 						}
 
-						if err == nil {
+						mailBox, err := dbResource.GetMailAccountBox(mailAccount["id"].(int64), "INBOX")
 
-							sessionUser = &auth.SessionUser{
-								UserId:          user["id"].(int64),
-								UserReferenceId: user["reference_id"].(string),
-								Groups:          []auth.GroupPermission{},
+						if err != nil {
+							mailBox, err = dbResource.CreateMailAccountBox(
+								mailAccount["reference_id"].(string),
+								sessionUser,
+								"INBOX")
+							if err != nil {
+								continue
 							}
 						}
+
+						//if err == nil {
+						//
+						//	sessionUser = &auth.SessionUser{
+						//		UserId:          user["id"].(int64),
+						//		UserReferenceId: user["reference_id"].(string),
+						//		Groups:          []auth.GroupPermission{},
+						//	}
+						//}
 
 						pr = pr.WithContext(context.WithValue(context.Background(), "user", sessionUser))
 
@@ -191,26 +283,37 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 
 						model := api2go.Api2GoModel{
 							Data: map[string]interface{}{
-								"message_id":       mid,
-								"mail_id":          hash,
-								"from_address":     trimToLimit(e.MailFrom.String(), 255),
-								"to_address":       to,
-								"sender_address":   sender,
-								"subject":          trimToLimit(e.Subject, 255),
-								"body":             body,
-								"mail":             mailBody,
-								"spam_score":       0,
-								"hash":             hash,
+								"message_id":     mid,
+								"mail_id":        hash,
+								"from_address":   trimToLimit(e.MailFrom.String(), 255),
+								"to_address":     to,
+								"sender_address": sender,
+								"subject":        trimToLimit(e.Subject, 255),
+								"body":           body,
+								"mail":           mailBody,
+								"spam_score":     0,
+								"hash":           hash,
+								//"uid":              nextUid,
 								"content_type":     contentType,
 								"reply_to_address": replyTo,
+								"internal_date":    parsedMail.Date,
 								"recipient":        recipient,
-								"has_attachment":   0,
-								"ip_addr":          s.ip2bint(e.RemoteIP).Bytes(),
+								"has_attachment":   len(parsedMail.Attachments) > 0,
+								"ip_addr":          e.RemoteIP,
 								"return_path":      trimToLimit(e.MailFrom.String(), 255),
 								"is_tls":           e.TLS,
+								"mail_box_id":      mailBox["reference_id"],
+								"user_account_id":  mailAccount["user_account_id"],
+								"seen":             false,
+								"recent":           true,
+								"flags":            "RECENT",
+								"size":             mailSize,
 							},
 						}
-						_, err = dbResource.CreateWithoutFilter(&model, *req)
+						_, err = dbResource.Cruds["mail"].CreateWithoutFilter(&model, *req)
+						resource.CheckErr(err, "Failed to store mail")
+						//err1 := dbResource.Cruds["mail"].IncrementMailBoxUid(mailBox["id"].(int64), nextUid+1)
+						//resource.CheckErr(err1, "Failed to increment uid for mailbox")
 
 						if err != nil {
 							return backends.NewResult(fmt.Sprint("554 Error: could not save email")), backends.StorageError
@@ -220,7 +323,7 @@ func DaptinSQLDbResource(dbResource *resource.DbResource) func() backends.Decora
 					// continue to the next Processor in the decorator chain
 					return p.Process(e, task)
 				} else if task == backends.TaskValidateRcpt {
-					// if you need to validate the e.Rcpt then change to:
+					// if you need to validate the e.Rcpt then change to:¬
 					if len(e.RcptTo) > 0 {
 						// since this is called each time a recipient is added
 						// validate only the _last_ recipient that was appended

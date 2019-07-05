@@ -77,5 +77,13 @@ import:
   version: ^1.0.0
 - package: github.com/graphql-go/relay
 - package: github.com/gocarina/gocsv
+- package: github.com/mholt/certmagic
+  version: ^0.5.1
+- package: github.com/aws/aws-sdk-go
+  version: ^1.20.13
+  subpackages:
+  - aws
+  - aws/session
+  - service/sns
 - package: github.com/go-gota/gota
   version: 1058f871be3128db7c45dd188594e462cd417c5f

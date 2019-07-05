@@ -1,8 +1,8 @@
 package server
 
 import (
+	"github.com/artpar/go-guerrilla"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/flashmob/go-guerrilla"
 )
 
 func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon) []resource.ActionPerformerInterface {
@@ -11,6 +11,18 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	becomeAdminPerformer, err := resource.NewBecomeAdminPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create become admin performer")
 	performers = append(performers, becomeAdminPerformer)
+
+	otpLoginBeginActionPerformerPerformer, err := resource.NewOtpLoginBeginActionPerformer(cruds, configStore)
+	resource.CheckErr(err, "Failed to create otp login performer")
+	performers = append(performers, otpLoginBeginActionPerformerPerformer)
+
+	otpRegisterBeginActionPerformer, err := resource.NewOtpRegisterBeginActionPerformer(cruds, configStore)
+	resource.CheckErr(err, "Failed to create otp register begin performer")
+	performers = append(performers, otpRegisterBeginActionPerformer)
+
+	otpLoginVerifyActionPerformer, err := resource.NewOtpLoginVerifyActionPerformer(cruds, configStore)
+	resource.CheckErr(err, "Failed to create otp verify performer")
+	performers = append(performers, otpLoginVerifyActionPerformer)
 
 	makeResponsePerformer, err := resource.NewMakeResponsePerformer()
 	resource.CheckErr(err, "Failed to create make response performer")

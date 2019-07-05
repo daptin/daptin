@@ -2,6 +2,7 @@ package resource
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/conform"
@@ -12,7 +13,6 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
-	"encoding/json"
 )
 
 type UploadXlsFileToEntityPerformer struct {
@@ -336,14 +336,15 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 	for i := 0; i < columnCount; i++ {
 		colName := headerRow.Cells[i].Value
 		if len(colName) < 1 {
-			err = errors.New(fmt.Sprintf("Column %d name has less then 3 characters", i+1))
-			return
+			//err = errors.New(fmt.Sprintf("Column %d name has less then 3 characters", i+1))
+			break
 		}
 		//columnNames = append(columnNames, colName)
 		properColumnNames = append(properColumnNames, SmallSnakeCaseText(colName))
 	}
 
 	for i := 1; i < rowCount; i++ {
+		emptyRow := true
 
 		dataMap := make(map[string]interface{})
 
@@ -351,13 +352,15 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 		cCount := len(currentRow.Cells)
 		for j := 0; j < cCount; j++ {
 			i2 := currentRow.Cells[j].Value
-			if i2 == "" {
+			if strings.TrimSpace(i2) == "" {
 				continue
 			}
+			emptyRow = false
 			dataMap[properColumnNames[j]] = i2
 		}
-
-		data = append(data, dataMap)
+		if !emptyRow {
+			data = append(data, dataMap)
+		}
 	}
 
 	return data, properColumnNames, nil

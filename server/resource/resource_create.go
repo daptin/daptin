@@ -1,22 +1,41 @@
 package resource
 
 import (
+	"crypto/md5"
+	"encoding/json"
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/Masterminds/squirrel.v1"
 	//"reflect"
 	"github.com/artpar/go.uuid"
 	//"strconv"
 	"fmt"
-	"encoding/json"
 	"github.com/araddon/dateparse"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/pkg/errors"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/daptin/daptin/server/statementbuilder"
 )
+
+func NewFromDbResourceWithTransaction(resources *DbResource, tx *sqlx.Tx) *DbResource {
+
+	return &DbResource{
+		Cruds:            resources.Cruds,
+		configStore:      resources.configStore,
+		model:            resources.model,
+		db:               tx,
+		connection:       resources.connection,
+		ActionHandlerMap: resources.ActionHandlerMap,
+		contextCache:     resources.contextCache,
+		defaultGroups:    resources.defaultGroups,
+		ms:               resources.ms,
+		tableInfo:        resources.tableInfo,
+	}
+
+}
 
 // Create a new object. Newly created object/struct must be in Responder.
 // Possible Responder status codes are:
@@ -65,7 +84,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			continue
 		}
 
-		if col.ColumnName == "user_account_id" && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
+		if col.ColumnName == USER_ACCOUNT_ID_COLUMN && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
 			continue
 		}
 
@@ -87,7 +106,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 		if col.ColumnName == "reference_id" {
 			s := val.(string)
-			if len(s) == 36 {
+			if len(s) > 0 {
 				newUuid = s
 			} else {
 				continue
@@ -99,8 +118,12 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			switch col.ForeignKeyData.DataSource {
 			case "self":
 
-				log.Infof("Convert reference_id to id %v[%v]", col.ForeignKeyData.Namespace, val)
-				valString := val.(string)
+				//log.Infof("Convert reference_id to id %v[%v]", col.ForeignKeyData.Namespace, val)
+				valString, ok := val.(string)
+				if !ok {
+					log.Errorf("Expected string in foreign key column[%v], found %v", col.ColumnName, val)
+					return nil, errors.New("unexpected value in foreign key column")
+				}
 				var uId interface{}
 				var err error
 				if valString == "" {
@@ -174,12 +197,29 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		}
 		var err error
 
-		if col.ColumnType == "password" {
+		if col.ColumnType == "password" || col.ColumnType == "bcrypt" {
 			val, err = BcryptHashString(val.(string))
 			if err != nil {
 				log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
 				val = ""
 			}
+		}
+
+		if col.ColumnType == "md5-bcrypt" {
+			digest := md5.New()
+			digest.Write([]byte(val.(string)))
+			hash := fmt.Sprintf("%x", digest.Sum(nil))
+			val, err = BcryptHashString(hash)
+			if err != nil {
+				log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
+				val = ""
+			}
+		}
+
+		if col.ColumnType == "md5" {
+			digest := md5.New()
+			digest.Write([]byte(val.(string)))
+			val = fmt.Sprintf("%x", digest.Sum(nil))
 		}
 
 		if col.ColumnType == "datetime" {
@@ -283,19 +323,6 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		valsList = append(valsList, val)
 	}
 
-	//for _, rel := range dr.model.GetRelations() {
-	//  if rel.Relation == "belongs_to" || rel.Relation == "has_one" {
-	//
-	//    log.Infof("Relations : %v == %v", rel.Object, attrs)
-	//    val, ok := attrs[rel.Object + "_id"]
-	//    if ok {
-	//      colsList = append(colsList, rel.Object + "_id")
-	//      valsList = append(valsList, val)
-	//    }
-	//
-	//  }
-	//}
-
 	if !InArray(colsList, "reference_id") {
 		colsList = append(colsList, "reference_id")
 		valsList = append(valsList, newUuid)
@@ -307,9 +334,9 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	colsList = append(colsList, "created_at")
 	valsList = append(valsList, time.Now())
 
-	if sessionUser.UserId != 0 && dr.model.HasColumn("user_account_id") && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
+	if sessionUser.UserId != 0 && dr.model.HasColumn(USER_ACCOUNT_ID_COLUMN) && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
 
-		colsList = append(colsList, "user_account_id")
+		colsList = append(colsList, USER_ACCOUNT_ID_COLUMN)
 		valsList = append(valsList, sessionUser.UserId)
 	}
 
@@ -348,7 +375,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
-		log.Infof("Query for default group belonging: %v", belogsToUserGroupSql)
+		//log.Infof("Query for default group belonging: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 
 		if err != nil {
@@ -382,7 +409,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
 			Insert("user_account_user_account_id_has_usergroup_usergroup_id").
-			Columns("user_account_id", "usergroup_id", "reference_id", "permission").
+			Columns(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "reference_id", "permission").
 			Values(sessionUser.UserId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
 		//log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
@@ -391,14 +418,14 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
 		}
 
-	} else if dr.model.GetName() == "user_account" {
+	} else if dr.model.GetName() == USER_ACCOUNT_TABLE_NAME {
 
 		adminUserId, _ := GetAdminUserIdAndUserGroupId(dr.db)
 		log.Infof("Associate new user with user: %v", adminUserId)
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
-			Update("user_account").
-			Set("user_account_id", adminUserId).
+			Update(USER_ACCOUNT_TABLE_NAME).
+			Set(USER_ACCOUNT_ID_COLUMN, adminUserId).
 			Where(squirrel.Eq{"id": createdResource["id"]}).ToSql()
 
 		//log.Infof("Query: %v", belogsToUserGroupSql)
@@ -408,6 +435,34 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
 		}
 
+	}
+
+	for _, rel := range dr.tableInfo.Relations {
+		if rel.Relation == "has_one" && rel.Object == dr.tableInfo.TableName {
+			log.Printf("Need to update foreign key column in table %s", rel.SubjectName)
+
+			foreignObjectId, ok := attrs[rel.SubjectName]
+			if !ok || foreignObjectId == nil {
+				continue
+			}
+
+			updateRelatedTable, args, err := statementbuilder.Squirrel.Update(rel.Subject).Set(rel.ObjectName, createdResource["id"]).Where(
+				squirrel.Eq{
+					"reference_id": foreignObjectId,
+				}).ToSql()
+
+			if err != nil {
+				log.Printf("Failed to create update foreign key sql: %s", err)
+				continue
+			}
+
+			_, err = dr.db.Exec(updateRelatedTable, args...)
+
+			if err != nil {
+				log.Printf("Zero rows were affected: %v", err)
+			}
+
+		}
 	}
 
 	delete(createdResource, "id")

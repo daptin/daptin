@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"crypto/md5"
 	"fmt"
 	"github.com/artpar/go.uuid"
 	"github.com/graphql-go/graphql"
@@ -66,7 +67,22 @@ func (ct ColumnType) Fake() interface{} {
 	case "json":
 		return "{}"
 	case "password":
-		return ""
+		pass, _ := BcryptHashString(fake.SimplePassword())
+		return pass
+	case "bcrypt":
+		pass, _ := BcryptHashString(fake.SimplePassword())
+		return pass
+	case "md5-bcrypt":
+		pass, _ := BcryptHashString(fake.SimplePassword())
+		digest := md5.New()
+		digest.Write([]byte(pass))
+		hash := digest.Sum(nil)
+		return fmt.Sprintf("%x", hash)
+	case "md5":
+		digest := md5.New()
+		digest.Write([]byte(fake.SimplePassword()))
+		hash := digest.Sum(nil)
+		return fmt.Sprintf("%x", hash)
 	case "value":
 		return rand.Intn(1000)
 	case "truefalse":
@@ -163,7 +179,7 @@ var ColumnTypes = []ColumnType{
 		Name:          "year",
 		BlueprintType: "number",
 		ReclineType:   "string",
-		Validations:   []string{"min=1900,max=2100"},
+		Validations:   []string{"min=100,max=2100"},
 		DataTypes:     []string{"int(4)"},
 		GraphqlType:   graphql.Int,
 	},
@@ -229,6 +245,30 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "password",
+		BlueprintType: "string",
+		ReclineType:   "string",
+		Validations:   []string{"required"},
+		DataTypes:     []string{"varchar(200)"},
+		GraphqlType:   graphql.String,
+	},
+	{
+		Name:          "md5",
+		BlueprintType: "string",
+		ReclineType:   "string",
+		Validations:   []string{"required"},
+		DataTypes:     []string{"varchar(200)"},
+		GraphqlType:   graphql.String,
+	},
+	{
+		Name:          "bcrypt",
+		BlueprintType: "string",
+		ReclineType:   "string",
+		Validations:   []string{"required"},
+		DataTypes:     []string{"varchar(200)"},
+		GraphqlType:   graphql.String,
+	},
+	{
+		Name:          "md5-bcrypt",
 		BlueprintType: "string",
 		ReclineType:   "string",
 		Validations:   []string{"required"},

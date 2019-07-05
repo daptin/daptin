@@ -3,11 +3,12 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/artpar/go-guerrilla"
+	"github.com/artpar/go-guerrilla/backends"
+	"github.com/artpar/go-guerrilla/log"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/flashmob/go-guerrilla"
-	"github.com/flashmob/go-guerrilla/backends"
-	"github.com/flashmob/go-guerrilla/log"
 	"strconv"
+	"strings"
 )
 
 func StartSMTPMailServer(resource *resource.DbResource) (*guerrilla.Daemon, error) {
@@ -21,25 +22,31 @@ func StartSMTPMailServer(resource *resource.DbResource) (*guerrilla.Daemon, erro
 	serverConfig := make([]guerrilla.ServerConfig, 0)
 	hosts := []string{}
 
-
-
 	for _, server := range servers {
 
 		var tlsConfig guerrilla.ServerTLSConfig
 
 		json.Unmarshal([]byte(server["tls"].(string)), &tlsConfig)
 
-		max_size, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_size"]), 10, 32)
-		max_clients, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_clients"]), 10, 32)
+		maxSize, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_size"]), 10, 32)
+		maxClients, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_clients"]), 10, 32)
+		authRequiredString := server["authentication_required"].(string)
+		authRequired := true
+		if authRequiredString == "0" {
+			authRequired = false
+		}
+		authTypes := strings.Split(server["authentication_types"].(string), ",")
 
 		config := guerrilla.ServerConfig{
 			IsEnabled:       fmt.Sprintf("%v", server["is_enabled"]) == "1",
 			ListenInterface: server["listen_interface"].(string),
 			Hostname:        server["hostname"].(string),
-			MaxSize:         max_size,
+			MaxSize:         maxSize,
 			TLS:             tlsConfig,
-			MaxClients:      int(max_clients),
+			MaxClients:      int(maxClients),
 			XClientOn:       fmt.Sprintf("%v", server["xclient_on"]) == "1",
+			AuthRequired:    authRequired,
+			AuthTypes:       authTypes,
 		}
 		hosts = append(hosts, server["hostname"].(string))
 
@@ -47,6 +54,7 @@ func StartSMTPMailServer(resource *resource.DbResource) (*guerrilla.Daemon, erro
 
 	}
 
+	hosts = append(hosts, "*")
 	d := guerrilla.Daemon{
 		Config: &guerrilla.AppConfig{
 			AllowedHosts: hosts,
@@ -62,7 +70,8 @@ func StartSMTPMailServer(resource *resource.DbResource) (*guerrilla.Daemon, erro
 		},
 	}
 
-	d.AddProcessor("DaptinSql", DaptinSQLDbResource(resource))
+	d.AddProcessor("DaptinSql", DaptinSmtpDbResource(resource))
+	d.AddAuthenticator(DaptinSmtpAuthenticatorCreator(resource))
 
 	return &d, nil
 }

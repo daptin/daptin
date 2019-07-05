@@ -48,7 +48,7 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 		return nil, nil, []error{fmt.Errorf("email or password is empty")}
 	}
 
-	existingUsers, _, err := d.cruds["user_account"].GetRowsByWhereClause("user_account", squirrel.Eq{"email": email})
+	existingUsers, _, err := d.cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", squirrel.Eq{"email": email})
 
 	responseAttrs := make(map[string]interface{})
 	if err != nil || len(existingUsers) < 1 {
@@ -137,8 +137,8 @@ func NewGenerateJwtTokenPerformer(configStore *ConfigStore, cruds map[string]*Db
 	}
 
 	handler := GenerateJwtTokenActionPerformer{
-		secret:         []byte(secret),
 		cruds:          cruds,
+		secret:         []byte(secret),
 		tokenLifeTime:  tokenLifeTimeHours,
 		jwtTokenIssuer: jwtTokenIssuer,
 	}

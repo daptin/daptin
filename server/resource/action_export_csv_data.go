@@ -2,13 +2,13 @@ package resource
 
 import (
 	"encoding/base64"
+	"encoding/csv"
 	"fmt"
 	"github.com/artpar/api2go"
-	log "github.com/sirupsen/logrus"
 	"github.com/gocarina/gocsv"
-	"encoding/csv"
-	"time"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"time"
 )
 
 type ExportCsvDataPerformer struct {

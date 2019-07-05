@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	//"os"
 	"archive/zip"
+	"encoding/json"
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
@@ -16,7 +17,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"encoding/json"
 )
 
 type FileUploadActionPerformer struct {
