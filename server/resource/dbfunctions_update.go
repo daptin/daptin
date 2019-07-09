@@ -1046,7 +1046,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 	res, err := tx.Queryx(s, v...)
 	CheckErr(err, "Failed to scan world tables")
 	if err != nil {
-		returnresource_stats.go:119
+		return
 	}
 
 	defer res.Close()
