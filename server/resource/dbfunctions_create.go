@@ -495,7 +495,12 @@ func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
 		columnStrings = append(columnStrings, columnLine)
 	}
 	columnString := strings.Join(columnStrings, ",\n  ")
-	createTableQuery += columnString + ") CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+	createTableQuery += columnString + ") "
+
+	if sqlDriverName == "mysql" {
+		createTableQuery += "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+	}
+
 	return createTableQuery
 }
 
