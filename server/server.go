@@ -59,9 +59,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	initialiseResources(&initConfig, db)
 	/// end system initialise
 
-	r := gin.Default()
+	defaultRouter := gin.Default()
 
-	r.Use(func() gin.HandlerFunc {
+	defaultRouter.Use(func() gin.HandlerFunc {
 		return func(c *gin.Context) {
 			beginning, recorder := Stats.Begin(c.Writer)
 			defer Stats.End(beginning, stats.WithRecorder(recorder))
@@ -69,15 +69,15 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		}
 	}())
 
-	r.GET("/statistics", func(c *gin.Context) {
+	defaultRouter.GET("/statistics", func(c *gin.Context) {
 		c.JSON(http.StatusOK, Stats.Data())
 	})
 
 	// 6 UID FETCH 1:2 (UID)
-	r.Use(CorsMiddlewareFunc)
-	r.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
+	defaultRouter.Use(CorsMiddlewareFunc)
+	defaultRouter.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
 
-	r.GET("/favicon.ico", func(c *gin.Context) {
+	defaultRouter.GET("/favicon.ico", func(c *gin.Context) {
 
 		file, err := boxRoot.Open("static/img/favicon.png")
 		if err != nil {
@@ -94,7 +94,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		resource.CheckErr(err, "Failed to write favico")
 	})
 
-	r.GET("/favicon.png", func(c *gin.Context) {
+	defaultRouter.GET("/favicon.png", func(c *gin.Context) {
 
 		file, err := boxRoot.Open("static/img/favicon.png")
 		if err != nil {
@@ -108,7 +108,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			return
 		}
 		_, err = c.Writer.Write(fileContents)
-		resource.CheckErr(err, "Failed to write favico")
+		resource.CheckErr(err, "Failed to write favicon")
 	})
 
 	configStore, err := resource.NewConfigStore(db)
@@ -136,7 +136,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	err = CheckSystemSecrets(configStore)
 	resource.CheckErr(err, "Failed to initialise system secrets")
 
-	r.GET("/config", CreateConfigHandler(configStore))
+	defaultRouter.GET("/config", CreateConfigHandler(configStore))
 
 	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend")
 	resource.CheckErr(err, "No default jwt token issuer set")
@@ -147,15 +147,15 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 	authMiddleware := auth.NewAuthMiddlewareBuilder(db, jwtTokenIssuer)
 	auth.InitJwtMiddleware([]byte(jwtSecret), jwtTokenIssuer)
-	r.Use(authMiddleware.AuthCheckMiddleware)
+	defaultRouter.Use(authMiddleware.AuthCheckMiddleware)
 
 	cruds := make(map[string]*resource.DbResource)
-	r.GET("/actions", resource.CreateGuestActionListHandler(&initConfig))
+	defaultRouter.GET("/actions", resource.CreateGuestActionListHandler(&initConfig))
 
 	api := api2go.NewAPIWithRouting(
 		"api",
 		api2go.NewStaticResolver("/"),
-		gingonic.New(r),
+		gingonic.New(defaultRouter),
 	)
 
 	ms := BuildMiddlewareSet(&initConfig, &cruds)
@@ -341,8 +341,8 @@ fagus7nZFuPIRAU1dz5Ni1g=
 
 	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
 
-	hostSwitch.handlerMap["api"] = r
-	hostSwitch.handlerMap["dashboard"] = r
+	hostSwitch.handlerMap["api"] = defaultRouter
+	hostSwitch.handlerMap["dashboard"] = defaultRouter
 
 	authMiddleware.SetUserCrud(cruds[resource.USER_ACCOUNT_TABLE_NAME])
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
@@ -350,7 +350,7 @@ fagus7nZFuPIRAU1dz5Ni1g=
 
 	fsmManager := resource.NewFsmManager(db, cruds)
 
-	r.GET("/ping", func(c *gin.Context) {
+	defaultRouter.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
 	})
 
@@ -360,6 +360,9 @@ fagus7nZFuPIRAU1dz5Ni1g=
 	modelHandler := CreateReclineModelHandler()
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
 	resource.InitialiseColumnManager()
+
+	//dbAssetHandler := CreateDbAssetHandler("/asset/:typename/:resource_id/:columnname.:ext", &initConfig, cruds);
+
 	resource.RegisterTranslations()
 
 	if initConfig.EnableGraphQL {
@@ -373,59 +376,59 @@ fagus7nZFuPIRAU1dz5Ni1g=
 		})
 
 		// serve HTTP
-		r.Handle("GET", "/graphql", func(c *gin.Context) {
+		defaultRouter.Handle("GET", "/graphql", func(c *gin.Context) {
 			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
 		})
 		// serve HTTP
-		r.Handle("POST", "/graphql", func(c *gin.Context) {
+		defaultRouter.Handle("POST", "/graphql", func(c *gin.Context) {
 			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
 		})
 		// serve HTTP
-		r.Handle("PUT", "/graphql", func(c *gin.Context) {
+		defaultRouter.Handle("PUT", "/graphql", func(c *gin.Context) {
 			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
 		})
 		// serve HTTP
-		r.Handle("PATCH", "/graphql", func(c *gin.Context) {
+		defaultRouter.Handle("PATCH", "/graphql", func(c *gin.Context) {
 			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
 		})
 		// serve HTTP
-		r.Handle("DELETE", "/graphql", func(c *gin.Context) {
+		defaultRouter.Handle("DELETE", "/graphql", func(c *gin.Context) {
 			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
 		})
 	}
 
-	r.GET("/jsmodel/:typename", handler)
-	r.GET("/stats/:typename", statsHandler)
-	r.GET("/meta", metaHandler)
-	r.GET("/apispec.raml", blueprintHandler)
-	r.GET("/recline_model", modelHandler)
-	r.OPTIONS("/jsmodel/:typename", handler)
-	r.OPTIONS("/apispec.raml", blueprintHandler)
-	r.OPTIONS("/recline_model", modelHandler)
-	r.GET("/system", func(c *gin.Context) {
+	defaultRouter.GET("/jsmodel/:typename", handler)
+	defaultRouter.GET("/stats/:typename", statsHandler)
+	defaultRouter.GET("/meta", metaHandler)
+	defaultRouter.GET("/apispec.raml", blueprintHandler)
+	defaultRouter.GET("/recline_model", modelHandler)
+	defaultRouter.OPTIONS("/jsmodel/:typename", handler)
+	defaultRouter.OPTIONS("/apispec.raml", blueprintHandler)
+	defaultRouter.OPTIONS("/recline_model", modelHandler)
+	defaultRouter.GET("/system", func(c *gin.Context) {
 		c.AbortWithStatusJSON(200, Stats.Data())
 	})
 
-	r.POST("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
-	r.GET("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
+	defaultRouter.POST("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
+	defaultRouter.GET("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
 
-	r.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
-	r.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
+	defaultRouter.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
+	defaultRouter.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
 
 	loader := CreateSubSiteContentHandler(&initConfig, cruds, db)
-	r.POST("/site/content/load", loader)
-	r.GET("/site/content/load", loader)
-	r.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
+	defaultRouter.POST("/site/content/load", loader)
+	defaultRouter.GET("/site/content/load", loader)
+	defaultRouter.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
 	webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
 	websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
 
-	go websocketServer.Listen(r)
+	go websocketServer.Listen(defaultRouter)
 
 	indexFile, err := boxRoot.Open("index.html")
 	indexFileContents, err := ioutil.ReadAll(indexFile)
 
-	r.NoRoute(func(c *gin.Context) {
+	defaultRouter.NoRoute(func(c *gin.Context) {
 		resource.CheckErr(err, "Failed to open index.html")
 		if err != nil {
 			c.AbortWithStatus(500)
@@ -435,7 +438,7 @@ fagus7nZFuPIRAU1dz5Ni1g=
 		resource.CheckErr(err, "Failed to write index html")
 	})
 
-	//r.Run(fmt.Sprintf(":%v", *port))
+	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
 	// CleanUpConfigFiles()
 
 	return hostSwitch, mailDaemon, TaskScheduler

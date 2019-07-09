@@ -62,7 +62,7 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("world", "has_many", "smd"),
 	api2go.NewTableRelation("oauth_token", "has_one", "oauth_connect"),
 	api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
-	api2go.NewTableRelation("user_account", "has_one", "user_otp_account"),
+	api2go.NewTableRelationWithNames("user_account", "otp_of_account", "has_one", "user_otp_account", "primary_user_otp"),
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "oauth_token"),
 	api2go.NewTableRelation("site", "has_one", "cloud_store"),
@@ -1639,7 +1639,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "username",
 				ColumnName: "username",
-				DataType:   "varchar(10¬0)",
+				DataType:   "varchar(100)",
 				ColumnType: "label",
 				IsUnique:   true,
 			},

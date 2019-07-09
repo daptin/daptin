@@ -20,6 +20,11 @@ type ErrorResponse struct {
 	Message string
 }
 
+func CreateDbAssetHandler(path string, initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
+	return func(c *gin.Context) {
+
+	}
+}
 func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
 
 	return func(c *gin.Context) {
