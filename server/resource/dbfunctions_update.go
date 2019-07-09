@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -968,6 +969,11 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		u, _ := uuid.NewV4()
 
 		refId := u.String()
+
+		if (strings.Index(table.TableName, "_has_") > -1) {
+			table.IsJoinTable = true
+		}
+
 		schema, err := json.Marshal(table)
 
 		var cou int
@@ -999,6 +1005,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 				Set("world_schema_json", string(schema)).
 				Set("is_top_level", table.IsTopLevel).
 				Set("is_hidden", table.IsHidden).
+				Set("is_join_table", table.IsJoinTable).
 				Set("default_order", table.DefaultOrder).
 				Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
 			CheckErr(err, "Failed to create update default permission sql")
@@ -1018,8 +1025,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 			log.Infof("Insert table data (IsTopLevel[%v], IsHidden[%v]) [%v]", table.IsTopLevel, table.IsHidden, table.TableName)
 
 			s, v, err = statementbuilder.Squirrel.Insert("world").
-				Columns("table_name", "world_schema_json", "permission", "reference_id", "default_permission", USER_ACCOUNT_ID_COLUMN, "is_top_level", "is_hidden", "default_order").
-				Values(table.TableName, string(schema), table.Permission, refId, table.DefaultPermission, userId, table.IsTopLevel, table.IsHidden, table.DefaultOrder).ToSql()
+				Columns("table_name", "world_schema_json", "permission", "reference_id", "default_permission", USER_ACCOUNT_ID_COLUMN, "is_top_level", "is_hidden", "default_order", "is_join_table").
+				Values(table.TableName, string(schema), table.Permission, refId, table.DefaultPermission, userId, table.IsTopLevel, table.IsHidden, table.DefaultOrder, table.IsJoinTable).ToSql()
 			_, err = tx.Exec(s, v...)
 			CheckErr(err, "Failed to insert into world table about "+table.TableName)
 			//initConfig.Tables[i].DefaultPermission = defaultWorldPermission
@@ -1030,7 +1037,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 	st.Body = stBody
 	st.Print()
 
-	s, v, err = statementbuilder.Squirrel.Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden").
+	s, v, err = statementbuilder.Squirrel.Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden", "is_join_table").
 		From("world").
 		ToSql()
 
@@ -1039,7 +1046,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 	res, err := tx.Queryx(s, v...)
 	CheckErr(err, "Failed to scan world tables")
 	if err != nil {
-		return
+		returnresource_stats.go:119
 	}
 
 	defer res.Close()
@@ -1049,8 +1056,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		var tabInfo TableInfo
 		var tableSchema []byte
 		var permission, defaultPermission int64
-		var isTopLevel, isHidden bool
-		err = res.Scan(&tableSchema, &permission, &defaultPermission, &isTopLevel, &isHidden)
+		var isTopLevel, isHidden, isJoinTable bool
+		err = res.Scan(&tableSchema, &permission, &defaultPermission, &isTopLevel, &isHidden, &isJoinTable)
 		CheckErr(err, "Failed to scan table info")
 		err = json.Unmarshal(tableSchema, &tabInfo)
 		CheckErr(err, "Failed to convert json to table schema")
@@ -1058,6 +1065,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		tabInfo.DefaultPermission = defaultPermission
 		tabInfo.IsTopLevel = isTopLevel
 		tabInfo.IsHidden = isHidden
+		tabInfo.IsJoinTable = isJoinTable
 		tables = append(tables, tabInfo)
 	}
 	initConfig.Tables = tables
