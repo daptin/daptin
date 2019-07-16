@@ -449,6 +449,10 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				for _, valMap := range valMapList {
 					updateForeignRow := make(map[string]interface{})
 					updateForeignRow, err = dr.GetReferenceIdToObject(rel.GetSubject(), valMap[rel.GetSubjectName()].(string))
+					if err != nil {
+						log.Error("Failed to fetch related row to update [%v] == %v", rel.GetSubject(), valMap)
+						continue
+					}
 					updateForeignRow[rel.GetSubjectName()] = updatedResource["reference_id"].(string)
 
 					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, auth.DEFAULT_PERMISSION.IntValue(), nil, updateForeignRow)

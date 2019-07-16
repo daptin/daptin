@@ -324,7 +324,7 @@ fagus7nZFuPIRAU1dz5Ni1g=
 		cruds[k].ActionHandlerMap = actionHandlerMap
 	}
 
-	resource.ImportDataFiles(&initConfig, db, cruds)
+	resource.ImportDataFiles(initConfig.Imports, db, cruds)
 
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
@@ -482,17 +482,36 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 	resource.CheckRelations(initConfig)
 	resource.CheckAuditTables(initConfig)
 	//AddStateMachines(&initConfig, db)
-	tx, errb := db.Beginx()
-	//_, errb := db.Exec("begin")
-	resource.CheckErr(errb, "Failed to begin transaction")
 
+	tx, errb := db.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction")
 	resource.CheckAllTableStatus(initConfig, db, tx)
-	resource.CreateRelations(initConfig, tx)
-	resource.CreateUniqueConstraints(initConfig, tx)
-	resource.CreateIndexes(initConfig, tx)
-	resource.UpdateWorldTable(initConfig, tx)
 	errc := tx.Commit()
-	resource.CheckErr(errc, "Failed to commit transaction")
+	resource.CheckErr(errc, "Failed to commit transaction after creating tables")
+
+	tx, errb = db.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction")
+	resource.CreateRelations(initConfig, tx)
+	errc = tx.Commit()
+	resource.CheckErr(errc, "Failed to commit transaction after creating relations")
+
+	tx, errb = db.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction")
+	resource.CreateUniqueConstraints(initConfig, tx)
+	errc = tx.Commit()
+	resource.CheckErr(errc, "Failed to commit transaction after creating unique constrains")
+
+	tx, errb = db.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction")
+	resource.CreateIndexes(initConfig, tx)
+	errc = tx.Commit()
+	resource.CheckErr(errc, "Failed to commit transaction after creating indexes")
+
+	tx, errb = db.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction")
+	resource.UpdateWorldTable(initConfig, tx)
+	errc = tx.Commit()
+	resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
 
 	resource.UpdateStateMachineDescriptions(initConfig, db)
 	resource.UpdateExchanges(initConfig, db)

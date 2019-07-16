@@ -334,7 +334,7 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 
 	s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
 	//log.Infof("Sql: %v", s)
-	rowx := tx.QueryRowx(s)
+	rowx := db.QueryRowx(s)
 	columns, err := rowx.Columns()
 	if err != nil {
 		log.Infof("Failed to select * from %v: %v", tableInfo.TableName, err)

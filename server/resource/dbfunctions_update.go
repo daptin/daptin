@@ -690,8 +690,8 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 	return nil
 }
 
-func ImportDataFiles(initConfig *CmsConfig, db sqlx.Ext, cruds map[string]*DbResource) {
-	importCount := len(initConfig.Imports)
+func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*DbResource) {
+	importCount := len(imports)
 
 	if importCount == 0 {
 		return
@@ -724,7 +724,7 @@ func ImportDataFiles(initConfig *CmsConfig, db sqlx.Ext, cruds map[string]*DbRes
 		PlainRequest: pr,
 	}
 
-	for _, importFile := range initConfig.Imports {
+	for _, importFile := range imports {
 
 		log.Infof("Process import file %v", importFile.String())
 		fileBytes, err := ioutil.ReadFile(importFile.FilePath)

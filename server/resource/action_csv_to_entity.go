@@ -182,7 +182,7 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request ActionRequest, inField
 		if create_if_not_exists || add_missing_columns {
 			go restart()
 		} else {
-			ImportDataFiles(d.cmsConfig, d.cruds[entityName].db, d.cruds)
+			ImportDataFiles(sources, d.cruds[entityName].db, d.cruds)
 		}
 
 		return nil, successResponses, nil
