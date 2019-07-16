@@ -2461,12 +2461,10 @@ a:hover, a:active, a:focus {
 
 dd {
   margin-left: 0;
-  font-weight: 600;
   font-size: 15px;
 }
 
 dt {
-  font-weight: 400;
   font-size: 11px;
 }
 

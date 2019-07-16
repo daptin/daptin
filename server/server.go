@@ -438,6 +438,11 @@ fagus7nZFuPIRAU1dz5Ni1g=
 		resource.CheckErr(err, "Failed to write index html")
 	})
 
+	defaultRouter.GET("", func(c *gin.Context) {
+		_, err = c.Writer.Write(indexFileContents)
+		resource.CheckErr(err, "Failed to write index html")
+	})
+
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
 	// CleanUpConfigFiles()
 
