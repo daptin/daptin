@@ -26,7 +26,22 @@ script:
   - ls -lah
   - grep -h -v "^mode:" ./*.cover >> c.out
   - cp c.out coverage.txt
-  - go get github.com/GeertJohan/go.rice/rice && ls -lah && curl https://glide.sh/get | sh && glide install && cd daptinweb && npm install && npm run build && cd .. && rice embed-go && ls -lah && go build -o main && mkdir docker_dir && cp ./main ./docker_dir/main && cp Dockerfile docker_dir/Dockerfile
+  - go get github.com/GeertJohan/go.rice/rice
+  - ls -lah
+  - curl https://glide.sh/get | sh
+  - glide install
+  - cd daptinweb
+  - pwd
+  - npm install
+  - npm run build
+  - cd ..
+  - pwd
+  - rice embed-go
+  - ls -lah
+  - go build -o main
+  - mkdir docker_dir
+  - cp ./main ./docker_dir/main
+  - cp Dockerfile docker_dir/Dockerfile
 
 
 after_script:
