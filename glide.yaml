@@ -74,7 +74,7 @@ import:
   version: ^0.2.1
 - package: github.com/bamzi/jobrunner
 - package: github.com/robfig/cron
-  version: ^1.0.0
+  version: 1.0.0
 - package: github.com/graphql-go/relay
 - package: github.com/gocarina/gocsv
 - package: github.com/mholt/certmagic

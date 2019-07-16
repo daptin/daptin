@@ -1,5 +1,5 @@
-hash: 031452698699d2a7d7edcb0e1106889e3bb57aad4c0d99b58b23d49cb5cc0f63
-updated: 2019-06-10T22:43:00.963028+05:30
+hash: 8c3b6dd908cd4628f04d447e01f2b23b07adc7fd44d142e5f9d7810ef15b7294
+updated: 2019-07-16T19:11:35.285131+05:30
 imports:
 - name: cloud.google.com/go
   version: a5c6324a6e84f1a1119c5901431b09275b9f091b
@@ -26,8 +26,27 @@ imports:
   - gingonic
 - name: github.com/artpar/conform
   version: a5409cc587c60d7805e75e66f63274397712290d
+- name: github.com/artpar/go-guerrilla
+  version: a0ff13624d2eb32a84c4b44bd3f03add5deb8667
+  subpackages:
+  - authenticators
+  - backends
+  - log
+  - mail
+  - response
+- name: github.com/artpar/go-imap
+  version: 835b93885dd020260866c1573258e3278aa57d3a
+  subpackages:
+  - backend
+  - backend/backendutil
+  - commands
+  - responses
+  - server
+  - utf7
 - name: github.com/artpar/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
+- name: github.com/artpar/parsemail
+  version: abc648830b9a1e9440c2c817a42a73a17c0d0c64
 - name: github.com/artpar/rclone
   version: dc525e165a5ec4568ad40cae6af70b435e7b8fe6
   subpackages:
@@ -119,7 +138,7 @@ imports:
 - name: github.com/asaskevich/EventBus
   version: 68a521d7cbbb7a859c2608b06342f384b3bd5f5a
 - name: github.com/aws/aws-sdk-go
-  version: 8234000fff968de811646c75b200b0c713f800ec
+  version: 420cda5d6383f94f7d9c231aa44bad3325181950
   subpackages:
   - aws
   - aws/awserr
@@ -148,6 +167,7 @@ imports:
   - private/protocol
   - private/protocol/eventstream
   - private/protocol/eventstream/eventstreamapi
+  - private/protocol/json/jsonutil
   - private/protocol/query
   - private/protocol/query/queryutil
   - private/protocol/rest
@@ -156,6 +176,7 @@ imports:
   - service/s3
   - service/s3/s3iface
   - service/s3/s3manager
+  - service/sns
   - service/sts
 - name: github.com/Azure/azure-pipeline-go
   version: b8e3409182fd52e74f7d7bdfbff5833591b3b655
@@ -171,6 +192,8 @@ imports:
   - winterm
 - name: github.com/bamzi/jobrunner
   version: 273175f8b6ebabab8a639a4e6260a5c50fbf016a
+- name: github.com/bjarneh/latinx
+  version: 4dfe9ba2a293f28a5e06fc7ffe56b1d71a47b8c8
 - name: github.com/boombuler/barcode
   version: 34fff276c74eba9c3506f0c6f4064dbaa67d8da3
   subpackages:
@@ -213,6 +236,15 @@ imports:
   - dropbox/team_policies
   - dropbox/users
   - dropbox/users_common
+- name: github.com/emersion/go-message
+  version: 279601330b8856146ab0365d05c817d762aa1a6c
+  subpackages:
+  - charset
+  - textproto
+- name: github.com/emersion/go-sasl
+  version: 7e096a0a6197b89989e8cc31016daa67c8c62051
+- name: github.com/emersion/go-textwrapper
+  version: d0e65e56babe3f687ff94c1d764ca0e6aa7723ee
 - name: github.com/emirpasic/gods
   version: 7c131f6714175bd4ce484da1f348260c79db3069
   subpackages:
@@ -224,14 +256,6 @@ imports:
   - utils
 - name: github.com/etgryphon/stringUp
   version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
-- name: github.com/flashmob/go-guerrilla
-  version: cb550348c44e511bc1a6f71262f59ff41c85ed2c
-  subpackages:
-  - backends
-  - log
-  - mail
-  - mail/rfc5321
-  - response
 - name: github.com/fsnotify/fsnotify
   version: ccc981bf80385c528a65fbfdd49bf2d8da22aa23
 - name: github.com/GeertJohan/go.rice
@@ -250,6 +274,9 @@ imports:
   - render
 - name: github.com/go-gota/gota
   version: 1058f871be3128db7c45dd188594e462cd417c5f
+  subpackages:
+  - dataframe
+  - series
 - name: github.com/go-playground/locales
   version: f63010822830b6fe52288ee52d5a1151088ce039
   subpackages:
@@ -258,7 +285,7 @@ imports:
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
 - name: github.com/go-playground/validator
-  version: 884d31b8cad6a1ec877f2400d555924cea03bbea
+  version: 556b9da3c05f2a935bc086fb5a0bb55dd8112d2d
 - name: github.com/go-sourcemap/sourcemap
   version: b019cc30c1eaa584753491b0d8f8c1534bf1eb44
   subpackages:
@@ -394,7 +421,9 @@ imports:
 - name: github.com/mattn/go-isatty
   version: 3fb116b820352b7f0c281308a4d6250c22d94e27
 - name: github.com/mattn/go-sqlite3
-  version: c7c4067b79cc51e6dfdcef5c702e74b1e0fa7c75
+  version: b612a2feea6aa87c6d052d9086572551df06497e
+- name: github.com/mholt/certmagic
+  version: c7a9fdb178168514647c1fc65bf76e56e788949c
 - name: github.com/mitchellh/go-homedir
   version: ae18d6b8b3205b561c79e8e5f69bff09736185f4
 - name: github.com/mitchellh/mapstructure
@@ -435,7 +464,7 @@ imports:
 - name: github.com/rfjakob/eme
   version: 2222dbd4ba467ab3fc7e8af41562fcfe69c0d770
 - name: github.com/robfig/cron
-  version: b41be1df696709bb6395fe435af20370037c0b4c
+  version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
 - name: github.com/sadlil/go-trigger
   version: cfc3d83007cddfc1e31a478aa47cd41de07fac17
 - name: github.com/sergi/go-diff
@@ -555,6 +584,13 @@ imports:
   subpackages:
   - cases
   - collate
+  - encoding
+  - encoding/charmap
+  - encoding/internal
+  - encoding/internal/identifier
+  - encoding/japanese
+  - encoding/simplifiedchinese
+  - encoding/traditionalchinese
   - internal
   - internal/colltab
   - internal/language
@@ -594,7 +630,7 @@ imports:
 - name: gopkg.in/go-playground/validator.v8
   version: 5f1438d3fca68893a817e4a66806cea46a9e4ebf
 - name: gopkg.in/go-playground/validator.v9
-  version: 884d31b8cad6a1ec877f2400d555924cea03bbea
+  version: 556b9da3c05f2a935bc086fb5a0bb55dd8112d2d
   subpackages:
   - translations/en
 - name: gopkg.in/Masterminds/squirrel.v1
