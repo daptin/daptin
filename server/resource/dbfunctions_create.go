@@ -47,7 +47,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 			log.Infof("Create unique index sql: %v", alterTable)
 			_, err := db.Exec(alterTable)
 			if err != nil {
-				log.Infof("Table[%v] Column[%v]: Failed to create unique join index: %v", table.TableName, cols, err)
+				log.Errorf("Table[%v] Column[%v]: Failed to create unique join index: %v", table.TableName, cols, err)
 				db.Exec("COMMIT ")
 			}
 		}
@@ -457,7 +457,7 @@ func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) {
 
 	createTableQuery := MakeCreateTableQuery(tableInfo, db.DriverName())
 
-	log.Infof("Create table query")
+	log.Infof("Create table query: %v", tableInfo.TableName)
 	log.Println(createTableQuery)
 	_, err := db.Exec(createTableQuery)
 	//db.Exec("COMMIT ")

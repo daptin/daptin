@@ -20,6 +20,8 @@ services:
   daptinpostgresdb:
     image: postgres
     restart: always
+    ports:
+    - 5431:5432
     environment:
     - POSTGRES_PASSWORD=daptin123
     - POSTGRES_USER=daptin

@@ -1578,7 +1578,7 @@ var StandardTables = []TableInfo{
 				ColumnName:   "is_enabled",
 				DataType:     "int(1)",
 				ColumnType:   "truefalse",
-				DefaultValue: "true",
+				DefaultValue: "1",
 			},
 			{
 				Name:         "listen_interface",
