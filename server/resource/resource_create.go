@@ -351,6 +351,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		log.Infof("Insert query: %v", query)
 		//log.Infof("Insert values: %v", vals)
 		log.Errorf("Failed to execute insert query: %v", err)
+		log.Errorf("%v", vals)
 		return nil, err
 	}
 

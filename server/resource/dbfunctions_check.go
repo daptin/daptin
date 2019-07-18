@@ -317,7 +317,7 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 	for i, c := range tableInfo.Columns {
 		if c.ColumnName == "" {
 			c.ColumnName = c.Name
-			tableInfo.Columns[i].ColumnName = c.Name
+			tableInfo.Columns[i].ColumnName = SmallSnakeCaseText(c.Name)
 		}
 	}
 

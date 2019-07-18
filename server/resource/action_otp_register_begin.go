@@ -41,16 +41,13 @@ func (d *OtpRegisterBeginActionPerformer) DoAction(request ActionRequest, inFiel
 	var err error
 	if !emailOk || !phoneOk {
 		return nil, nil, []error{errors.New("email or mobile missing")}
-		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "mobile_number", phone.(string))
 	} else {
 		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmail(email.(string))
 		if err != nil {
 			return nil, nil, []error{errors.New("invalid email")}
 		}
-		userOtpProfileId, ok := userAccount["user_otp_account_id"]
-		if !ok {
-			return nil, nil, []error{errors.New("unregistered mobile number")}
-		} else if userOtpProfileId != nil {
+		userOtpProfileId, ok := userAccount["primary_user_otp"]
+		if ok {
 			userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "reference_id", userOtpProfileId.(string))
 		}
 	}
@@ -66,7 +63,7 @@ func (d *OtpRegisterBeginActionPerformer) DoAction(request ActionRequest, inFiel
 		return nil, nil, []error{errors.New("no such account")}
 	}
 
-	if err != nil || userOtpProfile == nil {
+	if userOtpProfile == nil {
 
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      "site.daptin.com",
@@ -82,10 +79,10 @@ func (d *OtpRegisterBeginActionPerformer) DoAction(request ActionRequest, inFiel
 		}
 
 		userOtpProfile = map[string]interface{}{
-			"otp_secret":      key.Secret(),
-			"verified":        false,
-			"mobile_number":   phone,
-			"user_account_id": userAccount["reference_id"],
+			"otp_secret":     key.Secret(),
+			"verified":       0,
+			"mobile_number":  phone,
+			"otp_of_account": userAccount["reference_id"],
 		}
 
 		req := api2go.Request{
@@ -110,7 +107,7 @@ func (d *OtpRegisterBeginActionPerformer) DoAction(request ActionRequest, inFiel
 		model := api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile)
 		model.SetAttributes(map[string]interface{}{
 			"mobile_number": phone,
-			"verified":      false,
+			"verified":      0,
 		})
 		_, err := d.cruds["user_otp_account"].UpdateWithoutFilters(model, req)
 
@@ -138,9 +135,17 @@ func (d *OtpRegisterBeginActionPerformer) DoAction(request ActionRequest, inFiel
 	}))
 	svc := sns.New(sess)
 
+	dataType := "String"
+	messageType := "Transactional"
 	params := &sns.PublishInput{
 		Message:     aws.String(fmt.Sprintf("Your OTP is %s", state)),
 		PhoneNumber: aws.String(userOtpProfile["mobile_number"].(string)),
+		MessageAttributes: map[string]*sns.MessageAttributeValue{
+			"AWS.SNS.SMS.SMSType": {
+				DataType:    &dataType,
+				StringValue: &messageType,
+			},
+		},
 	}
 	_, err = svc.Publish(params)
 	if err != nil {

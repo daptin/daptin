@@ -79,7 +79,7 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request ActionRequest, inFieldM
 	if userOtpProfile["verified"].(int64) == 0 {
 		model := api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile)
 		model.SetAttributes(map[string]interface{}{
-			"verified": true,
+			"verified": 1,
 		})
 
 		pr := &http.Request{}
@@ -92,7 +92,20 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request ActionRequest, inFieldM
 			PlainRequest: pr,
 		}
 
-		d.cruds["user_otp_account"].UpdateWithoutFilters(model, req)
+		_, err := d.cruds["user_otp_account"].UpdateWithoutFilters(model, req)
+		if err != nil {
+			log.Errorf("Failed to mark user otp account as verified: %v", err)
+		}
+
+		//userModel := api2go.NewApi2GoModelWithData("user_account", nil, 0, nil, userAccount)
+		//userModel.SetAttributes(map[string]interface{}{
+		//	"user_otp_account_id": userOtpProfile["reference_id"],
+		//})
+		//_, err = d.cruds["user_account"].UpdateWithoutFilters(userModel, req)
+		//if err != nil {
+		//	log.Errorf("Failed to associate verified otp account with user account: %v", err)
+		//}
+
 	}
 
 	u, _ := uuid.NewV4()
