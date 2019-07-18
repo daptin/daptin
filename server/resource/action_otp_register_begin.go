@@ -47,7 +47,7 @@ func (d *OtpRegisterBeginActionPerformer) DoAction(request ActionRequest, inFiel
 			return nil, nil, []error{errors.New("invalid email")}
 		}
 		userOtpProfileId, ok := userAccount["primary_user_otp"]
-		if ok {
+		if ok && userOtpProfileId != nil {
 			userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "reference_id", userOtpProfileId.(string))
 		}
 	}
