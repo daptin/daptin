@@ -315,9 +315,10 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 	//finalColumns := make(map[string]api2go.ColumnInfo, 0)
 	// if column name is empty, use name as column name
 	for i, c := range tableInfo.Columns {
-		if c.ColumnName == "" {
-			c.ColumnName = c.Name
+		if c.ColumnName == "" && c.Name != "" {
 			tableInfo.Columns[i].ColumnName = SmallSnakeCaseText(c.Name)
+		} else if c.ColumnName != "" && c.Name == "" {
+			tableInfo.Columns[i].Name = c.ColumnName
 		}
 	}
 
