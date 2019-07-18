@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
+	"strings"
+
 	//"reflect"
 	"errors"
 	"fmt"
@@ -260,6 +262,24 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				}
 				// 2017-07-13T18:30:00.000Z
 
+			} else if col.ColumnType == "truefalse" {
+				valBoolean, ok := val.(bool)
+				if ok {
+					if valBoolean {
+						val = 1
+					} else {
+						val = 0
+					}
+				} else {
+					valString, ok := val.(string)
+					if ok {
+						if strings.ToLower(strings.TrimSpace(valString)) == "true" {
+							val = 1
+						} else {
+							val = 0
+						}
+					}
+				}
 			}
 
 			if ok {

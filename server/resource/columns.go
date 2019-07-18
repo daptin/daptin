@@ -1154,6 +1154,7 @@ var StandardTables = []TableInfo{
 			{
 				ColumnName: "mobile_number",
 				IsIndexed:  true,
+				IsUnique:   true,
 				DataType:   "varchar(20)",
 				ColumnType: "label",
 			},
