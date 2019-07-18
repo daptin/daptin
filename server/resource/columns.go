@@ -103,8 +103,13 @@ var SystemActions = []Action{
 		Name:             "verify_mobile_number",
 		Label:            "Verify Mobile Number",
 		OnType:           "user_otp_account",
-		InstanceOptional: false,
+		InstanceOptional: true,
 		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "mobile_number",
+				ColumnName: "mobile_number",
+				ColumnType: "label",
+			},
 			{
 				Name:       "otp",
 				ColumnName: "otp",
@@ -117,7 +122,7 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"otp":    "~otp",
-					"mobile": "$.mobile_number",
+					"mobile": "~mobile_number",
 				},
 			},
 		},
