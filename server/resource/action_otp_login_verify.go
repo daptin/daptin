@@ -41,7 +41,7 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request ActionRequest, inFieldM
 	var userAccount map[string]interface{}
 	var userOtpProfile map[string]interface{}
 	var err error
-	if !ok {
+	if !ok || email == "" {
 		phone, ok := inFieldMap["mobile"]
 		if !ok {
 			return nil, nil, []error{errors.New("email or mobile missing")}
@@ -61,6 +61,10 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request ActionRequest, inFieldM
 			return nil, nil, []error{errors.New("unregistered mobile number")}
 		}
 		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "reference_id", userOtpProfileId.(string))
+	}
+
+	if err != nil || userOtpProfile == nil {
+		return nil, nil, []error{errors.New("Invalid OTP")}
 	}
 
 	key, _ := Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))

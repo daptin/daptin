@@ -111,6 +111,11 @@ var SystemActions = []Action{
 				ColumnType: "label",
 			},
 			{
+				Name:       "email",
+				ColumnName: "email",
+				ColumnType: "label",
+			},
+			{
 				Name:       "otp",
 				ColumnName: "otp",
 				ColumnType: "label",
