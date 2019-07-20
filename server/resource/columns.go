@@ -126,6 +126,34 @@ var SystemActions = []Action{
 				},
 			},
 		},
+	}, {
+		Name:             "send_otp",
+		Label:            "Send OTP to mobile",
+		OnType:           "user_otp_account",
+		InstanceOptional: true,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "mobile_number",
+				ColumnName: "mobile_number",
+				ColumnType: "label",
+			},
+			{
+				Name:       "email",
+				ColumnName: "email",
+				ColumnType: "label",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "otp.login.begin",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"otp":    "~otp",
+					"mobile": "~mobile_number",
+					"email":  "~email",
+				},
+			},
+		},
 	},
 	{
 		Name:             "verify_otp",

@@ -2,7 +2,6 @@ package resource
 
 import (
 	"fmt"
-	"github.com/artpar/go.uuid"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -17,11 +16,12 @@ import (
 )
 
 type OtpLoginBeginActionPerformer struct {
-	responseAttrs map[string]interface{}
-	cruds         map[string]*DbResource
-	configStore   *ConfigStore
-	credentials   *credentials.Credentials
-	awsRegion     string
+	responseAttrs    map[string]interface{}
+	cruds            map[string]*DbResource
+	configStore      *ConfigStore
+	credentials      *credentials.Credentials
+	awsRegion        string
+	encryptionSecret []byte
 }
 
 func (d *OtpLoginBeginActionPerformer) Name() string {
@@ -34,36 +34,41 @@ func (d *OtpLoginBeginActionPerformer) DoAction(request ActionRequest, inFieldMa
 	var userAccount map[string]interface{}
 	var userOtpProfile map[string]interface{}
 	var err error
-	if !ok {
+	if !ok || email == "" {
 		phone, ok := inFieldMap["mobile"]
 		if !ok {
-			return nil, nil, []error{errors.New("email or mobile missing")}
+			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "No mobile or email provided", "Failed"))}, []error{errors.New("email or mobile missing")}
 		}
 		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "mobile_number", phone.(string))
 		if err != nil {
-			return nil, nil, []error{errors.New("unregistered mobile number")}
+			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Unregistered mobile number", "Failed"))}, []error{errors.New("unregistered mobile number")}
 		}
 	} else {
 		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmail(email.(string))
 		if err != nil {
-			return nil, nil, []error{errors.New("invalid email")}
+			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Invalid email", "Failed"))}, []error{errors.New("invalid email")}
 		}
 		userOtpProfileId, ok := userAccount["user_otp_account_id"]
-		if !ok {
-			return nil, nil, []error{errors.New("unregistered mobile number")}
+		if !ok && userOtpProfileId != "" {
+			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "No mobile number registered", "Failed"))}, []error{errors.New("unregistered mobile number")}
 		}
 		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "reference_id", userOtpProfileId.(string))
 	}
 
-	if err != nil {
-		return nil, nil, []error{errors.New("invalid account")}
+	if userOtpProfile == nil || err != nil {
+		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "No mobile number registered", "Failed"))}, []error{errors.New("invalid account")}
 	}
 
 	if userOtpProfile["verified"].(int64) != 1 {
-		return nil, nil, []error{errors.New("unverified number cannot be used to login")}
+		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{errors.New("unverified number cannot be used to login")}
 	}
 
-	state, err := totp.GenerateCodeCustom(userOtpProfile["otp_secret"].(string), time.Now(), totp.ValidateOpts{
+	key, err := Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))
+	if err != nil {
+		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{err}
+	}
+
+	state, err := totp.GenerateCodeCustom(key, time.Now(), totp.ValidateOpts{
 		Period:    300,
 		Skew:      1,
 		Digits:    4,
@@ -71,7 +76,7 @@ func (d *OtpLoginBeginActionPerformer) DoAction(request ActionRequest, inFieldMa
 	})
 	if err != nil {
 		log.Errorf("Failed to generate code: %v", err)
-		return nil, nil, []error{err}
+		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{err}
 	}
 
 	sess := session.Must(session.NewSession(&aws.Config{
@@ -80,13 +85,20 @@ func (d *OtpLoginBeginActionPerformer) DoAction(request ActionRequest, inFieldMa
 	}))
 	svc := sns.New(sess)
 
+	dataType := "String"
+	messageType := "Transactional"
 	params := &sns.PublishInput{
 		Message:     aws.String(fmt.Sprintf("Your OTP is %s", state)),
 		PhoneNumber: aws.String(userOtpProfile["mobile_number"].(string)),
-	}
+		MessageAttributes: map[string]*sns.MessageAttributeValue{
+			"AWS.SNS.SMS.SMSType": {
+				DataType:    &dataType,
+				StringValue: &messageType,
+			},
+		},	}
 	_, err = svc.Publish(params)
 	if err != nil {
-		return nil, nil, []error{err}
+		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to send OTP SMS", "Failed"))}, []error{err}
 	}
 
 	return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "OTP sent to registered mobile number", "Success"))}, nil
@@ -97,14 +109,14 @@ func NewOtpLoginBeginActionPerformer(cruds map[string]*DbResource, configStore *
 	id, _ := configStore.GetConfigValueFor("sms.credentials.aws.id", "backend")
 	secret, _ := configStore.GetConfigValueFor("sms.credentials.aws.secret", "backend")
 	region, _ := configStore.GetConfigValueFor("sms.credentials.aws.region", "backend")
-
-	token, _ := uuid.NewV1()
+	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend")
 
 	handler := OtpLoginBeginActionPerformer{
-		cruds:       cruds,
-		credentials: credentials.NewStaticCredentials(id, secret, token.String()),
-		awsRegion:   region,
-		configStore: configStore,
+		cruds:            cruds,
+		encryptionSecret: []byte(encryptionSecret),
+		credentials:      credentials.NewStaticCredentials(id, secret, ""),
+		awsRegion:        region,
+		configStore:      configStore,
 	}
 
 	return &handler, nil

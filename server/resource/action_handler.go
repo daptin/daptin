@@ -113,9 +113,21 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 		responses, err := actionCrudResource.HandleActionRequest(actionRequest, req)
 		if err != nil {
 			if httpErr, ok := err.(api2go.HTTPError); ok {
-				ginContext.AbortWithStatusJSON(httpErr.Status(), err)
+				if len(responses) > 0 {
+
+					ginContext.AbortWithStatusJSON(httpErr.Status(), responses)
+				} else {
+					ginContext.AbortWithStatusJSON(httpErr.Status(), err)
+
+				}
 			} else {
-				ginContext.AbortWithStatusJSON(500, err)
+				if len(responses) > 0 {
+					ginContext.AbortWithStatusJSON(400, responses)
+				} else {
+					ginContext.AbortWithStatusJSON(500, err)
+
+				}
+
 			}
 			return
 		}
