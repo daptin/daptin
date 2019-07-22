@@ -34,7 +34,7 @@ func (d *OtpLoginBeginActionPerformer) DoAction(request ActionRequest, inFieldMa
 	var userAccount map[string]interface{}
 	var userOtpProfile map[string]interface{}
 	var err error
-	if !ok || email == "" {
+	if !ok || email == nil || email == "" {
 		phone, ok := inFieldMap["mobile"]
 		if !ok {
 			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "No mobile or email provided", "Failed"))}, []error{errors.New("email or mobile missing")}
@@ -95,7 +95,7 @@ func (d *OtpLoginBeginActionPerformer) DoAction(request ActionRequest, inFieldMa
 				DataType:    &dataType,
 				StringValue: &messageType,
 			},
-		},	}
+		},}
 	_, err = svc.Publish(params)
 	if err != nil {
 		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to send OTP SMS", "Failed"))}, []error{err}

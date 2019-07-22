@@ -41,7 +41,7 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request ActionRequest, inFieldM
 	var userAccount map[string]interface{}
 	var userOtpProfile map[string]interface{}
 	var err error
-	if !ok || email == "" {
+	if !ok || email == nil || email == "" {
 		phone, ok := inFieldMap["mobile"]
 		if !ok {
 			return nil, nil, []error{errors.New("email or mobile missing")}

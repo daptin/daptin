@@ -267,9 +267,15 @@ func PrintRelations(relations []api2go.TableRelation) {
 func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection, tx *sqlx.Tx) {
 
 	tables := []TableInfo{}
+	tableCreatedMap := map[string]bool{}
 
 	for _, table := range initConfig.Tables {
-		CheckTable(&table, db, tx)
+
+		if !tableCreatedMap[table.TableName] {
+			log.Infof("Check table %v", table.TableName)
+			CheckTable(&table, db, tx)
+			tableCreatedMap[table.TableName] = true
+		}
 		tables = append(tables, table)
 	}
 	initConfig.Tables = tables
