@@ -648,6 +648,12 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 			{
+				Name:       "mobile",
+				ColumnName: "mobile",
+				ColumnType: "label",
+				IsNullable: true,
+			},
+			{
 				Name:       "password",
 				ColumnName: "password",
 				ColumnType: "password",
@@ -683,6 +689,10 @@ var SystemActions = []Action{
 				ColumnName: "name",
 				Tags:       "trim",
 			},
+			{
+				ColumnName: "mobile",
+				Tags:       "trim",
+			},
 		},
 		OutFields: []Outcome{
 			{
@@ -711,6 +721,16 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"user_account_id": "$user.reference_id",
 					"usergroup_id":    "$usergroup.reference_id",
+				},
+			},
+			{
+				Type:      "otp.register.begin",
+				Method:    "EXECUTE",
+				Reference: "otp_account",
+				Condition: "!mobile != null && mobile != undefined && mobile != ''",
+				Attributes: map[string]interface{}{
+					"email":  "~email",
+					"mobile": "~mobile",
 				},
 			},
 			{

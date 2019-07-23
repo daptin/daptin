@@ -60,7 +60,7 @@ func (d *OtpLoginBeginActionPerformer) DoAction(request ActionRequest, inFieldMa
 	}
 
 	if userOtpProfile["verified"].(int64) != 1 {
-		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{errors.New("unverified number cannot be used to login")}
+		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Unverified account", "Failed"))}, []error{errors.New("unverified number cannot be used to login")}
 	}
 
 	key, err := Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))
