@@ -236,6 +236,13 @@ func InitJwtMiddleware(secret []byte, issuer string) {
 		Extractor: jwtmiddleware.FromFirst(
 			jwtmiddleware.FromAuthHeader,
 			jwtmiddleware.FromParameter("token"),
+			func(r *http.Request) (string, error) {
+				cookie, e := r.Cookie("token")
+				if cookie == nil {
+					return "", nil
+				}
+				return cookie.Value, e
+			},
 		),
 	})
 }

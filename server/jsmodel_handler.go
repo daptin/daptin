@@ -1,9 +1,11 @@
 package server
 
 import (
+	"encoding/base64"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/apiblueprint"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -20,11 +22,91 @@ type ErrorResponse struct {
 	Message string
 }
 
-func CreateDbAssetHandler(path string, initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
+func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
 	return func(c *gin.Context) {
+		var typeName = c.Param("typename")
+		var resourceId = c.Param("resource_id")
+		var columnNameWithExtension = c.Param("columnname")
+		//var extension = c.Param("ext")
+
+		var parts = strings.Split(columnNameWithExtension, ".")
+		columnName := parts[0]
+		//extension := parts[1]
+
+		table, ok := cruds[typeName]
+
+		if !ok || table == nil {
+			c.AbortWithStatus(404)
+			return
+		}
+		//sessionUser := &auth.SessionUser{
+		//	UserId:          0,
+		//	UserReferenceId: "",
+		//	Groups:          []auth.GroupPermission{},
+		//}
+		//sessionUserInterface := c.Request.Context().Value("user")
+		//if sessionUserInterface != nil {
+		//	sessionUser = sessionUserInterface.(*auth.SessionUser)
+		//}
+
+		//tableOwnership := cruds["world"].GetObjectPermissionByWhereClause("world", "table_name", typeName)
+
+		//if !tableOwnership.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
+		//	c.AbortWithStatus(403)
+		//	return
+		//}
+
+		//objectPermission := cruds[typeName].GetObjectPermissionByReferenceId(typeName, resourceId)
+
+		//if !objectPermission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
+		//	c.AbortWithStatus(403)
+		//	return
+		//}
+
+		pr := &http.Request{
+			Method: "GET",
+		}
+
+		pr = pr.WithContext(c.Request.Context())
+
+		req := api2go.Request{
+			PlainRequest: pr,
+		}
+
+		obj, err := cruds[typeName].FindOne(resourceId, req)
+		if err != nil {
+			c.AbortWithStatus(500)
+			return
+		}
+
+		row := obj.Result().(*api2go.Api2GoModel)
+		colData := row.Data[columnName]
+		if colData == nil {
+			c.AbortWithStatus(404)
+			return
+
+		}
+		files, ok := colData.([]map[string]interface{})
+
+		if !ok || len(files) < 1 {
+			c.AbortWithStatus(404)
+			return
+		}
+
+		contentBytes, e := base64.StdEncoding.DecodeString(files[0]["contents"].(string))
+		if e != nil {
+			c.AbortWithStatus(500)
+			return
+		}
+
+		mime, _ := mimetype.Detect(contentBytes)
+		c.Writer.Header().Set("Content-Type", mime)
+		c.Writer.Write(contentBytes)
+		c.AbortWithStatus(200)
 
 	}
 }
+
 func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
 
 	return func(c *gin.Context) {
