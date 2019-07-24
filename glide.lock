@@ -1,5 +1,5 @@
-hash: 8c3b6dd908cd4628f04d447e01f2b23b07adc7fd44d142e5f9d7810ef15b7294
-updated: 2019-07-16T19:11:35.285131+05:30
+hash: d9e71e1a1f7bc75f196507506a9ed98fdd4c0a2638f8719b1377d4ece098097f
+updated: 2019-07-24T16:24:25.83401+05:30
 imports:
 - name: cloud.google.com/go
   version: a5c6324a6e84f1a1119c5901431b09275b9f091b
@@ -138,7 +138,7 @@ imports:
 - name: github.com/asaskevich/EventBus
   version: 68a521d7cbbb7a859c2608b06342f384b3bd5f5a
 - name: github.com/aws/aws-sdk-go
-  version: 420cda5d6383f94f7d9c231aa44bad3325181950
+  version: 3d64de9191c7cf300083c8ff3049bf079c5b67ba
   subpackages:
   - aws
   - aws/awserr
@@ -178,6 +178,7 @@ imports:
   - service/s3/s3manager
   - service/sns
   - service/sts
+  - service/sts/stsiface
 - name: github.com/Azure/azure-pipeline-go
   version: b8e3409182fd52e74f7d7bdfbff5833591b3b655
   subpackages:
@@ -258,6 +259,8 @@ imports:
   version: 31534ccd8cac1d3d205c906ea5722928b045ed8c
 - name: github.com/fsnotify/fsnotify
   version: ccc981bf80385c528a65fbfdd49bf2d8da22aa23
+- name: github.com/gabriel-vasile/mimetype
+  version: 80f938cb8c51549d0ce0f7e691cc8014c4c24062
 - name: github.com/GeertJohan/go.rice
   version: 0af3f3b09a0a8b391f63ab52ba5ab50f84fabd30
   subpackages:

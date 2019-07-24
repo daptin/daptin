@@ -1155,9 +1155,9 @@ func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (i
 
 // select "column" from "typeName" where matchColumn in (values)
 // returns list of values of the column
-func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectColumn, matchColumn string, values []string) ([]interface{}, error) {
+func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectColumn []string, matchColumn string, values []string) ([]interface{}, error) {
 
-	s, q, err := statementbuilder.Squirrel.Select(selectColumn).From(typeName).Where(squirrel.Eq{matchColumn: values}).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select(selectColumn...).From(typeName).Where(squirrel.Eq{matchColumn: values}).ToSql()
 	if err != nil {
 		return nil, err
 	}

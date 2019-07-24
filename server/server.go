@@ -361,7 +361,8 @@ fagus7nZFuPIRAU1dz5Ni1g=
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
 	resource.InitialiseColumnManager()
 
-	//dbAssetHandler := CreateDbAssetHandler("/asset/:typename/:resource_id/:columnname.:ext", &initConfig, cruds);
+	dbAssetHandler := CreateDbAssetHandler(&initConfig, cruds)
+	defaultRouter.GET("/asset/:typename/:resource_id/:columnname", dbAssetHandler)
 
 	resource.RegisterTranslations()
 

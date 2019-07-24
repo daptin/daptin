@@ -87,3 +87,5 @@ import:
   - service/sns
 - package: github.com/go-gota/gota
   version: 1058f871be3128db7c45dd188594e462cd417c5f
+- package: github.com/gabriel-vasile/mimetype
+  version: ^0.3.15
