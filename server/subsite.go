@@ -168,6 +168,7 @@ var apiPaths = map[string]bool{
 	"action":  true,
 	"meta":    true,
 	"stats":   true,
+	"asset":   true,
 	"jsmodel": true,
 }
 
@@ -652,7 +653,6 @@ func NewScriptGrapeAsset(src string) GrapeAsset {
 		Src:  src,
 	}
 }
-
 
 func EndsWithCheck(str string, endsWith string) bool {
 	if len(endsWith) > len(str) {

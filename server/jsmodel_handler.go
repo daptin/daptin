@@ -7,6 +7,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/gin-gonic/gin"
+	"github.com/russross/blackfriday"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
@@ -39,6 +40,14 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 			c.AbortWithStatus(404)
 			return
 		}
+
+		colInfo, ok := table.TableInfo().GetColumnByName(columnName)
+
+		if !ok || colInfo == nil || (!colInfo.IsForeignKey && colInfo.ColumnType != "markdown") {
+			c.AbortWithStatus(404)
+			return
+		}
+
 		//sessionUser := &auth.SessionUser{
 		//	UserId:          0,
 		//	UserReferenceId: "",
@@ -86,23 +95,34 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 			return
 
 		}
-		files, ok := colData.([]map[string]interface{})
 
-		if !ok || len(files) < 1 {
-			c.AbortWithStatus(404)
-			return
+		if colInfo.IsForeignKey {
+
+			files, ok := colData.([]map[string]interface{})
+
+			if !ok || len(files) < 1 {
+				c.AbortWithStatus(404)
+				return
+			}
+
+			contentBytes, e := base64.StdEncoding.DecodeString(files[0]["contents"].(string))
+			if e != nil {
+				c.AbortWithStatus(500)
+				return
+			}
+
+			mime, _ := mimetype.Detect(contentBytes)
+			c.Writer.Header().Set("Content-Type", mime)
+			c.Writer.Write(contentBytes)
+			c.AbortWithStatus(200)
+		} else if colInfo.ColumnType == "markdown" {
+
+			outHtml := blackfriday.Run([]byte(colData.(string)))
+			c.Writer.Header().Set("Content-Type", "text/html")
+			c.Writer.Write(outHtml)
+			c.AbortWithStatus(200)
+
 		}
-
-		contentBytes, e := base64.StdEncoding.DecodeString(files[0]["contents"].(string))
-		if e != nil {
-			c.AbortWithStatus(500)
-			return
-		}
-
-		mime, _ := mimetype.Detect(contentBytes)
-		c.Writer.Header().Set("Content-Type", mime)
-		c.Writer.Write(contentBytes)
-		c.AbortWithStatus(200)
 
 	}
 }

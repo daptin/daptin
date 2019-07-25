@@ -111,6 +111,8 @@ func (ct ColumnType) Fake() interface{} {
 		return ""
 	case "image":
 		return ""
+	case "video":
+		return ""
 	case "url":
 		return "https://places.com/"
 	default:
@@ -409,19 +411,19 @@ var ColumnTypes = []ColumnType{
 		GraphqlType:   graphql.String,
 	},
 	{
+		Name:          "video",
+		BlueprintType: "file",
+		ReclineType:   "binary",
+		Validations:   []string{"base64"},
+		DataTypes:     []string{"blob"},
+		GraphqlType:   graphql.String,
+	},
+	{
 		Name:          "url",
 		BlueprintType: "string",
 		ReclineType:   "string",
 		Validations:   []string{"url"},
 		DataTypes:     []string{"varchar(500)"},
-		GraphqlType:   graphql.String,
-	},
-	{
-		Name:          "image",
-		BlueprintType: "file",
-		ReclineType:   "binary",
-		Validations:   []string{"base64"},
-		DataTypes:     []string{"text"},
 		GraphqlType:   graphql.String,
 	},
 }
@@ -461,11 +463,4 @@ func (ctm *ColumnTypeManager) IsValidValue(val string, colType string, validator
 	}
 	return validator.Var(val, ctm.ColumnMap[colType].Validations[0])
 
-}
-
-var CollectionTypes = []string{
-	"Pair",
-	"Triplet",
-	"Set",
-	"OrderedSet",
 }

@@ -1,5 +1,5 @@
-hash: d9e71e1a1f7bc75f196507506a9ed98fdd4c0a2638f8719b1377d4ece098097f
-updated: 2019-07-24T16:24:25.83401+05:30
+hash: d420192dfd6a1782dc0f362fe8d5314c1e384eb99e7863d9fede576e4ed01c9d
+updated: 2019-07-25T00:01:31.952902+05:30
 imports:
 - name: cloud.google.com/go
   version: a5c6324a6e84f1a1119c5901431b09275b9f091b
@@ -210,6 +210,8 @@ imports:
   version: 06ea1031745cb8b3dab3f6a236daf2b0aa468b7e
 - name: github.com/digitalocean/godo
   version: 7a32b5ce17203924a21366d5031032fd326d5051
+- name: github.com/disintegration/gift
+  version: e7b6d79ff1929f7f71e2de01198850f4e50db244
 - name: github.com/dlclark/regexp2
   version: 7632a260cbaf5e7594fc1544a503456ecd0827f1
   subpackages:
@@ -261,6 +263,9 @@ imports:
   version: ccc981bf80385c528a65fbfdd49bf2d8da22aa23
 - name: github.com/gabriel-vasile/mimetype
   version: 80f938cb8c51549d0ce0f7e691cc8014c4c24062
+  subpackages:
+  - internal/json
+  - internal/matchers
 - name: github.com/GeertJohan/go.rice
   version: 0af3f3b09a0a8b391f63ab52ba5ab50f84fabd30
   subpackages:
@@ -468,12 +473,16 @@ imports:
   version: 2222dbd4ba467ab3fc7e8af41562fcfe69c0d770
 - name: github.com/robfig/cron
   version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
+- name: github.com/russross/blackfriday
+  version: d3b5b032dc8e8927d31a5071b56e14c89f045135
 - name: github.com/sadlil/go-trigger
   version: cfc3d83007cddfc1e31a478aa47cd41de07fac17
 - name: github.com/sergi/go-diff
   version: da645544ed44df016359bd4c0e3dc60ee3a0da43
   subpackages:
   - diffmatchpatch
+- name: github.com/shurcooL/sanitized_anchor_name
+  version: 7bfe4c7ecddb3666a94b053b422cdd8f5aaa3615
 - name: github.com/sirupsen/logrus
   version: 839c75faf7f98a33d445d181f3018b5c3409a45e
 - name: github.com/skratchdot/open-golang

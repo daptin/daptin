@@ -24,6 +24,8 @@ type DbResource struct {
 	defaultGroups    []int64
 }
 
+
+
 func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, tableInfo TableInfo) *DbResource {
 	//log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
 	return &DbResource{
@@ -82,6 +84,10 @@ func (dr *DbResource) GetAdminReferenceId() string {
 	} else {
 		return cacheVal.(string)
 	}
+}
+
+func (dr *DbResource) TableInfo() *TableInfo {
+	return dr.tableInfo
 }
 
 func (dr *DbResource) GetAdminEmailId() string {
