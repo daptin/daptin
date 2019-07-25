@@ -121,6 +121,12 @@
           if (inputTypeParts[0] == "file") {
             inputTypeParts.shift();
             return inputTypeParts.join(".");
+          } else if (inputTypeParts[0] == "audio") {
+            inputTypeParts.shift();
+            return inputTypeParts.join(".");
+          } else if (inputTypeParts[0] == "video") {
+            inputTypeParts.shift();
+            return inputTypeParts.join(".");
           } else if (inputTypeParts[0] == "image") {
             inputTypeParts.shift();
             return inputTypeParts.join(".");
@@ -174,6 +180,12 @@
           const inputTypeParts = inputType.split(".");
           if (inputTypeParts[0] == "file") {
             return "fileUpload";
+          }
+          if (inputTypeParts[0] == "video") {
+            return "fileUpload"
+          }
+          if (inputTypeParts[0] == "audio") {
+            return "fileUpload"
           }
           if (inputTypeParts[0] == "image") {
             return "fileUpload";
