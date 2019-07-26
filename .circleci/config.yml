@@ -32,6 +32,7 @@ jobs:
     - checkout
     - run: go get github.com/daptin/daptin
     - run: go test -v -cover -race -coverprofile=coverage.out
+    - run: go get github.com/mattn/goveralls
     - run: /go/bin/goveralls -coverprofile=coverage.out -service=circle-ci -repotoken MaRVNq4KGrGW11NELIp9kniu2d5P2kt0s
 
 workflows:
