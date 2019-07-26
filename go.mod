@@ -54,6 +54,7 @@ require (
 	github.com/go-playground/validator v9.29.1+incompatible
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
+	github.com/gobuffalo/flect v0.1.5
 	github.com/gocarina/gocsv v0.0.0-20181213162136-af1d9380204a
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
 	github.com/golang/protobuf v1.3.1
@@ -69,6 +70,7 @@ require (
 	github.com/graphql-go/handler v0.2.3
 	github.com/graphql-go/relay v0.0.0-20171208134043-54350098cfe5
 	github.com/hashicorp/hcl v1.0.0
+	github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/inconshreveable/mousetrap v1.0.0
 	github.com/jamiealquiza/envy v1.1.0

@@ -5,6 +5,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func IsStandardColumn(colName string) bool {
+
+	for _, col := range StandardColumns {
+		if col.ColumnName == colName {
+			return true
+		}
+	}
+
+	return false
+}
+
 var StandardColumns = []api2go.ColumnInfo{
 	{
 		Name:            "id",
@@ -239,15 +250,12 @@ var SystemActions = []Action{
 		Label:            "Sync Mail Servers",
 		OnType:           "mail_server",
 		InstanceOptional: true,
-		InFields: []api2go.ColumnInfo{
-
-		},
+		InFields:         []api2go.ColumnInfo{},
 		OutFields: []Outcome{
 			{
-				Type:   "mail.servers.sync",
-				Method: "EXECUTE",
-				Attributes: map[string]interface{}{
-				},
+				Type:       "mail.servers.sync",
+				Method:     "EXECUTE",
+				Attributes: map[string]interface{}{},
 			},
 		},
 	},

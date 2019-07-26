@@ -6,9 +6,10 @@ import (
 	"github.com/artpar/go.uuid"
 	"github.com/graphql-go/graphql"
 	"github.com/icrowley/fake"
+	log "github.com/sirupsen/logrus"
 	validator2 "gopkg.in/go-playground/validator.v9"
 	"math/rand"
-	log "github.com/sirupsen/logrus"
+	"strings"
 
 	"time"
 )
@@ -338,9 +339,9 @@ var ColumnTypes = []ColumnType{
 		GraphqlType:   graphql.String,
 	},
 	{
-		Name:          "rating.10",
+		Name:          "rating",
 		BlueprintType: "number",
-		ReclineType:   "string",
+		ReclineType:   "number",
 		Validations:   []string{"min=0,max=10"},
 		DataTypes:     []string{"int(4)"},
 		GraphqlType:   graphql.Int,
@@ -361,6 +362,13 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "label",
+		ReclineType:   "string",
+		BlueprintType: "string",
+		DataTypes:     []string{"varchar(100)"},
+		GraphqlType:   graphql.String,
+	},
+	{
+		Name:          "hidden",
 		ReclineType:   "string",
 		BlueprintType: "string",
 		DataTypes:     []string{"varchar(100)"},
@@ -412,6 +420,14 @@ var ColumnTypes = []ColumnType{
 		GraphqlType:   graphql.String,
 	},
 	{
+		Name:          "gzip",
+		BlueprintType: "file",
+		ReclineType:   "binary",
+		Validations:   []string{"base64"},
+		DataTypes:     []string{"blob"},
+		GraphqlType:   graphql.String,
+	},
+	{
 		Name:          "video",
 		BlueprintType: "file",
 		ReclineType:   "binary",
@@ -447,11 +463,12 @@ func (ctm *ColumnTypeManager) GetBlueprintType(columnType string) string {
 	return ctm.ColumnMap[columnType].BlueprintType
 }
 func (ctm *ColumnTypeManager) GetGraphqlType(columnType string) *graphql.Scalar {
-	if _, ok := ctm.ColumnMap[columnType]; !ok {
+	col := strings.Split(columnType, ".")[0]
+	if _, ok := ctm.ColumnMap[col]; !ok {
 		log.Printf("No column definition for type: %v", columnType)
 		return graphql.String
 	}
-	return ctm.ColumnMap[columnType].GraphqlType
+	return ctm.ColumnMap[col].GraphqlType
 }
 
 func (ctm *ColumnTypeManager) GetFakedata(colTypeName string) string {
