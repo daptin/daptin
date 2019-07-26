@@ -1,18 +1,22 @@
 package server
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/apiblueprint"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/disintegration/gift"
-	"github.com/gabriel-vasile/mimetype"
 	"github.com/gin-gonic/gin"
-	"gopkg.in/russross/blackfriday.v2"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/russross/blackfriday.v2"
 	"image"
 	"image/color"
+	"image/jpeg"
+	_ "image/jpeg"
+	"image/png"
+	_ "image/png"
 	"net/http"
 	"strconv"
 	"strings"
@@ -93,7 +97,12 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 			}
 
 			filters := make([]gift.Filter, 0)
-			for _, param := range c.Params {
+			for key, values := range c.Request.URL.Query() {
+				param := gin.Param{
+					Key:   key,
+					Value: values[0],
+				}
+
 				valueFloat64, floatError := strconv.ParseFloat(param.Value, 32)
 				valueFloat32 := float32(valueFloat64)
 
@@ -337,11 +346,27 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 
 			}
 
-			gift.New()
+			f := gift.New(filters...)
 
-			mime, _ := mimetype.Detect(contentBytes)
-			c.Writer.Header().Set("Content-Type", mime)
-			c.Writer.Write(contentBytes)
+			img, formatName, err := image.Decode(bytes.NewReader(contentBytes))
+			log.Printf("Image format name: %v", formatName)
+			if err != nil {
+				c.AbortWithStatus(500)
+				return
+			}
+			dst := image.NewNRGBA(f.Bounds(img.Bounds()))
+			f.Draw(dst, img)
+
+			c.Writer.Header().Set("Content-Type", "image/"+formatName)
+			if formatName == "png" {
+				err = png.Encode(c.Writer, dst)
+			} else {
+				err = jpeg.Encode(c.Writer, dst, nil)
+			}
+			if err != nil {
+				log.Errorf("failed to write converted image :%v", err)
+			}
+
 			c.AbortWithStatus(200)
 
 		} else if colInfo.ColumnType == "markdown" {
