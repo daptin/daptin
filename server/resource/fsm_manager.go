@@ -8,7 +8,7 @@ import (
 	loopfsm "github.com/looplab/fsm"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
+	"github.com/Masterminds/squirrel"
 )
 
 type fsmManager struct {

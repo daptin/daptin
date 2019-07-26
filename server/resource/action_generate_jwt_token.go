@@ -6,7 +6,7 @@ import (
 	"github.com/artpar/go.uuid"
 	"github.com/dgrijalva/jwt-go"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
+	"github.com/Masterminds/squirrel"
 	"strings"
 	"time"
 )

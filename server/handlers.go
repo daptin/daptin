@@ -9,7 +9,7 @@ import (
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
+	"github.com/Masterminds/squirrel"
 	"io/ioutil"
 	"net/http"
 )

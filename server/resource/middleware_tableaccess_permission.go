@@ -3,7 +3,7 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	//log "github.com/sirupsen/logrus"
-	//"gopkg.in/Masterminds/squirrel.v1"
+	//"github.com/Masterminds/squirrel"
 	"errors"
 
 	"github.com/daptin/daptin/server/auth"
