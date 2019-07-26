@@ -9,9 +9,9 @@ import (
 	//"reflect"
 	"errors"
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/statementbuilder"
-	"github.com/Masterminds/squirrel"
 	"net/http"
 	"time"
 )
@@ -470,7 +470,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					updateForeignRow := make(map[string]interface{})
 					updateForeignRow, err = dr.GetReferenceIdToObject(rel.GetSubject(), valMap[rel.GetSubjectName()].(string))
 					if err != nil {
-						log.Error("Failed to fetch related row to update [%v] == %v", rel.GetSubject(), valMap)
+						log.Errorf("Failed to fetch related row to update [%v] == %v", rel.GetSubject(), valMap)
 						continue
 					}
 					updateForeignRow[rel.GetSubjectName()] = updatedResource["reference_id"].(string)
