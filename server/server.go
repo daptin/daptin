@@ -289,7 +289,7 @@ fagus7nZFuPIRAU1dz5Ni1g=
 
 		// Since we will use this server for testing only, we can allow plain text
 		// authentication over unencrypted connections
-		s.AllowInsecureAuth = true
+		s.AllowInsecureAuth = false
 
 		if err != nil {
 			log.Fatal(err)
@@ -445,7 +445,7 @@ fagus7nZFuPIRAU1dz5Ni1g=
 	})
 
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
-	// CleanUpConfigFiles()
+	CleanUpConfigFiles()
 
 	return hostSwitch, mailDaemon, TaskScheduler
 
@@ -649,7 +649,7 @@ type WebSocketConnectionHandlerImpl struct {
 }
 
 func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message websockets.WebSocketPayload, request *http.Request) {
-
+	// todo: complete implementation
 }
 
 func AddStreamsToApi2Go(api *api2go.API, processors []*resource.StreamProcessor, db database.DatabaseConnection, middlewareSet *resource.MiddlewareSet, configStore *resource.ConfigStore) {

@@ -3,8 +3,8 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	"github.com/pkg/errors"
-	"log"
 	//"strings"
+	log "github.com/sirupsen/logrus"
 )
 
 // FindOne returns an object by its ID

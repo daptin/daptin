@@ -6,8 +6,9 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-guerrilla/backends"
-	"log"
 	"strconv"
+	log "github.com/sirupsen/logrus"
+
 )
 
 type MailServersSyncActionPerformer struct {

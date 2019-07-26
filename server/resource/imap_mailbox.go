@@ -19,8 +19,9 @@ import (
 	"golang.org/x/net/context"
 	"gopkg.in/Masterminds/squirrel.v1"
 	"io/ioutil"
-	"log"
 	"net/http"
+	log "github.com/sirupsen/logrus"
+
 	"strings"
 	"sync"
 	"time"
