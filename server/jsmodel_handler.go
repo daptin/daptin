@@ -9,7 +9,7 @@ import (
 	"github.com/disintegration/gift"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/gin-gonic/gin"
-	"github.com/russross/blackfriday"
+	"gopkg.in/russross/blackfriday.v2"
 	log "github.com/sirupsen/logrus"
 	"image"
 	"image/color"
