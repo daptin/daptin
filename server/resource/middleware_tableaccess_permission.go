@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	"github.com/daptin/daptin/server/auth"
-	//"log"
 )
 
 // The TableAccessPermissionChecker middleware is resposible for entity level authorization check, before and after the changes

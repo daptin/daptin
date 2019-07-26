@@ -7,8 +7,9 @@ import (
 	"github.com/graphql-go/graphql"
 	"github.com/icrowley/fake"
 	validator2 "gopkg.in/go-playground/validator.v9"
-	"log"
 	"math/rand"
+	log "github.com/sirupsen/logrus"
+
 	"time"
 )
 

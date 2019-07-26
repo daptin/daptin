@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/GeertJohan/go.rice"
 	"github.com/artpar/go-guerrilla"
 	"github.com/daptin/daptin/server"
@@ -12,10 +11,9 @@ import (
 	"github.com/gocraft/health"
 	"github.com/jamiealquiza/envy"
 	"github.com/sadlil/go-trigger"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
-	"syscall"
 )
 
 // Save the stream as a global variable
@@ -23,8 +21,15 @@ var stream = health.NewStream()
 
 func init() {
 	//goagain.Strategy = goagain.Double
-	log.SetFlags(log.Lmicroseconds | log.Lshortfile)
-	log.SetPrefix(fmt.Sprintf("Daptin Process ID: %d ", syscall.Getpid()))
+	//log.SetFlags(log.Lmicroseconds | log.Lshortfile)
+	//log.SetPrefix(fmt.Sprintf("Daptin Process ID: %d ", syscall.Getpid()))
+
+	logFile := "daptin.log"
+	f, e := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if e != nil {
+		log.Errorf("Failed to open logfile %v", e)
+	}
+	log.SetOutput(f)
 }
 
 func main() {

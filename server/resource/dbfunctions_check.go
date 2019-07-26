@@ -420,7 +420,7 @@ func PrintTableInfo(info *TableInfo, title string) {
 	}
 
 	table.Body = &tableBody
-	fmt.Println(title)
-	table.Println()
+	log.Println(title)
+	log.Println(table.String())
 
 }

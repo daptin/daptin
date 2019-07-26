@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/resty"
-	"log"
 	"strings"
+	log "github.com/sirupsen/logrus"
+
 )
 
 type NetworkRequestActionPerformer struct {

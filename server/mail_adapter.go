@@ -15,8 +15,8 @@ import (
 	"github.com/bjarneh/latinx"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
-	"log"
 	"net/http"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 

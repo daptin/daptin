@@ -9,7 +9,8 @@ import (
 	"strings"
 	//"github.com/daptin/daptin/server/fakerservice"
 	"github.com/advance512/yaml"
-	"log"
+	log "github.com/sirupsen/logrus"
+
 )
 
 func InfoError(err error, args ...interface{}) bool {
