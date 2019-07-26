@@ -1,28 +1,53 @@
-# Golang CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-go/ for more details
+test_with_go_modules: &test_with_go_modules
+  steps:
+  - checkout
+  - run: go test ./...
+  - run: go vet ./...
+
+test_without_go_modules: &test_without_go_modules
+  working_directory: /go/src/github.com/daptin/daptin
+  steps:
+  - checkout
+  - run: go get -v -t -d ./...
+  - run: go test ./...
+  - run: go vet ./...
+
+defaults: &defaults
+  <<: *test_with_go_modules
+
 version: 2
 jobs:
-  build:
+  golang:1.8.7:
+    <<: *test_without_go_modules
     docker:
-    # specify the version
-    - image: circleci/golang:1.10
-
-    # Specify service dependencies here if necessary
-    # CircleCI maintains a library of pre-built images
-    # documented at https://circleci.com/docs/2.0/circleci-images/
-    # - image: circleci/postgres:9.4
-
-    #### TEMPLATE_NOTE: go expects specific checkout path representing url
-    #### expecting it in the form of
-    ####   /go/src/github.com/circleci/go-tool
-    ####   /go/src/bitbucket.org/circleci/go-tool
-    working_directory: /go/src/github.com/daptin/daptin
+    - image: circleci/golang:1.8.7
+  golang:1.9.7:
+    <<: *test_without_go_modules
+    docker:
+    - image: circleci/golang:1.9.7
+  golang:1.11:
+    <<: *defaults
+    docker:
+    - image: circleci/golang:1.11
+  golang:latest:
+    <<: *defaults
+    docker:
+    - image: circleci/golang:latest
+  coveralls:
+    docker:
+    - image: circleci/golang:latest
     steps:
     - checkout
+    - run: go get github.com/daptin/daptin
+    - run: go test -v -cover -race -coverprofile=coverage.out
+    - run: /go/bin/goveralls -coverprofile=coverage.out -service=circle-ci -repotoken MaRVNq4KGrGW11NELIp9kniu2d5P2kt0s
 
-    # specify any bash command here prefixed with `run: `
-    - run: go get -v -t -d ./...
-    - run: go test -v ./...
-    - store_test_results:
-        path: /tmp/test-reports
+workflows:
+  version: 2
+  build:
+    jobs:
+    - golang:1.8.7
+    - golang:1.9.7
+    - golang:1.11
+    - golang:latest
+    - coveralls
