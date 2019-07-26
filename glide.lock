@@ -1,5 +1,5 @@
-hash: d420192dfd6a1782dc0f362fe8d5314c1e384eb99e7863d9fede576e4ed01c9d
-updated: 2019-07-25T00:01:31.952902+05:30
+hash: 1d9790f3648853041c160828dbfd67087ed92a74e0b42c6275f0d95e26ae31fe
+updated: 2019-07-26T12:00:51.923405+05:30
 imports:
 - name: cloud.google.com/go
   version: a5c6324a6e84f1a1119c5901431b09275b9f091b
@@ -138,7 +138,7 @@ imports:
 - name: github.com/asaskevich/EventBus
   version: 68a521d7cbbb7a859c2608b06342f384b3bd5f5a
 - name: github.com/aws/aws-sdk-go
-  version: 3d64de9191c7cf300083c8ff3049bf079c5b67ba
+  version: 079c291bd886c77b35e4a1cc8dca231f0087410b
   subpackages:
   - aws
   - aws/awserr
@@ -473,8 +473,6 @@ imports:
   version: 2222dbd4ba467ab3fc7e8af41562fcfe69c0d770
 - name: github.com/robfig/cron
   version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
-- name: github.com/russross/blackfriday
-  version: d3b5b032dc8e8927d31a5071b56e14c89f045135
 - name: github.com/sadlil/go-trigger
   version: cfc3d83007cddfc1e31a478aa47cd41de07fac17
 - name: github.com/sergi/go-diff
@@ -647,6 +645,8 @@ imports:
   - translations/en
 - name: gopkg.in/Masterminds/squirrel.v1
   version: fa735ea14f09f8685fcf5e75db091feb5a410730
+- name: gopkg.in/russross/blackfriday.v2
+  version: d3b5b032dc8e8927d31a5071b56e14c89f045135
 - name: gopkg.in/src-d/go-billy.v4
   version: 982626487c60a5252e7d0b695ca23fb0fa2fd670
   subpackages:

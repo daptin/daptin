@@ -91,7 +91,7 @@ import:
   version: ^0.3.15
 - package: github.com/disintegration/gift
   version: ^1.2.0
-- package: github.com/russross/blackfriday
-  version: ^2.0.1
 - package: github.com/shurcooL/sanitized_anchor_name
   version: ^1.0.0
+- package: gopkg.in/russross/blackfriday.v2
+  version: ^2.0.1
