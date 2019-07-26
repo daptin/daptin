@@ -28,8 +28,7 @@ script:
   - cp c.out coverage.txt
   - go get github.com/GeertJohan/go.rice/rice
   - ls -lah
-  - curl https://glide.sh/get | sh
-  - glide install
+  - go get
   - cd daptinweb
   - pwd
   - npm install
