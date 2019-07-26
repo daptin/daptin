@@ -2,10 +2,10 @@ package resource
 
 import (
 	"errors"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend"
 	"github.com/daptin/daptin/server/auth"
-	"github.com/Masterminds/squirrel"
 	"strings"
 	"sync"
 )
@@ -101,7 +101,7 @@ func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 			Delimiter:  "\\",
 			Name:       box[0]["name"].(string),
 		},
-		status: *mbStatus,
+		status: mbStatus,
 	}
 
 	return &mb, nil

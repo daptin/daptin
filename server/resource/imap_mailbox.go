@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend/backendutil"
@@ -16,11 +17,10 @@ import (
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/textproto"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"github.com/Masterminds/squirrel"
 	"io/ioutil"
 	"net/http"
-	log "github.com/sirupsen/logrus"
 
 	"strings"
 	"sync"
@@ -37,7 +37,7 @@ type DaptinImapMailBox struct {
 	mailBoxId          int64
 	mailBoxReferenceId string
 	info               imap.MailboxInfo
-	status             imap.MailboxStatus
+	status             *imap.MailboxStatus
 	sequenceToMail     map[uint32]*imap.Message
 }
 
@@ -67,7 +67,7 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 	//}
 
 	mbsCurrent, _ := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId)
-	dimb.status = *mbsCurrent
+	dimb.status = mbsCurrent
 
 	mbs := imap.NewMailboxStatus(dimb.name, items)
 	mbs.Flags = dimb.status.Flags
@@ -125,7 +125,7 @@ func (dimb *DaptinImapMailBox) Check() error {
 
 	newStatus, _ := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId)
 	newStatus.Name = dimb.name
-	dimb.status = *newStatus
+	dimb.status = newStatus
 
 	return nil
 }
@@ -305,9 +305,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 // uid is set to true, or sequence numbers otherwise.
 func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCriteria) ([]uint32, error) {
 
-	httpRequest := http.Request{
-
-	}
+	httpRequest := http.Request{}
 
 	//filterParams := make(map[string][]string)
 
@@ -589,9 +587,7 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 	}
 
 	req := api2go.Request{
-		PlainRequest: &http.Request{
-
-		},
+		PlainRequest: &http.Request{},
 	}
 
 	for _, set := range seqset.Set {

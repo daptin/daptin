@@ -50,7 +50,9 @@ func main() {
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
 
-	stream.AddSink(&health.WriterSink{os.Stdout})
+	stream.AddSink(&health.WriterSink{
+		Writer: os.Stdout,
+	})
 	boxRoot1, err := rice.FindBox("daptinweb/dist/")
 
 	var boxRoot http.FileSystem

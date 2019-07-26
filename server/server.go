@@ -2,7 +2,6 @@ package server
 
 import (
 	"crypto/tls"
-	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
@@ -329,10 +328,9 @@ fagus7nZFuPIRAU1dz5Ni1g=
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
 	err = TaskScheduler.AddTask(resource.Task{
-		EntityName: "mail_server",
-		ActionName: "sync_mail_servers",
-		Attributes: map[string]interface{}{
-		},
+		EntityName:  "mail_server",
+		ActionName:  "sync_mail_servers",
+		Attributes:  map[string]interface{}{},
 		AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(),
 		Schedule:    "@every 10m",
 	})
@@ -471,7 +469,6 @@ func (c *Crammd5) Next(response []byte) (challenge []byte, done bool, err error)
 		newChallenge := fmt.Sprintf("<%v.%v.%v>", fake.DigitsN(8), time.Now().UnixNano(), "daptin")
 		c.challenge = newChallenge
 		return []byte(""), false, nil
-		return []byte(base64.StdEncoding.EncodeToString([]byte(newChallenge))), false, nil
 	}
 
 	parts := strings.SplitN(string(response), " ", 2)

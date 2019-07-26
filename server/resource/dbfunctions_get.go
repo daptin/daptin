@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
-	"github.com/Masterminds/squirrel"
 	"strconv"
 	"strings"
 	"time"
@@ -229,7 +229,7 @@ func (resource *DbResource) GetCloudStoreByName(name string) (CloudStore, error)
 		cloudStore.Name = row["name"].(string)
 		cloudStore.StoreType = row["store_type"].(string)
 		params := make(map[string]interface{})
-		err = json.Unmarshal([]byte(row["store_parameters"].(string)), params)
+		err = json.Unmarshal([]byte(row["store_parameters"].(string)), &params)
 		CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
 		cloudStore.StoreParameters = params
 		cloudStore.RootPath = row["root_path"].(string)
@@ -253,7 +253,7 @@ func (resource *DbResource) GetCloudStoreByReferenceId(referenceID string) (Clou
 		cloudStore.Name = row["name"].(string)
 		cloudStore.StoreType = row["store_type"].(string)
 		params := make(map[string]interface{})
-		err = json.Unmarshal([]byte(row["store_parameters"].(string)), params)
+		err = json.Unmarshal([]byte(row["store_parameters"].(string)), &params)
 		CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
 		cloudStore.StoreParameters = params
 		cloudStore.RootPath = row["root_path"].(string)
