@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/pkg/errors"
@@ -10,7 +11,6 @@ import (
 	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
-	"github.com/Masterminds/squirrel"
 	"net/http"
 	"strings"
 	"time"
@@ -126,7 +126,11 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 		return err
 	}
 
-	sessionUser := &auth.SessionUser{userId, user_reference_id, nil}
+	sessionUser := &auth.SessionUser{
+		UserId:          userId,
+		UserReferenceId: user_reference_id,
+		Groups:          nil,
+	}
 
 	pr := &http.Request{
 		Method: "POST",

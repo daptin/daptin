@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/alexeyco/simpletable"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
@@ -16,7 +17,6 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/tealeg/xlsx"
-	"github.com/Masterminds/squirrel"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -946,7 +946,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 
 	st := simpletable.New()
 	st.Header = &simpletable.Header{
-		[]*simpletable.Cell{
+		Cells: []*simpletable.Cell{
 			{
 				Text: "TableName",
 			},
@@ -970,7 +970,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 
 		refId := u.String()
 
-		if (strings.Index(table.TableName, "_has_") > -1) {
+		if strings.Index(table.TableName, "_has_") > -1 {
 			table.IsJoinTable = true
 		}
 

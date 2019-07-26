@@ -107,7 +107,7 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 				switch param.Key {
 				case "brightness":
 					filters = append(filters, gift.Brightness(valueFloat32))
-					break;
+					break
 				case "colorBalance":
 					vals := strings.Split(param.Value, ",")
 					if len(vals) != 3 {
@@ -118,7 +118,7 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 					green, _ := strconv.ParseFloat(vals[1], 32)
 					blue, _ := strconv.ParseFloat(vals[2], 32)
 					filters = append(filters, gift.ColorBalance(float32(red), float32(green), float32(blue)))
-					break;
+					break
 				case "colorize":
 
 					vals := strings.Split(param.Value, ",")
@@ -130,22 +130,22 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 					saturattion, _ := strconv.ParseFloat(vals[1], 32)
 					percent, _ := strconv.ParseFloat(vals[2], 32)
 					filters = append(filters, gift.ColorBalance(float32(hue), float32(saturattion), float32(percent)))
-					break;
+					break
 				case "colorspaceLinearToSRGB":
-					break;
 					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
 						filters = append(filters, gift.ColorspaceLinearToSRGB())
 					}
+					break
 				case "colorspaceSRGBToLinear":
 					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
 						filters = append(filters, gift.ColorspaceSRGBToLinear())
 					}
-					break;
+					break
 				case "contrast":
 					if floatError == nil {
 						filters = append(filters, gift.Contrast(valueFloat32))
 					}
-					break;
+					break
 				case "crop":
 
 					vals := strings.Split(param.Value, ",")
@@ -169,7 +169,7 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 						},
 					}
 					filters = append(filters, gift.Crop(rect))
-					break;
+					break
 				case "cropToSize":
 
 					vals := strings.Split(param.Value, ",")
@@ -183,64 +183,64 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 					switch vals[2] {
 					case "Center":
 						anchor = gift.CenterAnchor
-						break;
+						break
 					case "TopLeft":
 						anchor = gift.TopLeftAnchor
-						break;
+						break
 					case "Top":
 						anchor = gift.TopAnchor
-						break;
+						break
 					case "TopRight":
 						anchor = gift.TopRightAnchor
-						break;
+						break
 					case "Left":
 						anchor = gift.LeftAnchor
-						break;
+						break
 					case "Right":
 						anchor = gift.RightAnchor
-						break;
+						break
 					case "BottomLeft":
 						anchor = gift.BottomLeftAnchor
-						break;
+						break
 					case "Bottom":
 						anchor = gift.BottomAnchor
-						break;
+						break
 					case "BottomRight":
 						anchor = gift.BottomRightAnchor
-						break;
+						break
 					}
 					filters = append(filters, gift.CropToSize(int(height), int(weight), anchor))
-					break;
+					break
 				case "flipHorizontal":
 					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
 						filters = append(filters, gift.FlipHorizontal())
 					}
-					break;
+					break
 				case "flipVertical":
 					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
 						filters = append(filters, gift.FlipVertical())
 					}
-					break;
+					break
 				case "gamma":
 					filters = append(filters, gift.Gamma(valueFloat32))
-					break;
+					break
 				case "gaussianBlur":
 					filters = append(filters, gift.GaussianBlur(valueFloat32))
-					break;
+					break
 				case "grayscale":
 					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
 						filters = append(filters, gift.Grayscale())
 					}
-					break;
+					break
 				case "hue":
 					filters = append(filters, gift.Hue(valueFloat32))
-					break;
+					break
 				case "invert":
 					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
 
 						filters = append(filters, gift.Invert())
 					}
-					break;
+					break
 				case "resize":
 					vals := strings.Split(param.Value, ",")
 					if len(vals) != 4 {
@@ -253,22 +253,22 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 					switch vals[2] {
 					case "NearestNeighbor":
 						resampling = gift.NearestNeighborResampling
-						break;
+						break
 					case "Box":
 						resampling = gift.BoxResampling
-						break;
+						break
 					case "Linear":
 						resampling = gift.LinearResampling
-						break;
+						break
 					case "Cubic":
 						resampling = gift.CubicResampling
-						break;
+						break
 					case "Lanczos":
 						resampling = gift.LanczosResampling
-						break;
+						break
 					}
 					filters = append(filters, gift.Resize(int(height), int(weight), resampling))
-					break;
+					break
 				case "rotate":
 
 					vals := strings.Split(param.Value, ",")
@@ -282,63 +282,63 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 					switch vals[2] {
 					case "NearestNeighbor":
 						interpolation = gift.NearestNeighborInterpolation
-						break;
+						break
 					case "Linear":
 						interpolation = gift.LinearInterpolation
-						break;
+						break
 					case "Cubic":
 						interpolation = gift.CubicInterpolation
-						break;
+						break
 					}
 					filters = append(filters, gift.Rotate(float32(angle), backgroundColor, interpolation))
-					break;
+					break
 				case "rotate180":
 					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
 
 						filters = append(filters, gift.Rotate180())
 					}
-					break;
+					break
 				case "rotate270":
 					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
 
 						filters = append(filters, gift.Rotate270())
 					}
-					break;
+					break
 				case "rotate90":
 					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
 
 						filters = append(filters, gift.Rotate270())
 					}
-					break;
+					break
 				case "saturation":
 					filters = append(filters, gift.Saturation(valueFloat32))
-					break;
+					break
 				case "sepia":
 					filters = append(filters, gift.Sepia(valueFloat32))
-					break;
+					break
 				case "sobel":
 					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
 
 						filters = append(filters, gift.Sobel())
 					}
-					break;
+					break
 				case "threshold":
 					filters = append(filters, gift.Threshold(valueFloat32))
 
-					break;
+					break
 				case "transpose":
 					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
 
 						filters = append(filters, gift.Transpose())
 					}
 
-					break;
+					break
 				case "transverse":
 					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
 
 						filters = append(filters, gift.Transverse())
 					}
-					break;
+					break
 
 				}
 
