@@ -2,12 +2,14 @@ package server
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/relay"
+	"github.com/iancoleman/strcase"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"net/http"
-	log "github.com/sirupsen/logrus"
 	"strings"
 	//	"encoding/base64"
 	"encoding/json"
@@ -56,6 +58,56 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	})
 
 	rootFields := make(graphql.Fields)
+	mutationFields := make(graphql.Fields)
+
+	actionResponseType := graphql.NewObject(graphql.ObjectConfig{
+		Name:        "ActionResponse",
+		Description: "Action response",
+		Fields: graphql.Fields{
+			"ResponseType": &graphql.Field{
+				Type: graphql.String,
+			},
+			"Attributes": &graphql.Field{
+				Type: graphql.NewObject(graphql.ObjectConfig{
+					Name: "Attributes",
+					Fields: graphql.Fields{
+						"type": &graphql.Field{
+							Name: "type",
+							Type: graphql.String,
+						},
+						"message": &graphql.Field{
+							Name: "message",
+							Type: graphql.String,
+						},
+						"key": &graphql.Field{
+							Name: "key",
+							Type: graphql.String,
+						},
+						"value": &graphql.Field{
+							Name: "value",
+							Type: graphql.String,
+						},
+						"token": &graphql.Field{
+							Name: "token",
+							Type: graphql.String,
+						},
+						"title": &graphql.Field{
+							Name: "title",
+							Type: graphql.String,
+						},
+						"delay": &graphql.Field{
+							Name: "delay",
+							Type: graphql.String,
+						},
+						"location": &graphql.Field{
+							Name: "location",
+							Type: graphql.String,
+						},
+					},
+				}),
+			},
+		},
+	})
 
 	pageConfig := graphql.ArgumentConfig{
 		Type: graphql.NewInputObject(graphql.InputObjectConfig{
@@ -118,9 +170,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 	}
 
-	tableColumnMap := map[string]map[string]api2go.ColumnInfo{
-
-	}
+	tableColumnMap := map[string]map[string]api2go.ColumnInfo{}
 
 	for _, table := range cmsConfig.Tables {
 		columnMap := map[string]api2go.ColumnInfo{}
@@ -225,7 +275,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				"page":   &pageConfig,
 			},
 			//Args:        uniqueFields,
-			Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
+			Resolve: func(table resource.TableInfo) func(params graphql.ResolveParams) (interface{}, error) {
 				return func(params graphql.ResolveParams) (interface{}, error) {
 
 					log.Printf("Arguments: %v", params.Args)
@@ -502,41 +552,241 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 		Fields: rootFields,
 	})
 
-	//addTodoMutation := relay.MutationWithClientMutationID(relay.MutationConfig{
-	//	Name: "AddTodo",
-	//	InputFields: graphql.InputObjectConfigFieldMap{
-	//		"text": &graphql.InputObjectFieldConfig{
-	//			Type: graphql.NewNonNull(graphql.String),
-	//		},
-	//	},
-	//	OutputFields: graphql.Fields{
-	//		"todoEdge": &graphql.Field{
-	//			Type: todosConnection.EdgeType,
-	//			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-	//				//payload, _ := p.Source.(map[string]interface{})
-	//				//todoId, _ := payload["todoId"].(string)
-	//				//todo := GetTodo(todoId)
-	//				return relay.EdgeType{
-	//					Node: nil,
-	//					//Cursor: relay.CursorForObjectInConnection(TodosToSliceInterface(GetTodos("any")), todo),
-	//				}, nil
-	//			},
-	//		},
-	//		"viewer": &graphql.Field{
-	//			Type: userType,
-	//			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-	//				return nil, nil
-	//			},
-	//		},
-	//	},
-	//	MutateAndGetPayload: func(inputMap map[string]interface{}, info graphql.ResolveInfo, ctx context.Context) (map[string]interface{}, error) {
-	//		//text, _ := inputMap["text"].(string)
-	//		//todoId := nil
-	//		return map[string]interface{}{
-	//			"todoId": "todo-refid",
-	//		}, nil
-	//	},
-	//})
+	for _, t := range cmsConfig.Tables {
+		if t.IsJoinTable {
+			continue
+		}
+
+		func(table resource.TableInfo) {
+
+			inputFields := make(graphql.FieldConfigArgument)
+			updateFields := make(graphql.FieldConfigArgument)
+
+			for _, col := range table.Columns {
+
+				if resource.IsStandardColumn(col.ColumnName) {
+					continue
+				}
+
+				var finalGraphqlType graphql.Type
+				var finalGraphqlType1 graphql.Type
+				finalGraphqlType = resource.ColumnManager.GetGraphqlType(col.ColumnType)
+				finalGraphqlType1 = finalGraphqlType
+				if col.IsForeignKey {
+					continue
+				}
+
+				updateFields[col.ColumnName] = &graphql.ArgumentConfig{
+					Type:         finalGraphqlType,
+					Description:  col.ColumnDescription,
+					DefaultValue: col.DefaultValue,
+				}
+
+				if !col.IsNullable || col.ColumnType == "encrypted" {
+					finalGraphqlType1 = graphql.NewNonNull(finalGraphqlType)
+				}
+
+				inputFields[col.ColumnName] = &graphql.ArgumentConfig{
+					Type:         finalGraphqlType1,
+					Description:  col.ColumnDescription,
+					DefaultValue: col.DefaultValue,
+				}
+
+			}
+
+			mutationFields["add"+strcase.ToCamel(table.TableName)] = &graphql.Field{
+				Type:        inputTypesMap[table.TableName],
+				Description: "Create new " + strings.ReplaceAll(table.TableName, "_", " "),
+				Args:        inputFields,
+				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+					obj := api2go.NewApi2GoModelWithData(table.TableName, nil, 0, nil, params.Args)
+
+					pr := &http.Request{
+						Method: "POST",
+					}
+
+					pr = pr.WithContext(params.Context)
+
+					req := api2go.Request{
+						PlainRequest: pr,
+					}
+
+					created, err := resources[table.TableName].Create(obj, req)
+
+					if err != nil {
+						return nil, err
+					}
+
+					return created.Result().(*api2go.Api2GoModel).Data, err
+				},
+			}
+
+			updateInputFields := make(graphql.FieldConfigArgument)
+			for k, v := range updateFields {
+				updateInputFields[k] = v
+			}
+
+			updateInputFields["resource_id"] = &graphql.ArgumentConfig{
+				Type:        graphql.NewNonNull(graphql.String),
+				Description: "Resource id",
+			}
+
+			mutationFields["update"+strcase.ToCamel(table.TableName)] = &graphql.Field{
+				Type:        inputTypesMap[table.TableName],
+				Description: "Update " + strings.ReplaceAll(table.TableName, "_", " "),
+				Args:        updateInputFields,
+				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+
+					resourceId := params.Args["resource_id"].(string)
+
+					sessionUser := &auth.SessionUser{}
+					sessionUserInterface := params.Context.Value("user")
+					if sessionUserInterface != nil {
+						sessionUser = sessionUserInterface.(*auth.SessionUser)
+					}
+
+					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceId(table.TableName, resourceId)
+					if err != nil {
+						return nil, err
+					}
+
+					permission := resources[table.TableName].GetRowPermission(existingObj)
+
+					if !permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
+						return nil, errors.New("unauthorized")
+					}
+
+					obj := api2go.NewApi2GoModelWithData(table.TableName, nil, 0, nil, existingObj)
+
+					args := params.Args
+					deleteKeys := make([]string, 0)
+					for k := range args {
+						if args[k] == "" {
+							deleteKeys = append(deleteKeys, k)
+						}
+					}
+
+					for _, s := range deleteKeys {
+						delete(args, s)
+					}
+
+					obj.SetAttributes(args)
+
+					pr := &http.Request{
+						Method: "PATCH",
+					}
+
+					pr = pr.WithContext(params.Context)
+
+					req := api2go.Request{
+						PlainRequest: pr,
+					}
+
+					created, err := resources[table.TableName].Update(obj, req)
+
+					if err != nil {
+						return nil, err
+					}
+
+					return created.Result().(*api2go.Api2GoModel).Data, err
+				},
+			}
+
+			mutationFields["delete"+strcase.ToCamel(table.TableName)] = &graphql.Field{
+				Type:        inputTypesMap[table.TableName],
+				Description: "Delete " + strings.ReplaceAll(table.TableName, "_", " "),
+				Args: graphql.FieldConfigArgument{
+					"resource_id": &graphql.ArgumentConfig{
+						Type:        graphql.String,
+						Description: "Resource id",
+					},
+				},
+				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+
+					pr := &http.Request{
+						Method: "DELETE",
+					}
+
+					pr = pr.WithContext(params.Context)
+
+					req := api2go.Request{
+						PlainRequest: pr,
+					}
+
+					created, err := resources[table.TableName].Delete(params.Args["resource_id"].(string), req)
+
+					if err != nil {
+						return nil, err
+					}
+
+					return created.Result().(*api2go.Api2GoModel).Data, err
+				},
+			}
+
+		}(t)
+
+	}
+
+	for _, a := range cmsConfig.Actions {
+
+		func(action resource.Action) {
+
+			inputFields := make(graphql.FieldConfigArgument)
+
+			for _, col := range action.InFields {
+
+				var finalGraphqlType graphql.Type
+				finalGraphqlType = resource.ColumnManager.GetGraphqlType(col.ColumnType)
+
+				if !col.IsNullable {
+					finalGraphqlType = graphql.NewNonNull(finalGraphqlType)
+				}
+
+				inputFields[col.ColumnName] = &graphql.ArgumentConfig{
+					Type:         finalGraphqlType,
+					Description:  col.ColumnDescription,
+					DefaultValue: col.DefaultValue,
+				}
+
+			}
+
+			//if !action.InstanceOptional {
+			//	inputFields[action.OnType+"_id"] = &graphql.ArgumentConfig{
+			//		Type:        graphql.NewNonNull(graphql.String),
+			//		Description: "reference id of subject " + action.OnType,
+			//	}
+			//}
+
+			mutationFields["execute"+strcase.ToCamel(action.Name)+"On"+strcase.ToCamel(action.OnType)] = &graphql.Field{
+				Type:        graphql.NewList(actionResponseType),
+				Description: "Execute " + strings.ReplaceAll(action.Name, "_", " ") + " on " + action.OnType,
+				Args:        inputFields,
+				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+
+					pr := &http.Request{
+						Method: "EXECUTE",
+					}
+
+					pr = pr.WithContext(params.Context)
+
+					req := api2go.Request{
+						PlainRequest: pr,
+					}
+
+					actionRequest := resource.ActionRequest{
+						Type:       action.OnType,
+						Action:     action.Name,
+						Attributes: params.Args,
+					}
+
+					response, err := resources[action.OnType].HandleActionRequest(&actionRequest, req)
+
+					return response, err
+				},
+			}
+		}(a)
+
+	}
 
 	//changeTodoStatusMutation := relay.MutationWithClientMutationID(relay.MutationConfig{
 	//	Name: "ChangeTodoStatus",
@@ -707,22 +957,15 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	//		}, nil
 	//	},
 	//})
-	//mutationType := graphql.NewObject(graphql.ObjectConfig{
-	//	Name: "Mutation",
-	//	Fields: graphql.Fields{
-	//		"addTodo":              addTodoMutation,
-	//		"changeTodoStatus":     changeTodoStatusMutation,
-	//		"markAllTodos":         markAllTodosMutation,
-	//		"removeCompletedTodos": removeCompletedTodosMutation,
-	//		"removeTodo":           removeTodoMutation,
-	//		"renameTodo":           renameTodoMutation,
-	//	},
-	//})
+	mutationType := graphql.NewObject(graphql.ObjectConfig{
+		Name:   "Mutation",
+		Fields: mutationFields,
+	})
 
 	var err error
 	Schema, err = graphql.NewSchema(graphql.SchemaConfig{
-		Query: rootQuery,
-		//Mutation: mutationType,
+		Query:    rootQuery,
+		Mutation: mutationType,
 	})
 	if err != nil {
 		panic(err)
