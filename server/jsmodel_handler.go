@@ -2,14 +2,19 @@ package server
 
 import (
 	"encoding/base64"
+	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/apiblueprint"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/disintegration/gift"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/gin-gonic/gin"
 	"github.com/russross/blackfriday"
 	log "github.com/sirupsen/logrus"
+	"image"
+	"image/color"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -47,30 +52,6 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 			c.AbortWithStatus(404)
 			return
 		}
-
-		//sessionUser := &auth.SessionUser{
-		//	UserId:          0,
-		//	UserReferenceId: "",
-		//	Groups:          []auth.GroupPermission{},
-		//}
-		//sessionUserInterface := c.Request.Context().Value("user")
-		//if sessionUserInterface != nil {
-		//	sessionUser = sessionUserInterface.(*auth.SessionUser)
-		//}
-
-		//tableOwnership := cruds["world"].GetObjectPermissionByWhereClause("world", "table_name", typeName)
-
-		//if !tableOwnership.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
-		//	c.AbortWithStatus(403)
-		//	return
-		//}
-
-		//objectPermission := cruds[typeName].GetObjectPermissionByReferenceId(typeName, resourceId)
-
-		//if !objectPermission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
-		//	c.AbortWithStatus(403)
-		//	return
-		//}
 
 		pr := &http.Request{
 			Method: "GET",
@@ -111,10 +92,258 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 				return
 			}
 
+			filters := make([]gift.Filter, 0)
+			for _, param := range c.Params {
+				valueFloat64, floatError := strconv.ParseFloat(param.Value, 32)
+				valueFloat32 := float32(valueFloat64)
+
+				switch param.Key {
+				case "brightness":
+					filters = append(filters, gift.Brightness(valueFloat32))
+					break;
+				case "colorBalance":
+					vals := strings.Split(param.Value, ",")
+					if len(vals) != 3 {
+						continue
+					}
+
+					red, _ := strconv.ParseFloat(vals[0], 32)
+					green, _ := strconv.ParseFloat(vals[1], 32)
+					blue, _ := strconv.ParseFloat(vals[2], 32)
+					filters = append(filters, gift.ColorBalance(float32(red), float32(green), float32(blue)))
+					break;
+				case "colorize":
+
+					vals := strings.Split(param.Value, ",")
+					if len(vals) != 3 {
+						continue
+					}
+
+					hue, _ := strconv.ParseFloat(vals[0], 32)
+					saturattion, _ := strconv.ParseFloat(vals[1], 32)
+					percent, _ := strconv.ParseFloat(vals[2], 32)
+					filters = append(filters, gift.ColorBalance(float32(hue), float32(saturattion), float32(percent)))
+					break;
+				case "colorspaceLinearToSRGB":
+					break;
+					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
+						filters = append(filters, gift.ColorspaceLinearToSRGB())
+					}
+				case "colorspaceSRGBToLinear":
+					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
+						filters = append(filters, gift.ColorspaceSRGBToLinear())
+					}
+					break;
+				case "contrast":
+					if floatError == nil {
+						filters = append(filters, gift.Contrast(valueFloat32))
+					}
+					break;
+				case "crop":
+
+					vals := strings.Split(param.Value, ",")
+					if len(vals) != 4 {
+						continue
+					}
+
+					minX, _ := strconv.ParseInt(vals[0], 10, 32)
+					minY, _ := strconv.ParseInt(vals[1], 10, 32)
+					maxX, _ := strconv.ParseInt(vals[2], 10, 32)
+					maxY, _ := strconv.ParseInt(vals[3], 10, 32)
+
+					rect := image.Rectangle{
+						Min: image.Point{
+							X: int(minX),
+							Y: int(minY),
+						},
+						Max: image.Point{
+							X: int(maxX),
+							Y: int(maxY),
+						},
+					}
+					filters = append(filters, gift.Crop(rect))
+					break;
+				case "cropToSize":
+
+					vals := strings.Split(param.Value, ",")
+					if len(vals) != 3 {
+						continue
+					}
+					height, _ := strconv.ParseInt(vals[0], 10, 32)
+					weight, _ := strconv.ParseInt(vals[1], 10, 32)
+					anchor := gift.CenterAnchor
+
+					switch vals[2] {
+					case "Center":
+						anchor = gift.CenterAnchor
+						break;
+					case "TopLeft":
+						anchor = gift.TopLeftAnchor
+						break;
+					case "Top":
+						anchor = gift.TopAnchor
+						break;
+					case "TopRight":
+						anchor = gift.TopRightAnchor
+						break;
+					case "Left":
+						anchor = gift.LeftAnchor
+						break;
+					case "Right":
+						anchor = gift.RightAnchor
+						break;
+					case "BottomLeft":
+						anchor = gift.BottomLeftAnchor
+						break;
+					case "Bottom":
+						anchor = gift.BottomAnchor
+						break;
+					case "BottomRight":
+						anchor = gift.BottomRightAnchor
+						break;
+					}
+					filters = append(filters, gift.CropToSize(int(height), int(weight), anchor))
+					break;
+				case "flipHorizontal":
+					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
+						filters = append(filters, gift.FlipHorizontal())
+					}
+					break;
+				case "flipVertical":
+					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
+						filters = append(filters, gift.FlipVertical())
+					}
+					break;
+				case "gamma":
+					filters = append(filters, gift.Gamma(valueFloat32))
+					break;
+				case "gaussianBlur":
+					filters = append(filters, gift.GaussianBlur(valueFloat32))
+					break;
+				case "grayscale":
+					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
+						filters = append(filters, gift.Grayscale())
+					}
+					break;
+				case "hue":
+					filters = append(filters, gift.Hue(valueFloat32))
+					break;
+				case "invert":
+					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
+
+						filters = append(filters, gift.Invert())
+					}
+					break;
+				case "resize":
+					vals := strings.Split(param.Value, ",")
+					if len(vals) != 4 {
+						continue
+					}
+					height, _ := strconv.ParseInt(vals[0], 10, 32)
+					weight, _ := strconv.ParseInt(vals[1], 10, 32)
+					resampling := gift.NearestNeighborResampling
+
+					switch vals[2] {
+					case "NearestNeighbor":
+						resampling = gift.NearestNeighborResampling
+						break;
+					case "Box":
+						resampling = gift.BoxResampling
+						break;
+					case "Linear":
+						resampling = gift.LinearResampling
+						break;
+					case "Cubic":
+						resampling = gift.CubicResampling
+						break;
+					case "Lanczos":
+						resampling = gift.LanczosResampling
+						break;
+					}
+					filters = append(filters, gift.Resize(int(height), int(weight), resampling))
+					break;
+				case "rotate":
+
+					vals := strings.Split(param.Value, ",")
+					if len(vals) != 3 {
+						continue
+					}
+					angle, _ := strconv.ParseFloat(vals[0], 32)
+					backgroundColor, _ := ParseHexColor(vals[1])
+					interpolation := gift.NearestNeighborInterpolation
+
+					switch vals[2] {
+					case "NearestNeighbor":
+						interpolation = gift.NearestNeighborInterpolation
+						break;
+					case "Linear":
+						interpolation = gift.LinearInterpolation
+						break;
+					case "Cubic":
+						interpolation = gift.CubicInterpolation
+						break;
+					}
+					filters = append(filters, gift.Rotate(float32(angle), backgroundColor, interpolation))
+					break;
+				case "rotate180":
+					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
+
+						filters = append(filters, gift.Rotate180())
+					}
+					break;
+				case "rotate270":
+					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
+
+						filters = append(filters, gift.Rotate270())
+					}
+					break;
+				case "rotate90":
+					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
+
+						filters = append(filters, gift.Rotate270())
+					}
+					break;
+				case "saturation":
+					filters = append(filters, gift.Saturation(valueFloat32))
+					break;
+				case "sepia":
+					filters = append(filters, gift.Sepia(valueFloat32))
+					break;
+				case "sobel":
+					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
+
+						filters = append(filters, gift.Sobel())
+					}
+					break;
+				case "threshold":
+					filters = append(filters, gift.Threshold(valueFloat32))
+
+					break;
+				case "transpose":
+					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
+
+						filters = append(filters, gift.Transpose())
+					}
+
+					break;
+				case "transverse":
+					if strings.ToLower(param.Value) == "true" || param.Value == "1" {
+
+						filters = append(filters, gift.Transverse())
+					}
+					break;
+
+				}
+
+			}
+
+			gift.New()
+
 			mime, _ := mimetype.Detect(contentBytes)
 			c.Writer.Header().Set("Content-Type", mime)
 			c.Writer.Write(contentBytes)
 			c.AbortWithStatus(200)
+
 		} else if colInfo.ColumnType == "markdown" {
 
 			outHtml := blackfriday.Run([]byte(colData.(string)))
@@ -125,6 +354,24 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		}
 
 	}
+}
+
+func ParseHexColor(s string) (c color.RGBA, err error) {
+	c.A = 0xff
+	switch len(s) {
+	case 7:
+		_, err = fmt.Sscanf(s, "#%02x%02x%02x", &c.R, &c.G, &c.B)
+	case 4:
+		_, err = fmt.Sscanf(s, "#%1x%1x%1x", &c.R, &c.G, &c.B)
+		// Double the hex digits:
+		c.R *= 17
+		c.G *= 17
+		c.B *= 17
+	default:
+		err = fmt.Errorf("invalid length, must be 7 or 4")
+
+	}
+	return
 }
 
 func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
