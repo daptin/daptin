@@ -16,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/tealeg/xlsx"
-	"gopkg.in/Masterminds/squirrel.v1"
+	"github.com/Masterminds/squirrel"
 	"io/ioutil"
 	"net/http"
 	"os"

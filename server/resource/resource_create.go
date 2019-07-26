@@ -6,7 +6,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
+	"github.com/Masterminds/squirrel"
 	//"reflect"
 	"github.com/artpar/go.uuid"
 	//"strconv"

@@ -10,7 +10,7 @@ import (
 	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
-	"gopkg.in/Masterminds/squirrel.v1"
+	"github.com/Masterminds/squirrel"
 	"net/http"
 	"strings"
 	"time"

@@ -17,7 +17,7 @@ import (
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/textproto"
 	"golang.org/x/net/context"
-	"gopkg.in/Masterminds/squirrel.v1"
+	"github.com/Masterminds/squirrel"
 	"io/ioutil"
 	"net/http"
 	log "github.com/sirupsen/logrus"

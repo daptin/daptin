@@ -5,7 +5,7 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
+	"github.com/Masterminds/squirrel"
 	"gopkg.in/go-playground/validator.v9"
 	"time"
 )

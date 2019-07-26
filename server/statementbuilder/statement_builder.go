@@ -1,6 +1,6 @@
 package statementbuilder
 
-import "gopkg.in/Masterminds/squirrel.v1"
+import "github.com/Masterminds/squirrel"
 
 var Squirrel = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 

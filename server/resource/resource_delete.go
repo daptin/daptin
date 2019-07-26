@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/statementbuilder"
-	"gopkg.in/Masterminds/squirrel.v1"
+	"github.com/Masterminds/squirrel"
 	"net/http"
 )
 

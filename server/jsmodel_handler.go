@@ -9,8 +9,8 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/disintegration/gift"
 	"github.com/gin-gonic/gin"
+	"github.com/russross/blackfriday"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/russross/blackfriday.v2"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -369,7 +369,7 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 
 		} else if colInfo.ColumnType == "markdown" {
 
-			outHtml := blackfriday.Run([]byte(colData.(string)))
+			outHtml := blackfriday.MarkdownCommon([]byte(colData.(string)))
 			c.Writer.Header().Set("Content-Type", "text/html")
 			c.Writer.Write(outHtml)
 			c.AbortWithStatus(200)

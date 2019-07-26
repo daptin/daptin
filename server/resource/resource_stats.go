@@ -5,7 +5,7 @@ import (
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
+	"github.com/Masterminds/squirrel"
 	"regexp"
 	"sort"
 	"strings"
