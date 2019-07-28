@@ -7,10 +7,10 @@ import (
 
 	"encoding/base64"
 	"encoding/json"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
-	"github.com/Masterminds/squirrel"
 	"net/url"
 )
 
@@ -64,9 +64,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	//log.Infof("Find all row by params: [%v]: %v", dr.model.GetName(), req.QueryParams)
 	var err error
 	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
+	relatedTableName := ""
 	if dr.model.GetName() == "usergroup" && len(req.QueryParams) > 2 {
+		ok := false
 		for key := range req.QueryParams {
-			if EndsWithCheck(key, "Name") && req.QueryParams[key][0] == "usergroup_id" {
+			if relatedTableName, ok = EndsWith(key, "Name"); req.QueryParams[key][0] == "usergroup_id" && ok {
 				isRelatedGroupRequest = true
 			}
 		}
@@ -207,14 +209,15 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if isRelatedGroupRequest {
 		//log.Infof("Switch permission to join table j1 instead of %v%v", prefix, "permission")
 		if dr.model.GetName() == "usergroup" {
-			finalCols = append(finalCols, "usergroup.permission")
-			finalCols = append(finalCols, "usergroup.reference_id as relation_reference_id")
+			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName))
+			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as relation_reference_id", relatedTableName, relatedTableName))
 		} else {
 			finalCols = append(finalCols, "usergroup_id.permission")
 			finalCols = append(finalCols, "usergroup_id.reference_id as relation_reference_id")
 
 		}
-		finalCols = append(finalCols, prefix+"reference_id as reference_id")
+		//		finalCols = append(finalCols, prefix+"reference_id as reference_id")
+		finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as reference_id", relatedTableName, relatedTableName))
 	} else {
 		finalCols = append(finalCols, prefix+"permission")
 		finalCols = append(finalCols, prefix+"reference_id")
