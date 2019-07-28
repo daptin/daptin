@@ -66,9 +66,9 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 
 		cruds[table.TableName] = res
 
-		if table.IsJoinTable {
-			continue
-		}
+		//if table.IsJoinTable {
+		//	continue
+		//}
 
 		log.Infof("Add Resources To Api2Go: %v", table.TableName)
 
