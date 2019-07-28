@@ -111,19 +111,31 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 	}
 	typeMap["RelatedStructure"] = relatedStructureType
 
-	paginationObject := make(map[string]interface{})
-	paginationObject["type"] = "object"
-	paginationObject["properties"] = map[string]interface{}{
-		"page[number]": map[string]interface{}{
-			"type":        "number",
-			"description": "Id of the included object",
-		},
-		"page[size]": map[string]interface{}{
-			"type":        "number",
-			"description": "Type of the included object",
+	//paginationObject := make(map[string]interface{})
+	//paginationObject["type"] = "object"
+	//paginationObject["properties"] = map[string]interface{}{
+	//	"page[number]": map[string]interface{}{
+	//		"type":        "number",
+	//		"description": "Id of the included object",
+	//	},
+	//	"page[size]": map[string]interface{}{
+	//		"type":        "number",
+	//		"description": "Type of the included object",
+	//	},
+	//}
+	//typeMap["Pagination"] = paginationObject
+
+	actionResponse := map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"ResponseType": map[string]interface{}{
+				"type": "string",
+			},
+			"Attributes": map[string]interface{}{
+				"type": "object",
+			},
 		},
 	}
-	typeMap["Pagination"] = paginationObject
 
 	paginationStatus := make(map[string]interface{})
 	paginationStatus["type"] = "object"
@@ -154,13 +166,13 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		},
 	}
 	typeMap["PaginationStatus"] = paginationStatus
+	typeMap["ActionResponse"] = actionResponse
 
 	IncludedRelationship := make(map[string]interface{})
 	IncludedRelationship["type"] = "object"
 	IncludedRelationship["properties"] = map[string]interface{}{
 		"data": map[string]interface{}{
-			"type":        "RelatedStructure",
-			"description": "Associated objects which are also included in the current response",
+			"$ref": "#/components/schemas/RelatedStructure",
 		},
 		"links": map[string]interface{}{
 			"type":        "object",
@@ -178,8 +190,6 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		},
 	}
 	typeMap["IncludedRelationship"] = IncludedRelationship
-
-	worldActionMap := make(map[string][]resource.Action)
 
 	for _, tableInfo := range config.Tables {
 		ramlType := make(map[string]interface{})
@@ -210,33 +220,65 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		ramlType["required"] = requiredCols
 
 		typeMap[strcase.ToCamel(tableInfo.TableName)] = ramlType
-		typeMap["New"+strcase.ToCamel(tableInfo.TableName)] = ramlType
 
-		worldActions, err := cruds["action"].GetActionsByType(tableInfo.TableName)
-		if InfoError(err, "Failed to list world actions for raml") {
+		//worldActions, err := cruds["action"].GetActionsByType(tableInfo.TableName)
+		//if InfoError(err, "Failed to list world actions for raml") {
+		//	continue
+		//}
+
+	}
+	for _, tableInfo := range config.Tables {
+		ramlType := make(map[string]interface{})
+		// skip join tables
+		if strings.Index(tableInfo.TableName, "_has_") > -1 {
 			continue
 		}
 
-		worldActionMap[tableInfo.TableName] = worldActions
-		for _, action := range worldActions {
-			ramlActionType := make(map[string]interface{})
-			// ramlActionType["type"] = "object"
-
-			actionProperties := make(map[string]interface{})
-			for _, colInfo := range action.InFields {
-				if colInfo.IsForeignKey {
-					continue
-				}
-				if skipColumns[colInfo.ColumnName] {
-					continue
-				}
-
-				actionProperties[colInfo.ColumnName] = CreateColumnLine(colInfo)
+		properties := make(map[string]interface{})
+		requiredCols := make([]string, 0)
+		ramlType["type"] = "object"
+		for _, colInfo := range tableInfo.Columns {
+			if colInfo.IsForeignKey {
+				continue
 			}
-			ramlActionType["properties"] = actionProperties
-			typeMap[fmt.Sprintf("%s%sObject", strcase.ToCamel(action.Name), strcase.ToCamel(action.OnType))] = ramlActionType
+			if skipColumns[colInfo.ColumnName] {
+				continue
+			}
+			if resource.IsStandardColumn(colInfo.ColumnName) {
+				continue
+			}
 
+			if !colInfo.IsNullable && colInfo.DefaultValue == "" {
+				requiredCols = append(requiredCols, colInfo.ColumnName)
+			}
+
+			properties[colInfo.ColumnName] = CreateColumnLine(colInfo)
 		}
+
+		ramlType["properties"] = properties
+		ramlType["required"] = requiredCols
+
+		typeMap["New"+strcase.ToCamel(tableInfo.TableName)] = ramlType
+
+	}
+
+	for _, action := range config.Actions {
+		ramlActionType := make(map[string]interface{})
+		// ramlActionType["type"] = "object"
+
+		actionProperties := make(map[string]interface{})
+		for _, colInfo := range action.InFields {
+			if colInfo.IsForeignKey {
+				continue
+			}
+			if skipColumns[colInfo.ColumnName] {
+				continue
+			}
+
+			actionProperties[colInfo.ColumnName] = CreateColumnLine(colInfo)
+		}
+		ramlActionType["properties"] = actionProperties
+		typeMap[fmt.Sprintf("%s%sObject", strcase.ToCamel(action.Name), strcase.ToCamel(action.OnType))] = ramlActionType
 
 	}
 
@@ -273,9 +315,9 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 
 		//fakeObject := fakerservice.NewFakeInstance(tableInfo)
 
-		nestedMap := make(map[string]interface{})
+		nestedMap := make(map[string]map[string]interface{})
 
-		byIdResource := CreateByIdResource(tableInfo)
+		byIdResource := make(map[string]interface{})
 
 		//  BEGIN: GET ById Request
 		getByIdMethod := CreateGetMethod(tableInfo, dataInResponse)
@@ -292,35 +334,96 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		byIdResource["delete"] = deleteByIdMethod
 		// END: DELETE Request
 
-		nestedMap["/"+tableInfo.TableName+"/{referenceId}"] = byIdResource
+		nestedMap["/api/"+tableInfo.TableName+"/{referenceId}"] = byIdResource
 
 		for _, rel := range tableInfo.Relations {
 
 			// BEGIN: Get Relations Method
 
-			relationsById := CreateRelationsByIdResource(tableInfo)
+			relationsById := make(map[string]interface{})
 
 			if tableInfo.TableName == rel.Subject {
 				relatedTable := tableInfoMap[rel.Object]
 				getMethod := CreateGetAllMethod(relatedTable, CreateDataInResponse(relatedTable))
+
+				getMethod["operationId"] = "Related" + strcase.ToCamel(rel.ObjectName) + "Of" + strcase.ToCamel(tableInfo.TableName)
+				getMethod["summary"] = fmt.Sprintf("Fetch related %s of %v", rel.ObjectName, tableInfo.TableName)
+
+				getMethod["parameters"] = []map[string]interface{}{
+					{
+						"name": "referenceId",
+						"schema": map[string]interface{}{
+							"type": "string",
+						},
+						"required":    true,
+						"in":          "path",
+						"description": "Reference Id of the " + tableInfo.TableName,
+					},
+				}
+
 				deleteMethod := CreateDeleteRelationMethod(relatedTable)
+				deleteMethod["summary"] = fmt.Sprintf("Delete related %s of %v", rel.ObjectName, tableInfo.TableName)
+				deleteMethod["operationId"] = "Delete" + strcase.ToCamel(rel.ObjectName) + "Of" + strcase.ToCamel(tableInfo.TableName)
+
 				relationsById["get"] = getMethod
 				relationsById["delete"] = deleteMethod
-				nestedMap[fmt.Sprintf("/{referenceId}/%s", rel.Object)] = relationsById
+
+				deleteMethod["parameters"] = []map[string]interface{}{
+					{
+						"name": "referenceId",
+						"schema": map[string]interface{}{
+							"type": "string",
+						},
+						"required":    true,
+						"in":          "path",
+						"description": "Reference Id of the " + tableInfo.TableName,
+					},
+				}
+
+				nestedMap[fmt.Sprintf("/api/%s/{referenceId}/%s", tableInfo.TableName, rel.Object)] = relationsById
 			} else {
 				relatedTable := tableInfoMap[rel.Subject]
 				getMethod := CreateGetAllMethod(relatedTable, CreateDataInResponse(relatedTable))
+				getMethod["operationId"] = "Related" + strcase.ToCamel(rel.SubjectName) + "Of" + strcase.ToCamel(tableInfo.TableName)
+				patchMethod["summary"] = fmt.Sprintf("Fetch related %s of %v", rel.SubjectName, tableInfo.TableName)
 				deleteMethod := CreateDeleteRelationMethod(relatedTable)
+				deleteMethod["operationId"] = "Delete" + strcase.ToCamel(relatedTable.TableName) + "Of" + strcase.ToCamel(tableInfo.TableName)
+				patchMethod["summary"] = fmt.Sprintf("Delete related %s of %v", rel.SubjectName, tableInfo.TableName)
 				relationsById["get"] = getMethod
+
+				getMethod["parameters"] = []map[string]interface{}{
+					{
+						"name": "referenceId",
+						"schema": map[string]interface{}{
+							"type": "string",
+						},
+						"required":    true,
+						"in":          "path",
+						"description": "Reference Id of the " + tableInfo.TableName,
+					},
+				}
+
+				deleteMethod["parameters"] = []map[string]interface{}{
+					{
+						"name": "referenceId",
+						"schema": map[string]interface{}{
+							"type": "string",
+						},
+						"required":    true,
+						"in":          "path",
+						"description": "Reference Id of the " + tableInfo.TableName,
+					},
+				}
+
 				relationsById["delete"] = deleteMethod
-				nestedMap[fmt.Sprintf("/{referenceId}/%s", rel.Subject)] = relationsById
+				nestedMap[fmt.Sprintf("/api/%s/{referenceId}/%s", tableInfo.TableName, rel.Subject)] = relationsById
 			}
 			// END: Get relations method
 
 		}
 
 		for k, v := range nestedMap {
-			resourceInstance[k] = v
+			resourcesMap[k] = v
 		}
 
 		if tableInfo.IsStateTrackingEnabled {
@@ -330,6 +433,43 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		}
 
 		resourcesMap["/api/"+tableInfo.TableName] = resourceInstance
+	}
+
+	for _, action := range config.Actions {
+
+		resourcesMap[fmt.Sprintf("/action/%s/%s", action.OnType, action.Name)] = map[string]interface{}{
+			"post": map[string]interface{}{
+				"tags":        []string{action.OnType},
+				"operationId": "Execute" + strcase.ToCamel(action.Name) + "On" + strcase.ToCamel(action.OnType),
+				"summary":     action.Label,
+				"requestBody": map[string]interface{}{
+					"content": map[string]interface{}{
+						"application/json": map[string]interface{}{
+							"schema": map[string]interface{}{
+								"$ref": "#/components/schemas/" + fmt.Sprintf("%s%sObject", strcase.ToCamel(action.Name), strcase.ToCamel(action.OnType)),
+							},
+						},
+					},
+				},
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{
+
+						"description": "action response of " + action.Name,
+						"content": map[string]interface{}{
+							"application/json": map[string]interface{}{
+								"schema": map[string]interface{}{
+									"type": "array",
+									"items": map[string]interface{}{
+										"$ref": "#/components/schemas/ActionResponse",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
 	}
 
 	actionResource := make(map[string]interface{})
@@ -392,8 +532,10 @@ func CreateActionPostMethod(action resource.Action) map[string]interface{} {
 		"type":       "object",
 		"properties": dataInResponse,
 	}
-	postOkResponse["body"] = map[string]interface{}{
-		"application/vnd.api+json": postResponseBody,
+	postOkResponse["content"] = map[string]interface{}{
+		"application/json": map[string]interface{}{
+			"schema": postResponseBody,
+		},
 	}
 
 	postResponseMap["200"] = postOkResponse
@@ -464,7 +606,7 @@ func CreateDataInResponse(tableInfo resource.TableInfo) map[string]interface{} {
 }
 func CreatePostMethod(tableInfo resource.TableInfo, dataInResponse map[string]interface{}) map[string]interface{} {
 	postMethod := make(map[string]interface{})
-	postMethod["operationId"] = fmt.Sprintf("create%s", strcase.ToCamel(tableInfo.TableName))
+	postMethod["operationId"] = fmt.Sprintf("Create%s", strcase.ToCamel(tableInfo.TableName))
 	postMethod["summary"] = fmt.Sprintf("Create a new %v", tableInfo.TableName)
 	postMethod["tags"] = []string{tableInfo.TableName}
 	postBody := make(map[string]interface{})
@@ -472,7 +614,21 @@ func CreatePostMethod(tableInfo resource.TableInfo, dataInResponse map[string]in
 	postBody["description"] = tableInfo.TableName + " to create"
 	postBody["required"] = true
 	postBody["content"] = map[string]interface{}{
-		"application/json": dataInResponse,
+		"application/json": map[string]interface{}{
+			"schema": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"data": map[string]interface{}{
+						"type": "object",
+						"properties": map[string]interface{}{
+							"attributes": map[string]interface{}{
+								"$ref": "#/components/schemas/New" + strcase.ToCamel(tableInfo.TableName),
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	postMethod["requestBody"] = postBody
 	postResponseMap := make(map[string]interface{})
@@ -483,12 +639,10 @@ func CreatePostMethod(tableInfo resource.TableInfo, dataInResponse map[string]in
 		"type": "object",
 		"properties": map[string]interface{}{
 			"data": map[string]interface{}{
-				"schema": map[string]interface{}{
-					"$ref": "#/components/schemas/" + strcase.ToCamel(tableInfo.TableName),
-				},
+				"$ref": "#/components/schemas/" + strcase.ToCamel(tableInfo.TableName),
 			},
 			"links": map[string]interface{}{
-				"type": "PaginationStatus",
+				"$ref": "#/components/schemas/PaginationStatus",
 			},
 		},
 	}
@@ -496,7 +650,9 @@ func CreatePostMethod(tableInfo resource.TableInfo, dataInResponse map[string]in
 	postOkResponse["description"] = tableInfo.TableName + " response"
 
 	postOkResponse["content"] = map[string]interface{}{
-		"application/json": postResponseBody,
+		"application/json": map[string]interface{}{
+			"schema": postResponseBody,
+		},
 	}
 
 	postResponseMap["200"] = postOkResponse
@@ -507,30 +663,40 @@ func CreateGetAllMethod(tableInfo resource.TableInfo, dataInResponse map[string]
 	getAllMethod := make(map[string]interface{})
 	getAllMethod["description"] = fmt.Sprintf("Returns a list of %v", ProperCase(tableInfo.TableName))
 	getAllMethod["operationId"] = fmt.Sprintf("Get" + tableInfo.TableName)
+	getAllMethod["summary"] = fmt.Sprintf("List all %v", tableInfo.TableName)
+	getAllMethod["tags"] = []string{tableInfo.TableName}
 	getAllMethod["parameters"] = []map[string]interface{}{
 		{
-			"name":        "sort",
-			"type":        "string",
+			"name": "sort",
+			"schema": map[string]interface{}{
+				"type": "string",
+			},
 			"required":    false,
 			"in":          "query",
 			"description": "Field name to sort by",
 		},
 		{
-			"name":        "page[number]",
-			"in":          "query",
-			"type":        "string",
+			"name": "page[number]",
+			"in":   "query",
+			"schema": map[string]interface{}{
+				"type": "string",
+			},
 			"required":    false,
 			"description": "Page number for the query set, starts with 1",
 		},
 		{
-			"type":        "string",
+			"schema": map[string]interface{}{
+				"type": "string",
+			},
 			"name":        "page[size]",
 			"required":    false,
 			"in":          "query",
 			"description": "Size of one page, try 10",
 		},
 		{
-			"type":        "string",
+			"schema": map[string]interface{}{
+				"type": "string",
+			},
 			"in":          "query",
 			"name":        "query",
 			"required":    false,
@@ -573,40 +739,60 @@ func TitleCase(str string) string {
 func CreateDeleteMethod(tableInfo resource.TableInfo) map[string]interface{} {
 	deleteByIdMethod := make(map[string]interface{})
 	deleteByIdMethod200Response := make(map[string]interface{})
-	deleteByIdMethod200Response["body"] = nil
 	deleteByIdResponseMap := make(map[string]interface{})
+	deleteByIdMethod200Response["description"] = "delete " + tableInfo.TableName + " by reference id"
 	deleteByIdResponseMap["200"] = deleteByIdMethod200Response
 	deleteByIdMethod["responses"] = deleteByIdResponseMap
+
 	deleteByIdMethod["description"] = fmt.Sprintf("Delete a %v", tableInfo.TableName)
+
+	deleteByIdMethod["summary"] = fmt.Sprintf("Delete %v", tableInfo.TableName)
+	deleteByIdMethod["tags"] = []string{tableInfo.TableName}
+	deleteByIdMethod["parameters"] = []map[string]interface{}{
+		{
+			"name": "referenceId",
+			"schema": map[string]interface{}{
+				"type": "string",
+			},
+			"required":    true,
+			"in":          "path",
+			"description": "Reference Id of the " + tableInfo.TableName,
+		},
+	}
+
 	return deleteByIdMethod
 }
 
 func CreateDeleteRelationMethod(tableInfo resource.TableInfo) map[string]interface{} {
 	deleteByIdMethod := make(map[string]interface{})
 	deleteByIdMethod200Response := make(map[string]interface{})
-	deleteByIdMethod200Response["body"] = nil
+	deleteByIdMethod200Response["description"] = "Successful deletion of " + tableInfo.TableName
 	deleteBody := make(map[string]interface{})
 	deleteBody["type"] = tableInfo.TableName
-	deleteByIdMethod["body"] = map[string]interface{}{}
+	deleteByIdMethod["description"] = "Delete a " + tableInfo.TableName
 
 	deleteByIdResponseMap := make(map[string]interface{})
 	deleteByIdResponseMap["200"] = deleteByIdMethod200Response
 	deleteByIdMethod["responses"] = deleteByIdResponseMap
 	deleteByIdMethod["description"] = fmt.Sprintf("Remove a related %v from the parent object", tableInfo.TableName)
+	deleteByIdMethod["tags"] = []string{tableInfo.TableName}
+	deleteByIdMethod["parameters"] = []map[string]interface{}{
+		{
+			"name": "referenceId",
+			"schema": map[string]interface{}{
+				"type": "string",
+			},
+			"required":    true,
+			"in":          "path",
+			"description": "Reference Id of the " + tableInfo.TableName,
+		},
+	}
+
 	return deleteByIdMethod
 }
 
 func CreateByIdResource(tableInfo resource.TableInfo) map[string]interface{} {
 	byIdResource := make(map[string]interface{})
-	byIdResource["parameters"] = []map[string]interface{}{
-		{
-			"name":        "referenceId",
-			"type":        "string",
-			"in":          "path",
-			"description": "Reference id of the " + tableInfo.TableName + " to be fetched",
-			"required":    true,
-		},
-	}
 	return byIdResource
 }
 
@@ -618,11 +804,13 @@ func CreateActionResource(action resource.Action) map[string]interface{} {
 
 func CreateRelationsByIdResource(tableInfo resource.TableInfo) map[string]interface{} {
 	byIdResource := make(map[string]interface{})
-	byIdResource["uriParameters"] = map[string]interface{}{
+	byIdResource["parameters"] = map[string]interface{}{
 		"referenceId": map[string]interface{}{
-			"type":        "string",
 			"description": "Reference id of the " + tableInfo.TableName + " to be fetched",
 			"required":    true,
+			"schema": map[string]interface{}{
+				"type": "string",
+			},
 		},
 	}
 	return byIdResource
@@ -631,10 +819,12 @@ func CreateRelationsByIdResource(tableInfo resource.TableInfo) map[string]interf
 func CreateGetMethod(tableInfo resource.TableInfo, dataInResponse map[string]interface{}) map[string]interface{} {
 	getByIdMethod := make(map[string]interface{})
 	getByIdMethod200Response := make(map[string]interface{})
+	getByIdMethod["tags"] = []string{tableInfo.TableName}
+	getByIdMethod200Response["description"] = "get " + tableInfo.TableName + " by reference id"
 	getByIdMethod200Response["content"] = map[string]interface{}{
 		"application/json": map[string]interface{}{
 			"schema": map[string]interface{}{
-				"ref": "#/components/schemas/" + strcase.ToCamel(tableInfo.TableName),
+				"$ref": "#/components/schemas/" + strcase.ToCamel(tableInfo.TableName),
 			},
 		},
 	}
@@ -642,6 +832,20 @@ func CreateGetMethod(tableInfo resource.TableInfo, dataInResponse map[string]int
 	getByIdResponseMap := make(map[string]interface{})
 	getByIdResponseMap["200"] = getByIdMethod200Response
 	getByIdMethod["responses"] = getByIdResponseMap
+
+	getByIdMethod["parameters"] = []map[string]interface{}{
+		{
+			"name": "referenceId",
+			"schema": map[string]interface{}{
+				"type": "string",
+			},
+			"required":    true,
+			"in":          "path",
+			"description": "Reference Id of the " + tableInfo.TableName,
+		},
+	}
+
+	getByIdMethod["summary"] = fmt.Sprintf("Get %v by id", tableInfo.TableName)
 	getByIdMethod["description"] = fmt.Sprintf("Get %v by id", tableInfo.TableName)
 	return getByIdMethod
 }
@@ -649,29 +853,56 @@ func CreatePatchMethod(tableInfo resource.TableInfo) map[string]interface{} {
 
 	patchMethod := make(map[string]interface{})
 	patchMethod["operationId"] = fmt.Sprintf("Update%s", strcase.ToCamel(tableInfo.TableName))
+	patchMethod["summary"] = fmt.Sprintf("Update existing %v", tableInfo.TableName)
 	patchMethod["description"] = fmt.Sprintf("Edit an existing %s", tableInfo.TableName)
+	patchMethod["tags"] = []string{tableInfo.TableName}
 	patchBody := make(map[string]interface{})
 	patchBody["type"] = tableInfo.TableName
-	patchMethod["requestBody"] = patchBody
 	patchResponseMap := make(map[string]interface{})
 	patchOkResponse := make(map[string]interface{})
 	patchResponseBody := make(map[string]interface{})
 	patchResponseBody["type"] = "object"
 	patchRelationshipMap := make(map[string]interface{}, 0)
+
+	patchMethod["requestBody"] = map[string]interface{}{
+		"content": map[string]interface{}{
+			"application/json": map[string]interface{}{
+				"schema": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"data": map[string]interface{}{
+							"type": "object",
+							"properties": map[string]interface{}{
+								"attributes": map[string]interface{}{
+									"$ref": "#/components/schemas/" + strcase.ToCamel(tableInfo.TableName),
+								},
+								"id": map[string]interface{}{
+									"type": "string",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	for _, relation := range tableInfo.Relations {
 		if relation.Object == tableInfo.TableName {
-			patchRelationshipMap[relation.SubjectName] = "IncludedRelationship"
+			patchRelationshipMap[relation.SubjectName] = map[string]interface{}{
+				"$ref": "#/components/schemas/IncludedRelationship",
+			}
 		} else {
-			patchRelationshipMap[relation.ObjectName] = "IncludedRelationship"
+			patchRelationshipMap[relation.ObjectName] = map[string]interface{}{
+				"$ref": "#/components/schemas/IncludedRelationship",
+			}
 		}
 	}
 	var patchDataInResponse = map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
 			"attributes": map[string]interface{}{
-				"schema": map[string]interface{}{
-					"ref": "#/components/schemas/" + strcase.ToCamel(tableInfo.TableName),
-				},
+				"$ref": "#/components/schemas/" + strcase.ToCamel(tableInfo.TableName),
 			},
 			"id": map[string]interface{}{
 				"type": "string",
@@ -690,14 +921,28 @@ func CreatePatchMethod(tableInfo resource.TableInfo) map[string]interface{} {
 		"properties": map[string]interface{}{
 			"data": patchDataInResponse,
 			"links": map[string]interface{}{
-				"type": "PaginationStatus",
+				"$ref": "#/components/schemas/PaginationStatus",
 			},
 		},
 	}
-	patchOkResponse["requestBody"] = map[string]interface{}{
-		"application/json": patchResponseBody,
+	patchOkResponse["content"] = map[string]interface{}{
+		"application/json": map[string]interface{}{
+			"schema": patchResponseBody,
+		},
 	}
+	patchOkResponse["description"] = "updated " + tableInfo.TableName
 	patchResponseMap["200"] = patchOkResponse
+	patchMethod["parameters"] = []map[string]interface{}{
+		{
+			"name": "referenceId",
+			"schema": map[string]interface{}{
+				"type": "string",
+			},
+			"required":    true,
+			"in":          "path",
+			"description": "Reference Id of the " + tableInfo.TableName,
+		},
+	}
 	patchMethod["responses"] = patchResponseMap
 	return patchMethod
 }
