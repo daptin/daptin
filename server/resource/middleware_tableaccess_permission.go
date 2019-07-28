@@ -2,6 +2,8 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"log"
+
 	//log "github.com/sirupsen/logrus"
 	//"github.com/Masterminds/squirrel"
 	"errors"
@@ -75,7 +77,13 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 
 	}
 
+	log.Printf("User Id: %v", sessionUser.UserReferenceId)
+	log.Printf("User Groups: %d", sessionUser.Groups)
+
 	tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
+
+	log.Printf("Table owner: %v", tableOwnership.UserId)
+	log.Printf("Table groups: %v", tableOwnership.UserGroupId)
 
 	//log.Printf("[TableAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), tableOwnership)
 	if req.PlainRequest.Method == "GET" {

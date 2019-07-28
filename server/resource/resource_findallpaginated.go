@@ -70,6 +70,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		for key := range req.QueryParams {
 			if relatedTableName, ok = EndsWith(key, "Name"); req.QueryParams[key][0] == "usergroup_id" && ok {
 				isRelatedGroupRequest = true
+				break
 			}
 		}
 	}
