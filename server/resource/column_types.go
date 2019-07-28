@@ -152,14 +152,14 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "date",
-		BlueprintType: "date-only",
+		BlueprintType: "string",
 		ReclineType:   "date",
 		DataTypes:     []string{"timestamp"},
 		GraphqlType:   graphql.DateTime,
 	},
 	{
 		Name:          "time",
-		BlueprintType: "time-only",
+		BlueprintType: "string",
 		ReclineType:   "time",
 		DataTypes:     []string{"timestamp"},
 		GraphqlType:   graphql.String,
@@ -203,7 +203,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "datetime",
-		BlueprintType: "datetime",
+		BlueprintType: "string",
 		ReclineType:   "date-time",
 		DataTypes:     []string{"timestamp"},
 		GraphqlType:   graphql.DateTime,
@@ -295,7 +295,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "timestamp",
-		BlueprintType: "datetime",
+		BlueprintType: "string",
 		ReclineType:   "date-time",
 		DataTypes:     []string{"timestamp"},
 		GraphqlType:   graphql.DateTime,
@@ -397,7 +397,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "file",
-		BlueprintType: "file",
+		BlueprintType: "string",
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 		DataTypes:     []string{"blob"},
@@ -413,7 +413,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "image",
-		BlueprintType: "file",
+		BlueprintType: "string",
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 		DataTypes:     []string{"blob"},
@@ -421,7 +421,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "gzip",
-		BlueprintType: "file",
+		BlueprintType: "string",
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 		DataTypes:     []string{"blob"},
@@ -429,7 +429,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "video",
-		BlueprintType: "file",
+		BlueprintType: "string",
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 		DataTypes:     []string{"blob"},

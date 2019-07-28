@@ -19,6 +19,7 @@ import (
 	"github.com/emersion/go-sasl"
 	"github.com/gin-gonic/gin"
 	"github.com/icrowley/fake"
+	"os"
 	"strings"
 	"time"
 
@@ -56,6 +57,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	fs.Config.StatsLogLevel = 200
 
 	initialiseResources(&initConfig, db)
+
 	/// end system initialise
 
 	defaultRouter := gin.Default()
@@ -112,6 +114,18 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
+
+	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
+	if err != nil {
+		name, e := os.Hostname()
+		if e != nil {
+			name = "localhost"
+		}
+		hostname = name
+		configStore.SetConfigValueFor("hostname", hostname, "backend")
+	}
+
+	initConfig.Hostname = hostname
 
 	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
 	if err != nil {
