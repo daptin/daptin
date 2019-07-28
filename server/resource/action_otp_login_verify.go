@@ -27,6 +27,7 @@ type OtpLoginVerifyActionPerformer struct {
 	jwtTokenIssuer   string
 	otpKey           string
 	secret           []byte
+	totpSecret       string
 }
 
 func (d *OtpLoginVerifyActionPerformer) Name() string {
@@ -155,7 +156,10 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request ActionRequest, inFieldM
 }
 
 func NewOtpLoginVerifyActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
-	jwtSecret, err := configStore.GetConfigValueFor("totp.secret", "backend")
+
+	configStore.GetConfigValueFor("jwt.secret", "backend")
+
+	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend")
 
 	tokenLifeTimeHours, err := configStore.GetConfigIntValueFor("jwt.token.life.hours", "backend")

@@ -87,15 +87,17 @@ func (d *OtpLoginBeginActionPerformer) DoAction(request ActionRequest, inFieldMa
 
 	dataType := "String"
 	messageType := "Transactional"
+	message := fmt.Sprintf("Your OTP is %s", state)
+	log.Printf(message)
 	params := &sns.PublishInput{
-		Message:     aws.String(fmt.Sprintf("Your OTP is %s", state)),
+		Message:     aws.String(message),
 		PhoneNumber: aws.String(userOtpProfile["mobile_number"].(string)),
 		MessageAttributes: map[string]*sns.MessageAttributeValue{
 			"AWS.SNS.SMS.SMSType": {
 				DataType:    &dataType,
 				StringValue: &messageType,
 			},
-		},}
+		}}
 	_, err = svc.Publish(params)
 	if err != nil {
 		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to send OTP SMS", "Failed"))}, []error{err}
