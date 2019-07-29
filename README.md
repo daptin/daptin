@@ -42,7 +42,7 @@
 
 Schema
 
-<img src="https://github.com/daptin/daptin/raw/master/images/api.png">
+<img src="https://github.com/daptin/daptin/raw/master/images/api.jpg">
 
 Find
 <img src="https://github.com/daptin/daptin/raw/master/images/apigetall.png">
