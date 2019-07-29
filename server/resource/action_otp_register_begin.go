@@ -149,7 +149,7 @@ func (d *OtpRegisterBeginActionPerformer) DoAction(request ActionRequest, inFiel
 	}
 	_, err = svc.Publish(params)
 	if err != nil {
-		return nil, nil, []error{err}
+		return nil, nil, []error{}
 	}
 
 	return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "OTP sent to registered mobile number", "Success"))}, nil
