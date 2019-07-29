@@ -12,6 +12,7 @@ import (
 	"github.com/jamiealquiza/envy"
 	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"net/http"
 	"os"
 )
@@ -29,7 +30,10 @@ func init() {
 	if e != nil {
 		log.Errorf("Failed to open logfile %v", e)
 	}
-	log.SetOutput(f)
+
+	mwriter := io.MultiWriter(f, os.Stdout)
+
+	log.SetOutput(mwriter)
 }
 
 func main() {
