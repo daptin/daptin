@@ -38,7 +38,7 @@
   <a href="#getting-started">Getting Started</a>
 </p>
 
-Schema
+Define Schema
 
 <img src="https://github.com/daptin/daptin/raw/master/images/api.jpg">
 
