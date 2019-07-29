@@ -6,9 +6,7 @@
   Daptin
   <br>
 </h1>
-
-
-<h4 align="center">Headless CMS</h4>
+<h4>Headless CMS server</h4>
 
 
 <p align="center">
@@ -40,14 +38,37 @@
   <a href="#getting-started">Getting Started</a>
 </p>
 
-**Daptin** is a headless CMS server for building reusable APIs for accessing the database. Daptin takes in your desired structure of table via a YAML/JSON configuration file, creates those tables in the database of your choice (mysql/postgres/sqlite) and provides you frequently used features built in:
+**Daptin** is a headless CMS server
+
+Schema
+
+<img src="https://github.com/daptin/daptin/raw/master/images/api.png">
+
+Find
+<img src="https://github.com/daptin/daptin/raw/master/images/apigetall.png">
+
+Get By Id
+<img src="https://github.com/daptin/daptin/raw/master/images/apigetbyid.png">
+
+Create
+<img src="https://github.com/daptin/daptin/raw/master/images/apicreate.png">
+
+Delete
+<img src="https://github.com/daptin/daptin/raw/master/images/apidelete.png">
+
+Delete relations
+<img src="https://github.com/daptin/daptin/raw/master/images/apideleterelated.png">
+
+List relations
+<img src="https://github.com/daptin/daptin/raw/master/images/apifetchrelated.png">
+
+
 
 * Versioning of the data
-* GET all, GET by id, Search by filter API with pagination
-* Create, update and delete API
 * Authentication and authorization
 * JSON API endpoint
-* Graphql endpoint
+* GraphQL endpoint
+* Actions and integrations with external services
 
 
 Get Started
