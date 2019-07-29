@@ -160,11 +160,11 @@ Get Started
 
 ## API spec RAML
 
-RAML spec is auto generated for each endpoint exposed. This can be use to generate further documentation and clients.
+OpenAPI V3 spec is auto generated for each endpoint exposed. This can be use to generate further documentation and clients.
 
-![RAML API documentatnon](docs_markdown/docs/images/api-documentation.png)
+![YAML API documentatnon](docs_markdown/docs/images/api-documentation.png)
 
-```curl http://localhost/apispec.raml```
+```curl http://localhost/apispec.yaml```
 
 ```
 {
