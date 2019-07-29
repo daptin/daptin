@@ -38,8 +38,6 @@
   <a href="#getting-started">Getting Started</a>
 </p>
 
-**Daptin** is a headless CMS server
-
 Schema
 
 <img src="https://github.com/daptin/daptin/raw/master/images/api.jpg">
