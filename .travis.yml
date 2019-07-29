@@ -38,7 +38,7 @@ script:
 - pwd
 - rice embed-go
 - ls -lah
-- CGO_ENABLED=0 GOOS=linux go build  -a -ldflags '-extldflags "-static"' -o main
+- GOOS=linux go build  -a -ldflags '-extldflags "-static"' -o main
 - mkdir docker_dir
 - cp ./main ./docker_dir/main
 - cp Dockerfile docker_dir/Dockerfile
