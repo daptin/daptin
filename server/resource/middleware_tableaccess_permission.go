@@ -78,7 +78,7 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 	}
 
 	log.Printf("User Id: %v", sessionUser.UserReferenceId)
-	log.Printf("User Groups: %d", sessionUser.Groups)
+	log.Printf("User Groups: %v", sessionUser.Groups)
 
 	tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
 
