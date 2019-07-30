@@ -413,10 +413,10 @@ fagus7nZFuPIRAU1dz5Ni1g=
 	defaultRouter.GET("/jsmodel/:typename", handler)
 	defaultRouter.GET("/stats/:typename", statsHandler)
 	defaultRouter.GET("/meta", metaHandler)
-	defaultRouter.GET("/apispec.yaml", blueprintHandler)
+	defaultRouter.GET("/openapi.yaml", blueprintHandler)
 	defaultRouter.GET("/recline_model", modelHandler)
 	defaultRouter.OPTIONS("/jsmodel/:typename", handler)
-	defaultRouter.OPTIONS("/apispec.yaml", blueprintHandler)
+	defaultRouter.OPTIONS("/openapi.yaml", blueprintHandler)
 	defaultRouter.OPTIONS("/recline_model", modelHandler)
 	defaultRouter.GET("/system", func(c *gin.Context) {
 		c.AbortWithStatusJSON(200, Stats.Data())
