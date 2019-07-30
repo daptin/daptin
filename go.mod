@@ -6,6 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/advance512/yaml v0.0.0-20141213031416-e401b2b02685
 	github.com/alexeyco/simpletable v0.0.0-20180729223640-1fa9009f1080
+	github.com/anthonynsimon/bild v0.10.0
 	github.com/araddon/dateparse v0.0.0-20181123171228-21df004e09ca
 	github.com/artpar/api2go v2.4.0+incompatible
 	github.com/artpar/api2go-adapter v1.0.0
