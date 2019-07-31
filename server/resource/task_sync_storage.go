@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs/config"
@@ -34,20 +35,21 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, tempDirectoryPat
 	}
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
-	pacer := pacer.Pacer{}
-	pacer.SetRetries(5)
+	pacer1 := pacer.Pacer{}
+	pacer1.SetRetries(5)
 	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
 	go cmd.Run(true, true, nil, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Either source or destination is empty")
 			return nil
 		}
+		ctx := context.Background()
 		log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-		dir := sync.CopyDir(fdst, fsrc, true)
+		dir := sync.CopyDir(ctx, fdst, fsrc, true)
 		return dir
 	})
 

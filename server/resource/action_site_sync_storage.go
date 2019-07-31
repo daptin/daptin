@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"github.com/artpar/rclone/cmd"
 	log "github.com/sirupsen/logrus"
 
@@ -56,12 +57,14 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request ActionRequest, inField
 			log.Errorf("Either source or destination is empty")
 			return nil
 		}
+
+		ctx := context.Background()
 		log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-		dir := sync.CopyDir(fdst, fsrc, true)
+		dir := sync.CopyDir(ctx, fdst, fsrc, true)
 		return dir
 	})
 
