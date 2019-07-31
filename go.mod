@@ -15,7 +15,7 @@ require (
 	github.com/artpar/go-imap v1.0.0-beta.6
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
-	github.com/artpar/rclone v0.0.0-20190429081623-dc525e165a5e
+		github.com/artpar/rclone v0.0.0-20190731131039-d1a73dc74a2a
 	github.com/artpar/resty v1.0.1
 	github.com/artpar/stats v1.0.2
 	github.com/asaskevich/EventBus v0.0.0-20180103000110-68a521d7cbbb // indirect
@@ -83,9 +83,9 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.3.2
 	github.com/tealeg/xlsx v0.0.0-20181024002044-dbf71b6a931e
-	golang.org/x/crypto v0.0.0-20190411191339-88737f569e3a
-	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
-	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
+		golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4
+		golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+		golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	gopkg.in/go-playground/validator.v9 v9.29.1
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.8.1

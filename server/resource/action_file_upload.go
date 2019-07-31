@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"encoding/base64"
 	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/cmd"
@@ -165,7 +166,10 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-		err := sync.CopyDir(fdst, fsrc, true)
+
+		ctx := context.Background()
+
+		err := sync.CopyDir(ctx, fdst, fsrc, true)
 		os.RemoveAll(tempDirectoryPath)
 		InfoErr(err, "Failed to sync files for upload to cloud")
 		return err
