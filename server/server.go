@@ -433,10 +433,10 @@ fagus7nZFuPIRAU1dz5Ni1g=
 	defaultRouter.GET("/site/content/load", loader)
 	defaultRouter.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
-	webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
-	websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
+	//webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
+	//websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
 
-	go websocketServer.Listen(defaultRouter)
+	//go websocketServer.Listen(defaultRouter)
 
 	indexFile, err := boxRoot.Open("index.html")
 
