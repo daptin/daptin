@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/pkg/errors"
 	//"strings"
 	log "github.com/sirupsen/logrus"
@@ -10,6 +11,16 @@ import (
 // FindOne returns an object by its ID
 // Possible Responder success status code 200
 func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Responder, error) {
+
+	if referenceId == "mine" && dr.tableInfo.TableName == "user_account" {
+
+		sessionUser := req.PlainRequest.Context().Value("user")
+		if sessionUser != nil {
+			authUser := sessionUser.(*auth.SessionUser)
+			referenceId = authUser.UserReferenceId
+		}
+
+	}
 
 	for _, bf := range dr.ms.BeforeFindOne {
 		//log.Printf("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
