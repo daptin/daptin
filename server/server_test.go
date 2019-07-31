@@ -13,17 +13,50 @@ import (
 	"github.com/jamiealquiza/envy"
 	"github.com/jmoiron/sqlx"
 	"github.com/sadlil/go-trigger"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 )
 
 var stream = health.NewStream()
 
+const testSchemas = `Tables:
+  - TableName: gallery_image
+    Columns:
+      - Name: title
+        DataType: varchar(500)
+        ColumnType: label
+      - Name: file
+        DataType: text
+        IsNullable: true
+        ColumnType: image.png|jpg|jpeg|gif|tiff
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: local-store
+          KeyName: images
+Imports:
+  - FilePath: ${imagePath}
+    Entity: site
+    FileType: json`
+
 func TestServer(t *testing.T) {
 
+	tempDir := os.TempDir() + "daptintest"
+
+	os.Mkdir(tempDir, 0777)
+
+	schema := strings.Replace(testSchemas, "${imagePath}", tempDir, -1)
+
+	ioutil.WriteFile(tempDir+"/schema_test_daptin.yaml", []byte(schema), os.ModePerm)
+
+	os.Setenv("DAPTIN_SCHEMA_FOLDER", tempDir)
+
 	err := os.Remove("daptin_test.db")
+	os.Remove("server/daptin_test.db")
 	log.Printf("Failed to delete existing file %v", err)
 
 	var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
@@ -66,7 +99,14 @@ func TestServer(t *testing.T) {
 	var taskScheduler resource.TaskScheduler
 	var configStore *resource.ConfigStore
 
+	configStore, _ = resource.NewConfigStore(db)
+	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
+
+	configStore.SetConfigValueFor("imap.enabled", "true", "backend")
+	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
+
 	hostSwitch, mailDaemon, taskScheduler, configStore = Main(boxRoot, db)
+
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -208,17 +248,6 @@ func RunTests(t *testing.T, hostSwitch HostSwitch, daemon *guerrilla.Daemon, db 
 	token = responseAttr["Attributes"].(map[string]interface{})["value"].(string)
 
 	t.Logf("Token: %v", token)
-
-	resp, err = r.Post(baseAddress+"/action/world/become_an_administrator", req.BodyJSON(map[string]interface{}{
-		"attributes": map[string]interface{}{},
-	}), req.Header{
-		"Authorization": "Bearer " + token,
-	})
-
-	var adminResponse interface{}
-
-	resp.ToJSON(&resp)
-	t.Logf("Become admin response: %v", adminResponse)
 
 	return nil
 
