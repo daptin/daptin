@@ -69,6 +69,7 @@ require (
 	github.com/mattn/go-colorable v0.1.0 // indirect
 	github.com/mattn/go-isatty v0.0.7 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0
+        github.com/mattn/goveralls v0.0.2 // indirect
 	github.com/mholt/certmagic v0.6.1 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/otp v1.2.0
