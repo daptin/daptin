@@ -33,7 +33,7 @@ import (
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon, resource.TaskScheduler) {
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore) {
 
 	/// Start system initialise
 	log.Infof("Load config files")
@@ -333,7 +333,7 @@ fagus7nZFuPIRAU1dz5Ni1g=
 
 	// todo : move this somewhere and make it part of something
 	actionHandlerMap := actionPerformersListToMap(actionPerformers)
-	for k, _ := range cruds {
+	for k := range cruds {
 		cruds[k].ActionHandlerMap = actionHandlerMap
 	}
 
@@ -439,7 +439,12 @@ fagus7nZFuPIRAU1dz5Ni1g=
 	go websocketServer.Listen(defaultRouter)
 
 	indexFile, err := boxRoot.Open("index.html")
-	indexFileContents, err := ioutil.ReadAll(indexFile)
+
+	var indexFileContents = []byte("")
+	if indexFile != nil {
+
+		indexFileContents, err = ioutil.ReadAll(indexFile)
+	}
 
 	defaultRouter.NoRoute(func(c *gin.Context) {
 		resource.CheckErr(err, "Failed to open index.html")
@@ -459,7 +464,7 @@ fagus7nZFuPIRAU1dz5Ni1g=
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
 
-	return hostSwitch, mailDaemon, TaskScheduler
+	return hostSwitch, mailDaemon, TaskScheduler, configStore
 
 }
 

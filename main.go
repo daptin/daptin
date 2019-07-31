@@ -78,7 +78,7 @@ func main() {
 	var mailDaemon *guerrilla.Daemon
 	var taskScheduler resource.TaskScheduler
 
-	hostSwitch, mailDaemon, taskScheduler = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, _ = server.Main(boxRoot, db)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -95,7 +95,7 @@ func main() {
 
 		db, err = server.GetDbConnection(*db_type, *connection_string)
 
-		hostSwitch, mailDaemon, taskScheduler = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, _ = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
 
