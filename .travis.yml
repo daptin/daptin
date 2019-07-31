@@ -24,8 +24,6 @@ script:
 - go get -t ./...
 - go test ./... -coverprofile=coverage.txt -covermode=atomic
 - ls -lah
-- grep -h -v "^mode:" ./*.cover >> c.out
-- cp c.out coverage.txt
 - go get github.com/GeertJohan/go.rice/rice
 - ls -lah
 - go get github.com/karalabe/xgo
