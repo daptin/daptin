@@ -13,10 +13,11 @@ import (
 func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Responder, error) {
 
 	if referenceId == "mine" && dr.tableInfo.TableName == "user_account" {
-
+		log.Printf("Request for mine")
 		sessionUser := req.PlainRequest.Context().Value("user")
 		if sessionUser != nil {
 			authUser := sessionUser.(*auth.SessionUser)
+			log.Printf("Overrider reference id mine with %v", authUser.UserReferenceId)
 			referenceId = authUser.UserReferenceId
 		}
 
