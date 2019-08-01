@@ -83,8 +83,8 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelationWithNames("task", "task_executed", "has_one", USER_ACCOUNT_TABLE_NAME, "as_user_id"),
 }
 
-var SystemSmds = []LoopbookFsmDescription{}
-var SystemExchanges = []ExchangeContract{}
+var SystemSmds []LoopbookFsmDescription
+var SystemExchanges []ExchangeContract
 
 var SystemActions = []Action{
 	{
@@ -976,9 +976,67 @@ var SystemActions = []Action{
 
 var adminsGroup = []string{"administrators"}
 
-var StandardTasks = []Task{}
+var StandardTasks []Task
 
 var StandardTables = []TableInfo{
+	{
+		TableName:     "integration",
+		IsHidden:      false,
+		DefaultGroups: adminsGroup,
+		Icon:          "exchange",
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "name",
+				ColumnName: "name",
+				IsUnique:   true,
+				IsIndexed:  true,
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+				IsNullable: false,
+			},
+			{
+				Name:       "specification_language",
+				ColumnName: "specification_language",
+				ColumnType: "label",
+				DataType:   "varchar(20)",
+				IsNullable: false,
+			},
+			{
+				Name:         "specification_format",
+				ColumnName:   "specification_format",
+				ColumnType:   "label",
+				DataType:     "varchar(10)",
+				DefaultValue: "'json'",
+			},
+			{
+				Name:       "specification",
+				ColumnName: "specification",
+				ColumnType: "content",
+				DataType:   "text",
+				IsNullable: false,
+			},
+			{
+				Name:       "authentication_type",
+				ColumnName: "authentication_type",
+				ColumnType: "label",
+			},
+			{
+				Name:       "authentication_specification",
+				ColumnName: "authentication_specification",
+				ColumnType: "json",
+				DataType:   "text",
+				IsNullable: false,
+			},
+			{
+				Name:         "enable",
+				ColumnName:   "enable",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				DefaultValue: "1",
+				IsNullable:   false,
+			},
+		},
+	},
 	{
 		TableName:     "task",
 		IsHidden:      true,

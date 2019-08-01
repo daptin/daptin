@@ -28,7 +28,7 @@ func (d *OtpLoginBeginActionPerformer) Name() string {
 	return "otp.login.begin"
 }
 
-func (d *OtpLoginBeginActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *OtpLoginBeginActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	email, ok := inFieldMap["email"]
 	var userAccount map[string]interface{}

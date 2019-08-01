@@ -62,8 +62,8 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 	//dataToInsert := make(map[string]interface{})
 
 	if len(allChanges) > 0 {
-		colsList := []string{}
-		valsList := []interface{}{}
+		var colsList []string
+		var valsList []interface{}
 		for _, col := range allColumns {
 
 			//log.Infof("Add column: %v", col.ColumnName)
@@ -154,7 +154,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
 
 					log.Infof("Initiate file upload action")
-					_, _, errs := uploadActionPerformer.DoAction(ActionRequest{}, actionRequestParameters)
+					_, _, errs := uploadActionPerformer.DoAction(Outcome{}, actionRequestParameters)
 					if errs != nil && len(errs) > 0 {
 						log.Errorf("Failed to upload attachments: %v", errs)
 					}

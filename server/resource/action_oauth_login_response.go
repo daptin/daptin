@@ -147,7 +147,7 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 	return err
 }
 
-func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *OauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	state := inFieldMap["state"].(string)
 	//user := inFieldMap["user"].(map[string]interface{})

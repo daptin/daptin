@@ -2,11 +2,11 @@ package resource
 
 import (
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
 	"github.com/dgrijalva/jwt-go"
 	log "github.com/sirupsen/logrus"
-	"github.com/Masterminds/squirrel"
 	"strings"
 	"time"
 )
@@ -22,7 +22,7 @@ func (d *GenerateJwtTokenActionPerformer) Name() string {
 	return "jwt.token"
 }
 
-func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *GenerateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

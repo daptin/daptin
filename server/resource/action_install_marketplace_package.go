@@ -19,7 +19,7 @@ func (d *MarketplacePackageInstallActionPerformer) Name() string {
 	return "marketplace.package.install"
 }
 
-func (d *MarketplacePackageInstallActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *MarketplacePackageInstallActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	marketReferenceId := inFieldMap["marketplace_id"].(string)
 	marketplaceHandler, ok := d.marketMap[marketReferenceId]

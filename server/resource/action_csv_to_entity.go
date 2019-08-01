@@ -23,7 +23,7 @@ func (d *UploadCsvFileToEntityPerformer) Name() string {
 	return "__upload_csv_file_to_entity"
 }
 
-func (d *UploadCsvFileToEntityPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *UploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	//actions := make([]ActionResponse, 0)
 	log.Infof("Do action: %v", d.Name())

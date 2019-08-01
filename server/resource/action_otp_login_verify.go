@@ -34,7 +34,7 @@ func (d *OtpLoginVerifyActionPerformer) Name() string {
 	return "otp.login.verify"
 }
 
-func (d *OtpLoginVerifyActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *OtpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 	responses := make([]ActionResponse, 0)
 
 	state, ok := inFieldMap["otp"].(string)

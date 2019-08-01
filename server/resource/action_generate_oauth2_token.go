@@ -14,7 +14,7 @@ func (d *GenerateOauth2TokenActionPerformer) Name() string {
 	return "oauth.token"
 }
 
-func (d *GenerateOauth2TokenActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *GenerateOauth2TokenActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

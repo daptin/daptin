@@ -422,8 +422,9 @@ fagus7nZFuPIRAU1dz5Ni1g=
 		c.AbortWithStatusJSON(200, Stats.Data())
 	})
 
-	defaultRouter.POST("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
-	defaultRouter.GET("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
+	actionHandler := resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers)
+	defaultRouter.POST("/action/:typename/:actionName", actionHandler)
+	defaultRouter.GET("/action/:typename/:actionName", actionHandler)
 
 	defaultRouter.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
 	defaultRouter.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))

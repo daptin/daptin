@@ -15,7 +15,7 @@ func (d *DownloadCmsConfigActionPerformer) Name() string {
 	return "__download_cms_config"
 }
 
-func (d *DownloadCmsConfigActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *DownloadCmsConfigActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

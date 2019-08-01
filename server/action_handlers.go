@@ -3,9 +3,11 @@ package server
 import (
 	"github.com/artpar/go-guerrilla"
 	"github.com/daptin/daptin/server/resource"
+	"log"
 )
 
 func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon) []resource.ActionPerformerInterface {
+
 	performers := make([]resource.ActionPerformerInterface, 0)
 
 	becomeAdminPerformer, err := resource.NewBecomeAdminPerformer(initConfig, cruds)
@@ -111,6 +113,25 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	fileUploadPerformer, err := resource.NewFileUploadActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, fileUploadPerformer)
+
+	integrations, err := cruds["world"].GetActiveIntegrations()
+	if err == nil {
+
+		for _, integration := range integrations {
+
+			performer, err := resource.NewIntegrationActionPerformer(integration, initConfig, cruds)
+
+			if err != nil {
+
+				log.Printf("Failed to create integration action performer for: %v", integration.Name)
+				continue
+			}
+
+			performers = append(performers, performer)
+
+		}
+
+	}
 
 	return performers
 }
