@@ -18,7 +18,7 @@ func (d *RestartSystemActionPerformer) Name() string {
 	return "__restart"
 }
 
-func (d *RestartSystemActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *RestartSystemActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

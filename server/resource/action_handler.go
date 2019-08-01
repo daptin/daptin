@@ -47,7 +47,7 @@ func CreateGuestActionListHandler(initConfig *CmsConfig) func(*gin.Context) {
 }
 
 type ActionPerformerInterface interface {
-	DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error)
+	DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error)
 	Name() string
 }
 
@@ -377,7 +377,7 @@ OutFields:
 				//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
 			} else {
 				var responder api2go.Responder
-				responder, responses1, errors1 = performer.DoAction(*actionRequest, model.Data)
+				responder, responses1, errors1 = performer.DoAction(outcome, model.Data)
 				actionResponses = append(actionResponses, responses1...)
 				if errors1 != nil && len(errors1) > 0 {
 					err = errors1[0]
@@ -394,7 +394,15 @@ OutFields:
 			actionResponse = NewActionResponse(model.GetName(), model.Data)
 			actionResponses = append(actionResponses, actionResponse)
 		default:
-			log.Errorf("Unknown outcome method: %v", outcome.Method)
+
+			handler := db.ActionHandlerMap[outcome.Type]
+			_, responses1, err1 := handler.DoAction(outcome, model.Data)
+			if err1 != nil {
+				err = err1[0]
+			}
+
+			actionResponses = append(actionResponses, responses1...)
+			log.Errorf("Unknown outcome method: %v", outcome.Type)
 		}
 
 		if !outcome.SkipInResponse {

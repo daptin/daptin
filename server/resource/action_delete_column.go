@@ -16,7 +16,7 @@ func (d *DeleteWorldColumnPerformer) Name() string {
 	return "world.column.delete"
 }
 
-func (d *DeleteWorldColumnPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *DeleteWorldColumnPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	worldId := inFields["world_id"].(string)
 	columnToDelete := inFields["column_name"].(string)

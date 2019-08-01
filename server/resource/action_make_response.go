@@ -17,7 +17,7 @@ func (d *MakeResponsePerformer) Name() string {
 
 // Perform action and try to make the current user the admin of the system
 // Checks CanBecomeAdmin and then invokes BecomeAdmin if true
-func (d *MakeResponsePerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *MakeResponsePerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 	responseType, ok := inFieldMap["response_type"]
 	if !ok {
 		responseType = request.Type
@@ -30,8 +30,7 @@ func (d *MakeResponsePerformer) DoAction(request ActionRequest, inFieldMap map[s
 // Create a new action performer for becoming administrator action
 func NewMakeResponsePerformer() (ActionPerformerInterface, error) {
 
-	handler := MakeResponsePerformer{
-	}
+	handler := MakeResponsePerformer{}
 
 	return &handler, nil
 

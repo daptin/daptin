@@ -17,7 +17,7 @@ func (d *ImportDataPerformer) Name() string {
 	return "__data_import"
 }
 
-func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *ImportDataPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

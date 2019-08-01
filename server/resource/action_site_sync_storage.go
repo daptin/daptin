@@ -20,7 +20,7 @@ func (d *SyncSiteStorageActionPerformer) Name() string {
 	return "site.storage.sync"
 }
 
-func (d *SyncSiteStorageActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

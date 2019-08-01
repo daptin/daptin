@@ -32,7 +32,7 @@ func (d *OtpRegisterBeginActionPerformer) Name() string {
 	return "otp.register.begin"
 }
 
-func (d *OtpRegisterBeginActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *OtpRegisterBeginActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	email, emailOk := inFieldMap["email"]
 	phone, phoneOk := inFieldMap["mobile"]

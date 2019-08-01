@@ -95,7 +95,7 @@ func EndsWith(str string, endsWith string) (string, bool) {
 
 }
 
-func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

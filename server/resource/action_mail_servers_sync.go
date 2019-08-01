@@ -6,9 +6,8 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-guerrilla/backends"
-	"strconv"
 	log "github.com/sirupsen/logrus"
-
+	"strconv"
 )
 
 type MailServersSyncActionPerformer struct {
@@ -20,7 +19,7 @@ func (d *MailServersSyncActionPerformer) Name() string {
 	return "mail.servers.sync"
 }
 
-func (d *MailServersSyncActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *MailServersSyncActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	log.Printf("Sync mail servers")
 	responses := make([]ActionResponse, 0)
@@ -33,7 +32,7 @@ func (d *MailServersSyncActionPerformer) DoAction(request ActionRequest, inField
 
 	serverConfig := make([]guerrilla.ServerConfig, 0)
 
-	hosts := []string{}
+	var hosts []string
 	for _, server := range servers {
 
 		var tlsConfig guerrilla.ServerTLSConfig

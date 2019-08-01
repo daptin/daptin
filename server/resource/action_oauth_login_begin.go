@@ -22,7 +22,7 @@ func (d *OauthLoginBeginActionPerformer) Name() string {
 	return "oauth.client.redirect"
 }
 
-func (d *OauthLoginBeginActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *OauthLoginBeginActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	state, err := totp.GenerateCodeCustom(d.otpKey, time.Now(), totp.ValidateOpts{
 		Period:    300,
