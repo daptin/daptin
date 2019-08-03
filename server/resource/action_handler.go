@@ -394,15 +394,17 @@ OutFields:
 			actionResponse = NewActionResponse(model.GetName(), model.Data)
 			actionResponses = append(actionResponses, actionResponse)
 		default:
+			handler, ok := db.ActionHandlerMap[outcome.Type]
 
-			handler := db.ActionHandlerMap[outcome.Type]
+			if !ok {
+				log.Errorf("Unknown method invoked: %v", outcome.Type)
+				return nil, errors.New("unknown method")
+			}
 			_, responses1, err1 := handler.DoAction(outcome, model.Data)
 			if err1 != nil {
 				err = err1[0]
 			}
-
 			actionResponses = append(actionResponses, responses1...)
-			log.Errorf("Unknown outcome method: %v", outcome.Type)
 		}
 
 		if !outcome.SkipInResponse {

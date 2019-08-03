@@ -114,6 +114,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, fileUploadPerformer)
 
+	integrationInstallationPerformer, err := resource.NewIntegrationInstallationPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create integration installation performer")
+	performers = append(performers, integrationInstallationPerformer)
+
 	integrations, err := cruds["world"].GetActiveIntegrations()
 	if err == nil {
 
