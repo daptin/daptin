@@ -44,7 +44,7 @@ require (
 	github.com/go-playground/validator v9.29.1+incompatible // indirect
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/gobuffalo/flect v0.1.5 // indirect
+	github.com/gobuffalo/flect v0.1.5
 	github.com/gocarina/gocsv v0.0.0-20181213162136-af1d9380204a
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
 	github.com/gonum/blas v0.0.0-20181208220705-f22b278b28ac // indirect

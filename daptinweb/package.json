@@ -6,7 +6,7 @@
   "repository": "https://github.com/artpar/daptin",
   "license": "Not Decided yet",
   "scripts": {
-    "dev": "node build/dev-server.js",
+    "dev": "node $NODE_DEBUG_OPTION build/dev-server.js",
     "build": "node build/build.js",
     "unit": "cross-env BABEL_ENV=test karma start test/unit/karma.conf.js --single-run",
     "e2e": "node test/e2e/runner.js",
@@ -27,6 +27,7 @@
     "hoek": "^5.0.3",
     "http-server": "^0.11.1",
     "https-proxy-agent": "2.2.0",
+    "jexcel": "^3.3.6",
     "jquery": ">=3.4.0",
     "js-cookie": "^2.1.4",
     "json2yaml": "^1.1.0",

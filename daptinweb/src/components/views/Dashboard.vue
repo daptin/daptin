@@ -27,7 +27,7 @@
 
         <div class="col-lg-3 col-xs-6" v-bind:key="world.id" v-for="world in worlds">
           <!-- small box -->
-          <div class="small-box" style="background-color: #444; color: white;">
+          <div class="small-box" :style="{backgroundColor: stringToColor(world.TableName), color: 'white'}">
             <div class="inner">
               <h3>{{world.Count}}</h3>
 
@@ -49,7 +49,8 @@
       <!-- Main row -->
       <!-- /.row -->
       <div class="row">
-        <div class="col-md-3" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0" v-bind:key="tableName">
+        <div class="col-md-3" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0"
+             v-bind:key="tableName">
 
           <div class="box box-solid">
             <div class="box-header with-border">
@@ -209,8 +210,9 @@
               <div class="row">
 
                 <div class="col-sm-12">
-                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
-                               class="btn btn-lg btn-app dashboard_button">
+                  <router-link
+                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
+                    class="btn btn-lg btn-app dashboard_button">
                     <i class="fas fa-object-group"></i><br/>Download JSON schema
                   </router-link>
 
@@ -298,8 +300,9 @@
     },
     methods: {
       stringToColor(str) {
-        //        console.log("String to color", str, window.stringToColor(str))
-        return "#" + window.stringToColor(str);
+
+        return "#333";
+
       },
       reloadData() {
         let that = this;
@@ -340,7 +343,7 @@
                 .then(
                   function (stats) {
                     stats = stats.data;
-                    console.log("Stats received", stats);
+                    // console.log("Stats received", stats);
 
                     const rows = stats.data;
                     const totalCount = rows[0]["count"];

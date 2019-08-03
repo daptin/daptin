@@ -88,6 +88,21 @@ var SystemExchanges []ExchangeContract
 
 var SystemActions = []Action{
 	{
+		Name:             "install_integration",
+		Label:            "Install integration",
+		OnType:           "integration",
+		InstanceOptional: false,
+		OutFields: []Outcome{
+			{
+				Type:   "integration.install",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"reference_id": "$.reference_id",
+				},
+			},
+		},
+	},
+	{
 		Name:             "register_otp",
 		Label:            "Register Mobile Number",
 		OnType:           USER_ACCOUNT_TABLE_NAME,

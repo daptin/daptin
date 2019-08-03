@@ -3,13 +3,14 @@ package resource
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/getkin/kin-openapi/openapi2"
+	"github.com/getkin/kin-openapi/openapi2conv"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/ghodss/yaml"
-	"github.com/imroc/req"
-	"log"
-	"regexp"
-	"strings"
+	"github.com/gobuffalo/flect"
+	log "github.com/sirupsen/logrus"
 )
 
 /**
@@ -26,91 +27,72 @@ type IntegrationInstallationPerformer struct {
 
 // Name of the action
 func (d *IntegrationInstallationPerformer) Name() string {
-	return d.integration.Name
+	return "integration.install"
 }
 
 // Perform action and try to make the current user the admin of the system
 // Checks CanBecomeAdmin and then invokes BecomeAdmin if true
 func (d *IntegrationInstallationPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
-	operation, ok := d.commandMap[request.Method]
-	method := d.methodMap[request.Method]
-	path, ok := d.pathMap[request.Method]
-	pathItem := d.router.Paths.Find(path)
+	referenceId := inFieldMap["reference_id"].(string)
+	integration, _, err := d.cruds["integration"].GetSingleRowByReferenceId("integration", referenceId)
 
-	if !ok || pathItem == nil {
-		return nil, nil, []error{errors.New("no such method")}
+	spec, ok := integration["specification"]
+	if !ok || spec == "" {
+		return nil, nil, []error{errors.New("no specification present")}
 	}
 
-	r := req.New()
+	specBytes := []byte(spec.(string))
 
-	authKeys := make(map[string]interface{})
-	json.Unmarshal([]byte(d.integration.AuthenticationSpecification), &authKeys)
+	authSpec, ok := integration["authentication_specification"].(string)
+	authSpecBytes := []byte(authSpec)
+	authDataMap := make(map[string]interface{})
 
-	for key, val := range authKeys {
-		inFieldMap[key] = val
-	}
-
-	url := d.router.Servers[0].URL + path
-
-	templateVar, err := regexp.Compile(`\{([^}]+)\}`)
+	err = json.Unmarshal(authSpecBytes, &authDataMap)
 	if err != nil {
-		return nil, nil, []error{err}
+		return nil, nil, []error{errors.New(fmt.Sprintf("failed to parse auth specification: %v", err))}
 	}
 
-	matches := templateVar.FindAllStringSubmatch(url, -1)
+	if integration["specification_format"] == "yaml" {
 
-	for _, matc := range matches {
-		value := inFieldMap[matc[1]]
-		url = strings.Replace(url, matc[0], value.(string), -1)
-	}
-
-	evaluateString(url, inFieldMap)
-	var resp *req.Resp
-
-	switch strings.ToLower(method) {
-	case "post":
-		resp, err = r.Post(url, inFieldMap)
-
-	case "get":
-		resp, err = r.Get(url)
-	case "delete":
-		resp, err = r.Delete(url)
-	case "patch":
-		resp, err = r.Patch(url)
-	case "put":
-		resp, err = r.Put(url)
-	case "options":
-		resp, err = r.Options(url)
-
-	}
-
-	var res map[string]interface{}
-	resp.ToJSON(&res)
-	responder := NewResponse(nil, res, resp.Response().StatusCode, nil)
-	return responder, []ActionResponse{}, nil
-}
-
-// Create a new action performer for becoming administrator action
-func NewIntegrationInstallationPerformer(integration Integration, initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
-
-	var err error
-	jsonBytes := []byte(integration.Specification)
-
-	if integration.SpecificationFormat == "yaml" {
-
-		jsonBytes, err = yaml.YAMLToJSON(jsonBytes)
+		specBytes, err = yaml.YAMLToJSON(specBytes)
 
 		if err != nil {
-			return nil, err
+			log.Errorf("Failed to convert yaml to json for integration: %v", err)
+			return nil, nil, []error{err}
 		}
 
 	}
 
-	router, err := openapi3.NewSwaggerLoader().LoadSwaggerFromData(jsonBytes)
+	var router *openapi3.Swagger
+
+	if integration["specification_language"] == "openapiv2" {
+
+		openapiv2Spec := openapi2.Swagger{}
+
+		err := json.Unmarshal(specBytes, &openapiv2Spec)
+
+		if err != nil {
+			log.Errorf("Failed to unmarshal as openapiv2: %v", err)
+			return nil, nil, []error{err}
+		}
+
+		router, err = openapi2conv.ToV3Swagger(&openapiv2Spec)
+
+		if err != nil {
+			log.Errorf("Failed to convert to openapi v3 spec: %v", err)
+			return nil, nil, []error{err}
+		}
+
+	}
 
 	if err != nil {
-		return nil, err
+		return nil, nil, []error{err}
+	}
+
+	if router == nil {
+
+		router, err = openapi3.NewSwaggerLoader().LoadSwaggerFromData(specBytes)
 	}
 
 	commandMap := make(map[string]*openapi3.Operation)
@@ -118,22 +100,206 @@ func NewIntegrationInstallationPerformer(integration Integration, initConfig *Cm
 	methodMap := make(map[string]string)
 	for path, pathItem := range router.Paths {
 		for method, command := range pathItem.Operations() {
-			log.Printf("Register action [%v] at [%v]", command.OperationID, integration.Name)
+			log.Printf("Register action [%v] at [%v]", command.OperationID, integration["name"])
 			commandMap[command.OperationID] = command
 			pathMap[command.OperationID] = path
 			methodMap[command.OperationID] = method
 		}
 	}
 
+	actions := make([]Action, 0)
+
+	host := router.Servers[0].URL
+
+	globalAttrs := make(map[string]string)
+
+	for name, securityRef := range router.Components.SecuritySchemes {
+
+		if authDataMap[name] != nil {
+			continue
+		}
+
+		switch securityRef.Value.In {
+		case "header":
+			globalAttrs[name] = "~" + name
+		case "query":
+			globalAttrs[name] = "~" + name
+		case "path":
+			globalAttrs[name] = "~" + name
+		}
+	}
+
+	for commandId, command := range commandMap {
+
+		path := pathMap[commandId]
+
+		params, err := GetParametersNames(host + path)
+		if err != nil {
+			log.Errorf("Failed to get parameter names from [%v] == %v", host+path, err)
+			return nil, nil, []error{err}
+		}
+		cols := make([]api2go.ColumnInfo, 0)
+
+		attrs := map[string]interface{}{}
+
+		for key, val := range globalAttrs {
+			attrs[key] = val
+		}
+
+		for _, param := range params {
+			if authDataMap[param] != nil {
+				continue
+			}
+
+			cols = append(cols, api2go.ColumnInfo{
+				Name:       param,
+				ColumnName: param,
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+			})
+			attrs[param] = "~" + param
+		}
+
+		for _, param := range command.Parameters {
+			if authDataMap[param.Value.Name] != nil {
+				continue
+			}
+			cols = append(cols, api2go.ColumnInfo{
+				Name:       param.Value.Name,
+				ColumnName: param.Value.Name,
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+			})
+			attrs[param.Value.Name] = "~" + param.Value.Name
+
+		}
+
+		if command.RequestBody != nil && command.RequestBody.Value != nil {
+
+			contents := command.RequestBody.Value.Content
+
+			jsonMedia := contents.Get("application/json")
+
+			if jsonMedia != nil {
+				bodyParameterNames, err := GetBodyParameterNames(ModeRequest, "", jsonMedia.Schema.Value)
+
+				if err != nil {
+					log.Errorf("Failed to get parameter names from body [%v] == %v", host+path, err)
+					return nil, nil, []error{err}
+				}
+
+				for _, param := range bodyParameterNames {
+					if authDataMap[param] != nil {
+						continue
+					}
+					cols = append(cols, api2go.ColumnInfo{
+						Name:       param,
+						ColumnName: param,
+						ColumnType: "label",
+						DataType:   "varchar(100)",
+					})
+					attrs[param] = "~" + param
+				}
+			}
+		}
+
+		integrationName := integration["name"].(string)
+		action := Action{}
+		action.Name = commandId
+		action.Label = flect.Humanize(commandId)
+		action.OnType = "integration"
+		action.InFields = cols
+		action.InstanceOptional = true
+
+		action.OutFields = []Outcome{
+			{
+				Type:       integrationName,
+				Method:     commandId,
+				Attributes: attrs,
+			},
+		}
+
+		actions = append(actions, action)
+
+	}
+
+	err = UpdateActionTable(&CmsConfig{
+		Actions: actions,
+	}, d.cruds["action"].connection)
+
+	return nil, []ActionResponse{}, []error{err}
+}
+
+// Create a new action performer for becoming administrator action
+func NewIntegrationInstallationPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
+
 	handler := IntegrationInstallationPerformer{
-		cruds:       cruds,
-		integration: integration,
-		router:      router,
-		commandMap:  commandMap,
-		pathMap:     pathMap,
-		methodMap:   methodMap,
+		cruds: cruds,
 	}
 
 	return &handler, nil
 
+}
+
+func GetBodyParameterNames(mode Mode, name string, schema *openapi3.Schema) ([]string, error) {
+
+	switch {
+	case schema.Type == "boolean":
+		return []string{}, nil
+	case schema.Type == "number", schema.Type == "integer":
+		return []string{}, nil
+	case schema.Type == "string":
+		return []string{}, nil
+	case schema.Type == "array", schema.Items != nil:
+		var names []string
+
+		if schema.Items != nil && schema.Items.Value != nil {
+
+			name, err := GetBodyParameterNames(mode, name, schema.Items.Value)
+
+			if err != nil {
+				return nil, err
+			}
+			names = append(names, name...)
+
+		}
+
+		return names, nil
+	case schema.Type == "object", len(schema.Properties) > 0:
+		var names []string
+
+		for k, v := range schema.Properties {
+			if excludeFromMode(mode, v.Value) {
+				continue
+			}
+
+			names = append(names, k)
+
+			name, err := GetBodyParameterNames(mode, k, v.Value)
+
+			if err != nil {
+
+				log.Errorf("can't get example for '%s' == %v", k, err)
+			} else {
+				names = append(names, name...)
+			}
+		}
+
+		if schema.AdditionalProperties != nil && schema.AdditionalProperties.Value != nil {
+			addl := schema.AdditionalProperties.Value
+
+			if !excludeFromMode(mode, addl) {
+				name, err := GetBodyParameterNames(mode, "", addl)
+				if err != nil {
+					return nil, fmt.Errorf("can't get example for additional properties")
+				} else {
+					names = append(names, name...)
+				}
+			}
+		}
+
+		return names, nil
+	}
+
+	return nil, errors.New("not a valid schema")
 }
