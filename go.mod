@@ -56,6 +56,7 @@ require (
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
 	github.com/graphql-go/relay v0.0.0-20171208134043-54350098cfe5
+	github.com/h2non/filetype v1.0.9 // indirect
 	github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/imroc/req v0.2.4
