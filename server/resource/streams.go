@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/go-gota/gota/dataframe"
+	"github.com/go-gota/gota/series"
 )
 
 // StreamProcess handles the Read operations, and applies transformations on the data the create a new view
@@ -94,22 +95,57 @@ func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint
 		switch transformation.Operation {
 		case "select":
 			var indexes interface{}
-			indexes, ok := transformation.Attributes["columns"].([]string)
+			indexes, ok := transformation.Attributes["Columns"].([]string)
 			if !ok {
-				indexes = makeIndexArray(transformation.Attributes["columns"].([]interface{}))
+				indexes = makeIndexArray(transformation.Attributes["Columns"].([]interface{}))
 			}
 			df = df.Select(indexes)
 		case "rename":
-			oldName := transformation.Attributes["oldName"].(string)
-			newName := transformation.Attributes["newName"].(string)
+			oldName := transformation.Attributes["OldName"].(string)
+			newName := transformation.Attributes["NewName"].(string)
 			df = df.Rename(newName, oldName)
 		case "drop":
 			var indexes interface{}
-			indexes, ok := transformation.Attributes["columns"].([]string)
+			indexes, ok := transformation.Attributes["Columns"].([]string)
 			if !ok {
-				indexes = makeIndexArray(transformation.Attributes["columns"].([]interface{}))
+				indexes = makeIndexArray(transformation.Attributes["Columns"].([]interface{}))
 			}
 			df = df.Drop(indexes)
+
+		case "filter":
+
+			colName, ok := transformation.Attributes["ColumnName"]
+
+			if !ok {
+				continue
+			}
+
+			colnNameString, ok := colName.(string)
+
+			if !ok || colnNameString == "" {
+				continue
+			}
+
+			comparator, ok := transformation.Attributes["Comparator"]
+
+			if !ok {
+				continue
+			}
+			comparatorString, ok := comparator.(string)
+			if !ok {
+				continue
+			}
+			comparatorStringVal := series.Comparator(comparatorString)
+
+			value := transformation.Attributes["Value"]
+
+			filter := dataframe.F{
+				Colname:    colnNameString,
+				Comparator: comparatorStringVal,
+				Comparando: value,
+			}
+
+			df = df.Filter(filter)
 
 		}
 

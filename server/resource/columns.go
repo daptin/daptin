@@ -2040,22 +2040,26 @@ var StandardStreams = []StreamContract{
 			{
 				Operation: "select",
 				Attributes: map[string]interface{}{
-					"columns": []string{"name", "email"},
+					"Columns": []string{"name", "email"},
 				},
 			},
 			{
 				Operation: "rename",
 				Attributes: map[string]interface{}{
-					"oldName": "name",
-					"newName": "transformed_user_name",
+					"OldName": "name",
+					"NewName": "transformed_user_name",
 				},
 			},
 			{
 				Operation: "rename",
 				Attributes: map[string]interface{}{
-					"oldName": "email",
-					"newName": "primary_email",
+					"OldName": "email",
+					"NewName": "primary_email",
 				},
+			},
+			{
+				Operation:  "filter",
+				Attributes: map[string]interface{}{},
 			},
 		},
 	},
