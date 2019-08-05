@@ -23,29 +23,19 @@ import (
 	"strings"
 )
 
-func Etag(content []byte) string {
+func Etag(content []byte) (string, error) {
 	// calculate etag
-	chunk := make([]byte, 2048)
-	n := 0
+	var err error
+	err = nil
 	hash := md5.New()
-	for err == nil {
-		n, err = f.Read(chunk)
-		if err != nil {
-			break
-		}
-		if n == 0 {
-			continue
-		}
-		rb := chunk[:n]
-		hash.Write(rb)
-	}
+	_, err = hash.Write(content)
 	if err != nil && err != io.EOF {
-		return err
+		return "", err
 	}
 
 	// put inside kv
 	var etagFormat = "\"%x\""
-	return fmt.Sprintf(etagFormat, hash.Sum(nil))
+	return fmt.Sprintf(etagFormat, hash.Sum(nil)), nil
 }
 
 func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
@@ -469,10 +459,13 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 				if err != nil {
 					log.Printf("Failed to identify file type: %v", err)
 				}
-				etag := Etag(contentBytes)
+				etag, eTagerr := Etag(contentBytes)
 				c.Writer.Header().Set("Content-Type", kind.MIME.Value)
 				c.Writer.Header().Set("Cache-Control", "public, immutable, max-age=10000000")
-				c.Writer.Header().Set("ETag", etag)
+
+				if eTagerr == nil {
+					c.Writer.Header().Set("ETag", etag)
+				}
 				c.Writer.Write(contentBytes)
 				c.AbortWithStatus(200)
 
