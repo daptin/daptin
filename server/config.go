@@ -46,18 +46,22 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 	globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
 	globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
 
-	schemaPath, _ := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
+	schemaPath, specifiedSchemaPath := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
 
-	if len(schemaPath) == 0 {
-		schemaPath = "."
+	var files1 []string
+	if specifiedSchemaPath {
+
+		if len(schemaPath) == 0 {
+			schemaPath = "."
+		}
+
+		if schemaPath[len(schemaPath)-1] != '/' {
+			schemaPath = schemaPath + "/"
+		}
+		files1, _ = filepath.Glob(schemaPath + "schema_*.*")
 	}
 
-	if schemaPath[len(schemaPath)-1] != '/' {
-		schemaPath = schemaPath + "/"
-	}
-
-	files1, err := filepath.Glob("schema_*.*")
-	files, err := filepath.Glob(schemaPath + "schema_*.*")
+	files, err := filepath.Glob("schema_*.*")
 	files = append(files, files1...)
 	log.Infof("Found files to load: %v", files)
 

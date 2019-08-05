@@ -6,13 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"github.com/Masterminds/squirrel"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -471,7 +472,7 @@ func (d *DbResource) CreateMailAccountBox(mailAccountId string, sessionUser *aut
 }
 
 // Returns the user mail account box row of a user
-func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) (error) {
+func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) error {
 
 	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
 		squirrel.Eq{
@@ -505,7 +506,7 @@ func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName strin
 }
 
 // Returns the user mail account box row of a user
-func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) (error) {
+func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) error {
 
 	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
 		squirrel.Eq{
@@ -529,7 +530,7 @@ func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string
 }
 
 // Returns the user mail account box row of a user
-func (d *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool) (error) {
+func (d *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool) error {
 
 	query, args, err := statementbuilder.Squirrel.Update("mail_box").Set("subscribed", subscribed).Where(squirrel.Eq{
 		"mail_account_id": mailAccountId,
@@ -1225,9 +1226,14 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 				stringVal, ok := val.(string)
 				if ok {
-					parsedValue, err := time.Parse(DATE_LAYOUT, stringVal)
-					if InfoErr(err, "Failed to parse time from: %v", err) {
-						row[key] = nil
+					parsedValue, _, err := fieldtypes.GetTime(stringVal)
+					if InfoErr(err, "Failed to parse time from: %v", stringVal) {
+						parsedValue, _, err := fieldtypes.GetDateTime(stringVal)
+						if InfoErr(err, "Failed to parse date time from: %v", stringVal) {
+							row[key] = nil
+						} else {
+							row[key] = parsedValue
+						}
 					} else {
 						row[key] = parsedValue
 					}
