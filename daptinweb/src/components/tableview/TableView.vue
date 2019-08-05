@@ -299,12 +299,12 @@
                     } else {
                       row.push(rows[i][column])
                     }
-                    if ( !maxLength[j] ||  maxLength[j] < new String(row[j]).length) {
+                    if (!maxLength[j] || maxLength[j] < new String(row[j]).length) {
                       maxLength[j] = row[j] ? new String(row[j]).length : 0;
                     }
-                    spreadSheetData.push(row)
                     j += 1;
                   }
+                  spreadSheetData.push(row)
                 }
 
                 for (var i = 0; i < maxLength.length; i++) {
