@@ -48,7 +48,7 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 			return nil, nil, []error{errors.New("email or mobile missing")}
 		}
 		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "mobile_number", phone.(string))
-		if err != nil {
+		if err != nil || userOtpProfile == nil {
 			return nil, nil, []error{errors.New("unregistered mobile number")}
 		}
 		userAccount, err = d.cruds["user_account"].GetObjectByWhereClause("user_account", "reference_id", userOtpProfile["user_account_id"].(string))

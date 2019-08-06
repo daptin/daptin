@@ -78,25 +78,22 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 	evaluateString(url, inFieldMap)
 	var resp *req.Resp
-
-	requestBodyRef := operation.RequestBody.Value
-
-	//requestBodyContentTypes := make([]string, 0)
-	requestContent := requestBodyRef.Content
-
-	//jsonContentType := requestContent["application/json"]
-
 	arguments := make([]interface{}, 0)
 
-	//hasRequestBody := false
-	jsonBodyRequest := requestContent.Get("application/json")
-	requestBody, err := CreateRequestBody(ModeRequest, "", jsonBodyRequest.Schema.Value, inFieldMap)
-	if err != nil || jsonBodyRequest == nil {
-		log.Errorf("Failed to create request body for calling [%v][%v]", d.integration.Name, request.Method)
-		return nil, nil, []error{err}
-	} else {
+	if operation.RequestBody != nil {
+
+		requestBodyRef := operation.RequestBody.Value
+		requestContent := requestBodyRef.Content
+
+		jsonBodyRequest := requestContent.Get("application/json")
+		requestBody, err := CreateRequestBody(ModeRequest, "", jsonBodyRequest.Schema.Value, inFieldMap)
+		if err != nil || jsonBodyRequest == nil {
+			log.Errorf("Failed to create request body for calling [%v][%v]", d.integration.Name, request.Method)
+			return nil, nil, []error{err}
+		} else {
+			arguments = append(arguments, req.BodyJSON(requestBody))
+		}
 		//hasRequestBody = true
-		arguments = append(arguments, req.BodyJSON(requestBody))
 	}
 
 	parameters := operation.Parameters
