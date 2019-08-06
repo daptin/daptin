@@ -321,7 +321,7 @@
             that.worlds = worlds
               .map(function (e) {
                 let parse = JSON.parse(e.world_schema_json);
-                parse.Icon = e.icon;
+                parse.Icon = parse.Icon == "" ? "fa-star" : parse.Icon;
                 parse.Count = 0;
                 return parse;
               })
@@ -353,6 +353,17 @@
                     console.log("Failed to query stats", error);
                   }
                 );
+            });
+
+            that.worlds.sort(function (a, b) {
+
+              const nameA = a.TableName;
+              const nameB = b.TableName;
+              if (nameA < nameB) //sort string ascending
+                return -1;
+              if (nameA > nameB)
+                return 1;
+              return 0
             });
 
             let actionGroups = {

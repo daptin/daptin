@@ -998,7 +998,7 @@ var StandardTables = []TableInfo{
 		TableName:     "integration",
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,
-		Icon:          "exchange",
+		Icon:          "fa-exchange-alt",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -1315,7 +1315,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     USER_ACCOUNT_TABLE_NAME,
-		Icon:          "fa-child",
+		Icon:          "fa-user",
 		DefaultGroups: []string{"users"},
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1705,6 +1705,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "mail_server",
 		IsHidden:      false,
+		Icon:          "fa-envelope-o",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1775,6 +1776,7 @@ var StandardTables = []TableInfo{
 		TableName:     "mail_account",
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,
+		Icon:          "fa-envelope",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "username",
@@ -1850,6 +1852,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "mail",
 		IsHidden:      false,
+		Icon:             "fa-envelope-o",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{

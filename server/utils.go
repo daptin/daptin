@@ -125,6 +125,17 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 		err = json.Unmarshal([]byte(world_schema_json), &t)
 
+		for i, col := range t.Columns {
+			if col.Name == "" && col.ColumnName != "" {
+				col.Name = col.ColumnName
+			} else if col.Name != "" && col.ColumnName == "" {
+				col.ColumnName = col.Name
+			} else if col.Name == "" && col.ColumnName == "" {
+				log.Printf("Error, column without name in existing tables: %v", t)
+			}
+			t.Columns[i] = col
+		}
+
 		if err != nil {
 			log.Errorf("Failed to unmarshal json schema: %v", err)
 			continue
