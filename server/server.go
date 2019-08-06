@@ -346,7 +346,7 @@ fagus7nZFuPIRAU1dz5Ni1g=
 		ActionName:  "sync_mail_servers",
 		Attributes:  map[string]interface{}{},
 		AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(),
-		Schedule:    "@every 10m",
+		Schedule:    "@every 1h",
 	})
 
 	TaskScheduler.StartTasks()
@@ -576,7 +576,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 		}
 
 		if isBeingModified {
-			log.Debugf("Table %s is being modified", existableTable.TableName)
+			log.Printf("Table %s is being modified", existableTable.TableName)
 			tableBeingModified := initConfigTables[indexBeingModified]
 
 			if len(tableBeingModified.Columns) > 0 {

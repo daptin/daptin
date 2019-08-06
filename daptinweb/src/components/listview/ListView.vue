@@ -216,7 +216,7 @@
       },
       onChangePage(page) {
         var that = this;
-        console.log("chnage pge", page);
+        console.log("change pge", page);
         that.jsonApi.builderStack = that.finder;
         that.jsonApi.get({
           page: {
