@@ -252,7 +252,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		log.Infof("Serving from dashboard")
+		//log.Infof("Serving from dashboard")
 		handler, ok := hs.handlerMap["dashboard"]
 		if !ok {
 			log.Errorf("Failed to find dashboard route")
