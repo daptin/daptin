@@ -167,7 +167,8 @@ var SystemActions = []Action{
 				},
 			},
 		},
-	}, {
+	},
+	{
 		Name:             "send_otp",
 		Label:            "Send OTP to mobile",
 		OnType:           "user_otp_account",
@@ -186,12 +187,21 @@ var SystemActions = []Action{
 		},
 		OutFields: []Outcome{
 			{
-				Type:   "otp.login.begin",
-				Method: "EXECUTE",
+				Type:      "otp.generate",
+				Method:    "EXECUTE",
+				Reference: "otp",
 				Attributes: map[string]interface{}{
-					"otp":    "~otp",
-					"mobile": "~mobile_number",
 					"email":  "~email",
+					"mobile": "~mobile_number",
+				},
+			},
+			{
+				Type:      "2factor.in",
+				Method:    "GET_api_key-SMS-phone_number-otp",
+				Condition: "!mobile_number != null && mobile_number != undefined && mobile_number != ''",
+				Attributes: map[string]interface{}{
+					"phone_number": "~mobile_number",
+					"otp":          "$otp.otp",
 				},
 			},
 		},
