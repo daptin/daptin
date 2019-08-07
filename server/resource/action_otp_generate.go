@@ -33,13 +33,15 @@ func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 	if !emailOk && !phoneOk {
 		return nil, nil, []error{errors.New("email or mobile missing")}
-	} else if emailOk {
+	} else if emailOk && email != "" {
 		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmail(email.(string))
-		if err != nil && !phoneOk {
+		if (err != nil || userAccount == nil) && !phoneOk {
 			return nil, nil, []error{errors.New("invalid email")}
 		}
 		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "otp_of_account", userAccount["id"].(int64))
-	} else if phoneOk {
+	}
+
+	if phoneOk && userAccount == nil && mobile != "" {
 		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "mobile_number", mobile)
 		if err != nil {
 			return nil, nil, []error{errors.New("unregistered number")}
@@ -99,8 +101,7 @@ func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		d.cruds["user_otp_account"].UpdateWithoutFilters(api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile), req)
 	}
 
-	resp := &api2go.Response{
-	}
+	resp := &api2go.Response{}
 	if userOtpProfile["verified"] == 1 || phoneOk {
 
 		key, err := Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))
@@ -124,9 +125,7 @@ func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		})
 		resp.Res = responder
 	} else {
-		resp.Res = map[string]interface{}{
-
-		}
+		resp.Res = map[string]interface{}{}
 	}
 
 	return resp, []ActionResponse{}, nil
