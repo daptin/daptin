@@ -1006,6 +1006,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 				Set("is_top_level", table.IsTopLevel).
 				Set("is_hidden", table.IsHidden).
 				Set("is_join_table", table.IsJoinTable).
+				Set("icon", table.Icon).
 				Set("default_order", table.DefaultOrder).
 				Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
 			CheckErr(err, "Failed to create update default permission sql")

@@ -105,6 +105,19 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			log.Infof("Action [%v][%v]", fileName, action.Name)
 		}
 
+		for _, table := range initConfig.Tables {
+			for i, col := range table.Columns {
+				if col.Name == "" && col.ColumnName != "" {
+					col.Name = col.ColumnName
+				} else if col.Name != "" && col.ColumnName == "" {
+					col.ColumnName = col.Name
+				} else if col.Name == "" && col.ColumnName == "" {
+					log.Printf("Error, column without name: %v", table)
+				}
+				table.Columns[i] = col
+			}
+		}
+
 		for _, marketplace := range initConfig.Marketplaces {
 			log.Infof("Marketplace [%v][%v]", fileName, marketplace.Endpoint)
 		}

@@ -2361,6 +2361,8 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         window.location.reload();
       }
     }
+
+    document.body.className = document.body.className + " sidebar-collapse";
   },
 
   methods: __WEBPACK_IMPORTED_MODULE_0_babel_runtime_helpers_extends___default()({
@@ -5433,7 +5435,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
     },
     onChangePage: function onChangePage(page) {
       var that = this;
-      console.log("chnage pge", page);
+      console.log("change pge", page);
       that.jsonApi.builderStack = that.finder;
       that.jsonApi.get({
         page: {
@@ -6846,7 +6848,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         console.log("got worlds", worlds);
         that.worlds = worlds.map(function (e) {
           var parse = JSON.parse(e.world_schema_json);
-          parse.Icon = e.icon;
+          parse.Icon = parse.Icon == "" ? "fa-star" : parse.Icon;
           parse.Count = 0;
           return parse;
         }).filter(function (e) {
@@ -6868,6 +6870,15 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
           }, function (error) {
             console.log("Failed to query stats", error);
           });
+        });
+
+        that.worlds.sort(function (a, b) {
+
+          var nameA = a.TableName;
+          var nameB = b.TableName;
+          if (nameA < nameB) return -1;
+          if (nameA > nameB) return 1;
+          return 0;
         });
 
         var actionGroups = {
@@ -12178,10 +12189,14 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
     staticClass: "content"
   }, [_c('div', {
     staticClass: "row"
+  }, [_c('div', {
+    staticClass: "col-md-9"
+  }, [_c('div', {
+    staticClass: "row"
   }, _vm._l((_vm.worlds), function(world) {
     return _c('div', {
       key: world.id,
-      staticClass: "col-lg-3 col-xs-6"
+      staticClass: "col-lg-4 col-xs-6"
     }, [_c('div', {
       staticClass: "small-box",
       style: ({
@@ -12210,13 +12225,17 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
     }, [_c('i', {
       staticClass: "fa fa-arrow-circle-right"
     })])], 1)])
-  })), _vm._v(" "), _c('div', {
+  }))]), _vm._v(" "), _c('div', {
+    staticClass: "col-md-3"
+  }, [_c('div', {
     staticClass: "row"
   }, _vm._l((_vm.worldActions), function(worlds, tableName) {
     return (worlds.length > 0) ? _c('div', {
       key: tableName,
-      staticClass: "col-md-3"
-    }, [_c('div', {
+      staticClass: "col-md-12"
+    }, [(worlds.filter(function(e) {
+      return e.InstanceOptional
+    }).length > 0) ? _c('div', {
       staticClass: "box box-solid"
     }, [_c('div', {
       staticClass: "box-header with-border"
@@ -12239,9 +12258,9 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
             }
           }
         }
-      }, [_vm._v("\n                  " + _vm._s(action.Label) + "\n                ")])], 1) : _vm._e()
-    }))])])]) : _vm._e()
-  })), _vm._v(" "), _c('div', {
+      }, [_vm._v("\n                      " + _vm._s(action.Label) + "\n                    ")])], 1) : _vm._e()
+    }))])]) : _vm._e()]) : _vm._e()
+  }))])]), _vm._v(" "), _c('div', {
     staticClass: "row"
   }, [_c('div', {
     staticClass: "col-md-12"
@@ -13677,4 +13696,4 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
 
 /***/ })
 ],[287]);
-//# sourceMappingURL=app.9ac209a4156f645476e2.js.map
+//# sourceMappingURL=app.32aa669f8904f789b322.js.map

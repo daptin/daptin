@@ -24,22 +24,59 @@
     <section class="content">
 
       <div class="row">
+        <div class="col-md-9">
+          <div class="row">
 
-        <div class="col-lg-3 col-xs-6" v-bind:key="world.id" v-for="world in worlds">
-          <!-- small box -->
-          <div class="small-box" :style="{backgroundColor: stringToColor(world.TableName), color: 'white'}">
-            <div class="inner">
-              <h3>{{world.Count}}</h3>
 
-              <p>{{world.TableName | titleCase}}s </p>
+            <div class="col-lg-4 col-xs-6" v-bind:key="world.id" v-for="world in worlds">
+              <!-- small box -->
+              <div class="small-box" :style="{backgroundColor: stringToColor(world.TableName), color: 'white'}">
+                <div class="inner">
+                  <h3>{{world.Count}}</h3>
+
+                  <p>{{world.TableName | titleCase}}s </p>
+                </div>
+
+                <div class="icon">
+                  <i style="color: #bbb" :class="'fa ' + world.Icon"></i>
+                </div>
+                <router-link :to="{name: 'Entity', params: { tablename: world.TableName}}" class="small-box-footer">
+                  <i class="fa fa-arrow-circle-right"></i>
+                </router-link>
+              </div>
             </div>
+          </div>
+        </div>
+        <div class="col-md-3">
 
-            <div class="icon">
-              <i style="color: #bbb" :class="'fa ' + world.Icon"></i>
+          <div class="row">
+            <div class="col-md-12" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0"
+                 v-bind:key="tableName">
+
+              <div class="box box-solid" v-if="worlds.filter(function(e){return e.InstanceOptional}).length > 0">
+                <div class="box-header with-border">
+                  <h3 class="box-title">{{tableName | titleCase}}</h3>
+
+                  <div class="box-tools">
+                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="box-body no-padding">
+                  <ul class="nav nav-pills nav-stacked">
+                    <li v-for="action in worlds" v-if="action.InstanceOptional" v-bind:key="action.Name">
+                      <router-link :to="{name: 'Action', params: {tablename: action.OnType, actionname: action.Name}}">
+                        {{action.Label}}
+                      </router-link>
+                    </li>
+
+                  </ul>
+                </div>
+                <!-- /.box-body -->
+              </div>
+
+
             </div>
-            <router-link :to="{name: 'Entity', params: { tablename: world.TableName}}" class="small-box-footer">
-              <i class="fa fa-arrow-circle-right"></i>
-            </router-link>
           </div>
         </div>
 
@@ -48,35 +85,6 @@
 
       <!-- Main row -->
       <!-- /.row -->
-      <div class="row">
-        <div class="col-md-3" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0"
-             v-bind:key="tableName">
-
-          <div class="box box-solid">
-            <div class="box-header with-border">
-              <h3 class="box-title">{{tableName | titleCase}}</h3>
-
-              <div class="box-tools">
-                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
-                </button>
-              </div>
-            </div>
-            <div class="box-body no-padding">
-              <ul class="nav nav-pills nav-stacked">
-                <li v-for="action in worlds" v-if="action.InstanceOptional" v-bind:key="action.Name">
-                  <router-link :to="{name: 'Action', params: {tablename: action.OnType, actionname: action.Name}}">
-                    {{action.Label}}
-                  </router-link>
-                </li>
-
-              </ul>
-            </div>
-            <!-- /.box-body -->
-          </div>
-
-
-        </div>
-      </div>
 
 
       <div class="row">
