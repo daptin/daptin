@@ -20,6 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hpcloud/tail"
 	"github.com/icrowley/fake"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -154,11 +155,44 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		configStore.SetConfigValueFor("logs.enable", "false", "backend")
 	}
 
+	go func() {
+
+		for {
+
+			time.Sleep(30 * time.Minute)
+
+			fileInfo, err := os.Stat("daptin.log")
+			if err != nil {
+				log.Errorf("Failed to stat log file: %v", err)
+			}
+
+			fileMbs := fileInfo.Size() / (1024 * 1024)
+			log.Printf("Current log size: %d MB", fileMbs)
+			if fileMbs > 100 {
+				logFile := "daptin.log"
+				os.Remove(logFile)
+				os.Create(logFile)
+				f, e := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+				if e != nil {
+					log.Errorf("Failed to open logfile %v", e)
+				}
+
+				mwriter := io.MultiWriter(f, os.Stdout)
+
+				log.SetOutput(mwriter)
+				log.Infof("Truncated log file, cleaned %d MB", fileMbs)
+
+			}
+
+		}
+	}()
+
 	if enablelogs == "true" {
 
 		defaultRouter.GET("/__logs", func(c *gin.Context) {
 			logTail, err := tail.TailFile("daptin.log", tail.Config{
 				Follow: true,
+				ReOpen: true,
 				Location: &tail.SeekInfo{
 					Offset: 0,
 					Whence: 2,
