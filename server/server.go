@@ -18,11 +18,11 @@ import (
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/emersion/go-sasl"
 	"github.com/gin-gonic/gin"
+	"github.com/hpcloud/tail"
 	"github.com/icrowley/fake"
 	"os"
 	"strings"
 	"time"
-
 	//"github.com/gin-gonic/gin"
 	graphqlhandler "github.com/graphql-go/handler"
 	log "github.com/sirupsen/logrus"
@@ -112,6 +112,20 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		resource.CheckErr(err, "Failed to write favicon")
 	})
 
+	logTail, err := tail.TailFile("/var/log/nginx.log", tail.Config{Follow: true})
+
+	last10Lines := make([]string, 0)
+
+	go func() {
+		for line := range logTail.Lines {
+			last10Lines = append(last10Lines, line.Text)
+			if len(last10Lines) > 10 {
+				last10Lines = last10Lines[1:]
+			}
+			fmt.Println(line.Text)
+		}
+	}()
+
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
 
@@ -133,6 +147,34 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		newSecret := u.String()
 		configStore.SetConfigValueFor("jwt.secret", newSecret, "backend")
 		jwtSecret = newSecret
+	}
+
+	enablelogs, err := configStore.GetConfigValueFor("logs.enable", "backend")
+	if err != nil {
+		configStore.SetConfigValueFor("logs.enable", "false", "backend")
+	}
+
+	if enablelogs == "true" {
+
+		defaultRouter.GET("/__logs", func(c *gin.Context) {
+			logTail, err := tail.TailFile("daptin.log", tail.Config{
+				Follow: true,
+				Location: &tail.SeekInfo{
+					Offset: 0,
+					Whence: 2,
+				},
+			})
+			if err != nil {
+				c.AbortWithError(500, err)
+				return
+			}
+
+			for line := range logTail.Lines {
+				c.Writer.WriteString(line.Text + "\n")
+				c.Writer.Flush()
+			}
+
+		})
 	}
 
 	enableGraphql, err := configStore.GetConfigValueFor("graphql.enable", "backend")

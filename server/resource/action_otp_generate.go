@@ -50,7 +50,6 @@ func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		if err != nil {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}
-
 	}
 
 	httpReq := &http.Request{}
