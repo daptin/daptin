@@ -14,10 +14,6 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create become admin performer")
 	performers = append(performers, becomeAdminPerformer)
 
-	otpLoginBeginActionPerformerPerformer, err := resource.NewOtpLoginBeginActionPerformer(cruds, configStore)
-	resource.CheckErr(err, "Failed to create otp login performer")
-	performers = append(performers, otpLoginBeginActionPerformerPerformer)
-
 	otpGenerateActionPerformer, err := resource.NewOtpGenerateActionPerformer(cruds, configStore)
 	resource.CheckErr(err, "Failed to create otp generator")
 	performers = append(performers, otpGenerateActionPerformer)
