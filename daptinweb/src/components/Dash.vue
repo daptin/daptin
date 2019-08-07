@@ -27,7 +27,8 @@
                 <input id="navbar-search-input" type="text" class="form-control" placeholder="Search" name="q">
                 <div class="input-group-btn">
                   <button class="btn btn-default" type="submit"><i class="fa fa-search"></i></button>
-                  <button class="btn btn-default" @click.prevent="clearSearch" type="clear"><i class="fa fa-times"></i></button>
+                  <button class="btn btn-default" @click.prevent="clearSearch" type="clear"><i class="fa fa-times"></i>
+                  </button>
                 </div>
               </div>
             </form>
@@ -157,9 +158,11 @@
           window.location.reload();
         }
       }
+
+      document.body.className = document.body.className + " sidebar-collapse"
     },
     methods: {
-      clearSearch(e){
+      clearSearch(e) {
         $("#navbar-search-input").val("");
         this.setQueryString(null);
       },
@@ -186,29 +189,29 @@
 <style lang="scss">
   .wrapper.fixed_layout {
 
-  .main-header {
-    position: fixed;
-    width: 100%;
-  }
+    .main-header {
+      position: fixed;
+      width: 100%;
+    }
 
-  .content-wrapper {
-    padding-top: 50px;
-  }
+    .content-wrapper {
+      padding-top: 50px;
+    }
 
-  .main-sidebar {
-    position: fixed;
-    height: 100vh;
-  }
+    .main-sidebar {
+      position: fixed;
+      height: 100vh;
+    }
 
   }
 
   .wrapper.hide_logo {
 
-  @media (max-width: 767px) {
-    .main-header .logo {
-      display: none;
+    @media (max-width: 767px) {
+      .main-header .logo {
+        display: none;
+      }
     }
-  }
 
   }
 
@@ -216,18 +219,18 @@
   .logo-lg {
     text-align: left;
 
-  img {
-    padding: .4em !important;
-  }
+    img {
+      padding: .4em !important;
+    }
 
   }
 
   .logo-lg {
 
-  img {
-    display: -webkit-inline-box;
-    width: 25%;
-  }
+    img {
+      display: -webkit-inline-box;
+      width: 25%;
+    }
 
   }
 

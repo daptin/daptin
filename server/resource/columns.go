@@ -73,7 +73,7 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("world", "has_many", "smd"),
 	api2go.NewTableRelation("oauth_token", "has_one", "oauth_connect"),
 	api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
-	api2go.NewTableRelationWithNames("user_account", "otp_of_account", "has_one", "user_otp_account", "primary_user_otp"),
+	api2go.NewTableRelationWithNames("user_otp_account", "primary_user_otp", "belongs_to", "user_account", "otp_of_account"),
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "oauth_token"),
 	api2go.NewTableRelation("site", "has_one", "cloud_store"),
@@ -116,11 +116,21 @@ var SystemActions = []Action{
 		},
 		OutFields: []Outcome{
 			{
-				Type:   "otp.register.begin",
-				Method: "EXECUTE",
+				Type:      "otp.generate",
+				Method:    "EXECUTE",
+				Reference: "otp",
 				Attributes: map[string]interface{}{
 					"email":  "$.email",
 					"mobile": "~mobile_number",
+				},
+			},
+			{
+				Type:      "2factor.in",
+				Method:    "GET_api_key-SMS-phone_number-otp",
+				Condition: "!mobile_number != null && mobile_number != undefined && mobile_number != ''",
+				Attributes: map[string]interface{}{
+					"phone_number": "~mobile_number",
+					"otp":          "$otp.otp",
 				},
 			},
 		},
@@ -747,13 +757,23 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:      "otp.register.begin",
+				Type:      "otp.generate",
 				Method:    "EXECUTE",
+				Reference: "otp",
+				Condition: "!mobile != null && mobile != undefined && mobile != ''",
+				Attributes: map[string]interface{}{
+					"mobile": "~mobile",
+					"email":  "~email",
+				},
+			},
+			{
+				Type:      "2factor.in",
+				Method:    "GET_api_key-SMS-phone_number-otp",
 				Reference: "otp_account",
 				Condition: "!mobile != null && mobile != undefined && mobile != ''",
 				Attributes: map[string]interface{}{
-					"email":  "~email",
-					"mobile": "~mobile",
+					"phone_number": "~mobile",
+					"otp":          "$otp.otp",
 				},
 			},
 			{
@@ -1287,7 +1307,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "user_otp_account",
-		Icon:          "fa-child",
+		Icon:          "fa-sms",
 		DefaultGroups: []string{},
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1705,7 +1725,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "mail_server",
 		IsHidden:      false,
-		Icon:          "fa-envelope-o",
+		Icon:          "fa-envelope-alt",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1776,7 +1796,7 @@ var StandardTables = []TableInfo{
 		TableName:     "mail_account",
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,
-		Icon:          "fa-envelope",
+		Icon:          "fa-envelope-alt",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "username",
@@ -1852,7 +1872,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "mail",
 		IsHidden:      false,
-		Icon:             "fa-envelope-o",
+		Icon:          "fa-envelope-o",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{

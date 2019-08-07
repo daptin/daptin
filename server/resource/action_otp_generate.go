@@ -1,11 +1,14 @@
 package resource
 
 import (
+	"context"
+	"errors"
 	"github.com/artpar/api2go"
-	"github.com/pkg/errors"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 	"time"
 )
 
@@ -22,61 +25,108 @@ func (d *OtpGenerateActionPerformer) Name() string {
 
 func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
-	email, ok := inFieldMap["email"]
+	email, emailOk := inFieldMap["email"]
+	mobile, phoneOk := inFieldMap["mobile"]
 	var userAccount map[string]interface{}
 	var userOtpProfile map[string]interface{}
 	var err error
-	if !ok || email == nil || email == "" {
-		phone, ok := inFieldMap["mobile"]
-		if !ok {
-			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "No mobile or email provided", "Failed"))}, []error{errors.New("email or mobile missing")}
-		}
-		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "mobile_number", phone.(string))
-		if err != nil {
-			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Unregistered mobile number", "Failed"))}, []error{errors.New("unregistered mobile number")}
-		}
-	} else {
+
+	if !emailOk && !phoneOk {
+		return nil, nil, []error{errors.New("email or mobile missing")}
+	} else if emailOk {
 		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmail(email.(string))
+		if err != nil && !phoneOk {
+			return nil, nil, []error{errors.New("invalid email")}
+		}
+		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "otp_of_account", userAccount["id"].(int64))
+	} else if phoneOk {
+		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "mobile_number", mobile)
 		if err != nil {
-			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Invalid email", "Failed"))}, []error{errors.New("invalid email")}
+			return nil, nil, []error{errors.New("unregistered number")}
 		}
-		userOtpProfileId, ok := userAccount["user_otp_account_id"]
-		if !ok && userOtpProfileId != "" {
-			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "No mobile number registered", "Failed"))}, []error{errors.New("unregistered mobile number")}
+		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceId("user_account", userOtpProfile["otp_of_account"].(string))
+		if err != nil {
+			return nil, nil, []error{errors.New("unregistered number")}
 		}
-		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "reference_id", userOtpProfileId.(string))
+
 	}
 
-	if userOtpProfile == nil || err != nil {
-		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "No mobile number registered", "Failed"))}, []error{errors.New("invalid account")}
+	httpReq := &http.Request{}
+	user := &auth.SessionUser{
+		UserId:          userAccount["id"].(int64),
+		UserReferenceId: userAccount["reference_id"].(string),
+	}
+	httpReq = httpReq.WithContext(context.WithValue(context.Background(), "user", user))
+	req := api2go.Request{
+		PlainRequest: httpReq,
 	}
 
-	if userOtpProfile["verified"].(int64) != 1 {
-		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Unverified account", "Failed"))}, []error{errors.New("unverified number cannot be used to login")}
+	if userOtpProfile == nil {
+
+		key, err := totp.Generate(totp.GenerateOpts{
+			Issuer:      "site.daptin.com",
+			AccountName: userAccount["email"].(string),
+			Period:      300,
+			Digits:      4,
+			SecretSize:  10,
+		})
+
+		if err != nil {
+			log.Errorf("Failed to generate code: %v", err)
+			return nil, nil, []error{err}
+		}
+
+		userOtpProfile = map[string]interface{}{
+			"otp_secret":     key.Secret(),
+			"verified":       0,
+			"mobile_number":  mobile,
+			"otp_of_account": userAccount["reference_id"],
+		}
+
+		req.PlainRequest.Method = "POST"
+		createdOtpProfile, err := d.cruds["user_otp_account"].CreateWithoutFilter(api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile), req)
+		if err != nil {
+			return nil, nil, []error{errors.New("failed to create otp profile")}
+		}
+
+		userOtpProfile = createdOtpProfile
 	}
 
-	key, err := Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))
-	if err != nil {
-		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{err}
+	if userOtpProfile["verified"] == 1 && phoneOk && mobile != userOtpProfile["mobile_number"] {
+		userOtpProfile["mobile_number"] = mobile
+		userOtpProfile["verified"] = 0
+		req.PlainRequest.Method = "PUT"
+		d.cruds["user_otp_account"].UpdateWithoutFilters(api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile), req)
 	}
-
-	state, err := totp.GenerateCodeCustom(key, time.Now(), totp.ValidateOpts{
-		Period:    300,
-		Skew:      1,
-		Digits:    4,
-		Algorithm: otp.AlgorithmSHA1,
-	})
-	if err != nil {
-		log.Errorf("Failed to generate code: %v", err)
-		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{err}
-	}
-
-	responder := api2go.NewApi2GoModelWithData("otp", nil, 0, nil, map[string]interface{}{
-		"otp": state,
-	})
 
 	resp := &api2go.Response{
-		Res: responder,
+	}
+	if userOtpProfile["verified"] == 1 || phoneOk {
+
+		key, err := Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))
+		if err != nil {
+			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{err}
+		}
+
+		state, err := totp.GenerateCodeCustom(key, time.Now(), totp.ValidateOpts{
+			Period:    300,
+			Skew:      1,
+			Digits:    4,
+			Algorithm: otp.AlgorithmSHA1,
+		})
+		if err != nil {
+			log.Errorf("Failed to generate code: %v", err)
+			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{err}
+		}
+
+		responder := api2go.NewApi2GoModelWithData("otp", nil, 0, nil, map[string]interface{}{
+			"otp": state,
+		})
+		resp.Res = responder
+	} else {
+		resp.Res = map[string]interface{}{
+
+		}
 	}
 
 	return resp, []ActionResponse{}, nil

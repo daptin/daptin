@@ -42,7 +42,7 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 	var userAccount map[string]interface{}
 	var userOtpProfile map[string]interface{}
 	var err error
-	if !ok || email == nil || email == "" {
+	if email == nil || email == "" {
 		phone, ok := inFieldMap["mobile"]
 		if !ok {
 			return nil, nil, []error{errors.New("email or mobile missing")}
@@ -51,17 +51,17 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		if err != nil || userOtpProfile == nil {
 			return nil, nil, []error{errors.New("unregistered mobile number")}
 		}
-		userAccount, err = d.cruds["user_account"].GetObjectByWhereClause("user_account", "reference_id", userOtpProfile["user_account_id"].(string))
+		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceId("user_account", userOtpProfile["otp_of_account"].(string))
 	} else {
 		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmail(email.(string))
 		if err != nil {
 			return nil, nil, []error{errors.New("invalid email")}
 		}
-		userOtpProfileId, ok := userAccount["user_otp_account_id"]
+		userAccountId, ok := userAccount["id"]
 		if !ok {
 			return nil, nil, []error{errors.New("unregistered mobile number")}
 		}
-		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "reference_id", userOtpProfileId.(string))
+		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "otp_of_account", userAccountId)
 	}
 
 	if err != nil || userOtpProfile == nil {
@@ -110,41 +110,48 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		//if err != nil {
 		//	log.Errorf("Failed to associate verified otp account with user account: %v", err)
 		//}
+		notificationAttrs := make(map[string]string)
+		notificationAttrs["message"] = "You can now login using this number"
+		notificationAttrs["title"] = "OTP Verified"
+		notificationAttrs["type"] = "success"
+		responses = append(responses, NewActionResponse("client.notify", notificationAttrs))
 
-	}
+	} else {
 
-	u, _ := uuid.NewV4()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email":   userAccount["email"],
-		"name":    userAccount["name"],
-		"nbf":     time.Now().Unix(),
-		"exp":     time.Now().Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),
-		"iss":     d.jwtTokenIssuer,
-		"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5Hash(strings.ToLower(userAccount["email"].(string)))),
-		"iat":     time.Now(),
-		"jti":     u.String(),
-	})
+		u, _ := uuid.NewV4()
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"email":   userAccount["email"],
+			"name":    userAccount["name"],
+			"nbf":     time.Now().Unix(),
+			"exp":     time.Now().Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),
+			"iss":     d.jwtTokenIssuer,
+			"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5Hash(strings.ToLower(userAccount["email"].(string)))),
+			"iat":     time.Now(),
+			"jti":     u.String(),
+		})
 
-	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(d.secret)
-	fmt.Printf("%v %v", tokenString, err)
-	if err != nil {
-		log.Errorf("Failed to sign string: %v", err)
-		return nil, nil, []error{err}
+		// Sign and get the complete encoded token as a string using the secret
+		tokenString, err := token.SignedString(d.secret)
+		fmt.Printf("%v %v", tokenString, err)
+		if err != nil {
+			log.Errorf("Failed to sign string: %v", err)
+			return nil, nil, []error{err}
+		}
+
+		responseAttrs := make(map[string]interface{})
+		responseAttrs["value"] = string(tokenString)
+		responseAttrs["key"] = "token"
+		actionResponse := NewActionResponse("client.store.set", responseAttrs)
+		responses = append(responses, actionResponse)
+
+		notificationAttrs := make(map[string]string)
+		notificationAttrs["message"] = "Logged in"
+		notificationAttrs["title"] = "Success"
+		notificationAttrs["type"] = "success"
+		responses = append(responses, NewActionResponse("client.notify", notificationAttrs))
 	}
 
 	responseAttrs := make(map[string]interface{})
-	responseAttrs["value"] = string(tokenString)
-	responseAttrs["key"] = "token"
-	actionResponse := NewActionResponse("client.store.set", responseAttrs)
-	responses = append(responses, actionResponse)
-
-	notificationAttrs := make(map[string]string)
-	notificationAttrs["message"] = "Logged in"
-	notificationAttrs["title"] = "Success"
-	notificationAttrs["type"] = "success"
-	responses = append(responses, NewActionResponse("client.notify", notificationAttrs))
-
 	responseAttrs = make(map[string]interface{})
 	responseAttrs["location"] = "/"
 	responseAttrs["window"] = "self"

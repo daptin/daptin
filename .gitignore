@@ -25,3 +25,4 @@ daptin.sql
 temp/
 daptin.log
 .DS_Store
+*.log

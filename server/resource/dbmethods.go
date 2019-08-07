@@ -868,7 +868,7 @@ func (dr *DbResource) GetSingleRowById(typeName string, id int64) (map[string]in
 
 }
 
-func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val string) (map[string]interface{}, error) {
+func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val interface{}) (map[string]interface{}, error) {
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(squirrel.Eq{column: val}).ToSql()
 	if err != nil {
 		return nil, err
