@@ -8,10 +8,10 @@ bin/$(app): *.go
 	go build -o $@
 
 docker: docker-daptin-binary
-	cd docker_dir && cp ../Dockerfile Dockerfile && cp ../daptin-linux-amd64 main && docker build -t daptin/daptin  . && cd ..
+	cd docker_dir && cp ../Dockerfile Dockerfile && cp ../github.com/daptin/daptin-linux-amd64 main && docker build -t daptin/daptin  . && cd ..
 
 
-docker-daptin-binary: daptin-linux-amd64
+docker-daptin-binary: github.com/daptin/daptin-linux-amd64
 	rm -rf rice-box.go && rice embed-go && xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  .
 
 daptin-linux-amd64:
