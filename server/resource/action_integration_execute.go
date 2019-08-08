@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"regexp"
 	"strings"
+	"time"
 )
 
 // Mode defines a mode of operation for example generation.
@@ -29,12 +32,13 @@ const (
   Integration action performer
 */
 type IntegrationActionPerformer struct {
-	cruds       map[string]*DbResource
-	integration Integration
-	router      *openapi3.Swagger
-	commandMap  map[string]*openapi3.Operation
-	pathMap     map[string]string
-	methodMap   map[string]string
+	cruds            map[string]*DbResource
+	integration      Integration
+	router           *openapi3.Swagger
+	commandMap       map[string]*openapi3.Operation
+	pathMap          map[string]string
+	methodMap        map[string]string
+	encryptionSecret []byte
 }
 
 // Name of the action
@@ -50,14 +54,22 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 	path, ok := d.pathMap[request.Method]
 	pathItem := d.router.Paths.Find(path)
 
+	securitySchemaMap := d.router.Components.SecuritySchemes
+	//selectedSecuritySchema := &openapi3.SecuritySchemeRef{}
+
 	if !ok || pathItem == nil {
 		return nil, nil, []error{errors.New("no such method")}
 	}
 
 	r := req.New()
 
+	decryptedSpec, err := Decrypt(d.encryptionSecret, d.integration.AuthenticationSpecification)
+
+	if err != nil {
+		log.Errorf("Failed to decrypted auth spec: %v", err)
+	}
 	authKeys := make(map[string]interface{})
-	json.Unmarshal([]byte(d.integration.AuthenticationSpecification), &authKeys)
+	json.Unmarshal([]byte(decryptedSpec), &authKeys)
 
 	for key, val := range authKeys {
 		inFieldMap[key] = val
@@ -85,15 +97,231 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		requestBodyRef := operation.RequestBody.Value
 		requestContent := requestBodyRef.Content
 
-		jsonBodyRequest := requestContent.Get("application/json")
-		requestBody, err := CreateRequestBody(ModeRequest, "", jsonBodyRequest.Schema.Value, inFieldMap)
-		if err != nil || jsonBodyRequest == nil {
-			log.Errorf("Failed to create request body for calling [%v][%v]", d.integration.Name, request.Method)
-			return nil, nil, []error{err}
-		} else {
-			arguments = append(arguments, req.BodyJSON(requestBody))
+		for mediaType, spec := range requestContent {
+			switch mediaType {
+			case "application/json":
+
+				requestBody, err := CreateRequestBody(ModeRequest, "", spec.Schema.Value, inFieldMap)
+				if err != nil || spec == nil {
+					log.Errorf("Failed to create request body for calling [%v][%v]", d.integration.Name, request.Method)
+				} else {
+					arguments = append(arguments, req.BodyJSON(requestBody))
+				}
+
+			case "application/x-www-form-urlencoded":
+				requestBody, err := CreateRequestBody(ModeRequest, "", spec.Schema.Value, inFieldMap)
+				if err != nil || spec == nil {
+					log.Errorf("Failed to create request body for calling [%v][%v]", d.integration.Name, request.Method)
+				} else {
+					arguments = append(arguments, req.Param(requestBody.(map[string]interface{})))
+				}
+
+			}
 		}
 		//hasRequestBody = true
+	}
+
+	authDone := false
+
+	secMethods := operation.Security
+	*secMethods = append(*secMethods, d.router.Security...)
+
+	for _, security := range *secMethods {
+
+		allDone := true
+		for secName := range security {
+			spec := securitySchemaMap[secName]
+
+			done := false
+			switch spec.Value.Type {
+
+			case "oauth2":
+
+				oauthTokenId, ok := authKeys["oauth_token_id"].(string)
+
+				if ok {
+					oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+
+					if err != nil {
+						allDone = false
+						break
+					}
+					tokenSource := oauthConfig.TokenSource(context.Background(), oauthToken)
+
+					if oauthToken.Expiry.Before(time.Now()) {
+
+						oauthToken, err = tokenSource.Token()
+						if err != nil {
+							allDone = false
+							break
+						}
+						d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix())
+					}
+
+					arguments = append(arguments, req.Header{
+						"Authorization": "Bearer " + oauthToken.AccessToken,
+					})
+
+				}
+
+			case "http":
+				switch spec.Value.Scheme {
+				case "basic":
+					basic := authKeys["token"].(string)
+					header := base64.StdEncoding.EncodeToString([]byte(basic))
+
+					if ok {
+						arguments = append(arguments, req.Header{
+							"Authorization": "Basic " + header,
+						})
+						done = true
+					}
+
+				case "bearer":
+					token, ok := authKeys["token"].(string)
+
+					if ok {
+
+						arguments = append(arguments, req.Header{
+							"Authorization": "Bearer " + token,
+						})
+						done = true
+					}
+
+				}
+
+			case "apiKey":
+				switch spec.Value.In {
+
+				case "cookie":
+					name := spec.Value.Name
+					value, ok := authKeys[name].(string)
+					if ok {
+
+						arguments = append(arguments, req.Header{
+							"Cookie": fmt.Sprintf("%s=%s", name, value),
+						})
+						done = true
+					}
+
+				case "header":
+					name := spec.Value.Name
+					value, ok := authKeys[name].(string)
+					if ok {
+
+						arguments = append(arguments, req.Header{
+							name: value,
+						})
+						done = true
+					}
+
+				case "query":
+
+					name := spec.Value.Name
+					value := authKeys[name].(string)
+					arguments = append(arguments, req.QueryParam{
+						name: value,
+					})
+					done = true
+				}
+			}
+
+			if !done {
+				allDone = false
+				break
+			}
+
+		}
+		if allDone {
+			authDone = true
+		}
+
+	}
+
+	if !authDone {
+		switch strings.ToLower(d.integration.AuthenticationType) {
+
+		case "oauth2":
+
+			oauthTokenId, ok := authKeys["oauth_token_id"].(string)
+
+			if ok {
+				oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+				if err != nil {
+
+					tokenSource := oauthConfig.TokenSource(context.Background(), oauthToken)
+
+					if oauthToken.Expiry.Before(time.Now()) {
+						oauthToken, err = tokenSource.Token()
+						d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix())
+					}
+
+					arguments = append(arguments, req.Header{
+						"Authorization": "Bearer " + oauthToken.AccessToken,
+					})
+					authDone = true
+				}
+
+			}
+
+		case "http":
+			switch authKeys["scheme"].(string) {
+			case "basic":
+				token := authKeys["token"].(string)
+				header := base64.StdEncoding.EncodeToString([]byte(token))
+
+				if ok {
+					arguments = append(arguments, req.Header{
+						"Authorization": "Basic " + header,
+					})
+					authDone = true
+				}
+
+			case "bearer":
+				token, ok := authKeys["token"].(string)
+
+				if ok {
+
+					arguments = append(arguments, req.Header{
+						"Authorization": "Bearer " + token,
+					})
+					authDone = true
+				}
+
+			}
+		case "apiKey":
+			switch authKeys["in"] {
+
+			case "cookie":
+				name := authKeys["name"].(string)
+				value, ok := authKeys[name].(string)
+				if ok {
+
+					arguments = append(arguments, req.Header{
+						"Cookie": fmt.Sprintf("%s=%s", name, value),
+					})
+					authDone = true
+				}
+
+			case "header":
+				name := authKeys["name"].(string)
+				value := authKeys[name].(string)
+				arguments = append(arguments, req.Header{
+					name: value,
+				})
+				authDone = true
+
+			case "query":
+
+				name := authKeys["name"].(string)
+				value := authKeys[name].(string)
+				arguments = append(arguments, req.QueryParam{
+					name: value,
+				})
+				authDone = true
+			}
+
+		}
 	}
 
 	parameters := operation.Parameters
@@ -311,7 +539,7 @@ func excludeFromMode(mode Mode, schema *openapi3.Schema) bool {
 }
 
 // Create a new action performer for becoming administrator action
-func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
+func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
 
 	var err error
 	jsonBytes := []byte(integration.Specification)
@@ -371,13 +599,19 @@ func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfi
 		}
 	}
 
+	encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend")
+	if err != nil {
+		log.Errorf("Failed to get encryption secret from config store: %v", err)
+	}
+
 	handler := IntegrationActionPerformer{
-		cruds:       cruds,
-		integration: integration,
-		router:      router,
-		commandMap:  commandMap,
-		pathMap:     pathMap,
-		methodMap:   methodMap,
+		cruds:            cruds,
+		integration:      integration,
+		router:           router,
+		commandMap:       commandMap,
+		pathMap:          pathMap,
+		methodMap:        methodMap,
+		encryptionSecret: []byte(encryptionSecret),
 	}
 
 	return &handler, nil

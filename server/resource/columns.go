@@ -1068,7 +1068,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "authentication_specification",
 				ColumnName: "authentication_specification",
-				ColumnType: "json",
+				ColumnType: "encrypted",
 				DataType:   "text",
 				IsNullable: false,
 			},

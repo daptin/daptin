@@ -123,7 +123,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 
 		for _, integration := range integrations {
 
-			performer, err := resource.NewIntegrationActionPerformer(integration, initConfig, cruds)
+			performer, err := resource.NewIntegrationActionPerformer(integration, initConfig, cruds, configStore)
 
 			if err != nil {
 

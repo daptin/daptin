@@ -109,7 +109,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		log.Printf("Found groups in request: %s", queryS)
 		if err == nil {
 			err = json.Unmarshal(queryS, &groupings)
-			log.Printf("Groupings: %v", queries)
+			log.Printf("Groupings: %v", groupings)
 		}
 		InfoErr(err, fmt.Sprintf("Failed to read groups from request: %v", query[0]))
 	}
@@ -224,8 +224,27 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		finalCols = append(finalCols, prefix+"reference_id")
 	}
 
-	queryBuilder := statementbuilder.Squirrel.Select(finalCols...).From(m.GetTableName()).Offset(pageNumber).Limit(pageSize)
-	countQueryBuilder := statementbuilder.Squirrel.Select("count(*)").From(m.GetTableName()).Offset(0).Limit(1)
+	queryBuilder := statementbuilder.Squirrel.Select(finalCols...).From(m.GetTableName())
+
+	var countQueryBuilder squirrel.SelectBuilder
+	countQueryBuilder = statementbuilder.Squirrel.Select("count(*)").From(m.GetTableName()).Offset(0).Limit(1)
+	if req.QueryParams["page[after]"] != nil && len(req.QueryParams["page[after]"]) > 0 {
+		id, err := dr.GetReferenceIdToId(dr.TableInfo().TableName, req.QueryParams["page[after]"][0])
+		if err != nil {
+			queryBuilder = queryBuilder.Where(squirrel.Gt{
+				"id": id,
+			}).Limit(pageSize)
+		}
+	} else if req.QueryParams["page[before]"] != nil && len(req.QueryParams["page[before]"]) > 0 {
+		id, err := dr.GetReferenceIdToId(dr.TableInfo().TableName, req.QueryParams["page[before]"][0])
+		if err != nil {
+			queryBuilder = queryBuilder.Where(squirrel.Lt{
+				"id": id,
+			}).Limit(pageSize)
+		}
+	} else {
+		queryBuilder = queryBuilder.Offset(pageNumber).Limit(pageSize)
+	}
 
 	infos := dr.model.GetColumns()
 
