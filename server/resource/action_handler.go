@@ -579,7 +579,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 				Method: "EXECUTE",
 			},
 		}
-		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, attrs)
+		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
 
 		return model, returnRequest, nil
 
@@ -596,13 +596,13 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 				Method: "ACTIONRESPONSE",
 			},
 		}
-		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, attrs)
+		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
 
 		return model, returnRequest, nil
 
 	default:
 
-		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, attrs)
+		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
 
 		req := api2go.Request{
 			PlainRequest: &http.Request{

@@ -163,7 +163,7 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
 		return PermissionInstance{
-			"", []auth.GroupPermission{}, auth.NewPermission(auth.None, auth.None, auth.None),
+			"", []auth.GroupPermission{}, auth.AuthPermission(0),
 		}
 	}
 
@@ -189,7 +189,7 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 	}
 	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, i)
 
-	perm.Permission = auth.ParsePermission(resultObject["permission"].(int64))
+	perm.Permission = auth.AuthPermission(resultObject["permission"].(int64))
 	if err != nil {
 		log.Errorf("Failed to scan permission 2: %v", err)
 	}
@@ -223,7 +223,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
 		return PermissionInstance{
-			"", []auth.GroupPermission{}, auth.NewPermission(auth.None, auth.None, auth.None),
+			"", []auth.GroupPermission{}, auth.AuthPermission(0),
 		}
 	}
 
@@ -244,7 +244,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 
 	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, resultObject["id"].(int64))
 
-	perm.Permission = auth.ParsePermission(resultObject["permission"].(int64))
+	perm.Permission = auth.AuthPermission(resultObject["permission"].(int64))
 	if err != nil {
 		log.Errorf("Failed to scan permission 2: %v", err)
 	}
@@ -287,7 +287,7 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 
 	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, m["id"].(int64))
 
-	perm.Permission = auth.ParsePermission(m["permission"].(int64))
+	perm.Permission = auth.AuthPermission(m["permission"].(int64))
 
 	//log.Infof("PermissionInstance for [%v]: %v", typeName, perm)
 	return perm
@@ -353,7 +353,7 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 			GroupReferenceId:    refId,
 			ObjectReferenceId:   refId,
 			RelationReferenceId: refId,
-			Permission:          auth.ParsePermission(dr.Cruds["usergroup"].model.GetDefaultPermission()),
+			Permission:          auth.AuthPermission(dr.Cruds["usergroup"].model.GetDefaultPermission()),
 		})
 		return s
 	}
@@ -622,7 +622,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 
 	query, args, err := statementbuilder.Squirrel.Insert("user_account_user_account_id_has_usergroup_usergroup_id").
 		Columns(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "permission", "reference_id").
-		Values(userId, adminUsergroupId, auth.DEFAULT_PERMISSION.IntValue(), reference_id.String()).
+		Values(userId, adminUsergroupId, int64(auth.DEFAULT_PERMISSION), reference_id.String()).
 		ToSql()
 
 	_, err = dbResource.db.Exec(query, args...)
@@ -635,14 +635,14 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 	}
 
 	_, err = dbResource.db.Exec("update world set permission = ?, default_permission = ? where table_name like '%_audit'",
-		auth.NewPermission(auth.Create, auth.Create, auth.Create).IntValue(),
-		auth.NewPermission(auth.Read, auth.Read, auth.Read).IntValue())
+		int64(auth.GuestCreate|auth.UserCreate|auth.GroupCreate),
+		int64(auth.GuestRead|auth.UserRead|auth.GroupRead))
 	if err != nil {
 		log.Errorf("Failed to world update audit permissions: %v", err)
 	}
 
-	_, err = dbResource.db.Exec("update action set permission = ?", auth.NewPermission(auth.None, auth.Read|auth.Execute, auth.CRUD|auth.Execute|auth.Refer).IntValue())
-	_, err = dbResource.db.Exec("update action set permission = ? where action_name in ('signin')", auth.NewPermission(auth.Peek|auth.Execute, auth.Read|auth.Execute, auth.Create|auth.Execute).IntValue())
+	_, err = dbResource.db.Exec("update action set permission = ?", int64(auth.UserRead|auth.UserExecute|auth.GroupCRUD|auth.GroupExecute|auth.GroupRefer))
+	_, err = dbResource.db.Exec("update action set permission = ? where action_name in ('signin')", int64(auth.GuestPeek|auth.GuestExecute|auth.UserRead|auth.UserExecute|auth.GroupRead|auth.GroupExecute))
 
 	if err != nil {
 		log.Errorf("Failed to update audit permissions: %v", err)
@@ -694,7 +694,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 				GroupReferenceId:    originalGroupIdStr,
 				ObjectReferenceId:   refId.(string),
 				RelationReferenceId: refId.(string),
-				Permission:          auth.ParsePermission(dr.Cruds["usergroup"].model.GetDefaultPermission()),
+				Permission:          auth.AuthPermission(dr.Cruds["usergroup"].model.GetDefaultPermission()),
 			},
 		}
 	} else if loc > -1 {
@@ -727,7 +727,8 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 			}
 		}
 
-		perm.Permission = auth.ParsePermission(i64)
+		perm.Permission = auth.AuthPermission(i64)
+
 	}
 	//log.Infof("Row permission: %v  ---------------- %v", perm, row)
 	return perm
@@ -1227,7 +1228,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				stringVal, ok := val.(string)
 				if ok {
 					parsedValue, _, err := fieldtypes.GetTime(stringVal)
-					if InfoErr(err, "Failed to parse time from: %v", stringVal) {
+					if err != nil {
 						parsedValue, _, err := fieldtypes.GetDateTime(stringVal)
 						if InfoErr(err, "Failed to parse date time from: %v", stringVal) {
 							row[key] = nil
@@ -1238,7 +1239,6 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						row[key] = parsedValue
 					}
 				}
-
 			}
 
 			if !columnInfo.IsForeignKey {
