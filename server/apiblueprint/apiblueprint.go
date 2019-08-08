@@ -88,42 +88,51 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		"license": map[string]interface{}{
 			"name": "MIT",
 		},
+		"contact": map[string]interface{}{
+			"name": "Parth",
+		},
+		"description":    "Daptin server API spec",
+		"termsOfService": config.Hostname + "/tos",
 	}
 
 	apiDefinition["servers"] = []map[string]interface{}{
 		{
-			"url": fmt.Sprintf("http://%v", config.Hostname),
+			"url":         fmt.Sprintf("http://%v", config.Hostname),
+			"description": "Server " + config.Hostname,
 		},
 	}
 	typeMap := make(map[string]map[string]interface{})
-
-	relatedStructureType := make(map[string]interface{})
-	relatedStructureType["type"] = "object"
-	relatedStructureType["properties"] = map[string]interface{}{
-		"id": map[string]interface{}{
-			"type":        "string",
-			"description": "Id of the object",
-		},
-		"type": map[string]interface{}{
-			"type":        "string",
-			"description": "Type of the included object",
+	typeMap["RelatedStructure"] = map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"id": map[string]interface{}{
+				"type":        "string",
+				"description": "Id of the object",
+			},
+			"type": map[string]interface{}{
+				"type":        "string",
+				"description": "Type of the included object",
+			},
 		},
 	}
-	typeMap["RelatedStructure"] = relatedStructureType
 
-	//paginationObject := make(map[string]interface{})
-	//paginationObject["type"] = "object"
-	//paginationObject["properties"] = map[string]interface{}{
-	//	"page[number]": map[string]interface{}{
-	//		"type":        "number",
-	//		"description": "Id of the included object",
-	//	},
-	//	"page[size]": map[string]interface{}{
-	//		"type":        "number",
-	//		"description": "Type of the included object",
-	//	},
-	//}
-	//typeMap["Pagination"] = paginationObject
+	paginationObject := make(map[string]interface{})
+	paginationObject["type"] = "object"
+	paginationObject["properties"] = map[string]interface{}{
+		"page[number]": map[string]interface{}{
+			"type":        "number",
+			"description": "Page number",
+		},
+		"page[size]": map[string]interface{}{
+			"type":        "number",
+			"description": "Number of item to return",
+		},
+		"page[after]": map[string]interface{}{
+			"type":        "string",
+			"description": "Reference id of the object after which to look for",
+		},
+	}
+	typeMap["Pagination"] = paginationObject
 
 	actionResponse := map[string]interface{}{
 		"type": "object",
