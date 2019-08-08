@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/auth"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -2105,12 +2106,12 @@ var StandardData = []api2go.Api2GoModel{
 type TableInfo struct {
 	TableName              string `db:"table_name"`
 	TableId                int
-	DefaultPermission      int64 `db:"default_permission"`
+	DefaultPermission      auth.AuthPermission `db:"default_permission"`
 	Columns                []api2go.ColumnInfo
 	StateMachines          []LoopbookFsmDescription
 	Relations              []api2go.TableRelation
 	IsTopLevel             bool `db:"is_top_level"`
-	Permission             int64
+	Permission             auth.AuthPermission
 	UserId                 uint64   `db:"user_account_id"`
 	IsHidden               bool     `db:"is_hidden"`
 	IsJoinTable            bool     `db:"is_join_table"`
