@@ -66,7 +66,7 @@ func TestServer(t *testing.T) {
 
 	var webDashboardSource = flag.String("dashboard", "daptinweb/dist", "path to dist folder for daptin web dashboard")
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
-	var port = flag.String("port", ":6336", "Daptin port")
+	var port = flag.String("port", ":6337", "Daptin port")
 	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
 
 	gin.SetMode(*runtimeMode)
@@ -146,7 +146,7 @@ func TestServer(t *testing.T) {
 }
 func RunTests(t *testing.T, hostSwitch HostSwitch, daemon *guerrilla.Daemon, db *sqlx.DB, scheduler resource.TaskScheduler, configStore *resource.ConfigStore) error {
 
-	const baseAddress = "http://localhost:6336"
+	const baseAddress = "http://localhost:6337"
 
 	r := req.New()
 
