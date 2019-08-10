@@ -43,7 +43,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 
 	ms := BuildMiddlewareSet(&initConfig, &cruds)
 	for _, table := range initConfig.Tables {
-		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
+		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
 		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, table)
 		cruds[table.TableName] = res
 	}
@@ -82,7 +82,6 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	errc = tx.Commit()
 	resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
 
-
 	resource.UpdateStateMachineDescriptions(&initConfig, wrapper)
 	resource.UpdateExchanges(&initConfig, wrapper)
 	resource.UpdateStreams(&initConfig, wrapper)
@@ -99,7 +98,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 func GetResourceWithName(name string) (*InMemoryTestDatabase, *resource.DbResource) {
 	wrapper := GetDb()
 
-	cols := []api2go.ColumnInfo{}
+	var cols []api2go.ColumnInfo
 	model := api2go.NewApi2GoModel(name, cols, 0, nil)
 	tableInfo := resource.TableInfo{
 		TableName: name,

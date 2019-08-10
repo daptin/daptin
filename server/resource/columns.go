@@ -835,6 +835,14 @@ var SystemActions = []Action{
 					"password": "~password",
 				},
 			},
+			{
+				Type:   "jwt.token",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"email":    "~email",
+					"password": "~password",
+				},
+			},
 		},
 	},
 	{
