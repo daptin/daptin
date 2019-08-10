@@ -54,7 +54,7 @@ var DEFAULT_PERMISSION = GuestPeek | GuestExecute | UserCRUD | UserExecute | Gro
 var ALLOW_ALL_PERMISSIONS = GuestCRUD | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute
 
 func (a AuthPermission) String() string {
-	return fmt.Sprintf("%v", a)
+	return fmt.Sprintf("%d", a)
 }
 
 type ResourceAdapter interface {

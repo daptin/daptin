@@ -14,10 +14,10 @@ func TestPermission(t *testing.T) {
 				GroupReferenceId:    "group1",
 				ObjectReferenceId:   "",
 				RelationReferenceId: "",
-				Permission:          auth.NewPermission(auth.Read, auth.None, auth.CRUD|auth.Execute),
+				Permission:          auth.UserRead | auth.GroupCRUD | auth.GroupExecute,
 			},
 		},
-		Permission: auth.NewPermission(auth.None, auth.None, auth.Create),
+		Permission: auth.GroupCreate,
 	}
 
 	pi.CanCreate("user2", []auth.GroupPermission{
@@ -25,7 +25,7 @@ func TestPermission(t *testing.T) {
 			GroupReferenceId:    "group1",
 			ObjectReferenceId:   "",
 			RelationReferenceId: "",
-			Permission:          auth.NewPermission(auth.Read, auth.None, auth.CRUD|auth.Execute),
+			Permission:          auth.GuestRead | auth.GroupCRUD | auth.GroupExecute,
 		},
 	})
 

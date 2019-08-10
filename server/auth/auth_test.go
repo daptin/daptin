@@ -7,15 +7,15 @@ import (
 
 func TestAllPermission(t *testing.T) {
 
-	perm1 := NewPermission(Read, Read|Create|Update, CRUD)
-	perm2 := NewPermission(Create|Read|Refer, Read|Update|Execute, Create|Read|Refer|Update)
-	perm3 := NewPermission(None, Read|Execute, CRUD|Execute)
-	perm4 := NewPermission(Read, Read|Execute, CRUD|Execute)
-	perm5 := NewPermission(Peek|ExecuteStrict, Read|Execute, CRUD|Execute)
+	perm1 := GuestRead | UserRead | UserCreate | UserUpdate | GroupCRUD
+	perm2 := GuestCreate | GuestRead | GuestRefer | UserRead | UserUpdate | UserExecute | GroupCreate | GroupRead | GroupRefer | GroupUpdate
+	perm3 := None | UserRead | UserExecute | GroupCRUD | GroupExecute
+	perm4 := GuestRead | UserRead | UserExecute | GroupCRUD | GroupExecute
+	perm5 := GuestPeek | GuestExecute | UserRead | UserExecute | GroupCRUD | GroupExecute
 
-	tperm1 := ParsePermission(perm1.IntValue())
-	tperm2 := ParsePermission(perm2.IntValue())
-	//tperm2 := ParsePermission(perm3.IntValue())
+	tperm1 := perm1
+	tperm2 := perm2
+	//tperm2 := ParsePermission(perm3)
 
 	if perm1 == perm2 {
 		t.Errorf("Permission should not be equal")
@@ -28,11 +28,11 @@ func TestAllPermission(t *testing.T) {
 	if perm2 != tperm2 {
 		t.Errorf("Parsing failed")
 	}
-	fmt.Printf("Perm 1: %v == %v == %v\n", perm1, perm1.IntValue(), tperm1.IntValue())
-	fmt.Printf("Perm 2: %v == %v == %v\n", perm2, perm2.IntValue(), tperm2.IntValue())
-	fmt.Printf("Perm 3: %v == %v\n", perm3, perm3.IntValue())
-	fmt.Printf("Perm 4: %v == %v\n", perm4, perm4.IntValue())
-	fmt.Printf("Perm 5: %v == %v\n", perm5, perm5.IntValue())
+	fmt.Printf("Perm 1: %v == %v == %v\n", perm1, perm1, tperm1)
+	fmt.Printf("Perm 2: %v == %v == %v\n", perm2, perm2, tperm2)
+	fmt.Printf("Perm 3: %v == %v\n", perm3, perm3)
+	fmt.Printf("Perm 4: %v == %v\n", perm4, perm4)
+	fmt.Printf("Perm 5: %v == %v\n", perm5, perm5)
 
 }
 
@@ -40,22 +40,42 @@ func TestAuthPermissions(t *testing.T) {
 
 	t.Logf("Permission [%v] %v", None, None)
 
-	t.Logf("Permission [%v] %v", Peek, int64(Peek))
-	t.Logf("Permission [%v] %v", ReadStrict, int64(ReadStrict))
-	t.Logf("Permission [%v] %v", CreateStrict, int64(CreateStrict))
-	t.Logf("Permission [%v] %v", UpdateStrict, int64(UpdateStrict))
-	t.Logf("Permission [%v] %v", DeleteStrict, int64(DeleteStrict))
-	t.Logf("Permission [%v] %v", ExecuteStrict, int64(ExecuteStrict))
-	t.Logf("Permission [%v] %v", ReferStrict, int64(ReferStrict))
-	t.Logf("Permission [%v] %v", Read, int64(Read))
-	t.Logf("Permission [%v] %v", Refer, int64(Refer))
-	t.Logf("Permission [%v] %v", Create, int64(Create))
-	t.Logf("Permission [%v] %v", Update, int64(Update))
-	t.Logf("Permission [%v] %v", Delete, int64(Delete))
-	t.Logf("Permission [%v] %v", Execute, int64(Execute))
-	t.Logf("Permission [%v] %v", CRUD, int64(CRUD))
+	t.Logf("Permission [%v] %v", GuestPeek, int64(GuestPeek))
+	t.Logf("Permission [%v] %v", GuestRead, int64(GuestRead))
+	t.Logf("Permission [%v] %v", GuestRefer, int64(GuestRefer))
+	t.Logf("Permission [%v] %v", GuestCreate, int64(GuestCreate))
+	t.Logf("Permission [%v] %v", GuestUpdate, int64(GuestUpdate))
+	t.Logf("Permission [%v] %v", GuestDelete, int64(GuestDelete))
+	t.Logf("Permission [%v] %v", GuestExecute, int64(GuestExecute))
+	t.Logf("Permission [%v] %v", GuestCRUD, int64(GuestCRUD))
 
-	AllPermissions := []AuthPermission{None, Peek, ReadStrict, CreateStrict, UpdateStrict, DeleteStrict, ExecuteStrict, ReferStrict, Read, Refer, Create, Update, Delete, Execute, CRUD}
+	AllPermissions := []AuthPermission{
+		None,
+		GuestPeek,
+		GuestRead,
+		GuestRefer,
+		GuestCreate,
+		GuestUpdate,
+		GuestDelete,
+		GuestExecute,
+		GuestCRUD,
+		UserPeek,
+		UserRead,
+		UserRefer,
+		UserCreate,
+		UserUpdate,
+		UserDelete,
+		UserExecute,
+		UserCRUD,
+		GroupPeek,
+		GroupRead,
+		GroupRefer,
+		GroupCreate,
+		GroupUpdate,
+		GroupDelete,
+		GroupExecute,
+		GroupCRUD,
+	}
 
 	for i, p1 := range AllPermissions {
 		for j, p2 := range AllPermissions {
@@ -66,8 +86,6 @@ func TestAuthPermissions(t *testing.T) {
 			if p1 == p2 {
 				t.Errorf("Permissions are equal [%v] == [%v]", p1, p2)
 			}
-
 		}
 	}
-
 }
