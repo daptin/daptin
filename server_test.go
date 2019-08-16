@@ -1,10 +1,10 @@
-package server
+package main
 
 import (
-	"context"
 	"flag"
 	"github.com/GeertJohan/go.rice"
 	"github.com/artpar/go-guerrilla"
+	"github.com/daptin/daptin/server"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/gin-gonic/gin"
@@ -20,8 +20,6 @@ import (
 	"strings"
 	"testing"
 )
-
-var stream = health.NewStream()
 
 const testSchemas = `Tables:
   - TableName: gallery_image
@@ -56,7 +54,7 @@ func TestServer(t *testing.T) {
 	os.Setenv("DAPTIN_SCHEMA_FOLDER", tempDir)
 
 	err := os.Remove("daptin_test.db")
-	os.Remove("server/daptin_test.db")
+	os.Remove("daptin_test.db")
 	log.Printf("Failed to delete existing file %v", err)
 
 	var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
@@ -88,13 +86,13 @@ func TestServer(t *testing.T) {
 	}
 	statementbuilder.InitialiseStatementBuilder(*db_type)
 
-	db, err := GetDbConnection(*db_type, *connection_string)
+	db, err := server.GetDbConnection(*db_type, *connection_string)
 	if err != nil {
 		panic(err)
 	}
 	log.Printf("Connection acquired from database")
 
-	var hostSwitch HostSwitch
+	var hostSwitch server.HostSwitch
 	var mailDaemon *guerrilla.Daemon
 	var taskScheduler resource.TaskScheduler
 	var configStore *resource.ConfigStore
@@ -105,7 +103,7 @@ func TestServer(t *testing.T) {
 	configStore.SetConfigValueFor("imap.enabled", "true", "backend")
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
 
-	hostSwitch, mailDaemon, taskScheduler, configStore = Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore = server.Main(boxRoot, db)
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -121,9 +119,9 @@ func TestServer(t *testing.T) {
 			log.Printf("Failed to close DB connections: %v", err)
 		}
 
-		db, err = GetDbConnection(*db_type, *connection_string)
+		db, err = server.GetDbConnection(*db_type, *connection_string)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore = Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
 
@@ -141,10 +139,28 @@ func TestServer(t *testing.T) {
 	}
 
 	log.Printf("Shutdown now")
-	srv.Shutdown(context.Background())
+	//
+	//shutDown := make(chan bool)
+	//
+	//srv.RegisterOnShutdown(func() {
+	//	shutDown <- true
+	//})
+	//err = srv.Shutdown(context.Background())
+	//if err != nil {
+	//	log.Printf("Failed to shut down server")
+	//}
+	//
+	//<-shutDown
+	//log.Printf("Shut down complete")
+	//
+	//err = os.Remove("daptin_test.db")
+	//if err != nil {
+	//	log.Printf("Failed to delete test database file")
+	//}
 
 }
-func RunTests(t *testing.T, hostSwitch HostSwitch, daemon *guerrilla.Daemon, db *sqlx.DB, scheduler resource.TaskScheduler, configStore *resource.ConfigStore) error {
+
+func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daemon, db *sqlx.DB, scheduler resource.TaskScheduler, configStore *resource.ConfigStore) error {
 
 	const baseAddress = "http://localhost:6336"
 
@@ -254,7 +270,7 @@ func RunTests(t *testing.T, hostSwitch HostSwitch, daemon *guerrilla.Daemon, db 
 }
 
 type TestRestartHandlerServer struct {
-	HostSwitch *HostSwitch
+	HostSwitch *server.HostSwitch
 }
 
 func (rhs *TestRestartHandlerServer) ServeHTTP(rew http.ResponseWriter, req *http.Request) {

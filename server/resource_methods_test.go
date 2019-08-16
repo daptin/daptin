@@ -14,8 +14,7 @@ import (
 )
 
 func GetDb() *InMemoryTestDatabase {
-
-	db, err := sqlx.Open("sqlite3", "test.db")
+	db, err := sqlx.Open("sqlite3", "daptin_test.db")
 	if err != nil {
 		panic(err)
 	}
@@ -42,11 +41,6 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	cruds := make(map[string]*resource.DbResource)
 
 	ms := BuildMiddlewareSet(&initConfig, &cruds)
-	for _, table := range initConfig.Tables {
-		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
-		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, table)
-		cruds[table.TableName] = res
-	}
 
 	resource.CheckRelations(&initConfig)
 	resource.CheckAuditTables(&initConfig)
@@ -82,7 +76,6 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	errc = tx.Commit()
 	resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
 
-
 	resource.UpdateStateMachineDescriptions(&initConfig, wrapper)
 	resource.UpdateExchanges(&initConfig, wrapper)
 	resource.UpdateStreams(&initConfig, wrapper)
@@ -92,6 +85,12 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	err := resource.UpdateActionTable(&initConfig, wrapper)
 	resource.CheckErr(err, "Failed to update action table")
 
+	for _, table := range initConfig.Tables {
+		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
+		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, table)
+		cruds[table.TableName] = res
+	}
+
 	dbResource := resource.NewDbResource(nil, wrapper, &ms, cruds, configStore, resource.TableInfo{})
 	return wrapper, dbResource
 }
@@ -99,7 +98,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 func GetResourceWithName(name string) (*InMemoryTestDatabase, *resource.DbResource) {
 	wrapper := GetDb()
 
-	cols := []api2go.ColumnInfo{}
+	var cols []api2go.ColumnInfo
 	model := api2go.NewApi2GoModel(name, cols, 0, nil)
 	tableInfo := resource.TableInfo{
 		TableName: name,
@@ -115,9 +114,9 @@ func TestGetReferenceIdToObject(t *testing.T) {
 
 	wrapper, dbResource := GetResource()
 	defer wrapper.db.Close()
-	dbResource.GetReferenceIdToObject("todo", "refId")
+	dbResource.Cruds["world"].GetReferenceIdToObject("world", "refId")
 
-	if !wrapper.HasExecuted("SELECT * FROM todo WHERE reference_id =") {
+	if !wrapper.HasExecuted("SELECT * FROM world WHERE reference_id =") {
 		t.Errorf("Expected query not fired")
 		t.Fail()
 	}
@@ -190,11 +189,11 @@ func TestStoreToken(t *testing.T) {
 
 func TestGetIdToObject(t *testing.T) {
 
-	wrapper, dbResource := GetResourceWithName("todo")
+	wrapper, dbResource := GetResourceWithName("world")
 	defer wrapper.db.Close()
-	dbResource.GetIdToObject("todo", 1)
+	dbResource.GetIdToObject("world", 1)
 
-	if !wrapper.HasExecuted("SELECT * FROM todo WHERE id =") {
+	if !wrapper.HasExecuted("SELECT * FROM world WHERE id =") {
 		t.Errorf("Expected query not fired")
 		t.Fail()
 	}
@@ -205,7 +204,7 @@ func TestGetActionsByType(t *testing.T) {
 
 	wrapper, dbResource := GetResource()
 	defer wrapper.db.Close()
-	dbResource.GetActionsByType("todo")
+	dbResource.GetActionsByType("world")
 
 	if !wrapper.HasExecuted("select a.action_name as name, w.table_name as ontype, a.label, action_schema as action_schema, a.instance_optional as instance_optional, a.reference_id as referenceid from action a join world w on w.id = a.world_id where w.table_name =") {
 		t.Errorf("Expected query not fired")
@@ -216,7 +215,7 @@ func TestGetActionsByType(t *testing.T) {
 
 func TestPaginatedFindAllWithoutFilters(t *testing.T) {
 
-	wrapper, dbResource := GetResourceWithName("todo")
+	wrapper, dbResource := GetResourceWithName("world")
 	defer wrapper.db.Close()
 	req := api2go.Request{
 		PlainRequest: &http.Request{
@@ -227,7 +226,7 @@ func TestPaginatedFindAllWithoutFilters(t *testing.T) {
 
 	dbResource.PaginatedFindAllWithoutFilters(req)
 
-	if !wrapper.HasExecuted("SELECT todo.permission, todo.reference_id FROM todo LIMIT 10 OFFSET 0") {
+	if !wrapper.HasExecuted("SELECT world.permission, world.reference_id FROM world LIMIT 10 OFFSET 0") {
 		t.Errorf("Expected query not fired")
 		t.Fail()
 	}
@@ -236,7 +235,7 @@ func TestPaginatedFindAllWithoutFilters(t *testing.T) {
 
 func TestCreateWithoutFilter(t *testing.T) {
 
-	wrapper, dbResource := GetResourceWithName("todo")
+	wrapper, dbResource := GetResourceWithName("world")
 	defer wrapper.db.Close()
 	req := api2go.Request{
 		PlainRequest: &http.Request{
@@ -246,10 +245,10 @@ func TestCreateWithoutFilter(t *testing.T) {
 	}
 
 	data := map[string]interface{}{}
-	obj := api2go.NewApi2GoModelWithData("todo", nil, 0, nil, data)
+	obj := api2go.NewApi2GoModelWithData("world", nil, 0, nil, data)
 	dbResource.CreateWithoutFilter(obj, req)
 
-	if !wrapper.HasExecuted("INSERT INTO todo (reference_id,permission,created_at) VALUES") {
+	if !wrapper.HasExecuted("INSERT INTO world (reference_id,permission,created_at) VALUES") {
 		t.Errorf("Expected query not fired")
 		t.Fail()
 	}
@@ -258,7 +257,7 @@ func TestCreateWithoutFilter(t *testing.T) {
 
 func TestPaginatedFindAllWithoutFilter(t *testing.T) {
 
-	wrapper, dbResource := GetResourceWithName("todo")
+	wrapper, dbResource := GetResourceWithName("world")
 	defer wrapper.db.Close()
 	req := api2go.Request{
 		PlainRequest: &http.Request{
@@ -268,7 +267,7 @@ func TestPaginatedFindAllWithoutFilter(t *testing.T) {
 	}
 	dbResource.PaginatedFindAllWithoutFilters(req)
 
-	if !wrapper.HasExecuted("SELECT todo.permission, todo.reference_id FROM todo LIMIT 10 OFFSET 0") {
+	if !wrapper.HasExecuted("SELECT world.permission, world.reference_id FROM world LIMIT 10 OFFSET 0") {
 		t.Errorf("Expected query not fired")
 		t.Fail()
 	}
