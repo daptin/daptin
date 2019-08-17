@@ -22,7 +22,7 @@ func (p PermissionInstance) CanExecute(userId string, usergroupId []auth.GroupPe
 
 	for _, uGroup := range usergroupId {
 		for _, oGroup := range p.UserGroupId {
-			if uGroup == oGroup && p.Permission&auth.GroupExecute == auth.GuestExecute {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupExecute == auth.GroupExecute {
 				return true
 			}
 		}
@@ -42,7 +42,7 @@ func (p PermissionInstance) CanCreate(userId string, usergroupId []auth.GroupPer
 
 	for _, uGroup := range usergroupId {
 		for _, oGroup := range p.UserGroupId {
-			if uGroup == oGroup && p.Permission&auth.GroupCreate == auth.GuestCreate {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupCreate == auth.GroupCreate {
 				return true
 			}
 		}
@@ -62,7 +62,7 @@ func (p PermissionInstance) CanUpdate(userId string, usergroupId []auth.GroupPer
 
 	for _, uGroup := range usergroupId {
 		for _, oGroup := range p.UserGroupId {
-			if uGroup == oGroup && p.Permission&auth.GroupUpdate == auth.GuestUpdate {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupUpdate == auth.GroupUpdate {
 				return true
 			}
 		}
@@ -82,7 +82,7 @@ func (p PermissionInstance) CanDelete(userId string, usergroupId []auth.GroupPer
 
 	for _, uGroup := range usergroupId {
 		for _, oGroup := range p.UserGroupId {
-			if uGroup == oGroup && p.Permission&auth.GroupDelete == auth.GuestDelete {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupDelete == auth.GroupDelete {
 				return true
 			}
 		}
@@ -102,7 +102,7 @@ func (p PermissionInstance) CanRefer(userId string, usergroupId []auth.GroupPerm
 
 	for _, uGroup := range usergroupId {
 		for _, oGroup := range p.UserGroupId {
-			if uGroup == oGroup && p.Permission&auth.GroupRefer == auth.GuestRefer {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupRefer == auth.GroupRefer {
 				return true
 			}
 		}
@@ -122,7 +122,7 @@ func (p PermissionInstance) CanRead(userId string, usergroupId []auth.GroupPermi
 
 	for _, uGroup := range usergroupId {
 		for _, oGroup := range p.UserGroupId {
-			if uGroup == oGroup && p.Permission&auth.GroupRead == auth.GuestRead {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupRead == auth.GroupRead {
 				return true
 			}
 		}
@@ -142,7 +142,7 @@ func (p PermissionInstance) CanPeek(userId string, usergroupId []auth.GroupPermi
 
 	for _, uGroup := range usergroupId {
 		for _, oGroup := range p.UserGroupId {
-			if uGroup == oGroup && p.Permission&auth.GroupPeek == auth.GuestPeek {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupPeek == auth.GroupPeek {
 				return true
 			}
 		}

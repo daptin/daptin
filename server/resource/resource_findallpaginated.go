@@ -205,6 +205,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	if _, ok := req.QueryParams["usergroup_id"]; ok && req.QueryParams["usergroupName"][0] == dr.model.GetName()+"_id" {
 		isRelatedGroupRequest = true
+		if relatedTableName == "" {
+			relatedTableName = dr.model.GetTableName()
+		}
 	}
 
 	if isRelatedGroupRequest {
@@ -212,13 +215,14 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		if dr.model.GetName() == "usergroup" {
 			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName))
 			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as relation_reference_id", relatedTableName, relatedTableName))
+			finalCols = append(finalCols, "usergroup.reference_id as reference_id")
 		} else {
 			finalCols = append(finalCols, "usergroup_id.permission")
 			finalCols = append(finalCols, "usergroup_id.reference_id as relation_reference_id")
+			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as reference_id", relatedTableName, relatedTableName))
 
 		}
 		//		finalCols = append(finalCols, prefix+"reference_id as reference_id")
-		finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as reference_id", relatedTableName, relatedTableName))
 	} else {
 		finalCols = append(finalCols, prefix+"permission")
 		finalCols = append(finalCols, prefix+"reference_id")
