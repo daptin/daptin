@@ -37,21 +37,17 @@ const testSchemas = `Tables:
         ForeignKeyData:
           DataSource: cloud_store
           Namespace: local-store
-          KeyName: images
-Imports:
-  - FilePath: ${imagePath}
-    Entity: site
-    FileType: json`
+          KeyName: images`
 
 func TestServer(t *testing.T) {
 
-	tempDir := os.TempDir() + "daptintest"
+	tempDir := os.TempDir() + "daptintest/"
 
 	os.Mkdir(tempDir, 0777)
 
 	schema := strings.Replace(testSchemas, "${imagePath}", tempDir, -1)
 
-	ioutil.WriteFile(tempDir+"/schema_test_daptin.yaml", []byte(schema), os.ModePerm)
+	ioutil.WriteFile(tempDir+"schema_test_daptin.yaml", []byte(schema), os.ModePerm)
 
 	os.Setenv("DAPTIN_SCHEMA_FOLDER", tempDir)
 
