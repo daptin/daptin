@@ -175,7 +175,7 @@
       },
       deleteRow(rowToDelete) {
         var that = this;
-        console.log("Delete row from list view", rowToDelete, that.finder);
+        console.log("now delete row from list view", rowToDelete, that.finder);
 
         that.jsonApi.builderStack = [];
 
@@ -185,9 +185,14 @@
 
         var top = that.finder[that.finder.length - 1];
 
+        let rowToDeleteElement = rowToDelete["id"];
+        if (false && rowToDelete["__type"] == "usergroup") {
+          rowToDeleteElement = rowToDelete["relation_reference_id"]
+        }
+
         that.jsonApi.relationships().all(top.model).destroy([{
           "type": rowToDelete["__type"],
-          "id": rowToDelete["id"]
+          "id": rowToDeleteElement
         }]).then(function (e) {
             that.reloadData();
           }, function(){

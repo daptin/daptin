@@ -41,8 +41,9 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
-
 	}
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
 
 	attrs := data.GetAllAsAttributes()
 
@@ -113,7 +114,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 						foreignObjectPermission := dr.GetObjectPermissionByReferenceId(col.ForeignKeyData.Namespace, valString)
 
-						if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+						if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 							val = foreignObject["id"]
 						} else {
 							return nil, errors.New(fmt.Sprintf("No write permission on object [%v][%v]", col.ForeignKeyData.Namespace, valString))
@@ -581,7 +582,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 			otherObjectPermission := dr.GetObjectPermissionByReferenceId(referencedTypeName, deleteId)
 
-			if otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+			if isAdmin || otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 
 				otherObjectId, err := dr.GetReferenceIdToId(referencedTypeName, deleteId)
 

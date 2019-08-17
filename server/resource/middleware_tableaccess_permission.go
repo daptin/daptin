@@ -31,7 +31,13 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
+	}
 
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
+
+	if isAdmin {
+		return results, nil
 	}
 
 	tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
@@ -72,7 +78,13 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
+	}
 
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
+
+	if isAdmin {
+		return results, nil
 	}
 
 	//log.Printf("User Id: %v", sessionUser.UserReferenceId)

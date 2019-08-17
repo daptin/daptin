@@ -54,6 +54,8 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		sessionUser = user.(*auth.SessionUser)
 
 	}
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
 
 	attrs := data.GetAllAsAttributes()
 
@@ -136,10 +138,10 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 					foreignObjectPermission := dr.GetObjectPermissionByReferenceId(col.ForeignKeyData.Namespace, valString)
 
-					if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+					if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 						uId = foreignObject["id"]
 					} else {
-						log.Printf("User cannot refer this object")
+						log.Printf("User cannot refer this object [%v][%v]", col.ForeignKeyData.Namespace, valString)
 						ok = false
 					}
 

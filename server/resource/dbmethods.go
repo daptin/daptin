@@ -230,7 +230,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 	resultObject := make(map[string]interface{})
 	err = dr.db.QueryRowx(selectQuery, queryParameters...).MapScan(resultObject)
 	if err != nil {
-		log.Errorf("Failed to scan permission 1 [%v]: %v", id, err)
+		log.Errorf("Failed to scan permission 3 [%v]: %v", id, err)
 	}
 	//log.Infof("permi map: %v", resultObject)
 	var perm PermissionInstance
@@ -386,18 +386,15 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 
 // Check if someone can invoke the become admin action
 // checks if there is only 1 real user in the system
-// No one can become admin once there are two non admin users
+// No one can become admin once we have an adminstrator
 func (dbResource *DbResource) CanBecomeAdmin() bool {
 
-	var count int
-
-	row := dbResource.db.QueryRowx("select count(*) from " + USER_ACCOUNT_TABLE_NAME + " where email != 'guest@cms.go'")
-	err := row.Scan(&count)
-	if err != nil {
-		return false
+	adminRefId := dbResource.GetAdminReferenceId()
+	if adminRefId == "" {
+		return true
 	}
 
-	return count < 2
+	return false
 
 }
 
@@ -777,7 +774,7 @@ func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 }
 func (dr *DbResource) GetUserIdByUsergroupId(usergroupId int64) string {
 
-	s, q, err := statementbuilder.Squirrel.Select("u.reference_id").From("user_account_user_account_id_has_usergroup_usergroup_id uu").LeftJoin("user u on uu.user_account_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).OrderBy("uu.created_at").Limit(1).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("u.reference_id").From("user_account_user_account_id_has_usergroup_usergroup_id uu").LeftJoin("user_account u on uu.user_account_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).OrderBy("uu.created_at").Limit(1).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create sql query: %v", err)
 		return ""
