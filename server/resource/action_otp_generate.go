@@ -38,7 +38,11 @@ func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		if (err != nil || userAccount == nil) && !phoneOk {
 			return nil, nil, []error{errors.New("invalid email")}
 		}
-		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "otp_of_account", userAccount["id"].(int64))
+		i := userAccount["id"]
+		if i == nil {
+			return nil, nil, []error{errors.New("invalid account")}
+		}
+		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "otp_of_account", i.(int64))
 	}
 
 	if phoneOk && userAccount == nil && mobile != "" {
@@ -46,7 +50,11 @@ func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		if err != nil {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}
-		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceId("user_account", userOtpProfile["otp_of_account"].(string))
+		i := userOtpProfile["otp_of_account"]
+		if i == nil {
+			return nil, nil, []error{errors.New("unregistered number")}
+		}
+		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceId("user_account", i.(string))
 		if err != nil {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}
