@@ -2,13 +2,13 @@
 
 app        := daptin
 static-app := build/linux-amd64/$(app)
-docker-tag := daptin/daptin
+docker-tag := daptin/daptin:current
 
 bin/$(app): *.go
 	go build -o $@
 
 docker: docker-daptin-binary
-	cd docker_dir && cp ../Dockerfile Dockerfile && cp ../github.com/daptin/daptin-linux-amd64 main && docker build -t daptin/daptin  . && cd ..
+	cd docker_dir && cp ../Dockerfile Dockerfile && cp ../github.com/daptin/daptin-linux-amd64 main && docker build -t daptin/daptin:current  . && cd ..
 
 
 docker-daptin-binary: github.com/daptin/daptin-linux-amd64
