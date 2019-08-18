@@ -132,7 +132,7 @@ func (p PermissionInstance) CanRead(userId string, usergroupId []auth.GroupPermi
 }
 
 func (p PermissionInstance) CanPeek(userId string, usergroupId []auth.GroupPermission) bool {
-	if p.UserId == userId && (p.Permission&auth.UserPeek == auth.UserPeek) {
+	if (p.UserId != "" && p.UserId == userId) && (p.Permission&auth.UserPeek == auth.UserPeek) {
 		return true
 	}
 
@@ -142,7 +142,7 @@ func (p PermissionInstance) CanPeek(userId string, usergroupId []auth.GroupPermi
 
 	for _, uGroup := range usergroupId {
 		for _, oGroup := range p.UserGroupId {
-			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupPeek == auth.GroupPeek {
+			if (oGroup.GroupReferenceId != "" && uGroup.GroupReferenceId == oGroup.GroupReferenceId) && oGroup.Permission&auth.GroupPeek == auth.GroupPeek {
 				return true
 			}
 		}

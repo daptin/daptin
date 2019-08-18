@@ -20,7 +20,6 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 			log.Printf("Overrider reference id mine with %v", authUser.UserReferenceId)
 			referenceId = authUser.UserReferenceId
 		}
-
 	}
 
 	for _, bf := range dr.ms.BeforeFindOne {
