@@ -247,10 +247,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	queryBuilder := statementbuilder.Squirrel.Select(distinctIdColumn).From(m.GetTableName())
 
-	if !isRelatedGroupRequest {
+	joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", m.GetTableName(), m.GetTableName())
+	if !isRelatedGroupRequest && m.GetTableName() != "usergroup" {
 		queryBuilder = queryBuilder.LeftJoin(
-			fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id tu on %s.id=tu.%s_id",
-				m.GetTableName(), m.GetTableName(), m.GetTableName(), m.GetTableName(),
+			fmt.Sprintf("%s %s on %s.id=%s.%s_id",
+				joinTableName, joinTableName, m.GetTableName(), joinTableName, m.GetTableName(),
 			))
 	}
 
@@ -351,7 +352,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				//log.Infof("Converted ids: %v", ids)
 				if err != nil {
 					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
-					continue
+					return nil, nil, nil, err
 				}
 				switch rel.Relation {
 				case "has_one":
@@ -416,6 +417,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), []string{"id"}, "reference_id", queries)
 				if err != nil {
 					log.Errorf("Failed to convert [%v]refids to ids[%v]: %v", rel.GetSubject(), queries, err)
+					return nil, nil, nil, err
 					continue
 				}
 
@@ -465,13 +467,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 	}
 
-	if !isAdmin {
-		queryBuilder = queryBuilder.Where(fmt.Sprintf("((%s.permission & 2) = 2) or "+
-			"((tu.permission & 32768) = 32768) or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256)", m.GetTableName(), m.GetTableName(), m.GetTableName()), sessionUser.UserId)
-		countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("((%s.permission & 2) = 2) or "+
-			"((tu.permission & 32768) = 32768) or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256)", m.GetTableName(), m.GetTableName(), m.GetTableName()), sessionUser.UserId)
+	if !isAdmin && m.GetTableName() != "usergroup" {
+		queryBuilder = queryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
+			"((%s.permission & 32768) = 32768) or "+
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", m.GetTableName(), joinTableName, m.GetTableName(), m.GetTableName()), sessionUser.UserId)
+		countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
+			"((%s.permission & 32768) = 32768) or "+
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", m.GetTableName(), joinTableName, m.GetTableName(), m.GetTableName()), sessionUser.UserId)
 	}
 
 	idsListQuery, args, err := queryBuilder.ToSql()

@@ -725,7 +725,9 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 		}
 
 		perm.Permission = auth.AuthPermission(i64)
-
+	} else {
+		pe := dr.GetObjectPermissionByReferenceId(rowType, refId.(string))
+		perm.Permission = pe.Permission
 	}
 	//log.Infof("Row permission: %v  ---------------- %v", perm, row)
 	return perm
