@@ -93,8 +93,8 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 	sql, args, err := statementbuilder.Squirrel.Select("table_name", "permission", "default_permission",
 		"world_schema_json", "is_top_level", "is_hidden", "is_state_tracking_enabled", "default_order",
-	).From("world").Where("table_name not like '%_has_%'").Where("table_name not like '%_audit'").Where("table_name not in (?,?,?,?)",
-		"world", "action", resource.USER_ACCOUNT_TABLE_NAME, "usergroup").ToSql()
+	).From("world").Where("table_name not like '%_has_%'").Where("table_name not like '%_audit'").Where("table_name not in (?,?,?)",
+		"world", "action", "usergroup").ToSql()
 	if err != nil {
 		return nil, err
 	}
