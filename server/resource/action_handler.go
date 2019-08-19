@@ -398,7 +398,7 @@ OutFields:
 
 			if !ok {
 				log.Errorf("Unknown method invoked: %v", outcome.Type)
-				return nil, errors.New("unknown method")
+				continue
 			}
 			_, responses1, err1 := handler.DoAction(outcome, model.Data)
 			if err1 != nil {
