@@ -1,7 +1,7 @@
 module github.com/daptin/daptin
 
 require (
-	github.com/GeertJohan/go.rice v0.0.0-20181229193832-0af3f3b09a0a
+	github.com/GeertJohan/go.rice v1.0.0
 	github.com/Masterminds/squirrel v1.1.0
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/advance512/yaml v0.0.0-20141213031416-e401b2b02685
@@ -23,7 +23,6 @@ require (
 	github.com/bamzi/jobrunner v0.0.0-20161019143021-273175f8b6eb // indirect
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/corpix/uarand v0.0.0 // indirect
-	github.com/daaku/go.zipexe v0.0.0-20150329023125-a5fe2436ffcb // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/digitalocean/godo v1.1.3 // indirect
 	github.com/disintegration/gift v1.2.0
@@ -67,6 +66,7 @@ require (
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/julienschmidt/httprouter v1.2.0
+	github.com/karalabe/xgo v0.0.0-20190301120235-2d6d1848fb02 // indirect
 	github.com/labstack/echo v0.0.0-20181205161348-3f8b45c8d0dd // indirect
 	github.com/leodido/go-urn v0.0.0-20181204092800-a67a23e1c1af // indirect
 	github.com/lib/pq v1.0.0

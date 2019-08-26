@@ -124,118 +124,121 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 	authDone := false
 
 	secMethods := operation.Security
-	*secMethods = append(*secMethods, d.router.Security...)
+	if secMethods != nil {
 
-	for _, security := range *secMethods {
+		*secMethods = append(*secMethods, d.router.Security...)
 
-		allDone := true
-		for secName := range security {
-			spec := securitySchemaMap[secName]
+		for _, security := range *secMethods {
 
-			done := false
-			switch spec.Value.Type {
+			allDone := true
+			for secName := range security {
+				spec := securitySchemaMap[secName]
 
-			case "oauth2":
+				done := false
+				switch spec.Value.Type {
 
-				oauthTokenId, ok := authKeys["oauth_token_id"].(string)
+				case "oauth2":
 
-				if ok {
-					oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+					oauthTokenId, ok := authKeys["oauth_token_id"].(string)
 
-					if err != nil {
-						allDone = false
-						break
-					}
-					tokenSource := oauthConfig.TokenSource(context.Background(), oauthToken)
+					if ok {
+						oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
 
-					if oauthToken.Expiry.Before(time.Now()) {
-
-						oauthToken, err = tokenSource.Token()
 						if err != nil {
 							allDone = false
 							break
 						}
-						d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix())
-					}
+						tokenSource := oauthConfig.TokenSource(context.Background(), oauthToken)
 
-					arguments = append(arguments, req.Header{
-						"Authorization": "Bearer " + oauthToken.AccessToken,
-					})
+						if oauthToken.Expiry.Before(time.Now()) {
 
-				}
+							oauthToken, err = tokenSource.Token()
+							if err != nil {
+								allDone = false
+								break
+							}
+							d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix())
+						}
 
-			case "http":
-				switch spec.Value.Scheme {
-				case "basic":
-					basic := authKeys["token"].(string)
-					header := base64.StdEncoding.EncodeToString([]byte(basic))
-
-					if ok {
 						arguments = append(arguments, req.Header{
-							"Authorization": "Basic " + header,
+							"Authorization": "Bearer " + oauthToken.AccessToken,
 						})
-						done = true
+
 					}
 
-				case "bearer":
-					token, ok := authKeys["token"].(string)
+				case "http":
+					switch spec.Value.Scheme {
+					case "basic":
+						basic := authKeys["token"].(string)
+						header := base64.StdEncoding.EncodeToString([]byte(basic))
 
-					if ok {
+						if ok {
+							arguments = append(arguments, req.Header{
+								"Authorization": "Basic " + header,
+							})
+							done = true
+						}
 
-						arguments = append(arguments, req.Header{
-							"Authorization": "Bearer " + token,
-						})
-						done = true
+					case "bearer":
+						token, ok := authKeys["token"].(string)
+
+						if ok {
+
+							arguments = append(arguments, req.Header{
+								"Authorization": "Bearer " + token,
+							})
+							done = true
+						}
+
 					}
 
-				}
+				case "apiKey":
+					switch spec.Value.In {
 
-			case "apiKey":
-				switch spec.Value.In {
+					case "cookie":
+						name := spec.Value.Name
+						value, ok := authKeys[name].(string)
+						if ok {
 
-				case "cookie":
-					name := spec.Value.Name
-					value, ok := authKeys[name].(string)
-					if ok {
+							arguments = append(arguments, req.Header{
+								"Cookie": fmt.Sprintf("%s=%s", name, value),
+							})
+							done = true
+						}
 
-						arguments = append(arguments, req.Header{
-							"Cookie": fmt.Sprintf("%s=%s", name, value),
-						})
-						done = true
-					}
+					case "header":
+						name := spec.Value.Name
+						value, ok := authKeys[name].(string)
+						if ok {
 
-				case "header":
-					name := spec.Value.Name
-					value, ok := authKeys[name].(string)
-					if ok {
+							arguments = append(arguments, req.Header{
+								name: value,
+							})
+							done = true
+						}
 
-						arguments = append(arguments, req.Header{
+					case "query":
+
+						name := spec.Value.Name
+						value := authKeys[name].(string)
+						arguments = append(arguments, req.QueryParam{
 							name: value,
 						})
 						done = true
 					}
-
-				case "query":
-
-					name := spec.Value.Name
-					value := authKeys[name].(string)
-					arguments = append(arguments, req.QueryParam{
-						name: value,
-					})
-					done = true
 				}
-			}
 
-			if !done {
-				allDone = false
-				break
+				if !done {
+					allDone = false
+					break
+				}
+
+			}
+			if allDone {
+				authDone = true
 			}
 
 		}
-		if allDone {
-			authDone = true
-		}
-
 	}
 
 	if !authDone {
