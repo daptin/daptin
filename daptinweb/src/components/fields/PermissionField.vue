@@ -49,39 +49,7 @@
               </el-col>
 
             </el-row>
-            <el-row>
 
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedOwnerPermission.canReadStrict">Read Strict</el-checkbox>
-              </el-col>
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedOwnerPermission.canCreateStrict">Create Strict</el-checkbox>
-              </el-col>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedOwnerPermission.canUpdateStrict">Update Strict</el-checkbox>
-              </el-col>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedOwnerPermission.canDeleteStrict">Delete Strict</el-checkbox>
-              </el-col>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedOwnerPermission.canExecuteStrict">Execute Strict</el-checkbox>
-              </el-col>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedOwnerPermission.canReferStrict">Refer Strict</el-checkbox>
-              </el-col>
-
-
-            </el-row>
 
           </div>
         </el-tab-pane>
@@ -132,39 +100,7 @@
               </el-col>
 
             </el-row>
-            <el-row>
 
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedGroupPermission.canReadStrict">Read Strict</el-checkbox>
-              </el-col>
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedGroupPermission.canCreateStrict">Create Strict</el-checkbox>
-              </el-col>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedGroupPermission.canUpdateStrict">Update Strict</el-checkbox>
-              </el-col>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedGroupPermission.canDeleteStrict">Delete Strict</el-checkbox>
-              </el-col>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedGroupPermission.canExecuteStrict">Execute Strict</el-checkbox>
-              </el-col>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedGroupPermission.canReferStrict">Refer Strict</el-checkbox>
-              </el-col>
-
-
-            </el-row>
 
           </div>
         </el-tab-pane>
@@ -214,39 +150,6 @@
               </el-col>
 
             </el-row>
-            <el-row>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedGuestPermission.canReadStrict">Read Strict</el-checkbox>
-              </el-col>
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedGuestPermission.canCreateStrict">Create Strict</el-checkbox>
-              </el-col>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedGuestPermission.canUpdateStrict">Update Strict</el-checkbox>
-              </el-col>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedGuestPermission.canDeleteStrict">Delete Strict</el-checkbox>
-              </el-col>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedGuestPermission.canExecuteStrict">Execute Strict</el-checkbox>
-              </el-col>
-
-
-              <el-col :span="8">
-                <el-checkbox v-model="parsedGuestPermission.canReferStrict">Refer Strict</el-checkbox>
-              </el-col>
-
-
-            </el-row>
 
 
           </div>
@@ -278,20 +181,27 @@
         groupValue: {},
         permissionStructure: {
           None: 0,
-          Peek: 1 << 0,
-          ReadStrict: 1 << 1,
-          CreateStrict: 1 << 2,
-          UpdateStrict: 1 << 3,
-          DeleteStrict: 1 << 4,
-          ExecuteStrict: 1 << 5,
-          ReferStrict: 1 << 6,
-          Read: 1 << 1 | 1 << 0,
-          Refer: 1 << 6 | 1 << 1 | 1 << 0,
-          Create: 1 << 2 | 1 << 1 | 1 << 0, // Create strict, read, peek
-          Update: 1 << 3 | 1 << 1 | 1 << 0, // Update strict, read, peek
-          Delete: 1 << 4 | 1 << 1 | 1 << 0, // Delete strict, read, peek
-          Execute: 1 << 5 | 1 << 0,
-          CRUD: 1 << 0 | 1 << 1 | 1 << 2 | 1 << 3 | 1 << 4 | 1 << 6,
+          GuestPeek: 1 << 0,
+          GuestRead: 1 << 1,
+          GuestCreate: 1 << 2,
+          GuestUpdate: 1 << 3,
+          GuestDelete: 1 << 4,
+          GuestExecute: 1 << 5,
+          GuestRefer: 1 << 6,
+          UserPeek: 1 << 7,
+          UserRead: 1 << 8,
+          UserCreate: 1 << 9,
+          UserUpdate: 1 << 10,
+          UserDelete: 1 << 11,
+          UserExecute: 1 << 12,
+          UserRefer: 1 << 13,
+          GroupPeek: 1 << 14,
+          GroupRead: 1 << 15,
+          GroupCreate: 1 << 16,
+          GroupUpdate: 1 << 17,
+          GroupDelete: 1 << 18,
+          GroupExecute: 1 << 19,
+          GroupRefer: 1 << 20,
         },
         parsedGuestPermission: {
           canPeek: false,
@@ -300,14 +210,8 @@
           canUpdate: false,
           canDelete: false,
           canRefer: false,
-          canReadStrict: false,
-          canCreateStrict: false,
-          canUpdateStrict: false,
-          canDeleteStrict: false,
-          canReferStrict: false,
           canCRUD: false,
           canExecute: false,
-          canExecuteStrict: false,
         },
         parsedOwnerPermission: {
           canPeek: false,
@@ -316,14 +220,8 @@
           canUpdate: false,
           canDelete: false,
           canRefer: false,
-          canReadStrict: false,
-          canCreateStrict: false,
-          canUpdateStrict: false,
-          canDeleteStrict: false,
-          canReferStrict: false,
           canCRUD: false,
           canExecute: false,
-          canExecuteStrict: false,
         },
         parsedGroupPermission: {
           canPeek: false,
@@ -332,39 +230,63 @@
           canUpdate: false,
           canDelete: false,
           canRefer: false,
-          canReadStrict: false,
-          canCreateStrict: false,
-          canUpdateStrict: false,
-          canDeleteStrict: false,
-          canReferStrict: false,
           canCRUD: false,
           canExecute: false,
-          canExecuteStrict: false,
         },
       }
     },
     mounted() {
       var that = this;
-      setTimeout(function(){
+      setTimeout(function () {
         console.log("permission value", that.value)
         var permissionValue = that.value;
-        that.guestValue = permissionValue % 1000;
-        permissionValue = parseInt(permissionValue / 1000);
-        that.groupValue = permissionValue % 1000;
-        permissionValue = parseInt(permissionValue / 1000);
-        that.ownerValue = permissionValue % 1000;
-        permissionValue = parseInt(permissionValue / 1000);
-        console.log("Owner, group, guest", that.ownerValue, that.groupValue, that.guestValue);
-        that.parsedGuestPermission = that.parsePermission(that.guestValue);
-        that.parsedOwnerPermission = that.parsePermission(that.ownerValue);
-        that.parsedGroupPermission = that.parsePermission(that.groupValue);
+        that.guestValue = {
+          canPeek: (permissionValue & that.permissionStructure.GuestPeek) == that.permissionStructure.GuestPeek,
+          canRead: (permissionValue & that.permissionStructure.GuestRead) == that.permissionStructure.GuestRead,
+          canCreate: (permissionValue & that.permissionStructure.GuestCreate) == that.permissionStructure.GuestCreate,
+          canUpdate: (permissionValue & that.permissionStructure.GuestUpdate) == that.permissionStructure.GuestUpdate,
+          canDelete: (permissionValue & that.permissionStructure.GuestDelete) == that.permissionStructure.GuestDelete,
+          canRefer: (permissionValue & that.permissionStructure.GuestRefer) == that.permissionStructure.GuestRefer,
+          canCRUD: (permissionValue & that.permissionStructure.GuestPeek) == that.permissionStructure.GuestPeek,
+          canExecute: (permissionValue & that.permissionStructure.GuestExecute) == that.permissionStructure.GuestExecute,
+        };
+        that.guestValue.canCRUD = that.guestValue.canRead & that.guestValue.canCreate & that.guestValue.canUpdate & that.guestValue.canDelete;
+
+        that.userValue = {
+          canPeek: (permissionValue & that.permissionStructure.UserPeek) == that.permissionStructure.UserPeek,
+          canRead: (permissionValue & that.permissionStructure.UserRead) == that.permissionStructure.UserRead,
+          canCreate: (permissionValue & that.permissionStructure.UserCreate) == that.permissionStructure.UserCreate,
+          canUpdate: (permissionValue & that.permissionStructure.UserUpdate) == that.permissionStructure.UserUpdate,
+          canDelete: (permissionValue & that.permissionStructure.UserDelete) == that.permissionStructure.UserDelete,
+          canRefer: (permissionValue & that.permissionStructure.UserRefer) == that.permissionStructure.UserRefer,
+          canCRUD: (permissionValue & that.permissionStructure.UserPeek) == that.permissionStructure.UserPeek,
+          canExecute: (permissionValue & that.permissionStructure.UserExecute) == that.permissionStructure.UserExecute,
+        };
+        that.userValue.canCRUD = that.userValue.canRead & that.userValue.canCreate & that.userValue.canUpdate & that.userValue.canDelete;
+
+
+        that.groupValue = {
+          canPeek: (permissionValue & that.permissionStructure.GroupPeek) == that.permissionStructure.GroupPeek,
+          canRead: (permissionValue & that.permissionStructure.GroupRead) == that.permissionStructure.GroupRead,
+          canCreate: (permissionValue & that.permissionStructure.GroupCreate) == that.permissionStructure.GroupCreate,
+          canUpdate: (permissionValue & that.permissionStructure.GroupUpdate) == that.permissionStructure.GroupUpdate,
+          canDelete: (permissionValue & that.permissionStructure.GroupDelete) == that.permissionStructure.GroupDelete,
+          canRefer: (permissionValue & that.permissionStructure.GroupRefer) == that.permissionStructure.GroupRefer,
+          canCRUD: (permissionValue & that.permissionStructure.GroupPeek) == that.permissionStructure.GroupPeek,
+          canExecute: (permissionValue & that.permissionStructure.GroupExecute) == that.permissionStructure.GroupExecute,
+        };
+        that.groupValue.canCRUD = that.groupValue.canRead & that.groupValue.canCreate & that.groupValue.canUpdate & that.groupValue.canDelete;
+
+        that.parsedGuestPermission = that.guestValue;
+        that.parsedOwnerPermission = that.userValue;
+        that.parsedGroupPermission = that.groupValue;
       }, 200);
 
     },
     methods: {
       setValue(obj, newValue) {
         var keys = Object.keys(obj);
-        for(var i=0; i<keys.length;i++) {
+        for (var i = 0; i < keys.length; i++) {
           if (newValue === undefined) {
             obj[keys[i]] = !obj[keys[i]]
           } else {
@@ -396,7 +318,7 @@
           case "guest":
             this.setValue(this.parsedGuestPermission, true);
             break;
-        };
+        }
       },
       toggleSelectionAll() {
         switch (this.activeTabName) {
@@ -409,57 +331,35 @@
           case "guest":
             this.setValue(this.parsedGuestPermission);
             break;
-        };
+        }
+
       },
       updatePermissionValue() {
-//        console.log("make permission value");
-        var ownerPermission = this.makePermission(this.parsedOwnerPermission);
-        var guestPermission = this.makePermission(this.parsedGuestPermission);
-        var groupPermission = this.makePermission(this.parsedGroupPermission);
+        var ownerPermission = this.makePermission(this.parsedOwnerPermission, "User");
+        var guestPermission = this.makePermission(this.parsedGuestPermission, "Guest");
+        var groupPermission = this.makePermission(this.parsedGroupPermission, "Group");
         console.log("owner permission", ownerPermission);
         console.log("guest permission", guestPermission);
         console.log("group permission", groupPermission);
 
-        this.value = (ownerPermission * 1000 * 1000) + (groupPermission * 1000) + (guestPermission)
+        this.value = (ownerPermission  | groupPermission | guestPermission)
         console.log("updated permission value to ", this.value);
       },
-      makePermission(permissionObject) {
-//        console.log("make permission from", permissionObject);
-
+      makePermission(permissionObject, userType) {
         var value = 0;
         var perms = Object.keys(this.permissionStructure);
         for (var i = 0; i < perms.length; i++) {
           let permissionName = perms[i];
-          var permission = this.permissionStructure[permissionName];
-//          console.log("Check for ", permissionName, permission)
 
-          if (permissionObject["can" + permissionName]) {
+          if (!permissionName.startsWith(userType)) {
+            continue
+          }
+          var permission = this.permissionStructure[permissionName];
+          if (permissionObject["can" + permissionName.substring(userType.length)]) {
             value = value | permission;
           }
-
         }
-
         return value
-      },
-      parsePermission(val) {
-        const res = {
-          canPeek: (val & this.permissionStructure.Peek ) == this.permissionStructure.Peek,
-          canRead: (val & this.permissionStructure.Read ) == this.permissionStructure.Read,
-          canCreate: (val & this.permissionStructure.Create ) == this.permissionStructure.Create,
-          canUpdate: (val & this.permissionStructure.Update ) == this.permissionStructure.Update,
-          canDelete: (val & this.permissionStructure.Delete ) == this.permissionStructure.Delete,
-          canRefer: (val & this.permissionStructure.Refer ) == this.permissionStructure.Refer,
-          canReadStrict: (val & this.permissionStructure.ReadStrict ) == this.permissionStructure.ReadStrict,
-          canCreateStrict: (val & this.permissionStructure.CreateStrict ) == this.permissionStructure.CreateStrict,
-          canUpdateStrict: (val & this.permissionStructure.UpdateStrict ) == this.permissionStructure.UpdateStrict,
-          canDeleteStrict: (val & this.permissionStructure.DeleteStrict ) == this.permissionStructure.DeleteStrict,
-          canReferStrict: (val & this.permissionStructure.ReferStrict ) == this.permissionStructure.ReferStrict,
-          canCRUD: (val & this.permissionStructure.CRUD ) == this.permissionStructure.CRUD,
-          canExecute: (val & this.permissionStructure.Execute ) == this.permissionStructure.Execute,
-          canExecuteStrict: (val & this.permissionStructure.ExecuteStrict ) == this.permissionStructure.ExecuteStrict,
-        }
-        console.log("parsed permission", res)
-        return res;
       },
     },
     watch: {

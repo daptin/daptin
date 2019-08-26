@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"database/sql/driver"
 	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go"
@@ -17,171 +16,45 @@ import (
 	"strings"
 )
 
-type CmsUser interface {
-	GetName() string
-	GetEmail() string
-	IsGuest() bool
-	IsLoggedIn() bool
-}
-
-type cmsUser struct {
-	name       string
-	email      string
-	isLoggedIn bool
-}
-
-func (c *cmsUser) GetName() string {
-	return c.name
-}
-
-func (c *cmsUser) GetEmail() string {
-	return c.email
-}
-
-func (c *cmsUser) IsGuest() bool {
-	return !c.isLoggedIn
-}
-
-func (c *cmsUser) IsLoggedIn() bool {
-	return c.isLoggedIn
-}
-
 type AuthPermission int64
 
 const None AuthPermission = iota
 
 const (
-	Peek AuthPermission = 1 << iota
-	ReadStrict
-	CreateStrict
-	UpdateStrict
-	DeleteStrict
-	ExecuteStrict
-	ReferStrict
+	GuestPeek AuthPermission = 1 << iota
+	GuestRead
+	GuestCreate
+	GuestUpdate
+	GuestDelete
+	GuestExecute
+	GuestRefer
+	UserPeek
+	UserRead
+	UserCreate
+	UserUpdate
+	UserDelete
+	UserExecute
+	UserRefer
+	GroupPeek
+	GroupRead
+	GroupCreate
+	GroupUpdate
+	GroupDelete
+	GroupExecute
+	GroupRefer
 )
 
 const (
-	Read    = ReadStrict | Peek
-	Refer   = ReferStrict | Read
-	Create  = CreateStrict | Read
-	Update  = UpdateStrict | Read
-	Delete  = DeleteStrict | Read
-	Execute = ExecuteStrict | Peek
-	CRUD    = Read | Create | Update | Delete | Refer
+	GuestCRUD = GuestPeek | GuestRead | GuestCreate | GuestUpdate | GuestDelete | GuestRefer
+	UserCRUD  = UserPeek | UserRead | UserCreate | UserUpdate | UserDelete | UserRefer
+	GroupCRUD = GroupPeek | GroupRead | GroupCreate | GroupUpdate | GroupDelete | GroupRefer
 )
 
-type ObjectPermission struct {
-	OwnerPermission AuthPermission
-	GroupPermission AuthPermission
-	GuestPermission AuthPermission
-}
-
-func (op *ObjectPermission) Scan(value interface{}) error {
-
-	newOp := ParsePermission(value.(int64))
-	op.GroupPermission = newOp.GroupPermission
-	op.OwnerPermission = newOp.OwnerPermission
-	op.GuestPermission = newOp.GuestPermission
-	return nil
-}
-func (op ObjectPermission) Value() (driver.Value, error) {
-	return op.IntValue(), nil
-}
-
-var DEFAULT_PERMISSION = NewPermission(Peek|Refer, CRUD|Execute, CRUD|Execute)
-var ALLOW_ALL_PERMISSIONS = NewPermission(CRUD|Execute, CRUD|Execute, CRUD|Execute)
-
-func (op ObjectPermission) OwnerCan(a AuthPermission) bool {
-	return op.OwnerPermission&a == a
-}
-
-func (op ObjectPermission) GroupCan(a AuthPermission) bool {
-	return op.GroupPermission&a == a
-}
-
-func (op ObjectPermission) GuestCan(a AuthPermission) bool {
-	return op.GuestPermission&a == a
-}
-
-func (al ObjectPermission) IntValue() int64 {
-	return int64(al.OwnerPermission)*1000*1000 + int64(al.GroupPermission)*1000 + int64(al.GuestPermission)
-}
-
-func ParsePermission(p int64) ObjectPermission {
-	al := ObjectPermission{}
-	al.GuestPermission = AuthPermission(p % 1000)
-	p = p / 1000
-	al.GroupPermission = AuthPermission(p % 1000)
-	p = p / 1000
-	al.OwnerPermission = AuthPermission(p % 1000)
-	return al
-}
-
-func NewPermission(guest AuthPermission, group AuthPermission, owner AuthPermission) ObjectPermission {
-	al := ObjectPermission{}
-	al.GuestPermission = guest
-	al.GroupPermission = group
-	al.OwnerPermission = owner
-	return al
-}
-
-func (al ObjectPermission) String() string {
-	return fmt.Sprintf("Owner[%v], Group[%v], Guest[%v]", al.OwnerPermission.String(), al.GroupPermission.String(), al.GuestPermission.String())
-}
+var DEFAULT_PERMISSION = GuestPeek | GuestExecute | UserCRUD | UserExecute | GroupCreate | GroupExecute
+var ALLOW_ALL_PERMISSIONS = GuestCRUD | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute
 
 func (a AuthPermission) String() string {
-
-	vals := []string{}
-
-	if a == None {
-		vals = append(vals, "Can None")
-		return "Can Do None"
-	}
-
-	if Peek&a == Peek {
-		vals = append(vals, "Can Peek")
-	}
-	if ReadStrict&a == ReadStrict {
-		vals = append(vals, "Can ReadStrict")
-	}
-	if CreateStrict&a == CreateStrict {
-		vals = append(vals, "Can CreateStrict")
-	}
-	if UpdateStrict&a == UpdateStrict {
-		vals = append(vals, "Can UpdateStrict")
-	}
-	if DeleteStrict&a == DeleteStrict {
-		vals = append(vals, "Can DeleteStrict")
-	}
-	if ExecuteStrict&a == ExecuteStrict {
-		vals = append(vals, "Can ExecuteStrict")
-	}
-	if ReferStrict&a == ReferStrict {
-		vals = append(vals, "Can ReferStrict")
-	}
-	if Read&a == Read {
-		vals = append(vals, "Can Read")
-	}
-	if Create&a == Create {
-		vals = append(vals, "Can Create")
-	}
-	if Update&a == Update {
-		vals = append(vals, "Can Update")
-	}
-	if Delete&a == Delete {
-		vals = append(vals, "Can Delete")
-	}
-	if Execute&a == Execute {
-		vals = append(vals, "Can Execute")
-	}
-	if Refer&a == Refer {
-		vals = append(vals, "Can Refer")
-	}
-	if CRUD&a == CRUD {
-		vals = append(vals, "Can CRUD")
-	}
-
-	return strings.Join(vals, ", \n")
+	return fmt.Sprintf("%d", a)
 }
 
 type ResourceAdapter interface {
@@ -378,7 +251,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				mapData["name"] = name
 				mapData["email"] = email
 
-				newUser := api2go.NewApi2GoModelWithData("user_account", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
+				newUser := api2go.NewApi2GoModelWithData("user_account", nil, int64(DEFAULT_PERMISSION), nil, mapData)
 
 				req1 := api2go.Request{
 					PlainRequest: &http.Request{
@@ -397,7 +270,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				mapData = make(map[string]interface{})
 				mapData["name"] = "Home group of " + name
 
-				newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
+				newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, int64(DEFAULT_PERMISSION), nil, mapData)
 
 				resp, err = a.userGroupCrud.Create(newUserGroup, req1)
 				if err != nil {
@@ -410,7 +283,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				mapData["user_account_id"] = referenceId
 				mapData["usergroup_id"] = userGroupId
 
-				newUserUserGroup := api2go.NewApi2GoModelWithData("user_account_user_account_id_has_usergroup_usergroup_id", nil, DEFAULT_PERMISSION.IntValue(), nil, mapData)
+				newUserUserGroup := api2go.NewApi2GoModelWithData("user_account_user_account_id_has_usergroup_usergroup_id", nil, int64(DEFAULT_PERMISSION), nil, mapData)
 
 				uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req1)
 				if err != nil {
@@ -488,5 +361,5 @@ type GroupPermission struct {
 	GroupReferenceId    string `db:"groupreferenceid"`
 	ObjectReferenceId   string `db:"objectreferenceid"`
 	RelationReferenceId string `db:"relationreferenceid"`
-	Permission          ObjectPermission
+	Permission          AuthPermission
 }

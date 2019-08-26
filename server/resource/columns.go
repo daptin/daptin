@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/auth"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -826,6 +827,14 @@ var SystemActions = []Action{
 			},
 		},
 		OutFields: []Outcome{
+			{
+				Type:   "jwt.token",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"email":    "~email",
+					"password": "~password",
+				},
+			},
 			{
 				Type:   "jwt.token",
 				Method: "EXECUTE",
@@ -1735,7 +1744,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "mail_server",
 		IsHidden:      false,
-		Icon:          "fa-envelope-alt",
+		Icon:          "fa-envelope",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1806,7 +1815,7 @@ var StandardTables = []TableInfo{
 		TableName:     "mail_account",
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,
-		Icon:          "fa-envelope-alt",
+		Icon:          "fa-envelope",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "username",
@@ -1882,7 +1891,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "mail",
 		IsHidden:      false,
-		Icon:          "fa-envelope-o",
+		Icon:          "fa-envelope",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -2105,12 +2114,12 @@ var StandardData = []api2go.Api2GoModel{
 type TableInfo struct {
 	TableName              string `db:"table_name"`
 	TableId                int
-	DefaultPermission      int64 `db:"default_permission"`
+	DefaultPermission      auth.AuthPermission `db:"default_permission"`
 	Columns                []api2go.ColumnInfo
 	StateMachines          []LoopbookFsmDescription
 	Relations              []api2go.TableRelation
 	IsTopLevel             bool `db:"is_top_level"`
-	Permission             int64
+	Permission             auth.AuthPermission
 	UserId                 uint64   `db:"user_account_id"`
 	IsHidden               bool     `db:"is_hidden"`
 	IsJoinTable            bool     `db:"is_join_table"`

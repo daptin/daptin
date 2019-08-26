@@ -2,12 +2,12 @@ package resource
 
 import (
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-imap"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
-	"github.com/Masterminds/squirrel"
 	"strings"
 )
 
@@ -23,8 +23,6 @@ type DbResource struct {
 	contextCache     map[string]interface{}
 	defaultGroups    []int64
 }
-
-
 
 func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, tableInfo TableInfo) *DbResource {
 	//log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
@@ -76,7 +74,7 @@ func (dr *DbResource) GetContext(key string) interface{} {
 
 func (dr *DbResource) GetAdminReferenceId() string {
 	cacheVal := dr.GetContext("administrator_reference_id")
-	if cacheVal == nil {
+	if cacheVal == nil || cacheVal == "" {
 
 		userRefId := dr.GetUserIdByUsergroupId(2)
 		dr.PutContext("administrator_reference_id", userRefId)
@@ -105,7 +103,7 @@ func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, sto
 
 	q := statementbuilder.Squirrel.Select("*").From("mail").Where(squirrel.Eq{
 		"mail_box_id": mailBoxId,
-		"deleted": false,
+		"deleted":     false,
 	}).Offset(uint64(start - 1))
 
 	if stop > 0 {
@@ -135,7 +133,7 @@ func (dr *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32
 
 	q := statementbuilder.Squirrel.Select("*").From("mail").Where(squirrel.Eq{
 		"mail_box_id": mailBoxId,
-		"deleted": false,
+		"deleted":     false,
 	}).Where(squirrel.GtOrEq{
 		"id": start,
 	})

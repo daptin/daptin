@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	"github.com/daptin/daptin/server/auth"
 	"strconv"
 	"strings"
 
@@ -63,6 +64,17 @@ type Group struct {
 func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[string]interface{}, [][]map[string]interface{}, *PaginationData, error) {
 	//log.Infof("Find all row by params: [%v]: %v", dr.model.GetName(), req.QueryParams)
 	var err error
+
+	user := req.PlainRequest.Context().Value("user")
+	sessionUser := &auth.SessionUser{}
+
+	if user != nil {
+		sessionUser = user.(*auth.SessionUser)
+	}
+
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
+
 	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
 	relatedTableName := ""
 	if dr.model.GetName() == "usergroup" && len(req.QueryParams) > 2 {
@@ -196,7 +208,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 	} else {
 		for _, col := range cols {
-			if col.ExcludeFromApi || col.ColumnName == "permission" || col.ColumnName == "reference_id" {
+			if col.ExcludeFromApi || col.ColumnName == "permission" || col.ColumnName == "reference_id" || col.ColumnName == "id" {
 				continue
 			}
 			finalCols = append(finalCols, prefix+col.ColumnName)
@@ -205,26 +217,43 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	if _, ok := req.QueryParams["usergroup_id"]; ok && req.QueryParams["usergroupName"][0] == dr.model.GetName()+"_id" {
 		isRelatedGroupRequest = true
+		if relatedTableName == "" {
+			relatedTableName = dr.model.GetTableName()
+		}
 	}
 
+	idColumn := fmt.Sprintf("%s.id", m.GetTableName())
+	distinctIdColumn := fmt.Sprintf("distinct(%s.id)", m.GetTableName())
 	if isRelatedGroupRequest {
 		//log.Infof("Switch permission to join table j1 instead of %v%v", prefix, "permission")
 		if dr.model.GetName() == "usergroup" {
 			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName))
 			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as relation_reference_id", relatedTableName, relatedTableName))
+			finalCols = append(finalCols, "usergroup.reference_id as reference_id")
 		} else {
 			finalCols = append(finalCols, "usergroup_id.permission")
 			finalCols = append(finalCols, "usergroup_id.reference_id as relation_reference_id")
-
+			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as reference_id", relatedTableName, relatedTableName))
+			joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", relatedTableName, relatedTableName)
+			distinctIdColumn = fmt.Sprintf("distinct(%s.id)", joinTableName)
+			idColumn = fmt.Sprintf("%s.id", joinTableName)
 		}
 		//		finalCols = append(finalCols, prefix+"reference_id as reference_id")
-		finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as reference_id", relatedTableName, relatedTableName))
 	} else {
 		finalCols = append(finalCols, prefix+"permission")
 		finalCols = append(finalCols, prefix+"reference_id")
+
 	}
 
-	queryBuilder := statementbuilder.Squirrel.Select(finalCols...).From(m.GetTableName())
+	queryBuilder := statementbuilder.Squirrel.Select(distinctIdColumn).From(m.GetTableName())
+
+	joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", m.GetTableName(), m.GetTableName())
+	if !isRelatedGroupRequest && m.GetTableName() != "usergroup" {
+		queryBuilder = queryBuilder.LeftJoin(
+			fmt.Sprintf("%s %s on %s.id=%s.%s_id",
+				joinTableName, joinTableName, m.GetTableName(), joinTableName, m.GetTableName(),
+			))
+	}
 
 	var countQueryBuilder squirrel.SelectBuilder
 	countQueryBuilder = statementbuilder.Squirrel.Select("count(*)").From(m.GetTableName()).Offset(0).Limit(1)
@@ -245,6 +274,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	} else {
 		queryBuilder = queryBuilder.Offset(pageNumber).Limit(pageSize)
 	}
+	joins := make([]string, 0)
 
 	infos := dr.model.GetColumns()
 
@@ -322,7 +352,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				//log.Infof("Converted ids: %v", ids)
 				if err != nil {
 					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
-					continue
+					return nil, nil, nil, err
 				}
 				switch rel.Relation {
 				case "has_one":
@@ -343,7 +373,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 					wh[rel.GetObjectName()+".id"] = ids
 					queryBuilder = queryBuilder.Join(rel.GetJoinString()).Where(wh)
 					countQueryBuilder = countQueryBuilder.Join(rel.GetJoinString()).Where(wh)
-
+					joins = append(joins, rel.GetJoinString())
 				}
 			}
 		}
@@ -374,6 +404,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				}
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
+				joins = append(joins, rel.GetReverseJoinString())
 				break
 
 			case "belongs_to":
@@ -386,11 +417,12 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), []string{"id"}, "reference_id", queries)
 				if err != nil {
 					log.Errorf("Failed to convert [%v]refids to ids[%v]: %v", rel.GetSubject(), queries, err)
-					continue
+					return nil, nil, nil, err
 				}
 
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".id": ids})
 				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".id": ids})
+				joins = append(joins, rel.GetReverseJoinString())
 				break
 			case "has_many":
 				subjectId := req.QueryParams[rel.GetSubject()+"_id"]
@@ -400,12 +432,14 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				//log.Infof("Has many [%v] : [%v] === %v", dr.model.GetName(), subjectId, req.QueryParams)
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
+				joins = append(joins, rel.GetReverseJoinString())
 
 			}
 
 		}
 	}
 
+	orders := make([]string, 0)
 	for _, so := range sortOrder {
 
 		if len(so) < 1 {
@@ -413,16 +447,70 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 		//log.Infof("Sort order: %v", so)
 		if so[0] == '-' {
-			queryBuilder = queryBuilder.OrderBy(prefix + so[1:] + " desc")
-			countQueryBuilder = countQueryBuilder.OrderBy(prefix + so[1:] + " desc")
+			ord := prefix + so[1:] + " desc"
+			queryBuilder = queryBuilder.OrderBy(ord)
+			countQueryBuilder = countQueryBuilder.OrderBy(ord)
+			orders = append(orders, ord)
 		} else {
 			if so[0] == '+' {
-				queryBuilder = queryBuilder.OrderBy(prefix + so[1:] + " asc")
-				countQueryBuilder = countQueryBuilder.OrderBy(prefix + so[1:] + " asc")
+				ord := prefix + so[1:] + " asc"
+				queryBuilder = queryBuilder.OrderBy(ord)
+				countQueryBuilder = countQueryBuilder.OrderBy(ord)
+				orders = append(orders, ord)
 			} else {
-				queryBuilder = queryBuilder.OrderBy(prefix + so + " asc")
-				countQueryBuilder = countQueryBuilder.OrderBy(prefix + so + " asc")
+				ord := prefix + so + " asc"
+				queryBuilder = queryBuilder.OrderBy(ord)
+				countQueryBuilder = countQueryBuilder.OrderBy(ord)
+				orders = append(orders, ord)
 			}
+		}
+	}
+
+	if !isAdmin && m.GetTableName() != "usergroup" {
+		queryBuilder = queryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
+			"((%s.permission & 32768) = 32768) or "+
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", m.GetTableName(), joinTableName, m.GetTableName(), m.GetTableName()), sessionUser.UserId)
+		countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
+			"((%s.permission & 32768) = 32768) or "+
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", m.GetTableName(), joinTableName, m.GetTableName(), m.GetTableName()), sessionUser.UserId)
+	}
+
+	idsListQuery, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	log.Printf("Id query\n%s", idsListQuery)
+	log.Printf("Id query args\n%v", args)
+	stmt, err := dr.connection.Preparex(idsListQuery)
+	if err != nil {
+		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
+		log.Errorf("Failed to prepare sql: %v", err)
+		return nil, nil, nil, err
+	}
+	idsRow, err := stmt.Queryx(args...)
+	if err != nil {
+		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
+		log.Errorf("Failed to prepare sql: %v", err)
+		return nil, nil, nil, err
+	}
+	ids := make([]int64, 0)
+
+	for idsRow.Next() {
+		var id int64
+		err = idsRow.Scan(&id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		ids = append(ids, id)
+	}
+
+	queryBuilder = statementbuilder.Squirrel.Select(finalCols...).From(m.GetTableName()).Where(squirrel.Eq{
+		idColumn: ids,
+	}).OrderBy(orders...)
+
+	if len(joins) > 0 {
+		for _, j := range joins {
+			queryBuilder = queryBuilder.Join(j)
 		}
 	}
 
@@ -434,7 +522,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		return nil, nil, nil, err
 	}
 
-	stmt, err := dr.connection.Preparex(sql1)
+	stmt, err = dr.connection.Preparex(sql1)
 	if err != nil {
 		log.Infof("Findall select query sql: %v == %v", sql1, args)
 		log.Errorf("Failed to prepare sql: %v", err)

@@ -678,7 +678,7 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 				action.InstanceOptional,
 				adminUserId,
 				u.String(),
-				auth.ALLOW_ALL_PERMISSIONS.IntValue()).ToSql()
+				auth.ALLOW_ALL_PERMISSIONS).ToSql()
 
 			_, err = db.Exec(s, v...)
 			if err != nil {
@@ -812,7 +812,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api2go.Request) []error {
 	errs := make([]error, 0)
 	for _, row := range data {
-		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, row)
+		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, int64(auth.DEFAULT_PERMISSION), nil, row)
 		_, err := crud.Create(model, req)
 		if err != nil {
 			errs = append(errs, err)
@@ -830,7 +830,7 @@ func ImportDataStringArray(data [][]string, headers []string, entityName string,
 		for i, header := range headers {
 			rowMap[header] = rowArray[i]
 		}
-		model := api2go.NewApi2GoModelWithData(entityName, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, rowMap)
+		model := api2go.NewApi2GoModelWithData(entityName, nil, int64(auth.DEFAULT_PERMISSION), nil, rowMap)
 		_, err := crud.Create(model, req)
 		if err != nil {
 			errs = append(errs, err)
@@ -877,7 +877,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		u1 := u.String()
 		s, v, err = statementbuilder.Squirrel.Insert("usergroup").
 			Columns("name", "reference_id", "permission").
-			Values("guests", u1, auth.DEFAULT_PERMISSION.IntValue()).ToSql()
+			Values("guests", u1, auth.DEFAULT_PERMISSION).ToSql()
 
 		CheckErr(err, "Failed to create insert user-group sql for guests")
 		_, err = tx.Exec(s, v...)
@@ -887,7 +887,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		u1 = u.String()
 		s, v, err = statementbuilder.Squirrel.Insert("usergroup").
 			Columns("name", "reference_id", "permission").
-			Values("administrators", u1, auth.DEFAULT_PERMISSION.IntValue()).ToSql()
+			Values("administrators", u1, auth.DEFAULT_PERMISSION).ToSql()
 		CheckErr(err, "Failed to create insert user-group sql for administrators")
 		_, err = tx.Exec(s, v...)
 		CheckErr(err, "Failed to insert user-group sql for administrators")
@@ -941,7 +941,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 	defaultWorldPermission := auth.DEFAULT_PERMISSION
 
 	if systemHasNoAdmin {
-		defaultWorldPermission = auth.NewPermission(auth.CRUD|auth.Execute, auth.CRUD|auth.Execute, auth.CRUD|auth.Execute)
+		defaultWorldPermission = auth.GuestCRUD | auth.GuestExecute | auth.UserCRUD | auth.UserExecute | auth.GroupCRUD | auth.GroupExecute
 	}
 
 	st := simpletable.New()
@@ -1017,10 +1017,10 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		} else {
 
 			if table.Permission == 0 {
-				table.Permission = defaultWorldPermission.IntValue()
+				table.Permission = defaultWorldPermission
 			}
 			if table.DefaultPermission == 0 {
-				table.DefaultPermission = defaultWorldPermission.IntValue()
+				table.DefaultPermission = defaultWorldPermission
 			}
 
 			log.Infof("Insert table data (IsTopLevel[%v], IsHidden[%v]) [%v]", table.IsTopLevel, table.IsHidden, table.TableName)
@@ -1062,8 +1062,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		CheckErr(err, "Failed to scan table info")
 		err = json.Unmarshal(tableSchema, &tabInfo)
 		CheckErr(err, "Failed to convert json to table schema")
-		tabInfo.Permission = permission
-		tabInfo.DefaultPermission = defaultPermission
+		tabInfo.Permission = auth.AuthPermission(permission)
+		tabInfo.DefaultPermission = auth.AuthPermission(defaultPermission)
 		tabInfo.IsTopLevel = isTopLevel
 		tabInfo.IsHidden = isHidden
 		tabInfo.IsJoinTable = isJoinTable

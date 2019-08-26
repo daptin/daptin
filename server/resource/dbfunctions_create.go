@@ -29,7 +29,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 
 		if strings.Index(table.TableName, "_has_") > -1 {
 
-			cols := []string{}
+			var cols []string
 
 			for _, col := range table.Columns {
 				if col.IsForeignKey {
@@ -203,8 +203,8 @@ func CheckAuditTables(config *CmsConfig) {
 			TableName:         auditTableName,
 			Columns:           columnsCopy,
 			IsHidden:          true,
-			DefaultPermission: auth.NewPermission(auth.Read, auth.Read, auth.Read).IntValue(),
-			Permission:        auth.NewPermission(auth.Create, auth.Create, auth.Create).IntValue(),
+			DefaultPermission: auth.GuestCreate | auth.GuestRead | auth.GroupRead,
+			Permission:        auth.GuestCreate | auth.UserCreate | auth.GroupCreate,
 		}
 
 		config.Tables = append(config.Tables, newTable)
@@ -469,7 +469,7 @@ func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) {
 func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
 	createTableQuery := fmt.Sprintf("create table %s (\n", tableInfo.TableName)
 
-	columnStrings := []string{}
+	var columnStrings []string
 	colsDone := map[string]bool{}
 	for _, c := range tableInfo.Columns {
 
