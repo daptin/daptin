@@ -7,51 +7,146 @@ import (
 type PermissionInstance struct {
 	UserId      string
 	UserGroupId []auth.GroupPermission
-	Permission  auth.ObjectPermission
+	Permission  auth.AuthPermission
 }
 
 func (p PermissionInstance) CanExecute(userId string, usergroupId []auth.GroupPermission) bool {
-	return p.CheckBit(userId, usergroupId, auth.ExecuteStrict)
-}
 
-func (p PermissionInstance) CanCreate(userId string, usergroupId []auth.GroupPermission) bool {
-	return p.CheckBit(userId, usergroupId, auth.CreateStrict)
-}
-
-func (p PermissionInstance) CanUpdate(userId string, usergroupId []auth.GroupPermission) bool {
-	return p.CheckBit(userId, usergroupId, auth.UpdateStrict)
-}
-
-func (p PermissionInstance) CanDelete(userId string, usergroupId []auth.GroupPermission) bool {
-	return p.CheckBit(userId, usergroupId, auth.DeleteStrict)
-}
-
-func (p PermissionInstance) CanRefer(userId string, usergroupId []auth.GroupPermission) bool {
-	return p.CheckBit(userId, usergroupId, auth.ReferStrict)
-}
-
-func (p PermissionInstance) CanRead(userId string, usergroupId []auth.GroupPermission) bool {
-	return p.CheckBit(userId, usergroupId, auth.ReadStrict)
-}
-
-func (p PermissionInstance) CanPeek(userId string, usergroupId []auth.GroupPermission) bool {
-	return p.CheckBit(userId, usergroupId, auth.Peek)
-}
-
-func (p1 PermissionInstance) CheckBit(userId string, usergroupId []auth.GroupPermission, bit auth.AuthPermission) bool {
-	if userId == p1.UserId && len(p1.UserId) > 0 {
-		return p1.Permission.OwnerCan(bit)
+	if p.UserId == userId && (p.Permission&auth.UserExecute == auth.UserExecute) {
+		return true
 	}
 
-	for _, uid := range usergroupId {
+	if p.Permission&auth.GuestExecute == auth.GuestExecute {
+		return true
+	}
 
-		for _, gid := range p1.UserGroupId {
-			if uid.GroupReferenceId == gid.GroupReferenceId && len(gid.GroupReferenceId) > 0 {
-				if gid.Permission.GroupCan(bit) {
-					return true
-				}
+	for _, uGroup := range usergroupId {
+		for _, oGroup := range p.UserGroupId {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupExecute == auth.GroupExecute {
+				return true
 			}
 		}
 	}
-	return p1.Permission.GuestCan(bit)
+
+	return false
+}
+
+func (p PermissionInstance) CanCreate(userId string, usergroupId []auth.GroupPermission) bool {
+	if p.UserId == userId && (p.Permission&auth.UserCreate == auth.UserCreate) {
+		return true
+	}
+
+	if p.Permission&auth.GuestCreate == auth.GuestCreate {
+		return true
+	}
+
+	for _, uGroup := range usergroupId {
+		for _, oGroup := range p.UserGroupId {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupCreate == auth.GroupCreate {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (p PermissionInstance) CanUpdate(userId string, usergroupId []auth.GroupPermission) bool {
+	if p.UserId == userId && (p.Permission&auth.UserUpdate == auth.UserUpdate) {
+		return true
+	}
+
+	if p.Permission&auth.GuestUpdate == auth.GuestUpdate {
+		return true
+	}
+
+	for _, uGroup := range usergroupId {
+		for _, oGroup := range p.UserGroupId {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupUpdate == auth.GroupUpdate {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (p PermissionInstance) CanDelete(userId string, usergroupId []auth.GroupPermission) bool {
+	if p.UserId == userId && (p.Permission&auth.UserDelete == auth.UserDelete) {
+		return true
+	}
+
+	if p.Permission&auth.GuestDelete == auth.GuestDelete {
+		return true
+	}
+
+	for _, uGroup := range usergroupId {
+		for _, oGroup := range p.UserGroupId {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupDelete == auth.GroupDelete {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (p PermissionInstance) CanRefer(userId string, usergroupId []auth.GroupPermission) bool {
+	if p.UserId == userId && (p.Permission&auth.UserRefer == auth.UserRefer) {
+		return true
+	}
+
+	if p.Permission&auth.GuestRefer == auth.GuestRefer {
+		return true
+	}
+
+	for _, uGroup := range usergroupId {
+		for _, oGroup := range p.UserGroupId {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupRefer == auth.GroupRefer {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (p PermissionInstance) CanRead(userId string, usergroupId []auth.GroupPermission) bool {
+	if p.UserId == userId && (p.Permission&auth.UserRead == auth.UserRead) {
+		return true
+	}
+
+	if p.Permission&auth.GuestRead == auth.GuestRead {
+		return true
+	}
+
+	for _, uGroup := range usergroupId {
+		for _, oGroup := range p.UserGroupId {
+			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupRead == auth.GroupRead {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (p PermissionInstance) CanPeek(userId string, usergroupId []auth.GroupPermission) bool {
+	if (p.UserId != "" && p.UserId == userId) && (p.Permission&auth.UserPeek == auth.UserPeek) {
+		return true
+	}
+
+	if p.Permission&auth.GuestPeek == auth.GuestPeek {
+		return true
+	}
+
+	for _, uGroup := range usergroupId {
+		for _, oGroup := range p.UserGroupId {
+			if (oGroup.GroupReferenceId != "" && uGroup.GroupReferenceId == oGroup.GroupReferenceId) && oGroup.Permission&auth.GroupPeek == auth.GroupPeek {
+				return true
+			}
+		}
+	}
+
+	return false
 }

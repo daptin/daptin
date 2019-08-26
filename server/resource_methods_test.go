@@ -41,6 +41,11 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	cruds := make(map[string]*resource.DbResource)
 
 	ms := BuildMiddlewareSet(&initConfig, &cruds)
+	for _, table := range initConfig.Tables {
+		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
+		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, table)
+		cruds[table.TableName] = res
+	}
 
 	resource.CheckRelations(&initConfig)
 	resource.CheckAuditTables(&initConfig)
@@ -226,7 +231,7 @@ func TestPaginatedFindAllWithoutFilters(t *testing.T) {
 
 	dbResource.PaginatedFindAllWithoutFilters(req)
 
-	if !wrapper.HasExecuted("SELECT world.permission, world.reference_id FROM world LIMIT 10 OFFSET 0") {
+	if !wrapper.HasExecuted("SELECT distinct(world.id) from world left join ") {
 		t.Errorf("Expected query not fired")
 		t.Fail()
 	}
@@ -267,7 +272,7 @@ func TestPaginatedFindAllWithoutFilter(t *testing.T) {
 	}
 	dbResource.PaginatedFindAllWithoutFilters(req)
 
-	if !wrapper.HasExecuted("SELECT world.permission, world.reference_id FROM world LIMIT 10 OFFSET 0") {
+	if !wrapper.HasExecuted("SELECT distinct(world.id) FROM world LEFT JOIN world_world_id_") {
 		t.Errorf("Expected query not fired")
 		t.Fail()
 	}

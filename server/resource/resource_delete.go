@@ -5,9 +5,9 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/statementbuilder"
-	"github.com/Masterminds/squirrel"
 	"net/http"
 )
 
@@ -32,6 +32,8 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 		sessionUser = user.(*auth.SessionUser)
 
 	}
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
 
 	m := dr.model
 	//log.Infof("Get all resource type: %v\n", m)
@@ -106,7 +108,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 							otherObjectPermission := dr.GetObjectPermissionById(rel.GetObject(), objectId)
 
-							if !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+							if !isAdmin || !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 								canDeleteAllIds = false
 								break
 							}
@@ -114,7 +116,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 						}
 
 						if canDeleteAllIds {
-							for relationId, _ := range ids {
+							for relationId := range ids {
 								log.Infof("Delete relation with [%v][%v]", joinTableName, relationId)
 								err = dr.Cruds[joinTableName].DeleteWithoutFilters(relationId, req)
 								CheckErr(err, "Failed to delete join 1")
@@ -142,7 +144,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 					defer res.Close()
 					if err == nil {
 
-						ids := []string{}
+						var ids []string
 						for res.Next() {
 							var s string
 							res.Scan(&s)
@@ -251,7 +253,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 					defer res.Close()
 					if err == nil {
 
-						ids := []string{}
+						var ids []string
 						for res.Next() {
 							var s string
 							res.Scan(&s)

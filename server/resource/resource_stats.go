@@ -2,10 +2,10 @@ package resource
 
 import (
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/Masterminds/squirrel"
 	"regexp"
 	"sort"
 	"strings"
@@ -102,9 +102,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 			case "notin":
 				builder = function(squirrel.Eq{leftVal: strings.Split(rightVal, ",")})
 			}
-
 		}
-
 	}
 
 	sql, args, err := builder.ToSql()

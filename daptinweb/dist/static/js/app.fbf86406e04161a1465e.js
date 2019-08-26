@@ -530,7 +530,7 @@ var ActionManager = function ActionManager() {
         if (res.response.data.Message) {
           __WEBPACK_IMPORTED_MODULE_5_element_ui__["Notification"].error(res.response.data.Message);
         } else {
-          __WEBPACK_IMPORTED_MODULE_5_element_ui__["Notification"].error("I failed to " + window.titleCase(actionName));
+          __WEBPACK_IMPORTED_MODULE_5_element_ui__["Notification"].error("Failed to " + window.titleCase(actionName));
         }
       });
     });
@@ -5094,20 +5094,27 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
       groupValue: {},
       permissionStructure: {
         None: 0,
-        Peek: 1 << 0,
-        ReadStrict: 1 << 1,
-        CreateStrict: 1 << 2,
-        UpdateStrict: 1 << 3,
-        DeleteStrict: 1 << 4,
-        ExecuteStrict: 1 << 5,
-        ReferStrict: 1 << 6,
-        Read: 1 << 1 | 1 << 0,
-        Refer: 1 << 6 | 1 << 1 | 1 << 0,
-        Create: 1 << 2 | 1 << 1 | 1 << 0,
-        Update: 1 << 3 | 1 << 1 | 1 << 0,
-        Delete: 1 << 4 | 1 << 1 | 1 << 0,
-        Execute: 1 << 5 | 1 << 0,
-        CRUD: 1 << 0 | 1 << 1 | 1 << 2 | 1 << 3 | 1 << 4 | 1 << 6
+        GuestPeek: 1 << 0,
+        GuestRead: 1 << 1,
+        GuestCreate: 1 << 2,
+        GuestUpdate: 1 << 3,
+        GuestDelete: 1 << 4,
+        GuestExecute: 1 << 5,
+        GuestRefer: 1 << 6,
+        UserPeek: 1 << 7,
+        UserRead: 1 << 8,
+        UserCreate: 1 << 9,
+        UserUpdate: 1 << 10,
+        UserDelete: 1 << 11,
+        UserExecute: 1 << 12,
+        UserRefer: 1 << 13,
+        GroupPeek: 1 << 14,
+        GroupRead: 1 << 15,
+        GroupCreate: 1 << 16,
+        GroupUpdate: 1 << 17,
+        GroupDelete: 1 << 18,
+        GroupExecute: 1 << 19,
+        GroupRefer: 1 << 20
       },
       parsedGuestPermission: {
         canPeek: false,
@@ -5116,14 +5123,8 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         canUpdate: false,
         canDelete: false,
         canRefer: false,
-        canReadStrict: false,
-        canCreateStrict: false,
-        canUpdateStrict: false,
-        canDeleteStrict: false,
-        canReferStrict: false,
         canCRUD: false,
-        canExecute: false,
-        canExecuteStrict: false
+        canExecute: false
       },
       parsedOwnerPermission: {
         canPeek: false,
@@ -5132,14 +5133,8 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         canUpdate: false,
         canDelete: false,
         canRefer: false,
-        canReadStrict: false,
-        canCreateStrict: false,
-        canUpdateStrict: false,
-        canDeleteStrict: false,
-        canReferStrict: false,
         canCRUD: false,
-        canExecute: false,
-        canExecuteStrict: false
+        canExecute: false
       },
       parsedGroupPermission: {
         canPeek: false,
@@ -5148,14 +5143,8 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         canUpdate: false,
         canDelete: false,
         canRefer: false,
-        canReadStrict: false,
-        canCreateStrict: false,
-        canUpdateStrict: false,
-        canDeleteStrict: false,
-        canReferStrict: false,
         canCRUD: false,
-        canExecute: false,
-        canExecuteStrict: false
+        canExecute: false
       }
     };
   },
@@ -5164,16 +5153,45 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
     setTimeout(function () {
       console.log("permission value", that.value);
       var permissionValue = that.value;
-      that.guestValue = permissionValue % 1000;
-      permissionValue = parseInt(permissionValue / 1000);
-      that.groupValue = permissionValue % 1000;
-      permissionValue = parseInt(permissionValue / 1000);
-      that.ownerValue = permissionValue % 1000;
-      permissionValue = parseInt(permissionValue / 1000);
-      console.log("Owner, group, guest", that.ownerValue, that.groupValue, that.guestValue);
-      that.parsedGuestPermission = that.parsePermission(that.guestValue);
-      that.parsedOwnerPermission = that.parsePermission(that.ownerValue);
-      that.parsedGroupPermission = that.parsePermission(that.groupValue);
+      that.guestValue = {
+        canPeek: (permissionValue & that.permissionStructure.GuestPeek) == that.permissionStructure.GuestPeek,
+        canRead: (permissionValue & that.permissionStructure.GuestRead) == that.permissionStructure.GuestRead,
+        canCreate: (permissionValue & that.permissionStructure.GuestCreate) == that.permissionStructure.GuestCreate,
+        canUpdate: (permissionValue & that.permissionStructure.GuestUpdate) == that.permissionStructure.GuestUpdate,
+        canDelete: (permissionValue & that.permissionStructure.GuestDelete) == that.permissionStructure.GuestDelete,
+        canRefer: (permissionValue & that.permissionStructure.GuestRefer) == that.permissionStructure.GuestRefer,
+        canCRUD: (permissionValue & that.permissionStructure.GuestPeek) == that.permissionStructure.GuestPeek,
+        canExecute: (permissionValue & that.permissionStructure.GuestExecute) == that.permissionStructure.GuestExecute
+      };
+      that.guestValue.canCRUD = that.guestValue.canRead & that.guestValue.canCreate & that.guestValue.canUpdate & that.guestValue.canDelete;
+
+      that.userValue = {
+        canPeek: (permissionValue & that.permissionStructure.UserPeek) == that.permissionStructure.UserPeek,
+        canRead: (permissionValue & that.permissionStructure.UserRead) == that.permissionStructure.UserRead,
+        canCreate: (permissionValue & that.permissionStructure.UserCreate) == that.permissionStructure.UserCreate,
+        canUpdate: (permissionValue & that.permissionStructure.UserUpdate) == that.permissionStructure.UserUpdate,
+        canDelete: (permissionValue & that.permissionStructure.UserDelete) == that.permissionStructure.UserDelete,
+        canRefer: (permissionValue & that.permissionStructure.UserRefer) == that.permissionStructure.UserRefer,
+        canCRUD: (permissionValue & that.permissionStructure.UserPeek) == that.permissionStructure.UserPeek,
+        canExecute: (permissionValue & that.permissionStructure.UserExecute) == that.permissionStructure.UserExecute
+      };
+      that.userValue.canCRUD = that.userValue.canRead & that.userValue.canCreate & that.userValue.canUpdate & that.userValue.canDelete;
+
+      that.groupValue = {
+        canPeek: (permissionValue & that.permissionStructure.GroupPeek) == that.permissionStructure.GroupPeek,
+        canRead: (permissionValue & that.permissionStructure.GroupRead) == that.permissionStructure.GroupRead,
+        canCreate: (permissionValue & that.permissionStructure.GroupCreate) == that.permissionStructure.GroupCreate,
+        canUpdate: (permissionValue & that.permissionStructure.GroupUpdate) == that.permissionStructure.GroupUpdate,
+        canDelete: (permissionValue & that.permissionStructure.GroupDelete) == that.permissionStructure.GroupDelete,
+        canRefer: (permissionValue & that.permissionStructure.GroupRefer) == that.permissionStructure.GroupRefer,
+        canCRUD: (permissionValue & that.permissionStructure.GroupPeek) == that.permissionStructure.GroupPeek,
+        canExecute: (permissionValue & that.permissionStructure.GroupExecute) == that.permissionStructure.GroupExecute
+      };
+      that.groupValue.canCRUD = that.groupValue.canRead & that.groupValue.canCreate & that.groupValue.canUpdate & that.groupValue.canDelete;
+
+      that.parsedGuestPermission = that.guestValue;
+      that.parsedOwnerPermission = that.userValue;
+      that.parsedGroupPermission = that.groupValue;
     }, 200);
   },
 
@@ -5212,7 +5230,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         case "guest":
           this.setValue(this.parsedGuestPermission, true);
           break;
-      };
+      }
     },
     toggleSelectionAll: function toggleSelectionAll() {
       switch (this.activeTabName) {
@@ -5225,54 +5243,34 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         case "guest":
           this.setValue(this.parsedGuestPermission);
           break;
-      };
+      }
     },
     updatePermissionValue: function updatePermissionValue() {
-      var ownerPermission = this.makePermission(this.parsedOwnerPermission);
-      var guestPermission = this.makePermission(this.parsedGuestPermission);
-      var groupPermission = this.makePermission(this.parsedGroupPermission);
+      var ownerPermission = this.makePermission(this.parsedOwnerPermission, "User");
+      var guestPermission = this.makePermission(this.parsedGuestPermission, "Guest");
+      var groupPermission = this.makePermission(this.parsedGroupPermission, "Group");
       console.log("owner permission", ownerPermission);
       console.log("guest permission", guestPermission);
       console.log("group permission", groupPermission);
 
-      this.value = ownerPermission * 1000 * 1000 + groupPermission * 1000 + guestPermission;
+      this.value = ownerPermission | groupPermission | guestPermission;
       console.log("updated permission value to ", this.value);
     },
-    makePermission: function makePermission(permissionObject) {
-
+    makePermission: function makePermission(permissionObject, userType) {
       var value = 0;
       var perms = __WEBPACK_IMPORTED_MODULE_0_babel_runtime_core_js_object_keys___default()(this.permissionStructure);
       for (var i = 0; i < perms.length; i++) {
         var permissionName = perms[i];
+
+        if (!permissionName.startsWith(userType)) {
+          continue;
+        }
         var permission = this.permissionStructure[permissionName];
-
-
-        if (permissionObject["can" + permissionName]) {
+        if (permissionObject["can" + permissionName.substring(userType.length)]) {
           value = value | permission;
         }
       }
-
       return value;
-    },
-    parsePermission: function parsePermission(val) {
-      var res = {
-        canPeek: (val & this.permissionStructure.Peek) == this.permissionStructure.Peek,
-        canRead: (val & this.permissionStructure.Read) == this.permissionStructure.Read,
-        canCreate: (val & this.permissionStructure.Create) == this.permissionStructure.Create,
-        canUpdate: (val & this.permissionStructure.Update) == this.permissionStructure.Update,
-        canDelete: (val & this.permissionStructure.Delete) == this.permissionStructure.Delete,
-        canRefer: (val & this.permissionStructure.Refer) == this.permissionStructure.Refer,
-        canReadStrict: (val & this.permissionStructure.ReadStrict) == this.permissionStructure.ReadStrict,
-        canCreateStrict: (val & this.permissionStructure.CreateStrict) == this.permissionStructure.CreateStrict,
-        canUpdateStrict: (val & this.permissionStructure.UpdateStrict) == this.permissionStructure.UpdateStrict,
-        canDeleteStrict: (val & this.permissionStructure.DeleteStrict) == this.permissionStructure.DeleteStrict,
-        canReferStrict: (val & this.permissionStructure.ReferStrict) == this.permissionStructure.ReferStrict,
-        canCRUD: (val & this.permissionStructure.CRUD) == this.permissionStructure.CRUD,
-        canExecute: (val & this.permissionStructure.Execute) == this.permissionStructure.Execute,
-        canExecuteStrict: (val & this.permissionStructure.ExecuteStrict) == this.permissionStructure.ExecuteStrict
-      };
-      console.log("parsed permission", res);
-      return res;
     }
   },
   watch: {
@@ -5396,7 +5394,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
     },
     deleteRow: function deleteRow(rowToDelete) {
       var that = this;
-      console.log("Delete row from list view", rowToDelete, that.finder);
+      console.log("now delete row from list view", rowToDelete, that.finder);
 
       that.jsonApi.builderStack = [];
 
@@ -5406,9 +5404,14 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
       var top = that.finder[that.finder.length - 1];
 
+      var rowToDeleteElement = rowToDelete["id"];
+      if (false) {
+        rowToDeleteElement = rowToDelete["relation_reference_id"];
+      }
+
       that.jsonApi.relationships().all(top.model).destroy([{
         "type": rowToDelete["__type"],
-        "id": rowToDelete["id"]
+        "id": rowToDeleteElement
       }]).then(function (e) {
         that.reloadData();
       }, function () {
@@ -10310,29 +10313,6 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
     staticClass: "treeview"
   }, [_vm._m(0), _vm._v(" "), _c('ul', {
     staticClass: "treeview-menu"
-  }, _vm._l((_vm.topWorlds), function(w) {
-    return (w.table_name != 'user_account' && w.table_name != 'usergroup') ? _c('li', {
-      staticClass: "pageLink",
-      on: {
-        "click": _vm.toggleMenu
-      }
-    }, [_c('router-link', {
-      class: w.table_name + '-link',
-      attrs: {
-        "to": {
-          name: 'Entity',
-          params: {
-            tablename: w.table_name
-          }
-        }
-      }
-    }, [_c('span', {
-      staticClass: "page"
-    }, [_vm._v(_vm._s(_vm._f("titleCase")(w.table_name)))])])], 1) : _vm._e()
-  }))]), _vm._v(" "), _c('li', {
-    staticClass: "treeview"
-  }, [_vm._m(1), _vm._v(" "), _c('ul', {
-    staticClass: "treeview-menu"
   }, [_c('li', {
     staticClass: "pageLink",
     on: {
@@ -10373,7 +10353,7 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
     staticClass: "page"
   }, [_vm._v("User Group")])])], 1)])]), _vm._v(" "), _c('li', {
     staticClass: "treeview help-support"
-  }, [_vm._m(2), _vm._v(" "), _c('ul', {
+  }, [_vm._m(1), _vm._v(" "), _c('ul', {
     staticClass: "treeview-menu"
   }, [_c('li', {
     staticClass: "pageLink",
@@ -10393,20 +10373,8 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
     staticClass: "fa fa-th"
   }), _vm._v(" "), _c('span', {
     staticClass: "page"
-  }, [_vm._v("All tables")])])], 1)])]), _vm._v(" "), _vm._m(3)])
+  }, [_vm._v("All tables")])])], 1)])]), _vm._v(" "), _vm._m(2)])
 },staticRenderFns: [function (){var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;
-  return _c('a', {
-    attrs: {
-      "href": "#"
-    }
-  }, [_c('i', {
-    staticClass: "fas fa-book"
-  }), _vm._v(" "), _c('span', [_vm._v("Items")]), _vm._v(" "), _c('span', {
-    staticClass: "pull-right-container"
-  }, [_c('i', {
-    staticClass: "fa fa-angle-left fa-fw pull-right"
-  })])])
-},function (){var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;
   return _c('a', {
     attrs: {
       "href": "#"
@@ -10447,12 +10415,12 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
     staticClass: "treeview-menu"
   }, [_c('li', [_c('a', {
     attrs: {
-      "href": "https://github.com/artpar/daptin/wiki",
+      "href": "https://docs.dapt.in",
       "target": "_blank"
     }
   }, [_c('span', {
     staticClass: "fa fa-files-o"
-  }), _vm._v("\n        Dev help")])]), _vm._v(" "), _c('li', [_c('a', {
+  }), _vm._v("\n        Documentation")])]), _vm._v(" "), _c('li', [_c('a', {
     attrs: {
       "href": "https://github.com/artpar/daptin/issues/new",
       "target": "_blank"
@@ -10607,79 +10575,7 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
       },
       expression: "parsedOwnerPermission.canRefer"
     }
-  }, [_vm._v("Refer")])], 1)], 1), _vm._v(" "), _c('el-row', [_c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedOwnerPermission.canReadStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedOwnerPermission, "canReadStrict", $$v)
-      },
-      expression: "parsedOwnerPermission.canReadStrict"
-    }
-  }, [_vm._v("Read Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedOwnerPermission.canCreateStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedOwnerPermission, "canCreateStrict", $$v)
-      },
-      expression: "parsedOwnerPermission.canCreateStrict"
-    }
-  }, [_vm._v("Create Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedOwnerPermission.canUpdateStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedOwnerPermission, "canUpdateStrict", $$v)
-      },
-      expression: "parsedOwnerPermission.canUpdateStrict"
-    }
-  }, [_vm._v("Update Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedOwnerPermission.canDeleteStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedOwnerPermission, "canDeleteStrict", $$v)
-      },
-      expression: "parsedOwnerPermission.canDeleteStrict"
-    }
-  }, [_vm._v("Delete Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedOwnerPermission.canExecuteStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedOwnerPermission, "canExecuteStrict", $$v)
-      },
-      expression: "parsedOwnerPermission.canExecuteStrict"
-    }
-  }, [_vm._v("Execute Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedOwnerPermission.canReferStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedOwnerPermission, "canReferStrict", $$v)
-      },
-      expression: "parsedOwnerPermission.canReferStrict"
-    }
-  }, [_vm._v("Refer Strict")])], 1)], 1)], 1)]), _vm._v(" "), _c('el-tab-pane', {
+  }, [_vm._v("Refer")])], 1)], 1)], 1)]), _vm._v(" "), _c('el-tab-pane', {
     attrs: {
       "label": "Group",
       "name": "group"
@@ -10780,79 +10676,7 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
       },
       expression: "parsedGroupPermission.canRefer"
     }
-  }, [_vm._v("Refer")])], 1)], 1), _vm._v(" "), _c('el-row', [_c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedGroupPermission.canReadStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedGroupPermission, "canReadStrict", $$v)
-      },
-      expression: "parsedGroupPermission.canReadStrict"
-    }
-  }, [_vm._v("Read Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedGroupPermission.canCreateStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedGroupPermission, "canCreateStrict", $$v)
-      },
-      expression: "parsedGroupPermission.canCreateStrict"
-    }
-  }, [_vm._v("Create Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedGroupPermission.canUpdateStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedGroupPermission, "canUpdateStrict", $$v)
-      },
-      expression: "parsedGroupPermission.canUpdateStrict"
-    }
-  }, [_vm._v("Update Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedGroupPermission.canDeleteStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedGroupPermission, "canDeleteStrict", $$v)
-      },
-      expression: "parsedGroupPermission.canDeleteStrict"
-    }
-  }, [_vm._v("Delete Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedGroupPermission.canExecuteStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedGroupPermission, "canExecuteStrict", $$v)
-      },
-      expression: "parsedGroupPermission.canExecuteStrict"
-    }
-  }, [_vm._v("Execute Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedGroupPermission.canReferStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedGroupPermission, "canReferStrict", $$v)
-      },
-      expression: "parsedGroupPermission.canReferStrict"
-    }
-  }, [_vm._v("Refer Strict")])], 1)], 1)], 1)]), _vm._v(" "), _c('el-tab-pane', {
+  }, [_vm._v("Refer")])], 1)], 1)], 1)]), _vm._v(" "), _c('el-tab-pane', {
     attrs: {
       "label": "Guest",
       "name": "guest"
@@ -10953,79 +10777,7 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
       },
       expression: "parsedGuestPermission.canRefer"
     }
-  }, [_vm._v("Refer")])], 1)], 1), _vm._v(" "), _c('el-row', [_c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedGuestPermission.canReadStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedGuestPermission, "canReadStrict", $$v)
-      },
-      expression: "parsedGuestPermission.canReadStrict"
-    }
-  }, [_vm._v("Read Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedGuestPermission.canCreateStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedGuestPermission, "canCreateStrict", $$v)
-      },
-      expression: "parsedGuestPermission.canCreateStrict"
-    }
-  }, [_vm._v("Create Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedGuestPermission.canUpdateStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedGuestPermission, "canUpdateStrict", $$v)
-      },
-      expression: "parsedGuestPermission.canUpdateStrict"
-    }
-  }, [_vm._v("Update Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedGuestPermission.canDeleteStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedGuestPermission, "canDeleteStrict", $$v)
-      },
-      expression: "parsedGuestPermission.canDeleteStrict"
-    }
-  }, [_vm._v("Delete Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedGuestPermission.canExecuteStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedGuestPermission, "canExecuteStrict", $$v)
-      },
-      expression: "parsedGuestPermission.canExecuteStrict"
-    }
-  }, [_vm._v("Execute Strict")])], 1), _vm._v(" "), _c('el-col', {
-    attrs: {
-      "span": 8
-    }
-  }, [_c('el-checkbox', {
-    model: {
-      value: (_vm.parsedGuestPermission.canReferStrict),
-      callback: function($$v) {
-        _vm.$set(_vm.parsedGuestPermission, "canReferStrict", $$v)
-      },
-      expression: "parsedGuestPermission.canReferStrict"
-    }
-  }, [_vm._v("Refer Strict")])], 1)], 1)], 1)])], 1)], 1), _vm._v(" "), _c('el-row', [_c('el-button', {
+  }, [_vm._v("Refer")])], 1)], 1)], 1)])], 1)], 1), _vm._v(" "), _c('el-row', [_c('el-button', {
     on: {
       "click": _vm.clearAll
     }
@@ -13696,4 +13448,4 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
 
 /***/ })
 ],[287]);
-//# sourceMappingURL=app.32aa669f8904f789b322.js.map
+//# sourceMappingURL=app.fbf86406e04161a1465e.js.map
