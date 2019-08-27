@@ -123,8 +123,8 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 	authDone := false
 
-	secMethods := operation.Security
-	if secMethods != nil {
+	if operation.Security != nil {
+		secMethods := operation.Security
 
 		*secMethods = append(*secMethods, d.router.Security...)
 
