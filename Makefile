@@ -11,8 +11,8 @@ docker: docker-daptin-binary
 	cd docker_dir && cp ../Dockerfile Dockerfile && cp ../github.com/daptin/daptin-linux-amd64 main && docker build -t daptin/daptin:current  . && cd ..
 
 
-docker-daptin-binary: github.com/daptin/daptin-linux-amd64
-	rm -rf rice-box.go && rice embed-go && xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  .
+docker-daptin-binary:
+	rm -rf github.com/daptin/daptin-linux-amd64 && rm -rf rice-box.go && rice embed-go && xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  github.com/daptin/daptin
 
 daptin-linux-amd64:
     rm -rf rice-box.go && rice embed-go && xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  .
@@ -37,4 +37,4 @@ serve-container:
 	docker run -it --rm --env-file=.env -p 8081:8080 $(docker-tag)
 
 clean:
-	rm -rf bin build daptin-linux-amd64
+	rm -rf bin build daptin-linux-amd64 github.com
