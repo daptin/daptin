@@ -94,4 +94,5 @@ require (
 	gopkg.in/go-playground/validator.v9 v9.29.1
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.8.1
+	src.techknowlogick.com/xgo v0.0.0-20190815231123-ed979d9fd830 // indirect
 )
