@@ -15,8 +15,6 @@ services:
     - daptinpostgresdb:daptinpostgresdb
     depends_on:
     - "daptinpostgresdb"
-    networks:
-    - my_net
   daptinpostgresdb:
     image: postgres
     restart: always
@@ -26,9 +24,4 @@ services:
     - POSTGRES_PASSWORD=daptin123
     - POSTGRES_USER=daptin
     - POSTGRES_DB=daptin
-    networks:
-    - my_net
-networks:
-  my_net:
-    external:
-      name: my_net
+

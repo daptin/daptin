@@ -310,7 +310,7 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 						break
 					case "resize":
 						vals := strings.Split(param.Value, ",")
-						if len(vals) != 4 {
+						if len(vals) != 3 {
 							continue
 						}
 						height, _ := strconv.ParseInt(vals[0], 10, 32)

@@ -228,8 +228,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		//log.Infof("Switch permission to join table j1 instead of %v%v", prefix, "permission")
 		if dr.model.GetName() == "usergroup" {
 			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName))
-			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as relation_reference_id", relatedTableName, relatedTableName))
-			finalCols = append(finalCols, "usergroup.reference_id as reference_id")
+			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as reference_id", relatedTableName, relatedTableName))
+			finalCols = append(finalCols, "usergroup.reference_id as relation_reference_id")
 		} else {
 			finalCols = append(finalCols, "usergroup_id.permission")
 			finalCols = append(finalCols, "usergroup_id.reference_id as relation_reference_id")
@@ -261,20 +261,21 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		id, err := dr.GetReferenceIdToId(dr.TableInfo().TableName, req.QueryParams["page[after]"][0])
 		if err != nil {
 			queryBuilder = queryBuilder.Where(squirrel.Gt{
-				"id": id,
+				dr.TableInfo().TableName + ".id": id,
 			}).Limit(pageSize)
 		}
 	} else if req.QueryParams["page[before]"] != nil && len(req.QueryParams["page[before]"]) > 0 {
 		id, err := dr.GetReferenceIdToId(dr.TableInfo().TableName, req.QueryParams["page[before]"][0])
 		if err != nil {
 			queryBuilder = queryBuilder.Where(squirrel.Lt{
-				"id": id,
+				dr.TableInfo().TableName + ".id": id,
 			}).Limit(pageSize)
 		}
 	} else {
 		queryBuilder = queryBuilder.Offset(pageNumber).Limit(pageSize)
 	}
 	joins := make([]string, 0)
+	joinFilters := make([]interface{}, 0)
 
 	infos := dr.model.GetColumns()
 
@@ -374,6 +375,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 					queryBuilder = queryBuilder.Join(rel.GetJoinString()).Where(wh)
 					countQueryBuilder = countQueryBuilder.Join(rel.GetJoinString()).Where(wh)
 					joins = append(joins, rel.GetJoinString())
+					joinFilters = append(joinFilters, wh)
 				}
 			}
 		}
@@ -405,6 +407,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 				joins = append(joins, rel.GetReverseJoinString())
+				joinFilters = append(joinFilters, squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 				break
 
 			case "belongs_to":
@@ -423,6 +426,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".id": ids})
 				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".id": ids})
 				joins = append(joins, rel.GetReverseJoinString())
+				joinFilters = append(joinFilters, squirrel.Eq{rel.GetSubjectName() + ".id": ids})
 				break
 			case "has_many":
 				subjectId := req.QueryParams[rel.GetSubject()+"_id"]
@@ -433,6 +437,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 				joins = append(joins, rel.GetReverseJoinString())
+				joinFilters = append(joinFilters, squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 
 			}
 
@@ -511,6 +516,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if len(joins) > 0 {
 		for _, j := range joins {
 			queryBuilder = queryBuilder.Join(j)
+		}
+		for _, w := range joinFilters {
+			queryBuilder = queryBuilder.Where(w)
 		}
 	}
 
