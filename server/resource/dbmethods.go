@@ -1267,11 +1267,11 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 				refId, err := dr.GetIdToReferenceId(namespace, referenceIdInt)
 
-				row[key] = refId
 				if err != nil {
 					log.Errorf("Failed to get ref id for [%v][%v]: %v", namespace, val, err)
 					continue
 				}
+				row[key] = refId
 
 				if includedRelationMap != nil && (includedRelationMap[namespace] || includedRelationMap["*"]) {
 					obj, err := dr.GetIdToObject(namespace, referenceIdInt)
