@@ -125,6 +125,11 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 				case "cloud_store":
 
+					if val == nil {
+						ok = false
+						continue
+					}
+
 					uploadActionPerformer, err := NewFileUploadActionPerformer(dr.Cruds)
 					CheckErr(err, "Failed to create upload action performer")
 					log.Infof("created upload action performer")
