@@ -149,9 +149,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	includedRelations := make(map[string]bool, 0)
 	if len(req.QueryParams["included_relations"]) > 0 {
-		included := req.QueryParams["included_relations"][0]
-		includedRelationsList := strings.Split(included, ",")
-		for _, incl := range includedRelationsList {
+		//included := req.QueryParams["included_relations"][0]
+		//includedRelationsList := strings.Split(included, ",")
+		for _, incl := range req.QueryParams["included_relations"] {
 			includedRelations[incl] = true
 		}
 
