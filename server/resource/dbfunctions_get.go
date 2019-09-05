@@ -269,8 +269,10 @@ func (resource *DbResource) GetCloudStoreByName(name string) (CloudStore, error)
 		cloudStore.Name = row["name"].(string)
 		cloudStore.StoreType = row["store_type"].(string)
 		params := make(map[string]interface{})
-		err = json.Unmarshal([]byte(row["store_parameters"].(string)), &params)
-		CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
+		if row["store_parameters"] != nil && row["store_parameters"].(string) != "" {
+			err = json.Unmarshal([]byte(row["store_parameters"].(string)), &params)
+			CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
+		}
 		cloudStore.StoreParameters = params
 		cloudStore.RootPath = row["root_path"].(string)
 		cloudStore.StoreProvider = row["store_provider"].(string)
@@ -293,8 +295,10 @@ func (resource *DbResource) GetCloudStoreByReferenceId(referenceID string) (Clou
 		cloudStore.Name = row["name"].(string)
 		cloudStore.StoreType = row["store_type"].(string)
 		params := make(map[string]interface{})
-		err = json.Unmarshal([]byte(row["store_parameters"].(string)), &params)
-		CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
+		if row["store_parameters"] != nil && row["store_parameters"].(string) != "" {
+			err = json.Unmarshal([]byte(row["store_parameters"].(string)), &params)
+			CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
+		}
 		cloudStore.StoreParameters = params
 		cloudStore.RootPath = row["root_path"].(string)
 		cloudStore.StoreProvider = row["store_provider"].(string)

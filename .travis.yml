@@ -22,7 +22,7 @@ script:
 - cat .travis.yml
 - "echo 'mode: set' > c.out"
 - go get -t ./...
-- go test ./... -coverprofile=coverage.txt -covermode=atomic
+- go test ./... -coverpkg github.com/daptin/daptin/... -coverprofile=coverage.txt -covermode=atomic
 - ls -lah
 - go get github.com/GeertJohan/go.rice/rice
 - ls -lah
