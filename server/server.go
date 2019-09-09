@@ -159,8 +159,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 		for {
 
-			time.Sleep(30 * time.Minute)
-
 			fileInfo, err := os.Stat("daptin.log")
 			if err != nil {
 				log.Errorf("Failed to stat log file: %v", err)
@@ -183,6 +181,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 				log.Infof("Truncated log file, cleaned %d MB", fileMbs)
 
 			}
+			time.Sleep(30 * time.Minute)
 
 		}
 	}()
