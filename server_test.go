@@ -305,6 +305,28 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		return err
 	}
 
+	_, err = r.Get(baseAddress + "/openapi.yaml")
+	if err != nil {
+		return err
+	}
+
+	// check user flow
+	resp, err = r.Get(baseAddress+"/api/world", req.Header{
+		"Authorization": "Bearer " + token,
+	})
+	if err != nil {
+		return err
+	}
+
+	resp.ToJSON(&responseMap)
+
+	data = responseMap["data"].([]interface{})
+	firstRow = data[0].(map[string]interface{})
+
+	if firstRow["type"] != "world" {
+		t.Errorf("world type mismatch")
+	}
+
 	return nil
 
 }

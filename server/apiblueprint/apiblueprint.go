@@ -483,34 +483,6 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 
 	actionResource := make(map[string]interface{})
 
-	//for _, tableInfo := range config.Tables {
-	//
-	//	tableActionResource := make(map[string]interface{})
-	//	tableActionResource["displayName"] = fmt.Sprintf("Actions defined over %s", ProperCase(tableInfo.TableName))
-	//	tableActionResource["description"] = fmt.Sprintf("Actions defined over %s", ProperCase(tableInfo.TableName))
-	//
-	//	worldActions, ok := worldActionMap[tableInfo.TableName]
-	//
-	//	if len(worldActions) == 0 {
-	//		continue
-	//	}
-	//
-	//	if ok {
-	//		for _, action := range worldActions {
-	//
-	//			actionResource := CreateActionResource(action)
-	//			actionResource["displayName"] = action.Name
-	//			actionResource["description"] = action.Name
-	//			actionResource["post"] = CreateActionPostMethod(action)
-	//			tableActionResource[fmt.Sprintf("/%s", action.Name)] = actionResource
-	//		}
-	//	} else {
-	//		continue
-	//	}
-	//	actionResource["/action/"+tableInfo.TableName] = tableActionResource
-	//
-	//}
-
 	apiDefinition["paths"] = resourcesMap
 	for n, v := range actionResource {
 		apiDefinition[n] = v
@@ -518,66 +490,6 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 
 	ym, _ := yaml.Marshal(apiDefinition)
 	return string(ym)
-
-}
-
-func CreateActionPostMethod(action resource.Action) map[string]interface{} {
-
-	dataInResponse := CreateActionResponse(action)
-	postMethod := make(map[string]interface{})
-	postMethod["displayName"] = action.Name
-	postMethod["description"] = action.Name
-	postBody := make(map[string]interface{})
-
-	postBody["type"] = TitleCase(action.Name) + "Object"
-
-	postMethod["body"] = postBody
-	postResponseMap := make(map[string]interface{})
-	postOkResponse := make(map[string]interface{})
-	postResponseBody := make(map[string]interface{})
-	postResponseBody["type"] = "object"
-
-	postResponseBody = map[string]interface{}{
-		"type":       "object",
-		"properties": dataInResponse,
-	}
-	postOkResponse["content"] = map[string]interface{}{
-		"application/json": map[string]interface{}{
-			"schema": postResponseBody,
-		},
-	}
-
-	postResponseMap["200"] = postOkResponse
-	postMethod["responses"] = postResponseMap
-	return postMethod
-
-}
-func CreateActionResponse(action resource.Action) map[string]interface{} {
-	resp := make(map[string]interface{})
-
-	for _, outcome := range action.OutFields {
-
-		if outcome.SkipInResponse {
-			continue
-		}
-
-		attrs := CreateActionResponseTypeAttributes(outcome)
-
-		for key := range attrs {
-			resp[key] = "string"
-		}
-	}
-
-	return resp
-}
-func CreateActionResponseTypeAttributes(outcome resource.Outcome) map[string]interface{} {
-	properties := map[string]interface{}{}
-
-	for attrName := range outcome.Attributes {
-		properties[attrName] = "string"
-	}
-
-	return properties
 
 }
 
@@ -737,14 +649,6 @@ func ProperCase(str string) string {
 	return strings.ToUpper(str[0:1]) + st
 }
 
-func TitleCase(str string) string {
-	st := str[1:]
-	st = strings.Replace(st, "_", "", -1)
-	st = strings.Replace(st, ".", "", -1)
-
-	return strings.ToUpper(str[0:1]) + st
-}
-
 func CreateDeleteMethod(tableInfo resource.TableInfo) map[string]interface{} {
 	deleteByIdMethod := make(map[string]interface{})
 	deleteByIdMethod200Response := make(map[string]interface{})
@@ -798,31 +702,6 @@ func CreateDeleteRelationMethod(tableInfo resource.TableInfo) map[string]interfa
 	}
 
 	return deleteByIdMethod
-}
-
-func CreateByIdResource(tableInfo resource.TableInfo) map[string]interface{} {
-	byIdResource := make(map[string]interface{})
-	return byIdResource
-}
-
-func CreateActionResource(action resource.Action) map[string]interface{} {
-	byIdResource := make(map[string]interface{})
-	byIdResource["description"] = fmt.Sprintf("Action %s", action.Name)
-	return byIdResource
-}
-
-func CreateRelationsByIdResource(tableInfo resource.TableInfo) map[string]interface{} {
-	byIdResource := make(map[string]interface{})
-	byIdResource["parameters"] = map[string]interface{}{
-		"referenceId": map[string]interface{}{
-			"description": "Reference id of the " + tableInfo.TableName + " to be fetched",
-			"required":    true,
-			"schema": map[string]interface{}{
-				"type": "string",
-			},
-		},
-	}
-	return byIdResource
 }
 
 func CreateGetMethod(tableInfo resource.TableInfo, dataInResponse map[string]interface{}) map[string]interface{} {
@@ -955,40 +834,3 @@ func CreatePatchMethod(tableInfo resource.TableInfo) map[string]interface{} {
 	patchMethod["responses"] = patchResponseMap
 	return patchMethod
 }
-
-//func CreateForwardRelationLine(relation api2go.TableRelation) map[string]interface{} {
-//
-//	relationDescription := relation.GetRelation()
-//
-//	otherObjectName := relation.GetObject()
-//	switch relationDescription {
-//	case "has_one":
-//		relationDescription = "Has one " + otherObjectName
-//	case "has_many":
-//		relationDescription = "Has many " + otherObjectName
-//	case "belongs_to":
-//		relationDescription = "Belongs to " + otherObjectName
-//	case "has_many_and_belongs_to_many":
-//		relationDescription = "Has many and belongs to " + otherObjectName
-//	}
-//
-//	return fmt.Sprintf("      %s: %s", relation.GetObjectName(), otherObjectName)
-//}
-
-//func CreateBackwardRelationLine(relation api2go.TableRelation) string {
-//	relationDescription := relation.GetRelation()
-//
-//	otherObjectName := relation.GetSubject()
-//	switch relationDescription {
-//	case "has_one":
-//		relationDescription = "Has one " + otherObjectName
-//	case "has_many":
-//		relationDescription = "Has many " + otherObjectName
-//	case "belongs_to":
-//		relationDescription = "Belongs to " + otherObjectName
-//	case "has_many_and_belongs_to_many":
-//		relationDescription = "Has many and belongs to " + otherObjectName
-//	}
-//
-//	return fmt.Sprintf("      %s: %s", relation.GetSubjectName(), otherObjectName)
-//}
