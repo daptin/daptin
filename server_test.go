@@ -96,9 +96,9 @@ func TestServer(t *testing.T) {
 
 	configStore, _ = resource.NewConfigStore(db)
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
-
 	configStore.SetConfigValueFor("imap.enabled", "true", "backend")
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
+	configStore.SetConfigValueFor("logs.enable", "true", "backend")
 
 	hostSwitch, mailDaemon, taskScheduler, configStore = server.Main(boxRoot, db)
 
@@ -288,6 +288,21 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	if jsModelMap["ColumnModel"] == nil {
 		return errors.New("unexpected model map response")
+	}
+
+	_, err = r.Get(baseAddress + "/favicon.ico")
+	if err != nil {
+		return err
+	}
+
+	_, err = r.Get(baseAddress + "/favicon.png")
+	if err != nil {
+		return err
+	}
+
+	_, err = r.Get(baseAddress + "/statistics")
+	if err != nil {
+		return err
 	}
 
 	return nil
