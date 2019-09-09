@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"flag"
 	"github.com/GeertJohan/go.rice"
@@ -12,14 +10,13 @@ import (
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/gocraft/health"
-	//"github.com/imroc/req"
+	"github.com/imroc/req"
 	"github.com/jamiealquiza/envy"
 	"github.com/jmoiron/sqlx"
 	"github.com/sadlil/go-trigger"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -133,8 +130,6 @@ func TestServer(t *testing.T) {
 		srv.ListenAndServe()
 	}()
 
-	//time.Sleep(3 * time.Second)
-
 	err = RunTests(t, hostSwitch, mailDaemon, db, taskScheduler, configStore)
 	if err != nil {
 		t.Errorf("test failed %v", err)
@@ -143,7 +138,7 @@ func TestServer(t *testing.T) {
 	log.Printf("Shutdown now")
 	//
 	//shutDown := make(chan bool)
-
+	//
 	//srv.RegisterOnShutdown(func() {
 	//	shutDown <- true
 	//})
@@ -154,7 +149,7 @@ func TestServer(t *testing.T) {
 	//
 	//<-shutDown
 	//log.Printf("Shut down complete")
-
+	//
 	//err = os.Remove("daptin_test.db")
 	//if err != nil {
 	//	log.Printf("Failed to delete test database file")
@@ -166,22 +161,16 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	const baseAddress = "http://localhost:6337"
 
-	//r := req.New()
+	r := req.New()
 
 	responseMap := make(map[string]interface{})
 
-	//resp, err := r.Get(baseAddress + "/api/world")
-
-	req, err := http.NewRequest("GET", baseAddress+"/api/world", nil)
-	writer := httptest.NewRecorder()
-	hostSwitch.ServeHTTP(writer, req)
-	writer.Flush()
+	resp, err := r.Get(baseAddress + "/api/world")
 	if err != nil {
 		return err
 	}
 
-	body, err := ioutil.ReadAll(writer.Result().Body)
-	json.Unmarshal(body, &responseMap)
+	resp.ToJSON(&responseMap)
 
 	data := responseMap["data"].([]interface{})
 	firstRow := data[0].(map[string]interface{})
@@ -190,18 +179,14 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("world type mismatch")
 	}
 
-	writer = httptest.NewRecorder()
-	req, err = http.NewRequest("GET", baseAddress+"/actions", nil)
-	hostSwitch.ServeHTTP(writer, req)
-
-	body, err = ioutil.ReadAll(writer.Result().Body)
+	resp, err = r.Get(baseAddress + "/actions")
 
 	if err != nil {
 		return err
 	}
 
 	actionMap := make(map[string]interface{})
-	json.Unmarshal(body, &actionMap)
+	resp.ToJSON(&actionMap)
 
 	signInAction, ok := actionMap["user:signin"].(map[string]interface{})
 	if !ok {
@@ -220,61 +205,53 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("Unexpected on type")
 	}
 
-	writer = httptest.NewRecorder()
-	req, err = http.NewRequest("GET", baseAddress+"/meta?query=column_types", nil)
-	hostSwitch.ServeHTTP(writer, req)
-
-	if writer.Code != 200 {
-		return errors.New("bad response")
+	resp, err = r.Get(baseAddress + "/meta?query=column_types")
+	if err != nil {
+		return err
 	}
 
 	cols := make(map[string]interface{})
-	body, err = ioutil.ReadAll(writer.Body)
-	json.Unmarshal(body, &cols)
-	//resp.ToJSON(&cols)
+	resp.ToJSON(&cols)
 
 	if cols["label"] == nil {
 		t.Errorf("label not found")
 	}
 
-	requestBody, err := json.Marshal(map[string]interface{}{
+	resp, err = r.Post(baseAddress+"/action/user_account/signup", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{
 			"email":           "test@gmail.com",
 			"name":            "name",
 			"password":        "tester123",
 			"passwordConfirm": "tester123",
 		},
-	})
-	writer = httptest.NewRecorder()
-	req, err = http.NewRequest("POST", baseAddress+"/action/user_account/signup", bytes.NewBuffer(requestBody))
-	hostSwitch.ServeHTTP(writer, req)
+	}))
 
+	if err != nil {
+		return err
+	}
 	var signUpResponse interface{}
 
-	resp, err := ioutil.ReadAll(writer.Result().Body)
-	json.Unmarshal(resp, &signUpResponse)
+	resp.ToJSON(&signUpResponse)
 
 	if signUpResponse.([]interface{})[0].(map[string]interface{})["ResponseType"] != "client.notify" {
 		t.Errorf("Unexpected response type from sign up")
 	}
 
-	requestBody, err = json.Marshal(map[string]interface{}{
+	resp, err = r.Post(baseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{
 			"email":    "test@gmail.com",
 			"password": "tester123",
 		},
-	})
-	req, err = http.NewRequest("POST", baseAddress+"/action/user_account/signin", bytes.NewBuffer(requestBody))
+	}))
 
-	writer = httptest.NewRecorder()
-	hostSwitch.ServeHTTP(writer, req)
+	if err != nil {
+		return err
+	}
 
 	var token string
 	var signInResponse interface{}
 
-	resp, err = ioutil.ReadAll(writer.Result().Body)
-	err = json.Unmarshal(resp, signInResponse)
-	json.Unmarshal(resp, &signInResponse)
+	resp.ToJSON(&signInResponse)
 
 	responseAttr := signInResponse.([]interface{})[0].(map[string]interface{})
 	if responseAttr["ResponseType"] != "client.store.set" {
@@ -284,6 +261,34 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	token = responseAttr["Attributes"].(map[string]interface{})["value"].(string)
 
 	t.Logf("Token: %v", token)
+
+	resp, err = r.Get(baseAddress + "/recline_model")
+	if err != nil {
+		return err
+	}
+	reclineModelMap := make(map[string]interface{})
+	err = resp.ToJSON(&reclineModelMap)
+	if err != nil {
+		return err
+	}
+
+	if reclineModelMap["alias"] != "string" {
+		return errors.New("unexpected recline model response")
+	}
+
+	resp, err = r.Get(baseAddress + "/jsmodel/world.js")
+	if err != nil {
+		return err
+	}
+	jsModelMap := make(map[string]interface{})
+	err = resp.ToJSON(&jsModelMap)
+	if err != nil {
+		return err
+	}
+
+	if jsModelMap["ColumnModel"] == nil {
+		return errors.New("unexpected model map response")
+	}
 
 	return nil
 
