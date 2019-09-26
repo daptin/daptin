@@ -472,7 +472,7 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 			}
 		} else if colInfo.ColumnType == "markdown" {
 
-			outHtml := blackfriday.MarkdownCommon([]byte(colData.(string)))
+			outHtml := blackfriday.Run([]byte(colData.(string)))
 			c.Writer.Header().Set("Content-Type", "text/html")
 			c.Writer.Write(outHtml)
 			c.AbortWithStatus(200)
