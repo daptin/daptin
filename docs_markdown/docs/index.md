@@ -6,14 +6,14 @@ Introduction
 
 <img src="images/logo.png" width="200" style="float: right"/>
 
-Daptin is an open-source backend to develop and deploy production-ready APIs. With Daptin you can design your data model and have a production ready JSON API online in minutes.
+Daptin is a headless CMS server which servers data from MySQL/PostgreSQL/SQLite over JSONAPI.org and GraphQL. With Daptin you can design your data model and have a production ready JSON API online in minutes.
 
 
 Easily consume the following features on any device
 
 - Relational database backed persistent data
 - CRUD JSON API
-- Extensive user and access management
+- user and group management and access control
 - Social login with oauth2: tested with google, github, linkedin
 - Actions for abstracting out business flows
 - Extensive state tracking APIs
