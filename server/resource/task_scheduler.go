@@ -122,6 +122,7 @@ func (dts *DefaultTaskScheduler) AddTask(task Task) error {
 
 	return err
 }
+
 func (db *DbResource) NewActiveTaskInstance(task Task) *ActiveTaskInstance {
 	return &ActiveTaskInstance{
 		Task: task,

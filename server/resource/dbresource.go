@@ -9,6 +9,7 @@ import (
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
 	"strings"
+	"sync"
 )
 
 type DbResource struct {
@@ -22,6 +23,7 @@ type DbResource struct {
 	configStore      *ConfigStore
 	contextCache     map[string]interface{}
 	defaultGroups    []int64
+	contextLock      sync.RWMutex
 }
 
 func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, tableInfo TableInfo) *DbResource {
@@ -36,6 +38,7 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms
 		tableInfo:     &tableInfo,
 		defaultGroups: GroupNamesToIds(db, tableInfo.DefaultGroups),
 		contextCache:  make(map[string]interface{}),
+		contextLock:   sync.RWMutex{},
 	}
 }
 func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int64 {
@@ -65,10 +68,17 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int6
 }
 
 func (dr *DbResource) PutContext(key string, val interface{}) {
+	dr.contextLock.Lock()
+	defer dr.contextLock.Unlock()
+
 	dr.contextCache[key] = val
 }
 
 func (dr *DbResource) GetContext(key string) interface{} {
+
+	dr.contextLock.RLock()
+	defer dr.contextLock.RUnlock()
+
 	return dr.contextCache[key]
 }
 
