@@ -245,6 +245,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			err = rowx.Scan(&userId, &referenceId)
 
 			if err != nil {
+				// if a user logged in from third party oauth login
 				log.Errorf("Failed to scan user from db: %v", err)
 
 				mapData := make(map[string]interface{})

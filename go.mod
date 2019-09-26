@@ -67,6 +67,7 @@ require (
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/karalabe/xgo v0.0.0-20190301120235-2d6d1848fb02 // indirect
+	github.com/kolaente/xgo v0.0.0-20181007145344-72da7d1d3970 // indirect
 	github.com/labstack/echo v0.0.0-20181205161348-3f8b45c8d0dd // indirect
 	github.com/leodido/go-urn v0.0.0-20181204092800-a67a23e1c1af // indirect
 	github.com/lib/pq v1.0.0
