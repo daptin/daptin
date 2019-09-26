@@ -13,7 +13,7 @@ Easily consume the following features on any device
 
 - Relational database backed persistent data
 - CRUD JSON API
-- user and group management and access control
+- User and group management and access control
 - Social login with oauth2: tested with google, github, linkedin
 - Actions for abstracting out business flows
 - Extensive state tracking APIs
