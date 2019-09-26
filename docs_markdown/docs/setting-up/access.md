@@ -295,20 +295,6 @@ Authorization is the part where daptin decides if the caller has enough permissi
 
 Both the checks have a "before" and "after" part.
 
-### Entity level permission check
-
-The world table has the list of all entities. Consider the scenario where we created a todo list. The world table would have a row to represent this entity
-
-Entity | Permission
----    | ---
-todo   | 112000006 |
-
-Here:
-
-- 112 is for owners, which basically means 64 + 32 + 16 = Refer/Execute/Delete
-- 000 is for group users, no permission allowed in this case
-- 006 is for guest users, which is 2 + 4 = Read/Create
-
 
 ### Object level permission check
 
@@ -354,56 +340,3 @@ For these changes to take effect a restart is necessary.
 ### Instance level permission
 
 Like we saw in the [entity documentation](/setting-up/entities), every table has a ```permission``` column. No restart is necessary for changes in these permission.
-
-### Permission column
-
-The permission column contains a nine digit number, which decides the access for guests (the world), user groups and owner
-
-The nine digits can be represented as follows:
-
-```UUUGGGWWW```
-
-Each entity has a permission field which is added by daptin. The permission field is a 9 digit number, in the following format
-
-The first three digits(UUU) represent the permission for the owner.
-The next three digits(GGG) represent the permission for the group.
-The last three digits(WWW)  represent the permission for guest users.
-
-U = User
-G = Group
-W = World
-
-- Peek - 1
-- Read - 2
-- Create - 4
-- Update - 8
-- Delete - 16
-- Execute - 32
-- Refer - 64
-
-
-Here is another way of looking at it:
-
-Permissions:
-
-Owner | Group | World | Description
---- | --- | --- | ---
-002|000|000|read by owner
-000|020|000|read by group
-000|000|002|read by anybody (other)
-004|000|000|write by owner
-000|004|000|write by group
-000|000|004|write by anybody
-032|000|000|execute by owner
-000|032|000|execute by group
-000|000|032|execute by anybody
-
-To get a combination, just add them up.
-
-For example, to get
-
-- read, write, execute by owner
-- read, execute, by group
-- execute by anybody
-
-you would add (002 + 004 + 032),(002 + 032),(032) to give 038034032.
