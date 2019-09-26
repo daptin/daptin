@@ -43,3 +43,6 @@ markdown_extensions:
     permalink: Link
 - admonition
 - codehilite
+- pymdownx.superfences
+- pymdownx.tasklist
+- pymdownx.magiclink

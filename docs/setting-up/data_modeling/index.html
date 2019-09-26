@@ -256,33 +256,35 @@
 </div>
 <div class="admonition note">
 <p class="admonition-title">YAML example</p>
-<p><code>yaml
-Tables:
-- TableName: todo
-  Columns:
-  - Name: title
-    DataType: varchar(500)
-    ColumnType: label
-    IsIndexed: true</code></p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Tables</span><span class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+    <span class="l l-Scalar l-Scalar-Plain">IsIndexed</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+</pre></div>
+
 </div>
 <div class="admonition note">
 <p class="admonition-title">JSON example</p>
-<p><code>json
-{
-  "Tables": [
-    {
-      "TableName": "todo",
-      "Columns": [
-        {
-          "Name": "title",
-          "DataType": "varchar(500)",
-          "ColumnType": "label",
-          "IsIndexed": true
-        }
-      ]
-    }
-  ]
-}</code></p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;Tables&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="nt">&quot;TableName&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Columns&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;title&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;DataType&quot;</span><span class="p">:</span> <span class="s2">&quot;varchar(500)&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span class="s2">&quot;label&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;IsIndexed&quot;</span><span class="p">:</span> <span class="kc">true</span>
+        <span class="p">}</span>
+      <span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
 </div>
 <h2 id="data-validations">Data validations<a class="headerlink" href="#data-validations" title="Permanent link">Link</a></h2>
 <p>Along with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo</p>
@@ -350,7 +352,6 @@ Tables:
 <span class="err">]</span><span class="p">}</span>
 </pre></div>
 
-
 <ul>
 <li>Name: Name is a human readable name</li>
 <li>Column Name: Name of the column in the table</li>
@@ -394,7 +395,6 @@ Tables:
   <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
 <span class="l l-Scalar l-Scalar-Plain">Tags</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">required</span>
 </pre></div>
-
 
 <p>You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.</p>
 <h2 id="online-entity-designer">Online entity designer<a class="headerlink" href="#online-entity-designer" title="Permanent link">Link</a></h2>
@@ -529,7 +529,7 @@ Tables:
 <tr>
 <td>email</td>
 <td>email</td>
-<td>test@domain.com</td>
+<td><a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#116;&#101;&#115;&#116;&#64;&#100;&#111;&#109;&#97;&#105;&#110;&#46;&#99;&#111;&#109;">&#116;&#101;&#115;&#116;&#64;&#100;&#111;&#109;&#97;&#105;&#110;&#46;&#99;&#111;&#109;</a></td>
 </tr>
 <tr>
 <td>name</td>
@@ -614,7 +614,7 @@ Tables:
 <tr>
 <td>url</td>
 <td>Urls/links</td>
-<td>http://docs.dapt.in</td>
+<td><a href="http://docs.dapt.in">http://docs.dapt.in</a></td>
 </tr>
 </tbody>
 </table>
@@ -624,24 +624,26 @@ Tables:
 <p>Checkout the <a href="/apis/relation">relation apis</a> exposed by daptin.</p>
 <div class="admonition note">
 <p class="admonition-title">YAML example</p>
-<p><code>yaml
-Relations:
-- Subject: todo
-  Relation: has_one
-  Object: project</code></p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Relations</span><span class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
+  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
+</pre></div>
+
 </div>
 <div class="admonition note">
 <p class="admonition-title">JSON example</p>
-<p><code>json
-{
-  "Relations": [
-    {
-      "Subject": "todo",
-      "Relation": "has_one",
-      "Object": "project"
-    }
-  ]
-}</code></p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;Relations&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="nt">&quot;Subject&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Relation&quot;</span><span class="p">:</span> <span class="s2">&quot;has_one&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Object&quot;</span><span class="p">:</span> <span class="s2">&quot;project&quot;</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
 </div>
 <h2 id="relations-in-jsonyaml-schema">Relations in JSON/YAML schema<a class="headerlink" href="#relations-in-jsonyaml-schema" title="Permanent link">Link</a></h2>
 <p>When uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.</p>
@@ -655,14 +657,12 @@ Relations:
     <span class="l l-Scalar l-Scalar-Plain">IsIndexed</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
 </pre></div>
 
-
 <p>A very simple table with just a name column. Now we can tell daptin about the relation between todos and projects</p>
 <div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Relations</span><span class="p p-Indicator">:</span>
 <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
   <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
   <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
 </pre></div>
-
 
 <p>This tells daptin that todo "has_one" project.</p>
 <h2 id="relations-types">Relations types<a class="headerlink" href="#relations-types" title="Permanent link">Link</a></h2>
@@ -766,7 +766,6 @@ Relations:
   <span class="l l-Scalar l-Scalar-Plain">ObjectName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">current_post</span>
   <span class="l l-Scalar l-Scalar-Plain">SubjectName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">current_post_of   // this is our highlighted post relation</span>
 </pre></div>
-
 
 <p>Notice the "SubjectName" and "ObjectName" keys which helps to name our relations more intuitively.</p>
 <h2 id="sql-constraints">SQL constraints<a class="headerlink" href="#sql-constraints" title="Permanent link">Link</a></h2>

@@ -295,40 +295,42 @@
 <h1 id="response">Response<a class="headerlink" href="#response" title="Permanent link">Link</a></h1>
 <div class="admonition note">
 <p class="admonition-title">Response example</p>
-<p><code>{
-    "links": {
-        "current_page": 1,
-        "from": 0,
-        "last_page": 1,
-        "per_page": 10,
-        "to": 10,
-        "total": 1
+<div class="codehilite"><pre><span></span>{
+    &quot;links&quot;: {
+        &quot;current_page&quot;: 1,
+        &quot;from&quot;: 0,
+        &quot;last_page&quot;: 1,
+        &quot;per_page&quot;: 10,
+        &quot;to&quot;: 10,
+        &quot;total&quot;: 1
     },
-    "data": [{
-        "type": "book",
-        "id": "29d11cb3-3fad-4972-bf3b-9cfc6da9e6a6",
-        "attributes": {
-            "__type": "book",
-            "confirmed": 0,
-            "created_at": "2018-04-05 15:47:29",
-            "title": "book title",
-            "name": "book name",
-            "permission": 127127127,
-            "reference_id": "29d11cb3-3fad-4972-bf3b-9cfc6da9e6a6",
-            "updated_at": null,
-            "user_id": "696c98d3-3b8b-41da-a510-08e6948cf661"
+    &quot;data&quot;: [{
+        &quot;type&quot;: &quot;book&quot;,
+        &quot;id&quot;: &quot;29d11cb3-3fad-4972-bf3b-9cfc6da9e6a6&quot;,
+        &quot;attributes&quot;: {
+            &quot;__type&quot;: &quot;book&quot;,
+            &quot;confirmed&quot;: 0,
+            &quot;created_at&quot;: &quot;2018-04-05 15:47:29&quot;,
+            &quot;title&quot;: &quot;book title&quot;,
+            &quot;name&quot;: &quot;book name&quot;,
+            &quot;permission&quot;: 127127127,
+            &quot;reference_id&quot;: &quot;29d11cb3-3fad-4972-bf3b-9cfc6da9e6a6&quot;,
+            &quot;updated_at&quot;: null,
+            &quot;user_id&quot;: &quot;696c98d3-3b8b-41da-a510-08e6948cf661&quot;
         },
-        "relationships": {
-            "author_id": {
-                "links": {
-                    "related": "/api/book/&lt;book-id/author_id",
-                    "self": "/api/book/&lt;book-id&gt;/relationships/author_id"
+        &quot;relationships&quot;: {
+            &quot;author_id&quot;: {
+                &quot;links&quot;: {
+                    &quot;related&quot;: &quot;/api/book/&lt;book-id/author_id&quot;,
+                    &quot;self&quot;: &quot;/api/book/&lt;book-id&gt;/relationships/author_id&quot;
                 },
-                "data": []
+                &quot;data&quot;: []
             }
         }
     }]
-}</code></p>
+}
+</pre></div>
+
 </div>
 <h1 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">Link</a></h1>
 <h2 id="curl-example">Curl example<a class="headerlink" href="#curl-example" title="Permanent link">Link</a></h2>

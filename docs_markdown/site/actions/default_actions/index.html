@@ -275,7 +275,6 @@
 <span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
 </pre></div>
 
-
 <h2 id="refresh-marketplace-packages">Refresh marketplace packages<a class="headerlink" href="#refresh-marketplace-packages" title="Permanent link">Link</a></h2>
 <p>Pull updates from marketplace repository. New changes are not applied immediately and these packages should be installed again for updates.</p>
 <div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
@@ -302,7 +301,6 @@
 <span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
 </pre></div>
 
-
 <h2 id="generate-random-data">Generate random data<a class="headerlink" href="#generate-random-data" title="Permanent link">Link</a></h2>
 <p>Generate random data of any entity type to play around. Takes in a <code>count</code> parameter and generates that many rows. Daptin uses a fake data generator to generate quality random data for a wide variety of fields.</p>
 <div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
@@ -328,7 +326,6 @@
 
 <span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
 </pre></div>
-
 
 <h2 id="install-package-from-market">Install package from market<a class="headerlink" href="#install-package-from-market" title="Permanent link">Link</a></h2>
 <p>Install a package (data models, relations, actions, sites) from a <a href="/extend/marketplace"><strong>market</strong></a> using a <code>package name</code>. This will reconfigure daptin and apply the necessary changes. Note: any updates to this package in the marketplace will not be imported automatically.</p>
@@ -390,28 +387,30 @@
 <span class="s1">               }&#39;</span>
 </pre></div>
 
-
 <div class="admonition note">
 <p class="admonition-title">NodeJS Example</p>
-<p>```
-import requests</p>
-<p>headers = {
-    'Authorization': 'Bearer <Token>',
-}</p>
-<p>data =  '{
-            "attributes": {
-                "create_if_not_exists": true,
-                "add_missing_columns": true,
-                "data_csv_file": [{
-                    "name": "<file name>.csv",
-                    "file": "data:text/csv;base64,<File contents base64 here>",
-                    "type": "text/csv"
-                }],
-                "entity_name": "<entity name>"
-              }
-          }'</p>
-<p>response = requests.post('http://api.daptin.com:6336/action/world/upload_csv_to_system_schema', headers=headers, data=data)</p>
-<p>```</p>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">data</span> <span class="o">=</span>  <span class="s1">&#39;{</span>
+            <span class="s2">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;create_if_not_exists&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+                <span class="s2">&quot;add_missing_columns&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+                <span class="s2">&quot;data_csv_file&quot;</span><span class="p">:</span> <span class="p">[{</span>
+                    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;file name&gt;.csv&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;file&quot;</span><span class="p">:</span> <span class="s2">&quot;data:text/csv;base64,&lt;File contents base64 here&gt;&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text/csv&quot;</span>
+                <span class="p">}],</span>
+                <span class="s2">&quot;entity_name&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;entity name&gt;&quot;</span>
+              <span class="p">}</span>
+          <span class="p">}</span><span class="s1">&#39;</span>
+
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://api.daptin.com:6336/action/world/upload_csv_to_system_schema&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+
 </div>
 <h2 id="upload-schema">Upload schema<a class="headerlink" href="#upload-schema" title="Permanent link">Link</a></h2>
 <div class="admonition note">

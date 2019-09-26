@@ -222,10 +222,6 @@
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
         <li class="main active"><a href="#relations">Relations</a></li>
-        <li class="main "><a href="#nb-original-query-string-below-it-seems-impossible-to-parse-and">NB. Original query string below. It seems impossible to parse and</a></li>
-        <li class="main "><a href="#reproduce-query-strings-100-accurately-so-the-one-below-is-given">reproduce query strings 100% accurately so the one below is given</a></li>
-        <li class="main "><a href="#in-case-the-reproduced-version-is-not-correct">in case the reproduced version is not "correct".</a></li>
-        <li class="main "><a href="#response-requestsgethttpapidaptincom6336apiuser_account696c98d3-3b8b-41da-a510-08e6948cf661marketplace_idsortpage91number931page91size9310-headersheaders">response = requests.get('http://api.daptin.com:6336/api/user_account/696c98d3-3b8b-41da-a510-08e6948cf661/marketplace_id?sort=&amp;page[number]=1&amp;page[size]=10', headers=headers)</a></li>
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
@@ -233,71 +229,84 @@
 <h1 id="relations">Relations<a class="headerlink" href="#relations" title="Permanent link">Link</a></h1>
 <div class="admonition note">
 <p class="admonition-title">curl example</p>
-<p><code>bash
-curl '/api/&lt;EntityName&gt;/&lt;ReferenceId&gt;/&lt;RelationName&gt;?sort=&amp;page[number]=1&amp;page[size]=10'  -H 'Authorization: Bearer &lt;Token&gt;'</code></p>
+<div class="codehilite"><pre><span></span>curl <span class="s1">&#39;/api/&lt;EntityName&gt;/&lt;ReferenceId&gt;/&lt;RelationName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span>  -H <span class="s1">&#39;Authorization: Bearer &lt;Token&gt;&#39;</span>
+</pre></div>
+
 </div>
 <div class="admonition note">
 <p class="admonition-title">php example</p>
-<p><code>php
-&lt;?php
-include('vendor/rmccue/requests/library/Requests.php');
-Requests::register_autoloader();
-$headers = array(
-    'Authorization' =&gt; 'Bearer &lt;Token&gt;'
-);</code></p>
+<div class="codehilite"><pre><span></span><span class="cp">&lt;?php</span>
+<span class="k">include</span><span class="p">(</span><span class="s1">&#39;vendor/rmccue/requests/library/Requests.php&#39;</span><span class="p">);</span>
+<span class="nx">Requests</span><span class="o">::</span><span class="na">register_autoloader</span><span class="p">();</span>
+<span class="nv">$headers</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
+    <span class="s1">&#39;Authorization&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span>
+<span class="p">);</span>
+</pre></div>
+
 </div>
 <div class="admonition note">
 <p class="admonition-title">python example</p>
-<p>```python
-import requests</p>
-<p>headers = {
-    'Authorization': 'Bearer <Token>',
-}</p>
-<p>params = (
-    ('sort', ''),
-    ('page/[number/]', '1'),
-    ('page/[size/]', '10'),
-)</p>
-<p>response = requests.get('http://api.daptin.com:6336/api/user_account/696c98d3-3b8b-41da-a510-08e6948cf661/marketplace_id', headers=headers, params=params)</p>
-<h1 id="nb-original-query-string-below-it-seems-impossible-to-parse-and">NB. Original query string below. It seems impossible to parse and<a class="headerlink" href="#nb-original-query-string-below-it-seems-impossible-to-parse-and" title="Permanent link">Link</a></h1>
-<h1 id="reproduce-query-strings-100-accurately-so-the-one-below-is-given">reproduce query strings 100% accurately so the one below is given<a class="headerlink" href="#reproduce-query-strings-100-accurately-so-the-one-below-is-given" title="Permanent link">Link</a></h1>
-<h1 id="in-case-the-reproduced-version-is-not-correct">in case the reproduced version is not "correct".<a class="headerlink" href="#in-case-the-reproduced-version-is-not-correct" title="Permanent link">Link</a></h1>
-<h1 id="response-requestsgethttpapidaptincom6336apiuser_account696c98d3-3b8b-41da-a510-08e6948cf661marketplace_idsortpage91number931page91size9310-headersheaders">response = requests.get('http://api.daptin.com:6336/api/user_account/696c98d3-3b8b-41da-a510-08e6948cf661/marketplace_id?sort=&amp;page[number]=1&amp;page[size]=10', headers=headers)<a class="headerlink" href="#response-requestsgethttpapidaptincom6336apiuser_account696c98d3-3b8b-41da-a510-08e6948cf661marketplace_idsortpage91number931page91size9310-headersheaders" title="Permanent link">Link</a></h1>
-<p>```</p>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">params</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="s1">&#39;sort&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;page/[number/]&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;page/[size/]&#39;</span><span class="p">,</span> <span class="s1">&#39;10&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://api.daptin.com:6336/api/user_account/696c98d3-3b8b-41da-a510-08e6948cf661/marketplace_id&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+
+<span class="c1">#NB. Original query string below. It seems impossible to parse and</span>
+<span class="c1">#reproduce query strings 100% accurately so the one below is given</span>
+<span class="c1">#in case the reproduced version is not &quot;correct&quot;.</span>
+<span class="c1"># response = requests.get(&#39;http://api.daptin.com:6336/api/user_account/696c98d3-3b8b-41da-a510-08e6948cf661/marketplace_id?sort=&amp;page\[number\]=1&amp;page\[size\]=10&#39;, headers=headers)</span>
+</pre></div>
+
 </div>
 <div class="admonition note">
 <p class="admonition-title">nodejs example</p>
-<p>```nodejs
-var request = require('request');</p>
-<p>var headers = {
-    'Authorization': 'Bearer <Token>'
-};</p>
-<p>var options = {
-    url: '/api/<EntityName>/<ReferenceId>/<RelationName>?sort=&amp;page[number]=1&amp;page[size]=10',
-    headers: headers
-};</p>
-<p>function callback(error, response, body) {
-    if (!error &amp;&amp; response.statusCode == 200) {
-        console.log(body);
-    }
-}</p>
-<p>request(options, callback);
-```</p>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;/api/&lt;EntityName&gt;/&lt;ReferenceId&gt;/&lt;RelationName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span><span class="p">,</span>
+    <span class="nx">headers</span>: <span class="kt">headers</span>
+<span class="p">};</span>
+
+<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+</pre></div>
+
 </div>
 <div class="admonition note">
 <p class="admonition-title">python example</p>
-<p>```python
-import requests</p>
-<p>headers = {
-    'Authorization': 'Bearer <Token>',
-}</p>
-<p>params = (
-    ('sort', ''),
-    ('page[number]', '1'),
-    ('page[size]', '10'),
-)</p>
-<p>response = requests.get('/api/<EntityName>/<ReferenceId>/<RelationName>', headers=headers, params=params)</p>
-<p>```</p>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">params</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="s1">&#39;sort&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;page[number]&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;page[size]&#39;</span><span class="p">,</span> <span class="s1">&#39;10&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;/api/&lt;EntityName&gt;/&lt;ReferenceId&gt;/&lt;RelationName&gt;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+</pre></div>
+
 </div></div>
         </div>
 

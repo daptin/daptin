@@ -221,78 +221,80 @@
 <p>Use action to expose endpoints for your forms and processes. Here is an example of creating a "/action/project/new_task" API:</p>
 <div class="admonition note">
 <p class="admonition-title">New task action YAML</p>
-<p><code>yaml
-Actions:
-- Name: new_task
-  Label: New to do
-  OnType: project
-  InstanceOptional: true
-  InFields:
-  - ColumnName: description
-    Name: Description
-    ColumnType: label
-  - ColumnName: schedule
-    Name: Scheduled at
-    ColumnType: date
-  OutFields:
-  - Type: todo
-    Method: POST
-    Attributes:
-      schedule: "~schedule"
-      title: "~description"
-      project_id: "$.reference_id"
-  - Type: client.notify
-    Method: ACTIONRESPONSE
-    Attributes:
-      type: success
-      message: Created new todo, taking you to it.
-      title: Wait for it</code></p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Actions</span><span class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">new_task</span>
+  <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">New to do</span>
+  <span class="l l-Scalar l-Scalar-Plain">OnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
+  <span class="l l-Scalar l-Scalar-Plain">InstanceOptional</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="l l-Scalar l-Scalar-Plain">InFields</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">description</span>
+    <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Description</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">schedule</span>
+    <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Scheduled at</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
+  <span class="l l-Scalar l-Scalar-Plain">OutFields</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+    <span class="l l-Scalar l-Scalar-Plain">Method</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">POST</span>
+    <span class="l l-Scalar l-Scalar-Plain">Attributes</span><span class="p p-Indicator">:</span>
+      <span class="l l-Scalar l-Scalar-Plain">schedule</span><span class="p p-Indicator">:</span> <span class="s">&quot;~schedule&quot;</span>
+      <span class="l l-Scalar l-Scalar-Plain">title</span><span class="p p-Indicator">:</span> <span class="s">&quot;~description&quot;</span>
+      <span class="l l-Scalar l-Scalar-Plain">project_id</span><span class="p p-Indicator">:</span> <span class="s">&quot;$.reference_id&quot;</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">client.notify</span>
+    <span class="l l-Scalar l-Scalar-Plain">Method</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">ACTIONRESPONSE</span>
+    <span class="l l-Scalar l-Scalar-Plain">Attributes</span><span class="p p-Indicator">:</span>
+      <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">success</span>
+      <span class="l l-Scalar l-Scalar-Plain">message</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Created new todo, taking you to it.</span>
+      <span class="l l-Scalar l-Scalar-Plain">title</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Wait for it</span>
+</pre></div>
+
 </div>
 <div class="admonition note">
 <p class="admonition-title">New task action JSON</p>
-<p><code>json
-{
-  "Actions": [
-    {
-      "Name": "new_task",
-      "Label": "New to do",
-      "OnType": "project",
-      "InstanceOptional": true,
-      "InFields": [
-        {
-          "ColumnName": "description",
-          "Name": "Description",
-          "ColumnType": "label"
-        },
-        {
-          "ColumnName": "schedule",
-          "Name": "Scheduled at",
-          "ColumnType": "date"
-        }
-      ],
-      "OutFields": [
-        {
-          "Type": "todo",
-          "Method": "POST",
-          "Attributes": {
-            "schedule": "~schedule",
-            "title": "~description",
-            "project_id": "$.reference_id"
-          }
-        },
-        {
-          "Type": "client.notify",
-          "Method": "ACTIONRESPONSE",
-          "Attributes": {
-            "type": "success",
-            "message": "Created new todo, taking you to it.",
-            "title": "Wait for it"
-          }
-        }
-      ]
-    }
-  ]
-}</code></p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;Actions&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;new_task&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Label&quot;</span><span class="p">:</span> <span class="s2">&quot;New to do&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;OnType&quot;</span><span class="p">:</span> <span class="s2">&quot;project&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;InstanceOptional&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+      <span class="nt">&quot;InFields&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;ColumnName&quot;</span><span class="p">:</span> <span class="s2">&quot;description&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;Description&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span class="s2">&quot;label&quot;</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;ColumnName&quot;</span><span class="p">:</span> <span class="s2">&quot;schedule&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;Scheduled at&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span class="s2">&quot;date&quot;</span>
+        <span class="p">}</span>
+      <span class="p">],</span>
+      <span class="nt">&quot;OutFields&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;Type&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;Method&quot;</span><span class="p">:</span> <span class="s2">&quot;POST&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="nt">&quot;schedule&quot;</span><span class="p">:</span> <span class="s2">&quot;~schedule&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;~description&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;project_id&quot;</span><span class="p">:</span> <span class="s2">&quot;$.reference_id&quot;</span>
+          <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;Type&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;Method&quot;</span><span class="p">:</span> <span class="s2">&quot;ACTIONRESPONSE&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Created new todo, taking you to it.&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Wait for it&quot;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
 </div></div>
         </div>
 

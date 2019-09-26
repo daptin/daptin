@@ -237,57 +237,56 @@
 <p>Define a state machine in YAML or JSON as follows:</p>
 <div class="admonition note">
 <p class="admonition-title">State machine description YAML</p>
-<p><code>yaml
-StateMachineDescriptions:
-- Name: task_status
-  Label: Task Status
-  InitialState: to_be_done
-  Events:
-  - Name: start
-    Label: Start
-    Src:
-    - to_be_done
-    - delayed
-    Dst: started
-  - Name: delayed
-    Label: Unable to pick up
-    Src:
-    - to_be_done
-    Dst: delayed
-  - Name: ongoing
-    Label: Record progress
-    Src:
-    - started
-    - ongoing
-    Dst: ongoing
-  - Name: interrupted
-    Label: Interrupted
-    Src:
-    - started
-    - ongoing
-    Dst: interrupted
-  - Name: resume
-    Label: Resume from interruption
-    Src:
-    - interrupted
-    Dst: ongoing
-  - Name: completed
-    Label: Mark as completed
-    Src:
-    - ongoing
-    - started
-    Dst: completed</code></p>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">StateMachineDescriptions</span><span class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">task_status</span>
+  <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Task Status</span>
+  <span class="l l-Scalar l-Scalar-Plain">InitialState</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">to_be_done</span>
+  <span class="l l-Scalar l-Scalar-Plain">Events</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">start</span>
+    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Start</span>
+    <span class="l l-Scalar l-Scalar-Plain">Src</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">to_be_done</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">delayed</span>
+    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">started</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">delayed</span>
+    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Unable to pick up</span>
+    <span class="l l-Scalar l-Scalar-Plain">Src</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">to_be_done</span>
+    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">delayed</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
+    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Record progress</span>
+    <span class="l l-Scalar l-Scalar-Plain">Src</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">started</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
+    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">interrupted</span>
+    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Interrupted</span>
+    <span class="l l-Scalar l-Scalar-Plain">Src</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">started</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
+    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">interrupted</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">resume</span>
+    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Resume from interruption</span>
+    <span class="l l-Scalar l-Scalar-Plain">Src</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">interrupted</span>
+    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">completed</span>
+    <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Mark as completed</span>
+    <span class="l l-Scalar l-Scalar-Plain">Src</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">started</span>
+    <span class="l l-Scalar l-Scalar-Plain">Dst</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">completed</span>
+</pre></div>
+
 </div>
 <p>Using state machine descriptions with daptin expose couple of super useful apis to manage state based data.</p>
 <p>Enabling <code>task_status</code> state machine on <code>todo</code> entity will expose the following APIs</p>
 <div class="codehilite"><pre><span></span>POST /track/start/:stateMachineId <span class="o">{</span><span class="s2">&quot;typeName&quot;</span>: <span class="s2">&quot;todo&quot;</span>, <span class="s2">&quot;referenceId&quot;</span>: <span class="s2">&quot;objectId&quot;</span><span class="o">}</span> <span class="c1"># Start tracking a particular object by id</span>
 </pre></div>
 
-
 <p>This returns a state machine id.</p>
 <div class="codehilite"><pre><span></span>POST /track/event/:typename/:objectStateMachineId/:eventName <span class="o">{}</span> <span class="c1"># Trigger event on current state</span>
 </pre></div>
-
 
 <p>This either moves the <code>object state</code> to next state, or fails on invalid event name.</p>
 <h2 id="state-machine">State machine<a class="headerlink" href="#state-machine" title="Permanent link">Link</a></h2>
@@ -358,36 +357,27 @@ StateMachineDescriptions:
     <span class="p">}</span>
 </pre></div>
 
-
 <p>State machines can be uploaded to Daptin just like entities and actions. A JSON/YAML file with a <code>StateMachineDescriptions</code> top level key can contain an array of state machine descriptions.</p>
 <h2 id="rest-api">REST API<a class="headerlink" href="#rest-api" title="Permanent link">Link</a></h2>
 <h3 id="start-tracking-an-object-by-state-machine-reference-id">Start tracking an object by state machine reference id<a class="headerlink" href="#start-tracking-an-object-by-state-machine-reference-id" title="Permanent link">Link</a></h3>
-<p>Request</p>
+<p>Request
 <div class="codehilite"><pre><span></span>    POST  /track/start/:stateMachineId
     {&quot;typeName&quot;: &lt;entityTypeName&gt;, &quot;referenceId&quot;: &lt;ReferenceIdOfTheObject&gt; }
-</pre></div>
-
-
-<p>Response</p>
+</pre></div></p>
+<p>Response
 <div class="codehilite"><pre><span></span>        &quot;current_state&quot;: &lt;InitialStateOfTheStateMachine&gt;
         &quot;&lt;typename&gt;_smd&quot;: &lt;ObjectStateInstanceReferenceId&gt;
         &quot;is_state_of_&lt;typename&gt;&quot; = &lt;ObjectInstanceId&gt;
         &quot;permission&quot;: &lt;AuthPermission&gt;
-</pre></div>
-
-
+</pre></div></p>
 <h3 id="trigger-an-event-by-name-in-the-state-of-an-object">Trigger an event by name in the state of an object<a class="headerlink" href="#trigger-an-event-by-name-in-the-state-of-an-object" title="Permanent link">Link</a></h3>
-<div class="codehilite"><pre><span></span>    POST  /track/event/:typename/:ObjectStateInstanceReferenceId/:eventName
+<p><div class="codehilite"><pre><span></span>    POST  /track/event/:typename/:ObjectStateInstanceReferenceId/:eventName
 </pre></div>
-
-
-<p>Response</p>
+Response
 <div class="codehilite"><pre><span></span>        &quot;current_state&quot;: &lt;NewStateAfterEvent&gt;
         &quot;&lt;typename&gt;_smd&quot;: &lt;ObjectStateInstanceReferenceId&gt;
         &quot;is_state_of_&lt;typename&gt;&quot; = &lt;ObjectInstanceId&gt;
-</pre></div>
-
-
+</pre></div></p>
 <h2 id="enabling-state-tracking-for-entity">Enabling state tracking for entity<a class="headerlink" href="#enabling-state-tracking-for-entity" title="Permanent link">Link</a></h2>
 <p>Begin with marking an entity as trackable. To do this,</p>
 <ul>
