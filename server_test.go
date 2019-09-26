@@ -20,6 +20,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 const testSchemas = `Tables:
@@ -123,6 +124,8 @@ func TestServer(t *testing.T) {
 	})
 
 	log.Printf("Listening at port: %v", *port)
+
+	time.Sleep(1 * time.Second)
 
 	srv := &http.Server{Addr: *port, Handler: rhs.HostSwitch}
 
