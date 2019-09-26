@@ -4,7 +4,7 @@ Introduction
 <a class="github-button" href="https://github.com/daptin/daptin" data-size="large" data-show-count="true" aria-label="Star daptin/daptin on GitHub">Star</a>
 
 
-<img src="/images/logo.png" width="200" style="float: right"/>
+<img src="images/logo.png" width="200" style="float: right"/>
 
 Daptin is an open-source backend to develop and deploy production-ready APIs. With Daptin you can design your data model and have a production ready JSON API online in minutes.
 
