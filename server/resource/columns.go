@@ -259,6 +259,35 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "rename_column",
+		Label:            "Rename column",
+		OnType:           "world",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "column_name",
+				ColumnName: "column_name",
+				ColumnType: "label",
+			},
+			{
+				Name:       "new_column_name",
+				ColumnName: "new_column_name",
+				ColumnType: "label",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "world.column.rename",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"world_id":        "$.reference_id",
+					"column_name":     "~column_name",
+					"new_column_name": "~new_column_name",
+				},
+			},
+		},
+	},
+	{
 		Name:             "sync_site_storage",
 		Label:            "Sync site storage",
 		OnType:           "site",
