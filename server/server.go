@@ -113,7 +113,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		resource.CheckErr(err, "Failed to write favicon")
 	})
 
-	logTail, err := tail.TailFile("/var/log/nginx.log", tail.Config{Follow: true})
+	logTail, err := tail.TailFile("daptin.log", tail.Config{Follow: true})
 
 	last10Lines := make([]string, 0)
 
