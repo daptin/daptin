@@ -106,6 +106,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create column delete performer")
 	performers = append(performers, columnDeletePerformer)
 
+	columnRenamePerformer, err := resource.NewRenameWorldColumnPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create column rename performer")
+	performers = append(performers, columnRenamePerformer)
+
 	enableGraphqlPerformer, err := resource.NewGraphqlEnablePerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create enable graphql performer")
 	performers = append(performers, enableGraphqlPerformer)

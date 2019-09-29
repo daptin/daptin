@@ -1,4 +1,6 @@
-# Native binary
+# Installation
+
+## Native binary
 
 Daptin is available as a native binary. You can download the binary for the following os from [github releases](https://github.com/daptin/daptin/releases)
 
@@ -21,7 +23,7 @@ db_type | mysql/postgres/sqlite3
 db_connection_string |   SQLite: ```test.db``` <br>MySql: ```<username>:<password>@tcp(<hostname>:<port>)/<db_name>``` <br>Postgres: ```host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable```
 
 
-# Heroku deployment
+## Heroku deployment
 
 Heroku is the best way to test out a live instance of daptin. Daptin has a very low memory footprint and can run smoothly even on heroku's smallest instance.
 
@@ -50,7 +52,7 @@ Start ```daptin``` on your machine using docker
 [https://hub.docker.com/r/daptin/daptin/](https://hub.docker.com/r/daptin/daptin/)
 
 
-# Docker-compose
+## Docker-compose
 
 Docker compose is a great tool to bring up a mysql/postgres backed daptin instance
 
@@ -87,7 +89,7 @@ services:
 ```
 
 
-# Kubernetes deployment
+## Kubernetes deployment
 
 Daptin can be infinitely scaled on kubernetes
 
@@ -144,7 +146,7 @@ Daptin can be infinitely scaled on kubernetes
     ```
 
 
-# Database
+# Database configuration
 
 Daptin can use one of the following database for data persistence
 
