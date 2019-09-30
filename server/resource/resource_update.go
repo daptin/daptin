@@ -316,7 +316,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 			return nil, err
 		}
 
-		log.Infof("Update query: %v == %v", query, vals)
+		//log.Infof("Update query: %v == %v", query, vals)
 		_, err = dr.db.Exec(query, vals...)
 		if err != nil {
 			log.Errorf("Failed to execute update query: %v", err)

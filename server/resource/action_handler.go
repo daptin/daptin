@@ -377,6 +377,7 @@ OutFields:
 				//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
 			} else {
 				var responder api2go.Responder
+				outcome.Attributes["user"] = sessionUser
 				responder, responses1, errors1 = performer.DoAction(outcome, model.Data)
 				actionResponses = append(actionResponses, responses1...)
 				if errors1 != nil && len(errors1) > 0 {
