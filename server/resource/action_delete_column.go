@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/artpar/api2go"
 	"github.com/pkg/errors"
@@ -21,12 +22,17 @@ func (d *DeleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 	worldId := inFields["world_id"].(string)
 	columnToDelete := inFields["column_name"].(string)
 
-	req := api2go.Request{
-		PlainRequest: &http.Request{
-			Method: "GET",
-		},
+	sessionUser := request.Attributes["user"]
+	httpReq := &http.Request{
+		Method: "GET",
 	}
-	table, err := d.cruds["world"].FindOne(worldId, req)
+
+	httpReq = httpReq.WithContext(context.WithValue(context.Background(), "user", sessionUser))
+	req := &api2go.Request{
+		PlainRequest: httpReq,
+	}
+
+	table, err := d.cruds["world"].FindOne(worldId, *req)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -67,7 +73,7 @@ func (d *DeleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 	tableData.Data["world_schema_json"] = schemaJson
 	delete(tableData.Data, "version")
 
-	_, err = d.cruds["world"].UpdateWithoutFilters(tableData, req)
+	_, err = d.cruds["world"].UpdateWithoutFilters(tableData, *req)
 	if err != nil {
 		return nil, nil, []error{err}
 	}

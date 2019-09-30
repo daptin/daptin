@@ -13,8 +13,11 @@ import (
 	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
 	"io"
+
+	//"io"
 	"net/http"
 	"os"
+	"syscall"
 )
 
 // Save the stream as a global variable
@@ -99,7 +102,7 @@ func main() {
 		rhs.HostSwitch = &hostSwitch
 	})
 
-	log.Printf("Listening at port: %v", *port)
+	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), *port)
 	err = http.ListenAndServe(*port, &rhs)
 	if err != nil {
 		panic(err)
