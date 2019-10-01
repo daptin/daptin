@@ -31,6 +31,70 @@ type JsonApiError struct {
 	Message string
 }
 
+func CreateAssetColumnSync(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) map[string]map[string]resource.AssetFolderCache {
+
+	stores, err := cruds["cloud_store"].GetAllCloudStores()
+	assetCache := make(map[string]map[string]resource.AssetFolderCache)
+
+	if err != nil || len(stores) == 0 {
+		return assetCache
+	}
+	cloudStoreMap := make(map[string]resource.CloudStore)
+
+	for _, store := range stores {
+		cloudStoreMap[store.Name] = store
+	}
+
+	for tableName, tableResource := range cruds {
+
+		colCache := make(map[string]resource.AssetFolderCache)
+
+		tableInfo := tableResource.TableInfo()
+		for _, column := range tableInfo.Columns {
+
+			if column.IsForeignKey && column.ForeignKeyData.DataSource == "cloud_store" {
+
+				columnName := column.ColumnName
+
+				cloudStore := cloudStoreMap[column.ForeignKeyData.Namespace]
+				tempDirectoryPath, err := ioutil.TempDir("", tableName+"_"+columnName)
+
+				err = cruds["task"].SyncStorageToPath(cloudStore, tempDirectoryPath)
+				if resource.CheckErr(err, "Failed to setup sync to path") {
+					continue
+				}
+
+				assetCacheFolder := resource.AssetFolderCache{
+					CloudStore:    cloudStore,
+					LocalSyncPath: tempDirectoryPath,
+				}
+
+				colCache[columnName] = assetCacheFolder
+				log.Printf("Sync table columnd [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
+
+				err = TaskScheduler.AddTask(resource.Task{
+					EntityName: "world",
+					ActionName: "sync_column_storage",
+					Attributes: map[string]interface{}{
+						"table_name":  tableResource.TableInfo().TableName,
+						"column_name": columnName,
+					},
+					AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(),
+					Schedule:    "@every 15m",
+				})
+
+			}
+
+		}
+
+		assetCache[tableName] = colCache
+
+	}
+
+	return assetCache
+
+}
+
 func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) HostSwitch {
 
 	router := httprouter.New()

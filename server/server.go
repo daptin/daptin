@@ -113,19 +113,19 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		resource.CheckErr(err, "Failed to write favicon")
 	})
 
-	logTail, err := tail.TailFile("daptin.log", tail.Config{Follow: true})
+	//logTail, err := tail.TailFile("daptin.log", tail.Config{Follow: true})
 
-	last10Lines := make([]string, 0)
+	//last10Lines := make([]string, 0)
 
-	go func() {
-		for line := range logTail.Lines {
-			last10Lines = append(last10Lines, line.Text)
-			if len(last10Lines) > 10 {
-				last10Lines = last10Lines[1:]
-			}
-			fmt.Println(line.Text)
-		}
-	}()
+	//go func() {
+	//	for line := range logTail.Lines {
+	//		last10Lines = append(last10Lines, line.Text)
+	//		if len(last10Lines) > 10 {
+	//			last10Lines = last10Lines[1:]
+	//		}
+	//		fmt.Println(line.Text)
+	//	}
+	//}()
 
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
@@ -427,6 +427,10 @@ fagus7nZFuPIRAU1dz5Ni1g=
 	TaskScheduler.StartTasks()
 
 	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
+	assetColumnFolders := CreateAssetColumnSync(&initConfig, db, cruds, authMiddleware)
+	for k := range cruds {
+		cruds[k].AssetFolderCache = assetColumnFolders
+	}
 
 	hostSwitch.handlerMap["api"] = defaultRouter
 	hostSwitch.handlerMap["dashboard"] = defaultRouter

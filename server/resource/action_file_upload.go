@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/cmd"
 	log "github.com/sirupsen/logrus"
@@ -107,26 +108,31 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 	//defer os.RemoveAll(tempDirectoryPath) // clean up
 
 	CheckErr(err, "Failed to create temp tempDirectoryPath for rclone upload")
-	files := inFields["file"].([]interface{})
-	for _, fileInterface := range files {
-		file := fileInterface.(map[string]interface{})
-		fileName := file["name"].(string)
-		temproryFilePath := filepath.Join(tempDirectoryPath, fileName)
+	files, ok := inFields["file"].([]interface{})
+	if ok {
 
-		fileContentsBase64 := file["file"].(string)
-		fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
-		log.Infof("Write file [%v] for upload", temproryFilePath)
-		CheckErr(err, "Failed to convert base64 to []bytes")
+		for _, fileInterface := range files {
+			file := fileInterface.(map[string]interface{})
+			fileName := file["name"].(string)
+			temproryFilePath := filepath.Join(tempDirectoryPath, fileName)
 
-		err = ioutil.WriteFile(temproryFilePath, fileBytes, 0666)
-		CheckErr(err, "Failed to write file bytes to temp file for rclone upload")
+			fileContentsBase64 := file["file"].(string)
+			fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
+			log.Infof("Write file [%v] for upload", temproryFilePath)
+			CheckErr(err, "Failed to convert base64 to []bytes")
 
-		if EndsWithCheck(fileName, ".zip") {
-			unzip(temproryFilePath, tempDirectoryPath)
-			err = os.Remove(temproryFilePath)
-			CheckErr(err, "Failed to remove zip file after extraction")
+			err = ioutil.WriteFile(temproryFilePath, fileBytes, 0666)
+			CheckErr(err, "Failed to write file bytes to temp file for rclone upload")
+
+			if EndsWithCheck(fileName, ".zip") {
+				unzip(temproryFilePath, tempDirectoryPath)
+				err = os.Remove(temproryFilePath)
+				CheckErr(err, "Failed to remove zip file after extraction")
+			}
+
 		}
-
+	} else {
+		return nil, nil, []error{errors.New("improper file attachment")}
 	}
 
 	//targetInformation := inFields["subject"]

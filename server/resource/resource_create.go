@@ -182,13 +182,17 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 					log.Errorf("Failed to upload attachments: %v", errs)
 				}
 
-				files := val.([]interface{})
-				for i := range files {
-					file := files[i].(map[string]interface{})
-					delete(file, "file")
-					files[i] = file
+				files, ok := val.([]interface{})
+				if ok {
+					for i := range files {
+						file := files[i].(map[string]interface{})
+						delete(file, "file")
+						files[i] = file
+					}
+					val, err = json.Marshal(files)
+				} else {
+					val =  nil
 				}
-				val, err = json.Marshal(files)
 				CheckErr(err, "Failed to marshal file data to column")
 
 			default:
@@ -374,7 +378,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
-			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
@@ -393,7 +397,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
-			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
