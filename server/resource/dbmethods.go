@@ -1295,7 +1295,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				}
 
 				for _, file := range foreignFilesList {
-					file["src"] = columnInfo.ForeignKeyData.Namespace + "/" + file["name"].(string)
+					file["src"] = columnInfo.ForeignKeyData.KeyName + "/" + file["name"].(string)
 				}
 
 				row[key] = foreignFilesList
@@ -1307,7 +1307,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 				if includedRelationMap != nil && (includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"]) {
 
-					resolvedFilesList, err := dr.GetFileFromCloudStore(columnInfo.ForeignKeyData, foreignFilesList)
+					resolvedFilesList, err := dr.GetFileFromLocalCloudStore(dr.TableInfo().TableName, columnInfo.ColumnName, foreignFilesList)
 					CheckErr(err, "Failed to resolve file from cloud store")
 					row[key] = resolvedFilesList
 					for _, file := range resolvedFilesList {
@@ -1365,6 +1365,36 @@ func (resource *DbResource) GetFileFromCloudStore(data api2go.ForeignKeyData, fi
 		fileName := fileItem["name"].(string)
 		bytes, err := ioutil.ReadFile(cloudStore.RootPath + "/" + data.KeyName + "/" + fileName)
 		CheckErr(err, "Failed to read file on storage")
+		if err != nil {
+			continue
+		}
+		newFileItem["reference_id"] = fileItem["name"]
+		newFileItem["contents"] = base64.StdEncoding.EncodeToString(bytes)
+		resp = append(resp, newFileItem)
+	}
+	return resp, nil
+}
+
+// resolve a file column from data in column to actual file on a cloud store
+// returns a map containing the metadata of the file and the file contents as base64 encoded
+// can be sent to browser to invoke downloading js and data urls
+func (resource *DbResource) GetFileFromLocalCloudStore(tableName string, columnName string, filesList []map[string]interface{}) (resp []map[string]interface{}, err error) {
+
+	assetFolder, ok := resource.AssetFolderCache[tableName][columnName]
+	if !ok {
+		return nil, errors.New("not a synced folder")
+	}
+
+	for _, fileItem := range filesList {
+		newFileItem := make(map[string]interface{})
+
+		for key, val := range fileItem {
+			newFileItem[key] = val
+		}
+
+		filePath := fileItem["src"].(string)
+		bytes, err := ioutil.ReadFile(assetFolder.LocalSyncPath + "/" + filePath)
+		CheckErr(err, "Failed to read file on storage [%v]: %v", assetFolder.LocalSyncPath, filePath)
 		if err != nil {
 			continue
 		}

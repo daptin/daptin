@@ -55,8 +55,12 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	performers = append(performers, oauth2response)
 
 	storeSyncAction, err := resource.NewSyncSiteStorageActionPerformer(cruds)
-	resource.CheckErr(err, "Failed to create oauth2 response handler")
+	resource.CheckErr(err, "Failed to site sync action performer")
 	performers = append(performers, storeSyncAction)
+
+	columnStoreSyncAction, err := resource.NewSyncColumnStorageActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create column storage sync performer")
+	performers = append(performers, columnStoreSyncAction)
 
 	oauthProfileExchangePerformer, err := resource.NewOuathProfileExchangePerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create oauth2 profile exchange handler")

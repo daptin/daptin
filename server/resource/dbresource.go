@@ -24,6 +24,12 @@ type DbResource struct {
 	contextCache     map[string]interface{}
 	defaultGroups    []int64
 	contextLock      sync.RWMutex
+	AssetFolderCache map[string]map[string]AssetFolderCache
+}
+
+type AssetFolderCache struct {
+	LocalSyncPath string
+	CloudStore CloudStore
 }
 
 func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, tableInfo TableInfo) *DbResource {
@@ -39,6 +45,7 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms
 		defaultGroups: GroupNamesToIds(db, tableInfo.DefaultGroups),
 		contextCache:  make(map[string]interface{}),
 		contextLock:   sync.RWMutex{},
+		AssetFolderCache: make(map[string]map[string]AssetFolderCache),
 	}
 }
 func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int64 {

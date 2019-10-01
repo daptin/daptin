@@ -311,6 +311,29 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "sync_column_storage",
+		Label:            "Sync column storage",
+		OnType:           "world",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "Column name",
+				ColumnName: "column_name",
+				ColumnType: "label",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "column.storage.sync",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"column_name": "~column_name",
+					"table_name":  "$.table_name",
+				},
+			},
+		},
+	},
+	{
 		Name:             "sync_mail_servers",
 		Label:            "Sync Mail Servers",
 		OnType:           "mail_server",
