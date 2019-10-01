@@ -99,7 +99,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 			val = change.NewValue
 			if col.IsForeignKey {
 
-				log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.Namespace, val)
+				//log.Infof("Convert ref id to id %v[%v]", col.ForeignKeyData.Namespace, val)
 
 				switch col.ForeignKeyData.DataSource {
 				case "self":
@@ -169,6 +169,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					for i := range files {
 						file := files[i].(map[string]interface{})
 						delete(file, "file")
+						delete(file, "contents")
 						files[i] = file
 					}
 					val, err = json.Marshal(files)

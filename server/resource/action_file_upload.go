@@ -116,8 +116,19 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 			fileName := file["name"].(string)
 			temproryFilePath := filepath.Join(tempDirectoryPath, fileName)
 
-			fileContentsBase64 := file["file"].(string)
-			fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
+			fileContentsBase64, ok := file["file"].(string)
+			if !ok {
+				fileContentsBase64, ok = file["contents"].(string)
+				if !ok {
+					continue
+				}
+			}
+			splitParts := strings.Split(fileContentsBase64, ",")
+			encodedPart := splitParts[0]
+			if len(splitParts) > 1 {
+				encodedPart = splitParts[1]
+			}
+			fileBytes, err := base64.StdEncoding.DecodeString(encodedPart)
 			log.Infof("Write file [%v] for upload", temproryFilePath)
 			CheckErr(err, "Failed to convert base64 to []bytes")
 
