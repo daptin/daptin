@@ -41,6 +41,8 @@ jobs:
     - run: go test ./... -coverpkg github.com/daptin/daptin/... -v -cover -coverprofile=coverage.out
     - run: go get github.com/mattn/goveralls
     - run: /go/bin/goveralls -coverprofile=coverage.out -service=circle-ci -repotoken MaRVNq4KGrGW11NELIp9kniu2d5P2kt0s
+    docker:
+    - image: daptin/daptin:circleci
 workflows:
   version: 2
   build:
