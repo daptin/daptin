@@ -32,6 +32,8 @@ version: 2
 jobs:
   golang:latest:
     <<: *defaults
+    docker:
+    - image: daptin/daptin:circleci
   coveralls:
     steps:
     - checkout
