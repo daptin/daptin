@@ -3,6 +3,15 @@ test_with_go_modules: &test_with_go_modules
   - checkout
   - run: go test ./...
   - run: go vet ./...
+  - run: go build
+  - run: cp main docker_dir/main
+  - run: cd docker_dir
+  - run: docker build -t daptin/daptin:circleci .
+  - run: docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
+  - run: docker push daptin/daptin:circleci
+  - store_artifacts:
+      path: /go/src/github.com/daptin/daptin/main
+      destination: daptin
 
 test_without_go_modules: &test_without_go_modules
   working_directory: /go/src/github.com/daptin/daptin
@@ -11,6 +20,10 @@ test_without_go_modules: &test_without_go_modules
   - run: go get -v -t -d ./...
   - run: go test ./...
   - run: go vet ./...
+  - run: go build
+  - store_artifacts:
+      path: /go/src/github.com/daptin/daptin/main
+      destination: daptin
 
 defaults: &defaults
   <<: *test_with_go_modules
@@ -19,18 +32,13 @@ version: 2
 jobs:
   golang:latest:
     <<: *defaults
-    docker:
-    - image: circleci/golang:latest
   coveralls:
-    docker:
-    - image: circleci/golang:latest
     steps:
     - checkout
     - run: go get github.com/daptin/daptin
     - run: go test ./... -coverpkg github.com/daptin/daptin/... -v -cover -coverprofile=coverage.out
     - run: go get github.com/mattn/goveralls
     - run: /go/bin/goveralls -coverprofile=coverage.out -service=circle-ci -repotoken MaRVNq4KGrGW11NELIp9kniu2d5P2kt0s
-
 workflows:
   version: 2
   build:
