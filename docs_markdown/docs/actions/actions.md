@@ -9,21 +9,21 @@ Actions can be thought of as follows:
 
 ## What are actions and why do I need this
 
-Create/Read/Update/Delete (CRUD) APIs are only the most basic apis exposed on the database, and you would rarely want to make those API available to your end user. Reasons could be multiple
+Create/Read/Update/Delete (CRUD) APIs are only basic APIs exposed on the database, and you would rarely want to make those API available to your end user. Reasons could be multiple
 
 - The end user doesn't (immediately) owe the data they create
-- Creating a "row"/"data entry" entry doesnt signify completion of a process or a flow
-- Usually a "set of entities" is to created and not just a single entity (when you create a user, you also want to create a usergroup also and associate the user to usergroup)
+- Creating a "row"/"data entry" entry doesn't signify completion of a process or a flow
+- Usually a "set of entities" is to be created and not just a single entity (when you create a user, you also want to create a usergroup also and associate the user to usergroup)
 - You could allow user to update only some fields of an entity and not all fields (eg user can change their name, but not email)
-- Changes based on some entity (when you are going though a project, a new todo should automatically belong to that project)
+- Changes based on some entity (when you are going though a project, a new item should automatically belong to that project)
 
 
 Actions provide a powerful abstraction over the CRUD and handle all of these use cases.
 
 To quickly understand what actions are, lets see what happened when you "signed up" on Daptin.
 
-Lets take a look at how "Sign up" action is defined in Daptin. We will go through each part of this definition
-An action is performed on an entity. Lets also remember that ```world``` is an entity itself.
+Take a look at how "Sign up" action is defined in Daptin. We will go through each part of this definition
+An action is performed on an entity. Let's also remember that ```world``` is an entity itself.
 
 ## Action schema
 
