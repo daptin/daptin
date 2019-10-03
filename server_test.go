@@ -125,13 +125,12 @@ func TestServer(t *testing.T) {
 
 	log.Printf("Listening at port: %v", *port)
 
-	time.Sleep(1 * time.Second)
-
 	srv := &http.Server{Addr: *port, Handler: rhs.HostSwitch}
 
 	go func() {
 		srv.ListenAndServe()
 	}()
+	time.Sleep(1 * time.Second)
 
 	err = RunTests(t, hostSwitch, mailDaemon, db, taskScheduler, configStore)
 	if err != nil {
