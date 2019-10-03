@@ -5,6 +5,8 @@ test_with_go_modules: &test_with_go_modules
   - run: go vet ./...
   - run: go build
   - run: ls -lah
+  - run: mkdir docker_dir
+  - run: cp Dockerfile docker_dir/Dockerfile
   - run: cp daptin docker_dir/main
   - run: cd docker_dir
   - run: docker build -t daptin/daptin:circleci .
