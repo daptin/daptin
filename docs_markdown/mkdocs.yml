@@ -8,6 +8,7 @@ pages:
 - User management: setting-up/access.md
 - Data model: setting-up/data_modeling.md
 - API reference:
+  - Overview: apis/overview.md
   - CRUD:
     - Read, search, filter: apis/read.md
     - Create: apis/create.md
@@ -18,9 +19,11 @@ pages:
   - Action APIs:
     - Using actions: actions/actions.md
     - Actions list: actions/default_actions.md
+    - Examples: actions/examples.md
   - State tracking: state/machines.md
 - Asset and file storage:
   - Connecting with cloud store: cloudstore/cloudstore.md
+  - Cloud store backed asset columns: cloudstore/assetcolumns.md
 - Sub-sites:
   - Creating a subsite: subsite/subsite.md
   - Live editing a subsite: subsite/grapes.md

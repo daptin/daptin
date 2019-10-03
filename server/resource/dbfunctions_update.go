@@ -812,7 +812,8 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api2go.Request) []error {
 	errs := make([]error, 0)
 	for _, row := range data {
-		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, int64(auth.DEFAULT_PERMISSION), nil, row)
+
+		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, int64(crud.TableInfo().DefaultPermission), nil, row)
 		_, err := crud.Create(model, req)
 		if err != nil {
 			errs = append(errs, err)
@@ -823,6 +824,18 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 
 func ImportDataStringArray(data [][]string, headers []string, entityName string, crud *DbResource, req api2go.Request) []error {
 	errs := make([]error, 0)
+
+
+	uniqueColumns := make([]api2go.ColumnInfo, 0)
+
+	for _, col := range crud.TableInfo().Columns {
+
+		if col.IsUnique {
+			uniqueColumns = append(uniqueColumns, col)
+		}
+
+	}
+
 	for _, rowArray := range data {
 
 		rowMap := make(map[string]interface{})
@@ -830,8 +843,14 @@ func ImportDataStringArray(data [][]string, headers []string, entityName string,
 		for i, header := range headers {
 			rowMap[header] = rowArray[i]
 		}
-		model := api2go.NewApi2GoModelWithData(entityName, nil, int64(auth.DEFAULT_PERMISSION), nil, rowMap)
+		model := api2go.NewApi2GoModelWithData(entityName, nil, int64(crud.TableInfo().DefaultPermission), nil, rowMap)
 		_, err := crud.Create(model, req)
+
+		if err != nil {
+			// create row failed, try to update row by unique columns
+
+		}
+
 		if err != nil {
 			errs = append(errs, err)
 		}

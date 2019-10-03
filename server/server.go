@@ -683,6 +683,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 						existableTable.Columns[colIndex].Options = newColumnDef.Options
 						existableTable.Columns[colIndex].DataType = newColumnDef.DataType
 						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
+						existableTable.Columns[colIndex].ForeignKeyData = newColumnDef.ForeignKeyData
 
 					} else {
 						existableTable.Columns = append(existableTable.Columns, newColumnDef)
