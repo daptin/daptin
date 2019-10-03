@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
@@ -8,6 +9,8 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
+	"io/ioutil"
+	"os"
 	"strings"
 	"sync"
 )
@@ -29,22 +32,44 @@ type DbResource struct {
 
 type AssetFolderCache struct {
 	LocalSyncPath string
-	CloudStore CloudStore
+	Keyname       string
+	CloudStore    CloudStore
+}
+
+func (afc *AssetFolderCache) UploadFiles(files []interface{}) {
+
+	for i := range files {
+		file := files[i].(map[string]interface{})
+		contents, ok := file["file"]
+		if !ok {
+			contents = file["contents"]
+		}
+		contentString := contents.(string)
+		if contentString[0:11] == "data:image/" {
+			contentString = strings.Split(contentString, "base64,")[1]
+		}
+		fileBytes, e := base64.StdEncoding.DecodeString(contentString)
+		if e != nil {
+			continue
+		}
+		ioutil.WriteFile(afc.LocalSyncPath + "/" +   file["name"].(string), fileBytes, os.ModePerm)
+	}
+
 }
 
 func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, tableInfo TableInfo) *DbResource {
 	//log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
 	return &DbResource{
-		model:         model,
-		db:            db,
-		connection:    db,
-		ms:            ms,
-		configStore:   configStore,
-		Cruds:         cruds,
-		tableInfo:     &tableInfo,
-		defaultGroups: GroupNamesToIds(db, tableInfo.DefaultGroups),
-		contextCache:  make(map[string]interface{}),
-		contextLock:   sync.RWMutex{},
+		model:            model,
+		db:               db,
+		connection:       db,
+		ms:               ms,
+		configStore:      configStore,
+		Cruds:            cruds,
+		tableInfo:        &tableInfo,
+		defaultGroups:    GroupNamesToIds(db, tableInfo.DefaultGroups),
+		contextCache:     make(map[string]interface{}),
+		contextLock:      sync.RWMutex{},
 		AssetFolderCache: make(map[string]map[string]AssetFolderCache),
 	}
 }

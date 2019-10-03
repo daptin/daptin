@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, tempDirectoryPath string) error {
+func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, cloudPath string, tempDirectoryPath string) error {
 
 	oauthTokenId := cloudStore.OAutoTokenId
 
@@ -32,6 +32,10 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, tempDirectoryPat
 	args := []string{
 		cloudStore.RootPath,
 		tempDirectoryPath,
+	}
+
+	if cloudPath != "" {
+		args[0] = args[0] + "/" + cloudPath
 	}
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)

@@ -317,6 +317,11 @@ var SystemActions = []Action{
 		InstanceOptional: false,
 		InFields: []api2go.ColumnInfo{
 			{
+				Name:       "Table name",
+				ColumnName: "table_name",
+				ColumnType: "label",
+			},
+			{
 				Name:       "Column name",
 				ColumnName: "column_name",
 				ColumnType: "label",
@@ -328,7 +333,7 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"column_name": "~column_name",
-					"table_name":  "$.table_name",
+					"table_name":  "~table_name",
 				},
 			},
 		},

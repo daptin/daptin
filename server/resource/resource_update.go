@@ -3,6 +3,7 @@ package resource
 import (
 	"encoding/json"
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/columntypes"
 	log "github.com/sirupsen/logrus"
 	"strings"
 
@@ -165,15 +166,23 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						log.Errorf("Failed to upload attachments: %v", errs)
 					}
 
-					files := val.([]interface{})
-					for i := range files {
-						file := files[i].(map[string]interface{})
-						delete(file, "file")
-						delete(file, "contents")
-						files[i] = file
+					columnAssetCache, ok := dr.AssetFolderCache[dr.tableInfo.TableName][col.ColumnName]
+					if ok {
+						columnAssetCache.UploadFiles(val.([]interface{}))
 					}
-					val, err = json.Marshal(files)
-					CheckErr(err, "Failed to marshal file data to column")
+
+					files, ok := val.([]interface{})
+					if ok {
+
+						for i := range files {
+							file := files[i].(map[string]interface{})
+							delete(file, "file")
+							delete(file, "contents")
+							files[i] = file
+						}
+						val, err = json.Marshal(files)
+						CheckErr(err, "Failed to marshal file data to column")
+					}
 
 				default:
 					CheckErr(errors.New("undefined foreign key"), "Data source: %v", col.ForeignKeyData.DataSource)
@@ -194,7 +203,8 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					valString, ok := val.(string)
 					if ok {
 
-						val, err = time.Parse("2006-01-02T15:04:05.999Z", valString)
+						//val, err = time.Parse("2006-01-02T15:04:05.999Z", valString)
+						val, _, err = fieldtypes.GetDateTime(valString)
 						CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
 					} else {
 						floatVal, ok := val.(float64)

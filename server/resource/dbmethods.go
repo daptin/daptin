@@ -1229,7 +1229,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					parsedValue, _, err := fieldtypes.GetTime(stringVal)
 					if err != nil {
 						parsedValue, _, err := fieldtypes.GetDateTime(stringVal)
-						if InfoErr(err, "Failed to parse date time from: %v", stringVal) {
+						if InfoErr(err, "Failed to parse date time from [%v]: %v", columnInfo.ColumnName, stringVal) {
 							row[key] = nil
 						} else {
 							row[key] = parsedValue
@@ -1295,7 +1295,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				}
 
 				for _, file := range foreignFilesList {
-					file["src"] = columnInfo.ForeignKeyData.KeyName + "/" + file["name"].(string)
+					file["src"] = file["name"].(string)
 				}
 
 				row[key] = foreignFilesList

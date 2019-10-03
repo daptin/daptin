@@ -3,6 +3,7 @@ package fieldtypes
 import (
 	"errors"
 	"sort"
+	"strings"
 	"time"
 	//"fmt"
 	//	"fmt"
@@ -89,6 +90,9 @@ func init() {
 }
 
 func GetTime(t string) (time.Time, string, error) {
+	if (strings.Index(t, "0000") > -1) {
+		return time.Time{}, "", errors.New("not a date")
+	}
 	for _, format := range timeFormat {
 		//fmt.Printf("Testing %s with %s\n", t, format)
 		t, err := time.Parse(format, t)

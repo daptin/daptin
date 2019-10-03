@@ -25,8 +25,15 @@ func (d *SyncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 
 	responses := make([]ActionResponse, 0)
 
-	columnName := inFields["column_name"].(string)
-	tableName := inFields["table_name"].(string)
+	columnName, ok := inFields["column_name"].(string)
+	if !ok {
+		return nil, nil, []error{errors.New("missing column name")}
+
+	}
+	tableName, ok := inFields["table_name"].(string)
+	if !ok {
+		return nil, nil, []error{errors.New("missing table name")}
+	}
 
 	cacheFolder, ok := d.cruds["world"].AssetFolderCache[tableName][columnName]
 	if !ok {
@@ -53,8 +60,12 @@ func (d *SyncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 		cacheFolder.LocalSyncPath,
 	}
 
+	if cacheFolder.Keyname != "" {
+		args[0] = args[0] + "/" + cacheFolder.Keyname
+	}
+
 	fsrc, fdst := cmd.NewFsSrcDst(args)
-	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, cacheFolder.LocalSyncPath)
+	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, args[0], cacheFolder.LocalSyncPath)
 	go cmd.Run(true, true, nil, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Either source or destination is empty")
