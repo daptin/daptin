@@ -832,7 +832,7 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 
 		if len(uniqueColumns) > 0 {
 			for _, uniqueCol := range uniqueColumns {
-				log.Infof("Try to update data by unique column: ", uniqueCol.ColumnName)
+				log.Infof("Try to update data by unique column: %v", uniqueCol.ColumnName)
 				uniqueColumnValue, ok := row[uniqueCol.ColumnName]
 				if !ok || uniqueColumnValue == nil {
 					continue
