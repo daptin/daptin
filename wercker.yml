@@ -17,7 +17,7 @@ build:
   - script:
       name: go build
       code: |
-        go build ./... -o main
+        go build -o main
   - script:
       name: go test
       code: |
