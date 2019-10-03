@@ -59,7 +59,7 @@ func CreateAssetColumnSync(cmsConfig *resource.CmsConfig, db database.DatabaseCo
 				cloudStore := cloudStoreMap[column.ForeignKeyData.Namespace]
 				tempDirectoryPath, err := ioutil.TempDir("", tableName+"_"+columnName)
 
-				err = cruds["task"].SyncStorageToPath(cloudStore, tempDirectoryPath)
+				err = cruds["task"].SyncStorageToPath(cloudStore, column.ForeignKeyData.KeyName, tempDirectoryPath)
 				if resource.CheckErr(err, "Failed to setup sync to path") {
 					continue
 				}
@@ -67,6 +67,7 @@ func CreateAssetColumnSync(cmsConfig *resource.CmsConfig, db database.DatabaseCo
 				assetCacheFolder := resource.AssetFolderCache{
 					CloudStore:    cloudStore,
 					LocalSyncPath: tempDirectoryPath,
+					Keyname:       column.ForeignKeyData.KeyName,
 				}
 
 				colCache[columnName] = assetCacheFolder
@@ -153,7 +154,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 			continue
 		}
 
-		err = cruds["task"].SyncStorageToPath(cloudStore, tempDirectoryPath)
+		err = cruds["task"].SyncStorageToPath(cloudStore, "", tempDirectoryPath)
 		if resource.CheckErr(err, "Failed to setup sync to path") {
 			continue
 		}

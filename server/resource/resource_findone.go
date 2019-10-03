@@ -77,17 +77,20 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	a.Data = data
 
 	for _, inc := range include {
-		p, ok := inc["permission"].(int64)
-		if !ok {
-			log.Printf("Failed to convert [%v] to permission: %v", inc["permission"], inc["__type"])
-			p = 0
-		}
 		incType := inc["__type"].(string)
-		if BeginsWith(incType, "image.") {
+
+		if BeginsWith(incType, "image.") || BeginsWith(incType, "file.") {
 			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, nil, 0, nil, inc))
 		} else {
+			p, ok := inc["permission"].(int64)
+			if !ok {
+				log.Printf("Failed to convert [%v] to permission: %v", inc["permission"], inc["__type"])
+				p = 0
+			}
+
 			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dr.Cruds[incType].model.GetColumns(), int64(p), dr.Cruds[incType].model.GetRelations(), inc))
 		}
+
 	}
 
 	return NewResponse(nil, a, 200, nil), err
