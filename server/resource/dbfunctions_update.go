@@ -768,9 +768,9 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 			}
 
 			importSuccess = true
-			errors := ImportDataMapArray(data, cruds[importFile.Entity], req)
-			if len(errors) > 0 {
-				for _, err := range errors {
+			errors1 := ImportDataMapArray(data, cruds[importFile.Entity], req)
+			if len(errors1) > 0 {
+				for _, err := range errors1 {
 					log.Errorf("Error while importing json data: %v", err)
 				}
 			}
@@ -789,9 +789,9 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 			for i, h := range header {
 				header[i] = SmallSnakeCaseText(h)
 			}
-			errors := ImportDataStringArray(data, header, importFile.Entity, cruds[importFile.Entity], req)
-			if len(errors) > 0 {
-				for _, err := range errors {
+			errors1 := ImportDataStringArray(data, header, importFile.Entity, cruds[importFile.Entity], req)
+			if len(errors1) > 0 {
+				for _, err := range errors1 {
 					log.Errorf("Error while importing json data: %v", err)
 				}
 			}
@@ -811,6 +811,17 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 
 func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api2go.Request) []error {
 	errs := make([]error, 0)
+
+	uniqueColumns := make([]api2go.ColumnInfo, 0)
+
+	for _, col := range crud.TableInfo().Columns {
+
+		if col.IsUnique {
+			uniqueColumns = append(uniqueColumns, col)
+		}
+
+	}
+
 	for _, row := range data {
 
 		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, int64(crud.TableInfo().DefaultPermission), nil, row)
@@ -818,13 +829,43 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 		if err != nil {
 			errs = append(errs, err)
 		}
+
+		if len(uniqueColumns) > 0 {
+			for _, uniqueCol := range uniqueColumns {
+				log.Infof("Try to update data by unique column: ", uniqueCol.ColumnName)
+				uniqueColumnValue, ok := row[uniqueCol.ColumnName]
+				if !ok || uniqueColumnValue == nil {
+					continue
+				}
+				stringVal, isString := uniqueColumnValue.(string)
+				if isString && len(stringVal) == 0 {
+					continue
+				}
+				existingRow, err := crud.GetObjectByWhereClause(crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
+				if err != nil {
+					continue
+				}
+
+				for key, val := range row {
+					existingRow[key] = val
+				}
+
+				obj := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, 0, nil, existingRow)
+				_, err = crud.Update(obj, req)
+				if err != nil {
+					log.Errorf("Failed to update table [%v] update row by unique column [%v]: %v", crud.tableInfo.TableName, uniqueCol.ColumnName, err)
+				}
+				break
+
+			}
+		}
+
 	}
 	return errs
 }
 
 func ImportDataStringArray(data [][]string, headers []string, entityName string, crud *DbResource, req api2go.Request) []error {
 	errs := make([]error, 0)
-
 
 	uniqueColumns := make([]api2go.ColumnInfo, 0)
 
@@ -845,15 +886,45 @@ func ImportDataStringArray(data [][]string, headers []string, entityName string,
 		}
 		model := api2go.NewApi2GoModelWithData(entityName, nil, int64(crud.TableInfo().DefaultPermission), nil, rowMap)
 		_, err := crud.Create(model, req)
+		if err != nil {
+			errs = append(errs, err)
+		}
 
 		if err != nil {
 			// create row failed, try to update row by unique columns
 
+			if len(uniqueColumns) > 0 {
+				for _, uniqueCol := range uniqueColumns {
+					log.Infof("Try to update data by unique column: ", uniqueCol.ColumnName)
+					uniqueColumnValue, ok := rowMap[uniqueCol.ColumnName]
+					if !ok || uniqueColumnValue == nil {
+						continue
+					}
+					stringVal, isString := uniqueColumnValue.(string)
+					if isString && len(stringVal) == 0 {
+						continue
+					}
+					existingRow, err := crud.GetObjectByWhereClause(entityName, uniqueCol.ColumnName, uniqueColumnValue)
+					if err != nil {
+						continue
+					}
+
+					for _, key := range headers {
+						existingRow[key] = rowMap[key]
+					}
+
+					obj := api2go.NewApi2GoModelWithData(entityName, nil, 0, nil, existingRow)
+					_, err = crud.Update(obj, req)
+					if err != nil {
+						log.Errorf("Failed to update table [%v] update row by unique column [%v]: %v", entityName, uniqueCol.ColumnName, err)
+					}
+					break
+
+				}
+			}
+
 		}
 
-		if err != nil {
-			errs = append(errs, err)
-		}
 	}
 	return errs
 }
