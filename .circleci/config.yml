@@ -3,12 +3,7 @@ test_with_go_modules: &test_with_go_modules
   - checkout
   - run: go test ./...
   - run: go vet ./...
-  - run: go build
-  - run: ls -lah
-  - run: mkdir docker_dir
-  - run: cp Dockerfile docker_dir/Dockerfile
-  - run: cp daptin docker_dir/main
-  - run: cd docker_dir
+  - run: go build -o main
   - run: ls -lah
   - setup_remote_docker:
       docker_layer_caching: true
