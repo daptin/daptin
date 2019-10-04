@@ -114,10 +114,10 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 	log.Infof("Stats query: %v == %v", sql, args)
 	res, err := dr.db.Queryx(sql, args...)
 	CheckErr(err, "Failed to query stats: %v", err)
-	defer res.Close()
 	if err != nil {
 		return AggregateData{}, err
 	}
+	defer res.Close()
 
 	rows, err := RowsToMap(res, "aggregate_"+req.RootEntity)
 	CheckErr(err, "Failed to scan ")

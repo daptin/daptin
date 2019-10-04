@@ -44,15 +44,21 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) {
 		if !ok {
 			contents = file["contents"]
 		}
-		contentString := contents.(string)
-		if contentString[0:11] == "data:image/" {
-			contentString = strings.Split(contentString, "base64,")[1]
+		if contents != nil {
+
+			contentString, ok := contents.(string)
+			if ok {
+
+				if contentString[0:11] == "data:image/" {
+					contentString = strings.Split(contentString, "base64,")[1]
+				}
+				fileBytes, e := base64.StdEncoding.DecodeString(contentString)
+				if e != nil {
+					continue
+				}
+				ioutil.WriteFile(afc.LocalSyncPath+"/"+file["name"].(string), fileBytes, os.ModePerm)
+			}
 		}
-		fileBytes, e := base64.StdEncoding.DecodeString(contentString)
-		if e != nil {
-			continue
-		}
-		ioutil.WriteFile(afc.LocalSyncPath + "/" +   file["name"].(string), fileBytes, os.ModePerm)
 	}
 
 }
