@@ -8,6 +8,7 @@ import (
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/artpar/rclone/lib/pacer"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"strings"
 )
 
@@ -42,7 +43,9 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, cloudPath string
 	pacer1 := pacer.Pacer{}
 	pacer1.SetRetries(5)
 	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
-	go cmd.Run(true, true, nil, func() error {
+	go cmd.Run(true, true, &cobra.Command{
+		Use: "FolderSync",
+	}, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Either source or destination is empty")
 			return nil
