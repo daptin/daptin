@@ -786,8 +786,8 @@ func (dr *DbResource) GetUserIdByUsergroupId(usergroupId int64) string {
 
 	err = dr.db.QueryRowx(s, q...).Scan(&refId)
 	if err != nil {
-		log.Errorf("Failed to execute query: %v == %v", s, q)
-		log.Errorf("Failed to scan user group id from the result 2: %v", err)
+		//log.Errorf("Failed to execute query: %v == %v", s, q)
+		//log.Errorf("Failed to scan user group id from the result 2: %v", err)
 	}
 
 	return refId

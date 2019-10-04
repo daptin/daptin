@@ -9,7 +9,7 @@
   
   <link rel="shortcut icon" href="../../images/favicon.png">
   
-  <title>Data streams - Daptin</title>
+  <title>Cloud store backed asset columns - Daptin</title>
   <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
 
   <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
@@ -19,8 +19,8 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "Data streams";
-    var mkdocs_page_input_path = "streams/streams.md";
+    var mkdocs_page_name = "Cloud store backed asset columns";
+    var mkdocs_page_input_path = "cloudstore/assetcolumns.md";
     var mkdocs_page_url = null;
   </script>
   
@@ -154,11 +154,17 @@
     <ul class="subnav">
                 <li class="">
                     
-    <a class="" href="../../cloudstore/cloudstore/">Connecting with cloud store</a>
+    <a class="" href="../cloudstore/">Connecting with cloud store</a>
                 </li>
-                <li class="">
+                <li class=" current">
                     
-    <a class="" href="../../cloudstore/assetcolumns/">Cloud store backed asset columns</a>
+    <a class="current" href="./">Cloud store backed asset columns</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l3"><a href="#asset-columns">Asset columns</a></li>
+    
+
+    </ul>
                 </li>
     </ul>
 	    </li>
@@ -205,15 +211,9 @@
                     
     <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
                 </li>
-                <li class=" current">
+                <li class="">
                     
-    <a class="current" href="./">Data streams</a>
-    <ul class="subnav">
-            
-    <li class="toctree-l3"><a href="#streams">Streams</a></li>
-    
-
-    </ul>
+    <a class="" href="../../streams/streams/">Data streams</a>
                 </li>
     </ul>
 	    </li>
@@ -240,14 +240,14 @@
     
       
         
-          <li>Reference &raquo;</li>
+          <li>Asset and file storage &raquo;</li>
         
       
     
-    <li>Data streams</li>
+    <li>Cloud store backed asset columns</li>
     <li class="wy-breadcrumbs-aside">
       
-        <a href="https://github.com/daptin/daptin/edit/master/docs/streams/streams.md"
+        <a href="https://github.com/daptin/daptin/edit/master/docs/cloudstore/assetcolumns.md"
           class="icon icon-github"> Edit on GitHub</a>
       
     </li>
@@ -257,52 +257,25 @@
           <div role="main">
             <div class="section">
               
-                <h1 id="streams">Streams<a class="headerlink" href="#streams" title="Permanent link">Link</a></h1>
-<p>Streams are complimentary to <a href="/actions/actions">actions</a>. Think of streams as views in SQL. A stream is basically one entity + set of transformations and filters on the entity. Streams are read-only and exposed with similar semantics of that of entities. Daptin will expose JSONAPI for each stream just like it does for entities.</p>
-<p>Here is an example of a stream which exposes list of completed todos only</p>
-<div class="codehilite"><pre><span></span>{
-        StreamName:     &quot;transformed_user&quot;,
-        RootEntityName: &quot;todo&quot;,
-        Columns: []api2go.ColumnInfo{          // List of columns in this stream
-            {
-                Name:       &quot;transformed_todo_title&quot;,  
-                ColumnType: &quot;label&quot;,
-            },
-            {
-                Name:       &quot;completed_on&quot;,
-                ColumnType: &quot;datetime&quot;,
-            },
-        },
-        QueryParams: QueryParams{
-            &quot;Filter&quot;: &quot;completed=true&quot;,
-            &quot;Select&quot;: &quot;title,deadline&quot;,
-        },
-        Transformations: []Transformation{
-            {
-                Operation: &quot;select&quot;,
-                Attributes: map[string]interface{}{
-                    &quot;columns&quot;: []string{&quot;title&quot;, &quot;deadline&quot;},
-                },
-            },
-            {
-                Operation: &quot;rename&quot;,
-                Attributes: map[string]interface{}{
-                    &quot;oldName&quot;: &quot;title&quot;,
-                    &quot;newName&quot;: &quot;transformed_todo_title&quot;,
-                },
-            },
-            {
-                Operation: &quot;rename&quot;,
-                Attributes: map[string]interface{}{
-                    &quot;oldName&quot;: &quot;deadline&quot;,
-                    &quot;newName&quot;: &quot;completed_on&quot;,
-                },
-            },
-        },
-}   
+                <h1 id="asset-columns">Asset columns<a class="headerlink" href="#asset-columns" title="Permanent link">Link</a></h1>
+<p>Column types of blob types can either be stored in the database itself (not recommended) or persist in a persistent storage.</p>
+<p>After we have created a <a href="../cloudstore/">cloud store</a>, we can point the column to a folder on the cloud store. The column will only contain metadata and the actual file will be persisted on the cloud store.</p>
+<p>To enable this, update the ForeignKeyData config of the column as follows:</p>
+<p>Create a file for the schema change:</p>
+<div class="codehilite"><pre><span></span><span class="n">Tables</span><span class="p">:</span>
+  <span class="o">-</span> <span class="n">TableName</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">TableNameHere</span><span class="o">&gt;</span>
+  <span class="o">-</span> <span class="n">Columns</span><span class="p">:</span>
+    <span class="o">-</span> <span class="n">ColumnName</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">ColumnNameHere</span><span class="o">&gt;</span>
+      <span class="n">ForeignKeyData</span><span class="p">:</span>
+        <span class="n">DataSource</span><span class="p">:</span> <span class="s">&quot;cloud&quot;</span>
+        <span class="n">KeyName</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">Cloud</span> <span class="n">store</span> <span class="n">name</span> <span class="n">here</span><span class="o">&gt;</span>
+        <span class="n">Namespace</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">Folder</span> <span class="n">name</span> <span class="n">inside</span> <span class="n">that</span> <span class="n">clouds</span> <span class="n">store</span><span class="o">&gt;</span>
 </pre></div>
 
-<p>Daptin uses the library <a href="github.com/kniren/gota/dataframe">kniren/gota</a> to systematically specific list of transformations which are applied to the original data stream.</p>
+<p>Upload it using the dashboard (You can alternatively just edit that from the dashboard). This will trigger a reconfiguration of the system and initiate a local sync of the cloud directory in a temporary location. The cloud directory will be synced down stream every 15 minutes while the uploads will be asynced but instantaneous.</p>
+<p>Such columns like image./video./audio./markdown. will be served over HTTP in a simple GET call:</p>
+<p>/asset/<table_name>/<reference_id>/<column_name>.<extension></p>
+<p><extension> can be anything relevant to the mimetype of the file. The column file will be dumped as it is. Useful for using in <code>img</code> html tag.</p>
               
             </div>
           </div>
@@ -310,8 +283,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
+        <a href="../../subsite/subsite/" class="btn btn-neutral float-right" title="Creating a subsite">Next <span class="icon icon-circle-arrow-right"></span></a>
       
-        <a href="../../extend/data_exchange/" class="btn btn-neutral" title="Data exchange and sync"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+        <a href="../cloudstore/" class="btn btn-neutral" title="Connecting with cloud store"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -339,8 +314,10 @@
           <a href="https://github.com/daptin/daptin/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../../extend/data_exchange/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../cloudstore/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
+      
+        <span style="margin-left: 15px"><a href="../../subsite/subsite/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>
