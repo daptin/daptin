@@ -71,8 +71,6 @@ require (
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
 	github.com/graphql-go/relay v0.0.0-20171208134043-54350098cfe5
-	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway v1.11.2 // indirect
 	github.com/h2non/filetype v1.0.9
 	github.com/hpcloud/tail v1.0.0
 	github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365
@@ -83,8 +81,6 @@ require (
 	github.com/jlaffaye/ftp v0.0.0-20190828173736-6aaa91c7796e // indirect
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
 	github.com/julienschmidt/httprouter v1.2.0
-	github.com/karalabe/xgo v0.0.0-20190301120235-2d6d1848fb02 // indirect
-	github.com/kolaente/xgo v0.0.0-20181007145344-72da7d1d3970 // indirect
 	github.com/kr/pty v1.1.8 // indirect
 	github.com/labstack/echo v0.0.0-20181205161348-3f8b45c8d0dd // indirect
 	github.com/leodido/go-urn v0.0.0-20181204092800-a67a23e1c1af // indirect
@@ -116,6 +112,7 @@ require (
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/afero v1.2.2 // indirect
+	github.com/spf13/cobra v0.0.5
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.4.0
@@ -135,11 +132,12 @@ require (
 	golang.org/x/tools v0.0.0-20190925230517-ea99b82c7b93 // indirect
 	google.golang.org/api v0.10.0 // indirect
 	google.golang.org/appengine v1.6.3 // indirect
-	google.golang.org/genproto v0.0.0-20190925194540-b8fbc687dcfb // indirect
+	google.golang.org/genproto v0.0.0-20191007204434-a023cd5227bd // indirect
 	google.golang.org/grpc v1.24.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/go-playground/validator.v9 v9.29.1
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.8.1
-	src.techknowlogick.com/xgo v0.0.0-20190815231123-ed979d9fd830 // indirect
 )
+
+go 1.13
