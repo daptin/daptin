@@ -85,7 +85,7 @@ func (ati *ActiveTaskInstance) Run() {
 	if ati.Task.AsUserEmail != "" {
 		permission, err := ati.DbResource.GetObjectByWhereClause(USER_ACCOUNT_TABLE_NAME, "email", ati.Task.AsUserEmail)
 		CheckErr(err, "Failed to load user by email [%v]", ati.Task.AsUserEmail)
-		log.Printf("Loaded user permission: %v", permission)
+		//log.Printf("Loaded user permission: %v", permission)
 		refId := permission["reference_id"]
 		if refId != nil {
 			usergroups := ati.DbResource.GetObjectUserGroupsByWhere(USER_ACCOUNT_TABLE_NAME, "reference_id", refId.(string))

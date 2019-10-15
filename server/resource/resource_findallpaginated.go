@@ -484,8 +484,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	log.Printf("Id query\n%s", idsListQuery)
-	log.Printf("Id query args\n%v", args)
+	log.Printf("Id query: [%s]", idsListQuery)
+	log.Printf("Id query args: %v", args)
 	stmt, err := dr.connection.Preparex(idsListQuery)
 	if err != nil {
 		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
@@ -693,7 +693,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 			PageSize:   10,
 		}
 	}
-	log.Infof("Pagination :%v", pagination)
+	//log.Infof("Pagination :%v", pagination)
 
 	return uint(pagination.TotalCount), NewResponse(nil, result, 200, &api2go.Pagination{
 		Next:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageSize+pagination.PageNumber)},

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Masterminds/squirrel"
+	"github.com/araddon/dateparse"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
@@ -930,15 +931,30 @@ func (dr *DbResource) TruncateTable(typeName string) error {
 // Update the data and set the values using the data map without an validation or transformations
 // Invoked by data import action
 func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{}) error {
+	var err error
 
 	columnMap := dr.Cruds[typeName].model.GetColumnMap()
 
 	cols := make([]string, 0)
 	vals := make([]interface{}, 0)
 	for columnName := range columnMap {
-
+		colInfo, ok := dr.tableInfo.GetColumnByName(columnName)
+		if !ok {
+			continue
+		}
+		value := data[columnName]
+		switch colInfo.ColumnType {
+		case "datetime":
+			if value != nil {
+				value, err = dateparse.ParseLocal(value.(string))
+				if err != nil {
+					log.Errorf("Failed to parse value as time, insert will fail [%v][%v]: %v", columnName, value, err)
+					continue
+				}
+			}
+		}
 		cols = append(cols, columnName)
-		vals = append(vals, data[columnName])
+		vals = append(vals, value)
 
 	}
 
