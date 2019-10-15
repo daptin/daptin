@@ -165,7 +165,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			}
 
 			fileMbs := fileInfo.Size() / (1024 * 1024)
-			log.Printf("Current log size: %d MB", fileMbs)
+			//log.Printf("Current log size: %d MB", fileMbs)
 			if fileMbs > 100 {
 				logFile := "daptin.log"
 				os.Remove(logFile)

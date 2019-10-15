@@ -21,7 +21,7 @@ func (d *MailServersSyncActionPerformer) Name() string {
 
 func (d *MailServersSyncActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
-	log.Printf("Sync mail servers")
+	//log.Printf("Sync mail servers")
 	responses := make([]ActionResponse, 0)
 
 	servers, err := d.cruds["mail_server"].GetAllObjects("mail_server")

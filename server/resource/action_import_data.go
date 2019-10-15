@@ -125,7 +125,7 @@ func (d *ImportDataPerformer) DoAction(request Outcome, inFields map[string]inte
 
 				err := d.cruds[tableName].DirectInsert(tableName, data)
 				if err != nil {
-					log.Errorf("Was about to inser this: %v", data)
+					log.Errorf("Was about to insert this: %v", data)
 					log.Errorf("Failed to direct insert into table [%v] : %v", tableName, err)
 				}
 			}

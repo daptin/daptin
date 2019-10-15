@@ -12,7 +12,7 @@ docker: docker-daptin-binary
 
 
 docker-daptin-binary:
-	rm -rf github.com/daptin/daptin-linux-amd64 && rm -rf rice-box.go && rice embed-go && ~/go/src/github.com/kolaente/xgo/xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  github.com/daptin/daptin
+	rm -rf github.com/daptin/daptin-linux-amd64 && rm -rf rice-box.go && rice embed-go && xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  github.com/daptin/daptin
 
 daptin-linux-amd64:
     rm -rf rice-box.go && rice embed-go && xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  .
