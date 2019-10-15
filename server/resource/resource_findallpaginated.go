@@ -38,7 +38,10 @@ func (dr *DbResource) GetTotalCountBySelectBuilder(builder squirrel.SelectBuilde
 	}
 
 	var count uint64
-	dr.db.QueryRowx(s, v...).Scan(&count)
+	err = dr.db.QueryRowx(s, v...).Scan(&count)
+	if err != nil {
+		log.Errorf("Failed to execute count query [%v] %v", s, err)
+	}
 	//log.Infof("Count: [%v] %v", dr.model.GetTableName(), count)
 	return count
 }
@@ -476,8 +479,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			"((%s.permission & 32768) = 32768) or "+
 			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", m.GetTableName(), joinTableName, m.GetTableName(), m.GetTableName()), sessionUser.UserId)
 		countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
-			"((%s.permission & 32768) = 32768) or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", m.GetTableName(), joinTableName, m.GetTableName(), m.GetTableName()), sessionUser.UserId)
+			//"((%s.permission & 32768) = 32768) or "+
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", m.GetTableName(), m.GetTableName(), m.GetTableName()), sessionUser.UserId)
 	}
 
 	idsListQuery, args, err := queryBuilder.ToSql()
