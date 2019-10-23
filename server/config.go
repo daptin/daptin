@@ -4,6 +4,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
+	"github.com/gobuffalo/flect"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
@@ -86,6 +87,15 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		if err != nil {
 			errs = append(errs, err)
 			continue
+		}
+
+		for i, table := range initConfig.Tables {
+			table.TableName = flect.Underscore(table.TableName)
+
+			for j, col := range table.Columns {
+				table.Columns[j].ColumnName = flect.Underscore(col.ColumnName)
+			}
+			initConfig.Tables[i] = table
 		}
 
 		globalInitConfig.Tables = append(globalInitConfig.Tables, initConfig.Tables...)

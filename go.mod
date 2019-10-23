@@ -106,8 +106,8 @@ require (
 	github.com/robfig/cron v1.0.0
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.4.0 // indirect
-	github.com/russross/blackfriday v1.5.2
-	github.com/russross/blackfriday/v2 v2.0.1
+	github.com/russross/blackfriday v2.0.0+incompatible
+	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.4.2

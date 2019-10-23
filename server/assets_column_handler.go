@@ -12,7 +12,7 @@ import (
 	"github.com/disintegration/gift"
 	"github.com/gin-gonic/gin"
 	"github.com/h2non/filetype"
-	"github.com/russross/blackfriday/v2"
+	"github.com/russross/blackfriday"
 	"image"
 	"image/jpeg"
 	"image/png"

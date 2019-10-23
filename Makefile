@@ -12,7 +12,7 @@ docker: docker-daptin-binary
 
 
 docker-daptin-binary:
-	rm -rf github.com/daptin/daptin-linux-amd64 && rm -rf rice-box.go && rice embed-go && xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  github.com/daptin/daptin
+	rm -rf github.com/daptin/daptin-linux-amd64 && rm -rf rice-box.go && rice embed-go && xgo --targets='linux/amd64' -ldflags='-extldflags "-static"' .
 
 daptin-linux-amd64:
     rm -rf rice-box.go && rice embed-go && xgo --targets='linux/amd64' -ldflags='-extldflags "-static"'  .
@@ -29,9 +29,6 @@ container: $(static-app)
 
 publish: container
 	docker push $(docker-tag)
-
-serve: bin/$(app)
-	env PATH=$(PATH):./bin forego start web
 
 serve-container:
 	docker run -it --rm --env-file=.env -p 8081:8080 $(docker-tag)
