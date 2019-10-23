@@ -56,6 +56,11 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 	for _, group := range req.GroupBy {
 		projections = append(projections, group)
 	}
+
+	if len(projections) == 0 {
+		projections = append(projections, "count(*) as count")
+	}
+
 	selectBuilder := statementbuilder.Squirrel.Select(projections...)
 	builder := selectBuilder.From(req.RootEntity)
 	builder = builder.GroupBy(req.GroupBy...)
