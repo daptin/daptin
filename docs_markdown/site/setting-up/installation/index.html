@@ -74,6 +74,8 @@
     
         <ul>
         
+            <li><a class="toctree-l3" href="#deploy-and-get-started">Deploy and get started</a></li>
+        
             <li><a class="toctree-l3" href="#native-binary">Native binary</a></li>
         
             <li><a class="toctree-l3" href="#heroku-deployment">Heroku deployment</a></li>
@@ -94,8 +96,6 @@
             <li><a class="toctree-l3" href="#postgresql">PostgreSQL</a></li>
         
             <li><a class="toctree-l3" href="#sqlite">SQLite</a></li>
-        
-            <li><a class="toctree-l3" href="#deploy-and-get-started">Deploy and get started</a></li>
         
         </ul>
     
@@ -287,6 +287,53 @@
             <div class="section">
               
                 <h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">Link</a></h1>
+<h2 id="deploy-and-get-started">Deploy and get started<a class="headerlink" href="#deploy-and-get-started" title="Permanent link">Link</a></h2>
+<table>
+<thead>
+<tr>
+<th>Deployment preference</th>
+<th>Getting started</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Heroku</td>
+<td><a href="https://heroku.com/deploy?template=https://github.com/daptin/daptin"><img alt="Deploy" src="https://www.herokucdn.com/deploy/button.svg" /></a></td>
+</tr>
+<tr>
+<td>Docker</td>
+<td>docker run -p 8080:8080 daptin/daptin</td>
+</tr>
+<tr>
+<td>Kubernetes</td>
+<td><a href="#kubernetes">Service &amp; Deployment YAML</a></td>
+</tr>
+<tr>
+<td>Development</td>
+<td>go get github.com/daptin/daptin</td>
+</tr>
+<tr>
+<td>Linux (386/amd64/arm5,6,7)</td>
+<td><a href="https://github.com/daptin/daptin/releases">Download static linux builds</a></td>
+</tr>
+<tr>
+<td>Windows</td>
+<td>go get github.com/daptin/daptin</td>
+</tr>
+<tr>
+<td>OS X</td>
+<td>go get github.com/daptin/daptin</td>
+</tr>
+<tr>
+<td>Load testing</td>
+<td><a href="#docker-compose">Docker compose</a></td>
+</tr>
+<tr>
+<td>Raspberry Pi</td>
+<td><a href="https://github.com/daptin/daptin/releases">Linux arm 7 static build</a></td>
+</tr>
+</tbody>
+</table>
 <h2 id="native-binary">Native binary<a class="headerlink" href="#native-binary" title="Permanent link">Link</a></h2>
 <p>Daptin is available as a native binary. You can download the binary for the following os from <a href="https://github.com/daptin/daptin/releases">github releases</a></p>
 <ul>
@@ -339,33 +386,33 @@
 <p><a href="https://hub.docker.com/r/daptin/daptin/">https://hub.docker.com/r/daptin/daptin/</a></p>
 <h2 id="docker-compose">Docker-compose<a class="headerlink" href="#docker-compose" title="Permanent link">Link</a></h2>
 <p>Docker compose is a great tool to bring up a mysql/postgres backed daptin instance</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">version</span><span class="p p-Indicator">:</span> <span class="s">&#39;3&#39;</span>
-<span class="l l-Scalar l-Scalar-Plain">services</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">web</span><span class="p p-Indicator">:</span>
-        <span class="l l-Scalar l-Scalar-Plain">image</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin/daptin</span>
-        <span class="l l-Scalar l-Scalar-Plain">ports</span><span class="p p-Indicator">:</span>
+<div class="codehilite"><pre><span></span><span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3&#39;</span>
+<span class="nt">services</span><span class="p">:</span>
+    <span class="nt">web</span><span class="p">:</span>
+        <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin/daptin</span>
+        <span class="nt">ports</span><span class="p">:</span>
             <span class="p p-Indicator">-</span> <span class="s">&quot;8090:8080&quot;</span>
-        <span class="l l-Scalar l-Scalar-Plain">restart</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
-        <span class="l l-Scalar l-Scalar-Plain">environment</span><span class="p p-Indicator">:</span>
-          <span class="l l-Scalar l-Scalar-Plain">DAPTIN_PORT</span><span class="p p-Indicator">:</span> <span class="s">&#39;8080&#39;</span>
-          <span class="l l-Scalar l-Scalar-Plain">DAPTIN_DB_TYPE</span><span class="p p-Indicator">:</span> <span class="s">&#39;mysql&#39;</span>
-          <span class="l l-Scalar l-Scalar-Plain">DAPTIN_DB_CONNECTION_STRING</span><span class="p p-Indicator">:</span> <span class="s">&#39;dev:dev@tcp(mysqldb:3306)/daptin&#39;</span>
-        <span class="l l-Scalar l-Scalar-Plain">depends_on</span><span class="p p-Indicator">:</span>
+        <span class="nt">restart</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
+        <span class="nt">environment</span><span class="p">:</span>
+          <span class="nt">DAPTIN_PORT</span><span class="p">:</span> <span class="s">&#39;8080&#39;</span>
+          <span class="nt">DAPTIN_DB_TYPE</span><span class="p">:</span> <span class="s">&#39;mysql&#39;</span>
+          <span class="nt">DAPTIN_DB_CONNECTION_STRING</span><span class="p">:</span> <span class="s">&#39;dev:dev@tcp(mysqldb:3306)/daptin&#39;</span>
+        <span class="nt">depends_on</span><span class="p">:</span>
             <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">mysqldb</span>
-    <span class="l l-Scalar l-Scalar-Plain">mysqldb</span><span class="p p-Indicator">:</span>
-        <span class="l l-Scalar l-Scalar-Plain">image</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">mysql</span>
-        <span class="l l-Scalar l-Scalar-Plain">container_name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">${MYSQL_HOST}</span>
-        <span class="l l-Scalar l-Scalar-Plain">restart</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
-        <span class="l l-Scalar l-Scalar-Plain">env_file</span><span class="p p-Indicator">:</span>
+    <span class="nt">mysqldb</span><span class="p">:</span>
+        <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mysql</span>
+        <span class="nt">container_name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">${MYSQL_HOST}</span>
+        <span class="nt">restart</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
+        <span class="nt">env_file</span><span class="p">:</span>
             <span class="p p-Indicator">-</span> <span class="s">&quot;.env&quot;</span>
-        <span class="l l-Scalar l-Scalar-Plain">environment</span><span class="p p-Indicator">:</span>
+        <span class="nt">environment</span><span class="p">:</span>
             <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">MYSQL_DATABASE=${MYSQL_DATABASE}</span>
             <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}</span>
             <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">MYSQL_USER=${MYSQL_USER}</span>
             <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">MYSQL_PASSWORD=${MYSQL_PASSWORD}</span>
-        <span class="l l-Scalar l-Scalar-Plain">ports</span><span class="p p-Indicator">:</span>
+        <span class="nt">ports</span><span class="p">:</span>
             <span class="p p-Indicator">-</span> <span class="s">&quot;8989:3306&quot;</span>
-        <span class="l l-Scalar l-Scalar-Plain">volumes</span><span class="p p-Indicator">:</span>
+        <span class="nt">volumes</span><span class="p">:</span>
             <span class="p p-Indicator">-</span> <span class="s">&quot;./data/db/mysql:/var/lib/mysql&quot;</span>
 </pre></div>
 
@@ -373,54 +420,54 @@
 <p>Daptin can be infinitely scaled on kubernetes</p>
 <div class="admonition example">
 <p class="admonition-title">Example</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">apiVersion</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="l l-Scalar l-Scalar-Plain">kind</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Service</span>
-<span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-instance</span>
-  <span class="l l-Scalar l-Scalar-Plain">labels</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">app</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-<span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">ports</span><span class="p p-Indicator">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">port</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
-  <span class="l l-Scalar l-Scalar-Plain">selector</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">app</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-    <span class="l l-Scalar l-Scalar-Plain">tier</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">production</span>
+<div class="codehilite"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Service</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-instance</span>
+  <span class="nt">labels</span><span class="p">:</span>
+    <span class="nt">app</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">ports</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="nt">port</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
+  <span class="nt">selector</span><span class="p">:</span>
+    <span class="nt">app</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
+    <span class="nt">tier</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">production</span>
 <span class="nn">---</span>
-<span class="l l-Scalar l-Scalar-Plain">apiVersion</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">extensions/v1beta1</span>
-<span class="l l-Scalar l-Scalar-Plain">kind</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Deployment</span>
-<span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-daptin</span>
-  <span class="l l-Scalar l-Scalar-Plain">labels</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">app</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-<span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">strategy</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Recreate</span>
-  <span class="l l-Scalar l-Scalar-Plain">template</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="p p-Indicator">:</span>
-      <span class="l l-Scalar l-Scalar-Plain">labels</span><span class="p p-Indicator">:</span>
-        <span class="l l-Scalar l-Scalar-Plain">app</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-        <span class="l l-Scalar l-Scalar-Plain">tier</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">testing</span>
-    <span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
-      <span class="l l-Scalar l-Scalar-Plain">containers</span><span class="p p-Indicator">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">image</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin/daptin:latest</span>
-        <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-        <span class="l l-Scalar l-Scalar-Plain">args</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">[</span><span class="s">&#39;-db_type&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;mysql&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;-db_connection_string&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;user:password@tcp(&lt;mysql_service&gt;:3306)/daptin&#39;</span><span class="p p-Indicator">]</span>
-        <span class="l l-Scalar l-Scalar-Plain">ports</span><span class="p p-Indicator">:</span>
-        <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">containerPort</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
-          <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">extensions/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Deployment</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-daptin</span>
+  <span class="nt">labels</span><span class="p">:</span>
+    <span class="nt">app</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">strategy</span><span class="p">:</span>
+    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Recreate</span>
+  <span class="nt">template</span><span class="p">:</span>
+    <span class="nt">metadata</span><span class="p">:</span>
+      <span class="nt">labels</span><span class="p">:</span>
+        <span class="nt">app</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
+        <span class="nt">tier</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">testing</span>
+    <span class="nt">spec</span><span class="p">:</span>
+      <span class="nt">containers</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin/daptin:latest</span>
+        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
+        <span class="nt">args</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="s">&#39;-db_type&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;mysql&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;-db_connection_string&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;user:password@tcp(&lt;mysql_service&gt;:3306)/daptin&#39;</span><span class="p p-Indicator">]</span>
+        <span class="nt">ports</span><span class="p">:</span>
+        <span class="p p-Indicator">-</span> <span class="nt">containerPort</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
+          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
 <span class="nn">---</span>
-<span class="l l-Scalar l-Scalar-Plain">apiVersion</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">extensions/v1beta1</span>
-<span class="l l-Scalar l-Scalar-Plain">kind</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Ingress</span>
-<span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-test</span>
-<span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">rules</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">host</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">hello.website</span>
-    <span class="l l-Scalar l-Scalar-Plain">http</span><span class="p p-Indicator">:</span>
-      <span class="l l-Scalar l-Scalar-Plain">paths</span><span class="p p-Indicator">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">backend</span><span class="p p-Indicator">:</span>
-          <span class="l l-Scalar l-Scalar-Plain">serviceName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-testing</span>
-          <span class="l l-Scalar l-Scalar-Plain">servicePort</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">extensions/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Ingress</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-test</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">rules</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">host</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">hello.website</span>
+    <span class="nt">http</span><span class="p">:</span>
+      <span class="nt">paths</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="nt">backend</span><span class="p">:</span>
+          <span class="nt">serviceName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-testing</span>
+          <span class="nt">servicePort</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
 </pre></div>
 
 </div>
@@ -441,58 +488,11 @@
 <h2 id="sqlite">SQLite<a class="headerlink" href="#sqlite" title="Permanent link">Link</a></h2>
 <p>By default a "daptin.db" file is created to store data</p>
 <p><code>./daptin -db_type=sqlite -db_connection_string=db_file_name.db</code></p>
-<h2 id="deploy-and-get-started">Deploy and get started<a class="headerlink" href="#deploy-and-get-started" title="Permanent link">Link</a></h2>
-<table>
-<thead>
-<tr>
-<th>Deployment preference</th>
-<th>Getting started</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Heroku</td>
-<td><a href="https://heroku.com/deploy?template=https://github.com/daptin/daptin"><img alt="Deploy" src="https://www.herokucdn.com/deploy/button.svg" /></a></td>
-</tr>
-<tr>
-<td>Docker</td>
-<td>docker run -p 8080:8080 daptin/daptin</td>
-</tr>
-<tr>
-<td>Kubernetes</td>
-<td><a href="#kubernetes">Service &amp; Deployment YAML</a></td>
-</tr>
-<tr>
-<td>Development</td>
-<td>go get github.com/daptin/daptin</td>
-</tr>
-<tr>
-<td>Linux (386/amd64/arm5,6,7)</td>
-<td><a href="https://github.com/daptin/daptin/releases">Download static linux builds</a></td>
-</tr>
-<tr>
-<td>Windows</td>
-<td>go get github.com/daptin/daptin</td>
-</tr>
-<tr>
-<td>OS X</td>
-<td>go get github.com/daptin/daptin</td>
-</tr>
-<tr>
-<td>Load testing</td>
-<td><a href="#docker-compose">Docker compose</a></td>
-</tr>
-<tr>
-<td>Raspberry Pi</td>
-<td><a href="https://github.com/daptin/daptin/releases">Linux arm 7 static build</a></td>
-</tr>
-</tbody>
-</table>
 <h1 id="port">Port<a class="headerlink" href="#port" title="Permanent link">Link</a></h1>
 <p>Daptin will listen on port 6336 by default. You can change it by using the following argument</p>
-<p><code>-port=8080</code></p>
+<p><code>-port :8080</code></p>
 <h1 id="restart">Restart<a class="headerlink" href="#restart" title="Permanent link">Link</a></h1>
-<p>Daptin relies on self <code>re-configuration</code> to configure new entities and APIs and changes to the other parts of the ststem. As soon as you upload a schema file, daptin will write the file to disk, and <code>reconfigure</code> itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.</p>
+<p>Daptin relies on self re-configuration to configure new entities and APIs and changes to the other parts of the ststem. As soon as you upload a schema file, daptin will write the file to disk, and <code>reconfigure</code> itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.</p>
 <p>You can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.</p>
               
             </div>

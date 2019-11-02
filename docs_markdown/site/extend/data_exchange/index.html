@@ -257,27 +257,27 @@
           <div role="main">
             <div class="section">
               
-                <h1 id="data-exchanges">Data Exchanges <img style="float: right" src="images/exchanges.png" class="cloud-provider"><a class="headerlink" href="#data-exchanges" title="Permanent link">Link</a></h1>
+                <h1 id="data-exchanges">Data Exchanges <img style="float: right" src="/images/exchanges.png" class="cloud-provider"><a class="headerlink" href="#data-exchanges" title="Permanent link">Link</a></h1>
 <p>Exchanges are internal hooks to external apis, to either push data and update an external service, or pull data and update itself from some external service.</p>
 <p>Example, use exchange to sync data creation call to Google Sheets. So on every row created using the POST API also creates a corresponding row in your google sheet.</p>
 <div class="admonition note">
 <p class="admonition-title">Google drive exchange YAML</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Exchanges</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Task to excel sheet</span>
-  <span class="l l-Scalar l-Scalar-Plain">SourceAttributes</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-  <span class="l l-Scalar l-Scalar-Plain">SourceType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">self</span>
-  <span class="l l-Scalar l-Scalar-Plain">TargetAttributes</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">sheetUrl</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append</span>
-    <span class="l l-Scalar l-Scalar-Plain">appKey</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">AIzaSyAC2xame4NShrzH9ZJeEpWT5GkySooa0XM</span>
-  <span class="l l-Scalar l-Scalar-Plain">TargetType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">gsheet-append</span>
-  <span class="l l-Scalar l-Scalar-Plain">Attributes</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">SourceColumn</span><span class="p p-Indicator">:</span> <span class="s">&quot;$self.description&quot;</span>
-    <span class="l l-Scalar l-Scalar-Plain">TargetColumn</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Task description</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">SourceColumn</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">self.schedule</span>
-    <span class="l l-Scalar l-Scalar-Plain">TargetColumn</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Scheduled at</span>
-  <span class="l l-Scalar l-Scalar-Plain">Options</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">hasHeader</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+<div class="codehilite"><pre><span></span><span class="nt">Exchanges</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Task to excel sheet</span>
+  <span class="nt">SourceAttributes</span><span class="p">:</span>
+    <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="nt">SourceType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">self</span>
+  <span class="nt">TargetAttributes</span><span class="p">:</span>
+    <span class="nt">sheetUrl</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append</span>
+    <span class="nt">appKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">AIzaSyAC2xame4NShrzH9ZJeEpWT5GkySooa0XM</span>
+  <span class="nt">TargetType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gsheet-append</span>
+  <span class="nt">Attributes</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">SourceColumn</span><span class="p">:</span> <span class="s">&quot;$self.description&quot;</span>
+    <span class="nt">TargetColumn</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Task description</span>
+  <span class="p p-Indicator">-</span> <span class="nt">SourceColumn</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">self.schedule</span>
+    <span class="nt">TargetColumn</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Scheduled at</span>
+  <span class="nt">Options</span><span class="p">:</span>
+    <span class="nt">hasHeader</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
 </pre></div>
 
 </div>
