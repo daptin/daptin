@@ -266,31 +266,31 @@
 <p>Use action to expose endpoints for your forms and processes. Here is an example of creating a "/action/project/new_task" API:</p>
 <div class="admonition note">
 <p class="admonition-title">New task action YAML</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Actions</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">new_task</span>
-  <span class="l l-Scalar l-Scalar-Plain">Label</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">New to do</span>
-  <span class="l l-Scalar l-Scalar-Plain">OnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
-  <span class="l l-Scalar l-Scalar-Plain">InstanceOptional</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-  <span class="l l-Scalar l-Scalar-Plain">InFields</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">description</span>
-    <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Description</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">schedule</span>
-    <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Scheduled at</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
-  <span class="l l-Scalar l-Scalar-Plain">OutFields</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-    <span class="l l-Scalar l-Scalar-Plain">Method</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">POST</span>
-    <span class="l l-Scalar l-Scalar-Plain">Attributes</span><span class="p p-Indicator">:</span>
-      <span class="l l-Scalar l-Scalar-Plain">schedule</span><span class="p p-Indicator">:</span> <span class="s">&quot;~schedule&quot;</span>
-      <span class="l l-Scalar l-Scalar-Plain">title</span><span class="p p-Indicator">:</span> <span class="s">&quot;~description&quot;</span>
-      <span class="l l-Scalar l-Scalar-Plain">project_id</span><span class="p p-Indicator">:</span> <span class="s">&quot;$.reference_id&quot;</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">client.notify</span>
-    <span class="l l-Scalar l-Scalar-Plain">Method</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">ACTIONRESPONSE</span>
-    <span class="l l-Scalar l-Scalar-Plain">Attributes</span><span class="p p-Indicator">:</span>
-      <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">success</span>
-      <span class="l l-Scalar l-Scalar-Plain">message</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Created new todo, taking you to it.</span>
-      <span class="l l-Scalar l-Scalar-Plain">title</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Wait for it</span>
+<div class="codehilite"><pre><span></span><span class="nt">Actions</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">new_task</span>
+  <span class="nt">Label</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">New to do</span>
+  <span class="nt">OnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
+  <span class="nt">InstanceOptional</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="nt">InFields</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">description</span>
+    <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Description</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+  <span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">schedule</span>
+    <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Scheduled at</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
+  <span class="nt">OutFields</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+    <span class="nt">Method</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">POST</span>
+    <span class="nt">Attributes</span><span class="p">:</span>
+      <span class="nt">schedule</span><span class="p">:</span> <span class="s">&quot;~schedule&quot;</span>
+      <span class="nt">title</span><span class="p">:</span> <span class="s">&quot;~description&quot;</span>
+      <span class="nt">project_id</span><span class="p">:</span> <span class="s">&quot;$.reference_id&quot;</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">client.notify</span>
+    <span class="nt">Method</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ACTIONRESPONSE</span>
+    <span class="nt">Attributes</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">success</span>
+      <span class="nt">message</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Created new todo, taking you to it.</span>
+      <span class="nt">title</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Wait for it</span>
 </pre></div>
 
 </div>

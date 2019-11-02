@@ -196,16 +196,16 @@ Create a [OAuth Connection](/extend/oauth_connection) and mark "Allow login" to 
 Examples
 
 !!! note "Google login configuration"
-    ![Google oauth](images/oauth/google.png)
+    ![Google oauth](/images/oauth/google.png)
 
 !!! note "Dropbox login configuration"
-    ![Google oauth](images/oauth/dropbox.png)
+    ![Google oauth](/images/oauth/dropbox.png)
 
 !!! note "Github login configuration"
-    ![Google oauth](images/oauth/github.png)
+    ![Google oauth](/images/oauth/github.png)
 
 !!! note "Linkedin login configuration"
-    ![Google oauth](images/oauth/linkedin.png)
+    ![Google oauth](/images/oauth/linkedin.png)
 
 
 !!! note "Encrypted values"
