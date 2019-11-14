@@ -313,13 +313,13 @@
 </div>
 <div class="admonition note">
 <p class="admonition-title">YAML example</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Tables</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
-    <span class="l l-Scalar l-Scalar-Plain">IsIndexed</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+<div class="codehilite"><pre><span></span><span class="nt">Tables</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="nt">Columns</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+    <span class="nt">IsIndexed</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
 </pre></div>
 
 </div>
@@ -417,40 +417,40 @@
 </ul>
 <h3 id="yaml-example">YAML example<a class="headerlink" href="#yaml-example" title="Permanent link">Link</a></h3>
 <p>YAML example for <code>todo</code> entity is as follows</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Tables</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
-    <span class="l l-Scalar l-Scalar-Plain">IsIndexed</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">url</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">url</span>
-    <span class="l l-Scalar l-Scalar-Plain">IsNullable</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">completed</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">int(1)</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">truefalse</span>
-    <span class="l l-Scalar l-Scalar-Plain">DefaultValue</span><span class="p p-Indicator">:</span> <span class="s">&#39;false&#39;</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">schedule</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
-    <span class="l l-Scalar l-Scalar-Plain">IsNullable</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">order</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">item_order</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">int(4)</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
-    <span class="l l-Scalar l-Scalar-Plain">DefaultValue</span><span class="p p-Indicator">:</span> <span class="s">&#39;10&#39;</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
-    <span class="l l-Scalar l-Scalar-Plain">IsNullable</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-  <span class="l l-Scalar l-Scalar-Plain">Conformations</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">order</span>
-    <span class="l l-Scalar l-Scalar-Plain">Tags</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">numeric</span>
-  <span class="l l-Scalar l-Scalar-Plain">Validations</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
-<span class="l l-Scalar l-Scalar-Plain">Tags</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">required</span>
+<div class="codehilite"><pre><span></span><span class="nt">Tables</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="nt">Columns</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+    <span class="nt">IsIndexed</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">url</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">url</span>
+    <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">completed</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int(1)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">truefalse</span>
+    <span class="nt">DefaultValue</span><span class="p">:</span> <span class="s">&#39;false&#39;</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">schedule</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
+    <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">order</span>
+    <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">item_order</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int(4)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
+    <span class="nt">DefaultValue</span><span class="p">:</span> <span class="s">&#39;10&#39;</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
+    <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="nt">Conformations</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">order</span>
+    <span class="nt">Tags</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">numeric</span>
+  <span class="nt">Validations</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+<span class="nt">Tags</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">required</span>
 </pre></div>
 
 <p>You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.</p>
@@ -681,10 +681,10 @@
 <p>Checkout the <a href="/apis/relation">relation apis</a> exposed by daptin.</p>
 <div class="admonition note">
 <p class="admonition-title">YAML example</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Relations</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
-  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
+<div class="codehilite"><pre><span></span><span class="nt">Relations</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
+  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
 </pre></div>
 
 </div>
@@ -706,19 +706,19 @@
 <p>When uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.</p>
 <p>Continuing with our example of todos, lets say we want to group todo's in "projects" and each todo can belong to only a single project.</p>
 <p>Lets design a "project" entity:</p>
-<div class="codehilite"><pre><span></span><span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
-  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
-    <span class="l l-Scalar l-Scalar-Plain">IsIndexed</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+<div class="codehilite"><pre><span></span><span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
+  <span class="nt">Columns</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
+    <span class="nt">IsIndexed</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
 </pre></div>
 
 <p>A very simple table with just a name column. Now we can tell daptin about the relation between todos and projects</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Relations</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
-  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
+<div class="codehilite"><pre><span></span><span class="nt">Relations</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
+  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
 </pre></div>
 
 <p>This tells daptin that todo "has_one" project.</p>
@@ -784,44 +784,44 @@
 <li>Each blog can have a "highlighted post" (blog has one "highlighted post")</li>
 </ul>
 <p>To achieve the above scenario, our schema would look like as follows</p>
-<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Tables</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">blog</span>
-  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">view_count</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">int(11)</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
-  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">body</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">comment</span>
-  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">body</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">likes_count</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">likes_count</span>
-    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">int(11)</span>
-    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
-<span class="l l-Scalar l-Scalar-Plain">Relations</span><span class="p p-Indicator">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">comment</span>
-  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">belongs_to</span>
-  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
-  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">belongs_to</span>
-  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">blog                   // this is our post belongs to blog relation</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">blog</span>
-  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
-  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
-  <span class="l l-Scalar l-Scalar-Plain">ObjectName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">current_post</span>
-  <span class="l l-Scalar l-Scalar-Plain">SubjectName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">current_post_of   // this is our highlighted post relation</span>
+<div class="codehilite"><pre><span></span><span class="nt">Tables</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">blog</span>
+  <span class="nt">Columns</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">view_count</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int(11)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
+<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
+  <span class="nt">Columns</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">body</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
+<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">comment</span>
+  <span class="nt">Columns</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">body</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">likes_count</span>
+    <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">likes_count</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int(11)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
+<span class="nt">Relations</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">comment</span>
+  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">belongs_to</span>
+  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
+<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
+  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">belongs_to</span>
+  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">blog                   // this is our post belongs to blog relation</span>
+<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">blog</span>
+  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
+  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
+  <span class="nt">ObjectName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">current_post</span>
+  <span class="nt">SubjectName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">current_post_of   // this is our highlighted post relation</span>
 </pre></div>
 
 <p>Notice the "SubjectName" and "ObjectName" keys which helps to name our relations more intuitively.</p>
