@@ -271,25 +271,25 @@
 </div>
 <div class="admonition note">
 <p class="admonition-title">Nodejs example</p>
-<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
+<div class="codehilite"><pre><span></span><span class="nv">var</span> <span class="nv">request</span> <span class="o">=</span> <span class="nv">require</span><span class="ss">(</span><span class="s1">&#39;</span><span class="s">request</span><span class="s1">&#39;</span><span class="ss">)</span><span class="c1">;</span>
 
-<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span>
-<span class="p">};</span>
+<span class="nv">var</span> <span class="nv">headers</span> <span class="o">=</span> {
+    <span class="s1">&#39;</span><span class="s">Authorization</span><span class="s1">&#39;</span>: <span class="s1">&#39;</span><span class="s">Bearer &lt;Token&gt;</span><span class="s1">&#39;</span>
+}<span class="c1">;</span>
 
-<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;/api/user_account/a5b9add2-ea56-4717-a785-7dee71a2ae46&#39;</span><span class="p">,</span>
-    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
-    <span class="nx">headers</span>: <span class="kt">headers</span>
-<span class="p">};</span>
+<span class="nv">var</span> <span class="nv">options</span> <span class="o">=</span> {
+    <span class="nv">url</span>: <span class="s1">&#39;</span><span class="s">/api/user_account/a5b9add2-ea56-4717-a785-7dee71a2ae46</span><span class="s1">&#39;</span>,
+    <span class="nv">method</span>: <span class="s1">&#39;</span><span class="s">DELETE</span><span class="s1">&#39;</span>,
+    <span class="nv">headers</span>: <span class="nv">headers</span>
+}<span class="c1">;</span>
 
-<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
-    <span class="p">}</span>
-<span class="p">}</span>
+<span class="nv">function</span> <span class="nv">callback</span><span class="ss">(</span><span class="nv">error</span>, <span class="nv">response</span>, <span class="nv">body</span><span class="ss">)</span> {
+    <span class="k">if</span> <span class="ss">(</span><span class="o">!</span><span class="nv">error</span> <span class="o">&amp;&amp;</span> <span class="nv">response</span>.<span class="nv">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="ss">)</span> {
+        <span class="nv">console</span>.<span class="nv">log</span><span class="ss">(</span><span class="nv">body</span><span class="ss">)</span><span class="c1">;</span>
+    }
+}
 
-<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+<span class="nv">request</span><span class="ss">(</span><span class="nv">options</span>, <span class="nv">callback</span><span class="ss">)</span><span class="c1">;</span>
 </pre></div>
 
 </div>
