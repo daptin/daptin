@@ -20,7 +20,7 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, cloudPath string
 	CheckErr(err, "Failed to get oauth2 token for scheduled storage sync")
 	if err != nil {
 		log.Printf("Storage syncing will fail without valid token: OAuthTokenID [%v]", oauthTokenId)
-		return err
+		// return err
 	}
 
 	//hostRouter := httprouter.New()
