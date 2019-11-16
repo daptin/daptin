@@ -29,5 +29,5 @@ build:
       image-name: daptin/daptin:wercker
       username: $DOCKER_USERNAME # Docker Hub username. When using CLI, set using "export X_USERNAME=<username>"
       password: $DOCKER_PASSWORD # Docker Hub password. When using CLI, set using "export X_PASSWORD=<password>"
-      repository: docker.io/daptin/daptin:wercker
-      tag: latest
+      repository: docker.io/daptin/daptin
+      tag: wercker
