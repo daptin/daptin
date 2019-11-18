@@ -12,8 +12,9 @@ test_with_go_modules: &test_with_go_modules
   - run: go get
   - run: go test ./...
   - run: go vet ./...
-  - run: go build -o main
+  - run: go build  -ldflags='-extldflags "-static"' -a -installsuffix cgo -o main
   - run: ls -lah
+  - run: mkdir docker_dir
   - run: cp main docker_dir/main
   - run: cp Dockerfile docker_dir/Dockerfile
   - run: cd Dockerfile
