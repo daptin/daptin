@@ -17,7 +17,7 @@ build:
   - script:
       name: go build
       code: |
-        go build -o main
+        go build  -ldflags='-extldflags "-static"' -a -installsuffix cgo -o main
   - script:
       name: go test
       code: |
