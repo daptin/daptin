@@ -1,7 +1,8 @@
 test_with_go_modules: &test_with_go_modules
   build:
-    machine: true
   steps:
+  - setup_remote_docker:
+      docker_layer_caching: false
   - checkout
   - run: go test ./...
   - run: go vet ./...
