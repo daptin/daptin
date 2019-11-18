@@ -1,10 +1,9 @@
 test_with_go_modules: &test_with_go_modules
   steps:
-  - run: ls -lah /usr/local
-  - run: ls -lah /usr/local/go
-#  - run: wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
-#  - run: sudo tar -xvf go1.13.3.linux-amd64.tar.gz
-#  - run: sudo mv go /usr/local
+  - run: rm -rf /usr/local/go
+  - run: wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
+  - run: sudo tar -xvf go1.13.3.linux-amd64.tar.gz
+  - run: sudo mv go /usr/local
   - run: export GOROOT=/usr/local/go
   - run: export PATH=$GOROOT/bin:$PATH
   - checkout
