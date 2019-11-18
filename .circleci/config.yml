@@ -10,14 +10,12 @@ test_with_go_modules: &test_with_go_modules
   - checkout
   - run: export GO111MODULE=on
   - run: go get
-  - run: go test ./...
-  - run: go vet ./...
   - run: go build  -ldflags='-extldflags "-static"' -a -installsuffix cgo -o main
   - run: ls -lah
   - run: mkdir docker_dir
   - run: cp main docker_dir/main
   - run: cp Dockerfile docker_dir/Dockerfile
-  - run: cd Dockerfile
+  - run: cd docker_dir
   - run: docker build -t daptin/daptin:circleci .
   - run: docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
   - run: docker push daptin/daptin:circleci
