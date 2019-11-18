@@ -1,8 +1,6 @@
 test_with_go_modules: &test_with_go_modules
-  build:
   steps:
-  - setup_remote_docker:
-      docker_layer_caching: false
+  - apt-get install golang
   - checkout
   - run: go test ./...
   - run: go vet ./...
@@ -35,8 +33,8 @@ version: 2
 jobs:
   golang:latest:
     <<: *defaults
-    docker:
-    - image: circleci/golang:latest
+    machine:
+    - image: ubuntu-1604:201903-01
   coveralls:
     steps:
     - checkout
