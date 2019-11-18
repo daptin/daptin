@@ -1,4 +1,6 @@
 test_with_go_modules: &test_with_go_modules
+  build:
+    machine: true
   steps:
   - checkout
   - run: go test ./...
@@ -6,8 +8,6 @@ test_with_go_modules: &test_with_go_modules
   - run: go build -o main
   - run: ls -lah
   - run: pwd
-  - setup_remote_docker:
-      docker_layer_caching: false
   - run: docker build -t daptin/daptin:circleci .
   - run: docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
   - run: docker push daptin/daptin:circleci
