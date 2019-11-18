@@ -1,6 +1,6 @@
 test_with_go_modules: &test_with_go_modules
   steps:
-  - apt-get install golang
+  - run: apt-get install golang
   - checkout
   - run: go test ./...
   - run: go vet ./...
