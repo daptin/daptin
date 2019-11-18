@@ -2,7 +2,7 @@ test_with_go_modules: &test_with_go_modules
   steps:
   - run: sudo rm -rf /usr/local/go
   - run: wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
-  - run: sudo tar -xvf go1.13.3.linux-amd64.tar.gz
+  - run: sudo tar -xf go1.13.3.linux-amd64.tar.gz
   - run: sudo mv go /usr/local
   - run: rm go1.13.3.linux-amd64.tar.gz
   - run: export GOROOT=/usr/local/go
@@ -14,10 +14,13 @@ test_with_go_modules: &test_with_go_modules
   - run: go vet ./...
   - run: go build -o main
   - run: ls -lah
-  - run: pwd
+  - run: cp main docker_dir/main
+  - run: cp Dockerfile docker_dir/Dockerfile
+  - run: cd Dockerfile
   - run: docker build -t daptin/daptin:circleci .
   - run: docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
   - run: docker push daptin/daptin:circleci
+  - run: cd ..
   - store_artifacts:
       path: main
       destination: daptin
