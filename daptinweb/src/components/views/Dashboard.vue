@@ -24,7 +24,7 @@
     <section class="content">
 
       <div class="row">
-        <div class="col-md-9">
+        <div class="col-md-12">
           <div class="row">
 
 
@@ -47,40 +47,6 @@
             </div>
           </div>
         </div>
-        <div class="col-md-3">
-
-          <div class="row">
-            <div class="col-md-12" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0"
-                 v-bind:key="tableName">
-
-              <div class="box box-solid" v-if="worlds.filter(function(e){return e.InstanceOptional}).length > 0">
-                <div class="box-header with-border">
-                  <h3 class="box-title">{{tableName | titleCase}}</h3>
-
-                  <div class="box-tools">
-                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
-                    </button>
-                  </div>
-                </div>
-                <div class="box-body no-padding">
-                  <ul class="nav nav-pills nav-stacked">
-                    <li v-for="action in worlds" v-if="action.InstanceOptional" v-bind:key="action.Name">
-                      <router-link :to="{name: 'Action', params: {tablename: action.OnType, actionname: action.Name}}">
-                        {{action.Label}}
-                      </router-link>
-                    </li>
-
-                  </ul>
-                </div>
-                <!-- /.box-body -->
-              </div>
-
-
-            </div>
-          </div>
-        </div>
-
-
       </div>
 
       <!-- Main row -->
@@ -92,7 +58,7 @@
         <div class="col-md-12">
 
           <div class="row">
-            <div class="col-md-12">
+            <div class="col-md-9">
 
               <div class="row">
                 <div class="col-sm-12">
@@ -150,7 +116,7 @@
               </div>
 
 
-              <h3>People</h3>
+              <h3>User</h3>
               <div class="row">
                 <div class="col-sm-12">
                   <router-link :to="{name: 'Action', params: {tablename: 'user_account', actionname: 'signup'}}"
@@ -232,6 +198,40 @@
               </div>
 
 
+            </div>
+
+            <div class="col-md-3">
+              <div class="row">
+                <div class="col-md-12" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0"
+                     v-bind:key="tableName">
+
+                  <div class="box box-solid" v-if="worlds.filter(function(e){return e.InstanceOptional}).length > 0">
+                    <div class="box-header with-border">
+                      <h3 class="box-title">{{tableName | titleCase}}</h3>
+
+                      <div class="box-tools">
+                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                          class="fa fa-minus"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="box-body no-padding">
+                      <ul class="nav nav-pills nav-stacked">
+                        <li v-for="action in worlds" v-if="action.InstanceOptional" v-bind:key="action.Name">
+                          <router-link
+                            :to="{name: 'Action', params: {tablename: action.OnType, actionname: action.Name}}">
+                            {{action.Label}}
+                          </router-link>
+                        </li>
+
+                      </ul>
+                    </div>
+                    <!-- /.box-body -->
+                  </div>
+
+
+                </div>
+              </div>
             </div>
           </div>
 
@@ -410,7 +410,7 @@
               }
             }
 
-            console.log("load world actions tabld");
+            console.log("load world actions tables");
             that.worldActions = newWorldActions;
             that.actionGroups = actionGroups;
           });

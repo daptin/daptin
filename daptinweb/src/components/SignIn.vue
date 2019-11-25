@@ -60,7 +60,7 @@
 
       },
       init() {
-        var that = this;
+        const that = this;
         console.log("sign in loaded");
 
 

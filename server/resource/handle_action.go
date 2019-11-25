@@ -639,19 +639,6 @@ func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) (inte
 	return v.Export(), nil
 }
 
-//func runUnsafeZygome(unsafe string, contextMap map[string]interface{}) (interface{}, error) {
-//
-//	env := zygo.NewZlisp()
-//	err := env.LoadString(unsafe)
-//
-//	for key, val := range contextMap {
-//		env.AddGlobal(key, val)
-//		env.
-//	}
-//
-//
-//
-//}
 
 func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]interface{}) (interface{}, error) {
 

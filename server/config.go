@@ -3,7 +3,6 @@ package server
 import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/gin-gonic/gin"
 	"github.com/gobuffalo/flect"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -12,14 +11,6 @@ import (
 )
 
 //import "github.com/daptin/daptin/datastore"
-
-func CreateConfigHandler(configStore *resource.ConfigStore) func(context *gin.Context) {
-
-	return func(c *gin.Context) {
-		webConfig := configStore.GetWebConfig()
-		c.JSON(200, webConfig)
-	}
-}
 
 // Load config files which have the naming of the form schema_*_daptin.json/yaml
 func LoadConfigFiles() (resource.CmsConfig, []error) {
