@@ -107,6 +107,7 @@ func (dsa *DaptinSmtpAuthenticator) VerifyLOGIN(login, passwordBase64 string) bo
 //VerifyGSSAPI(login, password string) bool
 //VerifyDIGESTMD5(login, password string) bool
 //VerifyMD5(login, password string) bool
+
 func (dsa *DaptinSmtpAuthenticator) VerifyCRAMMD5(challenge, authString string) bool {
 	return false
 }
