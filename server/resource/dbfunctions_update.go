@@ -827,6 +827,7 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, int64(crud.TableInfo().DefaultPermission), nil, row)
 		_, err := crud.Create(model, req)
 		if err != nil {
+			log.Printf(" [%v] Error while importing insert data row: %v == %v", crud.tableInfo.TableName, err, row)
 			errs = append(errs, err)
 		}
 

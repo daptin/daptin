@@ -1116,7 +1116,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "generated_at",
 				ColumnName: "generated_at",
-				ColumnType: "label",
+				ColumnType: "datetime",
 				DataType:   "timestamp",
 				IsNullable: false,
 			},

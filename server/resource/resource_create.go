@@ -241,6 +241,12 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 				if ok {
 					val = time.Unix(int64(floatVal), 0)
 					err = nil
+				} else {
+					int64Val, ok := val.(int64)
+					if ok {
+						val = time.Unix(int64Val, 0)
+						err = nil
+					}
 				}
 			}
 
