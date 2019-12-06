@@ -1091,6 +1091,59 @@ var StandardTasks []Task
 
 var StandardTables = []TableInfo{
 	{
+		TableName:     "certificate",
+		IsHidden:      true,
+		DefaultGroups: adminsGroup,
+		Icon:          "fa-certificate",
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "hostname",
+				ColumnName: "hostname",
+				IsUnique:   true,
+				IsIndexed:  true,
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+				IsNullable: false,
+			},
+			{
+				Name:         "issuer",
+				ColumnName:   "issuer",
+				ColumnType:   "label",
+				DataType:     "varchar(100)",
+				IsNullable:   false,
+				DefaultValue: "'self'",
+			},
+			{
+				Name:       "generated_at",
+				ColumnName: "generated_at",
+				ColumnType: "label",
+				DataType:   "timestamp",
+				IsNullable: false,
+			},
+			{
+				Name:       "certificate_pem",
+				ColumnName: "certificate_pem",
+				ColumnType: "content",
+				DataType:   "text",
+				IsNullable: true,
+			},
+			{
+				Name:       "private_key_pem",
+				ColumnName: "private_key_pem",
+				ColumnType: "encrypted",
+				DataType:   "text",
+				IsNullable: false,
+			},
+			{
+				Name:       "public_key_pem",
+				ColumnName: "public_key_pem",
+				ColumnType: "encrypted",
+				DataType:   "text",
+				IsNullable: false,
+			},
+		},
+	},
+	{
 		TableName:     "integration",
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,

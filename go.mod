@@ -16,7 +16,8 @@ require (
 	github.com/artpar/api2go-adapter v1.0.0
 	github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6
 	github.com/artpar/go-guerrilla v0.0.0-20190527052415-a0ff13624d2e
-	github.com/artpar/go-imap v1.0.0-beta.6
+	github.com/artpar/go-imap v1.0.2
+	github.com/artpar/go-imap-idle v1.0.2
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
 	github.com/artpar/rclone v1.50.3
@@ -36,8 +37,8 @@ require (
 	github.com/disintegration/gift v1.2.0
 	github.com/dlclark/regexp2 v0.0.0-20171009020623-7632a260cbaf // indirect
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
-	github.com/emersion/go-message v0.10.3
-	github.com/emersion/go-sasl v0.0.0-20161116183048-7e096a0a6197
+	github.com/emersion/go-message v0.10.4-0.20190609165112-592ace5bc1ca
+	github.com/emersion/go-sasl v0.0.0-20190520160400-47d427600317
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/gabriel-vasile/mimetype v0.3.15 // indirect
 	github.com/getkin/kin-openapi v0.2.0

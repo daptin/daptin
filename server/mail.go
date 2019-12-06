@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-func StartSMTPMailServer(resource *resource.DbResource) (*guerrilla.Daemon, error) {
+func StartSMTPMailServer(resource *resource.DbResource, certificateManager *resource.CertificateManager) (*guerrilla.Daemon, error) {
 
 	servers, err := resource.GetAllObjects("mail_server")
 

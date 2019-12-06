@@ -13,6 +13,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/artpar/go-imap-idle"
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/emersion/go-sasl"
 	"github.com/gin-gonic/gin"
@@ -251,9 +252,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		configStore.SetConfigIntValueFor("rclone.retries", rcloneRetries, "backend")
 	}
 
+
+	certificateManager := resource.NewCertificateManager(cruds, configStore)
+
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 
-	mailDaemon, err := StartSMTPMailServer(cruds["mail"])
+	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager)
 
 	if err == nil {
 		err = mailDaemon.Start()
@@ -280,7 +284,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		// Create a new server
 		s := server.New(imapBackend)
 		s.Addr = imapListenInterface
-
+		s.Debug = os.Stdout
+		s.Enable(idle.NewExtension())
 		//s.Debug = os.Stdout
 		s.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
 

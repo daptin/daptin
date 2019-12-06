@@ -6,6 +6,7 @@ import (
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend"
 	"github.com/daptin/daptin/server/auth"
+	"log"
 	"strings"
 	"sync"
 )
@@ -37,6 +38,12 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 		return boxes, err
 	}
 
+	hasTrash := false
+	hasDraft := false
+	hasSent := false
+	hasSpam := false
+	hasArchive := false
+
 	for _, box := range mailBoxes {
 		if box["user_account_id"] == nil {
 			continue
@@ -54,7 +61,91 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 				Name:       box["name"].(string),
 			},
 		}
+
+		if strings.ToLower(mb.name) == "trash" {
+			hasTrash = true
+		}
+
+		if strings.ToLower(mb.name) == "draft" {
+			hasDraft = true
+		}
+		if strings.ToLower(mb.name) == "sent" {
+			hasSent = true
+		}
+		if strings.ToLower(mb.name) == "spam" {
+			hasSpam = true
+		}
+		if strings.ToLower(mb.name) == "archive" {
+			hasArchive = true
+		}
 		boxes = append(boxes, &mb)
+	}
+
+	if !hasDraft {
+		err = diu.CreateMailbox("Draft")
+		if err != nil {
+			log.Printf("Failed to create draft mailbox for imap account [%v]: %v", diu.username, err)
+		}
+		mailBox, err := diu.GetMailbox("Draft")
+		if err != nil {
+			log.Printf("Failed to fetch draft mailbox for imap account [%v]: %v", diu.username, err)
+		} else {
+			boxes = append(boxes, mailBox)
+		}
+
+	}
+
+	if !hasSpam {
+		err = diu.CreateMailbox("Spam")
+		if err != nil {
+			log.Printf("Failed to create Spam mailbox for imap account [%v]: %v", diu.username, err)
+		}
+		mailBox, err := diu.GetMailbox("Spam")
+		if err != nil {
+			log.Printf("Failed to fetch Spam mailbox for imap account [%v]: %v", diu.username, err)
+		} else {
+			boxes = append(boxes, mailBox)
+		}
+	}
+
+	if !hasArchive {
+		err = diu.CreateMailbox("Archive")
+		if err != nil {
+			log.Printf("Failed to create Archive mailbox for imap account [%v]: %v", diu.username, err)
+		}
+		mailBox, err := diu.GetMailbox("Archive")
+		if err != nil {
+			log.Printf("Failed to fetch Archive mailbox for imap account [%v]: %v", diu.username, err)
+		} else {
+			boxes = append(boxes, mailBox)
+		}
+	}
+
+	if !hasTrash {
+		err = diu.CreateMailbox("Trash")
+		if err != nil {
+			log.Printf("Failed to create trash mailbox for imap account [%v]: %v", diu.username, err)
+		}
+		mailBox, err := diu.GetMailbox("Trash")
+		if err != nil {
+			log.Printf("Failed to fetch trash mailbox for imap account [%v]: %v", diu.username, err)
+		} else {
+			boxes = append(boxes, mailBox)
+		}
+
+	}
+	if !hasSent {
+		err = diu.CreateMailbox("Sent")
+		if err != nil {
+			log.Printf("Failed to create Sent mailbox for imap account [%v]: %v", diu.username, err)
+		}
+		mailBox, err := diu.GetMailbox("Sent")
+		if err != nil {
+			log.Printf("Failed to fetch Sent mailbox for imap account [%v]: %v", diu.username, err)
+		} else {
+			boxes = append(boxes, mailBox)
+		}
+
 	}
 
 	return boxes, nil
