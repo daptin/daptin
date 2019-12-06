@@ -252,7 +252,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 						sessionUser := &auth.SessionUser{
 							UserId:          user["id"].(int64),
 							UserReferenceId: user["reference_id"].(string),
-							Groups:          dbResource.GetObjectUserGroupsByWhere("user_account", "id", user["id"].(int64)),
+							Groups:     	     dbResource.GetObjectUserGroupsByWhere("user_account", "id", user["id"].(int64)),
 						}
 
 						mailBox, err := dbResource.GetMailAccountBox(mailAccount["id"].(int64), "INBOX")
