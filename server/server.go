@@ -5,6 +5,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/go-guerrilla"
+	"github.com/artpar/go-imap-idle"
 	"github.com/artpar/go-imap/server"
 	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/fs"
@@ -13,7 +14,6 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/artpar/go-imap-idle"
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/emersion/go-sasl"
 	"github.com/gin-gonic/gin"
@@ -252,8 +252,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		configStore.SetConfigIntValueFor("rclone.retries", rcloneRetries, "backend")
 	}
 
-
-	certificateManager := resource.NewCertificateManager(cruds, configStore)
+	certificateManager, err := resource.NewCertificateManager(cruds, configStore)
+	resource.CheckErr(err, "Failed to create certificate manager")
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 
@@ -296,7 +296,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			}
 		})
 
-		tlsConfig, certPEMBytes, privateKeyPEMBytes, publicKeyPEMBytes, err := GetTLSConfig(hostname + ",127.0.0.1")
+		tlsConfig, certPEMBytes, privateKeyPEMBytes, publicKeyPEMBytes, err := certificateManager.GetTLSConfig(hostname)
 
 		ioutil.WriteFile("/tmp/daptin.cert.pem", certPEMBytes, 0666)
 		ioutil.WriteFile("/tmp/daptin.private.pem", privateKeyPEMBytes, 0666)

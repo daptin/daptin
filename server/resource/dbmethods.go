@@ -886,7 +886,7 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 
 	if len(m) == 0 {
 		log.Infof("No result found for [%v] [%v][%v]", typeName, column, val)
-		return nil, err
+		return nil, errors.New(fmt.Sprintf("no [%s=%s] object found", column, val))
 	}
 
 	return m[0], err

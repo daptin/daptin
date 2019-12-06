@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -8,24 +9,35 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
+	"errors"
+	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/auth"
 	"log"
 	"math/big"
 	"net"
+	"net/http"
 	"strings"
 	"time"
 )
 
 type CertificateManager struct {
-	cruds       map[string]*DbResource
-	configStore *ConfigStore
+	cruds            map[string]*DbResource
+	configStore      *ConfigStore
+	encryptionSecret string
 }
 
-func NewCertificateManager(cruds map[string]*DbResource, configStore *ConfigStore) *CertificateManager {
+func NewCertificateManager(cruds map[string]*DbResource, configStore *ConfigStore) (*CertificateManager, error) {
+
+	secret, err := configStore.GetConfigValueFor("encryption.secret", "backend")
+	if err != nil {
+		return nil, errors.New("no secret to decrypt key certificate")
+	}
 
 	return &CertificateManager{
-		cruds:       cruds,
-		configStore: configStore,
-	}
+		cruds:            cruds,
+		configStore:      configStore,
+		encryptionSecret: secret,
+	}, nil
 }
 
 func GenerateCertPEMWithKey(hostname string, privateKey *rsa.PrivateKey) ([]byte, error) {
@@ -113,30 +125,83 @@ func GetPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
 	return publicKeyBytes, privateKeyBytes, key, nil
 }
 
-func (cm *CertificateManager) GetTLSConfig(hostnames string) (*tls.Config, []byte, []byte, []byte, error) {
+func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte, []byte, []byte, error) {
 
-	publicKeyPem, privateKeyPem, key, err := GetPublicPrivateKeyPEMBytes()
-	if err != nil {
-		log.Printf("Failed to generate key: %v", err)
-		return nil, nil, nil, nil, err
+	certMap, err := cm.cruds["certificate"].GetObjectByWhereClause("certificate", "hostname", hostname)
+
+	if err != nil || certMap == nil {
+
+		publicKeyPem, privateKeyPem, key, err := GetPublicPrivateKeyPEMBytes()
+		if err != nil {
+			log.Printf("Failed to generate key: %v", err)
+			return nil, nil, nil, nil, err
+		}
+
+		certBytesPEM, err := GenerateCertPEMWithKey(hostname, key)
+
+		if err != nil {
+			log.Printf("Failed to load cert bytes pem: %v", err)
+			return nil, nil, nil, nil, err
+		}
+
+		cert, err := tls.X509KeyPair(certBytesPEM, privateKeyPem)
+		if err != nil {
+			log.Printf("Failed to load cert pair: %v", err)
+			return nil, nil, nil, nil, err
+		}
+
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}
+
+		adminUserId := cm.cruds["certificate"].GetAdminReferenceId()
+
+		newCertificate := map[string]interface{}{
+			"hostname":        hostname,
+			"issuer":          "self",
+			"generated_at":    time.Now().Unix(),
+			"certificate_pem": string(certBytesPEM),
+			"private_key_pem": string(privateKeyPem),
+			"public_key_pem":  string(publicKeyPem),
+			"user_id":         adminUserId,
+		}
+		request := &http.Request{}
+		request = request.WithContext(context.WithValue(context.Background(), "user", &auth.SessionUser{
+			UserReferenceId: adminUserId,
+		}))
+		req := api2go.Request{
+			PlainRequest: request,
+		}
+
+		data := api2go.NewApi2GoModelWithData("certificate", nil, 0, nil, newCertificate)
+		_, err = cm.cruds["certificate"].CreateWithoutFilter(data, req)
+
+		if err != nil {
+			log.Printf("Failed to store locally generated certificate: %v", err)
+		}
+
+		return tlsConfig, certBytesPEM, privateKeyPem, publicKeyPem, nil
+	} else {
+
+		certPEM := certMap["certificate_pem"].(string)
+		privatePEM := certMap["private_key_pem"].(string)
+		publicPEM := certMap["public_key_pem"].(string)
+
+		privatePEMDecrypted, err := Decrypt([]byte(cm.encryptionSecret), privatePEM)
+		publicPEMDecrypted, err := Decrypt([]byte(cm.encryptionSecret), publicPEM)
+
+		if err != nil {
+			log.Printf("Failed to load cert: %v", err)
+			return nil, nil, nil, nil, err
+		}
+
+		cert, err := tls.X509KeyPair([]byte(certPEM), []byte(privatePEMDecrypted))
+
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}
+
+		return tlsConfig, []byte(certPEM), []byte(privatePEMDecrypted), []byte(publicPEMDecrypted), nil
+
 	}
-
-	certBytesPEM, err := GenerateCertPEMWithKey(hostnames, key)
-
-	if err != nil {
-		log.Printf("Failed to load cert: %v", err)
-		return nil, nil, nil, nil, err
-	}
-
-	cert, err := tls.X509KeyPair(certBytesPEM, privateKeyPem)
-	if err != nil {
-		log.Printf("Failed to load cert: %v", err)
-		return nil, nil, nil, nil, err
-	}
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-	}
-
-	return tlsConfig, certBytesPEM, privateKeyPem, publicKeyPem, nil
 }
