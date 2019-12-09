@@ -626,6 +626,11 @@ func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) (inte
 	for key, val := range contextMap {
 		vm.Set(key, val)
 	}
+
+	vm.Set("btoa", func(data []byte) string {
+		return base64.StdEncoding.EncodeToString(data)
+	})
+
 	vm.Set("uuid", func() string {
 		u, _ := uuid.NewV4()
 		return u.String()
@@ -638,7 +643,6 @@ func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) (inte
 
 	return v.Export(), nil
 }
-
 
 func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]interface{}) (interface{}, error) {
 
