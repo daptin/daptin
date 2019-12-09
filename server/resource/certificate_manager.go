@@ -152,6 +152,9 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 
 		tlsConfig := &tls.Config{
 			Certificates: []tls.Certificate{cert},
+			ServerName:   hostname,
+
+			ClientAuth: tls.VerifyClientCertIfGiven,
 		}
 
 		adminUserId := cm.cruds["certificate"].GetAdminReferenceId()
@@ -199,6 +202,8 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 
 		tlsConfig := &tls.Config{
 			Certificates: []tls.Certificate{cert},
+			ServerName:   hostname,
+			ClientAuth:   tls.VerifyClientCertIfGiven,
 		}
 
 		return tlsConfig, []byte(certPEM), []byte(privatePEMDecrypted), []byte(publicPEMDecrypted), nil

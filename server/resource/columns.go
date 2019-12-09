@@ -104,6 +104,24 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "download_certificate",
+		Label:            "Download certificate",
+		OnType:           "certificate",
+		InstanceOptional: false,
+		OutFields: []Outcome{
+			{
+				Type:   "client.file.download",
+				Method: "ACTIONRESPONSE",
+				Attributes: map[string]interface{}{
+					"content":     "!btoa(subject.certificate_pem)",
+					"name":        "!subject.hostname + '.pem.crt'",
+					"contentType": "application/x-x509-ca-cert",
+					"message":     "!'Certificate for ' + subject.hostname",
+				},
+			},
+		},
+	},
+	{
 		Name:             "register_otp",
 		Label:            "Register Mobile Number",
 		OnType:           USER_ACCOUNT_TABLE_NAME,

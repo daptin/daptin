@@ -296,11 +296,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			}
 		})
 
-		tlsConfig, certPEMBytes, privateKeyPEMBytes, publicKeyPEMBytes, err := certificateManager.GetTLSConfig(hostname)
+		tlsConfig, _, _, _, err := certificateManager.GetTLSConfig(hostname)
 
-		ioutil.WriteFile("/tmp/daptin.cert.pem", certPEMBytes, 0666)
-		ioutil.WriteFile("/tmp/daptin.private.pem", privateKeyPEMBytes, 0666)
-		ioutil.WriteFile("/tmp/daptin.public.pem", publicKeyPEMBytes, 0666)
+		//ioutil.WriteFile("/tmp/daptin.cert.pem", certPEMBytes, 0600)
+		//ioutil.WriteFile("/tmp/daptin.private.pem", privateKeyPEMBytes, 0600)
+		//ioutil.WriteFile("/tmp/daptin.public.pem", publicKeyPEMBytes, 0600)
 
 		if err != nil {
 			log.Fatal(err)
