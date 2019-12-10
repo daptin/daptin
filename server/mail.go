@@ -45,7 +45,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		_, certPEMBytes, privatePEMBytes, publicPEMBytes, err := certificateManager.GetTLSConfig(hostnames)
 
 		if err != nil {
-			log.Printf("Failed to generate Certificates for SMTP server for %s")
+			log.Printf("Failed to generate Certificates for SMTP server for %s", hostnames)
 		}
 
 		certFilePath := filepath.Join(tempDirectoryPath, hostnames+".cert.pem")
@@ -54,14 +54,14 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 
 		err = ioutil.WriteFile(certFilePath, certPEMBytes, 0666)
 		if err != nil {
-			log.Printf("Failed to generate Certificates for SMTP server for %s")
+			log.Printf("Failed to generate Certificates for SMTP server for %s", hostnames)
 		}
 
 		err = ioutil.WriteFile(privateKeyFilePath, privatePEMBytes, 0666)
 		err = ioutil.WriteFile(publicKeyFilePath, publicPEMBytes, 0666)
 
 		if err != nil {
-			log.Printf("Failed to generate Certificates for SMTP server for %s")
+			log.Printf("Failed to generate Certificates for SMTP server for %s", hostnames)
 		}
 
 		serverTlsConfig = guerrilla.ServerTLSConfig{
