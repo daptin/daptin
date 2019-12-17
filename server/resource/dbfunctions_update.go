@@ -724,12 +724,26 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 		PlainRequest: pr,
 	}
 
+	schemaFolderDefinedByEnv, ok := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
+
+	if !ok {
+		schemaFolderDefinedByEnv = ""
+	} else {
+		if schemaFolderDefinedByEnv[len(schemaFolderDefinedByEnv)-1] != '/' {
+			schemaFolderDefinedByEnv = schemaFolderDefinedByEnv + "/"
+		}
+	}
+
 	for _, importFile := range imports {
 
 		log.Infof("Process import file %v", importFile.String())
-		fileBytes, err := ioutil.ReadFile(importFile.FilePath)
+		filePath := importFile.FilePath
+		if filePath[0] != '/' {
+			filePath = schemaFolderDefinedByEnv + filePath
+		}
+		fileBytes, err := ioutil.ReadFile(filePath)
 		if err != nil {
-			log.Errorf("Failed to read file [%v]: %v", importFile.FilePath, err)
+			log.Errorf("Failed to read file [%v]: %v", filePath, err)
 			continue
 		}
 
