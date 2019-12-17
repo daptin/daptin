@@ -18,10 +18,6 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create otp generator")
 	performers = append(performers, otpGenerateActionPerformer)
 
-	otpRegisterBeginActionPerformer, err := resource.NewOtpRegisterBeginActionPerformer(cruds, configStore)
-	resource.CheckErr(err, "Failed to create otp register begin performer")
-	performers = append(performers, otpRegisterBeginActionPerformer)
-
 	otpLoginVerifyActionPerformer, err := resource.NewOtpLoginVerifyActionPerformer(cruds, configStore)
 	resource.CheckErr(err, "Failed to create otp verify performer")
 	performers = append(performers, otpLoginVerifyActionPerformer)
