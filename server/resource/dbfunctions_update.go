@@ -747,7 +747,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 			continue
 		}
 
-		importSuccess := false
+		//importSuccess := false
 		log.Printf("Uploaded file is type: %v", importFile.FileType)
 		switch importFile.FileType {
 
@@ -781,7 +781,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 				continue
 			}
 
-			importSuccess = true
+			//importSuccess = true
 			errors1 := ImportDataMapArray(data, cruds[importFile.Entity], req)
 			if len(errors1) > 0 {
 				for _, err := range errors1 {
@@ -799,7 +799,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 			}
 
 			header := data[0]
-			importSuccess = true
+			data = data[1:]
 			for i, h := range header {
 				header[i] = SmallSnakeCaseText(h)
 			}
@@ -814,10 +814,10 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 			CheckErr(errors.New("unknown file type"), "Failed to import [%v]: [%v]", importFile.FileType, importFile.FilePath)
 		}
 
-		if importSuccess {
-			err := os.Remove(importFile.FilePath)
-			CheckErr(err, "Failed to remove import file after import [%v]", importFile.FilePath)
-		}
+		//if importSuccess {
+		//	err := os.Remove(filePath)
+		//	CheckErr(err, "Failed to remove import file after import [%v]", filePath)
+		//}
 
 	}
 
