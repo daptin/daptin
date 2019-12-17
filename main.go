@@ -52,11 +52,11 @@ func main() {
 	var port = flag.String("port", ":6336", "Daptin port")
 	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
 
-	gin.SetMode(*runtimeMode)
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
 
+	gin.SetMode(*runtimeMode)
 	stream.AddSink(&health.WriterSink{
 		Writer: os.Stdout,
 	})
