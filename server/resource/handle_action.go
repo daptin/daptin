@@ -186,6 +186,10 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 		return nil, err
 	}
 
+	if !action.InstanceOptional && (subjectInstanceReferenceId == "" || subjectInstance == nil) {
+		return nil, errors.New("required reference id not provided or incorrect")
+	}
+
 	if actionRequest.Attributes == nil {
 		actionRequest.Attributes = make(map[string]interface{})
 	}
