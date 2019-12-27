@@ -7,12 +7,17 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/gin-gonic/gin"
+	"github.com/go-acme/lego/v3/certcrypto"
+	"github.com/go-acme/lego/v3/certificate"
+	"github.com/go-acme/lego/v3/lego"
 	"github.com/go-acme/lego/v3/registration"
 	"log"
 	"net/http"
+	"time"
 )
 
 // You'll need a user or account type that implements acme.User
@@ -44,6 +49,14 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) Name() string {
 	return "acme.tls.generate"
 }
 
+func (d *AcmeTlsCertificateGenerateActionPerformer) Present(domain, token, keyAuth string) error {
+	log.Printf("Infof Present lego %v %v %v", domain, token, keyAuth)
+	return nil
+}
+func (d *AcmeTlsCertificateGenerateActionPerformer) CleanUp(domain, token, keyAuth string) error {
+	log.Printf("Infof CleanUp lego %v %v %v", domain, token, keyAuth)
+	return nil
+}
 func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	email, emailOk := inFieldMap["email"]
@@ -64,7 +77,9 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 		}
 	}
 	email = userAccount["email"].(string)
-	httpReq := &http.Request{}
+	httpReq := &http.Request{
+		Method: "PUT",
+	}
 	user := &auth.SessionUser{
 		UserId:          userAccount["id"].(int64),
 		UserReferenceId: userAccount["reference_id"].(string),
@@ -78,7 +93,8 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 
 	var myUser MyUser
 
-	certificateSubject := inFieldMap["certificate"]
+	certificateSubject := inFieldMap["certificate"].(map[string]interface{})
+	hostname := certificateSubject["hostname"].(string)
 	log.Printf("Generate certificate for: %v", certificateSubject)
 
 	if err != nil {
@@ -130,6 +146,73 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	}
 
 	log.Printf("User loaded: %v ", myUser.Email)
+
+	config := lego.NewConfig(&myUser)
+
+	// This CA URL is configured for a local dev instance of Boulder running in Docker in a VM.
+	config.CADirURL = "http://localhost:4001/directory"
+	//config.CADirURL = lego.LEDirectoryStaging
+	config.Certificate.KeyType = certcrypto.RSA2048
+
+	// A client facilitates communication with the CA server.
+	client, err := lego.NewClient(config)
+	if err != nil {
+		log.Printf("Failed to create client: %v", err)
+	}
+
+	// We specify an http port of 5002 and an tls port of 5001 on all interfaces
+	// because we aren't running as root and can't bind a listener to port 80 and 443
+	// (used later when we attempt to pass challenges). Keep in mind that you still
+	// need to proxy challenge traffic to port 5002 and 5001.
+	err = client.Challenge.SetHTTP01Provider(d)
+
+	if err != nil {
+		log.Printf("Failed to create client: %v", err)
+		return nil, []ActionResponse{}, []error{err}
+	}
+
+	// New users will need to register
+	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
+	if err != nil {
+		log.Printf("Failed to create client: %v", err)
+		return nil, []ActionResponse{}, []error{err}
+	}
+	myUser.Registration = reg
+
+	certificateRequest := certificate.ObtainRequest{
+		Domains: []string{hostname},
+		Bundle:  true,
+	}
+
+	certificates, err := client.Certificate.Obtain(certificateRequest)
+	if err != nil {
+		log.Printf("Failed to create client: %v", err)
+		return nil, []ActionResponse{}, []error{err}
+
+	}
+
+	newCertificate := map[string]interface{}{
+		"hostname":        hostname,
+		"issuer":          "self",
+		"generated_at":    time.Now().Format(time.RFC3339),
+		"certificate_pem": string(certificates.Certificate),
+		"private_key_pem": string(certificates.PrivateKey),
+		"public_key_pem":  nil,
+		"reference_id":    certificateSubject["reference_id"].(string),
+	}
+
+	data := api2go.NewApi2GoModelWithData("certificate", nil, 0, nil, newCertificate)
+	_, err = d.cruds["certificate"].UpdateWithoutFilters(data, api2go.Request{
+		PlainRequest: httpReq,
+	})
+
+	// Each certificate comes back with the cert bytes, the bytes of the client's
+	// private key, and a certificate URL. SAVE THESE TO DISK.
+	fmt.Printf("%#v\n", certificates)
+
+	if err != nil {
+		return nil, []ActionResponse{}, []error{err}
+	}
 
 	return nil, []ActionResponse{}, nil
 }

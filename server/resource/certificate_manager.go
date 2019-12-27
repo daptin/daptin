@@ -169,7 +169,9 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 			"public_key_pem":  string(publicKeyPem),
 			"user_id":         adminUserId,
 		}
-		request := &http.Request{}
+		request := &http.Request{
+			Method: "PUT",
+		}
 		request = request.WithContext(context.WithValue(context.Background(), "user", &auth.SessionUser{
 			UserReferenceId: adminUserId,
 		}))
@@ -186,6 +188,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 				log.Printf("Failed to store locally generated certificate: %v", err)
 			}
 		} else {
+			request.Method = "POST"
 			_, err = cm.cruds["certificate"].CreateWithoutFilter(data, req)
 
 			if err != nil {
