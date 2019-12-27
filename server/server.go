@@ -321,8 +321,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			configStore.SetConfigValueFor("imap.enabled", "false", "backend")
 		}
 	}
+	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
 
-	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon)
+	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager)
 	initConfig.ActionPerformers = actionPerformers
 
 	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
@@ -347,7 +348,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	TaskScheduler.StartTasks()
 
-	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
 	assetColumnFolders := CreateAssetColumnSync(&initConfig, db, cruds, authMiddleware)
 	for k := range cruds {
 		cruds[k].AssetFolderCache = assetColumnFolders

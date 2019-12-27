@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon) []resource.ActionPerformerInterface {
+func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon, hostSwitch HostSwitch, certificateManager *resource.CertificateManager) []resource.ActionPerformerInterface {
 
 	performers := make([]resource.ActionPerformerInterface, 0)
 
@@ -117,6 +117,14 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	fileUploadPerformer, err := resource.NewFileUploadActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, fileUploadPerformer)
+
+	acmeTlsCertificateGenerateActionPerformer, err := resource.NewAcmeTlsCertificateGenerateActionPerformer(cruds, configStore, hostSwitch.handlerMap["default"])
+	resource.CheckErr(err, "Failed to create acme tls certificate generator")
+	performers = append(performers, acmeTlsCertificateGenerateActionPerformer)
+
+	selfTlsCertificateGenerateActionPerformer, err := resource.NewSelfTlsCertificateGenerateActionPerformer(cruds, configStore, certificateManager)
+	resource.CheckErr(err, "Failed to create self tls certificate generator")
+	performers = append(performers, selfTlsCertificateGenerateActionPerformer)
 
 	integrationInstallationPerformer, err := resource.NewIntegrationInstallationPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create integration installation performer")

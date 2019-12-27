@@ -122,6 +122,45 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "generate_acme_certificate",
+		Label:            "Generate ACME certificate",
+		OnType:           "certificate",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "email",
+				ColumnType: "label",
+				ColumnName: "email",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "acme.tls.generate",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"email":       "~email",
+					"certificate": "~subject",
+				},
+			},
+		},
+	},
+	{
+		Name:             "generate_self_certificate",
+		Label:            "Generate Self certificate",
+		OnType:           "certificate",
+		InstanceOptional: false,
+		InFields:         []api2go.ColumnInfo{},
+		OutFields: []Outcome{
+			{
+				Type:   "self.tls.generate",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"certificate": "~subject",
+				},
+			},
+		},
+	},
+	{
 		Name:             "register_otp",
 		Label:            "Register Mobile Number",
 		OnType:           USER_ACCOUNT_TABLE_NAME,
@@ -1150,14 +1189,14 @@ var StandardTables = []TableInfo{
 				ColumnName: "private_key_pem",
 				ColumnType: "encrypted",
 				DataType:   "text",
-				IsNullable: false,
+				IsNullable: true,
 			},
 			{
 				Name:       "public_key_pem",
 				ColumnName: "public_key_pem",
 				ColumnType: "encrypted",
 				DataType:   "text",
-				IsNullable: false,
+				IsNullable: true,
 			},
 		},
 	},
@@ -1455,6 +1494,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "user_otp_account",
 		Icon:          "fa-sms",
+		IsHidden:      true,
 		DefaultGroups: []string{},
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1541,6 +1581,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName: "usergroup",
 		Icon:      "fa-users",
+		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -1554,6 +1595,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "action",
 		DefaultGroups: adminsGroup,
+		IsHidden:      true,
 		Icon:          "fa-bolt",
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1871,7 +1913,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "mail_server",
-		IsHidden:      false,
+		IsHidden:      true,
 		Icon:          "fa-envelope",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
@@ -1941,7 +1983,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "mail_account",
-		IsHidden:      false,
+		IsHidden:      true,
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-envelope",
 		Columns: []api2go.ColumnInfo{
@@ -1966,7 +2008,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "mail_box",
-		IsHidden:      false,
+		IsHidden:      true,
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -2018,7 +2060,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "mail",
-		IsHidden:      false,
+		IsHidden:      true,
 		Icon:          "fa-envelope",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{

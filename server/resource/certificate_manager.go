@@ -127,9 +127,10 @@ func GetPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
 
 func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte, []byte, []byte, error) {
 
+	hostname = strings.Split(hostname, ":")[0]
 	certMap, err := cm.cruds["certificate"].GetObjectByWhereClause("certificate", "hostname", hostname)
 
-	if err != nil || certMap == nil {
+	if err != nil || certMap == nil || certMap["certificate_pem"] == nil || certMap["certificate_pem"].(string) == "" {
 
 		publicKeyPem, privateKeyPem, key, err := GetPublicPrivateKeyPEMBytes()
 		if err != nil {
@@ -162,7 +163,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 		newCertificate := map[string]interface{}{
 			"hostname":        hostname,
 			"issuer":          "self",
-			"generated_at":    time.Now().Unix(),
+			"generated_at":    time.Now().Format(time.RFC3339),
 			"certificate_pem": string(certBytesPEM),
 			"private_key_pem": string(privateKeyPem),
 			"public_key_pem":  string(publicKeyPem),
@@ -177,10 +178,19 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 		}
 
 		data := api2go.NewApi2GoModelWithData("certificate", nil, 0, nil, newCertificate)
-		_, err = cm.cruds["certificate"].CreateWithoutFilter(data, req)
 
-		if err != nil {
-			log.Printf("Failed to store locally generated certificate: %v", err)
+		if certMap != nil && certMap["reference_id"] != nil {
+			data.Data["reference_id"] = certMap["reference_id"]
+			_, err = cm.cruds["certificate"].UpdateWithoutFilters(data, req)
+			if err != nil {
+				log.Printf("Failed to store locally generated certificate: %v", err)
+			}
+		} else {
+			_, err = cm.cruds["certificate"].CreateWithoutFilter(data, req)
+
+			if err != nil {
+				log.Printf("Failed to store locally generated certificate: %v", err)
+			}
 		}
 
 		return tlsConfig, certBytesPEM, privateKeyPem, publicKeyPem, nil

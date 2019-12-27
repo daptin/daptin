@@ -125,7 +125,7 @@ var ConfigTableStructure = TableInfo{
 			Name:       "Value",
 			ColumnName: "value",
 			ColumnType: "string",
-			DataType:   "varchar(100)",
+			DataType:   "varchar(5000)",
 			IsNullable: true,
 			IsIndexed:  true,
 		},
