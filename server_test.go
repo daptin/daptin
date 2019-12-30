@@ -124,6 +124,9 @@ func TestServer(t *testing.T) {
 		rhs.HostSwitch = &hostSwitch
 	})
 
+	name, _ := os.Hostname()
+	certManager.GetTLSConfig(name)
+
 	log.Printf("Listening at port: %v", *port)
 
 	srv := &http.Server{Addr: *port, Handler: rhs.HostSwitch}
