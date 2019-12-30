@@ -371,7 +371,7 @@ var SystemActions = []Action{
 		Name:             "sync_column_storage",
 		Label:            "Sync column storage",
 		OnType:           "world",
-		InstanceOptional: false,
+		InstanceOptional: true,
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "Table name",
