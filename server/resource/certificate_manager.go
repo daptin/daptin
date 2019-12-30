@@ -159,10 +159,10 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 			ClientAuth:         tls.NoClientCert,
 		}
 
-		adminUserReferfenceId := cm.cruds["certificate"].GetAdminReferenceId()
-		adminId, err := cm.cruds[USER_ACCOUNT_TABLE_NAME].GetReferenceIdToId("user_account", adminUserReferfenceId)
+		adminUserReferenceId := cm.cruds["certificate"].GetAdminReferenceId()
+		adminId, err := cm.cruds[USER_ACCOUNT_TABLE_NAME].GetReferenceIdToId("user_account", adminUserReferenceId)
 		if err != nil {
-			log.Printf("Failed to get admin id for user: %v == %v", adminUserReferfenceId, err)
+			log.Printf("Failed to get admin id for user: %v == %v", adminUserReferenceId, err)
 		}
 
 		newCertificate := map[string]interface{}{
@@ -178,7 +178,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 		}
 
 		request = request.WithContext(context.WithValue(context.Background(), "user", &auth.SessionUser{
-			UserReferenceId: adminUserReferfenceId,
+			UserReferenceId: adminUserReferenceId,
 			UserId:          adminId,
 		}))
 		req := api2go.Request{
