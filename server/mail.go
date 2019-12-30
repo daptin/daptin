@@ -42,7 +42,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
 		hostnames := server["hostname"].(string)
-		_, certPEMBytes, privatePEMBytes, publicPEMBytes, err := certificateManager.GetTLSConfig(hostnames)
+		_, certPEMBytes, privatePEMBytes, _, err := certificateManager.GetTLSConfig(hostnames)
 
 		if err != nil {
 			log.Printf("Failed to generate Certificates for SMTP server for %s", hostnames)
@@ -50,7 +50,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 
 		certFilePath := filepath.Join(tempDirectoryPath, hostnames+".cert.pem")
 		privateKeyFilePath := filepath.Join(tempDirectoryPath, hostnames+".private.key.pem")
-		publicKeyFilePath := filepath.Join(tempDirectoryPath, hostnames+".public.key.pem")
+		//publicKeyFilePath := filepath.Join(tempDirectoryPath, hostnames+".public.key.pem")
 
 		err = ioutil.WriteFile(certFilePath, certPEMBytes, 0666)
 		if err != nil {
@@ -58,7 +58,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		}
 
 		err = ioutil.WriteFile(privateKeyFilePath, privatePEMBytes, 0666)
-		err = ioutil.WriteFile(publicKeyFilePath, publicPEMBytes, 0666)
+		//err = ioutil.WriteFile(publicKeyFilePath, publicPEMBytes, 0666)
 
 		if err != nil {
 			log.Printf("Failed to generate Certificates for SMTP server for %s", hostnames)

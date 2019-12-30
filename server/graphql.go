@@ -157,6 +157,10 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	}
 
 	for _, table := range cmsConfig.Tables {
+		if table.IsJoinTable {
+			continue
+		}
+
 		tableType := graphql.NewObject(graphql.ObjectConfig{
 			Name: table.TableName,
 			Interfaces: []*graphql.Interface{
@@ -173,6 +177,9 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	tableColumnMap := map[string]map[string]api2go.ColumnInfo{}
 
 	for _, table := range cmsConfig.Tables {
+		if table.IsJoinTable {
+			continue
+		}
 		columnMap := map[string]api2go.ColumnInfo{}
 
 		for _, col := range table.Columns {
@@ -183,12 +190,12 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 	for _, table := range cmsConfig.Tables {
 
+		if table.IsJoinTable {
+			continue
+		}
 		allFields := make(graphql.FieldConfigArgument)
 		uniqueFields := make(graphql.FieldConfigArgument)
 
-		if strings.Contains(table.TableName, "_has_") {
-			continue
-		}
 		fields := make(graphql.Fields)
 
 		for _, column := range table.Columns {

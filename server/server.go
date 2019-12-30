@@ -33,7 +33,7 @@ import (
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore) {
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager) {
 
 	/// Start system initialise
 	log.Infof("Load config files")
@@ -111,20 +111,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		_, err = c.Writer.Write(fileContents)
 		resource.CheckErr(err, "Failed to write favicon")
 	})
-
-	//logTail, err := tail.TailFile("daptin.log", tail.Config{Follow: true})
-
-	//last10Lines := make([]string, 0)
-
-	//go func() {
-	//	for line := range logTail.Lines {
-	//		last10Lines = append(last10Lines, line.Text)
-	//		if len(last10Lines) > 10 {
-	//			last10Lines = last10Lines[1:]
-	//		}
-	//		fmt.Println(line.Text)
-	//	}
-	//}()
 
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
@@ -322,6 +308,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		}
 	}
 	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
+	hostSwitch.handlerMap["api"] = defaultRouter
+	hostSwitch.handlerMap["dashboard"] = defaultRouter
 
 	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager)
 	initConfig.ActionPerformers = actionPerformers
@@ -352,9 +340,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	for k := range cruds {
 		cruds[k].AssetFolderCache = assetColumnFolders
 	}
-
-	hostSwitch.handlerMap["api"] = defaultRouter
-	hostSwitch.handlerMap["dashboard"] = defaultRouter
 
 	authMiddleware.SetUserCrud(cruds[resource.USER_ACCOUNT_TABLE_NAME])
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
@@ -388,6 +373,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	if initConfig.EnableGraphQL {
 
+		// TODO: add state machine change api available as graphql
 		graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
 
 		graphqlHttpHandler := graphqlhandler.New(&graphqlhandler.Config{
@@ -442,6 +428,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	defaultRouter.GET("/site/content/load", loader)
 	defaultRouter.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
+	// TODO: make websockets functional at /live
 	//webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
 	//websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
 
@@ -473,7 +460,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
 
-	return hostSwitch, mailDaemon, TaskScheduler, configStore
+	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager
 
 }
 
