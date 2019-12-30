@@ -155,8 +155,8 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	config := lego.NewConfig(&myUser)
 
 	// This CA URL is configured for a local dev instance of Boulder running in Docker in a VM.
-	config.CADirURL = "https://localhost:14000/dir"
-	//config.CADirURL = lego.LEDirectoryStaging
+	//config.CADirURL = "https://localhost:14000/dir"
+	config.CADirURL = lego.LEDirectoryProduction
 	config.Certificate.KeyType = certcrypto.RSA2048
 	config.HTTPClient = &http.Client{
 		Transport: &http.Transport{
