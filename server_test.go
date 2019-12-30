@@ -94,6 +94,7 @@ func TestServer(t *testing.T) {
 	var mailDaemon *guerrilla.Daemon
 	var taskScheduler resource.TaskScheduler
 	var configStore *resource.ConfigStore
+	var certManager *resource.CertificateManager
 
 	configStore, _ = resource.NewConfigStore(db)
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
