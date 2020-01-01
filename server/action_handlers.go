@@ -118,7 +118,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, fileUploadPerformer)
 
-	acmeTlsCertificateGenerateActionPerformer, err := resource.NewAcmeTlsCertificateGenerateActionPerformer(cruds, configStore, hostSwitch.handlerMap["default"])
+	acmeTlsCertificateGenerateActionPerformer, err := resource.NewAcmeTlsCertificateGenerateActionPerformer(cruds, configStore, hostSwitch.handlerMap["api"])
 	resource.CheckErr(err, "Failed to create acme tls certificate generator")
 	performers = append(performers, acmeTlsCertificateGenerateActionPerformer)
 
