@@ -225,9 +225,13 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					log.Errorf("Failed to get secret from config: %v", err)
 					val = ""
 				} else {
-					val, err = Encrypt([]byte(secret), val.(string))
-					if err != nil {
-						log.Errorf("Failed to convert string to encrypted value, not storing the value: %v", err)
+					if val != nil {
+						val, err = Encrypt([]byte(secret), val.(string))
+						if err != nil {
+							log.Errorf("Failed to convert string to encrypted value, not storing the value: %v", err)
+							val = ""
+						}
+					} else {
 						val = ""
 					}
 				}

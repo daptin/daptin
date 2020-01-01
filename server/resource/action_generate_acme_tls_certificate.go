@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/gin-gonic/gin"
@@ -16,6 +16,7 @@ import (
 	"github.com/go-acme/lego/v3/lego"
 	"github.com/go-acme/lego/v3/registration"
 	"log"
+	"net"
 	"net/http"
 	"time"
 )
@@ -43,6 +44,7 @@ type AcmeTlsCertificateGenerateActionPerformer struct {
 	configStore      *ConfigStore
 	encryptionSecret []byte
 	hostSwitch       *gin.Engine
+	challenge        map[string]string
 }
 
 func (d *AcmeTlsCertificateGenerateActionPerformer) Name() string {
@@ -51,12 +53,15 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) Name() string {
 
 func (d *AcmeTlsCertificateGenerateActionPerformer) Present(domain, token, keyAuth string) error {
 	log.Printf("Infof Present lego %v %v %v", domain, token, keyAuth)
+	d.challenge[token] = keyAuth
 	return nil
 }
 func (d *AcmeTlsCertificateGenerateActionPerformer) CleanUp(domain, token, keyAuth string) error {
 	log.Printf("Infof CleanUp lego %v %v %v", domain, token, keyAuth)
+	delete(d.challenge, token)
 	return nil
 }
+
 func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	email, emailOk := inFieldMap["email"]
@@ -150,9 +155,24 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	config := lego.NewConfig(&myUser)
 
 	// This CA URL is configured for a local dev instance of Boulder running in Docker in a VM.
-	config.CADirURL = "http://localhost:4001/directory"
-	//config.CADirURL = lego.LEDirectoryStaging
+	//config.CADirURL = "https://localhost:14000/dir"
+	config.CADirURL = lego.LEDirectoryProduction
 	config.Certificate.KeyType = certcrypto.RSA2048
+	config.HTTPClient = &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+			TLSHandshakeTimeout:   15 * time.Second,
+			ResponseHeaderTimeout: 15 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
 
 	// A client facilitates communication with the CA server.
 	client, err := lego.NewClient(config)
@@ -208,7 +228,7 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 
 	// Each certificate comes back with the cert bytes, the bytes of the client's
 	// private key, and a certificate URL. SAVE THESE TO DISK.
-	fmt.Printf("%#v\n", certificates)
+	//fmt.Printf("%#v\n", certificates)
 
 	if err != nil {
 		return nil, []ActionResponse{}, []error{err}
@@ -240,7 +260,15 @@ func NewAcmeTlsCertificateGenerateActionPerformer(cruds map[string]*DbResource, 
 		encryptionSecret: []byte(encryptionSecret),
 		configStore:      configStore,
 		hostSwitch:       hostSwitch,
+		challenge:        make(map[string]string),
 	}
+
+	challengeResponse := func(c *gin.Context) {
+		token := c.Param("token")
+		log.Printf("Get challenge response: %v", token)
+		c.String(200, handler.challenge[token])
+	}
+	hostSwitch.GET("/.well-known/acme-challenge/:token", challengeResponse)
 
 	return &handler, nil
 

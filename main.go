@@ -13,6 +13,7 @@ import (
 	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
 	"io"
+	"io/ioutil"
 
 	//"io"
 	"net/http"
@@ -49,9 +50,9 @@ func main() {
 
 	var webDashboardSource = flag.String("dashboard", "daptinweb/dist", "path to dist folder for daptin web dashboard")
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
-	var port = flag.String("port", ":6336", "Daptin port")
+	var port = flag.String("port", ":6336", "daptin port")
+	var http_port = flag.String("https_port", ":6443", "daptin https port")
 	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
-
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
@@ -80,8 +81,10 @@ func main() {
 	var hostSwitch server.HostSwitch
 	var mailDaemon *guerrilla.Daemon
 	var taskScheduler resource.TaskScheduler
+	var certManager *resource.CertificateManager
+	var configStore *resource.ConfigStore
 
-	hostSwitch, mailDaemon, taskScheduler, _ = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -98,11 +101,34 @@ func main() {
 
 		db, err = server.GetDbConnection(*db_type, *connection_string)
 
-		hostSwitch, mailDaemon, taskScheduler, _ = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
 
 	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), *port)
+
+	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
+	_, certBytes, privateBytes, _, err := certManager.GetTLSConfig(hostname)
+
+	if err == nil {
+		go func() {
+
+			certTempDir := os.TempDir()
+			certFile := certTempDir + hostname + ".crt"
+			keyFile := certTempDir + hostname + ".key"
+			log.Printf("Temp dir for certificates: %v", certTempDir)
+			ioutil.WriteFile(certFile, certBytes, 0644)
+			ioutil.WriteFile(keyFile, privateBytes, 0644)
+
+			err1 := http.ListenAndServeTLS(*http_port, certFile, keyFile, &rhs)
+			if err1 != nil {
+				log.Errorf("Failed to start TLS server: %v", err1)
+			}
+		}()
+	} else {
+		log.Errorf("No Certificate available for: %v: %v", hostname, err)
+	}
+
 	err = http.ListenAndServe(*port, &rhs)
 	if err != nil {
 		panic(err)

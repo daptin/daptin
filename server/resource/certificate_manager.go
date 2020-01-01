@@ -60,7 +60,9 @@ func GenerateCertPEMWithKey(hostname string, privateKey *rsa.PrivateKey) ([]byte
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
+			Country:      []string{"IN"},
 			Organization: []string{"Daptin Co."},
+			CommonName:   hostname,
 		},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
@@ -152,13 +154,16 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 		}
 
 		tlsConfig := &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			ServerName:   hostname,
-
-			ClientAuth: tls.VerifyClientCertIfGiven,
+			Certificates:       []tls.Certificate{cert},
+			ServerName:         hostname,
+			ClientAuth:         tls.NoClientCert,
 		}
 
-		adminUserId := cm.cruds["certificate"].GetAdminReferenceId()
+		adminUserReferenceId := cm.cruds["certificate"].GetAdminReferenceId()
+		adminId, err := cm.cruds[USER_ACCOUNT_TABLE_NAME].GetReferenceIdToId("user_account", adminUserReferenceId)
+		if err != nil {
+			log.Printf("Failed to get admin id for user: %v == %v", adminUserReferenceId, err)
+		}
 
 		newCertificate := map[string]interface{}{
 			"hostname":        hostname,
@@ -167,13 +172,14 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 			"certificate_pem": string(certBytesPEM),
 			"private_key_pem": string(privateKeyPem),
 			"public_key_pem":  string(publicKeyPem),
-			"user_id":         adminUserId,
 		}
 		request := &http.Request{
 			Method: "PUT",
 		}
+
 		request = request.WithContext(context.WithValue(context.Background(), "user", &auth.SessionUser{
-			UserReferenceId: adminUserId,
+			UserReferenceId: adminUserReferenceId,
+			UserId:          adminId,
 		}))
 		req := api2go.Request{
 			PlainRequest: request,

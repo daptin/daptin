@@ -94,6 +94,7 @@ func TestServer(t *testing.T) {
 	var mailDaemon *guerrilla.Daemon
 	var taskScheduler resource.TaskScheduler
 	var configStore *resource.ConfigStore
+	var certManager *resource.CertificateManager
 
 	configStore, _ = resource.NewConfigStore(db)
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
@@ -101,7 +102,7 @@ func TestServer(t *testing.T) {
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
 	configStore.SetConfigValueFor("logs.enable", "true", "backend")
 
-	hostSwitch, mailDaemon, taskScheduler, configStore = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -119,9 +120,12 @@ func TestServer(t *testing.T) {
 
 		db, err = server.GetDbConnection(*db_type, *connection_string)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
+
+	name, _ := os.Hostname()
+	certManager.GetTLSConfig(name)
 
 	log.Printf("Listening at port: %v", *port)
 
@@ -138,24 +142,6 @@ func TestServer(t *testing.T) {
 	}
 
 	log.Printf("Shutdown now")
-	//
-	//shutDown := make(chan bool)
-	//
-	//srv.RegisterOnShutdown(func() {
-	//	shutDown <- true
-	//})
-	//err = srv.Shutdown(context.Background())
-	//if err != nil {
-	//	log.Printf("Failed to shut down server")
-	//}
-	//
-	//<-shutDown
-	//log.Printf("Shut down complete")
-	//
-	//err = os.Remove("daptin_test.db")
-	//if err != nil {
-	//	log.Printf("Failed to delete test database file")
-	//}
 
 }
 
