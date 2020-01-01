@@ -111,6 +111,9 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 	stores, err := cruds["cloud_store"].GetAllCloudStores()
 	cloudStoreMap := make(map[int64]resource.CloudStore)
 
+	adminEmailId := cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId()
+	log.Printf("Admin email id: %s", adminEmailId)
+
 	for _, store := range stores {
 		cloudStoreMap[store.Id] = store
 	}
@@ -166,7 +169,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 				"site_id": site.ReferenceId,
 				"path":    tempDirectoryPath,
 			},
-			AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(),
+			AsUserEmail: adminEmailId,
 			Schedule:    "@every 1h",
 		})
 		resource.CheckErr(err, "Failed to register task to sync storage")
