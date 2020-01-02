@@ -51,7 +51,7 @@ func main() {
 	var webDashboardSource = flag.String("dashboard", "daptinweb/dist", "path to dist folder for daptin web dashboard")
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
 	var port = flag.String("port", ":6336", "daptin port")
-	var http_port = flag.String("https_port", ":6443", "daptin https port")
+	var https_port = flag.String("https_port", ":6443", "daptin https port")
 	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
@@ -114,13 +114,15 @@ func main() {
 		go func() {
 
 			certTempDir := os.TempDir()
-			certFile := certTempDir + hostname + ".crt"
-			keyFile := certTempDir + hostname + ".key"
+			certFile := certTempDir + "/" + hostname + ".crt"
+			keyFile := certTempDir + "/" + hostname + ".key"
 			log.Printf("Temp dir for certificates: %v", certTempDir)
-			ioutil.WriteFile(certFile, certBytes, 0644)
-			ioutil.WriteFile(keyFile, privateBytes, 0644)
+			err = ioutil.WriteFile(certFile, certBytes, 0600)
+			resource.CheckErr(err, "Failed to write cert file")
+			err = ioutil.WriteFile(keyFile, privateBytes, 0600)
+			resource.CheckErr(err, "Failed to write private key file")
 
-			err1 := http.ListenAndServeTLS(*http_port, certFile, keyFile, &rhs)
+			err1 := http.ListenAndServeTLS(*https_port, certFile, keyFile, &rhs)
 			if err1 != nil {
 				log.Errorf("Failed to start TLS server: %v", err1)
 			}

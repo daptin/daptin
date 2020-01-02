@@ -218,7 +218,7 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 
 	newCertificate := map[string]interface{}{
 		"hostname":        hostname,
-		"issuer":          "self",
+		"issuer":          "acme",
 		"generated_at":    time.Now().Format(time.RFC3339),
 		"certificate_pem": certificateString,
 		"private_key_pem": string(certificates.PrivateKey),
