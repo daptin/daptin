@@ -18,6 +18,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -211,11 +212,15 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 
 	}
 
+	certificateString := string(certificates.Certificate)
+
+	certificateString = strings.Split(certificateString, "-----END CERTIFICATE-----")[0] + "-----END CERTIFICATE-----"
+
 	newCertificate := map[string]interface{}{
 		"hostname":        hostname,
 		"issuer":          "self",
 		"generated_at":    time.Now().Format(time.RFC3339),
-		"certificate_pem": string(certificates.Certificate),
+		"certificate_pem": certificateString,
 		"private_key_pem": string(certificates.PrivateKey),
 		"public_key_pem":  nil,
 		"reference_id":    certificateSubject["reference_id"].(string),
