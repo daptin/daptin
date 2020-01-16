@@ -69,7 +69,8 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		log.Errorf("Failed to decrypted auth spec: %v", err)
 	}
 	authKeys := make(map[string]interface{})
-	json.Unmarshal([]byte(decryptedSpec), &authKeys)
+	err = json.Unmarshal([]byte(decryptedSpec), &authKeys)
+	CheckErr(err, "Failed to unmarshal authentication specification")
 
 	for key, val := range authKeys {
 		inFieldMap[key] = val
@@ -88,7 +89,10 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		url = strings.Replace(url, "{"+matc+"}", value.(string), -1)
 	}
 
-	evaluateString(url, inFieldMap)
+	urlValue, err := evaluateString(url, inFieldMap)
+	CheckErr(err, "Error while evaluating action url [%s]", url)
+	url = urlValue.(string)
+
 	var resp *req.Resp
 	arguments := make([]interface{}, 0)
 
@@ -157,7 +161,8 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 								allDone = false
 								break
 							}
-							d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix())
+							err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix())
+							CheckErr(err, "Failed to update access token by reference id [%s]", oauthTokenId)
 						}
 
 						arguments = append(arguments, req.Header{
@@ -169,8 +174,9 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 				case "http":
 					switch spec.Value.Scheme {
 					case "basic":
-						basic := authKeys["token"].(string)
-						header := base64.StdEncoding.EncodeToString([]byte(basic))
+						username := authKeys["username"].(string)
+						password := authKeys["password"].(string)
+						header := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
 
 						if ok {
 							arguments = append(arguments, req.Header{
@@ -250,13 +256,15 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 			if ok {
 				oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
-				if err != nil {
+				if err == nil {
 
 					tokenSource := oauthConfig.TokenSource(context.Background(), oauthToken)
 
 					if oauthToken.Expiry.Before(time.Now()) {
+						log.Printf("Token[%s] has expired for action [%v][%v][%v], generating new token", oauthTokenId, operation, method, d.integration.Name)
 						oauthToken, err = tokenSource.Token()
-						d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix())
+						CheckErr(err, "Failed to generate token from source")
+						err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix())
 					}
 
 					arguments = append(arguments, req.Header{
@@ -270,8 +278,9 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		case "http":
 			switch authKeys["scheme"].(string) {
 			case "basic":
-				token := authKeys["token"].(string)
-				header := base64.StdEncoding.EncodeToString([]byte(token))
+				username := authKeys["username"].(string)
+				password := authKeys["password"].(string)
+				header := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
 
 				if ok {
 					arguments = append(arguments, req.Header{
@@ -378,9 +387,11 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		resp, err = r.Options(url, arguments...)
 
 	}
+	CheckErr(err, "Action execution failed")
 
 	var res map[string]interface{}
-	resp.ToJSON(&res)
+	err = resp.ToJSON(&res)
+	CheckErr(err, "Failed to read value as json")
 	responder := NewResponse(nil, res, resp.Response().StatusCode, nil)
 	return responder, []ActionResponse{}, nil
 }
