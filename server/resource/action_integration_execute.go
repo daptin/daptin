@@ -14,6 +14,7 @@ import (
 	"github.com/imroc/req"
 	log "github.com/sirupsen/logrus"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -105,19 +106,26 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 			switch mediaType {
 			case "application/json":
 
-				requestBody, err := CreateRequestBody(ModeRequest, "", spec.Schema.Value, inFieldMap)
+				requestBody, err := CreateRequestBody(ModeRequest, mediaType, "", spec.Schema.Value, inFieldMap)
 				if err != nil || spec == nil {
-					log.Errorf("Failed to create request body for calling [%v][%v]", d.integration.Name, request.Method)
+					log.Errorf("Failed to create request body for calling [%v][%v]: %v", d.integration.Name, request.Method, err)
 				} else {
 					arguments = append(arguments, req.BodyJSON(requestBody))
 				}
 
 			case "application/x-www-form-urlencoded":
-				requestBody, err := CreateRequestBody(ModeRequest, "", spec.Schema.Value, inFieldMap)
+				requestBody, err := CreateRequestBody(ModeRequest, mediaType, "", spec.Schema.Value, inFieldMap)
 				if err != nil || spec == nil {
-					log.Errorf("Failed to create request body for calling [%v][%v]", d.integration.Name, request.Method)
+					log.Errorf("Failed to create request body for calling [%v][%v]: %v", d.integration.Name, request.Method, err)
 				} else {
-					arguments = append(arguments, req.Param(requestBody.(map[string]interface{})))
+					m := strings.ToLower(method)
+					if m == "get" {
+
+						arguments = append(arguments, req.Param(requestBody.(map[string]interface{})))
+					} else {
+						arguments = append(arguments, req.Param(requestBody.(map[string]interface{})))
+
+					}
 				}
 
 			}
@@ -348,7 +356,7 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		}
 		if param.Value.In == "header" {
 			parameterValues := make(map[string]string)
-			value, err := CreateRequestBody(ModeRequest, param.Value.Name, param.Value.Schema.Value, inFieldMap)
+			value, err := CreateRequestBody(ModeRequest, "application/json", param.Value.Name, param.Value.Schema.Value, inFieldMap)
 			if err != nil {
 				log.Errorf("Failed to create parameters for calling [%v][%v]", d.integration.Name, request.Method)
 				return nil, nil, []error{err}
@@ -360,7 +368,7 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 		if param.Value.In == "query" {
 			parameterValues := make(map[string]interface{})
-			value, err := CreateRequestBody(ModeRequest, param.Value.Name, param.Value.Schema.Value, inFieldMap)
+			value, err := CreateRequestBody(ModeRequest, "application/x-www-form-urlencoded", param.Value.Name, param.Value.Schema.Value, inFieldMap)
 			if err != nil {
 				log.Errorf("Failed to create parameters for calling [%v][%v]", d.integration.Name, request.Method)
 				return nil, nil, []error{err}
@@ -393,7 +401,10 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 	err = resp.ToJSON(&res)
 	CheckErr(err, "Failed to read value as json")
 	responder := NewResponse(nil, res, resp.Response().StatusCode, nil)
-	return responder, []ActionResponse{}, nil
+	return responder, []ActionResponse{
+		NewActionResponse(d.integration.Name+"."+request.Method+".response", res),
+		NewActionResponse(d.integration.Name+"."+request.Method+".statusCode", resp.Response().StatusCode),
+	}, nil
 }
 func GetParametersNames(s string) ([]string, error) {
 	ret := make([]string, 0)
@@ -413,14 +424,14 @@ func GetParametersNames(s string) ([]string, error) {
 // OpenAPIExample creates an example structure from an OpenAPI 3 schema
 // object, which is an extended subset of JSON Schema.
 // https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.1.md#schemaObject
-func CreateRequestBody(mode Mode, name string, schema *openapi3.Schema, values map[string]interface{}) (interface{}, error) {
+func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi3.Schema, values map[string]interface{}) (interface{}, error) {
 
 	switch {
 	case schema.Type == "boolean":
 		value, ok := values[name]
 
 		if !ok {
-			return false, nil
+			return nil, nil
 		}
 
 		valString, ok := value.(string)
@@ -439,9 +450,20 @@ func CreateRequestBody(mode Mode, name string, schema *openapi3.Schema, values m
 		return false, nil
 	case schema.Type == "number", schema.Type == "integer":
 
-		value, ok := values[name].(float64)
+		value := values[name]
+		intValue := int64(0)
+		var err error
 
-		if !ok {
+		if value == nil {
+			return value, nil
+		}
+
+		switch value.(type) {
+		case string:
+			intValue, err = strconv.ParseInt(value.(string), 10, 64)
+			CheckErr(err, "Failed to parse string value as int [%v]", value)
+			return intValue, nil
+		default:
 			valueInt, ok := values[name].(int64)
 			if ok {
 				value = float64(valueInt)
@@ -449,7 +471,7 @@ func CreateRequestBody(mode Mode, name string, schema *openapi3.Schema, values m
 		}
 
 		if schema.Type == "integer" {
-			return int(value), nil
+			return int(value.(float64)), nil
 		}
 
 		return value, nil
@@ -466,7 +488,8 @@ func CreateRequestBody(mode Mode, name string, schema *openapi3.Schema, values m
 		val := values[name]
 
 		if val == nil {
-			val = []map[string]interface{}{values}
+			return nil, nil
+			//val = []map[string]interface{}{values}
 		}
 
 		var ok bool
@@ -479,8 +502,17 @@ func CreateRequestBody(mode Mode, name string, schema *openapi3.Schema, values m
 			}
 			mapVal = make([]map[string]interface{}, 0)
 
-			for _, row := range arrayVal {
-				mapVal = append(mapVal, row.(map[string]interface{}))
+			for i, row := range arrayVal {
+
+				switch row.(type) {
+				case map[string]interface{}:
+					mapVal = append(mapVal, row.(map[string]interface{}))
+				case string:
+					mapVal = append(mapVal, map[string]interface{}{
+						fmt.Sprintf("%s[%d]", name, i): row,
+					})
+				}
+
 			}
 		}
 
@@ -488,9 +520,9 @@ func CreateRequestBody(mode Mode, name string, schema *openapi3.Schema, values m
 
 		if schema.Items != nil && schema.Items.Value != nil {
 
-			for _, item := range mapVal {
+			for i, item := range mapVal {
 
-				ex, err := CreateRequestBody(mode, name, schema.Items.Value, item)
+				ex, err := CreateRequestBody(mode, mediaType, fmt.Sprintf("%s[%d]", name, i), schema.Items.Value, item)
 
 				if err != nil {
 					return nil, errors.New(fmt.Sprintf("failed to convert item to body: [%v][%v] == %v", name, item, err))
@@ -498,39 +530,86 @@ func CreateRequestBody(mode Mode, name string, schema *openapi3.Schema, values m
 
 				items = append(items, ex)
 			}
-
 		}
 
 		return items, nil
 	case schema.Type == "object", len(schema.Properties) > 0:
 		example := map[string]interface{}{}
+		isEmpty := true
+
+		suffix := name + "."
+		if name == "" {
+			suffix = ""
+		}
 
 		for k, v := range schema.Properties {
 			if excludeFromMode(mode, v.Value) {
 				continue
 			}
 
-			ex, err := CreateRequestBody(mode, k, v.Value, values)
+			ex, err := CreateRequestBody(mode, mediaType, suffix+k, v.Value, values)
 			if err != nil {
 				return nil, fmt.Errorf("can't get example for '%s'", k)
 			}
+			if ex == nil {
+				continue
+			}
 
-			example[k] = ex
+			isEmpty = false
+			if mediaType == "application/x-www-form-urlencoded" {
+
+				if v.Value.Type == "array" {
+
+					for _, val := range ex.([]interface{}) {
+						example[fmt.Sprintf("%s[]", suffix+k)] = val
+					}
+				} else if v.Value.Type == "object" {
+					if suffix == "" {
+						for k1, v := range ex.(map[string]interface{}) {
+							example[fmt.Sprintf("%s[%s]", k, k1)] = v
+						}
+					} else {
+						example[fmt.Sprintf("%s[%s]", suffix, k)] = v
+					}
+				} else {
+					example[suffix+k] = ex
+				}
+			} else {
+				example[suffix+k] = ex
+			}
+
 		}
 
 		if schema.AdditionalProperties != nil && schema.AdditionalProperties.Value != nil {
 			addl := schema.AdditionalProperties.Value
 
 			if !excludeFromMode(mode, addl) {
-				ex, err := CreateRequestBody(mode, name, addl, values)
-				if err != nil {
-					return nil, fmt.Errorf("can't get example for additional properties")
+				ex, err := CreateRequestBody(mode, mediaType, suffix+name, addl, values)
+				CheckErr(err, "can't get example for additional properties")
+				if ex != nil {
+					isEmpty = false
+					for k, v := range ex.(map[string]interface{}) {
+						example[k] = v
+					}
 				}
-				example["additionalPropertyName"] = ex
 			}
+		}
+		if isEmpty {
+			return nil, nil
 		}
 
 		return example, nil
+
+	case len(schema.AnyOf) > 0:
+		for _, ofType := range schema.AnyOf {
+
+			ex, err := CreateRequestBody(mode, mediaType, name, ofType.Value, values)
+			if err != nil && ex != nil {
+				return ex, err
+			}
+
+		}
+		return nil, nil
 	}
 
 	return nil, errors.New("not a valid schema")

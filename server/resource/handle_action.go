@@ -405,20 +405,23 @@ OutFields:
 				log.Errorf("Unknown method invoked: %v", outcome.Type)
 				continue
 			}
-			_, responses1, err1 := handler.DoAction(outcome, model.Data)
+			responder, responses1, err1 := handler.DoAction(outcome, model.Data)
 			if err1 != nil {
 				err = err1[0]
 			}
 			actionResponses = append(actionResponses, responses1...)
+
+			responseObjects = responder.Result()
+
 		}
 
 		if !outcome.SkipInResponse {
 			responses = append(responses, actionResponses...)
 		}
 
-		if len(responses1) > 0 && outcome.Reference != "" {
+		if len(actionResponses) > 0 && outcome.Reference != "" {
 			lst := make([]interface{}, 0)
-			for i, res := range responses1 {
+			for i, res := range actionResponses {
 				inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = res.Attributes
 				lst = append(lst, res.Attributes)
 			}
