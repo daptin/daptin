@@ -24,7 +24,7 @@
     <section class="content">
 
       <div class="row">
-        <div class="col-md-5">
+        <div class="col-md-6">
           <div class="row">
 
 
@@ -48,7 +48,7 @@
           </div>
         </div>
 
-        <div class="col-md-7">
+        <div class="col-md-6">
 
           <div class="row">
             <div class="col-md-9">

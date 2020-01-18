@@ -94,7 +94,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			ginContext.Error(err)
 			return
 		}
-		//log.Infof("Request body: %v", actionRequest)
+		log.Infof("Action Request body: %v", actionRequest)
 
 		req := api2go.Request{
 			PlainRequest: &http.Request{
@@ -464,23 +464,35 @@ func BuildActionRequest(closer io.ReadCloser, actionType, actionName string, par
 
 	actionRequest := ActionRequest{}
 	err = json.Unmarshal(bytes, &actionRequest)
-	//CheckErr(err, "Failed to read request body as json")
+	CheckErr(err, "Failed to read request body as json")
 	if err != nil {
 		values, err := url.ParseQuery(string(bytes))
 		CheckErr(err, "Failed to parse body as query values")
-		attributesMap := make(map[string]interface{})
-		actionRequest.Attributes = make(map[string]interface{})
-		for key, val := range values {
-			if len(val) > 1 {
-				attributesMap[key] = val
-				actionRequest.Attributes[key] = val
-			} else {
-				attributesMap[key] = val[0]
-				actionRequest.Attributes[key] = val[0]
+		if err == nil {
+
+			attributesMap := make(map[string]interface{})
+			actionRequest.Attributes = make(map[string]interface{})
+			for key, val := range values {
+				if len(val) > 1 {
+					attributesMap[key] = val
+					actionRequest.Attributes[key] = val
+				} else {
+					attributesMap[key] = val[0]
+					actionRequest.Attributes[key] = val[0]
+				}
 			}
+			attributesMap["__body"] = string(bytes)
+			actionRequest.Attributes = attributesMap
+		} else {
+			var data map[string]interface{}
+			err = json.Unmarshal(bytes, &data)
+			CheckErr(err, "Failed to read body as json", data)
+			actionRequest.Attributes = make(map[string]interface{})
+			for k, v := range data {
+				actionRequest.Attributes[k] = v
+			}
+
 		}
-		attributesMap["__body"] = string(bytes)
-		actionRequest.Attributes = attributesMap
 	}
 
 	actionRequest.Type = actionType
