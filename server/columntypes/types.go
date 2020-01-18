@@ -1,9 +1,9 @@
 package fieldtypes
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 	"net"
 	"regexp"
@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type EntityType int
 

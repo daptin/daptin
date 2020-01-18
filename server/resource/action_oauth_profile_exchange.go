@@ -5,7 +5,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	//"context"
 	"bytes"
-	"encoding/json"
 	"golang.org/x/oauth2"
 	"io/ioutil"
 	"net/http"

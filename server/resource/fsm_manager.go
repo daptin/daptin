@@ -1,14 +1,13 @@
 package resource
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	loopfsm "github.com/looplab/fsm"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/Masterminds/squirrel"
 )
 
 type fsmManager struct {

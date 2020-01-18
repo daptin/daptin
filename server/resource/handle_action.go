@@ -18,7 +18,6 @@ import (
 	"regexp"
 	"strings"
 
-	"encoding/json"
 	"github.com/artpar/conform"
 	"github.com/artpar/go.uuid"
 	"gopkg.in/go-playground/validator.v9"

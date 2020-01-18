@@ -78,6 +78,7 @@ require (
 	github.com/jamiealquiza/envy v1.1.0
 	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
+	github.com/json-iterator/go v1.1.7
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kr/pty v1.1.8 // indirect
 	github.com/labstack/echo v0.0.0-20181205161348-3f8b45c8d0dd // indirect
