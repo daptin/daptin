@@ -548,6 +548,9 @@ func actionPerformersListToMap(interfaces []resource.ActionPerformerInterface) m
 	m := make(map[string]resource.ActionPerformerInterface)
 
 	for _, api := range interfaces {
+		if api == nil {
+			continue
+		}
 		m[api.Name()] = api
 	}
 	return m
