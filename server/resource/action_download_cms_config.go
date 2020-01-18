@@ -2,7 +2,6 @@ package resource
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
 )

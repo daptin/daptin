@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"encoding/json"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/columntypes"
 	log "github.com/sirupsen/logrus"

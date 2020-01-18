@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"

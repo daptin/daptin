@@ -2,7 +2,6 @@ package resource
 
 import (
 	"crypto/md5"
-	"encoding/json"
 	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
@@ -191,7 +190,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 					}
 					val, err = json.Marshal(files)
 				} else {
-					val =  nil
+					val = nil
 				}
 				CheckErr(err, "Failed to marshal file data to column")
 
@@ -384,7 +383,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
-			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
@@ -403,7 +402,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
-			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
