@@ -118,12 +118,15 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 					log.Errorf("Failed to create request body for calling [%v][%v]: %v", d.integration.Name, request.Method, err)
 				} else {
 					m := strings.ToLower(method)
-					if m == "get" {
 
-						arguments = append(arguments, req.Param(requestBody.(map[string]interface{})))
-					} else {
-						arguments = append(arguments, req.Param(requestBody.(map[string]interface{})))
+					if requestBody != nil {
 
+						if m == "get" {
+							arguments = append(arguments, req.Param(requestBody.(map[string]interface{})))
+						} else {
+							arguments = append(arguments, req.Param(requestBody.(map[string]interface{})))
+
+						}
 					}
 				}
 
@@ -360,6 +363,9 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 				log.Errorf("Failed to create parameters for calling [%v][%v]", d.integration.Name, request.Method)
 				return nil, nil, []error{err}
 			}
+			if value == nil {
+				continue
+			}
 			parameterValues[param.Value.Name] = value.(string)
 			arguments = append(arguments, req.Header(parameterValues))
 
@@ -371,6 +377,9 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 			if err != nil {
 				log.Errorf("Failed to create parameters for calling [%v][%v]", d.integration.Name, request.Method)
 				return nil, nil, []error{err}
+			}
+			if value == nil {
+				continue
 			}
 			parameterValues[param.Value.Name] = value
 			arguments = append(arguments, req.QueryParam(parameterValues))
