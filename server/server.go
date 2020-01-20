@@ -307,6 +307,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			configStore.SetConfigValueFor("imap.enabled", "false", "backend")
 		}
 	}
+	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
 	hostSwitch.handlerMap["api"] = defaultRouter
 	hostSwitch.handlerMap["dashboard"] = defaultRouter
@@ -324,7 +325,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	resource.ImportDataFiles(initConfig.Imports, db, cruds)
 
-	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
 	err = TaskScheduler.AddTask(resource.Task{
 		EntityName:  "mail_server",
