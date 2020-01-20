@@ -2,7 +2,6 @@ package resource
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/database"

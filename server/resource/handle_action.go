@@ -18,7 +18,6 @@ import (
 	"regexp"
 	"strings"
 
-	"encoding/json"
 	"github.com/artpar/conform"
 	"github.com/artpar/go.uuid"
 	"gopkg.in/go-playground/validator.v9"
@@ -95,7 +94,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			ginContext.Error(err)
 			return
 		}
-		//log.Infof("Request body: %v", actionRequest)
+		log.Infof("Action Request body: %v", actionRequest)
 
 		req := api2go.Request{
 			PlainRequest: &http.Request{
@@ -156,7 +155,7 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 		req.PlainRequest.Method = "GET"
 		referencedObject, err := db.FindOne(subjectInstanceReferenceId.(string), req)
 		if err != nil {
-			return nil, err
+			return nil, api2go.NewHTTPError(err, "failed to load subject", 400)
 		}
 		subjectInstance = referencedObject.Result().(*api2go.Api2GoModel)
 
@@ -183,11 +182,11 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 	action, err := db.GetActionByName(actionRequest.Type, actionRequest.Action)
 	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
 	if err != nil {
-		return nil, err
+		return nil, api2go.NewHTTPError(err, "no such action", 400)
 	}
 
 	if !action.InstanceOptional && (subjectInstanceReferenceId == "" || subjectInstance == nil) {
-		return nil, errors.New("required reference id not provided or incorrect")
+		return nil, api2go.NewHTTPError(errors.New("required reference id not provided or incorrect"), "no reference id", 400)
 	}
 
 	if actionRequest.Attributes == nil {
@@ -228,13 +227,13 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 	inFieldMap["attributes"] = actionRequest.Attributes
 
 	if err != nil {
-		return nil, err
+		return nil, api2go.NewHTTPError(err, "failed to validate fields", 400)
 	}
 
 	if sessionUser.UserReferenceId != "" {
 		user, err := db.GetReferenceIdToObject(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId)
 		if err != nil {
-			return nil, err
+			return nil, api2go.NewHTTPError(err, "failed to identify user", 401)
 		}
 		inFieldMap["user"] = user
 	}
@@ -321,7 +320,6 @@ OutFields:
 				if k == "query" {
 					request.QueryParams[k] = []string{toJson(val)}
 				} else {
-
 					request.QueryParams[k] = []string{fmt.Sprintf("%v", val)}
 				}
 			}
@@ -338,7 +336,11 @@ OutFields:
 			actionResponses = append(actionResponses, actionResponse)
 		case "GET_BY_ID":
 
-			responseObjects, _, err = dbResource.GetSingleRowByReferenceId(outcome.Type, model.Data["reference_id"].(string))
+			referenceId, ok := model.Data["reference_id"]
+			if referenceId == nil || !ok {
+				return nil, api2go.NewHTTPError(err, "no reference id provided for GET_BY_ONE", 400)
+			}
+			responseObjects, _, err = dbResource.GetSingleRowByReferenceId(outcome.Type, referenceId.(string))
 			CheckErr(err, "Failed to get by id")
 
 			if err != nil {
@@ -465,23 +467,40 @@ func BuildActionRequest(closer io.ReadCloser, actionType, actionName string, par
 
 	actionRequest := ActionRequest{}
 	err = json.Unmarshal(bytes, &actionRequest)
-	//CheckErr(err, "Failed to read request body as json")
+	CheckErr(err, "Failed to read request body as json")
 	if err != nil {
 		values, err := url.ParseQuery(string(bytes))
 		CheckErr(err, "Failed to parse body as query values")
-		attributesMap := make(map[string]interface{})
-		actionRequest.Attributes = make(map[string]interface{})
-		for key, val := range values {
-			if len(val) > 1 {
-				attributesMap[key] = val
-				actionRequest.Attributes[key] = val
-			} else {
-				attributesMap[key] = val[0]
-				actionRequest.Attributes[key] = val[0]
+		if err == nil {
+
+			attributesMap := make(map[string]interface{})
+			actionRequest.Attributes = make(map[string]interface{})
+			for key, val := range values {
+				if len(val) > 1 {
+					attributesMap[key] = val
+					actionRequest.Attributes[key] = val
+				} else {
+					attributesMap[key] = val[0]
+					actionRequest.Attributes[key] = val[0]
+				}
 			}
+			attributesMap["__body"] = string(bytes)
+			actionRequest.Attributes = attributesMap
 		}
-		attributesMap["__body"] = string(bytes)
-		actionRequest.Attributes = attributesMap
+	}
+
+	if actionRequest.Attributes == nil {
+		actionRequest.Attributes = make(map[string]interface{})
+	}
+
+	var data map[string]interface{}
+	err = json.Unmarshal(bytes, &data)
+	CheckErr(err, "Failed to read body as json", data)
+	for k, v := range data {
+		if k == "attributes" {
+			continue
+		}
+		actionRequest.Attributes[k] = v
 	}
 
 	actionRequest.Type = actionType
@@ -841,7 +860,11 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 						finalValue = finalValue.(map[string]interface{})[fieldPart]
 					}
 				} else {
-					finalValue = finalValue.(map[string]interface{})[fieldPart]
+					var ok bool
+					finalValue, ok = finalValue.(map[string]interface{})[fieldPart]
+					if !ok {
+						return nil, errors.New("value is nill")
+					}
 
 				}
 
@@ -853,7 +876,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 			castMap, ok := finalValue.(map[string]interface{})
 			if !ok {
 				log.Errorf("Value at [%v] is %v", fieldString, castMap)
-				return val, errors.New("something is wrong")
+				return val, errors.New(fmt.Sprintf("unable to evaluate value for [%v]", fieldString))
 			}
 			finalValue = castMap[fieldParts[len(fieldParts)-1]]
 			fieldString = strings.Replace(fieldString, fmt.Sprintf("%v", match[0]), fmt.Sprintf("%v", finalValue), -1)

@@ -3,7 +3,6 @@ package resource
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
@@ -119,12 +118,15 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 					log.Errorf("Failed to create request body for calling [%v][%v]: %v", d.integration.Name, request.Method, err)
 				} else {
 					m := strings.ToLower(method)
-					if m == "get" {
 
-						arguments = append(arguments, req.Param(requestBody.(map[string]interface{})))
-					} else {
-						arguments = append(arguments, req.Param(requestBody.(map[string]interface{})))
+					if requestBody != nil {
 
+						if m == "get" {
+							arguments = append(arguments, req.Param(requestBody.(map[string]interface{})))
+						} else {
+							arguments = append(arguments, req.Param(requestBody.(map[string]interface{})))
+
+						}
 					}
 				}
 
@@ -361,6 +363,9 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 				log.Errorf("Failed to create parameters for calling [%v][%v]", d.integration.Name, request.Method)
 				return nil, nil, []error{err}
 			}
+			if value == nil {
+				continue
+			}
 			parameterValues[param.Value.Name] = value.(string)
 			arguments = append(arguments, req.Header(parameterValues))
 
@@ -372,6 +377,9 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 			if err != nil {
 				log.Errorf("Failed to create parameters for calling [%v][%v]", d.integration.Name, request.Method)
 				return nil, nil, []error{err}
+			}
+			if value == nil {
+				continue
 			}
 			parameterValues[param.Value.Name] = value
 			arguments = append(arguments, req.QueryParam(parameterValues))
@@ -502,14 +510,14 @@ func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi
 			}
 			mapVal = make([]map[string]interface{}, 0)
 
-			for i, row := range arrayVal {
+			for _, row := range arrayVal {
 
 				switch row.(type) {
 				case map[string]interface{}:
 					mapVal = append(mapVal, row.(map[string]interface{}))
 				case string:
 					mapVal = append(mapVal, map[string]interface{}{
-						fmt.Sprintf("%s[%d]", name, i): row,
+						"": row,
 					})
 				}
 
@@ -520,9 +528,9 @@ func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi
 
 		if schema.Items != nil && schema.Items.Value != nil {
 
-			for i, item := range mapVal {
+			for _, item := range mapVal {
 
-				ex, err := CreateRequestBody(mode, mediaType, fmt.Sprintf("%s[%d]", name, i), schema.Items.Value, item)
+				ex, err := CreateRequestBody(mode, mediaType, "", schema.Items.Value, item)
 
 				if err != nil {
 					return nil, errors.New(fmt.Sprintf("failed to convert item to body: [%v][%v] == %v", name, item, err))
@@ -561,7 +569,16 @@ func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi
 				if v.Value.Type == "array" {
 
 					for _, val := range ex.([]interface{}) {
-						example[fmt.Sprintf("%s[]", suffix+k)] = val
+
+						switch val.(type) {
+						case map[string]interface{}:
+							mapVal := val.(map[string]interface{})
+							for subKey, subVal := range mapVal {
+								example[fmt.Sprintf("%s[][%s]", suffix+k, subKey)] = subVal
+							}
+						default:
+							example[fmt.Sprintf("%s[]", suffix+k)] = val
+						}
 					}
 				} else if v.Value.Type == "object" {
 					if suffix == "" {
@@ -685,7 +702,7 @@ func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfi
 	methodMap := make(map[string]string)
 	for path, pathItem := range router.Paths {
 		for method, command := range pathItem.Operations() {
-			log.Printf("Register action [%v] at [%v]", command.OperationID, integration.Name)
+			log.Printf("Register action [%v][%v]", integration.Name, command.OperationID)
 			commandMap[command.OperationID] = command
 			pathMap[command.OperationID] = path
 			methodMap[command.OperationID] = method

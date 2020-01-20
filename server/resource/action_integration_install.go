@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go"

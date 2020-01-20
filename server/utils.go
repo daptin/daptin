@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
@@ -60,7 +59,6 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 			log.Errorf("Table name is empty, not adding to JSON API, as it will create conflict: %v", table)
 			continue
 		}
-
 
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
 
