@@ -197,40 +197,46 @@ func UpdateMarketplaces(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	CheckErr(err, "Failed to create query for marketplace select")
 
+	existingMarketPlaces := make(map[string]Marketplace)
 	res, err := db.Queryx(s, v...)
 	CheckErr(err, "Failed to scan market places")
-	defer res.Close()
-	existingMarketPlaces := make(map[string]Marketplace)
-	for res.Next() {
-		m := make(map[string]interface{})
-		res.MapScan(m)
-		streamNameString, ok := m["endpoint"].(string)
-		if !ok {
-			streamName := string(m["endpoint"].([]uint8))
-			streamNameString = streamName
-		}
-		rootPath := m["root_path"]
-		rootPathString := ""
-		if rootPath != nil {
-			rps, ok := rootPath.(string)
+	if res != nil {
+		defer func() {
+			err = res.Close()
+			CheckErr(err, "Failed to close query")
+		}()
+
+		for res.Next() {
+			m := make(map[string]interface{})
+			err = res.MapScan(m)
+			CheckErr(err, "Failed to scan marketplace row to map")
+			streamNameString, ok := m["endpoint"].(string)
 			if !ok {
-				rootPathString = string(rootPath.([]uint8))
-			} else {
-				rootPathString = rps
+				streamName := string(m["endpoint"].([]uint8))
+				streamNameString = streamName
 			}
-		}
+			rootPath := m["root_path"]
+			rootPathString := ""
+			if rootPath != nil {
+				rps, ok := rootPath.(string)
+				if !ok {
+					rootPathString = string(rootPath.([]uint8))
+				} else {
+					rootPathString = rps
+				}
+			}
 
-		endPointString, ok := m["endpoint"].(string)
-		if !ok {
-			endPointString = string(m["endpoint"].([]uint8))
-		}
-		existingMarketPlaces[streamNameString] = Marketplace{
-			Endpoint: endPointString,
-			RootPath: rootPathString,
-		}
+			endPointString, ok := m["endpoint"].(string)
+			if !ok {
+				endPointString = string(m["endpoint"].([]uint8))
+			}
+			existingMarketPlaces[streamNameString] = Marketplace{
+				Endpoint: endPointString,
+				RootPath: rootPathString,
+			}
 
+		}
 	}
-
 	log.Infof("We have %d existing market places", len(existingMarketPlaces))
 
 	for _, marketplace := range initConfig.Marketplaces {
@@ -475,7 +481,12 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	rows, err := db.Queryx(s, v...)
 	CheckErr(err, "Failed to query existing exchanges")
-	defer rows.Close()
+	if rows != nil {
+		defer func() {
+			err = rows.Close()
+			CheckErr(err, "Failed to close query")
+		}()
+	}
 
 	if err == nil {
 		for rows.Next() {

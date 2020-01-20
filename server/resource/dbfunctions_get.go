@@ -29,13 +29,25 @@ func GetObjectByWhereClause(objType string, db database.DatabaseConnection, quer
 	}
 
 	stmt, err := db.Preparex(q)
-	defer stmt.Close()
+	if stmt != nil {
+		defer func() {
+			err = stmt.Close()
+			CheckErr(err, "Failed to close prepared query [%v]", objType)
+		}()
+	} else {
+		return nil, err
+	}
 	rows, err := stmt.Queryx(v...)
 
 	if err != nil {
 		return result, err
 	}
-	defer rows.Close()
+	if rows != nil {
+		defer func() {
+			err = rows.Close()
+			CheckErr(err, "Failed to close rows after get object by where clause [%s]", objType)
+		}()
+	}
 
 	return RowsToMap(rows, objType)
 }
