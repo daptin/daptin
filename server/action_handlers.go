@@ -126,7 +126,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create self tls certificate generator")
 	performers = append(performers, selfTlsCertificateGenerateActionPerformer)
 
-	integrationInstallationPerformer, err := resource.NewIntegrationInstallationPerformer(initConfig, cruds)
+	integrationInstallationPerformer, err := resource.NewIntegrationInstallationPerformer(initConfig, cruds, configStore)
 	resource.CheckErr(err, "Failed to create integration installation performer")
 	performers = append(performers, integrationInstallationPerformer)
 
