@@ -308,6 +308,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		}
 	}
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
+
+	log.Printf("Created task scheduler: %v", TaskScheduler)
 	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
 	hostSwitch.handlerMap["api"] = defaultRouter
 	hostSwitch.handlerMap["dashboard"] = defaultRouter
