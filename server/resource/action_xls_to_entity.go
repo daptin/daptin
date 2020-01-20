@@ -2,7 +2,6 @@ package resource
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/conform"

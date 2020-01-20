@@ -2,11 +2,13 @@ package resource
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/artpar/api2go"
+	"github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"net/http"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type DeleteWorldColumnPerformer struct {
 	cmsConfig *CmsConfig

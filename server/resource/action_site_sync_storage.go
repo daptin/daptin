@@ -5,7 +5,6 @@ import (
 	"github.com/artpar/rclone/cmd"
 	log "github.com/sirupsen/logrus"
 
-	"encoding/json"
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"

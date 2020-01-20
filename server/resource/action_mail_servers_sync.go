@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla"

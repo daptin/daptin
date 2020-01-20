@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/alexeyco/simpletable"

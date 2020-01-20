@@ -12,12 +12,14 @@ import (
 	"net/http"
 	"strings"
 	//	"encoding/base64"
-	"encoding/json"
 	"errors"
+	"github.com/json-iterator/go"
 	//"fmt"
 	"fmt"
 	"github.com/artpar/api2go/jsonapi"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var nodeDefinitions *relay.NodeDefinitions
 
