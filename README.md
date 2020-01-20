@@ -166,7 +166,7 @@ Get Started
 
 OpenAPI V3 spec is auto generated for each endpoint exposed. This can be use to generate further documentation and clients.
 
-![YAML API documentatnon](docs_markdown/docs/images/api-documentation.png)
+![YAML API documentation](docs_markdown/docs/images/api-documentation.png)
 
 ```curl http://localhost/apispec.yaml```
 
@@ -256,7 +256,7 @@ However, JSON APIs for data manipulation by themselves weren't enough. Building 
 * [x] Plugin system -> Grow the system according to your needs
 * [x] Native support for different data types (geo location/time/colors/measurements)
 * [x] Configurable intelligent Validation for data in the APIs
-* [x] Pages/Sub-sites -> Create a sub-site for a target audiance
+* [x] Pages/Sub-sites -> Create a sub-site for a target audience
 * [x] Define events all around the system
 * [x] Data conversion/exchange/transformations
 * [x] Live editor for subsites - grapesjs
