@@ -475,7 +475,12 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	rows, err := db.Queryx(s, v...)
 	CheckErr(err, "Failed to query existing exchanges")
-	defer rows.Close()
+	if rows != nil {
+		defer func(){
+			err = rows.Close()
+			CheckErr(err, "Failed to close query result")
+		}()
+	}
 
 	if err == nil {
 		for rows.Next() {

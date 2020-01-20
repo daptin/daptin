@@ -339,7 +339,14 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 	//	log.Infof("Column: [%v]%v @ %v - %v", tableInfo.TableName, col, colInfoMap[col].ColumnType, colInfoMap[col].DataType)
 	//}
 
+
 	s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
+	if db.DriverName() == "mssql" {
+		s = fmt.Sprintf("SELECT top 1 FROM %s", tableInfo.TableName)
+	}
+
+
+
 	//log.Infof("Sql: %v", s)
 	rowx := db.QueryRowx(s)
 	columns, err := rowx.Columns()
@@ -349,7 +356,8 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 		return
 	} else {
 		var dest map[string]interface{}
-		rowx.Scan(&dest)
+		err = rowx.Scan(&dest)
+		CheckErr(err, "Failed to scan query result into map")
 	}
 
 	for _, col := range columns {

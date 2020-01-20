@@ -46,7 +46,7 @@ var StandardColumns = []api2go.ColumnInfo{
 	{
 		Name:       "updated_at",
 		ColumnName: "updated_at",
-		DataType:   "timestamp",
+		DataType:   "datetime",
 		IsIndexed:  true,
 		IsNullable: true,
 		ColumnType: "datetime",
@@ -1174,7 +1174,7 @@ var StandardTables = []TableInfo{
 				Name:       "generated_at",
 				ColumnName: "generated_at",
 				ColumnType: "datetime",
-				DataType:   "timestamp",
+				DataType:   "datetime",
 				IsNullable: false,
 			},
 			{
@@ -2085,7 +2085,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "internal_date",
 				ColumnName: "internal_date",
-				DataType:   "timestamp",
+				DataType:   "datetime",
 				ColumnType: "datetime",
 			},
 			{

@@ -32,6 +32,7 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/corpix/uarand v0.0.0 // indirect
 	github.com/creack/pty v1.1.9 // indirect
+	github.com/denisenkom/go-mssqldb v0.0.0-20191128021309-1d7a30a10f73
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/digitalocean/godo v1.1.3 // indirect
 	github.com/disintegration/gift v1.2.0
@@ -111,7 +112,7 @@ require (
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/tealeg/xlsx v0.0.0-20181024002044-dbf71b6a931e
 	github.com/ugorji/go v1.1.7 // indirect
-	golang.org/x/crypto v0.0.0-20191108234033-bd318be0434a
+	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
 	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a // indirect
 	golang.org/x/mobile v0.0.0-20190923204409-d3ece3b6da5f // indirect
 	golang.org/x/net v0.0.0-20191109021931-daa7c04131f5

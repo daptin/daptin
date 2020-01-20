@@ -494,6 +494,8 @@ func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
 		colsDone[c.ColumnName] = true
 		columnStrings = append(columnStrings, columnLine)
 	}
+
+
 	columnString := strings.Join(columnStrings, ",\n  ")
 	createTableQuery += columnString + ") "
 
@@ -512,7 +514,7 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 		datatype = "varchar(100)"
 	}
 
-	if BeginsWith(datatype, "int(") && sqlDriverName == "postgres" {
+	if BeginsWith(datatype, "int(") && (sqlDriverName == "postgres" || sqlDriverName == "mssql") {
 		datatype = "INTEGER"
 	}
 	if BeginsWith(datatype, "varbinary") && sqlDriverName == "postgres" {
