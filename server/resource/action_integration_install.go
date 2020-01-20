@@ -16,12 +16,13 @@ import (
   Become administrator of daptin action implementation
 */
 type IntegrationInstallationPerformer struct {
-	cruds       map[string]*DbResource
-	integration Integration
-	router      *openapi3.Swagger
-	commandMap  map[string]*openapi3.Operation
-	pathMap     map[string]string
-	methodMap   map[string]string
+	cruds            map[string]*DbResource
+	integration      Integration
+	router           *openapi3.Swagger
+	commandMap       map[string]*openapi3.Operation
+	pathMap          map[string]string
+	methodMap        map[string]string
+	encryptionSecret []byte
 }
 
 // Name of the action
@@ -44,10 +45,12 @@ func (d *IntegrationInstallationPerformer) DoAction(request Outcome, inFieldMap 
 	specBytes := []byte(spec.(string))
 
 	authSpec, ok := integration["authentication_specification"].(string)
-	authSpecBytes := []byte(authSpec)
+
+	decryptedSpec, err := Decrypt(d.encryptionSecret, authSpec)
+
 	authDataMap := make(map[string]interface{})
 
-	err = json.Unmarshal(authSpecBytes, &authDataMap)
+	err = json.Unmarshal([]byte(decryptedSpec), &authDataMap)
 	if err != nil {
 		return nil, nil, []error{errors.New(fmt.Sprintf("failed to parse auth specification: %v", err))}
 	}
@@ -230,10 +233,15 @@ func (d *IntegrationInstallationPerformer) DoAction(request Outcome, inFieldMap 
 }
 
 // Create a new action performer for becoming administrator action
-func NewIntegrationInstallationPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
+func NewIntegrationInstallationPerformer(initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
 
+	encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend")
+	if err != nil {
+		log.Errorf("Failed to get encryption secret from config store: %v", err)
+	}
 	handler := IntegrationInstallationPerformer{
-		cruds: cruds,
+		cruds:            cruds,
+		encryptionSecret: []byte(encryptionSecret),
 	}
 
 	return &handler, nil

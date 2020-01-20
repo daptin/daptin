@@ -489,11 +489,17 @@ func BuildActionRequest(closer io.ReadCloser, actionType, actionName string, par
 		}
 	}
 
+	if actionRequest.Attributes == nil {
+		actionRequest.Attributes = make(map[string]interface{})
+	}
+
 	var data map[string]interface{}
 	err = json.Unmarshal(bytes, &data)
 	CheckErr(err, "Failed to read body as json", data)
-	actionRequest.Attributes = make(map[string]interface{})
 	for k, v := range data {
+		if k == "attributes" {
+			continue
+		}
 		actionRequest.Attributes[k] = v
 	}
 

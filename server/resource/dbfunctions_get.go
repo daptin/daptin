@@ -237,7 +237,19 @@ func (resource *DbResource) GetActiveIntegrations() ([]Integration, error) {
 		for _, row := range rows {
 			i, ok := row["enable"].(int64)
 			if !ok {
-				i = int64(row["enable"].(int))
+				iI, ok := row["enable"].(int)
+
+				if ok {
+					i = int64(iI)
+				} else {
+					strI, ok := row["enable"].(string)
+					if ok {
+						i, err = strconv.ParseInt(strI, 10, 32)
+						CheckErr(err, "Failed to convert column 'enable' value to int")
+					}
+
+				}
+
 			}
 
 			integration := Integration{
