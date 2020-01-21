@@ -29,8 +29,11 @@ func init() {
 	//log.SetFlags(log.Lmicroseconds | log.Lshortfile)
 	//log.SetPrefix(fmt.Sprintf("Daptin Process ID: %d ", syscall.Getpid()))
 
-	logFile := "daptin.log"
-	f, e := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	logFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
+	if !ok || logFileLocation == "" {
+		logFileLocation = "daptin.log"
+	}
+	f, e := os.OpenFile(logFileLocation, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if e != nil {
 		log.Errorf("Failed to open logfile %v", e)
 	}
