@@ -53,6 +53,72 @@
           <div class="row">
             <div class="col-md-9">
 
+
+              <h3>Create</h3>
+
+              <div class="row">
+                <div class="col-sm-12">
+                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-plus "></i><br/>Upload Schema JSON
+                  </router-link>
+
+
+                  <router-link
+                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
+                    class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-file-excel"></i><br/>Upload XLSX
+                  </router-link>
+
+                  <router-link
+                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_csv_to_system_schema'}}"
+                    class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-file-alt"></i><br/>Upload CSV
+                  </router-link>
+
+                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fab fa-js"></i><br/>Upload Data JSON
+                  </router-link>
+
+                  <router-link :to="{name : 'NewItem'}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-pencil-alt"></i><br/>Online designer
+                  </router-link>
+                </div>
+
+              </div>
+
+              <h3>User</h3>
+              <div class="row">
+                <div class="col-sm-12">
+                  <router-link :to="{name: 'Action', params: {tablename: 'user_account', actionname: 'signup'}}"
+
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-user-plus"></i><br/>Create new user
+                  </router-link>
+
+                  <router-link :to="{name: 'NewEntity', params:{tablename: 'usergroup'}}"
+
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-users"></i><br/>Create new user group
+                  </router-link>
+
+                  <router-link
+                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'become_an_administrator'}}"
+                    class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-lock"></i><br/>Become admin
+                  </router-link>
+
+                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'restart_daptin'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-retweet"></i><br/>Restart
+                  </router-link>
+                </div>
+              </div>
+
+              <h3>Special Objects</h3>
+
               <div class="row">
                 <div class="col-sm-12">
                   <router-link :to="{name: 'Entity', params:{tablename: 'marketplace'}}"
@@ -109,69 +175,9 @@
               </div>
 
 
-              <h3>User</h3>
-              <div class="row">
-                <div class="col-sm-12">
-                  <router-link :to="{name: 'Action', params: {tablename: 'user_account', actionname: 'signup'}}"
-
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-user-plus"></i><br/>Create new user
-                  </router-link>
-
-                  <router-link :to="{name: 'NewEntity', params:{tablename: 'usergroup'}}"
-
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-users"></i><br/>Create new user group
-                  </router-link>
-
-                  <router-link
-                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'become_an_administrator'}}"
-                    class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-lock"></i><br/>Become admin
-                  </router-link>
-
-                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'restart_daptin'}}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-retweet"></i><br/>Restart
-                  </router-link>
-                </div>
-              </div>
 
 
-              <h3>Create</h3>
 
-              <div class="row">
-                <div class="col-sm-12">
-                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-plus "></i><br/>Upload Schema JSON
-                  </router-link>
-
-
-                  <router-link
-                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
-                    class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-file-excel"></i><br/>Upload XLSX
-                  </router-link>
-
-                  <router-link
-                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_csv_to_system_schema'}}"
-                    class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-file-alt"></i><br/>Upload CSV
-                  </router-link>
-
-                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fab fa-js"></i><br/>Upload Data JSON
-                  </router-link>
-
-                  <router-link :to="{name : 'NewItem'}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-pencil-alt"></i><br/>Online designer
-                  </router-link>
-                </div>
-
-              </div>
 
               <h3>Backup</h3>
               <div class="row">
