@@ -92,7 +92,7 @@ func main() {
 		HostSwitch: &hostSwitch,
 	}
 
-	trigger.On("restart", func() {
+	err = trigger.On("restart", func() {
 		log.Printf("Trigger restart")
 
 		taskScheduler.StartTasks()
@@ -107,6 +107,7 @@ func main() {
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
+	resource.CheckErr(err, "Error while adding restart trigger function")
 
 	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), *port)
 
