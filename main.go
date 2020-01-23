@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	//"io"
 	"net/http"
@@ -109,7 +110,14 @@ func main() {
 	})
 	resource.CheckErr(err, "Error while adding restart trigger function")
 
-	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), *port)
+	portValue := *port
+	if strings.Index(portValue, ".") > -1 {
+		// port has ip and nothing to do
+	} else if portValue[0] != ':' {
+		// port is missing :
+		portValue = ":" + portValue
+	}
+	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), portValue)
 
 	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
 	_, certBytes, privateBytes, _, err := certManager.GetTLSConfig(hostname)
