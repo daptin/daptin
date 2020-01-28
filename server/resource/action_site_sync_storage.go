@@ -2,8 +2,10 @@ package resource
 
 import (
 	"context"
+	"fmt"
 	"github.com/artpar/rclone/cmd"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
@@ -51,7 +53,11 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
 	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
-	go cmd.Run(true, true, nil, func() error {
+	cobraCommand := &cobra.Command{
+		Use: fmt.Sprintf("Sync site storage [%v]", cloudStoreId),
+	}
+
+	go cmd.Run(true, true, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Either source or destination is empty")
 			return nil
