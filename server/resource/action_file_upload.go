@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/cmd"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	//"os"
 	"archive/zip"
@@ -176,8 +178,11 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 	config.FileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
+	cobraCommand := &cobra.Command{
+		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
+	}
 
-	go cmd.Run(true, true, nil, func() error {
+	go cmd.Run(true, true, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil
