@@ -349,7 +349,8 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 		return
 	} else {
 		var dest map[string]interface{}
-		rowx.Scan(&dest)
+		err = rowx.Scan(&dest)
+		CheckErr(err, "Failed to scan query result to map")
 	}
 
 	for _, col := range columns {
