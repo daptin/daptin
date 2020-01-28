@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	//"io"
 	"net/http"
@@ -29,8 +30,11 @@ func init() {
 	//log.SetFlags(log.Lmicroseconds | log.Lshortfile)
 	//log.SetPrefix(fmt.Sprintf("Daptin Process ID: %d ", syscall.Getpid()))
 
-	logFile := "daptin.log"
-	f, e := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	logFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
+	if !ok || logFileLocation == "" {
+		logFileLocation = "daptin.log"
+	}
+	f, e := os.OpenFile(logFileLocation, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if e != nil {
 		log.Errorf("Failed to open logfile %v", e)
 	}
@@ -89,7 +93,7 @@ func main() {
 		HostSwitch: &hostSwitch,
 	}
 
-	trigger.On("restart", func() {
+	err = trigger.On("restart", func() {
 		log.Printf("Trigger restart")
 
 		taskScheduler.StartTasks()
@@ -104,8 +108,16 @@ func main() {
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
+	resource.CheckErr(err, "Error while adding restart trigger function")
 
-	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), *port)
+	portValue := *port
+	if strings.Index(portValue, ".") > -1 {
+		// port has ip and nothing to do
+	} else if portValue[0] != ':' {
+		// port is missing :
+		portValue = ":" + portValue
+	}
+	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), portValue)
 
 	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
 	_, certBytes, privateBytes, _, err := certManager.GetTLSConfig(hostname)

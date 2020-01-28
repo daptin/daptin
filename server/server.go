@@ -131,20 +131,28 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	if err != nil {
 		u, _ := uuid.NewV4()
 		newSecret := u.String()
-		configStore.SetConfigValueFor("jwt.secret", newSecret, "backend")
+		err = configStore.SetConfigValueFor("jwt.secret", newSecret, "backend")
+		resource.CheckErr(err, "Failed to store secret in database")
 		jwtSecret = newSecret
 	}
 
 	enablelogs, err := configStore.GetConfigValueFor("logs.enable", "backend")
 	if err != nil {
-		configStore.SetConfigValueFor("logs.enable", "false", "backend")
+		err = configStore.SetConfigValueFor("logs.enable", "false", "backend")
+		resource.CheckErr(err, "Failed to store a default value for logs.enable")
+	}
+
+	var ok bool
+	LogFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
+	if !ok || LogFileLocation == "" {
+		LogFileLocation = "daptin.log"
 	}
 
 	go func() {
 
 		for {
 
-			fileInfo, err := os.Stat("daptin.log")
+			fileInfo, err := os.Stat(LogFileLocation)
 			if err != nil {
 				log.Errorf("Failed to stat log file: %v", err)
 			}
@@ -152,10 +160,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			fileMbs := fileInfo.Size() / (1024 * 1024)
 			//log.Printf("Current log size: %d MB", fileMbs)
 			if fileMbs > 100 {
-				logFile := "daptin.log"
-				os.Remove(logFile)
-				os.Create(logFile)
-				f, e := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+				err = os.Remove(LogFileLocation)
+				resource.CheckErr(err, "Failed to remove log file [%v]", LogFileLocation)
+				_, err = os.Create(LogFileLocation)
+				resource.CheckErr(err, "Failed to create new log file after cleanup")
+				f, e := os.OpenFile(LogFileLocation, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 				if e != nil {
 					log.Errorf("Failed to open logfile %v", e)
 				}
@@ -307,6 +316,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			configStore.SetConfigValueFor("imap.enabled", "false", "backend")
 		}
 	}
+	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
+
+	log.Printf("Created task scheduler: %v", TaskScheduler)
 	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
 	hostSwitch.handlerMap["api"] = defaultRouter
 	hostSwitch.handlerMap["dashboard"] = defaultRouter
@@ -323,8 +335,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 
 	resource.ImportDataFiles(initConfig.Imports, db, cruds)
-
-	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
 	err = TaskScheduler.AddTask(resource.Task{
 		EntityName:  "mail_server",
