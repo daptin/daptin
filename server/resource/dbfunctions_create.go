@@ -193,14 +193,14 @@ func CheckTranslationTables(config *CmsConfig) {
 
 		}
 
-		//newRelation := api2go.TableRelation{
-		//	Subject:    translationTableName,
-		//	Relation:   "belongs_to",
-		//	Object:     tableName,
-		//	ObjectName: "audit_object_id",
-		//}
+		newRelation := api2go.TableRelation{
+			Subject:    translationTableName,
+			Relation:   "belongs_to",
+			Object:     tableName,
+			ObjectName: "translation_reference_id",
+		}
 
-		//newRelations = append(newRelations, newRelation)
+		newRelations = append(newRelations, newRelation)
 
 		newTable := TableInfo{
 			TableName:         translationTableName,
