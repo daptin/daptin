@@ -192,12 +192,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 				},
 			})
 			if err != nil {
-				c.AbortWithError(500, err)
+				_ = c.AbortWithError(500, err)
 				return
 			}
 
 			for line := range logTail.Lines {
-				c.Writer.WriteString(line.Text + "\n")
+				_, err = c.Writer.WriteString(line.Text + "\n")
+				resource.CheckErr(err, "Failed to write line for logs")
 				c.Writer.Flush()
 			}
 
@@ -206,7 +207,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	enableGraphql, err := configStore.GetConfigValueFor("graphql.enable", "backend")
 	if err != nil {
-		configStore.SetConfigValueFor("graphql.enable", fmt.Sprintf("%v", initConfig.EnableGraphQL), "backend")
+		err = configStore.SetConfigValueFor("graphql.enable", fmt.Sprintf("%v", initConfig.EnableGraphQL), "backend")
+		resource.CheckErr(err, "Failed to set a default value for graphql.enable")
 	} else {
 		if enableGraphql == "true" {
 			initConfig.EnableGraphQL = true
