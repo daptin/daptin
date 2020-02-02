@@ -112,6 +112,7 @@ require (
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/tealeg/xlsx v0.0.0-20181024002044-dbf71b6a931e
 	github.com/ugorji/go v1.1.7 // indirect
+	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
 	golang.org/x/crypto v0.0.0-20191108234033-bd318be0434a
 	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a // indirect
 	golang.org/x/mobile v0.0.0-20190923204409-d3ece3b6da5f // indirect

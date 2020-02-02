@@ -829,6 +829,8 @@ github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415/go.mod h1:
 github.com/xeipuuv/gojsonschema v1.1.0/go.mod h1:5yf86TLmAcydyeJq5YvxkGPE2fm/u4myDekKRoLuqhs=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
+github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f h1:ERcGMTmr8QfJ2KPgKGnyKG5QEEK+YxraUch0I0gN8uc=
+github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f/go.mod h1:ysnqe7upAAVOSwxQZHAMPXbO80SFzg/ArkjnIJIcuGE=
 github.com/youmark/pkcs8 v0.0.0-20181201043747-70daafe5d78a h1:wRlvyDgRuJOLgD2vcuBUbEduzTkcN7quLip1EnX/Dl4=
 github.com/youmark/pkcs8 v0.0.0-20181201043747-70daafe5d78a/go.mod h1:rHwXgn7JulP+udvsHwJoVG1YGAP6VLg4y9I5dyZdqmA=
 github.com/youmark/pkcs8 v0.0.0-20191102193632-94c173a94d60 h1:Ud2neINE1YFEwrcJ4EqnbRZlm9R3T8SuFKeqjIw7k44=
