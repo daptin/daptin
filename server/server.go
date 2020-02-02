@@ -11,15 +11,17 @@ import (
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/stats"
+	"github.com/aviddiviner/gin-limit"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/emersion/go-sasl"
 	"github.com/gin-gonic/gin"
-	"github.com/aviddiviner/gin-limit"
 	"github.com/hpcloud/tail"
 	"github.com/icrowley/fake"
+	rateLimit "github.com/yangxikun/gin-limit-by-key"
+	"golang.org/x/time/rate"
 	"io"
 	"os"
 	"strings"
@@ -116,13 +118,27 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
 
-	max_connections, err := configStore.GetConfigIntValueFor("rate.max_connectioins", "backend")
+	max_connections, err := configStore.GetConfigIntValueFor("limit.max_connectioins", "backend")
 	if err != nil {
 		max_connections = 25
 		err = configStore.SetConfigValueFor("limit.max_connections", "25", "backend")
 		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
 	}
 	defaultRouter.Use(limit.MaxAllowed(max_connections))
+
+	rate_limit, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
+	if err != nil {
+		rate_limit = 25
+		err = configStore.SetConfigValueFor("limit.max_connections", "25", "backend")
+		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
+	}
+	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
+		return c.ClientIP() // limit rate by client ip
+	}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
+		return rate.NewLimiter(rate.Every(100*time.Millisecond), rate_limit), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
+	}, func(c *gin.Context) {
+		c.AbortWithStatus(429) // handle exceed rate limit request
+	}))
 
 	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
 	if err != nil {
@@ -331,7 +347,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
 	log.Printf("Created task scheduler: %v", TaskScheduler)
-	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
+	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware, configStore)
 	hostSwitch.handlerMap["api"] = defaultRouter
 	hostSwitch.handlerMap["dashboard"] = defaultRouter
 
