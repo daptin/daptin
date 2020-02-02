@@ -22,8 +22,8 @@
 <script>
 
 
-  import actionManager from '../../plugins/actionmanager'
-  import jsonApi from '../../plugins/jsonapi'
+  // import actionManager from '../../plugins/actionmanager'
+  // import jsonApi from '../../plugins/jsonapi'
   import {Notification} from "element-ui"
 
   export default {
@@ -161,6 +161,7 @@
     mounted: function () {
       console.log("Mounted action view");
       this.init();
+
     },
     watch: {
       'action': function (newValue) {

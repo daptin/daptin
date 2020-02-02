@@ -338,7 +338,7 @@
             that.worlds = worlds
               .map(function (e) {
                 let parse = JSON.parse(e.world_schema_json);
-                parse.Icon = parse.Icon == "" ? "fa-star" : parse.Icon;
+                parse.Icon = !parse.Icon || parse.Icon == "" ? "fa-star" : parse.Icon;
                 parse.Count = 0;
                 return parse;
               })
@@ -347,7 +347,7 @@
                 return (
                   !e.IsHidden &&
                   !e.IsJoinTable &&
-                  e.TableName.indexOf("_state") == -1
+                  e.TableName.indexOf("_state") === -1
                 );
               });
             that.worlds.forEach(function (w) {

@@ -37,7 +37,8 @@ const StatsManager = function () {
     return axios({
       url: appConfig.apiRoot + "/stats/" + tableName + that.queryToParams(statsRequest),
       headers: {
-        "Authorization": "Bearer " + getToken()
+        "Authorization": "Bearer " + getToken(),
+        "Accept-Language": localStorage.getItem("LANGUAGE") || window.language
       }
     })
 
