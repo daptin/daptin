@@ -309,7 +309,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 		for _, lang := range languagePreferences {
 
 			queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName() + "_i18n").
-				Where(squirrel.Eq{"translation_reference_id": id}).
+				Where(squirrel.Eq{"translation_reference_id": parentId}).
 				Where(squirrel.Eq{"language_id": lang})
 
 			sql1, args, err := queryBuilder.ToSql()

@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	uuid "github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
@@ -321,10 +322,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 		if len(languagePreferences) > 0 && dr.tableInfo.TranslationsEnabled {
 
-
-
 			for _, lang := range languagePreferences {
-
 
 				langTableCols := make([]string, 0)
 				langTableVals := make([]interface{}, 0)
@@ -333,12 +331,9 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					langTableCols = append(langTableCols, col)
 				}
 
-
 				for _, val := range valsList {
 					langTableVals = append(langTableVals, val)
 				}
-
-
 
 				builder := statementbuilder.Squirrel.Update(dr.model.GetName() + "_i18n")
 
@@ -346,22 +341,23 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					builder = builder.Set(langTableCols[i], langTableVals[i])
 				}
 
-				query, vals, err := builder.Where(squirrel.Eq{"translation_reference_id": id}).Where(squirrel.Eq{"language_id": lang}).ToSql()
+				query, vals, err := builder.Where(squirrel.Eq{"translation_reference_id": idInt}).Where(squirrel.Eq{"language_id": lang}).ToSql()
 				//log.Infof("Update query: %v", query)
 				if err != nil {
 					log.Errorf("Failed to create update query: %v", err)
-
-					log.Errorf("Failed to create update query: %v", err)
-					return nil, err
 				}
 
 				//log.Infof("Update query: %v == %v", query, vals)
-				_, err = dr.db.Exec(query, vals...)
-				if err != nil {
+				res, err := dr.db.Exec(query, vals...)
+				rowsAffected, err := res.RowsAffected()
+				if err != nil || rowsAffected == 0 {
 					log.Errorf("Failed to execute update query: %v", err)
 
-					langTableCols = append(langTableCols, "language_id", "translation_reference_id")
-					langTableVals = append(langTableVals, lang, id)
+					u, _ := uuid.NewV4()
+					nuuid := u.String()
+
+					langTableCols = append(langTableCols, "language_id", "translation_reference_id", "reference_id")
+					langTableVals = append(langTableVals, lang, idInt, nuuid)
 
 					insert := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n")
 					insert = insert.Columns(langTableCols...)
