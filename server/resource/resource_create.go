@@ -19,6 +19,8 @@ import (
 	"time"
 )
 
+const DEFAULT_LANGUAGE = "en"
+
 func NewFromDbResourceWithTransaction(resources *DbResource, tx *sqlx.Tx) *DbResource {
 
 	return &DbResource{
@@ -51,7 +53,6 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
-
 	}
 	adminId := dr.GetAdminReferenceId()
 	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
@@ -339,6 +340,13 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		valsList = append(valsList, newUuid)
 	}
 
+	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
+	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), DEFAULT_LANGUAGE)
+
+	if languagePreferences != nil {
+		log.Printf("Language preference: %v", languagePreferences)
+	}
+
 	colsList = append(colsList, "permission")
 	valsList = append(valsList, dr.model.GetDefaultPermission())
 
@@ -352,6 +360,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	}
 
 	query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
+
 	if err != nil {
 		log.Errorf("Failed to create insert query: %v", err)
 		return nil, err
@@ -365,13 +374,40 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		log.Errorf("%v", vals)
 		return nil, err
 	}
-
 	createdResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), newUuid)
+
 	if err != nil {
 		log.Errorf("Failed to select the newly created entry: %v", err)
 		return nil, err
 	}
-	//
+
+	if dr.tableInfo.TranslationsEnabled && len(languagePreferences) > 0 {
+
+		for _, languagePreference := range languagePreferences {
+
+			colsList = append(colsList, "language_id")
+			valsList = append(valsList, languagePreference)
+
+			colsList = append(colsList, "translation_reference_id")
+			valsList = append(valsList, newUuid)
+
+			query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n").Columns(colsList...).Values(valsList...).ToSql()
+
+			if err != nil {
+				log.Errorf("Failed to create insert query: %v", err)
+				return nil, err
+			}
+
+			_, err = dr.db.Exec(query, vals...)
+			if err != nil {
+				log.Infof("Insert query: %v", query)
+				log.Errorf("Failed to execute insert query: %v", err)
+				log.Errorf("%v", vals)
+				return nil, err
+			}
+		}
+	}
+
 
 	//log.Infof("Created entry: %v", createdResource)
 
