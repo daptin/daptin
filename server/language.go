@@ -30,17 +30,24 @@ func NewLanguageMiddleware(configStore *resource.ConfigStore) *LanguageMiddlewar
 func (lm *LanguageMiddleware) LanguageMiddlewareFunc(c *gin.Context) {
 	//log.Infof("middleware ")
 
-	preferredLanguage := c.GetHeader("Accept-Language")
+	pref := GetLanguagePreference(c.GetHeader("Accept-Language"), lm.defaultLanguage)
+
+	c.Set("language_preference", pref)
+
+}
+
+func GetLanguagePreference(header string, defaultLanguage string) []string {
+	preferredLanguage := header
 
 	if preferredLanguage == "" {
-		preferredLanguage = lm.defaultLanguage
+		preferredLanguage = defaultLanguage
 	}
 
 	languageTags, _, err := language.ParseAcceptLanguage(preferredLanguage)
 	resource.CheckErr(err, "Failed to parse Accept-Language header [%v]", preferredLanguage)
 	pref := make([]string, 0)
 
-	if len(languageTags) == 1 && languageTags[0].String() == lm.defaultLanguage {
+	if len(languageTags) == 1 && languageTags[0].String() == defaultLanguage {
 
 	} else {
 
@@ -53,7 +60,5 @@ func (lm *LanguageMiddleware) LanguageMiddlewareFunc(c *gin.Context) {
 		}
 
 	}
-
-	c.Set("language_preference", pref)
-
+	return pref
 }
