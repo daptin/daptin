@@ -24,7 +24,7 @@
           <div class="col-sm-3 col-md-3">
             <form class="navbar-form" role="search" @submit.prevent="setQueryString">
               <div class="input-group">
-                <input id="navbar-search-input" type="text" class="form-control" placeholder="Search" name="q">
+                <input style="font-size: 16px; color: white; background-color: #0000005e" id="navbar-search-input" type="text" class="form-control" placeholder="Search" name="q">
                 <div class="input-group-btn">
                   <button class="btn btn-default" type="submit"><i class="fa fa-search"></i></button>
                   <button class="btn btn-default" @click.prevent="clearSearch" type="clear"><i class="fa fa-times"></i>
