@@ -24,6 +24,7 @@ require (
 	github.com/artpar/resty v1.0.1
 	github.com/artpar/stats v1.0.2
 	github.com/asaskevich/EventBus v0.0.0-20180103000110-68a521d7cbbb // indirect
+	github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1
 	github.com/aws/aws-sdk-go v1.25.31
 	github.com/bamzi/jobrunner v0.0.0-20161019143021-273175f8b6eb // indirect
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293

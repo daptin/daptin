@@ -170,6 +170,8 @@ github.com/artpar/stats v1.0.2/go.mod h1:KJBKGIgk9iBPoX315XCRCX40xGiQR4/vo9tzdxv
 github.com/asaskevich/EventBus v0.0.0-20180103000110-68a521d7cbbb h1:UgErHX+sTKfxJ1+2IksfX2Jeb2DcSgWN0oqRTUzSg74=
 github.com/asaskevich/EventBus v0.0.0-20180103000110-68a521d7cbbb/go.mod h1:JS7hed4L1fj0hXcyEejnW57/7LCetXggd+vwrRnYeII=
 github.com/atotto/clipboard v0.1.2/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
+github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1 h1:OLrWlPirfG33eUv6tAZBb2SW2K+xBenfJIWJ+nORMTU=
+github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1/go.mod h1:v4YSuwMq3CcRnBfKwKzvCATH1jq46sgSHJ8EEUx2ne0=
 github.com/aws/aws-sdk-go v1.19.11/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.20.10/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.21.5 h1:Z3u6BJ0XYn5uY3Acwy7FMF3XfDEm0FZyWk9vYojqZns=

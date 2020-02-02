@@ -17,6 +17,7 @@ import (
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/emersion/go-sasl"
 	"github.com/gin-gonic/gin"
+	"github.com/aviddiviner/gin-limit"
 	"github.com/hpcloud/tail"
 	"github.com/icrowley/fake"
 	"io"
@@ -115,6 +116,14 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
 
+	max_connections, err := configStore.GetConfigIntValueFor("rate.max_connectioins", "backend")
+	if err != nil {
+		max_connections = 25
+		err = configStore.SetConfigValueFor("limit.max_connections", "25", "backend")
+		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
+	}
+	defaultRouter.Use(limit.MaxAllowed(max_connections))
+
 	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
 	if err != nil {
 		name, e := os.Hostname()
@@ -122,7 +131,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			name = "localhost"
 		}
 		hostname = name
-		configStore.SetConfigValueFor("hostname", hostname, "backend")
+		err = configStore.SetConfigValueFor("hostname", hostname, "backend")
+		resource.CheckErr(err, "Failed to store hostname in _config")
 	}
 
 	initConfig.Hostname = hostname
