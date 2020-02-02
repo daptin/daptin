@@ -23,7 +23,8 @@ func (dr *DbResource) GetTotalCount() uint64 {
 	}
 
 	var count uint64
-	dr.db.QueryRowx(s, v...).Scan(&count)
+	err = dr.db.QueryRowx(s, v...).Scan(&count)
+	CheckErr(err, "Failed to execute total count query [%s] [%v]", s, v)
 	//log.Infof("Count: [%v] %v", dr.model.GetTableName(), count)
 	return count
 }
@@ -90,7 +91,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 	}
 
-	// todo: change this hardcode default to en languge and move to config store as part of maybe @resource.TableInfo
+	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
 	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), "en")
 
 	if languagePreferences != nil {
@@ -602,8 +603,6 @@ func GetLanguagePreference(header string, defaultLanguage string) []string {
 	}
 	return pref
 }
-
-
 
 func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix string) squirrel.SelectBuilder {
 
