@@ -321,12 +321,29 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 		if len(languagePreferences) > 0 && dr.tableInfo.TranslationsEnabled {
 
+
+
 			for _, lang := range languagePreferences {
+
+
+				langTableCols := make([]string, 0)
+				langTableVals := make([]interface{}, 0)
+
+				for _, col := range colsList {
+					langTableCols = append(langTableCols, col)
+				}
+
+
+				for _, val := range valsList {
+					langTableVals = append(langTableVals, val)
+				}
+
+
 
 				builder := statementbuilder.Squirrel.Update(dr.model.GetName() + "_i18n")
 
-				for i := range colsList {
-					builder = builder.Set(colsList[i], valsList[i])
+				for i := range langTableCols {
+					builder = builder.Set(langTableCols[i], langTableVals[i])
 				}
 
 				query, vals, err := builder.Where(squirrel.Eq{"translation_reference_id": id}).Where(squirrel.Eq{"language_id": lang}).ToSql()
@@ -343,12 +360,12 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				if err != nil {
 					log.Errorf("Failed to execute update query: %v", err)
 
-					colsList = append(colsList, "language_id", "translation_reference_id")
-					valsList = append(valsList, lang, id)
+					langTableCols = append(langTableCols, "language_id", "translation_reference_id")
+					langTableVals = append(langTableVals, lang, id)
 
 					insert := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n")
-					insert = insert.Columns(colsList...)
-					insert = insert.Values(valsList...)
+					insert = insert.Columns(langTableCols...)
+					insert = insert.Values(langTableVals...)
 					query, vals, err := insert.ToSql()
 
 					_, err = dr.db.Exec(query, vals...)
