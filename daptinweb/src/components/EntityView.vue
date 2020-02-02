@@ -24,13 +24,6 @@
           </template>
         </li>
       </ol>
-
-      <div class="box-tools pull-left" style="margin: 10px">
-        <label>Language</label>
-        <select class="form-control">
-          <option>en</option>
-        </select>
-      </div>
       <div class="box-tools pull-right">
         <div class="ui icon buttons">
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'; currentViewType = 'table-view';"><i

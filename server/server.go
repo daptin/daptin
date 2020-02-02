@@ -76,7 +76,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	// 6 UID FETCH 1:2 (UID)
 	defaultRouter.Use(NewCorsMiddleware().CorsMiddlewareFunc)
-	defaultRouter.Use(NewLanguageMiddleware().LanguageMiddlewareFunc)
 	defaultRouter.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
 
 	defaultRouter.GET("/favicon.ico", func(c *gin.Context) {
@@ -115,6 +114,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
+	defaultRouter.Use(NewLanguageMiddleware(configStore).LanguageMiddlewareFunc)
 
 	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
 	if err != nil {
