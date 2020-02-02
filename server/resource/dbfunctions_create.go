@@ -193,6 +193,13 @@ func CheckTranslationTables(config *CmsConfig) {
 
 		}
 
+		columnsCopy = append(columnsCopy, api2go.ColumnInfo{
+			Name:       "language_id",
+			ColumnType: "label",
+			DataType:   "varchar(10)",
+			IsNullable: false,
+		})
+
 		newRelation := api2go.TableRelation{
 			Subject:    translationTableName,
 			Relation:   "belongs_to",

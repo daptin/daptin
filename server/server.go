@@ -511,36 +511,53 @@ func (c *Crammd5) Next(response []byte) (challenge []byte, done bool, err error)
 func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseConnection) {
 	resource.CheckRelations(initConfig)
 	resource.CheckAuditTables(initConfig)
+	resource.CheckTranslationTables(initConfig)
 	//AddStateMachines(&initConfig, db)
 
+	var errc error
 	tx, errb := db.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction")
-	resource.CheckAllTableStatus(initConfig, db, tx)
-	errc := tx.Commit()
-	resource.CheckErr(errc, "Failed to commit transaction after creating tables")
+
+	if tx != nil {
+
+		resource.CheckAllTableStatus(initConfig, db, tx)
+
+		errc = tx.Commit()
+		resource.CheckErr(errc, "Failed to commit transaction after creating tables")
+
+	}
+	tx, errb = db.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction")
+
+	if tx != nil {
+
+		resource.CreateRelations(initConfig, tx)
+		errc = tx.Commit()
+		resource.CheckErr(errc, "Failed to commit transaction after creating relations")
+	}
 
 	tx, errb = db.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction")
-	resource.CreateRelations(initConfig, tx)
-	errc = tx.Commit()
-	resource.CheckErr(errc, "Failed to commit transaction after creating relations")
-
+	if tx != nil {
+		resource.CreateUniqueConstraints(initConfig, tx)
+		errc = tx.Commit()
+		resource.CheckErr(errc, "Failed to commit transaction after creating unique constrains")
+	}
 	tx, errb = db.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction")
-	resource.CreateUniqueConstraints(initConfig, tx)
-	errc = tx.Commit()
-	resource.CheckErr(errc, "Failed to commit transaction after creating unique constrains")
-
-	tx, errb = db.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
-	resource.CreateIndexes(initConfig, tx)
-	errc = tx.Commit()
+	if tx != nil {
+		resource.CreateIndexes(initConfig, tx)
+		errc = tx.Commit()
+	}
 	resource.CheckErr(errc, "Failed to commit transaction after creating indexes")
 
 	tx, errb = db.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction")
-	resource.UpdateWorldTable(initConfig, tx)
-	errc = tx.Commit()
+
+	if tx != nil {
+		resource.UpdateWorldTable(initConfig, tx)
+		errc = tx.Commit()
+	}
 	resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
 
 	resource.UpdateStateMachineDescriptions(initConfig, db)
