@@ -343,10 +343,6 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
 	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), DEFAULT_LANGUAGE)
 
-	if languagePreferences != nil {
-		log.Printf("Language preference: %v", languagePreferences)
-	}
-
 	colsList = append(colsList, "permission")
 	valsList = append(valsList, dr.model.GetDefaultPermission())
 
@@ -389,10 +385,9 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			valsList = append(valsList, languagePreference)
 
 			colsList = append(colsList, "translation_reference_id")
-			valsList = append(valsList, newUuid)
+			valsList = append(valsList, createdResource["id"])
 
 			query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n").Columns(colsList...).Values(valsList...).ToSql()
-
 			if err != nil {
 				log.Errorf("Failed to create insert query: %v", err)
 				return nil, err

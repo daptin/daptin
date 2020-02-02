@@ -3,6 +3,7 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/columntypes"
+	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
 	"strings"
 
@@ -11,7 +12,6 @@ import (
 	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/auth"
-	"github.com/daptin/daptin/server/statementbuilder"
 	"net/http"
 	"time"
 )
@@ -61,6 +61,9 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 	//log.Infof("Update object request with changes: %v", allChanges)
 
 	//dataToInsert := make(map[string]interface{})
+
+	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
+	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), DEFAULT_LANGUAGE)
 
 	if len(allChanges) > 0 {
 		var colsList []string
@@ -316,26 +319,70 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 		colsList = append(colsList, "version")
 		valsList = append(valsList, data.GetNextVersion())
 
-		builder := statementbuilder.Squirrel.Update(dr.model.GetName())
+		if len(languagePreferences) > 0 && dr.tableInfo.TranslationsEnabled {
 
-		for i := range colsList {
-			//log.Infof("cols to set: %v == %v", colsList[i], valsList[i])
-			builder = builder.Set(colsList[i], valsList[i])
+			for _, lang := range languagePreferences {
+
+				builder := statementbuilder.Squirrel.Update(dr.model.GetName() + "_i18n")
+
+				for i := range colsList {
+					builder = builder.Set(colsList[i], valsList[i])
+				}
+
+				query, vals, err := builder.Where(squirrel.Eq{"translation_reference_id": id}).Where(squirrel.Eq{"language_id": lang}).ToSql()
+				//log.Infof("Update query: %v", query)
+				if err != nil {
+					log.Errorf("Failed to create update query: %v", err)
+
+					log.Errorf("Failed to create update query: %v", err)
+					return nil, err
+				}
+
+				//log.Infof("Update query: %v == %v", query, vals)
+				_, err = dr.db.Exec(query, vals...)
+				if err != nil {
+					log.Errorf("Failed to execute update query: %v", err)
+
+					colsList = append(colsList, "language_id", "translation_reference_id")
+					valsList = append(valsList, lang, id)
+
+					insert := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n")
+					insert = insert.Columns(colsList...)
+					insert = insert.Values(valsList...)
+					query, vals, err := insert.ToSql()
+
+					_, err = dr.db.Exec(query, vals...)
+
+					return nil, err
+				}
+
+			}
+
+		} else {
+
+			builder := statementbuilder.Squirrel.Update(dr.model.GetName())
+
+			for i := range colsList {
+				//log.Infof("cols to set: %v == %v", colsList[i], valsList[i])
+				builder = builder.Set(colsList[i], valsList[i])
+			}
+
+			query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).ToSql()
+			//log.Infof("Update query: %v", query)
+			if err != nil {
+				log.Errorf("Failed to create update query: %v", err)
+				return nil, err
+			}
+
+			//log.Infof("Update query: %v == %v", query, vals)
+			_, err = dr.db.Exec(query, vals...)
+			if err != nil {
+				log.Errorf("Failed to execute update query: %v", err)
+				return nil, err
+			}
+
 		}
 
-		query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).ToSql()
-		//log.Infof("Update query: %v", query)
-		if err != nil {
-			log.Errorf("Failed to create update query: %v", err)
-			return nil, err
-		}
-
-		//log.Infof("Update query: %v == %v", query, vals)
-		_, err = dr.db.Exec(query, vals...)
-		if err != nil {
-			log.Errorf("Failed to execute update query: %v", err)
-			return nil, err
-		}
 	}
 
 	if data.IsDirty() && dr.tableInfo.IsAuditEnabled {
@@ -367,12 +414,6 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 	} else {
 		log.Infof("[%v][%v] Not creating an audit row", data.GetTableName(), data.GetID())
 	}
-
-	//query, vals, err = statementbuilder.Squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": id}).ToSql()
-	//if err != nil {
-	//	log.Errorf("Failed to create select query: %v", err)
-	//	return nil, err
-	//}
 
 	updatedResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), id)
 	if err != nil {
