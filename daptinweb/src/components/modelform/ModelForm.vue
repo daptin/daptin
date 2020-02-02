@@ -17,7 +17,7 @@
             <select-one-or-more :value="item.value" :schema="item" @save="setRelation"></select-one-or-more>
           </div>
         </div>
-        <div class="col-md-6" v-if="hasPermissionField">
+        <div class="col-md-6" v-if="hasPermissionField && model.reference_id">
           <fieldPermissionInput :value="model.permission"></fieldPermissionInput>
         </div>
       </div>
@@ -32,7 +32,11 @@
   </div>
 
 </template>
-
+<style>
+  .vue-form-generator fieldset {
+    min-width: 100% !important;
+  }
+</style>
 <script>
   import VueFormGenerator from "vue-form-generator";
   //  import 'vue-form-generator/dist/vfg.css'
@@ -342,6 +346,7 @@
             name: columnName,
             id: "id",
             readonly: false,
+            rows: 10,
             value: columnMeta.DefaultValue,
             featured: true,
             disabled: false,
