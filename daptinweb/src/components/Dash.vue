@@ -38,13 +38,12 @@
           <div class="col-sm-3 col-md-3">
             <form class="navbar-form">
               <div class="input-group">
-                <select @change="setPreferredLanguage" v-model="preferredLanguageLocal" style="font-size: 16px; color: white; background-color: #0000005e" class="form-control"
+                <el-select filterable @change="setPreferredLanguage" v-model="preferredLanguageLocal"
+                           style="font-size: 16px; color: white; background-color: #0000005e"
                         placeholder="Search" name="q">
-                  <option v-for="language in languages" :value="language.id"
-                          :selected="preferredLanguage === language.id">
-                    {{language.label}}
-                  </option>
-                </select>
+                  <el-option v-for="language in languages" :key="language.id" :label="language.label" :value="language.id"
+                          :selected="preferredLanguage === language.id"></el-option>
+                </el-select>
               </div>
             </form>
           </div>
