@@ -45,7 +45,6 @@ const WorldManager = function () {
   that.trackObjectEvent = function (typeName, stateMachineRefId, eventName) {
     console.log("change object track", getToken());
     return axios({
-      url: appconfig.apiRoot + "/track/event/" + stateMachineRefId + "/" + eventName,
       url: appconfig.apiRoot + "/track/event/" + typeName + "/" + stateMachineRefId + "/" + eventName,
       method: "POST",
       headers: {
@@ -66,8 +65,8 @@ const WorldManager = function () {
         "Authorization": "Bearer " + getToken()
       },
     }).then(function (r) {
-      if (r.status == 200) {
-        var r = r.data;
+      if (r.status === 200) {
+        r = r.data;
         console.log("Loaded Model inside :", typeName);
         if (r.Actions.length > 0) {
           console.log("Register actions", typeName, r.Actions,);
@@ -89,11 +88,12 @@ const WorldManager = function () {
 
   axios(appconfig.apiRoot + "/meta?query=column_types", {
     headers: {
-      "Authorization": "Bearer " + getToken()
+      "Authorization": "Bearer " + getToken(),
+      "Accept-Language": localStorage.getItem("LANGUAGE") || window.language,
     }
   }).then(function (r) {
-    if (r.status == 200) {
-      var r = r.data;
+    if (r.status === 200) {
+      r = r.data;
       that.columnTypes = r;
     } else {
       console.log("failed to get column types")

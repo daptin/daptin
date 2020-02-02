@@ -68,7 +68,11 @@ jsonapi.insertMiddlewareBefore('HEADER', {
   name: 'insert-query',
   req: function (payload) {
 
-    if (payload.req.method.toLowerCase() != "get") {
+    let lang = localStorage.getItem("LANGUAGE");
+    payload.req.headers["Accept-Language"] = lang;
+
+
+    if (payload.req.method.toLowerCase() !== "get") {
       return payload;
     }
 
@@ -78,7 +82,6 @@ jsonapi.insertMiddlewareBefore('HEADER', {
       console.log("change payload for query", query);
       payload.req.params.filter = encodeURIComponent(query);
     }
-
     return payload;
   }
 });

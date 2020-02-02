@@ -77,8 +77,13 @@ export default {
     return filtered;
   },
   preferredLanguage(state) {
-    console.log("get preferred language", state.language || navigator.language || navigator.userLanguage)
-    return ( state.language || navigator.language || navigator.userLanguage).split('-')[0]
+    let lang = localStorage.getItem("LANGUAGE");
+    if (!lang) {
+      lang = navigator.language || navigator.userLanguage;
+    }
+    localStorage.setItem("LANGUAGE", lang)
+    console.log("get preferred language", lang)
+    return (lang).split('-')[0]
   },
   languages() {
     return [{"label": "Afrikaans", "id": "af"}, {"label": "Albanian", "id": "sq"}, {

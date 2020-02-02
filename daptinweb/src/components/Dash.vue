@@ -38,7 +38,7 @@
           <div class="col-sm-3 col-md-3">
             <form class="navbar-form">
               <div class="input-group">
-                <select @change="setPreferredLanguage" style="font-size: 16px; color: white; background-color: #0000005e" class="form-control"
+                <select @change="setPreferredLanguage" v-model="preferredLanguageLocal" style="font-size: 16px; color: white; background-color: #0000005e" class="form-control"
                         placeholder="Search" name="q">
                   <option v-for="language in languages" :value="language.id"
                           :selected="preferredLanguage === language.id">
@@ -133,6 +133,7 @@
         data: function () {
             return {
                 query: "",
+                preferredLanguageLocal: null,
                 // section: 'Dash',
                 year: new Date().getFullYear(),
                 classes: {
@@ -162,6 +163,7 @@
         },
         mounted() {
             var that = this;
+            that.preferredLanguageLocal = that.preferredLanguage;
             if (!this.isAuthenticated) {
                 const {token, secret} = extractInfoFromHash();
 
@@ -190,9 +192,14 @@
                 this.setQuery(query);
                 return false;
             },
-            setPreferredLanguage(language) {
-                console.log("set language", language);
-                this.setLanguage(language);
+            setPreferredLanguage() {
+                console.log("set language", this.preferredLanguageLocal);
+                this.setLanguage(this.preferredLanguageLocal);
+                this.$notify({
+                    title: 'Success',
+                    message: 'Don\'t forget to refresh after setting a new language',
+                    type: 'success'
+                });
                 return false;
             },
             changeloading() {
