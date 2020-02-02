@@ -269,3 +269,41 @@ However, JSON APIs for data manipulation by themselves weren't enough. Building 
 ### Documentation
 
 - Checkout the [documentation for daptin](https://daptin.github.io/daptin/)
+
+
+### Golang Dependencies list
+
+
+|                  DEPENDENCY                   |                        REPOURL                        |   LICENSE    |
+|-----------------------------------------------|-------------------------------------------------------|--------------|
+| github.com/GeertJohan/go.rice                 | https://github.com/GeertJohan/go.rice                 | bsd-2-clause |
+| github.com/artpar/go-guerrilla                | https://github.com/artpar/go-guerrilla                | MIT          |
+| github.com/gin-gonic/gin                      | https://github.com/gin-gonic/gin                      | MIT          |
+| github.com/sirupsen/logrus                    | https://github.com/sirupsen/logrus                    | MIT          |
+| github.com/Masterminds/squirrel               | https://github.com/Masterminds/squirrel               | Other        |
+| github.com/PuerkitoBio/goquery                | https://github.com/PuerkitoBio/goquery                | bsd-3-clause |
+| github.com/anthonynsimon/bild                 | https://github.com/anthonynsimon/bild                 | MIT          |
+| github.com/artpar/api2go                      | https://github.com/artpar/api2go                      | MIT          |
+| github.com/artpar/api2go-adapter              | https://github.com/artpar/api2go-adapter              | MIT          |
+| github.com/artpar/go-imap                     | https://github.com/artpar/go-imap                     | MIT          |
+| github.com/artpar/go.uuid                     | https://github.com/artpar/go.uuid                     | MIT          |
+| github.com/artpar/parsemail                   | https://github.com/artpar/parsemail                   | MIT          |
+| github.com/artpar/rclone                      | https://github.com/artpar/rclone                      | MIT          |
+| github.com/artpar/stats                       | https://github.com/artpar/stats                       | MIT          |
+| github.com/bjarneh/latinx                     | https://github.com/bjarneh/latinx                     | bsd-3-clause |
+| github.com/emersion/go-sasl                   | https://github.com/emersion/go-sasl                   | MIT          |
+| github.com/julienschmidt/httprouter           | https://github.com/julienschmidt/httprouter           | bsd-3-clause |
+| golang.org/x/net/context                      | https://go.googlesource.com/net                       |              |
+| github.com/advance512/yaml                    | https://github.com/advance512/yaml                    | Other        |
+| golang.org/x/crypto/bcrypt                    | https://go.googlesource.com/crypto                    |              |
+| github.com/alexeyco/simpletable               | https://github.com/alexeyco/simpletable               | MIT          |
+| github.com/araddon/dateparse                  | https://github.com/araddon/dateparse                  | MIT          |
+| github.com/artpar/conform                     | https://github.com/artpar/conform                     | Other        |
+| github.com/artpar/resty                       | https://github.com/artpar/resty                       | MIT          |
+| github.com/emersion/go-message                | https://github.com/emersion/go-message                | MIT          |
+| github.com/go-playground/locales              | https://github.com/go-playground/locales              | MIT          |
+| github.com/go-playground/universal-translator | https://github.com/go-playground/universal-translator | MIT          |
+| golang.org/x/oauth2                           | https://go.googlesource.com/oauth2                    |              |
+| gopkg.in/go-playground/validator.v9           | https://github.com/go-playground/validator            | MIT          |
+| golang.org/x/net/websocket                    | https://go.googlesource.com/net                       |              |
+
