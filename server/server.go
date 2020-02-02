@@ -75,7 +75,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	})
 
 	// 6 UID FETCH 1:2 (UID)
-	defaultRouter.Use(CorsMiddlewareFunc)
+	defaultRouter.Use(NewCorsMiddleware().CorsMiddlewareFunc)
+	defaultRouter.Use(NewLanguageMiddleware().LanguageMiddlewareFunc)
 	defaultRouter.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
 
 	defaultRouter.GET("/favicon.ico", func(c *gin.Context) {
