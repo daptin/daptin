@@ -343,7 +343,7 @@
                 return parse;
               })
               .filter(function (e) {
-                console.log("filter ", e);
+                // console.log("filter ", e);
                 return (
                   !e.IsHidden &&
                   !e.IsJoinTable &&
@@ -351,7 +351,7 @@
                 );
               });
             that.worlds.forEach(function (w) {
-              console.log("call stats", w);
+              // console.log("call stats", w);
 
               statsManger
                 .getStats(w.TableName, {
@@ -387,7 +387,7 @@
               System: [],
               User: []
             };
-            console.log("worlds in dashboard", worlds);
+            // console.log("worlds in dashboard", worlds);
             for (let i = 0; i < worlds.length; i++) {
               let tableName = worlds[i].table_name;
               let actions = actionManager.getActions(tableName);
@@ -395,7 +395,7 @@
               if (!actions) {
                 continue;
               }
-              console.log("actions for ", tableName, actions);
+              // console.log("actions for ", tableName, actions);
               let actionKeys = Object.keys(actions);
               for (let j = 0; j < actionKeys.length; j++) {
                 let action = actions[actionKeys[j]];
@@ -419,7 +419,7 @@
               }
             }
 
-            console.log("load world actions tables");
+            // console.log("load world actions tables");
             that.worldActions = newWorldActions;
             that.actionGroups = actionGroups;
           });

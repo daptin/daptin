@@ -66,9 +66,9 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
 	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), DEFAULT_LANGUAGE)
 
+	var colsList []string
+	var valsList []interface{}
 	if len(allChanges) > 0 {
-		var colsList []string
-		var valsList []interface{}
 		for _, col := range allColumns {
 
 			//log.Infof("Add column: %v", col.ColumnName)
@@ -320,63 +320,11 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 		colsList = append(colsList, "version")
 		valsList = append(valsList, data.GetNextVersion())
 
-		if len(languagePreferences) > 0 && dr.tableInfo.TranslationsEnabled {
-
-			for _, lang := range languagePreferences {
-
-				langTableCols := make([]string, 0)
-				langTableVals := make([]interface{}, 0)
-
-				for _, col := range colsList {
-					langTableCols = append(langTableCols, col)
-				}
-
-				for _, val := range valsList {
-					langTableVals = append(langTableVals, val)
-				}
-
-				builder := statementbuilder.Squirrel.Update(dr.model.GetName() + "_i18n")
-
-				for i := range langTableCols {
-					builder = builder.Set(langTableCols[i], langTableVals[i])
-				}
-
-				query, vals, err := builder.Where(squirrel.Eq{"translation_reference_id": idInt}).Where(squirrel.Eq{"language_id": lang}).ToSql()
-				//log.Infof("Update query: %v", query)
-				if err != nil {
-					log.Errorf("Failed to create update query: %v", err)
-				}
-
-				//log.Infof("Update query: %v == %v", query, vals)
-				res, err := dr.db.Exec(query, vals...)
-				rowsAffected, err := res.RowsAffected()
-				if err != nil || rowsAffected == 0 {
-					log.Errorf("Failed to execute update query: %v", err)
-
-					u, _ := uuid.NewV4()
-					nuuid := u.String()
-
-					langTableCols = append(langTableCols, "language_id", "translation_reference_id", "reference_id")
-					langTableVals = append(langTableVals, lang, idInt, nuuid)
-
-					insert := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n")
-					insert = insert.Columns(langTableCols...)
-					insert = insert.Values(langTableVals...)
-					query, vals, err := insert.ToSql()
-
-					_, err = dr.db.Exec(query, vals...)
-
-					return nil, err
-				}
-
-			}
-
-		} else {
+		if len(languagePreferences) == 0 || !dr.tableInfo.TranslationsEnabled {
 
 			builder := statementbuilder.Squirrel.Update(dr.model.GetName())
 
 			for i := range colsList {
-				//log.Infof("cols to set: %v == %v", colsList[i], valsList[i])
 				builder = builder.Set(colsList[i], valsList[i])
 			}
 
@@ -396,6 +344,57 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 		}
 
+	}
+
+	if len(languagePreferences) > 0 && dr.tableInfo.TranslationsEnabled {
+
+		for _, lang := range languagePreferences {
+
+			langTableCols := make([]string, 0)
+			langTableVals := make([]interface{}, 0)
+
+			for _, col := range colsList {
+				langTableCols = append(langTableCols, col)
+			}
+
+			for _, val := range valsList {
+				langTableVals = append(langTableVals, val)
+			}
+
+			builder := statementbuilder.Squirrel.Update(dr.model.GetName() + "_i18n")
+
+			for i := range langTableCols {
+				builder = builder.Set(langTableCols[i], langTableVals[i])
+			}
+
+			query, vals, err := builder.Where(squirrel.Eq{"translation_reference_id": idInt}).Where(squirrel.Eq{"language_id": lang}).ToSql()
+			//log.Infof("Update query: %v", query)
+			if err != nil {
+				log.Errorf("Failed to create update query: %v", err)
+			}
+
+			//log.Infof("Update query: %v == %v", query, vals)
+			res, err := dr.db.Exec(query, vals...)
+			rowsAffected, err := res.RowsAffected()
+			if err != nil || rowsAffected == 0 {
+				log.Errorf("Failed to execute update query: %v", err)
+
+				u, _ := uuid.NewV4()
+				nuuid := u.String()
+
+				langTableCols = append(langTableCols, "language_id", "translation_reference_id", "reference_id")
+				langTableVals = append(langTableVals, lang, idInt, nuuid)
+
+				insert := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n")
+				insert = insert.Columns(langTableCols...)
+				insert = insert.Values(langTableVals...)
+				query, vals, err := insert.ToSql()
+
+				_, err = dr.db.Exec(query, vals...)
+
+				return nil, err
+			}
+		}
 	}
 
 	if data.IsDirty() && dr.tableInfo.IsAuditEnabled {

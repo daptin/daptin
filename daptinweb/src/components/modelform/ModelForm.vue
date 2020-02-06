@@ -1,6 +1,6 @@
 <template>
 
-  <div class="box">
+  <div class="box action-form-body">
     <div class="box-header" v-if="!hideTitle">
       <div class="box-title">
         {{title}}
@@ -77,6 +77,7 @@
       return {
         formModel: null,
         formValue: {},
+        focusSet: false,
         loading: false,
         relations: [],
         hasPermissionField: false,
@@ -252,11 +253,9 @@
           return str;
         }
         return str.replace(/[-_]/g, " ").trim().split(' ')
-          .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
+            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
       },
       init() {
-
-
         // todo: convert strings to booleans and numbers
 
         const that = this;
@@ -385,15 +384,20 @@
         that.formModel.fields = formFields;
         that.relations = foreignKeys;
 
-        if (formFields.length + foreignKeys.length == 0) {
+        setTimeout(function () {
+          if (that.focusSet) {
+            return
+          }
+          console.log("set focus to first input field")
+          that.focusSet = true;
+          document.querySelector(".action-form-body input").focus()
+        }, 100)
 
-        }
 
       }
     },
     mounted: function () {
       this.init();
-
     },
     watch: {
       "model": function () {
