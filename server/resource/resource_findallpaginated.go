@@ -535,13 +535,20 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		var preferredLanguage = languagePreferences[0]
 		translateTableName := tableModel.GetTableName() + "_i18n"
 
+		ifNullFunctionName := "IFNULL"
+		if dr.connection.DriverName() == "postgres" {
+			ifNullFunctionName = "COALESCE"
+		} else if dr.connection.DriverName() == "mssql" {
+			ifNullFunctionName = "ISNULL"
+		}
+
 		//translatedColumns := make([]string, 0)
 		for i, colName := range finalCols {
 			if IsStandardColumn(colName) {
 				finalCols[i] = prefix + colName
 			} else {
 				if strings.Index(colName, ".") == -1 {
-					finalCols[i] = "ifnull(" + translateTableName + "." + colName + "," + prefix + colName + ") as " + colName
+					finalCols[i] = ifNullFunctionName + "(" + translateTableName + "." + colName + "," + prefix + colName + ") as " + colName
 				} else {
 					finalCols[i] = colName
 				}
