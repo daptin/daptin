@@ -88,7 +88,7 @@ jsonapi.insertMiddlewareBefore('HEADER', {
 jsonapi.insertMiddlewareAfter('response', {
   name: 'track-request',
   req: function (payload) {
-    console.log("request initiate", payload);
+    // console.log("request initiate", payload);
     let requestMethod = payload.config.method.toUpperCase();
     if (requestMethod !== 'GET' && requestMethod !== 'OPTIONS') {
 
