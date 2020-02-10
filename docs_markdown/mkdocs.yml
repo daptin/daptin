@@ -16,6 +16,10 @@ pages:
     - Delete: apis/delete.md
     - Relations: apis/relation.md
     - Execute: apis/execute.md
+  - Features:
+    - GraphQL: features/enable-graphql.md
+    - Data Auditing: features/enable-data-auditing.md
+    - Multilingual Table: features/enable-multilingual-table.md
   - Action APIs:
     - Using actions: actions/actions.md
     - Actions list: actions/default_actions.md
