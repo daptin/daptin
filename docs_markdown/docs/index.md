@@ -28,6 +28,10 @@ Easily consume the following features on any device
 - [Multiple websites](/subsite/subsite/) under separate sub-domain/sub-paths
 - [Connect with external APIs](/integrations/overview/) by using extension points
 - [Data View Streams](/streams/streams/)
+- Flexible [data import](/setting-up/data_import/) (auto create new tables and automated schema generation)
+    - XLSX 
+    - JSON
+    - CSV
 
 - **Database** to have consistent single source of truth [Postgres/MySQL/SQLite]
 - **Flexible auth** using the JWT-based authentication & permission system
