@@ -1,281 +1,90 @@
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   
-  <link rel="shortcut icon" href="../../images/favicon.png">
-  
-  <title>Data streams - Daptin</title>
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    
+    
+    <link rel="shortcut icon" href="../../images/favicon.png">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <title>Data streams - Daptin</title>
+    <link href="../../css/bootstrap-3.3.7.min.css" rel="stylesheet">
+    <link href="../../css/font-awesome-4.7.0.css" rel="stylesheet">
+    <link href="../../css/base.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../css/highlight.css">
+    <link href="../../css/theme_extra.css" rel="stylesheet">
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
 
-  <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
-  <link href="../../css/theme_extra.css" rel="stylesheet">
-  
-  <script>
-    // Current page data
-    var mkdocs_page_name = "Data streams";
-    var mkdocs_page_input_path = "streams/streams.md";
-    var mkdocs_page_url = null;
-  </script>
-  
-  <script src="../../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
-  
-  <script>
-      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  <link href="https://fonts.googleapis.com/css?family=Nunito&display=swap" rel="stylesheet">
 
-      ga('create', 'UA-114227400-1', 'docs.dapt.in');
-      ga('send', 'pageview');
-  </script>
-  
+    <script src="../../js/jquery-3.2.1.min.js"></script>
+    <script src="../../js/bootstrap-3.3.7.min.js"></script>
+    <script src="../../js/highlight.pack.js"></script>
+    
+    <base target="_top">
+    <script>
+      var base_url = '../..';
+      var is_top_frame = false;
+        
+        var pageToc = [
+          {title: "Streams", url: "#_top", children: [
+          ]},
+        ];
+
+    </script>
+    <script src="../../js/base.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-114227400-1', 'docs.dapt.in');
+        ga('send', 'pageview');
+    </script> 
 </head>
 
-<body class="wy-body-for-nav" role="document">
+<body>
+<script>
+if (is_top_frame) { $('body').addClass('wm-top-page'); }
+</script>
 
-  <div class="wy-grid-for-nav">
 
-    
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
-      <div class="wy-side-nav-search">
-        <a href="../.." class="icon icon-home"> Daptin</a>
-        <div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
-  </form>
-</div>
-      </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-	<ul class="current">
-	  
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../..">Introduction</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../setting-up/installation/">Installation</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../setting-up/settingup/">Getting started</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../setting-up/access/">User management</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../setting-up/data_modeling/">Data model</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <span class="caption-text">API reference</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../apis/overview/">Overview</a>
-                </li>
-                <li class="">
-                    
-    <span class="caption-text">CRUD</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/read/">Read, search, filter</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/create/">Create</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/update/">Update</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/delete/">Delete</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/relation/">Relations</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/execute/">Execute</a>
-                </li>
-    </ul>
-                </li>
-                <li class="">
-                    
-    <span class="caption-text">Features</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../features/enable-graphql/">GraphQL</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
-                </li>
-    </ul>
-                </li>
-                <li class="">
-                    
-    <span class="caption-text">Action APIs</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../actions/actions/">Using actions</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../actions/default_actions/">Actions list</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../actions/examples/">Examples</a>
-                </li>
-    </ul>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../state/machines/">State tracking</a>
-                </li>
-    </ul>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Asset and file storage</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../cloudstore/cloudstore/">Connecting with cloud store</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../cloudstore/assetcolumns/">Cloud store backed asset columns</a>
-                </li>
-    </ul>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Sub-sites</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../subsite/subsite/">Creating a subsite</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../subsite/grapes/">Live editing a subsite</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../subsite/basic_auth/">Basic Authentication</a>
-                </li>
-    </ul>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Sharing</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../extend/marketplace/">Marketplace</a>
-                </li>
-    </ul>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Reference</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../data-modeling/data_storage/">Data store format</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
-                </li>
-                <li class=" current">
-                    
-    <a class="current" href="./">Data streams</a>
-    <ul class="subnav">
-            
-    <li class="toctree-l3"><a href="#streams">Streams</a></li>
+<div class="container-fluid wm-page-content">
+  <a name="_top"></a>
     
 
-    </ul>
-                </li>
-    </ul>
-	    </li>
-          
-        </ul>
-      </div>
-      &nbsp;
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="../..">Daptin</a>
-      </nav>
-
-      
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="breadcrumbs navigation">
-  <ul class="wy-breadcrumbs">
-    <li><a href="../..">Docs</a> &raquo;</li>
+    
     
       
-        
-          <li>Reference &raquo;</li>
-        
-      
     
-    <li>Data streams</li>
-    <li class="wy-breadcrumbs-aside">
-      
-        <a href="https://github.com/daptin/daptin/edit/master/docs/streams/streams.md"
-          class="icon icon-github"> Edit on GitHub</a>
-      
-    </li>
-  </ul>
-  <hr/>
-</div>
-          <div role="main">
-            <div class="section">
-              
-                <h1 id="streams">Streams<a class="headerlink" href="#streams" title="Permanent link">Link</a></h1>
+
+  <div class="row wm-article-nav-buttons" role="navigation" aria-label="navigation">
+    
+    <div class="wm-article-nav">
+      <a href="../../extend/data_exchange/" class="btn btn-xs btn-default pull-left">
+        <i class="fa fa-chevron-left" aria-hidden="true"></i>
+        Previous</a><a href="../../extend/data_exchange/" class="btn btn-xs btn-link">
+        Data exchange and sync
+      </a>
+    </div>
+    
+  </div>
+
+    
+
+    <h1 id="streams">Streams<a class="headerlink" href="#streams" title="Permanent link">Link</a></h1>
 <p>Streams are complimentary to <a href="/actions/actions">actions</a>. Think of streams as views in SQL. A stream is basically one entity + set of transformations and filters on the entity. Streams are read-only and exposed with similar semantics of that of entities. Daptin will expose JSONAPI for each stream just like it does for entities.</p>
 <p>Here is an example of a stream which exposes list of completed todos only</p>
 <div class="codehilite"><pre><span></span>{
@@ -321,50 +130,37 @@
 </pre></div>
 
 <p>Daptin uses the library <a href="github.com/kniren/gota/dataframe">kniren/gota</a> to systematically specific list of transformations which are applied to the original data stream.</p>
-              
-            </div>
-          </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+
+  <br>
+    
+
+    
+    
       
-      
-        <a href="../../extend/data_exchange/" class="btn btn-neutral" title="Data exchange and sync"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-      
+    
+
+  <div class="row wm-article-nav-buttons" role="navigation" aria-label="navigation">
+    
+    <div class="wm-article-nav">
+      <a href="../../extend/data_exchange/" class="btn btn-xs btn-default pull-left">
+        <i class="fa fa-chevron-left" aria-hidden="true"></i>
+        Previous</a><a href="../../extend/data_exchange/" class="btn btn-xs btn-link">
+        Data exchange and sync
+      </a>
     </div>
-  
-
-  <hr/>
-
-  <div role="contentinfo">
-    <!-- Copyright etc -->
     
   </div>
 
-  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
-</footer>
-      
-        </div>
-      </div>
-
-    </section>
-
-  </div>
-
-  <div class="rst-versions" role="note" style="cursor: pointer">
-    <span class="rst-current-version" data-toggle="rst-current-version">
-      
-          <a href="https://github.com/daptin/daptin/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
-      
-      
-        <span><a href="../../extend/data_exchange/" style="color: #fcfcfc;">&laquo; Previous</a></span>
-      
-      
-    </span>
+    <br>
 </div>
-    <script>var base_url = '../..';</script>
-    <script src="../../js/theme.js" defer></script>
-      <script src="../../search/main.js" defer></script>
+
+<footer class="container-fluid wm-page-content">
+      <p>
+        <a href="https://github.com/daptin/daptin/edit/master/docs/streams/streams.md"><i class="fa fa-github"></i>
+Edit on GitHub</a>
+      </p>
+  <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a> using <a href="https://github.com/gristlabs/mkdocs-windmill">Windmill</a> theme by Grist Labs.</p>
+</footer>
 
 </body>
 </html>
