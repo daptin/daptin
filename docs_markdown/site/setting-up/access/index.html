@@ -167,6 +167,24 @@
                 </li>
                 <li class="">
                     
+    <span class="caption-text">Features</span>
+    <ul class="subnav">
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-graphql/">GraphQL</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
+                </li>
+    </ul>
+                </li>
+                <li class="">
+                    
     <span class="caption-text">Action APIs</span>
     <ul class="subnav">
                 <li class="toctree-l3">
@@ -361,18 +379,18 @@
 <p>This user can sign in now (generate an auth token). But what he can access is again based on the permission of the system.</p>
 <h3 id="curl">CURL<a class="headerlink" href="#curl" title="Permanent link">Link</a></h3>
 <p>Creating a user manually</p>
-<div class="codehilite"><pre><span></span><span class="n">curl</span><span class="w"> </span><span class="s1">&#39;/api/user_account&#39;</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
-<span class="w">  </span><span class="o">-</span><span class="n">H</span><span class="w"> </span><span class="s1">&#39;Authorization: Bearer &lt;Auth Token&gt;&#39;</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
-<span class="w">  </span><span class="c1">--data-binary &#39;{</span>
-<span class="w">                    </span><span class="ss">&quot;data&quot;</span><span class="err">:</span><span class="w"> </span><span class="err">{</span><span class="w"></span>
-<span class="w">                        </span><span class="ss">&quot;type&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;user_account&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                        </span><span class="ss">&quot;attributes&quot;</span><span class="err">:</span><span class="w"> </span><span class="err">{</span><span class="w"></span>
-<span class="w">                            </span><span class="ss">&quot;email&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;test@user.com&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                            </span><span class="ss">&quot;name&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;test&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                            </span><span class="ss">&quot;password&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;password&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                        </span><span class="err">}</span><span class="w"></span>
-<span class="w">                    </span><span class="err">}</span><span class="w"></span>
-<span class="w">                 </span><span class="err">}&#39;</span><span class="w"></span>
+<div class="codehilite"><pre><span></span>curl &#39;/api/user_account&#39; \
+  -H &#39;Authorization: Bearer &lt;Auth Token&gt;&#39; \
+  --data-binary &#39;{
+                    &quot;data&quot;: {
+                        &quot;type&quot;: &quot;user_account&quot;,
+                        &quot;attributes&quot;: {
+                            &quot;email&quot;: &quot;test@user.com&quot;,
+                            &quot;name&quot;: &quot;test&quot;,
+                            &quot;password&quot;: &quot;password&quot;,
+                        }
+                    }
+                 }&#39;
 </pre></div>
 
 <h2 id="sign-in_1">Sign in<a class="headerlink" href="#sign-in_1" title="Permanent link">Link</a></h2>
