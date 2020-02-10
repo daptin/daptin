@@ -24,7 +24,8 @@
           <div class="col-sm-3 col-md-3">
             <form class="navbar-form" role="search" @submit.prevent="setQueryString">
               <div class="input-group">
-                <input id="navbar-search-input" type="text" class="form-control" placeholder="Search" name="q">
+                <input style="font-size: 16px; color: white; background-color: #0000005e" id="navbar-search-input"
+                       type="text" class="form-control" placeholder="Search" name="q">
                 <div class="input-group-btn">
                   <button class="btn btn-default" type="submit"><i class="fa fa-search"></i></button>
                   <button class="btn btn-default" @click.prevent="clearSearch" type="clear"><i class="fa fa-times"></i>
@@ -33,7 +34,21 @@
               </div>
             </form>
           </div>
-          <div class="navbar-custom-menu">
+
+          <div class="col-sm-3 col-md-3">
+            <form class="navbar-form">
+              <div class="input-group">
+                <el-select filterable @change="setPreferredLanguage" v-model="preferredLanguageLocal"
+                           style="font-size: 16px; color: white; background-color: #0000005e"
+                        placeholder="Search" name="q">
+                  <el-option v-for="language in languages" :key="language.id" :label="language.label" :value="language.id"
+                          :selected="preferredLanguage === language.id"></el-option>
+                </el-select>
+              </div>
+            </form>
+          </div>
+
+          <div class="navbar-custom-menu">"
             <ul class="nav navbar-nav">
 
               <!-- User Account Menu -->
@@ -96,122 +111,136 @@
 </template>
 
 <script>
-  import {mapState} from 'vuex'
-  import {mapActions} from 'vuex'
-  import config from '../config'
-  import Sidebar from './Sidebar'
+    import {mapState} from 'vuex'
+    import {mapActions} from 'vuex'
+    import config from '../config'
+    import Sidebar from './Sidebar'
 
-  import {getToken} from '../utils/auth'
-  import {Notification} from 'element-ui';
-  import worldManager from "../plugins/worldmanager"
-  import {mapGetters} from 'vuex'
-  import {setToken, checkSecret, extractInfoFromHash} from '../utils/auth'
-  import Shepherd from "tether-shepherd"
+    import {getToken} from '../utils/auth'
+    import {Notification} from 'element-ui';
+    import worldManager from "../plugins/worldmanager"
+    import {mapGetters} from 'vuex'
+    import {setToken, checkSecret, extractInfoFromHash} from '../utils/auth'
+    import Shepherd from "tether-shepherd"
 
 
-  export default {
-    name: 'Dash',
-    components: {
-      Sidebar
-    },
-    data: function () {
-      return {
-        query: "",
-        // section: 'Dash',
-        year: new Date().getFullYear(),
-        classes: {
-          fixed_layout: config.fixedLayout,
-          hide_logo: config.hideLogoOnMobile
+    export default {
+        name: 'Dash',
+        components: {
+            Sidebar
         },
-        error: '',
-      }
-    },
-    computed: {
-      ...mapGetters([
-        "visibleWorlds",
-        'isAuthenticated',
-        'user'
-      ]),
-      demo() {
-        return {
-          displayName: faker.name.findName(),
-          avatar: faker.image.avatar(),
-          email: faker.internet.email(),
-          tour: null,
-          randomCard: faker.helpers.createCard()
-        }
-      }
-    },
-    mounted() {
-      var that = this;
-      if (!this.isAuthenticated) {
-        const {token, secret} = extractInfoFromHash();
+        data: function () {
+            return {
+                query: "",
+                preferredLanguageLocal: null,
+                // section: 'Dash',
+                year: new Date().getFullYear(),
+                classes: {
+                    fixed_layout: config.fixedLayout,
+                    hide_logo: config.hideLogoOnMobile
+                },
+                error: '',
+            }
+        },
+        computed: {
+            ...mapGetters([
+                "visibleWorlds",
+                'isAuthenticated',
+                'user',
+                "languages",
+                "preferredLanguage"
+            ]),
+            demo() {
+                return {
+                    displayName: faker.name.findName(),
+                    avatar: faker.image.avatar(),
+                    email: faker.internet.email(),
+                    tour: null,
+                    randomCard: faker.helpers.createCard()
+                }
+            }
+        },
+        mounted() {
+            var that = this;
+            that.preferredLanguageLocal = that.preferredLanguage;
+            if (!this.isAuthenticated) {
+                const {token, secret} = extractInfoFromHash();
 
-        if (!checkSecret(secret) || !token) {
-          console.info('Something happened with the Sign In request');
+                if (!checkSecret(secret) || !token) {
+                    console.info('Something happened with the Sign In request');
 //          that.$router.go({name: "sigini"})
-          this.$router.push("/auth/signin");
-        } else {
-          console.log("got token from url", token);
-          setToken(token);
-          window.location.hash = "";
-          window.location.reload();
-        }
-      }
+                    this.$router.push("/auth/signin");
+                } else {
+                    console.log("got token from url", token);
+                    setToken(token);
+                    window.location.hash = "";
+                    window.location.reload();
+                }
+            }
 
-      document.body.className = document.body.className + " sidebar-collapse"
-    },
-    methods: {
-      clearSearch(e) {
-        $("#navbar-search-input").val("");
-        this.setQueryString(null);
-      },
-      ...mapActions(["setQuery"]),
-      setQueryString(query) {
-        console.log("set query", query);
-        this.setQuery(query);
-        return false;
-      },
-      changeloading() {
-        this.$store.commit('TOGGLE_SEARCHING')
-      }
-    },
-    watch: {
-      '$route': function () {
-        setTimeout(function () {
-          $(window).resize();
-        }, 100);
-      }
+            document.body.className = document.body.className + " sidebar-collapse"
+        },
+        methods: {
+            clearSearch(e) {
+                $("#navbar-search-input").val("");
+                this.setQueryString(null);
+            },
+            ...mapActions(["setQuery", "setLanguage"]),
+            setQueryString(query) {
+                console.log("set query", query);
+                this.setQuery(query);
+                return false;
+            },
+            setPreferredLanguage() {
+                console.log("set language", this.preferredLanguageLocal);
+                this.setLanguage(this.preferredLanguageLocal);
+                this.$notify({
+                    title: 'Success',
+                    message: 'Don\'t forget to refresh after setting a new language',
+                    type: 'success'
+                });
+                return false;
+            },
+            changeloading() {
+                this.$store.commit('TOGGLE_SEARCHING')
+            }
+        },
+        watch: {
+            '$route': function () {
+                setTimeout(function () {
+                    $(window).resize();
+                }, 100);
+            }
+        }
     }
-  }
 </script>
 
 <style lang="scss">
   .wrapper.fixed_layout {
 
-    .main-header {
-      position: fixed;
-      width: 100%;
-    }
+  .main-header {
+    position: fixed;
+    width: 100%;
+  }
 
-    .content-wrapper {
-      padding-top: 50px;
-    }
+  .content-wrapper {
+    padding-top: 50px;
+  }
 
-    .main-sidebar {
-      position: fixed;
-      height: 100vh;
-    }
+  .main-sidebar {
+    position: fixed;
+    height: 100vh;
+  }
 
   }
 
   .wrapper.hide_logo {
 
-    @media (max-width: 767px) {
-      .main-header .logo {
-        display: none;
-      }
+  @media (max-width: 767px) {
+    .main-header .logo {
+      display: none;
     }
+  }
 
   }
 
@@ -219,18 +248,18 @@
   .logo-lg {
     text-align: left;
 
-    img {
-      padding: .4em !important;
-    }
+  img {
+    padding: .4em !important;
+  }
 
   }
 
   .logo-lg {
 
-    img {
-      display: -webkit-inline-box;
-      width: 25%;
-    }
+  img {
+    display: -webkit-inline-box;
+    width: 25%;
+  }
 
   }
 
