@@ -94,7 +94,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 			ginContext.Error(err)
 			return
 		}
-		log.Infof("Action Request body: %v", actionRequest)
+		//log.Infof("Action Request body: %v", actionRequest)
 
 		req := api2go.Request{
 			PlainRequest: &http.Request{
@@ -113,18 +113,34 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cr
 		if err != nil {
 			if httpErr, ok := err.(api2go.HTTPError); ok {
 				if len(responses) > 0 {
-
 					ginContext.AbortWithStatusJSON(httpErr.Status(), responses)
 				} else {
-					ginContext.AbortWithStatusJSON(httpErr.Status(), err)
+					ginContext.AbortWithStatusJSON(httpErr.Status(), []ActionResponse{
+						{
+							ResponseType: "client.notify",
+							Attributes: map[string]interface{}{
+								"message": err.Error(),
+								"title":   "failed",
+								"type":    "error",
+							},
+						},
+					})
 
 				}
 			} else {
 				if len(responses) > 0 {
 					ginContext.AbortWithStatusJSON(400, responses)
 				} else {
-					ginContext.AbortWithStatusJSON(500, err)
-
+					ginContext.AbortWithStatusJSON(500, []ActionResponse{
+						{
+							ResponseType: "client.notify",
+							Attributes: map[string]interface{}{
+								"message": err.Error(),
+								"title":   "failed",
+								"type":    "error",
+							},
+						},
+					})
 				}
 
 			}
@@ -205,7 +221,7 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 		if errs != nil {
 			validationErrors := errs.(validator.ValidationErrors)
 			firstError := validationErrors[0]
-			return nil, NewDaptinError(validation.ColumnName+": "+firstError.Tag(), "validation-failed")
+			return nil, api2go.NewHTTPError(errors.New(fmt.Sprintf("invalid value for %s", validation.ColumnName)), firstError.Tag(), 400)
 		}
 	}
 

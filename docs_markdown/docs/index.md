@@ -20,6 +20,7 @@ Easily consume the following features on any device
 - Actions for abstracting out business flows
 - Extensive state tracking APIs
 - Enable *Data Auditing* from a single switch
+- Multilingual table support, supports Accept-Language header 
 - Market place API to manage and share schemas
 - Cloud storage sync like gdrive, dropbox, b2, s3 and more
 - Multiple websites under separate sub-domain/sub-paths
