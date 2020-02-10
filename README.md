@@ -53,9 +53,9 @@ Easily consume the following features on any device
 - Social login with [OAuth](https://daptin.github.io/daptin/extend/oauth_connection/): tested with google, github, linkedin
 - [Actions](https://daptin.github.io/daptin/actions/overview/) for abstracting out business flows
 - Extensive [state tracking APIs](https://daptin.github.io/daptin/state/machines/)
-- Enable [Data Auditing](https://daptin.github.io/daptin/features/enable-data-auditing.md) from a single toggle
+- Enable [Data Auditing](https://daptin.github.io/daptin/features/enable-data-auditing/) from a single toggle
 - [Synchronous Data Exchange](https://daptin.github.io/daptin/extend/data_exchange/) with 3rd party APIs
-- [Multilingual tables](https://daptin.github.io/daptin/features/enable-multilingual-table.md) support, supports Accept-Language header 
+- [Multilingual tables](https://daptin.github.io/daptin/features/enable-multilingual-table/) support, supports Accept-Language header 
 - [Market place](https://daptin.github.io/daptin/extend/marketplacce/) API to manage and share schemas
 - [Cloud storage sync](https://daptin.github.io/daptin/cloudstore/cloudstore/) like gdrive, dropbox, b2, s3 and more
 - [Asset column](https://daptin.github.io/daptin/cloudstore/assetcolumns/) to hold file and blob data, backed by storage
