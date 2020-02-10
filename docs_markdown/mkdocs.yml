@@ -20,6 +20,8 @@ pages:
     - GraphQL: features/enable-graphql.md
     - Data Auditing: features/enable-data-auditing.md
     - Multilingual Table: features/enable-multilingual-table.md
+    - SMTP/IMPS server: features/enable-smtp-imap.md
+    - Logs: features/enable-logs.md
   - Action APIs:
     - Using actions: actions/actions.md
     - Actions list: actions/default_actions.md
