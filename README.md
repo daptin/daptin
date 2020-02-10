@@ -42,6 +42,31 @@
   <a href="#getting-started">Getting Started</a>
 </p>
 
+
+## Why use daptin
+
+Easily consume the following features on any device
+
+- [Database backed](https://daptin.github.io/daptin/setting-up/installation/#database-configuration) persistence, 3NF normalized tables
+- [JSON API](https://daptin.github.io/daptin/apis/overview/)/[GraphQL](https://daptin.github.io/daptin/features/enable-graphql/) for CRUD apis
+- [User](https://daptin.github.io/daptin/setting-up/access/) and [group management](https://daptin.github.io/daptin/setting-up/access/) and access control
+- Social login with [OAuth](https://daptin.github.io/daptin/extend/oauth_connection/): tested with google, github, linkedin
+- [Actions](https://daptin.github.io/daptin/actions/overview/) for abstracting out business flows
+- Extensive [state tracking APIs](https://daptin.github.io/daptin/state/machines/)
+- Enable [Data Auditing](https://daptin.github.io/daptin/features/enable-data-auditing.md) from a single toggle
+- [Synchronous Data Exchange](https://daptin.github.io/daptin/extend/data_exchange/) with 3rd party APIs
+- [Multilingual tables](https://daptin.github.io/daptin/features/enable-multilingual-table.md) support, supports Accept-Language header 
+- [Market place](https://daptin.github.io/daptin/extend/marketplacce/) API to manage and share schemas
+- [Cloud storage sync](https://daptin.github.io/daptin/cloudstore/cloudstore/) like gdrive, dropbox, b2, s3 and more
+- [Asset column](https://daptin.github.io/daptin/cloudstore/assetcolumns/) to hold file and blob data, backed by storage
+- [Multiple websites](https://daptin.github.io/daptin/subsite/subsite/) under separate sub-domain/sub-paths
+- [Connect with external APIs](https://daptin.github.io/daptin/integrations/overview/) by using extension points
+- [Data View Streams](https://daptin.github.io/daptin/streams/streams/)
+- Flexible [data import](https://daptin.github.io/daptin/setting-up/data_import/) (auto create new tables and automated schema generation)
+    - XLSX 
+    - JSON
+    - CSV
+
 Define Schema
 
 <img src="https://github.com/daptin/daptin/raw/master/images/api.jpg">
