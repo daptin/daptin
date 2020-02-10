@@ -74,6 +74,8 @@
     
         <ul>
         
+            <li><a class="toctree-l3" href="#deploy-and-get-started">Deploy and get started</a></li>
+        
             <li><a class="toctree-l3" href="#native-binary">Native binary</a></li>
         
             <li><a class="toctree-l3" href="#heroku-deployment">Heroku deployment</a></li>
@@ -94,8 +96,6 @@
             <li><a class="toctree-l3" href="#postgresql">PostgreSQL</a></li>
         
             <li><a class="toctree-l3" href="#sqlite">SQLite</a></li>
-        
-            <li><a class="toctree-l3" href="#deploy-and-get-started">Deploy and get started</a></li>
         
         </ul>
     
@@ -159,6 +159,24 @@
                 <li class="toctree-l3">
                     
     <a class="" href="../../apis/execute/">Execute</a>
+                </li>
+    </ul>
+                </li>
+                <li class="">
+                    
+    <span class="caption-text">Features</span>
+    <ul class="subnav">
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-graphql/">GraphQL</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
                 </li>
     </ul>
                 </li>
@@ -287,6 +305,53 @@
             <div class="section">
               
                 <h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">Link</a></h1>
+<h2 id="deploy-and-get-started">Deploy and get started<a class="headerlink" href="#deploy-and-get-started" title="Permanent link">Link</a></h2>
+<table>
+<thead>
+<tr>
+<th>Deployment preference</th>
+<th>Getting started</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Heroku</td>
+<td><a href="https://heroku.com/deploy?template=https://github.com/daptin/daptin"><img alt="Deploy" src="https://www.herokucdn.com/deploy/button.svg" /></a></td>
+</tr>
+<tr>
+<td>Docker</td>
+<td>docker run -p 8080:8080 daptin/daptin</td>
+</tr>
+<tr>
+<td>Kubernetes</td>
+<td><a href="#kubernetes">Service &amp; Deployment YAML</a></td>
+</tr>
+<tr>
+<td>Development</td>
+<td>go get github.com/daptin/daptin</td>
+</tr>
+<tr>
+<td>Linux (386/amd64/arm5,6,7)</td>
+<td><a href="https://github.com/daptin/daptin/releases">Download static linux builds</a></td>
+</tr>
+<tr>
+<td>Windows</td>
+<td>go get github.com/daptin/daptin</td>
+</tr>
+<tr>
+<td>OS X</td>
+<td>go get github.com/daptin/daptin</td>
+</tr>
+<tr>
+<td>Load testing</td>
+<td><a href="#docker-compose">Docker compose</a></td>
+</tr>
+<tr>
+<td>Raspberry Pi</td>
+<td><a href="https://github.com/daptin/daptin/releases">Linux arm 7 static build</a></td>
+</tr>
+</tbody>
+</table>
 <h2 id="native-binary">Native binary<a class="headerlink" href="#native-binary" title="Permanent link">Link</a></h2>
 <p>Daptin is available as a native binary. You can download the binary for the following os from <a href="https://github.com/daptin/daptin/releases">github releases</a></p>
 <ul>
@@ -441,58 +506,11 @@
 <h2 id="sqlite">SQLite<a class="headerlink" href="#sqlite" title="Permanent link">Link</a></h2>
 <p>By default a "daptin.db" file is created to store data</p>
 <p><code>./daptin -db_type=sqlite -db_connection_string=db_file_name.db</code></p>
-<h2 id="deploy-and-get-started">Deploy and get started<a class="headerlink" href="#deploy-and-get-started" title="Permanent link">Link</a></h2>
-<table>
-<thead>
-<tr>
-<th>Deployment preference</th>
-<th>Getting started</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Heroku</td>
-<td><a href="https://heroku.com/deploy?template=https://github.com/daptin/daptin"><img alt="Deploy" src="https://www.herokucdn.com/deploy/button.svg" /></a></td>
-</tr>
-<tr>
-<td>Docker</td>
-<td>docker run -p 8080:8080 daptin/daptin</td>
-</tr>
-<tr>
-<td>Kubernetes</td>
-<td><a href="#kubernetes">Service &amp; Deployment YAML</a></td>
-</tr>
-<tr>
-<td>Development</td>
-<td>go get github.com/daptin/daptin</td>
-</tr>
-<tr>
-<td>Linux (386/amd64/arm5,6,7)</td>
-<td><a href="https://github.com/daptin/daptin/releases">Download static linux builds</a></td>
-</tr>
-<tr>
-<td>Windows</td>
-<td>go get github.com/daptin/daptin</td>
-</tr>
-<tr>
-<td>OS X</td>
-<td>go get github.com/daptin/daptin</td>
-</tr>
-<tr>
-<td>Load testing</td>
-<td><a href="#docker-compose">Docker compose</a></td>
-</tr>
-<tr>
-<td>Raspberry Pi</td>
-<td><a href="https://github.com/daptin/daptin/releases">Linux arm 7 static build</a></td>
-</tr>
-</tbody>
-</table>
 <h1 id="port">Port<a class="headerlink" href="#port" title="Permanent link">Link</a></h1>
 <p>Daptin will listen on port 6336 by default. You can change it by using the following argument</p>
-<p><code>-port=8080</code></p>
+<p><code>-port :8080</code></p>
 <h1 id="restart">Restart<a class="headerlink" href="#restart" title="Permanent link">Link</a></h1>
-<p>Daptin relies on self <code>re-configuration</code> to configure new entities and APIs and changes to the other parts of the ststem. As soon as you upload a schema file, daptin will write the file to disk, and <code>reconfigure</code> itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.</p>
+<p>Daptin relies on self re-configuration to configure new entities and APIs and changes to the other parts of the ststem. As soon as you upload a schema file, daptin will write the file to disk, and <code>reconfigure</code> itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.</p>
 <p>You can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.</p>
               
             </div>
