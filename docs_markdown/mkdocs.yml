@@ -39,7 +39,8 @@ pages:
   - Data exchange and sync: extend/data_exchange.md
   - Data streams: streams/streams.md
 theme:
-  name: readthedocs
+  name: null
+  custom_dir: 'windmill_theme/'
 extra_css:
 - css/theme_extra.css
 google_analytics: ['UA-114227400-1', 'docs.dapt.in']

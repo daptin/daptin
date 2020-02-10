@@ -1,0 +1,26 @@
+{# Side-pane with table of contents #}
+<nav class="wm-toc-pane">
+  {# Optional link to the repository #}
+  {%- block repo %}
+    {%- if config.repo_url %}
+    <ul class="wm-toctree wm-toc-repo">
+      <li class="wm-toc-li wm-toc-lev1">
+      <a class="wm-article-link wm-toc-text" href="{{ config.repo_url }}">
+        {% include 'repo-icon.html' %}
+        {{ config.repo_name }}
+      </a>
+      </li>
+    </ul>
+    {%- endif %}
+  {%- endblock %}
+
+  {%- block site_nav %}
+  <ul class="wm-toctree">
+    {%- set navlevel = 1 %}
+    {%- for nav_item in nav %}
+        {% include 'nav-item.html' %}
+    {%- endfor %}
+  </ul>
+  {%- endblock %}
+</nav>
+
