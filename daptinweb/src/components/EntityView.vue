@@ -24,7 +24,6 @@
           </template>
         </li>
       </ol>
-
       <div class="box-tools pull-right">
         <div class="ui icon buttons">
           <button class="btn btn-box-tool" @click.prevent="viewMode = 'table'; currentViewType = 'table-view';"><i

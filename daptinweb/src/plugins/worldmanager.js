@@ -45,7 +45,6 @@ const WorldManager = function () {
   that.trackObjectEvent = function (typeName, stateMachineRefId, eventName) {
     console.log("change object track", getToken());
     return axios({
-      url: appconfig.apiRoot + "/track/event/" + stateMachineRefId + "/" + eventName,
       url: appconfig.apiRoot + "/track/event/" + typeName + "/" + stateMachineRefId + "/" + eventName,
       method: "POST",
       headers: {
@@ -66,11 +65,9 @@ const WorldManager = function () {
         "Authorization": "Bearer " + getToken()
       },
     }).then(function (r) {
-      if (r.status == 200) {
-        var r = r.data;
-        console.log("Loaded Model inside :", typeName);
+      if (r.status === 200) {
+        r = r.data;
         if (r.Actions.length > 0) {
-          console.log("Register actions", typeName, r.Actions,);
           actionManager.addAllActions(r.Actions);
         }
         that.stateMachines[typeName] = r.StateMachines;
@@ -89,11 +86,12 @@ const WorldManager = function () {
 
   axios(appconfig.apiRoot + "/meta?query=column_types", {
     headers: {
-      "Authorization": "Bearer " + getToken()
+      "Authorization": "Bearer " + getToken(),
+      "Accept-Language": localStorage.getItem("LANGUAGE") || window.language,
     }
   }).then(function (r) {
-    if (r.status == 200) {
-      var r = r.data;
+    if (r.status === 200) {
+      r = r.data;
       that.columnTypes = r;
     } else {
       console.log("failed to get column types")
@@ -125,7 +123,7 @@ const WorldManager = function () {
 
 
   that.GetJsonApiModel = function (columnModel) {
-    console.log('get json api model for ', columnModel);
+    // console.log('get json api model for ', columnModel);
     var model = {};
     if (!columnModel) {
       console.log("Column model is empty", columnModel);
@@ -181,7 +179,7 @@ const WorldManager = function () {
   axios({
     url: appconfig.apiRoot + '/recline_model'
   }).then(function (res) {
-    console.log("recline field type map", res);
+    // console.log("recline field type map", res);
     that.reclineFieldTypeMap = res.data;
   });
 
@@ -325,7 +323,7 @@ const WorldManager = function () {
               jsonApi.define("world", that.GetJsonApiModel(columnKeys.ColumnModel));
               jsonApi.define("stream", that.GetJsonApiModel(streamKeys.ColumnModel));
               // console.log("world column keys", columnKeys, that.GetJsonApiModel(columnKeys.ColumnModel))
-              console.log("Defined world", columnKeys.ColumnModel);
+              // console.log("Defined world", columnKeys.ColumnModel);
               that.systemActions = columnKeys.Actions;
 
 
@@ -335,7 +333,7 @@ const WorldManager = function () {
                 res = res.data;
                 that.worlds = res;
                 store.commit("SET_WORLDS", res);
-                console.log("Get all worlds result", res);
+                // console.log("Get all worlds result", res);
                 // resolve("Stuff worked!");
                 var total = res.length;
 
