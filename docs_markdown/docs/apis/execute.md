@@ -20,7 +20,7 @@ Execute an action on an entity type or instance
     $response = Requests::post('/action/<EntityName>/<ActionName>', $headers, $data);
     ```
 
-!!! note 'Nodejs example'
+!!! note "Nodejs example"
     ```nodejs
     var request = require('request');
 
