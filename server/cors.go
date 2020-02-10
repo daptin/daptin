@@ -49,13 +49,29 @@ type CorsMiddleware struct {
 	AccessControlMaxAge int
 }
 
-func CorsMiddlewareFunc(c *gin.Context) {
+func NewCorsMiddleware() *CorsMiddleware {
+	return &CorsMiddleware{
+		allowedMethods:                nil,
+		allowedMethodsCsv:             "",
+		allowedHeaders:                nil,
+		allowedHeadersCsv:             "",
+		RejectNonCorsRequests:         false,
+		OriginValidator:               nil,
+		AllowedMethods:                nil,
+		AllowedHeaders:                nil,
+		AccessControlExposeHeaders:    nil,
+		AccessControlAllowCredentials: false,
+		AccessControlMaxAge:           0,
+	}
+}
+
+func (cm *CorsMiddleware) CorsMiddlewareFunc(c *gin.Context) {
 	//log.Infof("middleware ")
 
 	c.Header("Access-Control-Allow-Origin", c.Request.Header.Get("Origin"))
 	c.Header("Access-Control-Allow-Methods", "POST,GET,DELETE,PUT,OPTIONS,PATCH")
 	c.Header("Access-Control-Allow-Credentials", "true")
-	c.Header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With")
+	c.Header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,Accept-Language")
 
 	if c.Request.Method == "OPTIONS" {
 		c.AbortWithStatus(200)

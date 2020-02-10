@@ -116,6 +116,7 @@ require (
 	golang.org/x/mobile v0.0.0-20190923204409-d3ece3b6da5f // indirect
 	golang.org/x/net v0.0.0-20191109021931-daa7c04131f5
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	golang.org/x/text v0.3.2
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/go-playground/validator.v9 v9.29.1
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect

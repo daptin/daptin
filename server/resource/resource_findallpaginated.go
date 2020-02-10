@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"github.com/daptin/daptin/server/auth"
+	"golang.org/x/text/language"
 	"strconv"
 	"strings"
 
@@ -22,7 +23,8 @@ func (dr *DbResource) GetTotalCount() uint64 {
 	}
 
 	var count uint64
-	dr.db.QueryRowx(s, v...).Scan(&count)
+	err = dr.db.QueryRowx(s, v...).Scan(&count)
+	CheckErr(err, "Failed to execute total count query [%s] [%v]", s, v)
 	//log.Infof("Count: [%v] %v", dr.model.GetTableName(), count)
 	return count
 }
@@ -87,6 +89,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				break
 			}
 		}
+	}
+
+	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
+	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), "en")
+
+	if languagePreferences != nil {
+		log.Printf("Language preference: %v", languagePreferences)
 	}
 
 	pageNumber := uint64(0)
@@ -193,10 +202,10 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		pageNumber = pageNumber * pageSize
 	}
 
-	m := dr.model
-	//log.Infof("Get all resource type: %v\n", m)
+	tableModel := dr.model
+	//log.Infof("Get all resource type: %v\n", tableModel)
 
-	cols := m.GetColumns()
+	cols := tableModel.GetColumns()
 	finalCols := make([]string, 0)
 	//log.Infof("Cols: %v", cols)
 
@@ -205,7 +214,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 		for _, col := range cols {
 			if !col.ExcludeFromApi && reqFieldMap[col.Name] && col.ColumnName != "permission" && col.ColumnName != "reference_id" {
-				finalCols = append(finalCols, prefix+col.ColumnName)
+				finalCols = append(finalCols, col.ColumnName)
 			}
 		}
 	} else {
@@ -213,7 +222,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			if col.ExcludeFromApi || col.ColumnName == "permission" || col.ColumnName == "reference_id" || col.ColumnName == "id" {
 				continue
 			}
-			finalCols = append(finalCols, prefix+col.ColumnName)
+			finalCols = append(finalCols, col.ColumnName)
 		}
 	}
 
@@ -224,8 +233,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 	}
 
-	idColumn := fmt.Sprintf("%s.id", m.GetTableName())
-	distinctIdColumn := fmt.Sprintf("distinct(%s.id)", m.GetTableName())
+	idColumn := fmt.Sprintf("%s.id", tableModel.GetTableName())
+	distinctIdColumn := fmt.Sprintf("distinct(%s.id)", tableModel.GetTableName())
 	if isRelatedGroupRequest {
 		//log.Infof("Switch permission to join table j1 instead of %v%v", prefix, "permission")
 		if dr.model.GetName() == "usergroup" {
@@ -247,18 +256,18 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	}
 
-	queryBuilder := statementbuilder.Squirrel.Select(distinctIdColumn).From(m.GetTableName())
+	queryBuilder := statementbuilder.Squirrel.Select(distinctIdColumn).From(tableModel.GetTableName())
 
-	joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", m.GetTableName(), m.GetTableName())
-	if !isRelatedGroupRequest && m.GetTableName() != "usergroup" {
+	joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", tableModel.GetTableName(), tableModel.GetTableName())
+	if !isRelatedGroupRequest && tableModel.GetTableName() != "usergroup" {
 		queryBuilder = queryBuilder.LeftJoin(
 			fmt.Sprintf("%s %s on %s.id=%s.%s_id",
-				joinTableName, joinTableName, m.GetTableName(), joinTableName, m.GetTableName(),
+				joinTableName, joinTableName, tableModel.GetTableName(), joinTableName, tableModel.GetTableName(),
 			))
 	}
 
 	var countQueryBuilder squirrel.SelectBuilder
-	countQueryBuilder = statementbuilder.Squirrel.Select("count(*)").From(m.GetTableName()).Offset(0).Limit(1)
+	countQueryBuilder = statementbuilder.Squirrel.Select("count(*)").From(tableModel.GetTableName()).Offset(0).Limit(1)
 	if req.QueryParams["page[after]"] != nil && len(req.QueryParams["page[after]"]) > 0 {
 		id, err := dr.GetReferenceIdToId(dr.TableInfo().TableName, req.QueryParams["page[after]"][0])
 		if err != nil {
@@ -314,11 +323,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	queryBuilder = addFilters(queryBuilder, queries, prefix)
 
-	if len(groupings) > 0 && false {
-		for _, groupBy := range groupings {
-			queryBuilder = queryBuilder.GroupBy(fmt.Sprintf("%s %s", groupBy.ColumnName, groupBy.Order))
-		}
-	}
+	//if len(groupings) > 0 && false {
+	//	for _, groupBy := range groupings {
+	//		queryBuilder = queryBuilder.GroupBy(fmt.Sprintf("%s %s", groupBy.ColumnName, groupBy.Order))
+	//	}
+	//}
 
 	for _, rel := range dr.model.GetRelations() {
 
@@ -473,13 +482,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 	}
 
-	if !isAdmin && m.GetTableName() != "usergroup" {
+	if !isAdmin && tableModel.GetTableName() != "usergroup" {
 		queryBuilder = queryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
 			"((%s.permission & 32768) = 32768) or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", m.GetTableName(), joinTableName, m.GetTableName(), m.GetTableName()), sessionUser.UserId)
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", tableModel.GetTableName(), joinTableName, tableModel.GetTableName(), tableModel.GetTableName()), sessionUser.UserId)
 		countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
 			//"((%s.permission & 32768) = 32768) or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", m.GetTableName(), m.GetTableName(), m.GetTableName()), sessionUser.UserId)
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", tableModel.GetTableName(), tableModel.GetTableName(), tableModel.GetTableName()), sessionUser.UserId)
 	}
 
 	idsListQuery, args, err := queryBuilder.ToSql()
@@ -511,9 +520,49 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		ids = append(ids, id)
 	}
 
-	queryBuilder = statementbuilder.Squirrel.Select(finalCols...).From(m.GetTableName()).Where(squirrel.Eq{
-		idColumn: ids,
-	}).OrderBy(orders...)
+	if len(languagePreferences) == 0 {
+
+		for i, col := range finalCols {
+			if strings.Index(col, ".") == -1 {
+				finalCols[i] = prefix + col
+			}
+		}
+
+		queryBuilder = statementbuilder.Squirrel.Select(finalCols...).From(tableModel.GetTableName()).Where(squirrel.Eq{
+			idColumn: ids,
+		}).OrderBy(orders...)
+	} else {
+		var preferredLanguage = languagePreferences[0]
+		translateTableName := tableModel.GetTableName() + "_i18n"
+
+		ifNullFunctionName := "IFNULL"
+		if dr.connection.DriverName() == "postgres" {
+			ifNullFunctionName = "COALESCE"
+		} else if dr.connection.DriverName() == "mssql" {
+			ifNullFunctionName = "ISNULL"
+		}
+
+		//translatedColumns := make([]string, 0)
+		for i, colName := range finalCols {
+			if IsStandardColumn(colName) {
+				finalCols[i] = prefix + colName
+			} else {
+				if strings.Index(colName, ".") == -1 {
+					finalCols[i] = ifNullFunctionName + "(" + translateTableName + "." + colName + "," + prefix + colName + ") as " + colName
+				} else {
+					finalCols[i] = colName
+				}
+			}
+		}
+
+		queryBuilder = statementbuilder.Squirrel.Select(finalCols...).From(tableModel.GetTableName()).
+			LeftJoin(translateTableName +
+				" on " + translateTableName + ".translation_reference_id = " + tableModel.GetTableName() + ".id" +
+				" and " + translateTableName + ".language_id = " + "'" + preferredLanguage + "'").Where(squirrel.Eq{
+			idColumn: ids,
+		}).OrderBy(orders...)
+
+	}
 
 	if len(joins) > 0 {
 		for _, j := range joins {
@@ -567,6 +616,34 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	return results, includes, paginationData, err
 
 }
+
+func GetLanguagePreference(header string, defaultLanguage string) []string {
+	preferredLanguage := header
+
+	if preferredLanguage == "" {
+		preferredLanguage = defaultLanguage
+	}
+
+	languageTags, _, err := language.ParseAcceptLanguage(preferredLanguage)
+	CheckErr(err, "Failed to parse Accept-Language header [%v]", preferredLanguage)
+	pref := make([]string, 0)
+
+	if len(languageTags) == 1 && languageTags[0].String() == defaultLanguage {
+
+	} else {
+
+		for _, tag := range languageTags {
+			base, conf := tag.Base()
+			if conf == 0 {
+				continue
+			}
+			pref = append(pref, base.String())
+		}
+
+	}
+	return pref
+}
+
 func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix string) squirrel.SelectBuilder {
 
 	if len(queries) == 0 {

@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/pkg/errors"
@@ -46,7 +47,41 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	//	parts := strings.Split(modelName, "_has_")
 	//}
 
+	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
+	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), "en")
+
+	if languagePreferences != nil {
+		log.Printf("Language preference: %v", languagePreferences)
+	}
+
 	data, include, err := dr.GetSingleRowByReferenceId(modelName, referenceId)
+
+	if len(languagePreferences) > 0 {
+		for _, lang := range languagePreferences {
+			data_i18n_id, err := dr.GetIdByWhereClause(modelName+"_i18n", squirrel.Eq{
+				"translation_reference_id": data["id"],
+				"language_id":              lang,
+			})
+			if err == nil && len(data_i18n_id) > 0 {
+				for _, data_i18n := range data_i18n_id {
+					translatedObj, err := dr.GetIdToObject(modelName+"_i18n", data_i18n)
+					CheckErr(err, "Failed to fetch translated object for [%v][%v][%v]", modelName, lang, data["id"])
+					for colName, valName := range translatedObj {
+						if IsStandardColumn(colName) {
+							continue
+						}
+						if valName == nil {
+							continue
+						}
+						data[colName] = valName
+					}
+				}
+				break
+			} else {
+				CheckErr(err, "No translated rows for [%v][%v][%v]", modelName, referenceId, lang)
+			}
+		}
+	}
 
 	//log.Printf("Single row result: %v", data)
 	for _, bf := range dr.ms.AfterFindOne {
