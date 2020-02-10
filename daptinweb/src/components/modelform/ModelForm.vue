@@ -1,6 +1,6 @@
 <template>
 
-  <div class="box">
+  <div class="box action-form-body">
     <div class="box-header" v-if="!hideTitle">
       <div class="box-title">
         {{title}}
@@ -17,7 +17,7 @@
             <select-one-or-more :value="item.value" :schema="item" @save="setRelation"></select-one-or-more>
           </div>
         </div>
-        <div class="col-md-6" v-if="hasPermissionField">
+        <div class="col-md-6" v-if="hasPermissionField && model.reference_id">
           <fieldPermissionInput :value="model.permission"></fieldPermissionInput>
         </div>
       </div>
@@ -32,7 +32,11 @@
   </div>
 
 </template>
-
+<style>
+  .vue-form-generator fieldset {
+    min-width: 100% !important;
+  }
+</style>
 <script>
   import VueFormGenerator from "vue-form-generator";
   //  import 'vue-form-generator/dist/vfg.css'
@@ -73,6 +77,7 @@
       return {
         formModel: null,
         formValue: {},
+        focusSet: false,
         loading: false,
         relations: [],
         hasPermissionField: false,
@@ -248,11 +253,9 @@
           return str;
         }
         return str.replace(/[-_]/g, " ").trim().split(' ')
-          .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
+            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase()).join(' ')
       },
       init() {
-
-
         // todo: convert strings to booleans and numbers
 
         const that = this;
@@ -342,6 +345,7 @@
             name: columnName,
             id: "id",
             readonly: false,
+            rows: 10,
             value: columnMeta.DefaultValue,
             featured: true,
             disabled: false,
@@ -380,15 +384,20 @@
         that.formModel.fields = formFields;
         that.relations = foreignKeys;
 
-        if (formFields.length + foreignKeys.length == 0) {
+        setTimeout(function () {
+          if (that.focusSet) {
+            return
+          }
+          console.log("set focus to first input field")
+          that.focusSet = true;
+          document.querySelector(".action-form-body input").focus()
+        }, 100)
 
-        }
 
       }
     },
     mounted: function () {
       this.init();
-
     },
     watch: {
       "model": function () {
