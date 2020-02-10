@@ -69,7 +69,7 @@ Users registered using signup action are their own owners. Hence they can update
 
 !!! note "POST call for user registration"
     ```bash
-    curl 'http://api.daptin.com:6336/action/user_account/signup' \
+    curl 'http://localhost:6336/action/user_account/signup' \
     -H 'Authorization: Bearer null' \
     -H 'Content-Type: application/json;charset=UTF-8' \
     -H 'Accept: application/json, text/plain, */*' \
@@ -118,7 +118,7 @@ curl '/api/user_account' \
 
 !!! note "POST call for sign in"
     ```bash
-    curl 'http://api.daptin.com:6336/action/user_account/signin' \
+    curl 'http://localhost:6336/action/user_account/signin' \
     -H 'Content-Type: application/json;charset=UTF-8' \
     -H 'Accept: application/json, text/plain, */*' \
     --data-binary '{"attributes":{"email":"<Email>","password":"<Password>"}}'
@@ -174,7 +174,7 @@ data = '{
         	}
         }'
 
-response = requests.post('http://api.daptin.com:6336/api/user', headers=headers, data=data)
+response = requests.post('http://localhost:6336/api/user', headers=headers, data=data)
 
 ```
 You can manually add users from the users page, or allow sign-up action to be performed by guests which will take care of creating a user and an associated usergroup for that user. All new signed up users will also be added to the "users" usergroup.

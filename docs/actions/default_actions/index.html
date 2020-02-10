@@ -345,7 +345,7 @@
 <span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{}}&#39;</span><span class="p">;</span>
 
 <span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://api.daptin.com:6336/action/world/restart_daptin&#39;</span><span class="p">,</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://localhost:6336/action/world/restart_daptin&#39;</span><span class="p">,</span>
     <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
     <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
     <span class="nx">body</span>: <span class="kt">dataString</span>
@@ -371,7 +371,7 @@
 <span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{&quot;marketplace_id&quot;:&quot;0cbae4bf-961d-43ea-b57b-f7fb07736747&quot;}}&#39;</span><span class="p">;</span>
 
 <span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://api.daptin.com:6336/action/marketplace/refresh_marketplace_packages&#39;</span><span class="p">,</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://localhost:6336/action/marketplace/refresh_marketplace_packages&#39;</span><span class="p">,</span>
     <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
     <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
     <span class="nx">body</span>: <span class="kt">dataString</span>
@@ -397,7 +397,7 @@
 <span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{&quot;count&quot;:100,&quot;world_id&quot;:&quot;a82bcd84-db3a-4542-b0ef-80e81fc62f8e&quot;}}&#39;</span><span class="p">;</span>
 
 <span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://api.daptin.com:6336/action/world/generate_random_data&#39;</span><span class="p">,</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://localhost:6336/action/world/generate_random_data&#39;</span><span class="p">,</span>
     <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
     <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
     <span class="nx">body</span>: <span class="kt">dataString</span>
@@ -456,7 +456,7 @@
 <div class="admonition note">
 <p class="admonition-title">Curl</p>
 </div>
-<div class="codehilite"><pre><span></span><span class="nt">curl</span> <span class="s1">&#39;http://api.daptin.com:6336/action/world/upload_csv_to_system_schema&#39;</span> <span class="err">\</span>
+<div class="codehilite"><pre><span></span><span class="nt">curl</span> <span class="s1">&#39;http://localhost:6336/action/world/upload_csv_to_system_schema&#39;</span> <span class="err">\</span>
 <span class="nt">-H</span> <span class="s1">&#39;Authorization: Bearer &lt;Token&gt;&#39;</span> <span class="err">\</span>
 <span class="nt">--data-binary</span> <span class="s1">&#39;{</span>
 <span class="s1">                &quot;attributes&quot;: {</span>
@@ -493,7 +493,7 @@
               <span class="p">}</span>
           <span class="p">}</span><span class="s1">&#39;</span>
 
-<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://api.daptin.com:6336/action/world/upload_csv_to_system_schema&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://localhost:6336/action/world/upload_csv_to_system_schema&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
 </pre></div>
 
 </div>

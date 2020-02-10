@@ -471,7 +471,7 @@
     <span class="p">(</span><span class="s1">&#39;page[size]&#39;</span><span class="p">,</span> <span class="s1">&#39;10&#39;</span><span class="p">),</span>
 <span class="p">)</span>
 
-<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://api.daptin.com:6336/api/laptop&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:6336/api/laptop&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
 </pre></div>
 
 
@@ -482,7 +482,7 @@
 <span class="nv">$headers</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
     <span class="s1">&#39;Authorization&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;Bearer &lt;AccessToken&gt;&#39;</span>
 <span class="p">);</span>
-<span class="nv">$response</span> <span class="o">=</span> <span class="nx">Requests</span><span class="o">::</span><span class="na">get</span><span class="p">(</span><span class="s1">&#39;http://api.daptin.com:6336/api/laptop?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span><span class="p">,</span> <span class="nv">$headers</span><span class="p">);</span>
+<span class="nv">$response</span> <span class="o">=</span> <span class="nx">Requests</span><span class="o">::</span><span class="na">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:6336/api/laptop?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span><span class="p">,</span> <span class="nv">$headers</span><span class="p">);</span>
 </pre></div>
 
 
