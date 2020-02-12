@@ -111,7 +111,7 @@
         ('page[size]', '10'),
     )
 
-    response = requests.get('http://api.daptin.com:6336/api/laptop', headers=headers, params=params)
+    response = requests.get('http://localhost:6336/api/laptop', headers=headers, params=params)
 
 
 
@@ -124,7 +124,7 @@
     $headers = array(
         'Authorization' => 'Bearer <AccessToken>'
     );
-    $response = Requests::get('http://api.daptin.com:6336/api/laptop?sort=&page[number]=1&page[size]=10', $headers);
+    $response = Requests::get('http://localhost:6336/api/laptop?sort=&page[number]=1&page[size]=10', $headers);
 
 # Filtering
 

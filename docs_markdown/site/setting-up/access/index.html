@@ -167,6 +167,32 @@
                 </li>
                 <li class="">
                     
+    <span class="caption-text">Features</span>
+    <ul class="subnav">
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-graphql/">GraphQL</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-smtp-imap/">SMTP/IMPS server</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-logs/">Logs</a>
+                </li>
+    </ul>
+                </li>
+                <li class="">
+                    
     <span class="caption-text">Action APIs</span>
     <ul class="subnav">
                 <li class="toctree-l3">
@@ -337,7 +363,7 @@
 <p>Users registered using signup action are their own owners. Hence they can update and delete themselves. These permission can be changed based on the use case.</p>
 <div class="admonition note">
 <p class="admonition-title">POST call for user registration</p>
-<div class="codehilite"><pre><span></span>curl <span class="s1">&#39;http://api.daptin.com:6336/action/user_account/signup&#39;</span> <span class="se">\</span>
+<div class="codehilite"><pre><span></span>curl <span class="s1">&#39;http://localhost:6336/action/user_account/signup&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Authorization: Bearer null&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Content-Type: application/json;charset=UTF-8&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Accept: application/json, text/plain, */*&#39;</span> <span class="se">\</span>
@@ -361,24 +387,24 @@
 <p>This user can sign in now (generate an auth token). But what he can access is again based on the permission of the system.</p>
 <h3 id="curl">CURL<a class="headerlink" href="#curl" title="Permanent link">Link</a></h3>
 <p>Creating a user manually</p>
-<div class="codehilite"><pre><span></span><span class="n">curl</span><span class="w"> </span><span class="s1">&#39;/api/user_account&#39;</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
-<span class="w">  </span><span class="o">-</span><span class="n">H</span><span class="w"> </span><span class="s1">&#39;Authorization: Bearer &lt;Auth Token&gt;&#39;</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
-<span class="w">  </span><span class="c1">--data-binary &#39;{</span>
-<span class="w">                    </span><span class="ss">&quot;data&quot;</span><span class="err">:</span><span class="w"> </span><span class="err">{</span><span class="w"></span>
-<span class="w">                        </span><span class="ss">&quot;type&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;user_account&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                        </span><span class="ss">&quot;attributes&quot;</span><span class="err">:</span><span class="w"> </span><span class="err">{</span><span class="w"></span>
-<span class="w">                            </span><span class="ss">&quot;email&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;test@user.com&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                            </span><span class="ss">&quot;name&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;test&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                            </span><span class="ss">&quot;password&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;password&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                        </span><span class="err">}</span><span class="w"></span>
-<span class="w">                    </span><span class="err">}</span><span class="w"></span>
-<span class="w">                 </span><span class="err">}&#39;</span><span class="w"></span>
+<div class="codehilite"><pre><span></span>curl &#39;/api/user_account&#39; \
+  -H &#39;Authorization: Bearer &lt;Auth Token&gt;&#39; \
+  --data-binary &#39;{
+                    &quot;data&quot;: {
+                        &quot;type&quot;: &quot;user_account&quot;,
+                        &quot;attributes&quot;: {
+                            &quot;email&quot;: &quot;test@user.com&quot;,
+                            &quot;name&quot;: &quot;test&quot;,
+                            &quot;password&quot;: &quot;password&quot;,
+                        }
+                    }
+                 }&#39;
 </pre></div>
 
 <h2 id="sign-in_1">Sign in<a class="headerlink" href="#sign-in_1" title="Permanent link">Link</a></h2>
 <div class="admonition note">
 <p class="admonition-title">POST call for sign in</p>
-<div class="codehilite"><pre><span></span>curl <span class="s1">&#39;http://api.daptin.com:6336/action/user_account/signin&#39;</span> <span class="se">\</span>
+<div class="codehilite"><pre><span></span>curl <span class="s1">&#39;http://localhost:6336/action/user_account/signin&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Content-Type: application/json;charset=UTF-8&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Accept: application/json, text/plain, */*&#39;</span> <span class="se">\</span>
 --data-binary <span class="s1">&#39;{&quot;attributes&quot;:{&quot;email&quot;:&quot;&lt;Email&gt;&quot;,&quot;password&quot;:&quot;&lt;Password&gt;&quot;}}&#39;</span>
@@ -430,7 +456,7 @@
             <span class="p">}</span>
         <span class="p">}</span><span class="s1">&#39;</span>
 
-<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://api.daptin.com:6336/api/user&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://localhost:6336/api/user&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
 </pre></div>
 You can manually add users from the users page, or allow sign-up action to be performed by guests which will take care of creating a user and an associated usergroup for that user. All new signed up users will also be added to the "users" usergroup.</p>
 <h2 id="social-login">Social login<a class="headerlink" href="#social-login" title="Permanent link">Link</a></h2>

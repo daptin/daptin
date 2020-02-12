@@ -123,6 +123,32 @@
                 </li>
     </ul>
                 </li>
+                <li class="">
+                    
+    <span class="caption-text">Features</span>
+    <ul class="subnav">
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-graphql/">GraphQL</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-smtp-imap/">SMTP/IMPS server</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-logs/">Logs</a>
+                </li>
+    </ul>
+                </li>
                 <li class=" current">
                     
     <span class="caption-text">Action APIs</span>
@@ -310,80 +336,80 @@
 <h2 id="restart-daptin">Restart daptin<a class="headerlink" href="#restart-daptin" title="Permanent link">Link</a></h2>
 <p>Restarts daptin immediately and reads file system for new config and data files and apply updates to the APIs as necessary.</p>
 <p>Takes about 15 seconds (async) to reconfigure everything.</p>
-<div class="codehilite"><pre><span></span><span class="nv">var</span> <span class="nv">request</span> <span class="o">=</span> <span class="nv">require</span><span class="ss">(</span><span class="s1">&#39;</span><span class="s">request</span><span class="s1">&#39;</span><span class="ss">)</span><span class="c1">;</span>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
 
-<span class="nv">var</span> <span class="nv">headers</span> <span class="o">=</span> {
-    <span class="s1">&#39;</span><span class="s">Authorization</span><span class="s1">&#39;</span>: <span class="s1">&#39;</span><span class="s">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo</span><span class="s1">&#39;</span>
-}<span class="c1">;</span>
+<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo&#39;</span>
+<span class="p">};</span>
 
-<span class="nv">var</span> <span class="nv">dataString</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="s">{&quot;attributes&quot;:{}}</span><span class="s1">&#39;</span><span class="c1">;</span>
+<span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{}}&#39;</span><span class="p">;</span>
 
-<span class="nv">var</span> <span class="nv">options</span> <span class="o">=</span> {
-    <span class="nv">url</span>: <span class="s1">&#39;</span><span class="s">http://api.daptin.com:6336/action/world/restart_daptin</span><span class="s1">&#39;</span>,
-    <span class="nv">method</span>: <span class="s1">&#39;</span><span class="s">POST</span><span class="s1">&#39;</span>,
-    <span class="nv">headers</span>: <span class="nv">headers</span>,
-    <span class="nv">body</span>: <span class="nv">dataString</span>
-}<span class="c1">;</span>
+<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://localhost:6336/action/world/restart_daptin&#39;</span><span class="p">,</span>
+    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+    <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
+    <span class="nx">body</span>: <span class="kt">dataString</span>
+<span class="p">};</span>
 
-<span class="nv">function</span> <span class="nv">callback</span><span class="ss">(</span><span class="nv">error</span>, <span class="nv">response</span>, <span class="nv">body</span><span class="ss">)</span> {
-    <span class="k">if</span> <span class="ss">(</span><span class="o">!</span><span class="nv">error</span> <span class="o">&amp;&amp;</span> <span class="nv">response</span>.<span class="nv">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="ss">)</span> {
-        <span class="nv">console</span>.<span class="nv">log</span><span class="ss">(</span><span class="nv">body</span><span class="ss">)</span><span class="c1">;</span>
-    }
-}
+<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-<span class="nv">request</span><span class="ss">(</span><span class="nv">options</span>, <span class="nv">callback</span><span class="ss">)</span><span class="c1">;</span>
+<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
 </pre></div>
 
 <h2 id="refresh-marketplace-packages">Refresh marketplace packages<a class="headerlink" href="#refresh-marketplace-packages" title="Permanent link">Link</a></h2>
 <p>Pull updates from marketplace repository. New changes are not applied immediately and these packages should be installed again for updates.</p>
-<div class="codehilite"><pre><span></span><span class="nv">var</span> <span class="nv">request</span> <span class="o">=</span> <span class="nv">require</span><span class="ss">(</span><span class="s1">&#39;</span><span class="s">request</span><span class="s1">&#39;</span><span class="ss">)</span><span class="c1">;</span>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
 
-<span class="nv">var</span> <span class="nv">headers</span> <span class="o">=</span> {
-    <span class="s1">&#39;</span><span class="s">Authorization</span><span class="s1">&#39;</span>: <span class="s1">&#39;</span><span class="s">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo</span><span class="s1">&#39;</span>
-}<span class="c1">;</span>
+<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo&#39;</span>
+<span class="p">};</span>
 
-<span class="nv">var</span> <span class="nv">dataString</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="s">{&quot;attributes&quot;:{&quot;marketplace_id&quot;:&quot;0cbae4bf-961d-43ea-b57b-f7fb07736747&quot;}}</span><span class="s1">&#39;</span><span class="c1">;</span>
+<span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{&quot;marketplace_id&quot;:&quot;0cbae4bf-961d-43ea-b57b-f7fb07736747&quot;}}&#39;</span><span class="p">;</span>
 
-<span class="nv">var</span> <span class="nv">options</span> <span class="o">=</span> {
-    <span class="nv">url</span>: <span class="s1">&#39;</span><span class="s">http://api.daptin.com:6336/action/marketplace/refresh_marketplace_packages</span><span class="s1">&#39;</span>,
-    <span class="nv">method</span>: <span class="s1">&#39;</span><span class="s">POST</span><span class="s1">&#39;</span>,
-    <span class="nv">headers</span>: <span class="nv">headers</span>,
-    <span class="nv">body</span>: <span class="nv">dataString</span>
-}<span class="c1">;</span>
+<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://localhost:6336/action/marketplace/refresh_marketplace_packages&#39;</span><span class="p">,</span>
+    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+    <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
+    <span class="nx">body</span>: <span class="kt">dataString</span>
+<span class="p">};</span>
 
-<span class="nv">function</span> <span class="nv">callback</span><span class="ss">(</span><span class="nv">error</span>, <span class="nv">response</span>, <span class="nv">body</span><span class="ss">)</span> {
-    <span class="k">if</span> <span class="ss">(</span><span class="o">!</span><span class="nv">error</span> <span class="o">&amp;&amp;</span> <span class="nv">response</span>.<span class="nv">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="ss">)</span> {
-        <span class="nv">console</span>.<span class="nv">log</span><span class="ss">(</span><span class="nv">body</span><span class="ss">)</span><span class="c1">;</span>
-    }
-}
+<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-<span class="nv">request</span><span class="ss">(</span><span class="nv">options</span>, <span class="nv">callback</span><span class="ss">)</span><span class="c1">;</span>
+<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
 </pre></div>
 
 <h2 id="generate-random-data">Generate random data<a class="headerlink" href="#generate-random-data" title="Permanent link">Link</a></h2>
 <p>Generate random data of any entity type to play around. Takes in a <code>count</code> parameter and generates that many rows. Daptin uses a fake data generator to generate quality random data for a wide variety of fields.</p>
-<div class="codehilite"><pre><span></span><span class="nv">var</span> <span class="nv">request</span> <span class="o">=</span> <span class="nv">require</span><span class="ss">(</span><span class="s1">&#39;</span><span class="s">request</span><span class="s1">&#39;</span><span class="ss">)</span><span class="c1">;</span>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
 
-<span class="nv">var</span> <span class="nv">headers</span> <span class="o">=</span> {
-    <span class="s1">&#39;</span><span class="s">Authorization</span><span class="s1">&#39;</span>: <span class="s1">&#39;</span><span class="s">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo</span><span class="s1">&#39;</span>,
-}<span class="c1">;</span>
+<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo&#39;</span><span class="p">,</span>
+<span class="p">};</span>
 
-<span class="nv">var</span> <span class="nv">dataString</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="s">{&quot;attributes&quot;:{&quot;count&quot;:100,&quot;world_id&quot;:&quot;a82bcd84-db3a-4542-b0ef-80e81fc62f8e&quot;}}</span><span class="s1">&#39;</span><span class="c1">;</span>
+<span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{&quot;count&quot;:100,&quot;world_id&quot;:&quot;a82bcd84-db3a-4542-b0ef-80e81fc62f8e&quot;}}&#39;</span><span class="p">;</span>
 
-<span class="nv">var</span> <span class="nv">options</span> <span class="o">=</span> {
-    <span class="nv">url</span>: <span class="s1">&#39;</span><span class="s">http://api.daptin.com:6336/action/world/generate_random_data</span><span class="s1">&#39;</span>,
-    <span class="nv">method</span>: <span class="s1">&#39;</span><span class="s">POST</span><span class="s1">&#39;</span>,
-    <span class="nv">headers</span>: <span class="nv">headers</span>,
-    <span class="nv">body</span>: <span class="nv">dataString</span>
-}<span class="c1">;</span>
+<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://localhost:6336/action/world/generate_random_data&#39;</span><span class="p">,</span>
+    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+    <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
+    <span class="nx">body</span>: <span class="kt">dataString</span>
+<span class="p">};</span>
 
-<span class="nv">function</span> <span class="nv">callback</span><span class="ss">(</span><span class="nv">error</span>, <span class="nv">response</span>, <span class="nv">body</span><span class="ss">)</span> {
-    <span class="k">if</span> <span class="ss">(</span><span class="o">!</span><span class="nv">error</span> <span class="o">&amp;&amp;</span> <span class="nv">response</span>.<span class="nv">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="ss">)</span> {
-        <span class="nv">console</span>.<span class="nv">log</span><span class="ss">(</span><span class="nv">body</span><span class="ss">)</span><span class="c1">;</span>
-    }
-}
+<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-<span class="nv">request</span><span class="ss">(</span><span class="nv">options</span>, <span class="nv">callback</span><span class="ss">)</span><span class="c1">;</span>
+<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
 </pre></div>
 
 <h2 id="install-package-from-market">Install package from market<a class="headerlink" href="#install-package-from-market" title="Permanent link">Link</a></h2>
@@ -430,7 +456,7 @@
 <div class="admonition note">
 <p class="admonition-title">Curl</p>
 </div>
-<div class="codehilite"><pre><span></span><span class="nt">curl</span> <span class="s1">&#39;http://api.daptin.com:6336/action/world/upload_csv_to_system_schema&#39;</span> <span class="err">\</span>
+<div class="codehilite"><pre><span></span><span class="nt">curl</span> <span class="s1">&#39;http://localhost:6336/action/world/upload_csv_to_system_schema&#39;</span> <span class="err">\</span>
 <span class="nt">-H</span> <span class="s1">&#39;Authorization: Bearer &lt;Token&gt;&#39;</span> <span class="err">\</span>
 <span class="nt">--data-binary</span> <span class="s1">&#39;{</span>
 <span class="s1">                &quot;attributes&quot;: {</span>
@@ -467,7 +493,7 @@
               <span class="p">}</span>
           <span class="p">}</span><span class="s1">&#39;</span>
 
-<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://api.daptin.com:6336/action/world/upload_csv_to_system_schema&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://localhost:6336/action/world/upload_csv_to_system_schema&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
 </pre></div>
 
 </div>

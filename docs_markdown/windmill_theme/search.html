@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1 id="search">Search Results</h1>
+
+  <ul id="mkdocs-search-results" class="wm-search-page">
+    Searching...
+  </ul>
+
+  <script>
+    window.top.doSearch({
+      resultsElem: $('#mkdocs-search-results'),
+      query: getParam('q'),
+      snippetLen: 200,
+      limit: 0
+    });
+  </script>
+{% endblock %}

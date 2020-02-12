@@ -123,6 +123,32 @@
                 </li>
     </ul>
                 </li>
+                <li class="">
+                    
+    <span class="caption-text">Features</span>
+    <ul class="subnav">
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-graphql/">GraphQL</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-smtp-imap/">SMTP/IMPS server</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-logs/">Logs</a>
+                </li>
+    </ul>
+                </li>
                 <li class=" current">
                     
     <span class="caption-text">Action APIs</span>
@@ -290,10 +316,10 @@
             <div class="section">
               
                 <h1 id="actions">Actions<a class="headerlink" href="#actions" title="Permanent link">Link</a></h1>
-<p>Actions are the most useful things in Daptin and we will see that everything you have done in Daptin was as action itself.</p>
+<p>Actions are the most useful concept in Daptin and we will see that everything you have done in Daptin was an action api call.</p>
 <p>Actions can be thought of as follows:</p>
 <ul>
-<li>A set of inputs</li>
+<li>A set of inputs (key value pair)</li>
 <li>A set of outcomes based on the inputs</li>
 </ul>
 <h2 id="what-are-actions-and-why-do-i-need-this">What are actions and why do I need this<a class="headerlink" href="#what-are-actions-and-why-do-i-need-this" title="Permanent link">Link</a></h2>
@@ -311,104 +337,104 @@
 An action is performed on an entity. Let's also remember that <code>world</code> is an entity itself.</p>
 <h2 id="action-schema">Action schema<a class="headerlink" href="#action-schema" title="Permanent link">Link</a></h2>
 <div class="codehilite"><pre><span></span>    {
-        <span class="nv">Name</span>:             <span class="s2">&quot;</span><span class="s">signup</span><span class="s2">&quot;</span>,
-        <span class="nv">Label</span>:            <span class="s2">&quot;</span><span class="s">Sign up</span><span class="s2">&quot;</span>,
-        <span class="nv">InstanceOptional</span>: <span class="nv">true</span>,
-        <span class="nv">OnType</span>:           <span class="s2">&quot;</span><span class="s">user_account</span><span class="s2">&quot;</span>,
-        <span class="nv">InFields</span>: []<span class="nv">api2go</span>.<span class="nv">ColumnInfo</span>{
+        Name:             &quot;signup&quot;,
+        Label:            &quot;Sign up&quot;,
+        InstanceOptional: true,
+        OnType:           &quot;user_account&quot;,
+        InFields: []api2go.ColumnInfo{
             {
-                <span class="nv">Name</span>:       <span class="s2">&quot;</span><span class="s">name</span><span class="s2">&quot;</span>,
-                <span class="nv">ColumnName</span>: <span class="s2">&quot;</span><span class="s">name</span><span class="s2">&quot;</span>,
-                <span class="nv">ColumnType</span>: <span class="s2">&quot;</span><span class="s">label</span><span class="s2">&quot;</span>,
-                <span class="nv">IsNullable</span>: <span class="nv">false</span>,
+                Name:       &quot;name&quot;,
+                ColumnName: &quot;name&quot;,
+                ColumnType: &quot;label&quot;,
+                IsNullable: false,
             },
             {
-                <span class="nv">Name</span>:       <span class="s2">&quot;</span><span class="s">email</span><span class="s2">&quot;</span>,
-                <span class="nv">ColumnName</span>: <span class="s2">&quot;</span><span class="s">email</span><span class="s2">&quot;</span>,
-                <span class="nv">ColumnType</span>: <span class="s2">&quot;</span><span class="s">email</span><span class="s2">&quot;</span>,
-                <span class="nv">IsNullable</span>: <span class="nv">false</span>,
+                Name:       &quot;email&quot;,
+                ColumnName: &quot;email&quot;,
+                ColumnType: &quot;email&quot;,
+                IsNullable: false,
             },
             {
-                <span class="nv">Name</span>:       <span class="s2">&quot;</span><span class="s">password</span><span class="s2">&quot;</span>,
-                <span class="nv">ColumnName</span>: <span class="s2">&quot;</span><span class="s">password</span><span class="s2">&quot;</span>,
-                <span class="nv">ColumnType</span>: <span class="s2">&quot;</span><span class="s">password</span><span class="s2">&quot;</span>,
-                <span class="nv">IsNullable</span>: <span class="nv">false</span>,
+                Name:       &quot;password&quot;,
+                ColumnName: &quot;password&quot;,
+                ColumnType: &quot;password&quot;,
+                IsNullable: false,
             },
             {
-                <span class="nv">Name</span>:       <span class="s2">&quot;</span><span class="s">Password Confirm</span><span class="s2">&quot;</span>,
-                <span class="nv">ColumnName</span>: <span class="s2">&quot;</span><span class="s">passwordConfirm</span><span class="s2">&quot;</span>,
-                <span class="nv">ColumnType</span>: <span class="s2">&quot;</span><span class="s">password</span><span class="s2">&quot;</span>,
-                <span class="nv">IsNullable</span>: <span class="nv">false</span>,
-            },
-        },
-        <span class="nv">Validations</span>: []<span class="nv">ColumnTag</span>{
-            {
-                <span class="nv">ColumnName</span>: <span class="s2">&quot;</span><span class="s">email</span><span class="s2">&quot;</span>,
-                <span class="nv">Tags</span>:       <span class="s2">&quot;</span><span class="s">email</span><span class="s2">&quot;</span>,
-            },
-            {
-                <span class="nv">ColumnName</span>: <span class="s2">&quot;</span><span class="s">name</span><span class="s2">&quot;</span>,
-                <span class="nv">Tags</span>:       <span class="s2">&quot;</span><span class="s">required</span><span class="s2">&quot;</span>,
-            },
-            {
-                <span class="nv">ColumnName</span>: <span class="s2">&quot;</span><span class="s">password</span><span class="s2">&quot;</span>,
-                <span class="nv">Tags</span>:       <span class="s2">&quot;</span><span class="s">eqfield=InnerStructField[passwordConfirm],min=8</span><span class="s2">&quot;</span>,
+                Name:       &quot;Password Confirm&quot;,
+                ColumnName: &quot;passwordConfirm&quot;,
+                ColumnType: &quot;password&quot;,
+                IsNullable: false,
             },
         },
-        <span class="nv">Conformations</span>: []<span class="nv">ColumnTag</span>{
+        Validations: []ColumnTag{
             {
-                <span class="nv">ColumnName</span>: <span class="s2">&quot;</span><span class="s">email</span><span class="s2">&quot;</span>,
-                <span class="nv">Tags</span>:       <span class="s2">&quot;</span><span class="s">email</span><span class="s2">&quot;</span>,
+                ColumnName: &quot;email&quot;,
+                Tags:       &quot;email&quot;,
             },
             {
-                <span class="nv">ColumnName</span>: <span class="s2">&quot;</span><span class="s">name</span><span class="s2">&quot;</span>,
-                <span class="nv">Tags</span>:       <span class="s2">&quot;</span><span class="s">trim</span><span class="s2">&quot;</span>,
+                ColumnName: &quot;name&quot;,
+                Tags:       &quot;required&quot;,
+            },
+            {
+                ColumnName: &quot;password&quot;,
+                Tags:       &quot;eqfield=InnerStructField[passwordConfirm],min=8&quot;,
             },
         },
-        <span class="nv">OutFields</span>: {
+        Conformations: []ColumnTag{
             {
-                <span class="nv">Type</span>:      <span class="s2">&quot;</span><span class="s">user_account</span><span class="s2">&quot;</span>,
-                <span class="nv">Method</span>:    <span class="s2">&quot;</span><span class="s">POST</span><span class="s2">&quot;</span>,
-                <span class="nv">Reference</span>: <span class="s2">&quot;</span><span class="s">user</span><span class="s2">&quot;</span>,
-                <span class="nv">Attributes</span>: {
-                    <span class="s2">&quot;</span><span class="s">name</span><span class="s2">&quot;</span>:      <span class="s2">&quot;</span><span class="s">~name</span><span class="s2">&quot;</span>,
-                    <span class="s2">&quot;</span><span class="s">email</span><span class="s2">&quot;</span>:     <span class="s2">&quot;</span><span class="s">~email</span><span class="s2">&quot;</span>,
-                    <span class="s2">&quot;</span><span class="s">password</span><span class="s2">&quot;</span>:  <span class="s2">&quot;</span><span class="s">~password</span><span class="s2">&quot;</span>,
-                    <span class="s2">&quot;</span><span class="s">confirmed</span><span class="s2">&quot;</span>: <span class="s2">&quot;</span><span class="s">0</span><span class="s2">&quot;</span>,
+                ColumnName: &quot;email&quot;,
+                Tags:       &quot;email&quot;,
+            },
+            {
+                ColumnName: &quot;name&quot;,
+                Tags:       &quot;trim&quot;,
+            },
+        },
+        OutFields: {
+            {
+                Type:      &quot;user_account&quot;,
+                Method:    &quot;POST&quot;,
+                Reference: &quot;user&quot;,
+                Attributes: {
+                    &quot;name&quot;:      &quot;~name&quot;,
+                    &quot;email&quot;:     &quot;~email&quot;,
+                    &quot;password&quot;:  &quot;~password&quot;,
+                    &quot;confirmed&quot;: &quot;0&quot;,
                 },
             },
             {
-                <span class="nv">Type</span>:      <span class="s2">&quot;</span><span class="s">usergroup</span><span class="s2">&quot;</span>,
-                <span class="nv">Method</span>:    <span class="s2">&quot;</span><span class="s">POST</span><span class="s2">&quot;</span>,
-                <span class="nv">Reference</span>: <span class="s2">&quot;</span><span class="s">usergroup</span><span class="s2">&quot;</span>,
-                <span class="nv">Attributes</span>: {
-                    <span class="s2">&quot;</span><span class="s">name</span><span class="s2">&quot;</span>: <span class="s2">&quot;</span><span class="s">!&#39;Home group for &#39; + user.name</span><span class="s2">&quot;</span>,
+                Type:      &quot;usergroup&quot;,
+                Method:    &quot;POST&quot;,
+                Reference: &quot;usergroup&quot;,
+                Attributes: {
+                    &quot;name&quot;: &quot;!&#39;Home group for &#39; + user.name&quot;,
                 },
             },
             {
-                <span class="nv">Type</span>:      <span class="s2">&quot;</span><span class="s">user_user_id_has_usergroup_usergroup_id</span><span class="s2">&quot;</span>,
-                <span class="nv">Method</span>:    <span class="s2">&quot;</span><span class="s">POST</span><span class="s2">&quot;</span>,
-                <span class="nv">Reference</span>: <span class="s2">&quot;</span><span class="s">user_usergroup</span><span class="s2">&quot;</span>,
-                <span class="nv">Attributes</span>: {
-                    <span class="s2">&quot;</span><span class="s">user_id</span><span class="s2">&quot;</span>:      <span class="s2">&quot;</span><span class="s">$user.reference_id</span><span class="s2">&quot;</span>,
-                    <span class="s2">&quot;</span><span class="s">usergroup_id</span><span class="s2">&quot;</span>: <span class="s2">&quot;</span><span class="s">$usergroup.reference_id</span><span class="s2">&quot;</span>,
+                Type:      &quot;user_user_id_has_usergroup_usergroup_id&quot;,
+                Method:    &quot;POST&quot;,
+                Reference: &quot;user_usergroup&quot;,
+                Attributes: {
+                    &quot;user_id&quot;:      &quot;$user.reference_id&quot;,
+                    &quot;usergroup_id&quot;: &quot;$usergroup.reference_id&quot;,
                 },
             },
             {
-                <span class="nv">Type</span>:   <span class="s2">&quot;</span><span class="s">client.notify</span><span class="s2">&quot;</span>,
-                <span class="nv">Method</span>: <span class="s2">&quot;</span><span class="s">ACTIONRESPONSE</span><span class="s2">&quot;</span>,
-                <span class="nv">Attributes</span>: {
-                    <span class="s2">&quot;</span><span class="s">type</span><span class="s2">&quot;</span>:    <span class="s2">&quot;</span><span class="s">success</span><span class="s2">&quot;</span>,
-                    <span class="s2">&quot;</span><span class="s">title</span><span class="s2">&quot;</span>:   <span class="s2">&quot;</span><span class="s">Success</span><span class="s2">&quot;</span>,
-                    <span class="s2">&quot;</span><span class="s">message</span><span class="s2">&quot;</span>: <span class="s2">&quot;</span><span class="s">Signup Successful</span><span class="s2">&quot;</span>,
+                Type:   &quot;client.notify&quot;,
+                Method: &quot;ACTIONRESPONSE&quot;,
+                Attributes: {
+                    &quot;type&quot;:    &quot;success&quot;,
+                    &quot;title&quot;:   &quot;Success&quot;,
+                    &quot;message&quot;: &quot;Signup Successful&quot;,
                 },
             },
             {
-                <span class="nv">Type</span>:   <span class="s2">&quot;</span><span class="s">client.redirect</span><span class="s2">&quot;</span>,
-                <span class="nv">Method</span>: <span class="s2">&quot;</span><span class="s">ACTIONRESPONSE</span><span class="s2">&quot;</span>,
-                <span class="nv">Attributes</span>: {
-                    <span class="s2">&quot;</span><span class="s">location</span><span class="s2">&quot;</span>: <span class="s2">&quot;</span><span class="s">/auth/signin</span><span class="s2">&quot;</span>,
-                    <span class="s2">&quot;</span><span class="s">window</span><span class="s2">&quot;</span>:   <span class="s2">&quot;</span><span class="s">self</span><span class="s2">&quot;</span>,
+                Type:   &quot;client.redirect&quot;,
+                Method: &quot;ACTIONRESPONSE&quot;,
+                Attributes: {
+                    &quot;location&quot;: &quot;/auth/signin&quot;,
+                    &quot;window&quot;:   &quot;self&quot;,
                 },
             },
         },
@@ -416,31 +442,31 @@ An action is performed on an entity. Let's also remember that <code>world</code>
 </pre></div>
 
 <h2 id="action-name">Action Name<a class="headerlink" href="#action-name" title="Permanent link">Link</a></h2>
-<div class="codehilite"><pre><span></span>    <span class="n">Name</span><span class="p">:</span>             <span class="ss">&quot;signup&quot;</span><span class="p">,</span>
+<div class="codehilite"><pre><span></span>    Name:             &quot;signup&quot;,
 </pre></div>
 
 
 <p>Name of the action, this should be unique for each actions. Actions are identified by this name</p>
 <h2 id="action-label">Action Label<a class="headerlink" href="#action-label" title="Permanent link">Link</a></h2>
-<div class="codehilite"><pre><span></span>    <span class="n">Label</span><span class="p">:</span>            <span class="ss">&quot;Sign up&quot;</span><span class="p">,</span>
+<div class="codehilite"><pre><span></span>    Label:            &quot;Sign up&quot;,
 </pre></div>
 
 
 <p>Label is for humans</p>
 <h2 id="ontype">OnType<a class="headerlink" href="#ontype" title="Permanent link">Link</a></h2>
-<div class="codehilite"><pre><span></span>    <span class="n">OnType</span><span class="p">:</span>           <span class="ss">&quot;user_account&quot;</span><span class="p">,</span>
+<div class="codehilite"><pre><span></span>    OnType:           &quot;user_account&quot;,
 </pre></div>
 
 
 <p>The primary type of entity on which the action happens. This is used to know where the actions should come up on the UI</p>
 <h2 id="action-instance">Action instance<a class="headerlink" href="#action-instance" title="Permanent link">Link</a></h2>
-<div class="codehilite"><pre><span></span>    <span class="n">InstanceOptional</span><span class="p">:</span> <span class="k">true</span><span class="p">,</span>
+<div class="codehilite"><pre><span></span>    InstanceOptional: true,
 </pre></div>
 
 
 <p>If the action requires an "instance" of that type on which the action is defined (more about this below). So "Sign up" is defined on "user" table, but an instance of "user" is not required to initiate the action. This is why the "Sign up" doesnt ask you to select a user (which wouldn't make sense either)</p>
 <h2 id="input-fields">Input fields<a class="headerlink" href="#input-fields" title="Permanent link">Link</a></h2>
-<div class="codehilite"><pre><span></span>    <span class="n">InFields</span><span class="p">:</span> <span class="p">[]</span><span class="n">api2go</span><span class="p">.</span><span class="n">ColumnInfo</span>
+<div class="codehilite"><pre><span></span>    InFields: []api2go.ColumnInfo
 </pre></div>
 
 
@@ -453,30 +479,30 @@ An action is performed on an entity. Let's also remember that <code>world</code>
 </ul>
 <p>Note that the ColumnInfo structure is the same one we used to <a href="/setting-up/entities">define tables</a>.</p>
 <h2 id="validations">Validations<a class="headerlink" href="#validations" title="Permanent link">Link</a></h2>
-<div class="codehilite"><pre><span></span>    <span class="n">Validations</span><span class="p">:</span> <span class="p">[]</span><span class="n">ColumnTag</span>
+<div class="codehilite"><pre><span></span>    Validations: []ColumnTag
 </pre></div>
 
 
 <p>Validations validate the user input and rejects if some validation fails</p>
-<div class="codehilite"><pre><span></span>  <span class="err">{</span>
-            <span class="n">ColumnName</span><span class="p">:</span> <span class="ss">&quot;email&quot;</span><span class="p">,</span>
-            <span class="n">Tags</span><span class="p">:</span>       <span class="ss">&quot;email&quot;</span><span class="p">,</span>
-        <span class="err">}</span><span class="p">,</span>
+<div class="codehilite"><pre><span></span>  {
+            ColumnName: &quot;email&quot;,
+            Tags:       &quot;email&quot;,
+        },
 </pre></div>
 
 
 <p>This tells that the "email" input should actually be an email.</p>
 <p>One of the more interesting validations is cross field check</p>
-<div class="codehilite"><pre><span></span><span class="w">        </span><span class="err">{</span><span class="w"></span>
-<span class="w">            </span><span class="nl">ColumnName</span><span class="p">:</span><span class="w"> </span><span class="ss">&quot;password&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nl">Tags</span><span class="p">:</span><span class="w">       </span><span class="ss">&quot;eqfield=InnerStructField[passwordConfirm],min=8&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
+<div class="codehilite"><pre><span></span>        {
+            ColumnName: &quot;password&quot;,
+            Tags:       &quot;eqfield=InnerStructField[passwordConfirm],min=8&quot;,
+        },
 </pre></div>
 
 
 <p>This tells that the value entered by user in the password field should be equal to the value in passwordConfirm field. And the minimum length should be 8 characters.</p>
 <h2 id="conformations">Conformations<a class="headerlink" href="#conformations" title="Permanent link">Link</a></h2>
-<div class="codehilite"><pre><span></span>    <span class="n">Conformations</span><span class="p">:</span> <span class="p">[]</span><span class="n">ColumnTag</span>
+<div class="codehilite"><pre><span></span>    Conformations: []ColumnTag
 </pre></div>
 
 
@@ -486,24 +512,24 @@ An action is performed on an entity. Let's also remember that <code>world</code>
 <li>Email: email conformation will normalize the email. Things like lowercase + trim</li>
 </ul>
 <h2 id="outfields">OutFields<a class="headerlink" href="#outfields" title="Permanent link">Link</a></h2>
-<div class="codehilite"><pre><span></span>    <span class="n">OutFields</span><span class="p">:</span> <span class="p">[]</span><span class="n">Outcome</span>
+<div class="codehilite"><pre><span></span>    OutFields: []Outcome
 </pre></div>
 
 
 <p>OutFields are the list of outcomes which the action will result in. The outcomes are evaluated in a top to bottom manner, and the result of one outcome is accessible when evaluating the next outcome.</p>
 <p>We have defined three outcomes in our "Sign Up" action.</p>
 <ul>
-<li>Create a user<div class="codehilite"><pre><span></span><span class="w">    </span><span class="err">{</span><span class="w"></span>
-<span class="w">        </span><span class="nl">Type</span><span class="p">:</span><span class="w">      </span><span class="ss">&quot;user_account&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="k">Method</span><span class="err">:</span><span class="w">    </span><span class="ss">&quot;POST&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nl">Reference</span><span class="p">:</span><span class="w"> </span><span class="ss">&quot;user&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nl">Attributes</span><span class="p">:</span><span class="w"> </span><span class="k">map</span><span class="o">[</span><span class="n">string</span><span class="o">]</span><span class="n">interface</span><span class="err">{}{</span><span class="w"></span>
-<span class="w">            </span><span class="ss">&quot;name&quot;</span><span class="err">:</span><span class="w">      </span><span class="ss">&quot;~name&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="ss">&quot;email&quot;</span><span class="err">:</span><span class="w">     </span><span class="ss">&quot;~email&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="ss">&quot;password&quot;</span><span class="err">:</span><span class="w">  </span><span class="ss">&quot;~password&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="ss">&quot;confirmed&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;0&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
+<li>Create a user<div class="codehilite"><pre><span></span>    {
+        Type:      &quot;user_account&quot;,
+        Method:    &quot;POST&quot;,
+        Reference: &quot;user&quot;,
+        Attributes: map[string]interface{}{
+            &quot;name&quot;:      &quot;~name&quot;,
+            &quot;email&quot;:     &quot;~email&quot;,
+            &quot;password&quot;:  &quot;~password&quot;,
+            &quot;confirmed&quot;: &quot;0&quot;,
+        },
+    },
 </pre></div>
 
 
@@ -519,11 +545,11 @@ An action is performed on an entity. Let's also remember that <code>world</code>
 <p><code>Reference: "user",</code> We have this to allow the "outcome" to be referenced when evaluating the next outcome. Let us see the other outcomes</p>
 <h2 id="scripted-fields-">Scripted fields - "!..."<a class="headerlink" href="#scripted-fields-" title="Permanent link">Link</a></h2>
 <div class="codehilite"><pre><span></span>        {
-            <span class="nv">Type</span>:      <span class="s2">&quot;</span><span class="s">usergroup</span><span class="s2">&quot;</span>,
-            <span class="nv">Method</span>:    <span class="s2">&quot;</span><span class="s">POST</span><span class="s2">&quot;</span>,
-            <span class="nv">Reference</span>: <span class="s2">&quot;</span><span class="s">usergroup</span><span class="s2">&quot;</span>,
-            <span class="nv">Attributes</span>: <span class="nv">map</span>[<span class="nv">string</span>]<span class="nv">interface</span>{}{
-                <span class="s2">&quot;</span><span class="s">name</span><span class="s2">&quot;</span>: <span class="s2">&quot;</span><span class="s">!&#39;Home group for &#39; + user.name</span><span class="s2">&quot;</span>,
+            Type:      &quot;usergroup&quot;,
+            Method:    &quot;POST&quot;,
+            Reference: &quot;usergroup&quot;,
+            Attributes: map[string]interface{}{
+                &quot;name&quot;: &quot;!&#39;Home group for &#39; + user.name&quot;,
             },
         },
 </pre></div>
@@ -532,15 +558,15 @@ An action is performed on an entity. Let's also remember that <code>world</code>
 <p>Daptin includes the <a href="https://github.com/robertkrimen/otto">otto js engine</a>. An exclamation mark tell daptin to evaluate the rest of the string as Javascript.</p>
 <p><code>'Home group for ' + user.name</code> becomes "Home group for parth"</p>
 <h2 id="referencing-previous-outcomes">Referencing previous outcomes<a class="headerlink" href="#referencing-previous-outcomes" title="Permanent link">Link</a></h2>
-<div class="codehilite"><pre><span></span><span class="w">        </span><span class="err">{</span><span class="w"></span>
-<span class="w">            </span><span class="nl">Type</span><span class="p">:</span><span class="w">      </span><span class="ss">&quot;user_user_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="k">Method</span><span class="err">:</span><span class="w">    </span><span class="ss">&quot;POST&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nl">Reference</span><span class="p">:</span><span class="w"> </span><span class="ss">&quot;user_usergroup&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nl">Attributes</span><span class="p">:</span><span class="w"> </span><span class="k">map</span><span class="o">[</span><span class="n">string</span><span class="o">]</span><span class="n">interface</span><span class="err">{}{</span><span class="w"></span>
-<span class="w">                </span><span class="ss">&quot;user_id&quot;</span><span class="err">:</span><span class="w">      </span><span class="ss">&quot;$user.reference_id&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                </span><span class="ss">&quot;usergroup_id&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;$usergroup.reference_id&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
+<div class="codehilite"><pre><span></span>        {
+            Type:      &quot;user_user_id_has_usergroup_usergroup_id&quot;,
+            Method:    &quot;POST&quot;,
+            Reference: &quot;user_usergroup&quot;,
+            Attributes: map[string]interface{}{
+                &quot;user_id&quot;:      &quot;$user.reference_id&quot;,
+                &quot;usergroup_id&quot;: &quot;$usergroup.reference_id&quot;,
+            },
+        },
 </pre></div>
 
 
@@ -555,7 +581,7 @@ An action is performed on an entity. Let's also remember that <code>world</code>
         <a href="../default_actions/" class="btn btn-neutral float-right" title="Actions list">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../../apis/execute/" class="btn btn-neutral" title="Execute"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../../features/enable-logs/" class="btn btn-neutral" title="Logs"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -583,7 +609,7 @@ An action is performed on an entity. Let's also remember that <code>world</code>
           <a href="https://github.com/daptin/daptin/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../../apis/execute/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../../features/enable-logs/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
         <span style="margin-left: 15px"><a href="../default_actions/" style="color: #fcfcfc">Next &raquo;</a></span>

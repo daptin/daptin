@@ -72,7 +72,8 @@ const ActionManager = function () {
         url: appConfig.apiRoot + "/action/" + type + "/" + actionName,
         method: "POST",
         headers: {
-          "Authorization": "Bearer " + getToken()
+          "Authorization": "Bearer " + getToken(),
+          "Accept-Language": localStorage.getItem("LANGUAGE") || window.language
         },
         data: {
           attributes: data

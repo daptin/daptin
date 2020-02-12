@@ -655,7 +655,7 @@ a:hover, a:active, a:focus {
     width: 180px;
     left: 50px;
     background: #524da7;
-    color: black;
+    color: white;
   }
 
   .sidebar-mini.sidebar-collapse .sidebar-menu > li:hover > a > span {

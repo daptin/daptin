@@ -130,7 +130,7 @@
                 );
               });
             that.worlds.forEach(function (w) {
-              console.log("call stats", w);
+              // console.log("call stats", w);
 
               statsManger
                 .getStats(w.TableName, {
@@ -155,7 +155,7 @@
               System: [],
               User: []
             };
-            console.log("worlds in dashboard", worlds);
+            // console.log("worlds in dashboard", worlds);
             for (let i = 0; i < worlds.length; i++) {
               let tableName = worlds[i].table_name;
               let actions = actionManager.getActions(tableName);
@@ -163,7 +163,7 @@
               if (!actions) {
                 continue;
               }
-              console.log("actions for ", tableName, actions);
+              // console.log("actions for ", tableName, actions);
               let actionKeys = Object.keys(actions);
               for (let j = 0; j < actionKeys.length; j++) {
                 let action = actions[actionKeys[j]];

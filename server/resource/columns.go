@@ -949,14 +949,6 @@ var SystemActions = []Action{
 					"password": "~password",
 				},
 			},
-			{
-				Type:   "jwt.token",
-				Method: "EXECUTE",
-				Attributes: map[string]interface{}{
-					"email":    "~email",
-					"password": "~password",
-				},
-			},
 		},
 	},
 	{
@@ -2286,16 +2278,17 @@ type TableInfo struct {
 	Relations              []api2go.TableRelation
 	IsTopLevel             bool `db:"is_top_level"`
 	Permission             auth.AuthPermission
-	UserId                 uint64   `db:"user_account_id"`
-	IsHidden               bool     `db:"is_hidden"`
-	IsJoinTable            bool     `db:"is_join_table"`
-	IsStateTrackingEnabled bool     `db:"is_state_tracking_enabled"`
-	IsAuditEnabled         bool     `db:"is_audit_enabled"`
-	DefaultGroups          []string `db:"default_groups"`
-	Validations            []ColumnTag
-	Conformations          []ColumnTag
-	DefaultOrder           string
-	Icon                   string
+	UserId                 uint64 `db:"user_account_id"`
+	IsHidden               bool   `db:"is_hidden"`
+	IsJoinTable            bool   `db:"is_join_table"`
+	IsStateTrackingEnabled bool   `db:"is_state_tracking_enabled"`
+	IsAuditEnabled         bool   `db:"is_audit_enabled"`
+	TranslationsEnabled    bool   `db:"translation_enabled"`
+	DefaultGroups []string `db:"default_groups"`
+	Validations   []ColumnTag
+	Conformations []ColumnTag
+	DefaultOrder  string
+	Icon          string
 }
 
 func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {

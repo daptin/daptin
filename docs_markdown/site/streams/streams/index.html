@@ -125,6 +125,32 @@
                 </li>
                 <li class="">
                     
+    <span class="caption-text">Features</span>
+    <ul class="subnav">
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-graphql/">GraphQL</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-smtp-imap/">SMTP/IMPS server</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-logs/">Logs</a>
+                </li>
+    </ul>
+                </li>
+                <li class="">
+                    
     <span class="caption-text">Action APIs</span>
     <ul class="subnav">
                 <li class="toctree-l3">
@@ -260,46 +286,46 @@
                 <h1 id="streams">Streams<a class="headerlink" href="#streams" title="Permanent link">Link</a></h1>
 <p>Streams are complimentary to <a href="/actions/actions">actions</a>. Think of streams as views in SQL. A stream is basically one entity + set of transformations and filters on the entity. Streams are read-only and exposed with similar semantics of that of entities. Daptin will expose JSONAPI for each stream just like it does for entities.</p>
 <p>Here is an example of a stream which exposes list of completed todos only</p>
-<div class="codehilite"><pre><span></span><span class="err">{</span><span class="w"></span>
-<span class="w">        </span><span class="nl">StreamName</span><span class="p">:</span><span class="w">     </span><span class="ss">&quot;transformed_user&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nl">RootEntityName</span><span class="p">:</span><span class="w"> </span><span class="ss">&quot;todo&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nl">Columns</span><span class="p">:</span><span class="w"> </span><span class="err">[]</span><span class="n">api2go</span><span class="p">.</span><span class="n">ColumnInfo</span><span class="err">{</span><span class="w">          </span><span class="o">//</span><span class="w"> </span><span class="n">List</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="n">columns</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">this</span><span class="w"> </span><span class="n">stream</span><span class="w"></span>
-<span class="w">            </span><span class="err">{</span><span class="w"></span>
-<span class="w">                </span><span class="nl">Name</span><span class="p">:</span><span class="w">       </span><span class="ss">&quot;transformed_todo_title&quot;</span><span class="p">,</span><span class="w">  </span>
-<span class="w">                </span><span class="nl">ColumnType</span><span class="p">:</span><span class="w"> </span><span class="ss">&quot;label&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="err">{</span><span class="w"></span>
-<span class="w">                </span><span class="nl">Name</span><span class="p">:</span><span class="w">       </span><span class="ss">&quot;completed_on&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                </span><span class="nl">ColumnType</span><span class="p">:</span><span class="w"> </span><span class="ss">&quot;datetime&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nl">QueryParams</span><span class="p">:</span><span class="w"> </span><span class="n">QueryParams</span><span class="err">{</span><span class="w"></span>
-<span class="w">            </span><span class="ss">&quot;Filter&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;completed=true&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="ss">&quot;Select&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;title,deadline&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nl">Transformations</span><span class="p">:</span><span class="w"> </span><span class="err">[]</span><span class="n">Transformation</span><span class="err">{</span><span class="w"></span>
-<span class="w">            </span><span class="err">{</span><span class="w"></span>
-<span class="w">                </span><span class="k">Operation</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;select&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                </span><span class="nl">Attributes</span><span class="p">:</span><span class="w"> </span><span class="k">map</span><span class="o">[</span><span class="n">string</span><span class="o">]</span><span class="n">interface</span><span class="err">{}{</span><span class="w"></span>
-<span class="w">                    </span><span class="ss">&quot;columns&quot;</span><span class="err">:</span><span class="w"> </span><span class="err">[]</span><span class="n">string</span><span class="err">{</span><span class="ss">&quot;title&quot;</span><span class="p">,</span><span class="w"> </span><span class="ss">&quot;deadline&quot;</span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">                </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="err">{</span><span class="w"></span>
-<span class="w">                </span><span class="k">Operation</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;rename&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                </span><span class="nl">Attributes</span><span class="p">:</span><span class="w"> </span><span class="k">map</span><span class="o">[</span><span class="n">string</span><span class="o">]</span><span class="n">interface</span><span class="err">{}{</span><span class="w"></span>
-<span class="w">                    </span><span class="ss">&quot;oldName&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;title&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                    </span><span class="ss">&quot;newName&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;transformed_todo_title&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="err">{</span><span class="w"></span>
-<span class="w">                </span><span class="k">Operation</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;rename&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                </span><span class="nl">Attributes</span><span class="p">:</span><span class="w"> </span><span class="k">map</span><span class="o">[</span><span class="n">string</span><span class="o">]</span><span class="n">interface</span><span class="err">{}{</span><span class="w"></span>
-<span class="w">                    </span><span class="ss">&quot;oldName&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;deadline&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                    </span><span class="ss">&quot;newName&quot;</span><span class="err">:</span><span class="w"> </span><span class="ss">&quot;completed_on&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="err">}</span><span class="p">,</span><span class="w"></span>
-<span class="err">}</span><span class="w">   </span>
+<div class="codehilite"><pre><span></span>{
+        StreamName:     &quot;transformed_user&quot;,
+        RootEntityName: &quot;todo&quot;,
+        Columns: []api2go.ColumnInfo{          // List of columns in this stream
+            {
+                Name:       &quot;transformed_todo_title&quot;,  
+                ColumnType: &quot;label&quot;,
+            },
+            {
+                Name:       &quot;completed_on&quot;,
+                ColumnType: &quot;datetime&quot;,
+            },
+        },
+        QueryParams: QueryParams{
+            &quot;Filter&quot;: &quot;completed=true&quot;,
+            &quot;Select&quot;: &quot;title,deadline&quot;,
+        },
+        Transformations: []Transformation{
+            {
+                Operation: &quot;select&quot;,
+                Attributes: map[string]interface{}{
+                    &quot;columns&quot;: []string{&quot;title&quot;, &quot;deadline&quot;},
+                },
+            },
+            {
+                Operation: &quot;rename&quot;,
+                Attributes: map[string]interface{}{
+                    &quot;oldName&quot;: &quot;title&quot;,
+                    &quot;newName&quot;: &quot;transformed_todo_title&quot;,
+                },
+            },
+            {
+                Operation: &quot;rename&quot;,
+                Attributes: map[string]interface{}{
+                    &quot;oldName&quot;: &quot;deadline&quot;,
+                    &quot;newName&quot;: &quot;completed_on&quot;,
+                },
+            },
+        },
+}   
 </pre></div>
 
 <p>Daptin uses the library <a href="github.com/kniren/gota/dataframe">kniren/gota</a> to systematically specific list of transformations which are applied to the original data stream.</p>

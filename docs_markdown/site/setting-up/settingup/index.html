@@ -87,9 +87,6 @@
     <li class="toctree-l2"><a href="#become-administrator">Become Administrator</a></li>
     
 
-    <li class="toctree-l2"><a href="#enable-sign-up">Enable sign-up</a></li>
-    
-
     </ul>
 	    </li>
           
@@ -138,6 +135,32 @@
                 <li class="toctree-l3">
                     
     <a class="" href="../../apis/execute/">Execute</a>
+                </li>
+    </ul>
+                </li>
+                <li class="">
+                    
+    <span class="caption-text">Features</span>
+    <ul class="subnav">
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-graphql/">GraphQL</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-smtp-imap/">SMTP/IMPS server</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-logs/">Logs</a>
                 </li>
     </ul>
                 </li>
@@ -271,25 +294,125 @@
 <h2 id="first-user">First user<a class="headerlink" href="#first-user" title="Permanent link">Link</a></h2>
 <p>Use the dashboard to sign-up as the first user or call the sign-up API manually to create the first user.</p>
 <p><img src="/images/signup.png" width="300px"></p>
+<p>API CALL</p>
+<p>As you will see later in <a href="/actions/actions.md">actions</a> sign up and sign in api's are nothing special but just actions defined on certain tables.</p>
+<p>Request </p>
+<div class="codehilite"><pre><span></span>curl <span class="s1">&#39;http://localhost/action/user_account/signup&#39;</span> 
+--data <span class="s1">&#39;{&quot;attributes&quot;:{&quot;name&quot;:&quot;name&quot;,&quot;email&quot;:&quot;email@domain.com&quot;,&quot;password&quot;:&quot;password123&quot;,&quot;passwordConfirm&quot;:&quot;password123&quot;}}&#39;</span>
+</pre></div>
+
+<p>Response</p>
+<div class="codehilite"><pre><span></span><span class="p">[{</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Created user_account&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Success&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span>
+    <span class="p">}</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Created usergroup&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Success&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span>
+    <span class="p">}</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Created user_account_user_account_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Success&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span>
+    <span class="p">}</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;__type&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Sign-up successful. Redirecting to sign in&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Success&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span>
+    <span class="p">}</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.redirect&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;__type&quot;</span><span class="p">:</span> <span class="s2">&quot;client.redirect&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;delay&quot;</span><span class="p">:</span> <span class="mi">2000</span><span class="p">,</span>
+        <span class="nt">&quot;location&quot;</span><span class="p">:</span> <span class="s2">&quot;/auth/signin&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;window&quot;</span><span class="p">:</span> <span class="s2">&quot;self&quot;</span>
+    <span class="p">}</span>
+<span class="p">}]</span>
+</pre></div>
+
+<p>Nothing important in the response of signup to keep track of. </p>
+<p>Successful response means now we can login as a user and become the administrator.</p>
+<p>A failure response would look like this:</p>
+<div class="codehilite"><pre><span></span><span class="p">[{</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Failed to create user_account. Error 1062: Duplicate entry &#39;email@domain.com&#39; for key &#39;i79f4e12e72442d30f2b99a84fce3c392&#39;&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Failed&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;error&quot;</span>
+    <span class="p">}</span>
+<span class="p">}]</span>
+</pre></div>
+
+<p>Or </p>
+<div class="codehilite"><pre><span></span><span class="p">[{</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;http error (400) email and 0 more errors, invalid value for email&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;failed&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;error&quot;</span>
+    <span class="p">}</span>
+<span class="p">}]</span>
+</pre></div>
+
 <h2 id="logging-in-dashboard">Logging in dashboard<a class="headerlink" href="#logging-in-dashboard" title="Permanent link">Link</a></h2>
 <p><img src="/images/signin.png" width="300px"></p>
+<p>API CAll</p>
+<p>Request</p>
+<div class="codehilite"><pre><span></span>curl <span class="s1">&#39;http://localhost/action/user_account/signin&#39;</span> 
+--data <span class="s1">&#39;{&quot;attributes&quot;:{&quot;email&quot;:&quot;email@domain.com&quot;,&quot;password&quot;:&quot;password123&quot;}}&#39;</span>
+</pre></div>
+
+<p>Response</p>
+<div class="codehilite"><pre><span></span><span class="p">[{</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.store.set&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;token&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhckBnbWFpbC5jb20iLCJleHAiOjE1ODE2MTcxNTEsImlhdCI6IjIwMjAtMDItMTBUMjM6MzU6NTEuMTc2MjA5ODAxKzA1OjMwIiwiaXNzIjoiZGFwdGluLTNhZTI5ZCIsImp0aSI6IjQ4MTRkYjhhLTg1ZWEtNDc0ZS1iMWQ0LWQ5OGM4MTU5ZDU5MCIsIm5hbWUiOiJwYXJ0aCIsIm5iZiI6MTU4MTM1Nzk1MSwicGljdHVyZSI6Imh0dHBzOi8vd3d3LmdyYXZhdGFyLmNvbS9hdmF0YXIvM2M5MjI3NmI4NmMzNGJkNjZmZjQwMzFlNjNmM2JkZTdcdTAwMjZkPW1vbnN0ZXJpZCJ9.deocIlHXWH_2fsrYBx5lSGQVJxad044tj4j4amy2Zyk&quot;</span>
+    <span class="p">}</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.cookie.set&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;token&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhckBnbWFpbC5jb20iLCJleHAiOjE1ODE2MTcxNTEsImlhdCI6IjIwMjAtMDItMTBUMjM6MzU6NTEuMTc2MjA5ODAxKzA1OjMwIiwiaXNzIjoiZGFwdGluLTNhZTI5ZCIsImp0aSI6IjQ4MTRkYjhhLTg1ZWEtNDc0ZS1iMWQ0LWQ5OGM4MTU5ZDU5MCIsIm5hbWUiOiJwYXJ0aCIsIm5iZiI6MTU4MTM1Nzk1MSwicGljdHVyZSI6Imh0dHBzOi8vd3d3LmdyYXZhdGFyLmNvbS9hdmF0YXIvM2M5MjI3NmI4NmMzNGJkNjZmZjQwMzFlNjNmM2JkZTdcdTAwMjZkPW1vbnN0ZXJpZCJ9.deocIlHXWH_2fsrYBx5lSGQVJxad044tj4j4amy2Zyk&quot;</span>
+    <span class="p">}</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Logged in&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Success&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span>
+    <span class="p">}</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.redirect&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;delay&quot;</span><span class="p">:</span> <span class="mi">2000</span><span class="p">,</span>
+        <span class="nt">&quot;location&quot;</span><span class="p">:</span> <span class="s2">&quot;/&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;window&quot;</span><span class="p">:</span> <span class="s2">&quot;self&quot;</span>
+    <span class="p">}</span>
+<span class="p">}]</span>
+</pre></div>
+
+<p>The token is to be used in the Authorization header of for all HTTP calls to identify the user.</p>
 <h2 id="become-administrator">Become Administrator<a class="headerlink" href="#become-administrator" title="Permanent link">Link</a></h2>
 <p>On the main screen of the dashboard under "Users" heading, locate the "Become admin" button.</p>
 <p><img src="/images/users_and_groups.png" width="600px"></p>
 <p>Clicking this will make the following changes:</p>
 <ul>
 <li>Disallow the sign-up API for guests</li>
-<li>Disallow the sign-in API for guests</li>
 <li>Makes you the owner of all the data</li>
 </ul>
-<h2 id="enable-sign-up">Enable sign-up<a class="headerlink" href="#enable-sign-up" title="Permanent link">Link</a></h2>
-<p>Enable sign-up action by navigating to:</p>
-<p>You need to change two settings to allow guests to signup (after becoming admin)</p>
-<p>Since the "Sign in" action is defined on user_account entity, you need to allow guests to execute</p>
-<p>Dashboard -&gt; All tables -&gt; Search "User" and locate the "User account" entity -&gt; Edit -&gt; Permissions -&gt; Guests -&gt; Check "Execute strict"</p>
-<p><img src="/images/execute.png" width="600px"></p>
-<p>Also allow guests to execute the sign-up action itself</p>
-<p>Dashboard -&gt; Actions -&gt; Search "Signup" -&gt; Edit -&gt; Permissions -&gt; Guest -&gt; Check "Execute strict"</p>
               
             </div>
           </div>

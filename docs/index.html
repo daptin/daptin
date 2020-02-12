@@ -140,6 +140,32 @@
                 </li>
                 <li class="">
                     
+    <span class="caption-text">Features</span>
+    <ul class="subnav">
+                <li class="toctree-l3">
+                    
+    <a class="" href="features/enable-graphql/">GraphQL</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="features/enable-data-auditing/">Data Auditing</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="features/enable-multilingual-table/">Multilingual Table</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="features/enable-smtp-imap/">SMTP/IMPS server</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="features/enable-logs/">Logs</a>
+                </li>
+    </ul>
+                </li>
+                <li class="">
+                    
     <span class="caption-text">Action APIs</span>
     <ul class="subnav">
                 <li class="toctree-l3">
@@ -265,22 +291,32 @@
                 <h1 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">Link</a></h1>
 <p><a class="github-button" href="https://github.com/daptin/daptin" data-size="large" data-show-count="true" aria-label="Star daptin/daptin on GitHub">Star</a></p>
 <p><img src="images/logo.png" width="200" style="float: right"/></p>
-<p>Daptin is a headless CMS server which servers data from MySQL/PostgreSQL/SQLite over JSONAPI.org and GraphQL. With Daptin you can design your data model and have a production ready JSON API online in minutes.</p>
+<p>Daptin is a headless CMS server which servers data from MySQL/PostgreSQL/SQLite over JSONAPI.org or GraphQL. With Daptin you can design your data model and have a production ready APIs reliably backed by persistent database online with in hours.</p>
 <h2 id="why-use-daptin">Why use daptin<a class="headerlink" href="#why-use-daptin" title="Permanent link">Link</a></h2>
 <p>Easily consume the following features on any device</p>
 <ul>
-<li>Database backed persistent data</li>
-<li>CRUD JSON API/GraphQL</li>
-<li>User and group management and access control</li>
-<li>Social login with oauth2: tested with google, github, linkedin</li>
-<li>Actions for abstracting out business flows</li>
-<li>Extensive state tracking APIs</li>
-<li>Enable <em>Data Auditing</em> from a single switch</li>
-<li>Market place API to manage and share schemas</li>
-<li>Cloud storage sync like gdrive, dropbox, b2, s3 and more</li>
-<li>Multiple websites under separate sub-domain/sub-paths</li>
+<li><a href="setting-up/installation/#database-configuration">Database backed</a> persistence, 3NF normalized tables</li>
+<li><a href="/apis/overview/">JSON API</a>/<a href="features/enable-graphql/">GraphQL</a> for CRUD apis</li>
+<li><a href="setting-up/access/">User</a> and <a href="setting-up/access/">group management</a> and access control</li>
+<li>Social login with <a href="extend/oauth_connection/">OAuth</a>: tested with google, github, linkedin</li>
+<li><a href="actions/overview/">Actions</a> for abstracting out business flows</li>
+<li>Extensive <a href="state/machines/">state tracking APIs</a></li>
+<li>Enable <a href="features/enable-data-auditing/">Data Auditing</a> from a single toggle</li>
+<li><a href="extend/data_exchange/">Synchronous Data Exchange</a> with 3rd party APIs</li>
+<li><a href="features/enable-multilingual-table/">Multilingual tables</a> support, supports Accept-Language header </li>
+<li><a href="extend/marketplacce/">Market place</a> API to manage and share schemas</li>
+<li><a href="cloudstore/cloudstore/">Cloud storage sync</a> like gdrive, dropbox, b2, s3 and more</li>
+<li><a href="cloudstore/assetcolumns/">Asset column</a> to hold file and blob data, backed by storage</li>
+<li><a href="subsite/subsite/">Multiple websites</a> under separate sub-domain/sub-paths</li>
+<li><a href="integrations/overview/">Connect with external APIs</a> by using extension points</li>
+<li><a href="streams/streams/">Data View Streams</a></li>
 <li>
-<p>Connect with external APIs by using extension points</p>
+<p>Flexible <a href="setting-up/data_import/">data import</a> (auto create new tables and automated schema generation)</p>
+<ul>
+<li>XLSX </li>
+<li>JSON</li>
+<li>CSV</li>
+</ul>
 </li>
 <li>
 <p><strong>Database</strong> to have consistent single source of truth [Postgres/MySQL/SQLite]</p>
@@ -345,5 +381,5 @@
 
 <!--
 MkDocs version : 1.0.4
-Build Date UTC : 2019-10-04 06:00:29
+Build Date UTC : 2020-02-10 19:48:03
 -->
