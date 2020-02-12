@@ -302,19 +302,43 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 		}
 
 	}
+	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), DEFAULT_LANGUAGE)
 
-	//queryBuilder := statementbuilder.Squirrel.Update(m.GetTableName()).Set("deleted_at", time.Now()).Where(squirrel.Eq{"reference_id": id})
-	queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName()).Where(squirrel.Eq{"reference_id": id})
+	if len(languagePreferences) > 0 && dr.tableInfo.TranslationsEnabled {
 
-	sql1, args, err := queryBuilder.ToSql()
-	if err != nil {
-		log.Infof("Error: %v", err)
+		for _, lang := range languagePreferences {
+
+			queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName() + "_i18n").
+				Where(squirrel.Eq{"translation_reference_id": parentId}).
+				Where(squirrel.Eq{"language_id": lang})
+
+			sql1, args, err := queryBuilder.ToSql()
+			if err != nil {
+				log.Infof("Error: %v", err)
+				return err
+			}
+
+			log.Infof("Delete Sql: %v\n", sql1)
+
+			_, err = dr.db.Exec(sql1, args...)
+
+		}
+	} else {
+
+		queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName()).Where(squirrel.Eq{"reference_id": id})
+
+		sql1, args, err := queryBuilder.ToSql()
+		if err != nil {
+			log.Infof("Error: %v", err)
+			return err
+		}
+
+		log.Infof("Delete Sql: %v\n", sql1)
+
+		_, err = dr.db.Exec(sql1, args...)
 		return err
 	}
 
-	log.Infof("Delete Sql: %v\n", sql1)
-
-	_, err = dr.db.Exec(sql1, args...)
 	return err
 
 }

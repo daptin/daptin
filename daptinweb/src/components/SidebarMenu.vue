@@ -92,7 +92,7 @@
         }
         // window.$('li.pageLink.active').removeClass('active')
         // Add it to the item that was clicked
-        event.toElement.parentElement.className = 'pageLink active'
+        // event.toElement.parentElement.className = 'pageLink active'
       }
     },
     props: {

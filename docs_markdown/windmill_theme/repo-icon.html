@@ -1,0 +1,8 @@
+{# Icon specific to the repo type, if available #}
+{%- if config.repo_name == 'GitHub' -%}
+<i class="fa fa-github"></i>
+{% elif config.repo_name == 'Bitbucket' -%}
+<i class="fa fa-bitbucket"></i>
+{% elif config.repo_name == 'GitLab' -%}
+<i class="fa fa-gitlab"></i>
+{% endif -%}

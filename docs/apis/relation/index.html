@@ -131,6 +131,32 @@
                 </li>
                 <li class="">
                     
+    <span class="caption-text">Features</span>
+    <ul class="subnav">
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-graphql/">GraphQL</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-smtp-imap/">SMTP/IMPS server</a>
+                </li>
+                <li class="toctree-l3">
+                    
+    <a class="" href="../../features/enable-logs/">Logs</a>
+                </li>
+    </ul>
+                </li>
+                <li class="">
+                    
     <span class="caption-text">Action APIs</span>
     <ul class="subnav">
                 <li class="toctree-l3">
@@ -293,12 +319,12 @@
     <span class="p">(</span><span class="s1">&#39;page/[size/]&#39;</span><span class="p">,</span> <span class="s1">&#39;10&#39;</span><span class="p">),</span>
 <span class="p">)</span>
 
-<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://api.daptin.com:6336/api/user_account/696c98d3-3b8b-41da-a510-08e6948cf661/marketplace_id&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:6336/api/user_account/696c98d3-3b8b-41da-a510-08e6948cf661/marketplace_id&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
 
 <span class="c1">#NB. Original query string below. It seems impossible to parse and</span>
 <span class="c1">#reproduce query strings 100% accurately so the one below is given</span>
 <span class="c1">#in case the reproduced version is not &quot;correct&quot;.</span>
-<span class="c1"># response = requests.get(&#39;http://api.daptin.com:6336/api/user_account/696c98d3-3b8b-41da-a510-08e6948cf661/marketplace_id?sort=&amp;page\[number\]=1&amp;page\[size\]=10&#39;, headers=headers)</span>
+<span class="c1"># response = requests.get(&#39;http://localhost:6336/api/user_account/696c98d3-3b8b-41da-a510-08e6948cf661/marketplace_id?sort=&amp;page\[number\]=1&amp;page\[size\]=10&#39;, headers=headers)</span>
 </pre></div>
 
 </div>
