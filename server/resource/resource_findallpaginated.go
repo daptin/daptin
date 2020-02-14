@@ -520,7 +520,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		ids = append(ids, id)
 	}
 
-	if len(languagePreferences) == 0 {
+	if !dr.tableInfo.TranslationsEnabled || len(languagePreferences) == 0 {
 
 		for i, col := range finalCols {
 			if strings.Index(col, ".") == -1 {
