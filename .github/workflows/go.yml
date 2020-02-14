@@ -18,7 +18,7 @@ jobs:
 
     - name: Get dependencies
       run: |
-        go get -v -t -d ./... && echo $GOPATH && export PATH=$GOPATH/bin:$PATH && export && go get github.com/GeertJohan/go.rice/rice
+        go get -v -t -d ./... && go env && export PATH=$GOPATH/bin:$PATH && export && go get github.com/GeertJohan/go.rice/rice
         if [ -f Gopkg.toml ]; then
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
