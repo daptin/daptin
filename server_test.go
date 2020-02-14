@@ -378,12 +378,75 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	t.Logf("Image read response id: %v", readImageResp)
 
-	resp, err = r.Get(baseAddress + "/api/gallery_image/" + createdId + "/file.png")
+	resp, err = r.Get(baseAddress + "/asset/gallery_image/" + createdId + "/file.png")
 	if err != nil {
 		return err
 	}
 
-	t.Logf("Image length: %v", resp.Response().ContentLength)
+	imbBody, err := ioutil.ReadAll(resp.Response().Body)
+	if err != nil {
+		return err
+	}
+	t.Logf("Image length: %v", len(imbBody))
+
+
+	Params := []string{
+		"boxblur=0.5",
+		"gaussianblur=0.5",
+		"dilate=0.5",
+		"edgedetection=0.5",
+		"erode=0.5",
+		"emboss=0.5",
+		"median=0.5",
+		"sharpen=0.5",
+		"brightness=0.5",
+		"colorBalance=0.5,0.5,0.5",
+		"colorize=0.5,0.5,0.5",
+		"colorspaceLinearToSRGB=0.5",
+		"colorspaceSRGBToLinear=0.5",
+		"contrast=0.5",
+		"crop=10,15,20,30",
+		"cropToSize=10,20,CenterAnchor",
+		"flipHorizontal=1",
+		"flipVertical=1",
+		"gamma=0.6",
+		"gaussianBlur=0.6",
+		"grayscale=true",
+		"hue=0.6",
+		"invert=true",
+		"resize=10,40,NearestNeighbor",
+		"resize=10,40,Box",
+		"resize=10,40,Linear",
+		"resize=10,40,Cubic",
+		"resize=10,40,Lanczos",
+		"rotate=0.5,EWD,NearestNeighborInterpolation",
+		"rotate180=true",
+		"rotate270=true",
+		"rotate90=true",
+		"saturation=0.6",
+		"sepia=0.6",
+		"sobel=true",
+		"threshold=0.6",
+		"transpose=true",
+		"transverse=true",
+	}
+
+	for _, param := range Params {
+		resp, err = r.Get(baseAddress + "/asset/gallery_image/" + createdId + "/file.png?" + param)
+		if err != nil {
+			return err
+		}
+
+		imbBody, err := ioutil.ReadAll(resp.Response().Body)
+		if err != nil {
+			return err
+		}
+		t.Logf("Image length [%v]: %v", param, len(imbBody))
+
+
+	}
+
+
 
 	return nil
 
