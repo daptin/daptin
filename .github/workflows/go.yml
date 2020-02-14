@@ -24,5 +24,11 @@ jobs:
             dep ensure
         fi
 
+    - name: Test
+      run: go test ./...
+
     - name: Build
-      run: go build -v .
+      run: go build -v . -o daptin
+
+    - name: Review
+      run: ls -lah daptin && file daptin
