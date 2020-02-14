@@ -2269,10 +2269,6 @@ var StandardStreams = []StreamContract{
 	},
 }
 
-var StandardData = []api2go.Api2GoModel{
-	{},
-}
-
 type TableInfo struct {
 	TableName              string `db:"table_name"`
 	TableId                int
