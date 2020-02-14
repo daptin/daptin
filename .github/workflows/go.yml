@@ -25,7 +25,7 @@ jobs:
         fi
 
     - name: Test
-      run: go test ./... && rice embed-go
+      run: go test ./...
 
     - name: Build
       run: go build -v -o daptin .
