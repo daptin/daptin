@@ -4,7 +4,7 @@ Open up the dashboard on http://localhost:8080/
 
 You will be presented with the Sign-in screen. If you are on a freshly created instance, then you need to create a user first.
 
-## First user
+### First user
 
 Use the dashboard to sign-up as the first user or call the sign-up API manually to create the first user.
 
@@ -95,7 +95,7 @@ Or
 ```
 
 
-## Logging in dashboard
+### Logging in dashboard
 
 <img src="/images/signin.png" width="300px">
 
