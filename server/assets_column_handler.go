@@ -344,7 +344,7 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 							continue
 						}
 						angle, _ := strconv.ParseFloat(vals[0], 32)
-						backgroundColor, _ := ParseHexColor(vals[1])
+						backgroundColor, _ := ParseHexColor("#" + vals[1])
 						interpolation := gift.NearestNeighborInterpolation
 
 						switch vals[2] {
