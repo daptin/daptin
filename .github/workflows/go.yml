@@ -33,3 +33,8 @@ jobs:
 
     - name: Review
       run: ls -lah daptin && file daptin
+    - name: Upload daptin
+      uses: actions/upload-artifact@v1
+      with:
+        name: daptin
+        path: daptin
