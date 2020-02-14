@@ -99,11 +99,11 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 			}
 
 			contentBytes, e := base64.StdEncoding.DecodeString(files[0]["contents"].(string))
-			fileName, ok := files[0]["name"].(string)
-			if !ok {
-				c.AbortWithStatus(500)
-				return
-			}
+			//fileName, ok := files[0]["name"].(string)
+			//if !ok {
+			//	c.AbortWithStatus(500)
+			//	return
+			//}
 			if e != nil {
 				c.AbortWithStatus(500)
 				return
