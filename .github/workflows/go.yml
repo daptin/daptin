@@ -18,7 +18,6 @@ jobs:
 
     - name: Get dependencies
       run: |
-        cd daptinweb && npm install && npm run build && cd ..
         go get -v -t -d ./... && go get github.com/GeertJohan/go.rice/rice
         if [ -f Gopkg.toml ]; then
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
