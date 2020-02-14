@@ -38,7 +38,6 @@ func Etag(content []byte) (string, error) {
 	return fmt.Sprintf(etagFormat, hash.Sum(nil)), nil
 }
 
-
 func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
 	return func(c *gin.Context) {
 		var typeName = c.Param("typename")
@@ -92,22 +91,27 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 
 			colType := strings.Split(colInfo.ColumnType, ".")[0]
 
+			files, ok := colData.([]map[string]interface{})
+
+			if !ok || len(files) < 1 {
+				c.AbortWithStatus(404)
+				return
+			}
+
+			contentBytes, e := base64.StdEncoding.DecodeString(files[0]["contents"].(string))
+			fileName, ok := files[0]["name"].(string)
+			if !ok {
+				c.AbortWithStatus(500)
+				return
+			}
+			if e != nil {
+				c.AbortWithStatus(500)
+				return
+			}
+
 			switch colType {
 
 			case "image":
-
-				files, ok := colData.([]map[string]interface{})
-
-				if !ok || len(files) < 1 {
-					c.AbortWithStatus(404)
-					return
-				}
-
-				contentBytes, e := base64.StdEncoding.DecodeString(files[0]["contents"].(string))
-				if e != nil {
-					c.AbortWithStatus(500)
-					return
-				}
 
 				bildFilters := make([]func(image.Image) image.Image, 0)
 				filters := make([]gift.Filter, 0)
@@ -442,19 +446,6 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 				c.AbortWithStatus(200)
 
 			default:
-
-				files, ok := colData.([]map[string]interface{})
-
-				if !ok || len(files) < 1 {
-					c.AbortWithStatus(404)
-					return
-				}
-
-				contentBytes, e := base64.StdEncoding.DecodeString(files[0]["contents"].(string))
-				if e != nil {
-					c.AbortWithStatus(500)
-					return
-				}
 
 				kind, err := filetype.Match(contentBytes)
 				if err != nil {
