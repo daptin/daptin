@@ -10,11 +10,11 @@
   <link rel="shortcut icon" href="../../images/favicon.png">
   
   <title>Data model - Daptin</title>
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Muli:400,700|Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet' type='text/css'>
 
   <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
   <link href="../../css/theme_extra.css" rel="stylesheet">
   
   <script>
@@ -25,9 +25,7 @@
   </script>
   
   <script src="../../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script> 
   
   <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -57,239 +55,647 @@
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-	<ul class="current">
-	  
+	<ul class="tocbase current">
+    
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Daptin</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../..">Introduction</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../installation/">Installation</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../settingup/">Getting started</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../access/">User management</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1 current">
-		
-    <a class="current" href="./">Data model</a>
-    <ul class="subnav">
-            
-    <li class="toctree-l2"><a href="#automatic-creation">Automatic creation</a></li>
-    
 
-    <li class="toctree-l2"><a href="#manual-creation">Manual creation</a></li>
-    
-        <ul>
-        
-            <li><a class="toctree-l3" href="#data-validations">Data validations</a></li>
-        
-            <li><a class="toctree-l3" href="#online-entity-designer">Online entity designer</a></li>
-        
-            <li><a class="toctree-l3" href="#market-place">Market place</a></li>
-        
-            <li><a class="toctree-l3" href="#column-specifications">Column specifications</a></li>
-        
-            <li><a class="toctree-l3" href="#column-types">Column types</a></li>
-        
-        </ul>
-    
 
-    <li class="toctree-l2"><a href="#data-relations">Data relations</a></li>
+  
     
-        <ul>
-        
-            <li><a class="toctree-l3" href="#relations-in-jsonyaml-schema">Relations in JSON/YAML schema</a></li>
-        
-            <li><a class="toctree-l3" href="#relations-types">Relations types</a></li>
-        
-            <li><a class="toctree-l3" href="#default-relations">Default relations</a></li>
-        
-            <li><a class="toctree-l3" href="#multiple-relation">Multiple relation</a></li>
-        
-            <li><a class="toctree-l3" href="#sql-constraints">SQL constraints</a></li>
-        
-            <li><a class="toctree-l3" href="#importing-data">Importing data</a></li>
-        
-        </ul>
+    <li class="navtree toctree-l2 page current">
+      <a class="current" href="./">
+        Data model
+          <span class="toctree-expand"></span>
+      </a>
+    </li>
     
+      
 
-    <li class="toctree-l2"><a href="#data-conformations">Data conformations</a></li>
-    
-        <ul>
-        
-            <li><a class="toctree-l3" href="#data-auditing">Data Auditing</a></li>
-        
-        </ul>
-    
+  <li class="toctree-l2 current with-children">
+    <a href="#automatic-creation">
+      Automatic creation
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
 
+
+
+      
+
+  <li class="toctree-l2">
+    <a href="#manual-creation">
+      Manual creation
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l2">
+    <ul class="subnav-l2 toc-hidden">
+    
+      
+          
+
+  <li class="toctree-l3 current with-children">
+    <a href="#data-validations">
+      Data validations
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3 current">
+    <ul class="subnav-l3 current">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#example">Example</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#json-example">JSON example</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#yaml-example">YAML example</a>
+        </li>
+    
     </ul>
-	    </li>
+  </li>
+
+      
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#online-entity-designer">Online entity designer</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#market-place">Market place</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#column-specifications">Column specifications</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#column-types">Column types</a>
+        </li>
+    
+    </ul>
+  </li>
+
+      
+
+  <li class="toctree-l2">
+    <a href="#data-relations">
+      Data relations
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l2">
+    <ul class="subnav-l2 toc-hidden">
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#relations-in-jsonyaml-schema">Relations in JSON/YAML schema</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#relations-types">Relations types</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#default-relations">Default relations</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#multiple-relation">Multiple relation</a>
+        </li>
+    
+      
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">API reference</span>
-    <ul class="subnav">
-                <li class="">
-                    
+
+  <li class="toctree-l3">
+    <a href="#sql-constraints">
+      SQL constraints
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3">
+    <ul class="subnav-l3 toc-hidden">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#belongs-to">belongs to</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#has-one">has one</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#has-many">has many</a>
+        </li>
+    
+    </ul>
+  </li>
+
+      
+    
+      
+          
+
+  <li class="toctree-l3">
+    <a href="#importing-data">
+      Importing data
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3">
+    <ul class="subnav-l3 toc-hidden">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#excel-file-upload">Excel file upload</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#csv-file-upload">CSV file upload</a>
+        </li>
+    
+    </ul>
+  </li>
+
+      
+    
+    </ul>
+  </li>
+
+      
+
+  <li class="toctree-l2">
+    <a href="#data-conformations">
+      Data conformations
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l2">
+    <ul class="subnav-l2 toc-hidden">
+    
+      
+          
+
+  <li class="toctree-l3 current with-children">
+    <a href="#data-auditing">
+      Data Auditing
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3 current">
+    <ul class="subnav-l3 current">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#audit-tables">Audit tables</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#audit-row">Audit row</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#audit-table-permissions">Audit table permissions</a>
+        </li>
+    
+    </ul>
+  </li>
+
+      
+    
+    </ul>
+  </li>
+
+
+  
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">API reference</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../apis/overview/">Overview</a>
-                </li>
-                <li class="">
-                    
-    <span class="caption-text">CRUD</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+  <li class="navtree toctree-l2 label">
+    <p class="caption">CRUD</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l2 group">
+      <ul class="navtree subnav-l2 current">
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../apis/read/">Read, search, filter</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../apis/create/">Create</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../apis/update/">Update</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../apis/delete/">Delete</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../apis/relation/">Relations</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../apis/execute/">Execute</a>
-                </li>
-    </ul>
-                </li>
-                <li class="">
-                    
-    <span class="caption-text">Features</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
+  </li>
+        
+      </ul>
+    </li>
+        
+          
+  <li class="navtree toctree-l2 label">
+    <p class="caption">Features</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l2 group">
+      <ul class="navtree subnav-l2 current">
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../features/enable-graphql/">GraphQL</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../features/enable-smtp-imap/">SMTP/IMPS server</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../features/enable-logs/">Logs</a>
-                </li>
-    </ul>
-                </li>
-                <li class="">
-                    
-    <span class="caption-text">Action APIs</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
+  </li>
+        
+      </ul>
+    </li>
+        
+          
+  <li class="navtree toctree-l2 label">
+    <p class="caption">Action APIs</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l2 group">
+      <ul class="navtree subnav-l2 current">
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../actions/actions/">Using actions</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../actions/default_actions/">Actions list</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../actions/examples/">Examples</a>
-                </li>
-    </ul>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+      </ul>
+    </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../state/machines/">State tracking</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">OAuth Management</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Asset and file storage</span>
-    <ul class="subnav">
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/oauth_connection/">Connections</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/oauth_token/">Tokens</a>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Integrations</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../integrations/overview/">Overview</a>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Asset and file storage</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../cloudstore/cloudstore/">Connecting with cloud store</a>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../cloudstore/assetcolumns/">Cloud store backed asset columns</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Sub-sites</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Sub-sites</span>
-    <ul class="subnav">
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../subsite/subsite/">Creating a subsite</a>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../subsite/grapes/">Live editing a subsite</a>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../subsite/basic_auth/">Basic Authentication</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Sharing</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Sharing</span>
-    <ul class="subnav">
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../extend/marketplace/">Marketplace</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Reference</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Reference</span>
-    <ul class="subnav">
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../data-modeling/data_storage/">Data store format</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../streams/streams/">Data streams</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
           
-        </ul>
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../streams/streams/">Data streams</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../enabling-features/">Enable/Disabling features</a>
+  </li>
+        
+      </ul>
+    </li>
+    
+  </ul>
       </div>
       &nbsp;
     </nav>
@@ -310,12 +716,13 @@
     <li><a href="../..">Docs</a> &raquo;</li>
     
       
+        
+          <li>Daptin &raquo;</li>
+        
+      
     
     <li>Data model</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="https://github.com/daptin/daptin/edit/master/docs/setting-up/data_modeling.md"
-          class="icon icon-github"> Edit on GitHub</a>
       
     </li>
   </ul>
@@ -969,8 +1376,6 @@
 
   <div class="rst-versions" role="note" style="cursor: pointer">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      
-          <a href="https://github.com/daptin/daptin/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
         <span><a href="../access/" style="color: #fcfcfc;">&laquo; Previous</a></span>
