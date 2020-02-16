@@ -14,7 +14,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
