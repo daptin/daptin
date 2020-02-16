@@ -969,6 +969,11 @@ func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{})
 				}
 			}
 		}
+
+		if columnName == "permission" {
+			value = dr.tableInfo.DefaultPermission
+		}
+
 		cols = append(cols, columnName)
 		vals = append(vals, value)
 
