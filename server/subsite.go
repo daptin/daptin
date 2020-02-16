@@ -14,6 +14,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -197,6 +198,9 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		})
 		hostRouter.NoRoute(func(c *gin.Context) {
 			log.Printf("Found no route for %v", c.Request.URL)
+			log.Printf("Found no route for user agent %v", c.Request.Header.Get("User-Agent"))
+			ip, _ := getClientIPByRequest(c.Request)
+			log.Printf("Found no route for ip %v", ip)
 			c.File(tempDirectoryPath + "/index.html")
 			c.AbortWithStatus(200)
 		})
@@ -213,6 +217,29 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 	cmsConfig.SubSites = siteMap
 
 	return hs
+}
+
+func getClientIPByRequest(req *http.Request) (ip string, err error) {
+
+	// Try via request
+	ip, port, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		log.Printf("debug: Getting req.RemoteAddr %v", err)
+		return "", err
+	} else {
+		log.Printf("debug: With req.RemoteAddr found IP:%v; Port: %v", ip, port)
+	}
+
+	userIP := net.ParseIP(ip)
+	if userIP == nil {
+		message := fmt.Sprintf("debug: Parsing IP from Request.RemoteAddr got nothing.")
+		log.Printf(message)
+		return "", fmt.Errorf(message)
+
+	}
+	log.Printf("debug: Found IP: %v", userIP)
+	return userIP.String(), nil
+
 }
 
 type StaticFsWithDefaultIndex struct {
