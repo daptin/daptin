@@ -126,10 +126,13 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 		var output string
 		switch strings.ToLower(feedExtension) {
 		case "rss":
+			c.Header("Content-Type", "application/xml")
 			output, err = feed.ToRss()
 		case "atom":
+			c.Header("Content-Type", "application/xml")
 			output, err = feed.ToAtom()
 		case "json":
+			c.Header("Content-Type", "application/json")
 			output, err = feed.ToJSON()
 		}
 

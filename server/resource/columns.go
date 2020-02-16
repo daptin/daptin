@@ -1229,7 +1229,6 @@ var StandardTables = []TableInfo{
 				ColumnType:   "label",
 				DataType:     "text",
 				IsNullable:   false,
-				DefaultValue: "''",
 			},
 			{
 				Name:         "link",
