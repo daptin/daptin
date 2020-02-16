@@ -578,7 +578,7 @@ var SystemActions = []Action{
 		Name:             "import_data",
 		Label:            "Import data from dump",
 		OnType:           "world",
-		InstanceOptional: true,
+		InstanceOptional: false,
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "JSON Dump file",
@@ -598,7 +598,6 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"world_reference_id":       "$.reference_id",
-					"execute_middleware_chain": "~execute_middleware_chain",
 					"truncate_before_insert":   "~truncate_before_insert",
 					"dump_file":                "~dump_file",
 					"table_name":               "$.table_name",
