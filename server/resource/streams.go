@@ -109,6 +109,21 @@ func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint
 			oldName := transformation.Attributes["OldName"].(string)
 			newName := transformation.Attributes["NewName"].(string)
 			df = df.Rename(newName, oldName)
+
+		case "duplicate":
+			oldName := transformation.Attributes["ColumnName"].(string)
+			newName := transformation.Attributes["NewColumnName"].(string)
+
+			newVals := make([]interface{}, 0)
+
+			for _, row := range items {
+				row[newName] = row[oldName]
+				newVals = append(newVals, row[oldName])
+			}
+
+			df = df.Mutate(
+				series.New(newVals, series.String, newName),
+			)
 		case "drop":
 			var indexes interface{}
 			indexes, ok := transformation.Attributes["Columns"].([]string)
