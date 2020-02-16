@@ -2293,7 +2293,7 @@ type TableInfo struct {
 func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {
 
 	for _, col := range ti.Columns {
-		if col.Name == name {
+		if col.Name == name || col.ColumnName == name {
 			return &col, true
 		}
 	}
