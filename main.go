@@ -96,7 +96,7 @@ func main() {
 	err = trigger.On("restart", func() {
 		log.Printf("Trigger restart")
 
-		taskScheduler.StartTasks()
+		taskScheduler.StopTasks()
 		mailDaemon.Shutdown()
 		err = db.Close()
 		if err != nil {
@@ -107,6 +107,7 @@ func main() {
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
+		log.Printf("Restart complete")
 	})
 	resource.CheckErr(err, "Error while adding restart trigger function")
 
