@@ -964,6 +964,9 @@ func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{})
 	}
 
 	_, err = dr.db.Exec(sqlString, args...)
+	if err != nil {
+		log.Errorf("Failed SQL  [%v] [%v]", sqlString, args)
+	}
 	return err
 }
 
