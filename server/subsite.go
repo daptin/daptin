@@ -286,6 +286,11 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			subSite, isSubSite := hs.siteMap[firstSubFolder]
 			if isSubSite {
 
+				if BeginsWithCheck(r.URL.Path, "/.well-known") {
+					hs.handlerMap["default"].ServeHTTP(w, r)
+					return
+				}
+
 				permission := subSite.Permission
 				userI := r.Context().Value("user")
 				var user *auth.SessionUser
