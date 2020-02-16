@@ -50,7 +50,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
 	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), "en")
 
-	if languagePreferences != nil {
+	if languagePreferences != nil && len(languagePreferences) > 0 {
 		log.Printf("Language preference: %v", languagePreferences)
 	}
 

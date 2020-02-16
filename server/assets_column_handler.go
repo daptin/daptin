@@ -38,7 +38,7 @@ func Etag(content []byte) (string, error) {
 	return fmt.Sprintf(etagFormat, hash.Sum(nil)), nil
 }
 
-func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
+func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Context) {
 	return func(c *gin.Context) {
 		var typeName = c.Param("typename")
 		var resourceId = c.Param("resource_id")

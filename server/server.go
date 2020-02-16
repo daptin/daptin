@@ -371,7 +371,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
 	resource.InitialiseColumnManager()
 
-	dbAssetHandler := CreateDbAssetHandler(&initConfig, cruds)
+	dbAssetHandler := CreateDbAssetHandler(cruds)
 	defaultRouter.GET("/asset/:typename/:resource_id/:columnname", dbAssetHandler)
 
 	configHandler := CreateConfigHandler(&initConfig, cruds, configStore)

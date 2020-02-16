@@ -387,7 +387,12 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	if err != nil {
 		return err
 	}
-	t.Logf("Image length: %v", len(imbBody))
+	imgLen := len(imbBody)
+	t.Logf("Image length: %v", imgLen)
+
+	if imgLen == 0 {
+		t.Errorf("Image length is 0")
+	}
 
 
 	Params := []string{
@@ -445,6 +450,40 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 
 	}
+
+
+	// do a sign in
+	resp, err = r.Post(baseAddress+"/action/world/become_admin", req.BodyJSON(map[string]interface{}{
+		"attributes": map[string]interface{}{},
+	}), req.Header{
+		"Authorization": "Bearer " + token,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	becomeAdminResponse := resp.String()
+	t.Logf("Become admin response: [%v]", becomeAdminResponse)
+
+	resp, err = r.Get(baseAddress+"/_config/backend/hostname", req.Header{
+		"Authorization": "Bearer " + token,
+	})
+	if err != nil {
+		return err
+	}
+
+	t.Logf("Hostname from config: %v", resp.String())
+
+	resp, err = r.Post(baseAddress+"/_config/backend/hostname", req.Header{
+		"Authorization": "Bearer " + token,
+	}, "test")
+	if err != nil {
+		return err
+	}
+
+	t.Logf("Hostname from config: %v", resp.String())
+
 
 
 

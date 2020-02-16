@@ -348,8 +348,8 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 		CreateTable(tableInfo, tx)
 		return
 	} else {
-		var dest map[string]interface{}
-		err = rowx.Scan(&dest)
+		dest := make(map[string]interface{})
+		err = rowx.MapScan(dest)
 		CheckErr(err, "Failed to scan query result to map")
 	}
 
@@ -373,7 +373,8 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 
 			if info.DataType == "" {
 				log.Infof("No column type known for column: %v", info)
-				continue
+				info.DataType = "varchar(50)"
+				//continue
 			}
 
 			query := alterTableAddColumn(tableInfo.TableName, &info, tx.DriverName())
