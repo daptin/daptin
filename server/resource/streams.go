@@ -34,6 +34,11 @@ func (dr *StreamProcessor) GetContract() StreamContract {
 	return dr.contract
 }
 
+// Get the contract
+func (dr *StreamProcessor) GetName() string {
+	return dr.contract.StreamName
+}
+
 // FindOne implementation in accordance with JSONAPI
 // FindOne is not implemented for streams
 func (dr *StreamProcessor) FindOne(ID string, req api2go.Request) (api2go.Responder, error) {

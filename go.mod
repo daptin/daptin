@@ -66,7 +66,7 @@ require (
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b // indirect
 	github.com/google/pprof v0.0.0-20190908185732-236ed259b199 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f // indirect
-	github.com/gorilla/feeds v1.1.1 // indirect
+	github.com/gorilla/feeds v1.1.1
 	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
