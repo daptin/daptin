@@ -597,11 +597,11 @@ var SystemActions = []Action{
 				Type:   "__data_import",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"world_reference_id":       "$.reference_id",
-					"truncate_before_insert":   "~truncate_before_insert",
-					"dump_file":                "~dump_file",
-					"table_name":               "$.table_name",
-					"user":                     "~user",
+					"world_reference_id":     "$.reference_id",
+					"truncate_before_insert": "~truncate_before_insert",
+					"dump_file":              "~dump_file",
+					"table_name":             "$.table_name",
+					"user":                   "~user",
 				},
 			},
 		},
@@ -1188,6 +1188,23 @@ var StandardTables = []TableInfo{
 				ColumnType: "encrypted",
 				DataType:   "text",
 				IsNullable: true,
+			},
+		},
+	},
+	{
+		TableName:     "feed",
+		IsHidden:      true,
+		DefaultGroups: adminsGroup,
+		Icon:          "fa-rss",
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "name",
+				ColumnName: "name",
+				IsUnique:   true,
+				IsIndexed:  true,
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+				IsNullable: false,
 			},
 		},
 	},
@@ -2277,17 +2294,17 @@ type TableInfo struct {
 	Relations              []api2go.TableRelation
 	IsTopLevel             bool `db:"is_top_level"`
 	Permission             auth.AuthPermission
-	UserId                 uint64 `db:"user_account_id"`
-	IsHidden               bool   `db:"is_hidden"`
-	IsJoinTable            bool   `db:"is_join_table"`
-	IsStateTrackingEnabled bool   `db:"is_state_tracking_enabled"`
-	IsAuditEnabled         bool   `db:"is_audit_enabled"`
-	TranslationsEnabled    bool   `db:"translation_enabled"`
-	DefaultGroups []string `db:"default_groups"`
-	Validations   []ColumnTag
-	Conformations []ColumnTag
-	DefaultOrder  string
-	Icon          string
+	UserId                 uint64   `db:"user_account_id"`
+	IsHidden               bool     `db:"is_hidden"`
+	IsJoinTable            bool     `db:"is_join_table"`
+	IsStateTrackingEnabled bool     `db:"is_state_tracking_enabled"`
+	IsAuditEnabled         bool     `db:"is_audit_enabled"`
+	TranslationsEnabled    bool     `db:"translation_enabled"`
+	DefaultGroups          []string `db:"default_groups"`
+	Validations            []ColumnTag
+	Conformations          []ColumnTag
+	DefaultOrder           string
+	Icon                   string
 }
 
 func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {
