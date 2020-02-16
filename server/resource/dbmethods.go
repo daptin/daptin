@@ -914,8 +914,23 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 	return m[0], err
 }
 
-func (dr *DbResource) TruncateTable(typeName string) error {
+func (dr *DbResource) TruncateTable(typeName string, skipRelations bool) error {
 	log.Printf("Truncate table: %v", typeName)
+
+	if !skipRelations {
+
+		var err error
+		for _, rel := range dr.tableInfo.Relations {
+
+			if rel.Subject == dr.tableInfo.TableName {
+				err = dr.TruncateTable(rel.Object, true)
+			} else {
+				err = dr.TruncateTable(rel.Subject, true)
+			}
+			CheckErr(err, "Failed to truncate related table before truncate table [%v] [%v]", typeName, rel)
+
+		}
+	}
 
 	s, q, err := statementbuilder.Squirrel.Delete(typeName).ToSql()
 	if err != nil {
@@ -923,6 +938,7 @@ func (dr *DbResource) TruncateTable(typeName string) error {
 	}
 
 	_, err = dr.db.Exec(s, q...)
+
 	return err
 
 }

@@ -98,11 +98,11 @@ func (d *ImportDataPerformer) DoAction(request Outcome, inFields map[string]inte
 
 			if !ok {
 				log.Infof("Wanted to truncate table, but no instance yet: %v", tableName)
-				d.cruds["world"].TruncateTable(tableName)
+				d.cruds["world"].TruncateTable(tableName, false)
 				continue
 			}
 
-			err := instance.TruncateTable(tableName)
+			err := instance.TruncateTable(tableName, false)
 			if err != nil {
 				log.Errorf("Failed to truncate table before importing data: %v", err)
 			}
