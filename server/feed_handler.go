@@ -3,13 +3,13 @@ package server
 import (
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/feeds"
 	"log"
 	"net/http"
 	"strings"
-	"time"
 )
 
 func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resource.StreamProcessor) func(*gin.Context) {
@@ -34,7 +34,11 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 		feedMap[feed["feed_name"].(string)] = feed
 	}
 	for _, stream := range streamInfos {
-		streamInfoMap[stream["id"].(string)] = stream
+		s, ok := stream["id"].(string)
+		if !ok {
+			s = fmt.Sprintf("%v", stream["id"])
+		}
+		streamInfoMap[s] = stream
 	}
 
 	return func(c *gin.Context) {
@@ -50,7 +54,7 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 			return
 		}
 
-		if !feedInfo["enabled"].(bool) {
+		if feedInfo["enable"].(string) != "1" {
 			c.AbortWithStatus(404)
 			return
 		}
@@ -72,7 +76,7 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 			return
 		}
 
-		pageSize := feedInfo["page_size"].(int64)
+		pageSize := feedInfo["page_size"].(string)
 
 		pr := &http.Request{
 			Method: "GET",
@@ -83,7 +87,7 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 		req := api2go.Request{
 			PlainRequest: pr,
 			QueryParams: map[string][]string{
-				"page[size]": []string{fmt.Sprintf("%v", pageSize)},
+				"page[size]": []string{pageSize},
 			},
 		}
 
@@ -94,29 +98,27 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 			return
 		}
 
+		createdAtTime, _, _ := fieldtypes.GetTime(feedInfo["created_at"].(string))
 		feed := &feeds.Feed{
 			Title:       feedInfo["title"].(string),
 			Link:        &feeds.Link{Href: feedInfo["link"].(string)},
 			Description: feedInfo["description"].(string),
 			Author:      &feeds.Author{Name: feedInfo["author_name"].(string), Email: feedInfo["author_email"].(string)},
-			Created:     feedInfo["created_at"].(time.Time),
+			Created:     createdAtTime,
 		}
 
 		feedItems := make([]*feeds.Item, 0)
 
-		for _, rowInterface := range rows.Result().([]interface{}) {
+		for _, rowInterface := range rows.Result().([]*api2go.Api2GoModel) {
 
-			row, ok := rowInterface.(map[string]interface{})
-			if !ok {
-				resource.CheckErr(err, "row was not of type map[string]interface{}")
-				continue
-			}
+			row := rowInterface.Data
+			createdAtTime, _, _ = fieldtypes.GetTime(row["created_at"].(string))
 			feedItems = append(feedItems, &feeds.Item{
 				Title:       row["title"].(string),
 				Link:        &feeds.Link{Href: row["link"].(string)},
 				Description: row["description"].(string),
 				Author:      &feeds.Author{Name: row["author_name"].(string), Email: row["author_email"].(string)},
-				Created:     row["created_at"].(time.Time),
+				Created:     createdAtTime,
 			})
 
 		}
@@ -134,6 +136,9 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 		case "json":
 			c.Header("Content-Type", "application/json")
 			output, err = feed.ToJSON()
+		default:
+			c.Header("Content-Type", "application/xml")
+			output, err = feed.ToRss()
 		}
 
 		resource.CheckErr(err, "Failed to generate feed [%v]", feedInfo)
