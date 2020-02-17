@@ -587,14 +587,20 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		log.Errorf("Failed to prepare sql: %v", err)
 		return nil, nil, nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		err = stmt.Close()
+		CheckErr(err, "Failed to close statement")
+	}()
 	rows, err := stmt.Queryx(args...)
 
 	if err != nil {
 		log.Infof("Error: %v", err)
 		return nil, nil, nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		err = rows.Close()
+		CheckErr(err, "Failed to close rows")
+	}()
 
 	//log.Infof("Included relations: %v", includedRelations)
 	results, includes, err := dr.ResultToArrayOfMap(rows, dr.model.GetColumnMap(), includedRelations)
