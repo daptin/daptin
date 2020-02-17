@@ -34,7 +34,7 @@ type DaptinFtpDriver struct {
 	nbClients        int32                   // Number of clients
 	AssetFolderCache resource.AssetFolderCache
 	Subsite          resource.SubSite
-	CertManager      resource.CertificateManager
+	CertManager      *resource.CertificateManager
 }
 
 // ClientDriver defines a very basic client driver
@@ -49,7 +49,7 @@ type DaptinFtpServerSettings struct {
 }
 
 // NewDaptinFtpDriver creates a new driver
-func NewDaptinFtpDriver(assetCacheFolder resource.AssetFolderCache, subsite resource.SubSite, certManager resource.CertificateManager) (*DaptinFtpDriver, error) {
+func NewDaptinFtpDriver(assetCacheFolder resource.AssetFolderCache, subsite resource.SubSite, certManager *resource.CertificateManager) (*DaptinFtpDriver, error) {
 
 	drv := &DaptinFtpDriver{
 		Logger:           log.NewNopGKLogger(),
@@ -197,17 +197,7 @@ func (driver *DaptinFtpDriver) WelcomeUser(cc server.ClientContext) (string, err
 
 // AuthUser authenticates the user and selects an handling driver
 func (driver *DaptinFtpDriver) AuthUser(cc server.ClientContext, user, pass string) (server.ClientHandlingDriver, error) {
-	for _, act := range driver.config.Users {
-		if act.User == user && act.Pass == pass {
-			// If we are authenticated, we can return a client driver containing *our* basedir
-			baseDir := driver.BaseDir + string(os.PathSeparator) + act.Dir
-			if err := os.MkdirAll(baseDir, 0750); err != nil {
-				return nil, fmt.Errorf("could not create user dir: %v", err)
-			}
 
-			return &ClientDriver{BaseDir: baseDir}, nil
-		}
-	}
 
 	return nil, fmt.Errorf("could not authenticate you")
 }
@@ -219,12 +209,6 @@ func (driver *DaptinFtpDriver) UserLeft(cc server.ClientContext) {
 
 // ChangeDirectory changes the current working directory
 func (driver *ClientDriver) ChangeDirectory(cc server.ClientContext, directory string) error {
-	if directory == DirDebug {
-		cc.SetDebug(!cc.Debug())
-		return nil
-	} else if directory == DirVirtual {
-		return nil
-	}
 
 	_, err := os.Stat(driver.BaseDir + directory)
 
@@ -238,25 +222,6 @@ func (driver *ClientDriver) MakeDirectory(cc server.ClientContext, directory str
 
 // ListFiles lists the files of a directory
 func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string) ([]os.FileInfo, error) {
-	if directory == DirVirtual {
-		files := make([]os.FileInfo, 0)
-		files = append(files,
-			virtualFileInfo{
-				name: "localpath.txt",
-				mode: os.FileMode(0666),
-				size: 1024,
-			},
-			virtualFileInfo{
-				name: "file2.txt",
-				mode: os.FileMode(0666),
-				size: 2048,
-			},
-		)
-
-		return files, nil
-	} else if directory == DirDebug {
-		return make([]os.FileInfo, 0), nil
-	}
 
 	files, err := ioutil.ReadDir(directory)
 
@@ -274,13 +239,6 @@ func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string)
 
 // OpenFile opens a file in 3 possible modes: read, write, appending write (use appropriate flags)
 func (driver *ClientDriver) OpenFile(cc server.ClientContext, path string, flag int) (server.FileStream, error) {
-	if strings.HasPrefix(path, DirVirtual) {
-		if path == DirVirtual+"/localpath.txt" {
-			return &virtualFile{content: []byte(driver.BaseDir)}, nil
-		}
-
-		return nil, fmt.Errorf("this is a virtual directory, only reading of localpath.txt has been implemented")
-	}
 
 	path = driver.BaseDir + path
 
@@ -299,12 +257,6 @@ func (driver *ClientDriver) OpenFile(cc server.ClientContext, path string, flag 
 
 // GetFileInfo gets some info around a file or a directory
 func (driver *ClientDriver) GetFileInfo(cc server.ClientContext, path string) (os.FileInfo, error) {
-	switch path {
-	case DirVirtual:
-		return &virtualFileInfo{name: "virtual", size: 4096, mode: os.ModeDir}, nil
-	case DirDebug:
-		return &virtualFileInfo{name: "debug", size: 4096, mode: os.ModeDir}, nil
-	}
 
 	path = driver.BaseDir + path
 

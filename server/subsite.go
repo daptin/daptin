@@ -223,7 +223,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 	cmsConfig.SubSites = siteMap
 
-	return hs
+	return hs, subsiteCacheFolders
 }
 
 type StaticFsWithDefaultIndex struct {
