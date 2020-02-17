@@ -156,6 +156,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			fileInfo, err := os.Stat(LogFileLocation)
 			if err != nil {
 				log.Errorf("Failed to stat log file: %v", err)
+				time.Sleep(30 * time.Minute)
+				continue
 			}
 
 			fileMbs := fileInfo.Size() / (1024 * 1024)
