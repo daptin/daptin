@@ -71,6 +71,7 @@ var StandardColumns = []api2go.ColumnInfo{
 
 var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("action", "belongs_to", "world"),
+	api2go.NewTableRelation("ftp_server", "belongs_to", "cloud_store"),
 	api2go.NewTableRelation("world", "has_many", "smd"),
 	api2go.NewTableRelation("oauth_token", "has_one", "oauth_connect"),
 	api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
@@ -597,11 +598,11 @@ var SystemActions = []Action{
 				Type:   "__data_import",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"world_reference_id":       "$.reference_id",
-					"truncate_before_insert":   "~truncate_before_insert",
-					"dump_file":                "~dump_file",
-					"table_name":               "$.table_name",
-					"user":                     "~user",
+					"world_reference_id":     "$.reference_id",
+					"truncate_before_insert": "~truncate_before_insert",
+					"dump_file":              "~dump_file",
+					"table_name":             "$.table_name",
+					"user":                   "~user",
 				},
 			},
 		},
@@ -1863,6 +1864,40 @@ var StandardTables = []TableInfo{
 			},
 		},
 	},
+
+	{
+		TableName:     "ftp_server",
+		DefaultGroups: adminsGroup,
+		IsHidden:      true,
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "name",
+				ColumnName: "name",
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+			},
+			{
+				Name:       "hostname",
+				ColumnName: "hostname",
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+			},
+			{
+				Name:         "enable",
+				ColumnName:   "enable",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				DefaultValue: "0",
+			},
+			{
+				Name:       "listen_interface",
+				ColumnName: "listen_interface",
+				ColumnType: "label",
+				IsUnique:   true,
+				DataType:   "varchar(100)",
+			},
+		},
+	},
 	{
 		TableName:     "site",
 		DefaultGroups: adminsGroup,
@@ -2277,17 +2312,17 @@ type TableInfo struct {
 	Relations              []api2go.TableRelation
 	IsTopLevel             bool `db:"is_top_level"`
 	Permission             auth.AuthPermission
-	UserId                 uint64 `db:"user_account_id"`
-	IsHidden               bool   `db:"is_hidden"`
-	IsJoinTable            bool   `db:"is_join_table"`
-	IsStateTrackingEnabled bool   `db:"is_state_tracking_enabled"`
-	IsAuditEnabled         bool   `db:"is_audit_enabled"`
-	TranslationsEnabled    bool   `db:"translation_enabled"`
-	DefaultGroups []string `db:"default_groups"`
-	Validations   []ColumnTag
-	Conformations []ColumnTag
-	DefaultOrder  string
-	Icon          string
+	UserId                 uint64   `db:"user_account_id"`
+	IsHidden               bool     `db:"is_hidden"`
+	IsJoinTable            bool     `db:"is_join_table"`
+	IsStateTrackingEnabled bool     `db:"is_state_tracking_enabled"`
+	IsAuditEnabled         bool     `db:"is_audit_enabled"`
+	TranslationsEnabled    bool     `db:"translation_enabled"`
+	DefaultGroups          []string `db:"default_groups"`
+	Validations            []ColumnTag
+	Conformations          []ColumnTag
+	DefaultOrder           string
+	Icon                   string
 }
 
 func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {

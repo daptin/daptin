@@ -2,8 +2,14 @@ package server
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+
 	"github.com/PuerkitoBio/goquery"
-	"github.com/artpar/go.uuid"
+	uuid "github.com/artpar/go.uuid"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
 	"github.com/artpar/stats"
 	"github.com/daptin/daptin/server/auth"
@@ -13,11 +19,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"os"
-	"strings"
 )
 
 type HostSwitch struct {

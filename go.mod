@@ -40,7 +40,7 @@ require (
 	github.com/emersion/go-message v0.10.4-0.20190609165112-592ace5bc1ca
 	github.com/emersion/go-sasl v0.0.0-20190520160400-47d427600317
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
-	github.com/fclairamb/ftpserver v0.0.0-20200205001808-94ebeca09cf0 // indirect
+	github.com/fclairamb/ftpserver v0.0.0-20200205001808-94ebeca09cf0
 	github.com/gabriel-vasile/mimetype v0.3.15 // indirect
 	github.com/getkin/kin-openapi v0.2.0
 	github.com/ghodss/yaml v1.0.0

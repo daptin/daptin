@@ -205,9 +205,13 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 		return tlsConfig, certBytesPEM, privateKeyPem, publicKeyPem, nil
 	} else {
 
-		certPEM := certMap["certificate_pem"].(string)
-		privatePEM := certMap["private_key_pem"].(string)
-		publicPEM := certMap["public_key_pem"].(string)
+		var ok bool
+		certPEM, ok := certMap["certificate_pem"].(string)
+		privatePEM, ok := certMap["private_key_pem"].(string)
+		publicPEM, ok := certMap["public_key_pem"].(string)
+		if !ok {
+
+		}
 
 		privatePEMDecrypted, err := Decrypt([]byte(cm.encryptionSecret), privatePEM)
 		publicPEMDecrypted, err := Decrypt([]byte(cm.encryptionSecret), publicPEM)

@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,15 +24,8 @@ import (
 	"github.com/fclairamb/ftpserver/server/log"
 )
 
-const (
-	// DirVirtual is the virtual directory to show how we handle file
-	DirVirtual = "/virtual"
-	// DirDebug is to enable diagnostics debugging
-	DirDebug = "/debug"
-)
-
-// MainDriver defines a very basic ftpserver driver
-type MainDriver struct {
+// DaptinFtpDriver defines a very basic ftpserver driver
+type DaptinFtpDriver struct {
 	Logger    log.Logger              // Logger
 	BaseDir   string                  // Base directory from which to serve file
 	tlsConfig *tls.Config             // TLS config (if applies)
@@ -46,39 +38,35 @@ type ClientDriver struct {
 	BaseDir string // Base directory from which to server file
 }
 
-// Account defines a user/pass password
-type Account struct {
-	User string // Username
-	Pass string // Password
-	Dir  string // Directory
-}
-
 // DaptinFtpServerSettings defines our settings
 type DaptinFtpServerSettings struct {
 	Server         server.Settings // Server settings (shouldn't need to be filled)
-	Users          []*Account      // Credentials
 	MaxConnections int32           // Maximum number of clients that are allowed to connect at the same time
 }
 
-// GetSettings returns some general settings around the server setup
-func (driver *MainDriver) GetSettings() (*server.Settings, error) {
-	f, err := os.Open(driver.SettingsFile)
-	if err != nil {
-		panic(err)
-	}
+// NewDaptinFtpDriver creates a new driver
+func NewDaptinFtpDriver(dir string, settingsFile string) (*DaptinFtpDriver, error) {
+	if dir == "" {
+		var err error
+		dir, err = ioutil.TempDir("", "ftpserver")
 
-	defer func() {
-		if errClose := f.Close(); errClose != nil {
-			fmt.Println("Problem closing file, err:", errClose)
+		if err != nil {
+			return nil, fmt.Errorf("could not find a temporary dir, err: %v", err)
 		}
-	}()
-
-	buf, err := ioutil.ReadAll(f)
-
-	if err != nil {
-		panic(err)
 	}
 
+	drv := &DaptinFtpDriver{
+		Logger:  log.NewNopGKLogger(),
+		BaseDir: dir,
+	}
+
+	return drv, nil
+}
+
+// GetSettings returns some general settings around the server setup
+func (driver *DaptinFtpDriver) GetSettings() (*server.Settings, error) {
+
+	var err error
 	// This is the new IP loading change coming from Ray
 	if driver.config.Server.PublicHost == "" {
 		publicIP := ""
@@ -106,15 +94,11 @@ func (driver *MainDriver) GetSettings() (*server.Settings, error) {
 		}
 	}
 
-	if len(driver.config.Users) == 0 {
-		return nil, errors.New("you must have at least one user defined")
-	}
-
 	return &driver.config.Server, nil
 }
 
 // GetTLSConfig returns a TLS Certificate to use
-func (driver *MainDriver) GetTLSConfig() (*tls.Config, error) {
+func (driver *DaptinFtpDriver) GetTLSConfig() (*tls.Config, error) {
 	if driver.tlsConfig == nil {
 		driver.Logger.Info("msg", "Loading certificate")
 
@@ -134,7 +118,7 @@ func (driver *MainDriver) GetTLSConfig() (*tls.Config, error) {
 // Live generation of a self-signed certificate
 // This implementation of the driver doesn't load a certificate from a file on purpose. But it any proper implementation
 // should most probably load the certificate from a file using tls.LoadX509KeyPair("cert_pub.pem", "cert_priv.pem").
-func (driver *MainDriver) getCertificate() (*tls.Certificate, error) {
+func (driver *DaptinFtpDriver) getCertificate() (*tls.Certificate, error) {
 	driver.Logger.Info("msg", "Creating certificate")
 
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -189,7 +173,7 @@ func (driver *MainDriver) getCertificate() (*tls.Certificate, error) {
 }
 
 // WelcomeUser is called to send the very first welcome message
-func (driver *MainDriver) WelcomeUser(cc server.ClientContext) (string, error) {
+func (driver *DaptinFtpDriver) WelcomeUser(cc server.ClientContext) (string, error) {
 	nbClients := atomic.AddInt32(&driver.nbClients, 1)
 	if nbClients > driver.config.MaxConnections {
 		return "Cannot accept any additional client", fmt.Errorf(
@@ -210,7 +194,7 @@ func (driver *MainDriver) WelcomeUser(cc server.ClientContext) (string, error) {
 }
 
 // AuthUser authenticates the user and selects an handling driver
-func (driver *MainDriver) AuthUser(cc server.ClientContext, user, pass string) (server.ClientHandlingDriver, error) {
+func (driver *DaptinFtpDriver) AuthUser(cc server.ClientContext, user, pass string) (server.ClientHandlingDriver, error) {
 	for _, act := range driver.config.Users {
 		if act.User == user && act.Pass == pass {
 			// If we are authenticated, we can return a client driver containing *our* basedir
@@ -227,7 +211,7 @@ func (driver *MainDriver) AuthUser(cc server.ClientContext, user, pass string) (
 }
 
 // UserLeft is called when the user disconnects, even if he never authenticated
-func (driver *MainDriver) UserLeft(cc server.ClientContext) {
+func (driver *DaptinFtpDriver) UserLeft(cc server.ClientContext) {
 	atomic.AddInt32(&driver.nbClients, -1)
 }
 
@@ -350,25 +334,6 @@ func (driver *ClientDriver) RenameFile(cc server.ClientContext, from, to string)
 	to = driver.BaseDir + to
 
 	return os.Rename(from, to)
-}
-
-// NewSampleDriver creates a sample driver
-func NewSampleDriver(dir string, settingsFile string) (*MainDriver, error) {
-	if dir == "" {
-		var err error
-		dir, err = ioutil.TempDir("", "ftpserver")
-
-		if err != nil {
-			return nil, fmt.Errorf("could not find a temporary dir, err: %v", err)
-		}
-	}
-
-	drv := &MainDriver{
-		Logger:       log.NewNopGKLogger(),
-		BaseDir:      dir,
-	}
-
-	return drv, nil
 }
 
 // The virtual file is an example of how you can implement a purely virtual file

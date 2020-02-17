@@ -2,7 +2,11 @@ package main
 
 import (
 	"flag"
-	"github.com/GeertJohan/go.rice"
+	"io"
+	"io/ioutil"
+	"strings"
+
+	rice "github.com/GeertJohan/go.rice"
 	"github.com/artpar/go-guerrilla"
 	"github.com/daptin/daptin/server"
 	"github.com/daptin/daptin/server/resource"
@@ -12,9 +16,6 @@ import (
 	"github.com/jamiealquiza/envy"
 	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"io/ioutil"
-	"strings"
 
 	//"io"
 	"net/http"
@@ -47,15 +48,15 @@ func init() {
 func main() {
 	//eventEmitter := &emitter.Emitter{}
 
-	var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
-	var connection_string = flag.String("db_connection_string", "daptin.db", "\n\tSQLite: test.db\n"+
+	var dbType = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
+	var connectionString = flag.String("db_connection_string", "daptin.db", "\n\tSQLite: test.db\n"+
 		"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
 		"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
 	var webDashboardSource = flag.String("dashboard", "daptinweb/dist", "path to dist folder for daptin web dashboard")
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
 	var port = flag.String("port", ":6336", "daptin port")
-	var https_port = flag.String("https_port", ":6443", "daptin https port")
+	var httpsPort = flag.String("https_port", ":6443", "daptin https port")
 	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
@@ -74,9 +75,9 @@ func main() {
 	} else {
 		boxRoot = boxRoot1.HTTPBox()
 	}
-	statementbuilder.InitialiseStatementBuilder(*db_type)
+	statementbuilder.InitialiseStatementBuilder(*dbType)
 
-	db, err := server.GetDbConnection(*db_type, *connection_string)
+	db, err := server.GetDbConnection(*dbType, *connectionString)
 	if err != nil {
 		panic(err)
 	}
@@ -103,7 +104,7 @@ func main() {
 			log.Printf("Failed to close DB connections: %v", err)
 		}
 
-		db, err = server.GetDbConnection(*db_type, *connection_string)
+		db, err = server.GetDbConnection(*dbType, *connectionString)
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
@@ -134,7 +135,7 @@ func main() {
 			err = ioutil.WriteFile(keyFile, privateBytes, 0600)
 			resource.CheckErr(err, "Failed to write private key file")
 
-			err1 := http.ListenAndServeTLS(*https_port, certFile, keyFile, &rhs)
+			err1 := http.ListenAndServeTLS(*httpsPort, certFile, keyFile, &rhs)
 			if err1 != nil {
 				log.Errorf("Failed to start TLS server: %v", err1)
 			}
@@ -151,6 +152,7 @@ func main() {
 	log.Printf("Why quit now ?")
 }
 
+// RestartHandlerServer helps in switching the new router with old router with restart is triggered
 type RestartHandlerServer struct {
 	HostSwitch *server.HostSwitch
 }
