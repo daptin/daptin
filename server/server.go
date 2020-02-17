@@ -436,10 +436,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	defaultRouter.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
 	defaultRouter.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
 
-	loader := CreateSubSiteContentHandler(&initConfig, cruds, db)
-	defaultRouter.POST("/site/content/load", loader)
-	defaultRouter.GET("/site/content/load", loader)
-	defaultRouter.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
+	//loader := CreateSubSiteContentHandler(&initConfig, cruds, db)
+	//defaultRouter.POST("/site/content/load", loader)
+	//defaultRouter.GET("/site/content/load", loader)
+	//defaultRouter.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
 	// TODO: make websockets functional at /live
 	//webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
