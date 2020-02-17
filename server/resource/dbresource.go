@@ -16,18 +16,19 @@ import (
 )
 
 type DbResource struct {
-	model            *api2go.Api2GoModel
-	db               sqlx.Ext
-	connection       database.DatabaseConnection
-	tableInfo        *TableInfo
-	Cruds            map[string]*DbResource
-	ms               *MiddlewareSet
-	ActionHandlerMap map[string]ActionPerformerInterface
-	configStore      *ConfigStore
-	contextCache     map[string]interface{}
-	defaultGroups    []int64
-	contextLock      sync.RWMutex
-	AssetFolderCache map[string]map[string]AssetFolderCache
+	model              *api2go.Api2GoModel
+	db                 sqlx.Ext
+	connection         database.DatabaseConnection
+	tableInfo          *TableInfo
+	Cruds              map[string]*DbResource
+	ms                 *MiddlewareSet
+	ActionHandlerMap   map[string]ActionPerformerInterface
+	configStore        *ConfigStore
+	contextCache       map[string]interface{}
+	defaultGroups      []int64
+	contextLock        sync.RWMutex
+	AssetFolderCache   map[string]map[string]AssetFolderCache
+	SubsiteFolderCache map[string]AssetFolderCache
 }
 
 type AssetFolderCache struct {

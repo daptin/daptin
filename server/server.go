@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	server2 "github.com/fclairamb/ftpserver/server"
 	"io"
 	"os"
 	"strings"
@@ -249,7 +250,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	ms := BuildMiddlewareSet(&initConfig, &cruds)
 	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, cruds)
 
-	CreateFtpServers(cruds, configStore)
+	ftpServers, err := CreateFtpServers(cruds)
 
 	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend")
 	if err != nil {
@@ -329,7 +330,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
 	log.Printf("Created task scheduler: %v", TaskScheduler)
-	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
+	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware)
+
+	for k := range cruds {
+		cruds[k].SubsiteFolderCache = subsiteCacheFolders
+	}
+
 	hostSwitch.handlerMap["api"] = defaultRouter
 	hostSwitch.handlerMap["dashboard"] = defaultRouter
 
@@ -356,7 +362,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	TaskScheduler.StartTasks()
 
-	assetColumnFolders := CreateAssetColumnSync(&initConfig, db, cruds, authMiddleware)
+	assetColumnFolders := CreateAssetColumnSync(cruds)
 	for k := range cruds {
 		cruds[k].AssetFolderCache = assetColumnFolders
 	}
@@ -444,6 +450,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	defaultRouter.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
 
 	loader := CreateSubSiteContentHandler(&initConfig, cruds, db)
+
 	defaultRouter.POST("/site/content/load", loader)
 	defaultRouter.GET("/site/content/load", loader)
 	defaultRouter.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
@@ -484,21 +491,41 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 }
 
-func CreateFtpServers(resources map[string]*resource.DbResource, store *resource.ConfigStore) error {
+func CreateFtpServers(resources map[string]*resource.DbResource, certManager resource.CertificateManager) ([]server2.MainDriver, error) {
 
-	ftpServers, err := resources["ftp_server"].GetObjectByWhereClause("ftp_server", "enable", 1)
+	servers := make([]server2.MainDriver, 0)
+	subsites, err := resources["ftp_server"].GetAllSites()
+	if err != nil {
+		return servers, err
+	}
+	cloudStores, err := resources["cloud_store"].GetAllCloudStores()
 
 	if err != nil {
-		return err
+		return servers, err
+	}
+	cloudStoreMap := make(map[string]resource.CloudStore)
+	for _, cloudStore := range cloudStores {
+		cloudStoreMap[cloudStore.ReferenceId] = cloudStore
+	}
+	var driver *DaptinFtpDriver
+
+	for _, ftpServer := range subsites {
+
+		if !ftpServer.FtpEnabled {
+			continue
+		}
+
+		assetCacheFolder, ok := resources["site"].SubsiteFolderCache[ftpServer.ReferenceId]
+		if !ok {
+			continue
+		}
+		driver, err = NewDaptinFtpDriver(assetCacheFolder, ftpServer, certManager)
+		resource.CheckErr(err, "Failed to create daptin ftp driver [%v]", ftpServer)
+		servers = append(servers, driver)
+
 	}
 
-	for _, ftpServer := range ftpServers {
-
-		hostname := ftpServer["hostname"]
-
-	}
-
-	return nil
+	return servers, err
 
 }
 

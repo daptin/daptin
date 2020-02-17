@@ -1883,13 +1883,6 @@ var StandardTables = []TableInfo{
 				DataType:   "varchar(100)",
 			},
 			{
-				Name:         "enable",
-				ColumnName:   "enable",
-				ColumnType:   "truefalse",
-				DataType:     "int(1)",
-				DefaultValue: "0",
-			},
-			{
 				Name:       "listen_interface",
 				ColumnName: "listen_interface",
 				ColumnType: "label",
@@ -1934,6 +1927,14 @@ var StandardTables = []TableInfo{
 				ColumnType:   "truefalse",
 				DataType:     "bool",
 				DefaultValue: "false",
+			},
+
+			{
+				Name:         "ftp_enabled",
+				ColumnName:   "ftp_enabled",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				DefaultValue: "0",
 			},
 		},
 	},

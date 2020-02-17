@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
+	"github.com/daptin/daptin/server/resource"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -26,11 +27,14 @@ import (
 
 // DaptinFtpDriver defines a very basic ftpserver driver
 type DaptinFtpDriver struct {
-	Logger    log.Logger              // Logger
-	BaseDir   string                  // Base directory from which to serve file
-	tlsConfig *tls.Config             // TLS config (if applies)
-	config    DaptinFtpServerSettings // Our settings
-	nbClients int32                   // Number of clients
+	Logger           log.Logger              // Logger
+	BaseDir          string                  // Base directory from which to serve file
+	tlsConfig        *tls.Config             // TLS config (if applies)
+	config           DaptinFtpServerSettings // Our settings
+	nbClients        int32                   // Number of clients
+	AssetFolderCache resource.AssetFolderCache
+	Subsite          resource.SubSite
+	CertManager      resource.CertificateManager
 }
 
 // ClientDriver defines a very basic client driver
@@ -45,19 +49,17 @@ type DaptinFtpServerSettings struct {
 }
 
 // NewDaptinFtpDriver creates a new driver
-func NewDaptinFtpDriver(dir string, settingsFile string) (*DaptinFtpDriver, error) {
-	if dir == "" {
-		var err error
-		dir, err = ioutil.TempDir("", "ftpserver")
-
-		if err != nil {
-			return nil, fmt.Errorf("could not find a temporary dir, err: %v", err)
-		}
-	}
+func NewDaptinFtpDriver(assetCacheFolder resource.AssetFolderCache, subsite resource.SubSite, certManager resource.CertificateManager) (*DaptinFtpDriver, error) {
 
 	drv := &DaptinFtpDriver{
-		Logger:  log.NewNopGKLogger(),
-		BaseDir: dir,
+		Logger:           log.NewNopGKLogger(),
+		BaseDir:          assetCacheFolder.LocalSyncPath,
+		AssetFolderCache: assetCacheFolder,
+		Subsite:          subsite,
+		CertManager:      certManager,
+		config: DaptinFtpServerSettings{
+			MaxConnections: 100,
+		},
 	}
 
 	return drv, nil
