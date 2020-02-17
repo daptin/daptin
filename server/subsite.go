@@ -249,7 +249,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	pathParts := strings.Split(r.URL.Path, "/")
 
 	if BeginsWithCheck(r.URL.Path, "/.well-known") {
-		hs.handlerMap["default"].ServeHTTP(w, r)
+		hs.handlerMap["dashboard"].ServeHTTP(w, r)
 		return
 	}
 
@@ -756,7 +756,7 @@ func BeginsWithCheck(str string, beginsWith string) bool {
 
 	prefix := str[:len(beginsWith)]
 	i := prefix == beginsWith
-	log.Printf("Check [%v] begins with [%v]: %v", str, beginsWith, i)
+	//log.Printf("Check [%v] begins with [%v]: %v", str, beginsWith, i)
 	return i
 
 }
