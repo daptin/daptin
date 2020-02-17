@@ -22,7 +22,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 				log.Infof("Create unique index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
-					//log.Infof("Table[%v] Column[%v]: Failed to create unique index: %v", table.TableName, column.ColumnName, err)
+					log.Infof("Table[%v] Column[%v]: Failed to create unique index: %v", table.TableName, column.ColumnName, err)
 				}
 			}
 		}
@@ -96,7 +96,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 				//log.Infof("Alter table add constraint sql: %v", alterSql)
 				_, err := db.Exec(alterSql)
 				if err != nil {
-					//log.Infof("Failed to create foreign key [%v], probably it exists: %v", err, keyName)
+					log.Infof("Failed to create foreign key [%v], probably it exists: %v", err, keyName)
 				} else {
 					log.Infof("Key created [%v][%v]", keyName, table.TableName)
 				}

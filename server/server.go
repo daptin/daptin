@@ -2,12 +2,17 @@ package server
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/go-guerrilla"
-	"github.com/artpar/go-imap-idle"
+	idle "github.com/artpar/go-imap-idle"
 	"github.com/artpar/go-imap/server"
-	"github.com/artpar/go.uuid"
+	uuid "github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/stats"
@@ -19,15 +24,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hpcloud/tail"
 	"github.com/icrowley/fake"
-	"io"
-	"os"
-	"strings"
-	"time"
+
 	//"github.com/gin-gonic/gin"
-	graphqlhandler "github.com/graphql-go/handler"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
+
+	graphqlhandler "github.com/graphql-go/handler"
+	log "github.com/sirupsen/logrus"
 )
 
 var TaskScheduler resource.TaskScheduler
@@ -245,6 +248,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	ms := BuildMiddlewareSet(&initConfig, &cruds)
 	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, cruds)
+
+	CreateFtpServers(cruds, configStore)
 
 	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend")
 	if err != nil {
@@ -476,6 +481,24 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	CleanUpConfigFiles()
 
 	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager
+
+}
+
+func CreateFtpServers(resources map[string]*resource.DbResource, store *resource.ConfigStore) error {
+
+	ftpServers, err := resources["ftp_server"].GetObjectByWhereClause("ftp_server", "enable", 1)
+
+	if err != nil {
+		return err
+	}
+
+	for _, ftpServer := range ftpServers {
+
+		hostname := ftpServer["hostname"]
+
+	}
+
+	return nil
 
 }
 
