@@ -247,6 +247,12 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// If yes, use it to handle the request.
 	hostName := strings.Split(r.Host, ":")[0]
 	pathParts := strings.Split(r.URL.Path, "/")
+
+	if BeginsWithCheck(r.URL.Path, "/.well-known") {
+		hs.handlerMap["default"].ServeHTTP(w, r)
+		return
+	}
+
 	if handler := hs.handlerMap[hostName]; handler != nil && !(len(pathParts) > 1 && apiPaths[pathParts[1]]) {
 
 		ok, abort, modifiedRequest := hs.authMiddleware.AuthCheckMiddlewareWithHttp(r, w, true)
@@ -255,6 +261,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		subSite := hs.siteMap[hostName]
+
 		permission := subSite.Permission
 		if abort {
 			w.Header().Set("WWW-Authenticate", `Basic realm="`+hostName+`"`)
@@ -287,11 +294,6 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			firstSubFolder := pathParts[1]
 			subSite, isSubSite := hs.siteMap[firstSubFolder]
 			if isSubSite {
-
-				if BeginsWithCheck(r.URL.Path, "/.well-known") {
-					hs.handlerMap["default"].ServeHTTP(w, r)
-					return
-				}
 
 				permission := subSite.Permission
 				userI := r.Context().Value("user")
@@ -754,6 +756,7 @@ func BeginsWithCheck(str string, beginsWith string) bool {
 
 	prefix := str[:len(beginsWith)]
 	i := prefix == beginsWith
+	log.Printf("Check [%v] begins with [%v]: %v", str, beginsWith, i)
 	return i
 
 }
