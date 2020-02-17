@@ -250,7 +250,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	ms := BuildMiddlewareSet(&initConfig, &cruds)
 	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, cruds)
 
-	ftpServers, err := CreateFtpServers(cruds)
 
 	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend")
 	if err != nil {
@@ -261,6 +260,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	certificateManager, err := resource.NewCertificateManager(cruds, configStore)
 	resource.CheckErr(err, "Failed to create certificate manager")
 
+	ftpServers, err := CreateFtpServers(cruds, certificateManager)
+	for _, ftpServer := range ftpServers {
+		ftpServer.GetTLSConfig()
+	}
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 
 	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager)
@@ -491,7 +494,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 }
 
-func CreateFtpServers(resources map[string]*resource.DbResource, certManager resource.CertificateManager) ([]server2.MainDriver, error) {
+func CreateFtpServers(resources map[string]*resource.DbResource, certManager *resource.CertificateManager) ([]server2.MainDriver, error) {
 
 	servers := make([]server2.MainDriver, 0)
 	subsites, err := resources["ftp_server"].GetAllSites()
