@@ -44,9 +44,8 @@ require (
 	github.com/gabriel-vasile/mimetype v0.3.15 // indirect
 	github.com/getkin/kin-openapi v0.2.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/gin-contrib/sse v0.0.0-20190301062529-5545eab6dad3 // indirect
 	github.com/gin-contrib/static v0.0.0-20181225054800-cf5e10bbd933
-	github.com/gin-gonic/gin v1.3.0
+	github.com/gin-gonic/gin v1.4.0
 	github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a // indirect
 	github.com/go-acme/lego/v3 v3.2.0
 	github.com/go-gota/gota v0.0.0-20190402185630-1058f871be31
@@ -82,11 +81,11 @@ require (
 	github.com/json-iterator/go v1.1.7
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kr/pty v1.1.8 // indirect
-	github.com/labstack/echo v0.0.0-20181205161348-3f8b45c8d0dd // indirect
 	github.com/leodido/go-urn v0.0.0-20181204092800-a67a23e1c1af // indirect
 	github.com/lib/pq v1.0.0
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
 	github.com/magiconair/properties v1.8.1 // indirect
+	github.com/manyminds/api2go v0.0.0-20190524072506-70a1ce7752ec // indirect
 	github.com/mattn/go-pointer v0.0.0-20190911064623-a0a44394634f // indirect
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/mattn/goveralls v0.0.2 // indirect
