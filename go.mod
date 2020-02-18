@@ -39,7 +39,10 @@ require (
 	github.com/dlclark/regexp2 v0.0.0-20171009020623-7632a260cbaf // indirect
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
 	github.com/emersion/go-message v0.10.4-0.20190609165112-592ace5bc1ca
-	github.com/emersion/go-sasl v0.0.0-20190520160400-47d427600317
+	github.com/emersion/go-msgauth v0.4.0 // indirect
+	github.com/emersion/go-sasl v0.0.0-20190817083125-240c8404624e
+	github.com/emersion/go-smtp v0.12.1 // indirect
+	github.com/emersion/go-smtp-mta v0.0.0-20170206201558-f9b2f2fd6e9a // indirect
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/gabriel-vasile/mimetype v0.3.15 // indirect
 	github.com/getkin/kin-openapi v0.2.0
