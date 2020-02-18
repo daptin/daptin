@@ -91,10 +91,9 @@ func main() {
 	var certManager *resource.CertificateManager
 	var configStore *resource.ConfigStore
 	var ftpServer *server2.FtpServer
-	var imapServer *imapServer.Server
+	var imapServerInst *imapServer.Server
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInst = server.Main(boxRoot, db)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -105,7 +104,7 @@ func main() {
 		taskScheduler.StopTasks()
 		ftpServer.Stop()
 		mailDaemon.Shutdown()
-		err = imapServer.Close()
+		err = imapServerInst.Close()
 		if err != nil {
 			log.Printf("Failed to close DB connections: %v", err)
 		}
@@ -116,8 +115,7 @@ func main() {
 
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInst = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 		log.Printf("Restart complete")
 	})
