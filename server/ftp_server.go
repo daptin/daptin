@@ -87,20 +87,20 @@ func (driver *DaptinFtpDriver) GetSettings() (*server.Settings, error) {
 	if driver.DaptinFtpServerSettings.Server.PublicHost == "" {
 		publicIP := ""
 
-		driver.Logger.Printf("msg", "Fetching our external IP address...")
+		driver.Logger.Printf("Fetching our external IP address...")
 
 		if publicIP, err = externalIP(); err != nil {
-			driver.Logger.Printf("msg", "Couldn't fetch an external IP", "err", err)
+			resource.CheckErr(err, "Couldn't fetch an external IP", )
 		} else {
 			driver.Logger.Printf(
-				"msg", "Fetched our external IP address",
+				"Fetched our external IP address %v %v %v %v",
 				"action", "external_ip.fetched",
 				"ipAddress", publicIP)
 		}
 
 		// Adding a special case for loopback clients (issue #74)
 		driver.DaptinFtpServerSettings.Server.PublicIPResolver = func(cc server.ClientContext) (string, error) {
-			driver.Logger.Printf("msg", "Resolving public IP", "remoteAddr", cc.RemoteAddr())
+			driver.Logger.Printf("Resolving public IP %v %v", "remoteAddr", cc.RemoteAddr())
 
 			if strings.HasPrefix(cc.RemoteAddr().String(), "127.0.0.1") {
 				return "127.0.0.1", nil
@@ -120,7 +120,7 @@ func (driver *DaptinFtpDriver) GetTLSConfig() (*tls.Config, error) {
 		return driver.tlsConfig, nil
 	}
 	firstSite := ""
-	for s, _ := range driver.Sites {
+	for s := range driver.Sites {
 		firstSite = s
 		break
 	}
@@ -180,7 +180,6 @@ func (driver *DaptinFtpDriver) UserLeft(cc server.ClientContext) {
 
 // ChangeDirectory changes the current working directory
 func (driver *ClientDriver) ChangeDirectory(cc server.ClientContext, directory string) error {
-
 
 	var err error
 	log.Printf("Change directory: [%v]", directory)
@@ -265,7 +264,6 @@ func (driver *ClientDriver) GetFileInfo(cc server.ClientContext, path string) (o
 
 	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
 		strings.Join(strings.Split(path, string(os.PathSeparator))[2:], string(os.PathSeparator))
-
 
 	log.Printf("Get file info [%v]", path)
 

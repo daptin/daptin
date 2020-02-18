@@ -373,20 +373,31 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	fsmManager := resource.NewFsmManager(db, cruds)
 
-	ftp_interface, err := configStore.GetConfigValueFor("ftp.listen_interface", "backend")
+	enableFtp, err := configStore.GetConfigValueFor("ftp.enable", "backend")
 	if err != nil {
-		ftp_interface = "0.0.0.0:2121"
-		err = configStore.SetConfigValueFor("ftp.listen_interface", ftp_interface, "backend")
-		resource.CheckErr(err, "Failed to store default value for ftp.listen_interface")
+		enableFtp = "false"
+		err = configStore.SetConfigValueFor("ftp.enable", enableFtp, "backend")
+		auth.CheckErr(err, "Failed to store default valuel for ftp.enable")
 	}
-	// ftpListener, err := net.Listen("tcp", ftp_interface)
-	// resource.CheckErr(err, "Failed to create listener for FTP")
-	ftpServer, err := CreateFtpServers(cruds, certificateManager, nil)
-	auth.CheckErr(err, "Failed to creat FTP server")
-	go func() {
-		err = ftpServer.ListenAndServe()
-		resource.CheckErr(err, "Failed to listen at ftp interface")
-	}()
+
+	var ftpServer *server2.FtpServer
+	if enableFtp == "true" {
+
+		ftp_interface, err := configStore.GetConfigValueFor("ftp.listen_interface", "backend")
+		if err != nil {
+			ftp_interface = "0.0.0.0:2121"
+			err = configStore.SetConfigValueFor("ftp.listen_interface", ftp_interface, "backend")
+			resource.CheckErr(err, "Failed to store default value for ftp.listen_interface")
+		}
+		// ftpListener, err := net.Listen("tcp", ftp_interface)
+		// resource.CheckErr(err, "Failed to create listener for FTP")
+		ftpServer, err = CreateFtpServers(cruds, certificateManager, nil)
+		auth.CheckErr(err, "Failed to creat FTP server")
+		go func() {
+			err = ftpServer.ListenAndServe()
+			resource.CheckErr(err, "Failed to listen at ftp interface")
+		}()
+	}
 
 	defaultRouter.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
