@@ -13,6 +13,7 @@ import (
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go-guerrilla/response"
 	"github.com/artpar/parsemail"
+	quickgomail "github.com/artpar/quickgomail"
 	"github.com/bjarneh/latinx"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
@@ -245,25 +246,13 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 
 						if rcpt.Host != config.PrimaryHost {
 							log.Printf("Mail is for someone else")
-
-							c, err := smtp.Dial(rcpt.Host)
-							if err != nil {
-								log.Fatal(err)
-							}
-							// Set the sender and recipient.
-							err = c.Mail(sender)
-							resource.CheckErr(err, "Failed to set mail sender")
-							err = c.Rcpt(rcpt.String())
-							resource.CheckErr(err, "Failed to set mail receipting address")
-							// Send the email body.
-							wc, err := c.Data()
-							resource.CheckErr(err, "Error while writing mail to external server", )
-							if _, err = wc.Write(mailBytes); err != nil {
-								resource.CheckErr(err, "Error while writing mail bytes to external server", )
-							}
-							err = c.Close()
-							resource.CheckErr(err, "Failed to close connection after writing mail")
-							continue
+							err = quickgomail.Message{
+								To:      rcpt.String(),
+								From:    sender,
+								Subject: e.Subject,
+								Body:    mailBytes,
+							}.Send()
+							resource.CheckErr(err, "Failed to send mail to actual destination")
 						}
 
 						result, _ := mailck.Check(rcpt.String(), sender)
