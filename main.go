@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	server2 "github.com/fclairamb/ftpserver/server"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -88,8 +89,9 @@ func main() {
 	var taskScheduler resource.TaskScheduler
 	var certManager *resource.CertificateManager
 	var configStore *resource.ConfigStore
+	var ftpServer *server2.FtpServer
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer = server.Main(boxRoot, db)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -97,7 +99,8 @@ func main() {
 	err = trigger.On("restart", func() {
 		log.Printf("Trigger restart")
 
-		taskScheduler.StartTasks()
+		taskScheduler.StopTasks()
+		ftpServer.Stop()
 		mailDaemon.Shutdown()
 		err = db.Close()
 		if err != nil {
@@ -106,7 +109,7 @@ func main() {
 
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
 	resource.CheckErr(err, "Error while adding restart trigger function")
