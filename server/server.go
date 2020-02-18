@@ -323,7 +323,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
-	log.Printf("Created task scheduler: %v", TaskScheduler)
+	//log.Printf("Created task scheduler: %v", TaskScheduler)
 	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
 	hostSwitch.handlerMap["api"] = defaultRouter
 	hostSwitch.handlerMap["dashboard"] = defaultRouter
@@ -375,6 +375,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	dbAssetHandler := CreateDbAssetHandler(cruds)
 	defaultRouter.GET("/asset/:typename/:resource_id/:columnname", dbAssetHandler)
+
+	feedHandler := CreateFeedHandler(cruds, streamProcessors)
+	defaultRouter.GET("/feed/:feedname", feedHandler)
 
 	configHandler := CreateConfigHandler(&initConfig, cruds, configStore)
 	defaultRouter.GET("/_config/:end/:key", configHandler)

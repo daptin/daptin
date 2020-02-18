@@ -71,6 +71,7 @@ var StandardColumns = []api2go.ColumnInfo{
 
 var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("action", "belongs_to", "world"),
+	api2go.NewTableRelation("feed", "belongs_to", "stream"),
 	api2go.NewTableRelation("world", "has_many", "smd"),
 	api2go.NewTableRelation("oauth_token", "has_one", "oauth_connect"),
 	api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
@@ -597,11 +598,11 @@ var SystemActions = []Action{
 				Type:   "__data_import",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"world_reference_id":       "$.reference_id",
-					"truncate_before_insert":   "~truncate_before_insert",
-					"dump_file":                "~dump_file",
-					"table_name":               "$.table_name",
-					"user":                     "~user",
+					"world_reference_id":     "$.reference_id",
+					"truncate_before_insert": "~truncate_before_insert",
+					"dump_file":              "~dump_file",
+					"table_name":             "$.table_name",
+					"user":                   "~user",
 				},
 			},
 		},
@@ -1192,6 +1193,110 @@ var StandardTables = []TableInfo{
 		},
 	},
 	{
+		TableName:     "feed",
+		IsHidden:      true,
+		DefaultGroups: adminsGroup,
+		Icon:          "fa-rss",
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "feed_name",
+				ColumnName: "feed_name",
+				IsUnique:   true,
+				IsIndexed:  true,
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+				IsNullable: false,
+			},
+			{
+				Name:         "title",
+				ColumnName:   "title",
+				ColumnType:   "label",
+				DataType:     "varchar(500)",
+				IsNullable:   false,
+				DefaultValue: "''",
+			},
+			{
+				Name:         "title",
+				ColumnName:   "title",
+				ColumnType:   "label",
+				DataType:     "varchar(500)",
+				IsNullable:   false,
+				DefaultValue: "''",
+			},
+			{
+				Name:         "description",
+				ColumnName:   "description",
+				ColumnType:   "label",
+				DataType:     "text",
+				IsNullable:   false,
+			},
+			{
+				Name:         "link",
+				ColumnName:   "link",
+				ColumnType:   "label",
+				DataType:     "varchar(1000)",
+				IsNullable:   false,
+				DefaultValue: "''",
+			},
+			{
+				Name:         "author_name",
+				ColumnName:   "author_name",
+				ColumnType:   "label",
+				DataType:     "varchar(500)",
+				IsNullable:   false,
+				DefaultValue: "''",
+			},
+			{
+				Name:         "author_email",
+				ColumnName:   "author_email",
+				ColumnType:   "label",
+				DataType:     "varchar(500)",
+				IsNullable:   false,
+				DefaultValue: "''",
+			},
+			{
+				Name:         "enable",
+				ColumnName:   "enable",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				IsNullable:   false,
+				DefaultValue: "0",
+			},
+			{
+				Name:         "enable_atom",
+				ColumnName:   "enable_atom",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				IsNullable:   false,
+				DefaultValue: "1",
+			},
+			{
+				Name:         "enable_json",
+				ColumnName:   "enable_json",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				IsNullable:   false,
+				DefaultValue: "1",
+			},
+			{
+				Name:         "enable_rss",
+				ColumnName:   "enable_rss",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				IsNullable:   false,
+				DefaultValue: "1",
+			},
+			{
+				Name:         "page_size",
+				ColumnName:   "page_size",
+				ColumnType:   "measurement",
+				DataType:     "int(11)",
+				IsNullable:   false,
+				DefaultValue: "1000",
+			},
+		},
+	},
+	{
 		TableName:     "integration",
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,
@@ -1472,6 +1577,14 @@ var StandardTables = []TableInfo{
 				IsNullable: false,
 				ColumnType: "label",
 				IsIndexed:  true,
+			},
+			{
+				Name:         "enable",
+				ColumnName:   "enable",
+				DataType:     "int(1)",
+				IsNullable:   false,
+				ColumnType:   "truefalse",
+				DefaultValue: "1",
 			},
 			{
 				Name:       "stream_contract",
@@ -2277,17 +2390,17 @@ type TableInfo struct {
 	Relations              []api2go.TableRelation
 	IsTopLevel             bool `db:"is_top_level"`
 	Permission             auth.AuthPermission
-	UserId                 uint64 `db:"user_account_id"`
-	IsHidden               bool   `db:"is_hidden"`
-	IsJoinTable            bool   `db:"is_join_table"`
-	IsStateTrackingEnabled bool   `db:"is_state_tracking_enabled"`
-	IsAuditEnabled         bool   `db:"is_audit_enabled"`
-	TranslationsEnabled    bool   `db:"translation_enabled"`
-	DefaultGroups []string `db:"default_groups"`
-	Validations   []ColumnTag
-	Conformations []ColumnTag
-	DefaultOrder  string
-	Icon          string
+	UserId                 uint64   `db:"user_account_id"`
+	IsHidden               bool     `db:"is_hidden"`
+	IsJoinTable            bool     `db:"is_join_table"`
+	IsStateTrackingEnabled bool     `db:"is_state_tracking_enabled"`
+	IsAuditEnabled         bool     `db:"is_audit_enabled"`
+	TranslationsEnabled    bool     `db:"translation_enabled"`
+	DefaultGroups          []string `db:"default_groups"`
+	Validations            []ColumnTag
+	Conformations          []ColumnTag
+	DefaultOrder           string
+	Icon                   string
 }
 
 func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {
