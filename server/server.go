@@ -39,7 +39,8 @@ import (
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer) {
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon,
+	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server.Server) {
 
 	/// Start system initialise
 	log.Infof("Load config files")
@@ -276,6 +277,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		log.Errorf("Failed to start mail daemon: %s", err)
 	}
 
+	var imapServer *server.Server
 	// Create a memory backend
 	enableImapServer, err := configStore.GetConfigValueFor("imap.enabled", "backend")
 	if err == nil && enableImapServer == "true" {
@@ -288,12 +290,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		imapBackend := resource.NewImapServer(cruds)
 
 		// Create a new server
-		s := server.New(imapBackend)
-		s.Addr = imapListenInterface
-		s.Debug = os.Stdout
-		s.Enable(idle.NewExtension())
+		imapServer = server.New(imapBackend)
+		imapServer.Addr = imapListenInterface
+		imapServer.Debug = os.Stdout
+		imapServer.Enable(idle.NewExtension())
 		//s.Debug = os.Stdout
-		s.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
+		imapServer.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
 
 			return &Crammd5{
 				dbResource:  cruds["mail"],
@@ -312,12 +314,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			log.Fatal(err)
 		}
 
-		s.TLSConfig = tlsConfig
+		imapServer.TLSConfig = tlsConfig
 
 		log.Printf("Starting IMAP server at %s\n", imapListenInterface)
 
 		go func() {
-			if err := s.ListenAndServe(); err != nil {
+			if err := imapServer.ListenAndServe(); err != nil {
 				log.Fatal(err)
 			}
 		}()
