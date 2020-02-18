@@ -5,6 +5,7 @@ import (
 	"flag"
 	"github.com/GeertJohan/go.rice"
 	"github.com/artpar/go-guerrilla"
+	server2 "github.com/artpar/go-imap/server"
 	"github.com/daptin/daptin/server"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -125,6 +126,7 @@ func TestServer(t *testing.T) {
 	var taskScheduler resource.TaskScheduler
 	var configStore *resource.ConfigStore
 	var certManager *resource.CertificateManager
+	var imapServer *server2.Server
 
 	configStore, _ = resource.NewConfigStore(db)
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
@@ -132,7 +134,7 @@ func TestServer(t *testing.T) {
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
 	configStore.SetConfigValueFor("logs.enable", "true", "backend")
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -150,7 +152,7 @@ func TestServer(t *testing.T) {
 
 		db, err = server.GetDbConnection(*db_type, *connection_string)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
 
