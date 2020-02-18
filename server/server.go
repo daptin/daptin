@@ -2,11 +2,13 @@ package server
 
 import (
 	"fmt"
-	server2 "github.com/fclairamb/ftpserver/server"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"time"
+
+	server2 "github.com/fclairamb/ftpserver/server"
 
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
@@ -250,7 +252,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	ms := BuildMiddlewareSet(&initConfig, &cruds)
 	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, cruds)
 
-
 	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend")
 	if err != nil {
 		rcloneRetries = 5
@@ -260,10 +261,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	certificateManager, err := resource.NewCertificateManager(cruds, configStore)
 	resource.CheckErr(err, "Failed to create certificate manager")
 
-	ftpServers, err := CreateFtpServers(cruds, certificateManager)
-	for _, ftpServer := range ftpServers {
-		ftpServer.GetTLSConfig()
-	}
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 
 	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager)
@@ -375,6 +372,21 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	authMiddleware.SetUserUserGroupCrud(cruds["user_account_user_account_id_has_usergroup_usergroup_id"])
 
 	fsmManager := resource.NewFsmManager(db, cruds)
+
+	ftp_interface, err := configStore.GetConfigValueFor("ftp.listen_interface", "backend")
+	if err != nil {
+		ftp_interface = "0.0.0.0:2121"
+		err = configStore.SetConfigValueFor("ftp.listen_interface", ftp_interface, "backend")
+		resource.CheckErr(err, "Failed to store default value for ftp.listen_interface")
+	}
+	// ftpListener, err := net.Listen("tcp", ftp_interface)
+	// resource.CheckErr(err, "Failed to create listener for FTP")
+	ftpServer, err := CreateFtpServers(cruds, certificateManager, nil)
+	auth.CheckErr(err, "Failed to creat FTP server")
+	go func() {
+		err = ftpServer.ListenAndServe()
+		resource.CheckErr(err, "Failed to listen at ftp interface")
+	}()
 
 	defaultRouter.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
@@ -494,17 +506,16 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 }
 
-func CreateFtpServers(resources map[string]*resource.DbResource, certManager *resource.CertificateManager) ([]server2.MainDriver, error) {
+func CreateFtpServers(resources map[string]*resource.DbResource, certManager *resource.CertificateManager, listener net.Listener) (*server2.FtpServer, error) {
 
-	servers := make([]server2.MainDriver, 0)
 	subsites, err := resources["ftp_server"].GetAllSites()
 	if err != nil {
-		return servers, err
+		return nil, err
 	}
 	cloudStores, err := resources["cloud_store"].GetAllCloudStores()
 
 	if err != nil {
-		return servers, err
+		return nil, err
 	}
 	cloudStoreMap := make(map[string]resource.CloudStore)
 	for _, cloudStore := range cloudStores {
@@ -512,6 +523,7 @@ func CreateFtpServers(resources map[string]*resource.DbResource, certManager *re
 	}
 	var driver *DaptinFtpDriver
 
+	sites := make([]SubSiteAssetCache, 0)
 	for _, ftpServer := range subsites {
 
 		if !ftpServer.FtpEnabled {
@@ -522,14 +534,26 @@ func CreateFtpServers(resources map[string]*resource.DbResource, certManager *re
 		if !ok {
 			continue
 		}
-		driver, err = NewDaptinFtpDriver(assetCacheFolder, ftpServer, certManager)
-		resource.CheckErr(err, "Failed to create daptin ftp driver [%v]", ftpServer)
-		servers = append(servers, driver)
+		site := SubSiteAssetCache{
+			SubSite:          ftpServer,
+			AssetFolderCache: assetCacheFolder,
+		}
+		sites = append(sites, site)
 
 	}
 
-	return servers, err
+	driver, err = NewDaptinFtpDriver(resources, certManager, sites)
+	driver.DaptinFtpServerSettings.Server.Listener = listener
+	driver.DaptinFtpServerSettings.Server.ListenAddr = "0.0.0.0:2121"
+	ftpS := server2.NewFtpServer(driver)
+	resource.CheckErr(err, "Failed to create daptin ftp driver [%v]", driver)
+	return ftpS, err
 
+}
+
+type SubSiteAssetCache struct {
+	resource.SubSite
+	resource.AssetFolderCache
 }
 
 type Crammd5 struct {
