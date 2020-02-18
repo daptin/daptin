@@ -105,6 +105,7 @@ require (
 	github.com/russross/blackfriday v2.0.0+incompatible
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
 	github.com/sirupsen/logrus v1.4.2
+	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
