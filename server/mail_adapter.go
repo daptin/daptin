@@ -20,7 +20,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/smancke/mailck"
 	"net/http"
-	"net/smtp"
 	"strings"
 )
 
