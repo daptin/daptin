@@ -922,13 +922,29 @@ func (dr *DbResource) TruncateTable(typeName string, skipRelations bool) error {
 		var err error
 		for _, rel := range dr.tableInfo.Relations {
 
-			if rel.Subject == dr.tableInfo.TableName {
-				err = dr.TruncateTable(rel.Object, true)
-			} else {
-				err = dr.TruncateTable(rel.Subject, true)
+			if rel.Relation == "belongs_to" {
+				if rel.Subject == dr.tableInfo.TableName {
+					// err = dr.TruncateTable(rel.Object, true)
+				} else {
+					err = dr.TruncateTable(rel.Object, true)
+				}
 			}
-			CheckErr(err, "Failed to truncate related table before truncate table [%v] [%v]", typeName, rel)
+			if rel.Relation == "has_many" {
+				err = dr.TruncateTable(rel.GetJoinTableName(), true)
+			}
+			if rel.Relation == "has_many_and_belongs_to_many" {
+				err = dr.TruncateTable(rel.GetJoinTableName(), true)
+			}
+			if rel.Relation == "has_one" {
+				if rel.Subject == dr.tableInfo.TableName {
+					// err = dr.TruncateTable(rel.Object, true)
+				} else {
+					err = dr.TruncateTable(rel.Object, true)
+				}
+			}
 
+			CheckErr(err, "Failed to truncate related table before truncate table [%v] [%v]", typeName, rel)
+			err = nil
 		}
 	}
 
