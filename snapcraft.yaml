@@ -1,0 +1,21 @@
+name: daptin
+version: git
+summary: A Headless CMS
+description: |
+  Daptin lets you build API servers on database easily
+
+confinement: devmode
+base: core18
+
+parts:
+  test-daptin:
+    plugin: go
+    go-importpath: github.com/daptin/daptin
+    source: .
+    source-type: git
+    build-packages:
+      - gcc
+
+apps:
+  test-daptin:
+    command: bin/daptin
