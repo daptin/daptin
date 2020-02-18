@@ -252,6 +252,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 								Body:    mailBytes,
 							}.Send()
 							resource.CheckErr(err, "Failed to send mail to actual destination")
+							continue
 						}
 
 						result, _ := mailck.Check(rcpt.String(), sender)
