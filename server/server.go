@@ -39,7 +39,7 @@ import (
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager) {
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer) {
 
 	/// Start system initialise
 	log.Infof("Load config files")
@@ -502,7 +502,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
 
-	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager
+	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer
 
 }
 
