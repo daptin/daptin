@@ -413,6 +413,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	dbAssetHandler := CreateDbAssetHandler(cruds)
 	defaultRouter.GET("/asset/:typename/:resource_id/:columnname", dbAssetHandler)
 
+	feedHandler := CreateFeedHandler(cruds, streamProcessors)
+	defaultRouter.GET("/feed/:feedname", feedHandler)
+
 	configHandler := CreateConfigHandler(&initConfig, cruds, configStore)
 	defaultRouter.GET("/_config/:end/:key", configHandler)
 	defaultRouter.GET("/_config", configHandler)

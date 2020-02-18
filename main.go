@@ -111,6 +111,7 @@ func main() {
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
+		log.Printf("Restart complete")
 	})
 	resource.CheckErr(err, "Error while adding restart trigger function")
 
