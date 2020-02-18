@@ -172,7 +172,7 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Errorf("test failed %v", err)
 	}
-	imapServer.Close()
+	log.Printf("it never started in test: %v", imapServer)
 
 	log.Printf("Shutdown now")
 
