@@ -98,9 +98,17 @@ func main() {
 	err = trigger.On("restart", func() {
 		log.Printf("Trigger restart")
 
+		log.Printf("Close down services and db connection")
 		taskScheduler.StopTasks()
-		mailDaemon.Shutdown()
-		err = imapServer.Close()
+
+		if mailDaemon != nil {
+			mailDaemon.Shutdown()
+		}
+
+		if imapServer != nil {
+			err = imapServer.Close()
+		}
+
 		if err != nil {
 			log.Printf("Failed to close DB connections: %v", err)
 		}
@@ -109,6 +117,8 @@ func main() {
 			log.Printf("Failed to close DB connections: %v", err)
 		}
 
+		log.Printf("All connections closed")
+		log.Printf("Create new connections")
 		db, err = server.GetDbConnection(*db_type, *connection_string)
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)

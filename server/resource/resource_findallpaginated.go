@@ -396,7 +396,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			if !ok {
 				continue
 			}
-			log.Infof("Reverse Relation %v", rel.String())
+			//log.Infof("Reverse Relation %v", rel.String())
 
 			var subjectName string
 			/**
@@ -495,8 +495,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	log.Printf("Id query: [%s]", idsListQuery)
-	log.Printf("Id query args: %v", args)
+	//log.Printf("Id query: [%s]", idsListQuery)
+	//log.Printf("Id query args: %v", args)
 	stmt, err := dr.connection.Preparex(idsListQuery)
 	if err != nil {
 		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
@@ -574,7 +574,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 
 	sql1, args, err := queryBuilder.ToSql()
-	log.Printf("Query: %v == %v", sql1, args)
+	//log.Printf("Query: %v == %v", sql1, args)
 
 	if err != nil {
 		log.Infof("Error: %v", err)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-guerrilla/backends"
-	glog "github.com/artpar/go-guerrilla/log"
 	"github.com/daptin/daptin/server/resource"
 	"io/ioutil"
 	"log"
@@ -45,19 +44,24 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
 		hostnames := server["hostname"].(string)
-		_, certPEMBytes, privatePEMBytes, _, err := certificateManager.GetTLSConfig(hostnames)
+		_, certBytes, privatePEMBytes, publicKeyBytes, err := certificateManager.GetTLSConfig(hostnames)
 
 		if err != nil {
 			log.Printf("Failed to generate Certificates for SMTP server for %s", hostnames)
 		}
 
-		certFilePath := filepath.Join(tempDirectoryPath, hostnames+".cert.pem")
-		privateKeyFilePath := filepath.Join(tempDirectoryPath, hostnames+".private.key.pem")
-		//publicKeyFilePath := filepath.Join(tempDirectoryPath, hostnames+".public.key.pem")
+		//certFilePath := filepath.Join(tempDirectoryPath, hostnames+".cert.pem")
+		privateKeyFilePath := filepath.Join(tempDirectoryPath, hostnames+".private.cert.pem")
+		publicKeyFilePath := filepath.Join(tempDirectoryPath, hostnames+".public.cert.pem")
 
-		err = ioutil.WriteFile(certFilePath, certPEMBytes, 0666)
+		//err = ioutil.WriteFile(certFilePath, certPEMBytes, 0666)
+		//if err != nil {
+		//	log.Printf("Failed to generate Certificates for SMTP server for %s", hostnames)
+		//}
+
+		err = ioutil.WriteFile(publicKeyFilePath, []byte(string(publicKeyBytes)+"\n"+string(certBytes)), 0666)
 		if err != nil {
-			log.Printf("Failed to generate Certificates for SMTP server for %s", hostnames)
+			log.Printf("Failed to generate public key for SMTP server for %s", hostnames)
 		}
 
 		err = ioutil.WriteFile(privateKeyFilePath, privatePEMBytes, 0666)
@@ -68,10 +72,15 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		}
 
 		serverTlsConfig = guerrilla.ServerTLSConfig{
-			StartTLSOn:     true,
-			AlwaysOn:       false,
-			PrivateKeyFile: privateKeyFilePath,
-			PublicKeyFile:  certFilePath,
+			StartTLSOn:               true,
+			AlwaysOn:                 true,
+			PrivateKeyFile:           privateKeyFilePath,
+			PublicKeyFile:            publicKeyFilePath,
+			ClientAuthType:           "NoClientCert",
+			PreferServerCipherSuites: true,
+			Curves:                   []string{"P521", "P384"},
+			Ciphers:                  []string{"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_3DES_EDE_CBC_SHA"},
+			Protocols:                []string{"tls1.0", "tls1.3"},
 		}
 
 		config := guerrilla.ServerConfig{
@@ -79,6 +88,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 			ListenInterface: server["listen_interface"].(string),
 			Hostname:        hostnames,
 			MaxSize:         maxSize,
+			Timeout:         30,
 			TLS:             serverTlsConfig,
 			MaxClients:      int(maxClients),
 			XClientOn:       fmt.Sprintf("%v", server["xclient_on"]) == "1",
@@ -95,7 +105,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 	d := guerrilla.Daemon{
 		Config: &guerrilla.AppConfig{
 			AllowedHosts: hosts,
-			LogLevel:     glog.DebugLevel.String(),
+			LogLevel:     "debug",
 			BackendConfig: backends.BackendConfig{
 				"save_process":       "HeadersParser|Debugger|Hasher|Header|Compressor|DaptinSql",
 				"log_received_mails": true,
