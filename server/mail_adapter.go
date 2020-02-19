@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"database/sql"
 	"encoding/base64"
 	"errors"
@@ -17,6 +18,7 @@ import (
 	"github.com/bjarneh/latinx"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/emersion/go-msgauth/dkim"
 	log "github.com/sirupsen/logrus"
 	"github.com/smancke/mailck"
 	"net/http"
@@ -142,7 +144,7 @@ func DaptinSmtpAuthenticatorCreator(dbResource *resource.DbResource) func(config
 	}
 }
 
-func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decorator {
+func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *resource.CertificateManager) func() backends.Decorator {
 
 	return func() backends.Decorator {
 		var config *SQLProcessorConfig
@@ -245,14 +247,39 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 
 						if rcpt.Host != config.PrimaryHost {
 							log.Printf("Mail is for someone else")
+
+							r := strings.NewReader(string(mailBytes))
+
+							senderHost := strings.Split(sender, "@")[1]
+							_, privateKey, _, _, err := certificateManager.GetTLSConfig(senderHost)
+							if err != nil {
+								log.Errorf("Failed to get private key for domain [%v]", senderHost)
+								log.Errorf("Refusing to send mail without signing")
+								continue
+							}
+
+							signKey, _ := x509.ParsePKCS1PrivateKey(privateKey)
+							options := &dkim.SignOptions{
+								Domain:   senderHost,
+								Selector: senderHost,
+								Signer:   signKey,
+							}
+
+							var b bytes.Buffer
+							if err := dkim.Sign(&b, r, options); err != nil {
+								log.Fatal(err)
+							}
+
 							err = quickgomail.Message{
 								To:      rcpt.String(),
 								From:    sender,
 								Subject: e.Subject,
-								Body:    mailBytes,
+								Body:    b.Bytes(),
 							}.Send()
+
 							resource.CheckErr(err, "Failed to send mail to actual destination")
 							continue
+
 						}
 
 						result, _ := mailck.Check(rcpt.String(), sender)
