@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-func StartSMTPMailServer(resource *resource.DbResource, certificateManager *resource.CertificateManager) (*guerrilla.Daemon, error) {
+func StartSMTPMailServer(resource *resource.DbResource, certificateManager *resource.CertificateManager, primaryHostname string) (*guerrilla.Daemon, error) {
 
 	servers, err := resource.GetAllObjects("mail_server")
 
@@ -33,13 +33,6 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 
 		maxSize, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_size"]), 10, 32)
 		maxClients, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_clients"]), 10, 32)
-
-		authRequired, ok := server["authentication_required"].(bool)
-		if !ok {
-			authRequiredString := "1"
-			authRequiredString, ok = server["authentication_required"].(string)
-			authRequired = authRequiredString == "1"
-		}
 
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
@@ -73,7 +66,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 
 		serverTlsConfig = guerrilla.ServerTLSConfig{
 			StartTLSOn:               true,
-			AlwaysOn:                 true,
+			AlwaysOn:                 false,
 			PrivateKeyFile:           privateKeyFilePath,
 			PublicKeyFile:            publicKeyFilePath,
 			ClientAuthType:           "NoClientCert",
@@ -92,7 +85,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 			TLS:             serverTlsConfig,
 			MaxClients:      int(maxClients),
 			XClientOn:       fmt.Sprintf("%v", server["xclient_on"]) == "1",
-			AuthRequired:    authRequired,
+			AuthRequired:    false,
 			AuthTypes:       []string{"LOGIN"},
 		}
 		hosts = append(hosts, hostnames)
@@ -111,7 +104,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 				"log_received_mails": true,
 				"mail_table":         "mail",
 				"save_workers_size":  1,
-				"primary_mail_host":  "localhost",
+				"primary_mail_host":  primaryHostname,
 			},
 			Servers: serverConfig,
 		},

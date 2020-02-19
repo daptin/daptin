@@ -297,16 +297,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 							return backends.NewResult(fmt.Sprint("554 Error: blacked listed sender")), errors.New("blacklisted sender")
 
-							//
-							//// invalid for some reason
-							//// the reason is contained in result.ResultDetail
-							//// or we can check for different reasons:
-							//switch (result) {
-							//case mailck.InvalidDomain:
-							//// domain is invalid
-							//case mailck.InvalidSyntax:
-							//	// e-mail address syntax is invalid
-							//}
 						}
 
 						mailAccount, err := dbResource.GetUserMailAccountRowByEmail(rcpt.String())
