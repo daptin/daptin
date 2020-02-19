@@ -301,7 +301,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			}
 		})
 
-		tlsConfig, _, _, _, err := certificateManager.GetTLSConfig(hostname)
+		tlsConfig, _, _, _, err := certificateManager.GetTLSConfig(hostname, true)
 
 		if err != nil {
 			log.Fatal(err)

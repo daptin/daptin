@@ -37,7 +37,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
 		hostnames := server["hostname"].(string)
-		_, certBytes, privatePEMBytes, publicKeyBytes, err := certificateManager.GetTLSConfig(hostnames)
+		_, certBytes, privatePEMBytes, publicKeyBytes, err := certificateManager.GetTLSConfig(hostnames, true)
 
 		if err != nil {
 			log.Printf("Failed to generate Certificates for SMTP server for %s", hostnames)
