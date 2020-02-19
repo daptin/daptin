@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"database/sql"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla/authenticators"
@@ -261,7 +262,12 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								continue
 							}
 
-							signKey, _ := x509.ParsePKCS1PrivateKey(privateKey)
+
+							block, _ := pem.Decode([]byte(privateKey))
+							signKey, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
+
+							//signKey.PublicKey
+
 							options := &dkim.SignOptions{
 								Domain:   e.MailFrom.Host,
 								Selector:  "_domainkey.daptin." + e.MailFrom.Host,
