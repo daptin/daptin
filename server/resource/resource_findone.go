@@ -47,9 +47,13 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	//	parts := strings.Split(modelName, "_has_")
 	//}
 
-	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
-	languagePreferences := req.PlainRequest.Context().Value("language_preference").([]string)
 
+	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
+	languagePreferences := make([]string, 0)
+	prefs := req.PlainRequest.Context().Value("language_preference")
+	if prefs != nil {
+		languagePreferences = prefs.([]string)
+	}
 	if languagePreferences != nil && len(languagePreferences) > 0 {
 		log.Printf("Language preference: %v", languagePreferences)
 	}

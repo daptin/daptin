@@ -94,7 +94,7 @@ func TestServer(t *testing.T) {
 	var webDashboardSource = flag.String("dashboard", "daptinweb/dist", "path to dist folder for daptin web dashboard")
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
 	var port = flag.String("port", ":6337", "Daptin port")
-	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
+	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: debug, test, release")
 
 	gin.SetMode(*runtimeMode)
 

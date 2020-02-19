@@ -57,7 +57,7 @@ func main() {
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
 	var port = flag.String("port", ":6336", "daptin port")
 	var https_port = flag.String("https_port", ":6443", "daptin https port")
-	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
+	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: debug, test, release")
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
