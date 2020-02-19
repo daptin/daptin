@@ -247,6 +247,11 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						if rcpt.Host != config.PrimaryHost {
 							log.Printf("Mail is for someone else")
 
+							if e.AuthorizedLogin == "" {
+								log.Errorf("Refusing to send mail without login")
+								continue
+							}
+
 							r := strings.NewReader(string(mailBytes))
 
 							senderHost := strings.Split(sender, "@")[1]
