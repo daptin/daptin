@@ -157,7 +157,7 @@ func TestServer(t *testing.T) {
 	})
 
 	name, _ := os.Hostname()
-	certManager.GetTLSConfig(name)
+	certManager.GetTLSConfig(name, true)
 
 	log.Printf("Listening at port: %v", *port)
 
