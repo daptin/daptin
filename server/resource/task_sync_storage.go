@@ -35,7 +35,6 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, cloudPath string
 	config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
 
 	args := []string{
-		"--log-level", "ERROR",
 		cloudStore.RootPath,
 		tempDirectoryPath,
 	}

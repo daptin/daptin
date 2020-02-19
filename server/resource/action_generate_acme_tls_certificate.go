@@ -223,7 +223,7 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	publicKeyBytes := ""
 	privateKey, err := ParseRsaPrivateKeyFromPemStr(string(certificates.PrivateKey))
 	if err != nil {
-		log.Printf("Failed to paras value as private key")
+		log.Printf("Failed to parse value as private key: %v", err)
 	} else {
 
 		asn1Bytes, err := asn1.Marshal(privateKey.PublicKey)

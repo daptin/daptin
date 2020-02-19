@@ -151,7 +151,6 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 	//targetInformationMap := targetInformation.(map[string]interface{})
 	rootPath := inFields["root_path"].(string)
 	args := []string{
-		"--log-level", "ERROR",
 		tempDirectoryPath,
 		rootPath,
 	}

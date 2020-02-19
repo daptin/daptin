@@ -47,7 +47,6 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
 
 	args := []string{
-		"--log-level", "ERROR",
 		cloudStore.RootPath,
 		tempDirectoryPath,
 	}
