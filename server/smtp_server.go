@@ -117,7 +117,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		},
 	}
 
-	d.AddProcessor("DaptinSql", DaptinSmtpDbResource(resource))
+	d.AddProcessor("DaptinSql", DaptinSmtpDbResource(resource, certificateManager))
 	d.AddAuthenticator(DaptinSmtpAuthenticatorCreator(resource))
 
 	return &d, nil
