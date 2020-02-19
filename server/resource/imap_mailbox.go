@@ -352,6 +352,7 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 	}
 
 	ids := make([]uint32, 0)
+	log.Printf("Mail search results: %v", results)
 	for i, res := range results {
 		if uid {
 			ids = append(ids, uint32(res["id"].(int64)))
