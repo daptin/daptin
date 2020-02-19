@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"database/sql"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla/authenticators"
@@ -289,16 +288,16 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						switch {
 
 						case result.IsValid():
-							log.Printf("SPF check for [%v] was successful", sender)
+							log.Printf("SPF check for [%v] was successful: %v", sender, result)
 
 						case result.IsError():
 							// something went wrong in the smtp communication
 							// we can't say for sure if the address is valid or not
-							log.Printf("SPF check for [%v] was failed", sender)
+							log.Printf("SPF check for [%v] was failed: %v", sender, result)
 
 						case result.IsInvalid():
 
-							return backends.NewResult(fmt.Sprint("554 Error: blacked listed sender")), errors.New("blacklisted sender")
+							log.Printf("554 Error: blacked listed sender: %v", result)
 
 						}
 
