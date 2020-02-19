@@ -264,7 +264,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							signKey, _ := x509.ParsePKCS1PrivateKey(privateKey)
 							options := &dkim.SignOptions{
 								Domain:   e.MailFrom.Host,
-								Selector: e.MailFrom.Host + "_domainkey.daptin",
+								Selector:  "_domainkey.daptin." + e.MailFrom.Host,
 								Signer:   signKey,
 							}
 
