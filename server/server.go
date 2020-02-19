@@ -258,10 +258,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 
-	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager)
+	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager, hostname)
 
 	if err == nil {
 		err = mailDaemon.Start()
+
 		if err != nil {
 			log.Errorf("Failed to start mail daemon: %s", err)
 		} else {
