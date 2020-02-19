@@ -366,8 +366,6 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		colsList = append(colsList, "reference_id")
 		valsList = append(valsList, newUuid)
 	}
-
-	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
 	languagePreferences := make([]string, 0)
 	prefs := req.PlainRequest.Context().Value("language_preference")
 	if prefs != nil {
