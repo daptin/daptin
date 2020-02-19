@@ -26,7 +26,7 @@ jsonapi.replaceMiddleware('errors', {
       return;
     }
 
-    if (response.status == 400) {
+    if (response.status == 400 || response.status == 500) {
       Notification.error({
         "title": "Failed",
         "message": response.title

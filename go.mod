@@ -20,6 +20,7 @@ require (
 	github.com/artpar/go-imap-idle v1.0.2
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
+	github.com/artpar/quickgomail v0.2.0
 	github.com/artpar/rclone v1.50.3
 	github.com/artpar/resty v1.0.1
 	github.com/artpar/stats v1.0.2
@@ -38,7 +39,10 @@ require (
 	github.com/dlclark/regexp2 v0.0.0-20171009020623-7632a260cbaf // indirect
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
 	github.com/emersion/go-message v0.10.4-0.20190609165112-592ace5bc1ca
-	github.com/emersion/go-sasl v0.0.0-20190520160400-47d427600317
+	github.com/emersion/go-msgauth v0.4.0 // indirect
+	github.com/emersion/go-sasl v0.0.0-20190817083125-240c8404624e
+	github.com/emersion/go-smtp v0.12.1 // indirect
+	github.com/emersion/go-smtp-mta v0.0.0-20170206201558-f9b2f2fd6e9a // indirect
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/gabriel-vasile/mimetype v0.3.15 // indirect
 	github.com/getkin/kin-openapi v0.2.0
@@ -66,6 +70,7 @@ require (
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b // indirect
 	github.com/google/pprof v0.0.0-20190908185732-236ed259b199 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f // indirect
+	github.com/gorilla/feeds v1.1.1
 	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
@@ -104,6 +109,7 @@ require (
 	github.com/russross/blackfriday v2.0.0+incompatible
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
 	github.com/sirupsen/logrus v1.4.2
+	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect

@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla/authenticators"
@@ -12,11 +13,13 @@ import (
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go-guerrilla/response"
 	"github.com/artpar/parsemail"
+	quickgomail "github.com/artpar/quickgomail"
 	"github.com/bjarneh/latinx"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
-	"net/http"
 	log "github.com/sirupsen/logrus"
+	"github.com/smancke/mailck"
+	"net/http"
 	"strings"
 )
 
@@ -187,20 +190,21 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 					for i := range e.RcptTo {
 						// use the To header, otherwise rcpt to
 						to = trimToLimit(s.fillAddressFromHeader(e, "To"), 255)
+						rcpt := e.RcptTo[i]
 						if to == "" {
 							// trimToLimit(strings.TrimSpace(e.RcptTo[i].User)+"@"+config.PrimaryHost, 255)
-							to = trimToLimit(strings.TrimSpace(e.RcptTo[i].String()), 255)
+							to = trimToLimit(strings.TrimSpace(rcpt.String()), 255)
 						}
 						mid := trimToLimit(s.fillAddressFromHeader(e, "Message-Id"), 255)
 						if mid == "" {
-							mid = fmt.Sprintf("%s.%s@%s", hash, e.RcptTo[i].User, config.PrimaryHost)
+							mid = fmt.Sprintf("%s.%s@%s", hash, rcpt.User, config.PrimaryHost)
 						}
 						// replyTo is the 'Reply-to' header, it may be blank
 						replyTo := trimToLimit(s.fillAddressFromHeader(e, "Reply-To"), 255)
 						// sender is the 'Sender' header, it may be blank
 						sender := trimToLimit(s.fillAddressFromHeader(e, "Sender"), 255)
 
-						recipient := trimToLimit(strings.TrimSpace(e.RcptTo[i].String()), 255)
+						recipient := trimToLimit(strings.TrimSpace(rcpt.String()), 255)
 						contentType := ""
 						if v, ok := e.Header["Content-Type"]; ok {
 							contentType = trimToLimit(v[0], 255)
@@ -239,11 +243,49 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 						mailBody = base64.StdEncoding.EncodeToString(mailBytes)
 						pr := &http.Request{}
 
-						//mail_server, err := dbResource.GetObjectByWhereClause("mail_server", "hostname", e.RcptTo[i].Host)
+						if rcpt.Host != config.PrimaryHost {
+							log.Printf("Mail is for someone else")
+							err = quickgomail.Message{
+								To:      rcpt.String(),
+								From:    sender,
+								Subject: e.Subject,
+								Body:    mailBytes,
+							}.Send()
+							resource.CheckErr(err, "Failed to send mail to actual destination")
+							continue
+						}
 
-						mailAccount, err := dbResource.GetUserMailAccountRowByEmail(e.RcptTo[i].String())
+						result, _ := mailck.Check(rcpt.String(), sender)
+						switch {
+
+						case result.IsValid():
+							log.Printf("SPF check for [%v] was successful", sender)
+
+						case result.IsError():
+							// something went wrong in the smtp communication
+							// we can't say for sure if the address is valid or not
+							log.Printf("SPF check for [%v] was failed", sender)
+
+						case result.IsInvalid():
+
+							return backends.NewResult(fmt.Sprint("554 Error: blacked listed sender")), errors.New("blacklisted sender")
+
+							//
+							//// invalid for some reason
+							//// the reason is contained in result.ResultDetail
+							//// or we can check for different reasons:
+							//switch (result) {
+							//case mailck.InvalidDomain:
+							//// domain is invalid
+							//case mailck.InvalidSyntax:
+							//	// e-mail address syntax is invalid
+							//}
+						}
+
+						mailAccount, err := dbResource.GetUserMailAccountRowByEmail(rcpt.String())
 
 						if err != nil {
+							log.Errorf("No such user mail account [%v]", rcpt.String())
 							continue
 						}
 
@@ -252,7 +294,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 						sessionUser := &auth.SessionUser{
 							UserId:          user["id"].(int64),
 							UserReferenceId: user["reference_id"].(string),
-							Groups:     	     dbResource.GetObjectUserGroupsByWhere("user_account", "id", user["id"].(int64)),
+							Groups:          dbResource.GetObjectUserGroupsByWhere("user_account", "id", user["id"].(int64)),
 						}
 
 						mailBox, err := dbResource.GetMailAccountBox(mailAccount["id"].(int64), "INBOX")
@@ -266,15 +308,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource) func() backends.Decor
 								continue
 							}
 						}
-
-						//if err == nil {
-						//
-						//	sessionUser = &auth.SessionUser{
-						//		UserId:          user["id"].(int64),
-						//		UserReferenceId: user["reference_id"].(string),
-						//		Groups:          []auth.GroupPermission{},
-						//	}
-						//}
 
 						pr = pr.WithContext(context.WithValue(context.Background(), "user", sessionUser))
 

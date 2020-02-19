@@ -33,7 +33,8 @@ import (
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager) {
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon,
+	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server.Server) {
 
 	/// Start system initialise
 	log.Infof("Load config files")
@@ -156,6 +157,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			fileInfo, err := os.Stat(LogFileLocation)
 			if err != nil {
 				log.Errorf("Failed to stat log file: %v", err)
+				time.Sleep(30 * time.Minute)
+				continue
 			}
 
 			fileMbs := fileInfo.Size() / (1024 * 1024)
@@ -268,6 +271,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		log.Errorf("Failed to start mail daemon: %s", err)
 	}
 
+	var imapServer *server.Server
 	// Create a memory backend
 	enableImapServer, err := configStore.GetConfigValueFor("imap.enabled", "backend")
 	if err == nil && enableImapServer == "true" {
@@ -280,12 +284,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		imapBackend := resource.NewImapServer(cruds)
 
 		// Create a new server
-		s := server.New(imapBackend)
-		s.Addr = imapListenInterface
-		s.Debug = os.Stdout
-		s.Enable(idle.NewExtension())
+		imapServer = server.New(imapBackend)
+		imapServer.Addr = imapListenInterface
+		imapServer.Debug = os.Stdout
+		imapServer.Enable(idle.NewExtension())
 		//s.Debug = os.Stdout
-		s.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
+		imapServer.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
 
 			return &Crammd5{
 				dbResource:  cruds["mail"],
@@ -304,12 +308,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			log.Fatal(err)
 		}
 
-		s.TLSConfig = tlsConfig
+		imapServer.TLSConfig = tlsConfig
 
 		log.Printf("Starting IMAP server at %s\n", imapListenInterface)
 
 		go func() {
-			if err := s.ListenAndServe(); err != nil {
+			if err := imapServer.ListenAndServe(); err != nil {
 				log.Fatal(err)
 			}
 		}()
@@ -321,7 +325,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
-	log.Printf("Created task scheduler: %v", TaskScheduler)
+	//log.Printf("Created task scheduler: %v", TaskScheduler)
 	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
 	hostSwitch.handlerMap["api"] = defaultRouter
 	hostSwitch.handlerMap["dashboard"] = defaultRouter
@@ -373,6 +377,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	dbAssetHandler := CreateDbAssetHandler(cruds)
 	defaultRouter.GET("/asset/:typename/:resource_id/:columnname", dbAssetHandler)
+
+	feedHandler := CreateFeedHandler(cruds, streamProcessors)
+	defaultRouter.GET("/feed/:feedname", feedHandler)
 
 	configHandler := CreateConfigHandler(&initConfig, cruds, configStore)
 	defaultRouter.GET("/_config/:end/:key", configHandler)
@@ -473,7 +480,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
 
-	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager
+	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, imapServer
 
 }
 

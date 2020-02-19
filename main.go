@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/GeertJohan/go.rice"
 	"github.com/artpar/go-guerrilla"
+	imapServer "github.com/artpar/go-imap/server"
 	"github.com/daptin/daptin/server"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -87,8 +88,9 @@ func main() {
 	var taskScheduler resource.TaskScheduler
 	var certManager *resource.CertificateManager
 	var configStore *resource.ConfigStore
+	var imapServer *imapServer.Server
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -96,8 +98,12 @@ func main() {
 	err = trigger.On("restart", func() {
 		log.Printf("Trigger restart")
 
-		taskScheduler.StartTasks()
+		taskScheduler.StopTasks()
 		mailDaemon.Shutdown()
+		err = imapServer.Close()
+		if err != nil {
+			log.Printf("Failed to close DB connections: %v", err)
+		}
 		err = db.Close()
 		if err != nil {
 			log.Printf("Failed to close DB connections: %v", err)
@@ -105,8 +111,9 @@ func main() {
 
 		db, err = server.GetDbConnection(*db_type, *connection_string)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
+		log.Printf("Restart complete")
 	})
 	resource.CheckErr(err, "Error while adding restart trigger function")
 
