@@ -52,6 +52,8 @@ func (ct ColumnType) Fake() interface{} {
 		return randate().Format("15:04:05")
 	case "day":
 		return fake.Day()
+	case "enum":
+		return fake.Day()
 	case "month":
 		return fake.Month()
 	case "year":
@@ -148,6 +150,13 @@ var ColumnTypes = []ColumnType{
 		BlueprintType: "string",
 		ReclineType:   "string",
 		DataTypes:     []string{"varchar(100)", "varchar(20)", "varchar(10)"},
+		GraphqlType:   graphql.String,
+	},
+	{
+		Name:          "enum",
+		BlueprintType: "string",
+		ReclineType:   "string",
+		DataTypes:     []string{"varchar(50)", "varchar(20)", "varchar(10)"},
 		GraphqlType:   graphql.String,
 	},
 	{
@@ -471,7 +480,7 @@ func (ctm *ColumnTypeManager) GetGraphqlType(columnType string) *graphql.Scalar 
 	return ctm.ColumnMap[col].GraphqlType
 }
 
-func (ctm *ColumnTypeManager) GetFakedata(colTypeName string) string {
+func (ctm *ColumnTypeManager) GetFakeData(colTypeName string) string {
 	return fmt.Sprintf("%v", ctm.ColumnMap[colTypeName].Fake())
 }
 

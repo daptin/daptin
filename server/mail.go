@@ -34,11 +34,14 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 
 		maxSize, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_size"]), 10, 32)
 		maxClients, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_clients"]), 10, 32)
-		authRequiredString := server["authentication_required"].(string)
-		authRequired := false
-		if authRequiredString == "1" {
-			authRequired = true
+
+		authRequired, ok := server["authentication_required"].(bool)
+		if !ok {
+			authRequiredString := "1"
+			authRequiredString, ok = server["authentication_required"].(string)
+			authRequired = authRequiredString == "1"
 		}
+
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
 		hostnames := server["hostname"].(string)

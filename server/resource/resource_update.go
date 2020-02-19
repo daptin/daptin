@@ -221,22 +221,46 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				}
 				// 2017-07-13T18:30:00.000Z
 
+			} else if col.ColumnType == "enum" {
+				valString, ok := val.(string)
+				if !ok {
+					valString = fmt.Sprintf("%v", val)
+				}
+
+				isEnumOption := false
+				valString = strings.ToLower(valString)
+				for _, enumVal := range col.Options {
+
+					if valString == enumVal.Value {
+						isEnumOption = true
+						break
+
+					}
+
+				}
+
+				if !isEnumOption {
+					log.Printf("Provided value is not a valid enum option, reject request [%v] [%v]", valString, col.Options)
+					return nil, errors.New(fmt.Sprintf("invalid value for %s", col.Name))
+				}
+				val = valString
+
 			} else if col.ColumnType == "encrypted" {
 
 				secret, err := dr.configStore.GetConfigValueFor("encryption.secret", "backend")
 				if err != nil {
 					log.Errorf("Failed to get secret from config: %v", err)
-					val = ""
+					return nil, errors.New("unable to store a secret at this time")
 				} else {
-					if val != nil {
-						val, err = Encrypt([]byte(secret), val.(string))
-						if err != nil {
-							log.Errorf("Failed to convert string to encrypted value, not storing the value: %v", err)
-							val = ""
-						}
-					} else {
+					if val == nil {
 						val = ""
 					}
+					val, err = Encrypt([]byte(secret), val.(string))
+					if err != nil {
+						log.Errorf("Failed to convert string to encrypted value, not storing the value: %v", err)
+						val = ""
+					}
+
 				}
 			} else if col.ColumnType == "date" {
 
