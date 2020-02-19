@@ -201,6 +201,16 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 
 				switch item {
 				case imap.FetchEnvelope:
+
+
+					flagList := strings.Split(mailContent["flags"].(string), ",")
+					if HasFlag(flagList, imap.RecentFlag) {
+						newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
+						err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), strings.Join(newFlags, ","))
+						if err != nil {
+							log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
+						}
+					}
 					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
 					header, _ := textproto.ReadHeader(bodyReader)
 
