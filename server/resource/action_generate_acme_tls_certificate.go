@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"github.com/artpar/api2go"
@@ -216,13 +217,37 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 
 	certificateString = strings.Split(certificateString, "-----END CERTIFICATE-----")[0] + "-----END CERTIFICATE-----"
 
+	rootCert := string(certificates.IssuerCertificate)
+
+
+	publicKeyBytes := ""
+	privateKey, err := ParseRsaPrivateKeyFromPemStr(string(certificates.PrivateKey))
+	if err != nil {
+		log.Printf("Failed to paras value as private key")
+	} else {
+
+		asn1Bytes, err := asn1.Marshal(privateKey.PublicKey)
+		if err != nil {
+			log.Printf("Failed to generate public key: %v", err)
+		}
+
+		var pemkey = &pem.Block{
+			Type:  "PUBLIC KEY",
+			Bytes: asn1Bytes,
+		}
+
+		publicKeyBytes = string(pem.EncodeToMemory(pemkey))
+	}
+
+
 	newCertificate := map[string]interface{}{
 		"hostname":        hostname,
 		"issuer":          "acme",
 		"generated_at":    time.Now().Format(time.RFC3339),
 		"certificate_pem": certificateString,
 		"private_key_pem": string(certificates.PrivateKey),
-		"public_key_pem":  nil,
+		"public_key_pem":  publicKeyBytes,
+		"root_certificate": rootCert,
 		"reference_id":    certificateSubject["reference_id"].(string),
 	}
 
@@ -249,11 +274,9 @@ func ParseRsaPrivateKeyFromPemStr(privPEM string) (*rsa.PrivateKey, error) {
 	}
 
 	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
 
-	return priv, nil
+
+	return priv, err
 }
 
 

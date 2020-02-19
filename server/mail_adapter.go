@@ -261,20 +261,23 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							signKey, _ := x509.ParsePKCS1PrivateKey(privateKey)
 							options := &dkim.SignOptions{
 								Domain:   senderHost,
-								Selector: senderHost,
+								Selector: senderHost + "_domainkey.daptin",
 								Signer:   signKey,
 							}
 
 							var b bytes.Buffer
 							if err := dkim.Sign(&b, r, options); err != nil {
-								log.Fatal(err)
+								log.Errorf("Failed to sign outgoing mail via dkim, not sending it ahead")
+								return nil, err
 							}
 
+							finalMail := b.Bytes()
+							log.Printf("Final Mail: [%v]", string(finalMail))
 							err = quickgomail.Message{
 								To:      rcpt.String(),
 								From:    sender,
 								Subject: e.Subject,
-								Body:    b.Bytes(),
+								Body:    finalMail,
 							}.Send()
 
 							resource.CheckErr(err, "Failed to send mail to actual destination")

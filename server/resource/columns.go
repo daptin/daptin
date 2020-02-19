@@ -123,6 +123,24 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "download_public_key",
+		Label:            "Download public key",
+		OnType:           "certificate",
+		InstanceOptional: false,
+		OutFields: []Outcome{
+			{
+				Type:   "client.file.download",
+				Method: "ACTIONRESPONSE",
+				Attributes: map[string]interface{}{
+					"content":     "!btoa(subject.public_key_pem)",
+					"name":        "!subject.hostname + '.pem.key.pub'",
+					"contentType": "application/x-x509-ca-cert",
+					"message":     "!'Public Key for ' + subject.hostname",
+				},
+			},
+		},
+	},
+	{
 		Name:             "generate_acme_certificate",
 		Label:            "Generate ACME certificate",
 		OnType:           "certificate",
@@ -1177,6 +1195,13 @@ var StandardTables = []TableInfo{
 				IsNullable: true,
 			},
 			{
+				Name:       "root_certificate",
+				ColumnName: "root_certificate",
+				ColumnType: "content",
+				DataType:   "text",
+				IsNullable: true,
+			},
+			{
 				Name:       "private_key_pem",
 				ColumnName: "private_key_pem",
 				ColumnType: "encrypted",
@@ -1186,7 +1211,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "public_key_pem",
 				ColumnName: "public_key_pem",
-				ColumnType: "encrypted",
+				ColumnType: "content",
 				DataType:   "text",
 				IsNullable: true,
 			},
@@ -1224,11 +1249,11 @@ var StandardTables = []TableInfo{
 				DefaultValue: "''",
 			},
 			{
-				Name:         "description",
-				ColumnName:   "description",
-				ColumnType:   "label",
-				DataType:     "text",
-				IsNullable:   false,
+				Name:       "description",
+				ColumnName: "description",
+				ColumnType: "label",
+				DataType:   "text",
+				IsNullable: false,
 			},
 			{
 				Name:         "link",
