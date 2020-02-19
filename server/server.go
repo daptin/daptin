@@ -276,11 +276,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	enableImapServer, err := configStore.GetConfigValueFor("imap.enabled", "backend")
 	if err == nil && enableImapServer == "true" {
 		imapListenInterface, err := configStore.GetConfigValueFor("imap.listen_interface", "backend")
-		hostname, err := configStore.GetConfigValueFor("hostname", "backend")
 		if err != nil {
-			configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend")
+			err = configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend")
+			auth.CheckErr(err, "Failed to store default imap listen interface in config")
 			imapListenInterface = ":1143"
 		}
+		hostname, _ := configStore.GetConfigValueFor("hostname", "backend")
 		imapBackend := resource.NewImapServer(cruds)
 
 		// Create a new server
@@ -304,16 +305,16 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		//ioutil.WriteFile("/tmp/daptin.private.pem", privateKeyPEMBytes, 0600)
 		//ioutil.WriteFile("/tmp/daptin.public.pem", publicKeyPEMBytes, 0600)
 
+		//tlsConfig.VerifyPeerCertificate = true
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		imapServer.TLSConfig = tlsConfig
 
 		log.Printf("Starting IMAP server at %s\n", imapListenInterface)
 
 		go func() {
-			if err := imapServer.ListenAndServe(); err != nil {
+			if err := imapServer.ListenAndServeTLS(); err != nil {
 				log.Fatal(err)
 			}
 		}()
@@ -498,7 +499,8 @@ type Crammd5 struct {
 // authentication has failed, an error is returned.
 func (c *Crammd5) Next(response []byte) (challenge []byte, done bool, err error) {
 
-	log.Printf("Client sent: %v", string(response))
+	log.Printf(""+
+		"Client sent: %v", string(response))
 
 	if string(response) == "" {
 		newChallenge := fmt.Sprintf("<%v.%v.%v>", fake.DigitsN(8), time.Now().UnixNano(), "daptin")
