@@ -291,7 +291,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		imapServer.Debug = nil
 		imapServer.AllowInsecureAuth = false
 		imapServer.Enable(idle.NewExtension())
-		//s.Debug = os.Stdout
+		imapServer.Debug = os.Stdout
 		imapServer.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
 
 			return &Crammd5{
