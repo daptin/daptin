@@ -91,8 +91,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 
 	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
-	languagePreferences := req.PlainRequest.Context().Value("language_preference").([]string)
 
+
+	languagePreferences := make([]string, 0)
+	prefs := req.PlainRequest.Context().Value("language_preference")
+	if prefs != nil {
+		languagePreferences = prefs.([]string)
+	}
 	if languagePreferences != nil && len(languagePreferences) > 0 {
 		log.Printf("Language preference: %v", languagePreferences)
 	}

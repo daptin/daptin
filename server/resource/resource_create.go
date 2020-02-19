@@ -187,7 +187,6 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 					columnAssetCache.UploadFiles(val.([]interface{}))
 				}
 
-
 				files, ok := val.([]interface{})
 				if ok {
 					for i := range files {
@@ -278,7 +277,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 		} else if col.ColumnType == "enum" {
 			valString, ok := val.(string)
-			if !ok  {
+			if !ok {
 				valString = fmt.Sprintf("%v", val)
 			}
 
@@ -369,7 +368,11 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	}
 
 	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
-	languagePreferences := req.PlainRequest.Context().Value("language_preference").([]string)
+	languagePreferences := make([]string, 0)
+	prefs := req.PlainRequest.Context().Value("language_preference")
+	if prefs != nil {
+		languagePreferences = prefs.([]string)
+	}
 
 	colsList = append(colsList, "permission")
 	valsList = append(valsList, dr.model.GetDefaultPermission())
@@ -430,7 +433,6 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			}
 		}
 	}
-
 
 	//log.Infof("Created entry: %v", createdResource)
 
