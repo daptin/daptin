@@ -57,7 +57,6 @@ func (d *SyncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 	config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
 
 	args := []string{
-		"--log-level", "ERROR",
 		cloudStore.RootPath,
 		cacheFolder.LocalSyncPath,
 	}
