@@ -203,7 +203,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						// replyTo is the 'Reply-to' header, it may be blank
 						replyTo := trimToLimit(s.fillAddressFromHeader(e, "Reply-To"), 255)
 						// sender is the 'Sender' header, it may be blank
-						sender := trimToLimit(s.fillAddressFromHeader(e, "Sender"), 255)
+						sender := e.MailFrom.String()
 
 						recipient := trimToLimit(strings.TrimSpace(rcpt.String()), 255)
 						contentType := ""
@@ -254,18 +254,17 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 							r := strings.NewReader(string(mailBytes))
 
-							senderHost := strings.Split(sender, "@")[1]
-							_, privateKey, _, _, err := certificateManager.GetTLSConfig(senderHost)
+							_, privateKey, _, _, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false)
 							if err != nil {
-								log.Errorf("Failed to get private key for domain [%v]", senderHost)
+								log.Errorf("Failed to get private key for domain [%v]", e.MailFrom.Host)
 								log.Errorf("Refusing to send mail without signing")
 								continue
 							}
 
 							signKey, _ := x509.ParsePKCS1PrivateKey(privateKey)
 							options := &dkim.SignOptions{
-								Domain:   senderHost,
-								Selector: senderHost + "_domainkey.daptin",
+								Domain:   e.MailFrom.Host,
+								Selector: e.MailFrom.Host + "_domainkey.daptin",
 								Signer:   signKey,
 							}
 

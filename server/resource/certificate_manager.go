@@ -127,12 +127,12 @@ func GetPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
 	return publicKeyBytes, privateKeyBytes, key, nil
 }
 
-func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte, []byte, []byte, error) {
+func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound bool) (*tls.Config, []byte, []byte, []byte, error) {
 
 	hostname = strings.Split(hostname, ":")[0]
 	certMap, err := cm.cruds["certificate"].GetObjectByWhereClause("certificate", "hostname", hostname)
 
-	if err != nil || certMap == nil || certMap["certificate_pem"] == nil || certMap["certificate_pem"].(string) == "" {
+	if createIfNotFound && (err != nil || certMap == nil || certMap["certificate_pem"] == nil || certMap["certificate_pem"].(string) == "") {
 
 		publicKeyPem, privateKeyPem, key, err := GetPublicPrivateKeyPEMBytes()
 		if err != nil {
@@ -154,9 +154,9 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 		}
 
 		tlsConfig := &tls.Config{
-			Certificates:       []tls.Certificate{cert},
-			ServerName:         hostname,
-			ClientAuth:         tls.NoClientCert,
+			Certificates: []tls.Certificate{cert},
+			ServerName:   hostname,
+			ClientAuth:   tls.NoClientCert,
 		}
 
 		adminUserReferenceId := cm.cruds["certificate"].GetAdminReferenceId()
@@ -166,13 +166,13 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 		}
 
 		newCertificate := map[string]interface{}{
-			"hostname":        hostname,
-			"issuer":          "self",
-			"generated_at":    time.Now().Format(time.RFC3339),
-			"certificate_pem": string(certBytesPEM),
-			"private_key_pem": string(privateKeyPem),
+			"hostname":         hostname,
+			"issuer":           "self",
+			"generated_at":     time.Now().Format(time.RFC3339),
+			"certificate_pem":  string(certBytesPEM),
+			"private_key_pem":  string(privateKeyPem),
 			"root_certificate": string(certBytesPEM),
-			"public_key_pem":  string(publicKeyPem),
+			"public_key_pem":   string(publicKeyPem),
 		}
 		request := &http.Request{
 			Method: "PUT",
@@ -204,7 +204,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 		}
 
 		return tlsConfig, certBytesPEM, privateKeyPem, publicKeyPem, nil
-	} else {
+	} else if certMap != nil && err == nil {
 
 		certPEM := certMap["certificate_pem"].(string)
 		privatePEM := certMap["private_key_pem"].(string)
@@ -229,4 +229,5 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 		return tlsConfig, []byte(certPEM), []byte(privatePEMDecrypted), []byte(publicPEMDecrypted), nil
 
 	}
+	return nil, nil, nil, nil, errors.New("certificate not found")
 }
