@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/text/language"
@@ -32,7 +33,8 @@ func (lm *LanguageMiddleware) LanguageMiddlewareFunc(c *gin.Context) {
 
 	pref := GetLanguagePreference(c.GetHeader("Accept-Language"), lm.defaultLanguage)
 
-	c.Set("language_preference", pref)
+	//c.Request.Context("language_preference", pref)
+	c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), "language_preference", pref))
 
 }
 

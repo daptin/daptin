@@ -57,6 +57,7 @@ func (d *SyncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 	config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
 
 	args := []string{
+		"--log-level", "ERROR",
 		cloudStore.RootPath,
 		cacheFolder.LocalSyncPath,
 	}
@@ -70,7 +71,7 @@ func (d *SyncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync column storage [%v]", columnName),
 	}
-	go cmd.Run(true, true, cobraCommand, func() error {
+	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Either source or destination is empty")
 			return nil

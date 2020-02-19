@@ -3,7 +3,6 @@ package resource
 import (
 	"fmt"
 	"github.com/daptin/daptin/server/auth"
-	"golang.org/x/text/language"
 	"strconv"
 	"strings"
 
@@ -92,7 +91,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 
 	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
-	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), "en")
+	languagePreferences := req.PlainRequest.Context().Value("language_preference").([]string)
 
 	if languagePreferences != nil && len(languagePreferences) > 0 {
 		log.Printf("Language preference: %v", languagePreferences)
@@ -623,32 +622,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 }
 
-func GetLanguagePreference(header string, defaultLanguage string) []string {
-	preferredLanguage := header
-
-	if preferredLanguage == "" {
-		preferredLanguage = defaultLanguage
-	}
-
-	languageTags, _, err := language.ParseAcceptLanguage(preferredLanguage)
-	CheckErr(err, "Failed to parse Accept-Language header [%v]", preferredLanguage)
-	pref := make([]string, 0)
-
-	if len(languageTags) == 1 && languageTags[0].String() == defaultLanguage {
-
-	} else {
-
-		for _, tag := range languageTags {
-			base, conf := tag.Base()
-			if conf == 0 {
-				continue
-			}
-			pref = append(pref, base.String())
-		}
-
-	}
-	return pref
-}
 
 func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix string) squirrel.SelectBuilder {
 

@@ -369,7 +369,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	}
 
 	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
-	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), DEFAULT_LANGUAGE)
+	languagePreferences := req.PlainRequest.Context().Value("language_preference").([]string)
 
 	colsList = append(colsList, "permission")
 	valsList = append(valsList, dr.model.GetDefaultPermission())
