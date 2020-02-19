@@ -151,6 +151,7 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 	//targetInformationMap := targetInformation.(map[string]interface{})
 	rootPath := inFields["root_path"].(string)
 	args := []string{
+		"--log-level", "ERROR",
 		tempDirectoryPath,
 		rootPath,
 	}
@@ -182,7 +183,7 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
 	}
 
-	go cmd.Run(true, true, cobraCommand, func() error {
+	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil
