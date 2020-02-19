@@ -171,6 +171,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 			"generated_at":    time.Now().Format(time.RFC3339),
 			"certificate_pem": string(certBytesPEM),
 			"private_key_pem": string(privateKeyPem),
+			"root_certificate": string(certBytesPEM),
 			"public_key_pem":  string(publicKeyPem),
 		}
 		request := &http.Request{
@@ -210,7 +211,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 		publicPEM := certMap["public_key_pem"].(string)
 
 		privatePEMDecrypted, err := Decrypt([]byte(cm.encryptionSecret), privatePEM)
-		publicPEMDecrypted, err := Decrypt([]byte(cm.encryptionSecret), publicPEM)
+		publicPEMDecrypted := publicPEM
 
 		if err != nil {
 			log.Printf("Failed to load cert: %v", err)
