@@ -106,7 +106,7 @@ func main() {
 		}
 
 		if imapServer != nil {
-			err = imapServer.Close()
+			// err = imapServer.Close()
 		}
 
 		if err != nil {

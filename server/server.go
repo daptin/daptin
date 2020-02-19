@@ -288,7 +288,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		// Create a new server
 		imapServer = server.New(imapBackend)
 		imapServer.Addr = imapListenInterface
-		imapServer.Debug = os.Stdout
+		imapServer.Debug = nil
 		imapServer.AllowInsecureAuth = false
 		imapServer.Enable(idle.NewExtension())
 		//s.Debug = os.Stdout
@@ -303,11 +303,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 		tlsConfig, _, _, _, err := certificateManager.GetTLSConfig(hostname)
 
-		//ioutil.WriteFile("/tmp/daptin.cert.pem", certPEMBytes, 0600)
-		//ioutil.WriteFile("/tmp/daptin.private.pem", privateKeyPEMBytes, 0600)
-		//ioutil.WriteFile("/tmp/daptin.public.pem", publicKeyPEMBytes, 0600)
-
-		//tlsConfig.VerifyPeerCertificate = true
 		if err != nil {
 			log.Fatal(err)
 		}
