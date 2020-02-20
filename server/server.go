@@ -305,15 +305,20 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		})
 
 		tlsConfig, _, _, _, err := certificateManager.GetTLSConfig(hostname, true)
-
 		resource.CheckErr(err, "Failed to get certificate for IMAP [%v]", hostname)
 		imapServer.TLSConfig = tlsConfig
 
 		log.Printf("Starting IMAP server at %s: %v\n", imapListenInterface, hostname)
 
 		go func() {
-			if err := imapServer.ListenAndServeTLS(); err != nil {
-				resource.CheckErr(err, "Imap server is not listening anymore")
+			if EndsWithCheck(imapListenInterface, ":993") {
+				if err := imapServer.ListenAndServeTLS(); err != nil {
+					resource.CheckErr(err, "Imap server is not listening anymore")
+				}
+			} else {
+				if err := imapServer.ListenAndServe(); err != nil {
+					resource.CheckErr(err, "Imap server is not listening anymore")
+				}
 			}
 		}()
 
