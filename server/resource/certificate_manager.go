@@ -129,6 +129,7 @@ func GetPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
 
 func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound bool) (*tls.Config, []byte, []byte, []byte, error) {
 
+	log.Printf("Get certificate for [%v]: %v", hostname, createIfNotFound)
 	hostname = strings.Split(hostname, ":")[0]
 	certMap, err := cm.cruds["certificate"].GetObjectByWhereClause("certificate", "hostname", hostname)
 
@@ -207,8 +208,12 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 	} else if certMap != nil && err == nil {
 
 		certPEM := certMap["certificate_pem"].(string)
-		privatePEM := certMap["private_key_pem"].(string)
-		publicPEM := certMap["public_key_pem"].(string)
+
+		privatePEM := AsStringOrEmpty(certMap["private_key_pem"])
+
+		privatePEM := AsStringOrEmpty(certMap["private_key_pem"])
+
+		publicKey := AsStringOrEmpty(certMap["public_key_pem"])
 
 		privatePEMDecrypted, err := Decrypt([]byte(cm.encryptionSecret), privatePEM)
 		publicPEMDecrypted := publicPEM
@@ -230,4 +235,10 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 
 	}
 	return nil, nil, nil, nil, errors.New("certificate not found")
+}
+func AsStringOrEmpty(i interface{}) string {
+	if i == nil {
+		return ""
+	}
+	return i.(string)
 }

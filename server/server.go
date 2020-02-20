@@ -279,9 +279,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		imapListenInterface, err := configStore.GetConfigValueFor("imap.listen_interface", "backend")
 		if err != nil {
 			err = configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend")
-			auth.CheckErr(err, "Failed to store default imap listen interface in config")
+			resource.CheckErr(err, "Failed to store default imap listen interface in config")
 			imapListenInterface = ":1143"
 		}
+
 		hostname, err := configStore.GetConfigValueFor("hostname", "backend")
 		if err != nil {
 			hostname = "imap." + hostname
@@ -306,12 +307,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 		tlsConfig, _, _, _, err := certificateManager.GetTLSConfig(hostname, true)
 
-		if err != nil {
-			log.Fatal(err)
-		}
+		resource.CheckErr(err, "Failed to get certificate for IMAP [%v]", hostname)
 		imapServer.TLSConfig = tlsConfig
 
-		log.Printf("Starting IMAP server at %s\n", imapListenInterface)
+		log.Printf("Starting IMAP server at %s: %v\n", imapListenInterface, hostname)
 
 		go func() {
 			if err := imapServer.ListenAndServeTLS(); err != nil {
