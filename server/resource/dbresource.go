@@ -176,6 +176,7 @@ func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, sto
 
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds["mail"].model.GetColumnMap(), nil)
 
+	log.Printf("Loaded mails: %v", m)
 	return m, err
 
 }
