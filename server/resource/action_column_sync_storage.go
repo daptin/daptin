@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/artpar/rclone/cmd"
+	"github.com/artpar/rclone/fs"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -70,6 +71,7 @@ func (d *SyncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync column storage [%v]", columnName),
 	}
+	fs.Config.LogLevel = fs.LogLevelNotice
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Either source or destination is empty")
