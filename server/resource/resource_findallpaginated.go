@@ -624,7 +624,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 }
 
-
 func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix string) squirrel.SelectBuilder {
 
 	if len(queries) == 0 {
@@ -639,6 +638,9 @@ func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix str
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
 		case "is":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		case "in":
+			//queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (?)", prefix+filterQuery.ColumnName), filterQuery.Value)
+			queryBuilder.Where(squirrel.Eq{prefix + filterQuery.ColumnName: filterQuery.Value.([]string)})
 		case "is not":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 		case "before":
