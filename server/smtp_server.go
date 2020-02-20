@@ -37,7 +37,6 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
 		hostname := server["hostname"].(string)
-		hostname = "smtp." + hostname
 		_, certBytes, privatePEMBytes, publicKeyBytes, rootCertBytes, err := certificateManager.GetTLSConfig(hostname, true)
 
 		if err != nil {
@@ -111,7 +110,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 				"log_received_mails": true,
 				"mail_table":         "mail",
 				"save_workers_size":  1,
-				"primary_mail_host":  "smtp." + primaryHostname,
+				"primary_mail_host":  primaryHostname,
 			},
 			Servers: serverConfig,
 		},

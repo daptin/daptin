@@ -246,8 +246,15 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						mailBody = base64.StdEncoding.EncodeToString(mailBytes)
 						pr := &http.Request{}
 
-						if rcpt.Host != config.PrimaryHost {
-							log.Printf("Mail is for someone else")
+						mailAccount, err := dbResource.GetUserMailAccountRowByEmail(rcpt.String())
+
+						if err != nil {
+							log.Errorf("No such user mail account [%v]", rcpt.String())
+							continue
+						}
+
+						if mailAccount == nil {
+							log.Printf("Mail is for someone else [%v] [%v]", rcpt.Host, rcpt.String())
 
 							if e.AuthorizedLogin == "" {
 								log.Errorf("Refusing to send mail without login")
@@ -291,7 +298,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 							resource.CheckErr(err, "Failed to send mail to actual destination")
 							continue
-
 						}
 
 						result, _ := mailck.Check(rcpt.String(), sender)
@@ -309,13 +315,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 							log.Printf("554 Error: blacked listed sender: %v", result)
 
-						}
-
-						mailAccount, err := dbResource.GetUserMailAccountRowByEmail(rcpt.String())
-
-						if err != nil {
-							log.Errorf("No such user mail account [%v]", rcpt.String())
-							continue
 						}
 
 						user, _, err := dbResource.GetSingleRowByReferenceId("user_account", mailAccount["user_account_id"].(string))
