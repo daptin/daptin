@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla/authenticators"
@@ -250,7 +251,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 							if e.AuthorizedLogin == "" {
 								log.Errorf("Refusing to send mail without login")
-								continue
+								return nil, errors.New("unauthorized")
 							}
 
 							r := strings.NewReader(string(mailBytes))
