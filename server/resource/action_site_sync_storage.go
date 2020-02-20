@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/artpar/rclone/cmd"
+	"github.com/artpar/rclone/fs"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -56,6 +57,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync site storage [%v]", cloudStoreId),
 	}
+	fs.Config.LogLevel = fs.LogLevelNotice
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
