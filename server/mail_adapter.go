@@ -248,12 +248,12 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 						mailAccount, err := dbResource.GetUserMailAccountRowByEmail(rcpt.String())
 
-						if err != nil {
-							log.Errorf("No such user mail account [%v]", rcpt.String())
-							continue
-						}
+						//if err != nil {
+						//	log.Errorf("No such user mail account [%v]", rcpt.String())
+						//	continue
+						//}
 
-						if mailAccount == nil {
+						if mailAccount == nil || err != nil {
 							log.Printf("Mail is for someone else [%v] [%v]", rcpt.Host, rcpt.String())
 
 							if e.AuthorizedLogin == "" {
