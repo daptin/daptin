@@ -264,7 +264,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		err = mailDaemon.Start()
 
 		if err != nil {
-			log.Errorf("Failed to start mail daemon: %s", err)
+			log.Errorf("Failed to mail daemon start: %s", err)
 		} else {
 			log.Infof("Started mail server")
 		}
@@ -273,6 +273,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 
 	var imapServer *server.Server
+	imapServer = nil
 	// Create a memory backend
 	enableImapServer, err := configStore.GetConfigValueFor("imap.enabled", "backend")
 	if err == nil && enableImapServer == "true" {
@@ -312,7 +313,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 		go func() {
 			if err := imapServer.ListenAndServeTLS(); err != nil {
-				log.Fatal(err)
+				resource.CheckErr(err, "Imap server is not listening anymore")
 			}
 		}()
 
