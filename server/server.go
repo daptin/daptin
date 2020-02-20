@@ -282,7 +282,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			auth.CheckErr(err, "Failed to store default imap listen interface in config")
 			imapListenInterface = ":1143"
 		}
-		hostname, _ := configStore.GetConfigValueFor("hostname", "backend")
+		hostname, err := configStore.GetConfigValueFor("hostname", "backend")
+		if err != nil {
+			hostname = "imap." + hostname
+		}
 		imapBackend := resource.NewImapServer(cruds)
 
 		// Create a new server

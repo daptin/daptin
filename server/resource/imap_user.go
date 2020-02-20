@@ -43,6 +43,7 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 	hasSent := false
 	hasSpam := false
 	hasArchive := false
+	hasInbox := false
 
 	for _, box := range mailBoxes {
 		if box["user_account_id"] == nil {
@@ -64,6 +65,10 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 
 		if strings.ToLower(mb.name) == "trash" {
 			hasTrash = true
+		}
+
+		if strings.ToLower(mb.name) == "inbox" {
+			hasInbox = true
 		}
 
 		if strings.ToLower(mb.name) == "draft" {
@@ -103,6 +108,19 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 		mailBox, err := diu.GetMailbox("Spam")
 		if err != nil {
 			log.Printf("Failed to fetch Spam mailbox for imap account [%v]: %v", diu.username, err)
+		} else {
+			boxes = append(boxes, mailBox)
+		}
+	}
+
+	if !hasInbox {
+		err = diu.CreateMailbox("INBOX")
+		if err != nil {
+			log.Printf("Failed to create INBOX mailbox for imap account [%v]: %v", diu.username, err)
+		}
+		mailBox, err := diu.GetMailbox("INBOX")
+		if err != nil {
+			log.Printf("Failed to fetch INBOX mailbox for imap account [%v]: %v", diu.username, err)
 		} else {
 			boxes = append(boxes, mailBox)
 		}

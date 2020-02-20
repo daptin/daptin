@@ -36,32 +36,32 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
-		hostnames := server["hostname"].(string)
-		_, certBytes, privatePEMBytes, publicKeyBytes, err := certificateManager.GetTLSConfig(hostnames, true)
+		hostname := server["hostname"].(string)
+		_, certBytes, privatePEMBytes, publicKeyBytes, err := certificateManager.GetTLSConfig("imap."+hostname, true)
 
 		if err != nil {
-			log.Printf("Failed to generate Certificates for SMTP server for %s", hostnames)
+			log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
 		}
 
-		//certFilePath := filepath.Join(tempDirectoryPath, hostnames+".cert.pem")
-		privateKeyFilePath := filepath.Join(tempDirectoryPath, hostnames+".private.cert.pem")
-		publicKeyFilePath := filepath.Join(tempDirectoryPath, hostnames+".public.cert.pem")
+		//certFilePath := filepath.Join(tempDirectoryPath, hostname+".cert.pem")
+		privateKeyFilePath := filepath.Join(tempDirectoryPath, hostname+".private.cert.pem")
+		publicKeyFilePath := filepath.Join(tempDirectoryPath, hostname+".public.cert.pem")
 
 		//err = ioutil.WriteFile(certFilePath, certPEMBytes, 0666)
 		//if err != nil {
-		//	log.Printf("Failed to generate Certificates for SMTP server for %s", hostnames)
+		//	log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
 		//}
 
 		err = ioutil.WriteFile(publicKeyFilePath, []byte(string(publicKeyBytes)+"\n"+string(certBytes)), 0666)
 		if err != nil {
-			log.Printf("Failed to generate public key for SMTP server for %s", hostnames)
+			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
 		}
 
 		err = ioutil.WriteFile(privateKeyFilePath, privatePEMBytes, 0666)
 		//err = ioutil.WriteFile(publicKeyFilePath, publicPEMBytes, 0666)
 
 		if err != nil {
-			log.Printf("Failed to generate Certificates for SMTP server for %s", hostnames)
+			log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
 		}
 
 		serverTlsConfig = guerrilla.ServerTLSConfig{
@@ -79,7 +79,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		config := guerrilla.ServerConfig{
 			IsEnabled:       fmt.Sprintf("%v", server["is_enabled"]) == "1",
 			ListenInterface: server["listen_interface"].(string),
-			Hostname:        hostnames,
+			Hostname:        hostname,
 			MaxSize:         maxSize,
 			Timeout:         30,
 			TLS:             serverTlsConfig,
@@ -88,7 +88,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 			AuthRequired:    false,
 			AuthTypes:       []string{"LOGIN"},
 		}
-		hosts = append(hosts, hostnames)
+		hosts = append(hosts, hostname)
 
 		serverConfig = append(serverConfig, config)
 
@@ -104,7 +104,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 				"log_received_mails": true,
 				"mail_table":         "mail",
 				"save_workers_size":  1,
-				"primary_mail_host":  primaryHostname,
+				"primary_mail_host":  "smtp." + primaryHostname,
 			},
 			Servers: serverConfig,
 		},
