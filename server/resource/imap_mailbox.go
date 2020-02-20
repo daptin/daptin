@@ -202,11 +202,18 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 				switch item {
 				case imap.FetchEnvelope:
 
-
 					flagList := strings.Split(mailContent["flags"].(string), ",")
+					log.Printf("Mail flags: %v", flagList)
 					if HasFlag(flagList, imap.RecentFlag) {
 						newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
-						err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), strings.Join(newFlags, ","))
+						err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
+						if err != nil {
+							log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
+						}
+					}
+					if HasFlag(flagList, "RECENT") {
+						newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{"RECENT"})
+						err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
 						if err != nil {
 							log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
 						}
@@ -229,7 +236,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 						flagList := strings.Split(mailContent["flags"].(string), ",")
 						if HasFlag(flagList, imap.RecentFlag) {
 							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
-							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), strings.Join(newFlags, ","))
+							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
 							if err != nil {
 								log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
 							}
@@ -270,7 +277,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 						flagList := strings.Split(mailContent["flags"].(string), ",")
 						if HasFlag(flagList, imap.RecentFlag) {
 							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
-							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), strings.Join(newFlags, ","))
+							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
 							if err != nil {
 								log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
 							}
@@ -538,6 +545,7 @@ func HasFlag(flags []string, flagToFind string) bool {
 // via a message update.
 func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet, operation imap.FlagsOp, flags []string) error {
 
+	log.Printf("Update messages flags: [%v] :[%v]: %v", seqset, operation, flags)
 	var mails []map[string]interface{}
 	var err error
 	for _, seq := range seqset.Set {
@@ -567,7 +575,7 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 			if hasDupe {
 				log.Printf("Duplicate flag: %v", newFlags)
 			}
-			err = dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailRow["id"].(int64), strings.Join(newFlags, ","))
+			err = dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailRow["id"].(int64), newFlags)
 			if err != nil {
 				return err
 			}

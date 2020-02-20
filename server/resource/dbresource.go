@@ -10,6 +10,7 @@ import (
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -305,28 +306,28 @@ func (dr *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
 	return id
 
 }
-func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags string) error {
+func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []string) error {
 
+	log.Printf("Update mail flags for [%v][%v]: %v", mailBoxId, mailId, newFlags)
 	seen := false
 	recent := false
 	deleted := false
 
-	for _, flag := range strings.Split(newFlags, ",") {
-		flag = strings.ToUpper(flag)
-		if flag == "\\RECENT" {
-			recent = true
-		}
-		if flag == "\\SEEN" {
-			seen = true
-		}
-		if flag == "\\EXPUNGE" || flag == "\\DELETED" {
-			deleted = true
-		}
+	if HasFlag(newFlags, "\\recent") || HasFlag(newFlags, "\\recent") {
+		recent = true
+	}
+
+	if HasFlag(newFlags, "\\seen") {
+		seen = true
+	}
+
+	if HasFlag(newFlags, "\\expunge") || HasFlag(newFlags, "\\deleetd") {
+		deleted = true
 	}
 
 	query, args, err := statementbuilder.Squirrel.
 		Update("mail").
-		Set("flags", newFlags).
+		Set("flags", strings.Join(newFlags, ",")).
 		Set("seen", seen).
 		Set("recent", recent).
 		Set("deleted", deleted).
