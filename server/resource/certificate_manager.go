@@ -211,9 +211,9 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 
 		privatePEM := AsStringOrEmpty(certMap["private_key_pem"])
 
-		privatePEM := AsStringOrEmpty(certMap["private_key_pem"])
+		privatePEM = AsStringOrEmpty(certMap["private_key_pem"])
 
-		publicKey := AsStringOrEmpty(certMap["public_key_pem"])
+		publicPEM := AsStringOrEmpty(certMap["public_key_pem"])
 
 		privatePEMDecrypted, err := Decrypt([]byte(cm.encryptionSecret), privatePEM)
 		publicPEMDecrypted := publicPEM
