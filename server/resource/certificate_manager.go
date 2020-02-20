@@ -228,7 +228,9 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 
 		rootCa, err := x509.ParseCertificate([]byte(rootCert))
 		CheckErr(err, "Failed to parse root certificate")
-		rootCaCert.AddCert(rootCa)
+		if rootCa != nil {
+			rootCaCert.AddCert(rootCa)
+		}
 		tlsConfig := &tls.Config{
 			Certificates: []tls.Certificate{cert},
 			ServerName:   hostname,
