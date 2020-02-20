@@ -224,21 +224,8 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 
 		cert, err := tls.X509KeyPair([]byte(certPEM), []byte(privatePEMDecrypted))
 		rootCaCert := x509.NewCertPool()
-		block, _ := pem.Decode([]byte(rootCert))
+		rootCaCert.AppendCertsFromPEM([]byte(rootCert))
 
-		if block == nil {
-			panic("failed to parse certificate PEM")
-		}
-		certInst, err := x509.ParseCertificate(block.Bytes)
-
-		if err != nil {
-			CheckErr(err, "Failed to parse root cert")
-		}
-
-		CheckErr(err, "Failed to parse root certificate")
-		if certInst != nil {
-			rootCaCert.AddCert(certInst)
-		}
 		tlsConfig := &tls.Config{
 			Certificates: []tls.Certificate{cert},
 			ServerName:   hostname,
