@@ -290,9 +290,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							finalMail := b.Bytes()
 							log.Printf("Final Mail: [%v]", string(finalMail))
 							err = quickgomail.Message{
-								To:      rcpt.String(),
-								From:    sender,
-								Subject: e.Subject,
 								Body:    finalMail,
 							}.Send()
 
