@@ -348,6 +348,32 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 		}
 	}
 
+	if len(criteria.WithoutFlags) > 0 {
+		for _, flag := range criteria.WithFlags {
+			switch strings.ToLower(flag) {
+			case "\\deleted":
+				queries = append(queries, Query{
+					ColumnName: "deleted",
+					Operator:   "is",
+					Value:      false,
+				})
+			}
+		}
+	}
+
+	if len(criteria.Header) > 0 {
+		for headerName, flag := range criteria.Header {
+			switch strings.ToLower(headerName) {
+			case "Message-ID":
+				queries = append(queries, Query{
+					ColumnName: "message_id",
+					Operator:   "is",
+					Value:      flag,
+				})
+			}
+		}
+	}
+
 	queryJson, _ := json.Marshal(queries)
 
 	searchRequest := api2go.Request{
@@ -372,7 +398,12 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 	log.Printf("Mail search results: %v", results)
 	for i, res := range results {
 		if uid {
-			ids = append(ids, uint32(res["id"].(int64)))
+			id, err := dimb.dbResource["mail"].GetReferenceIdToId("mail", res["reference_id"].(string))
+			if err != nil {
+				CheckErr(err, "Failed to get id from reference id")
+				continue
+			}
+			ids = append(ids, uint32(id))
 		} else {
 			ids = append(ids, uint32(i+1))
 		}
