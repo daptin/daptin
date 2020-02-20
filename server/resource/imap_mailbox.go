@@ -170,7 +170,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 		}
 
 		for _, mailContent := range mails {
-			//log.Printf("Return mailContent: %v", mailContent)
+			log.Printf("Return mailContent: %v", mailContent)
 
 			bodyContents, e := base64.StdEncoding.DecodeString(mailContent["mail"].(string))
 			if e != nil {
