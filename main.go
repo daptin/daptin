@@ -137,7 +137,7 @@ func main() {
 	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), portValue)
 
 	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
-	_, certBytes, privateBytes, _, err := certManager.GetTLSConfig(hostname, true)
+	_, certBytes, privateBytes, _, _, err := certManager.GetTLSConfig(hostname, true)
 
 	if err == nil {
 		go func() {
