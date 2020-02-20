@@ -326,13 +326,13 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							Groups:          dbResource.GetObjectUserGroupsByWhere("user_account", "id", user["id"].(int64)),
 						}
 
-						mailBox, err := dbResource.GetMailAccountBox(mailAccount["id"].(int64), "INBOX")
+						mailBox, err := dbResource.GetMailAccountBox(mailAccount["id"].(int64), "Inbox")
 
 						if err != nil {
 							mailBox, err = dbResource.CreateMailAccountBox(
 								mailAccount["reference_id"].(string),
 								sessionUser,
-								"INBOX")
+								"Inbox")
 							if err != nil {
 								continue
 							}

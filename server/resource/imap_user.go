@@ -114,13 +114,13 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 	}
 
 	if !hasInbox {
-		err = diu.CreateMailbox("INBOX")
+		err = diu.CreateMailbox("Inbox")
 		if err != nil {
-			log.Printf("Failed to create INBOX mailbox for imap account [%v]: %v", diu.username, err)
+			log.Printf("Failed to create Inbox mailbox for imap account [%v]: %v", diu.username, err)
 		}
-		mailBox, err := diu.GetMailbox("INBOX")
+		mailBox, err := diu.GetMailbox("Inbox")
 		if err != nil {
-			log.Printf("Failed to fetch INBOX mailbox for imap account [%v]: %v", diu.username, err)
+			log.Printf("Failed to fetch Inbox mailbox for imap account [%v]: %v", diu.username, err)
 		} else {
 			boxes = append(boxes, mailBox)
 		}
