@@ -284,9 +284,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		}
 
 		hostname, err := configStore.GetConfigValueFor("hostname", "backend")
-		if err != nil {
-			hostname = "imap." + hostname
-		}
+		hostname = "imap." + hostname
 		imapBackend := resource.NewImapServer(cruds)
 
 		// Create a new server
