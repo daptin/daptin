@@ -256,7 +256,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 							r := strings.NewReader(string(mailBytes))
 
-							_, privateKeyPemByte, _, _, _, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false)
+							_, _, privateKeyPemByte, _, _, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false)
 							if err != nil {
 								log.Errorf("Failed to get private key for domain [%v]", e.MailFrom.Host)
 								log.Errorf("Refusing to send mail without signing")
