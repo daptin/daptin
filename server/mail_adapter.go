@@ -256,27 +256,22 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 							r := strings.NewReader(string(mailBytes))
 
-							_, privateKey, publicKey, _, _, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false)
+							_, privateKeyPemByte, _, _, _, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false)
 							if err != nil {
 								log.Errorf("Failed to get private key for domain [%v]", e.MailFrom.Host)
 								log.Errorf("Refusing to send mail without signing")
 								continue
 							}
-							publicKeyInstance, err := x509.ParsePKCS1PublicKey(publicKey)
-							
-							resource.CheckErr(err, "Failed to parse public key [%v]", e.MailFrom.Host)
 
-							block, _ := pem.Decode(privateKey)
-							signKey, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
+							block, _ := pem.Decode([]byte(privateKeyPemByte))
+							privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 
-							signKey.PublicKey = *publicKeyInstance
-
-							//signKey.PublicKey
+							resource.CheckErr(err, "Failed to parse private key")
 
 							options := &dkim.SignOptions{
 								Domain:   e.MailFrom.Host,
 								Selector: "_domainkey.daptin." + e.MailFrom.Host,
-								Signer:   signKey,
+								Signer:   privateKey,
 							}
 
 							var b bytes.Buffer
