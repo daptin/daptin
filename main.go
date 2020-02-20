@@ -88,9 +88,9 @@ func main() {
 	var taskScheduler resource.TaskScheduler
 	var certManager *resource.CertificateManager
 	var configStore *resource.ConfigStore
-	var imapServer *imapServer.Server
+	var imapServerInstance *imapServer.Server
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServerInstance = server.Main(boxRoot, db)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -105,8 +105,8 @@ func main() {
 			mailDaemon.Shutdown()
 		}
 
-		if imapServer != nil {
-			// err = imapServer.Close()
+		if imapServerInstance != nil {
+			err = imapServerInstance.Close()
 		}
 
 		if err != nil {
@@ -121,7 +121,7 @@ func main() {
 		log.Printf("Create new connections")
 		db, err = server.GetDbConnection(*db_type, *connection_string)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServerInstance = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 		log.Printf("Restart complete")
 	})

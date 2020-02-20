@@ -63,25 +63,21 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 			},
 		}
 
-		if strings.ToLower(mb.name) == "trash" {
+		mailBoxName := strings.ToLower(mb.name)
+		if mailBoxName == "trash" {
 			hasTrash = true
-		}
-
-		if strings.ToLower(mb.name) == "inbox" {
+		} else if mailBoxName == "inbox" {
 			hasInbox = true
-		}
-
-		if strings.ToLower(mb.name) == "draft" {
+		} else if mailBoxName == "draft" {
 			hasDraft = true
-		}
-		if strings.ToLower(mb.name) == "sent" {
+		} else if mailBoxName == "sent" {
 			hasSent = true
-		}
-		if strings.ToLower(mb.name) == "spam" {
+		} else if mailBoxName == "spam" {
 			hasSpam = true
-		}
-		if strings.ToLower(mb.name) == "archive" {
+		} else if mailBoxName == "archive" {
 			hasArchive = true
+		} else {
+			log.Printf("Special box [%v]", mailBoxName)
 		}
 		boxes = append(boxes, &mb)
 	}
@@ -237,6 +233,7 @@ func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 // has a different unique identifier validity value.
 func (diu *DaptinImapUser) CreateMailbox(name string) error {
 
+	log.Printf("Creating mailbox with name [%v] for mail account id [%v]", name, diu.mailAccountId)
 	box, err := diu.dbResource["mail_box"].GetAllObjectsWithWhere("mail_box",
 		squirrel.Eq{
 			"mail_account_id": diu.mailAccountId,
