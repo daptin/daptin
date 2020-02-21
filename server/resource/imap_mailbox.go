@@ -200,7 +200,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 				}
 
 				flagList := strings.Split(mailContent["flags"].(string), ",")
-				log.Printf("Mail flags: %v", flagList)
+				log.Printf("Mail flags: %v at fetch item [%v]", flagList, item)
 				switch item {
 				case imap.FetchEnvelope:
 
