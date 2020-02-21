@@ -2314,7 +2314,7 @@ var StandardTables = []TableInfo{
 				ColumnName:   "flags",
 				DataType:     "varchar(500)",
 				ColumnType:   "label",
-				DefaultValue: "'\\\\RECENT'",
+				DefaultValue: "",
 			},
 		},
 	},
