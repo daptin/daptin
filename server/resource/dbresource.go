@@ -314,15 +314,15 @@ func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []
 	recent := false
 	deleted := false
 
-	if HasFlag(newFlags, "\\recent") || HasFlag(newFlags, "recent") {
+	if HasAnyFlag(newFlags, []string{"\\recent", "recent"}) {
 		recent = true
 	}
 
-	if HasFlag(newFlags, "\\seen") || HasFlag(newFlags, "seen") {
+	if HasAnyFlag(newFlags, []string{"\\seen", "seen"}) {
 		seen = true
 	}
 
-	if HasFlag(newFlags, "\\expunge") || HasFlag(newFlags, "\\deleted") || HasFlag(newFlags, "deleted") {
+	if HasAnyFlag(newFlags, []string{"\\expunge", "expunge", "\\deleted", "deleted"}) {
 		deleted = true
 	}
 

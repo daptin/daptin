@@ -199,25 +199,11 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 					break
 				}
 
+				flagList := strings.Split(mailContent["flags"].(string), ",")
+				log.Printf("Mail flags: %v", flagList)
 				switch item {
 				case imap.FetchEnvelope:
 
-					flagList := strings.Split(mailContent["flags"].(string), ",")
-					log.Printf("Mail flags: %v", flagList)
-					if HasFlag(flagList, imap.RecentFlag) {
-						newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
-						err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
-						if err != nil {
-							log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
-						}
-					}
-					if HasFlag(flagList, "RECENT") {
-						newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{"RECENT"})
-						err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
-						if err != nil {
-							log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
-						}
-					}
 					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
 					header, _ := textproto.ReadHeader(bodyReader)
 
@@ -234,8 +220,8 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 
 					if item == imap.FetchBody {
 						flagList := strings.Split(mailContent["flags"].(string), ",")
-						if HasFlag(flagList, imap.RecentFlag) {
-							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
+						if HasAnyFlag(flagList, []string{imap.RecentFlag, "Recent"}) {
+							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag, "Recent"})
 							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
 							if err != nil {
 								log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
@@ -275,8 +261,8 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 
 					if !section.Peek {
 						flagList := strings.Split(mailContent["flags"].(string), ",")
-						if HasFlag(flagList, imap.RecentFlag) {
-							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
+						if HasAnyFlag(flagList, []string{imap.RecentFlag, "Recent"}) {
+							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag, "Recent"})
 							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
 							if err != nil {
 								log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
@@ -435,8 +421,8 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		PlainRequest: httpRequest,
 	}
 
-	if !HasFlag(flags, "\\Recent") {
-		flags = append(flags, "\\Recent")
+	if !HasAnyFlag(flags, []string{"\\Recent", "recent"}) {
+		flags = backendutil.UpdateFlags(flags, imap.AddFlags, []string{"\\Recent"})
 	}
 
 	messageEntity, err := message.Read(bytes.NewReader(mailBody))
@@ -567,7 +553,20 @@ func HasFlag(flags []string, flagToFind string) bool {
 	}
 
 	return false
+}
 
+func HasAnyFlag(flags []string, flagToFind []string) bool {
+
+	for _, f := range flags {
+		f = strings.ToLower(f)
+		for _, f1 := range flagToFind {
+			if strings.ToLower(f1) == f {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // UpdateMessagesFlags alters flags for the specified message(s).
@@ -660,8 +659,8 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 			delete(mail, "id")
 			mail["recent"] = true
 			mailFlags := strings.Split(mail["flags"].(string), ",")
-			if !HasFlag(mailFlags, "\\Recent") {
-				mailFlags = append(mailFlags, "\\Recent")
+			if !HasAnyFlag(mailFlags, []string{"\\Recent", "recent"}) {
+				mailFlags = backendutil.UpdateFlags(mailFlags, imap.AddFlags, []string{"\\Recent"})
 				mail["flags"] = strings.Join(mailFlags, ",")
 			}
 
