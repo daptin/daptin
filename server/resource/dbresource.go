@@ -6,6 +6,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-imap"
+	"github.com/artpar/go-imap/backend/backendutil"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
@@ -316,14 +317,20 @@ func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []
 
 	if HasAnyFlag(newFlags, []string{"\\recent", "recent"}) {
 		recent = true
+	} else {
+		seen = true
 	}
 
 	if HasAnyFlag(newFlags, []string{"\\seen", "seen"}) {
 		seen = true
+		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{"\\recent", "recent"})
 	}
 
 	if HasAnyFlag(newFlags, []string{"\\expunge", "expunge", "\\deleted", "deleted"}) {
+		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{"\\recent", "recent"})
+		newFlags = backendutil.UpdateFlags(newFlags, imap.AddFlags, []string{"\\Seen"})
 		deleted = true
+		seen = true
 	}
 
 	query, args, err := statementbuilder.Squirrel.
