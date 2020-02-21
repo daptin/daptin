@@ -193,92 +193,95 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 			skipMail := false
 
 			//responseItems := make([]interface{}, 0)
-			for _, item := range items {
+			for _, item1 := range items {
 
-				if skipMail {
-					break
-				}
+				for _, subItems := range item1.Expand() {
 
-				flagList := strings.Split(mailContent["flags"].(string), ",")
-				log.Printf("Mail flags: %v at fetch item [%v]", flagList, item)
-				switch item {
-				case imap.FetchEnvelope:
-
-					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-					header, _ := textproto.ReadHeader(bodyReader)
-
-					enve, err := backendutil.FetchEnvelope(header)
-					if err != nil {
-						log.Printf("Failed to fetch envelop for email [%v] == %v", mailContent["id"], err)
-						skipMail = true
+					if skipMail {
 						break
 					}
-					returnMail.Envelope = enve
-				case imap.FetchBody, imap.FetchBodyStructure:
-					log.Printf("Fetch Body [%v] update flags: ", item == imap.FetchBody)
-					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-					header, err := textproto.ReadHeader(bodyReader)
 
-					if item == imap.FetchBody {
-						if HasAnyFlag(flagList, []string{imap.RecentFlag, "Recent"}) {
-							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag, "Recent"})
-							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
-							if err != nil {
-								log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
+					flagList := strings.Split(mailContent["flags"].(string), ",")
+					log.Printf("Mail flags: %v at fetch item [%v]", flagList, subItems)
+					switch subItems {
+					case imap.FetchEnvelope:
+
+						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+						header, _ := textproto.ReadHeader(bodyReader)
+
+						enve, err := backendutil.FetchEnvelope(header)
+						if err != nil {
+							log.Printf("Failed to fetch envelop for email [%v] == %v", mailContent["id"], err)
+							skipMail = true
+							break
+						}
+						returnMail.Envelope = enve
+					case imap.FetchBody, imap.FetchBodyStructure:
+						log.Printf("Fetch Body [%v] update flags: ", subItems == imap.FetchBody)
+						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+						header, err := textproto.ReadHeader(bodyReader)
+
+						if subItems == imap.FetchBody {
+							if HasAnyFlag(flagList, []string{imap.RecentFlag, "Recent"}) {
+								newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag, "Recent"})
+								err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
+								if err != nil {
+									log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
+								}
+							}
+
+						}
+						bs, err := backendutil.FetchBodyStructure(header, bodyReader, subItems == imap.FetchBodyStructure)
+						if err != nil {
+							log.Printf("Failed to fetch body structure for email [%v] == %v", mailContent["id"], err)
+							skipMail = true
+							break
+						}
+						returnMail.BodyStructure = bs
+					case imap.FetchFlags:
+						returnMail.Flags = flagList
+
+					case imap.FetchInternalDate:
+						returnMail.InternalDate = mailContent["internal_date"].(time.Time)
+					case imap.FetchRFC822Size:
+						returnMail.Size = uint32(mailContent["size"].(int64))
+					case imap.FetchUid:
+						uid := mailContent["id"].(int64)
+						returnMail.Uid = uint32(uid)
+					default:
+						log.Printf("Fetch default [%v] update flags: %v", subItems, flagList)
+
+						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+						header, err := textproto.ReadHeader(bodyReader)
+
+						section, err := imap.ParseBodySectionName(subItems)
+						if err != nil {
+							log.Printf("Failed to fetch structure for email [%v] == %v", mailContent["id"], err)
+							skipMail = true
+							break
+						}
+
+						log.Printf("Fetch default section peek [%v]: %v", section, section.Peek)
+						if !section.Peek {
+							if HasAnyFlag(flagList, []string{imap.RecentFlag, "Recent"}) {
+								newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag, "Recent"})
+								err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
+								if err != nil {
+									log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
+								}
 							}
 						}
 
-					}
-					bs, err := backendutil.FetchBodyStructure(header, bodyReader, item == imap.FetchBodyStructure)
-					if err != nil {
-						log.Printf("Failed to fetch body structure for email [%v] == %v", mailContent["id"], err)
-						skipMail = true
-						break
-					}
-					returnMail.BodyStructure = bs
-				case imap.FetchFlags:
-					returnMail.Flags = flagList
-
-				case imap.FetchInternalDate:
-					returnMail.InternalDate = mailContent["internal_date"].(time.Time)
-				case imap.FetchRFC822Size:
-					returnMail.Size = uint32(mailContent["size"].(int64))
-				case imap.FetchUid:
-					uid := mailContent["id"].(int64)
-					returnMail.Uid = uint32(uid)
-				default:
-					log.Printf("Fetch default [%v] update flags: %v", item, flagList)
-
-					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-					header, err := textproto.ReadHeader(bodyReader)
-
-					section, err := imap.ParseBodySectionName(item)
-					if err != nil {
-						log.Printf("Failed to fetch structure for email [%v] == %v", mailContent["id"], err)
-						skipMail = true
-						break
-					}
-
-					log.Printf("Fetch default section peek [%v]: %v", section, section.Peek)
-					if !section.Peek {
-						if HasAnyFlag(flagList, []string{imap.RecentFlag, "Recent"}) {
-							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag, "Recent"})
-							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
-							if err != nil {
-								log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
-							}
+						l, err := backendutil.FetchBodySection(header, bodyReader, section)
+						if err != nil || l.Len() == 0 {
+							log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
+							// skipMail = true
+							// break
 						}
-					}
 
-					l, err := backendutil.FetchBodySection(header, bodyReader, section)
-					if err != nil || l.Len() == 0 {
-						log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
-						// skipMail = true
-						// break
+						returnMail.Body[section] = l
+						//responseItems = append(responseItems, string(item), l)
 					}
-
-					returnMail.Body[section] = l
-					//responseItems = append(responseItems, string(item), l)
 				}
 			}
 

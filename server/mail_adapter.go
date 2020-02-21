@@ -217,6 +217,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						parsedMail, err := parsemail.Parse(bytes.NewReader(mailBytes))
 						body = parsedMail.TextBody
 
+
 						if strings.Index(parsedMail.Header.Get("Content-type"), "iso-8859-1") > -1 {
 							converter := latinx.Get(latinx.ISO_8859_1)
 							textBodyBytes, err := converter.Decode([]byte(body))
@@ -255,6 +256,8 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 						if mailAccount == nil || err != nil {
 							log.Printf("Mail is for someone else [%v] [%v]", rcpt.Host, rcpt.String())
+
+							e.DeliveryHeader = e.DeliveryHeader + "Return-PATH: admin@" + rcpt.Host+"\n"
 
 							if e.AuthorizedLogin == "" {
 								log.Errorf("Refusing to send mail without login")
