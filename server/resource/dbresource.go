@@ -2,7 +2,6 @@ package resource
 
 import (
 	"encoding/base64"
-	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-imap"
@@ -177,7 +176,6 @@ func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, sto
 
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds["mail"].model.GetColumnMap(), nil)
 
-	log.Printf("Loaded mails: %v", m)
 	return m, err
 
 }
@@ -383,14 +381,31 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, nil
 	}
 
-	questionMarks := strings.Join(strings.Split(strings.Trim(strings.Repeat("?;", len(ids)), ";"), ";"), ",")
-	_, err = dr.db.Exec(fmt.Sprintf("delete from mail_mail_id_has_usergroup_usergroup_id where mail_id in (%s)", questionMarks), ids...)
+
+	query, args, err := statementbuilder.Squirrel.Delete("mail_mail_id_has_usergroup_usergroup_id").Where(squirrel.Eq{
+		"mail_id": ids,
+	}).ToSql()
+
+	if err != nil {
+		log.Printf("Query: %v", query)
+		return 0, err
+	}
+
+	_, err = dr.db.Exec(query, args...)
 	if err != nil {
 		return 0, err
 	}
 
-	result, err := dr.db.Exec(fmt.Sprintf("delete from mail where id in (%s)", questionMarks), ids...)
+	query, args, err = statementbuilder.Squirrel.Delete("mail").Where(squirrel.Eq{
+		"id": ids,
+	}).ToSql()
 	if err != nil {
+		return 0, err
+	}
+
+	result, err := dr.db.Exec(query, args...)
+	if err != nil {
+		log.Printf("Query: %v", query)
 		return 0, err
 	}
 
