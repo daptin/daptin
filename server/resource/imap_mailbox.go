@@ -215,11 +215,11 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 					}
 					returnMail.Envelope = enve
 				case imap.FetchBody, imap.FetchBodyStructure:
+					log.Printf("Fetch Body [%v] update flags: ", item == imap.FetchBody)
 					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
 					header, err := textproto.ReadHeader(bodyReader)
 
 					if item == imap.FetchBody {
-						flagList := strings.Split(mailContent["flags"].(string), ",")
 						if HasAnyFlag(flagList, []string{imap.RecentFlag, "Recent"}) {
 							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag, "Recent"})
 							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
@@ -237,7 +237,6 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 					}
 					returnMail.BodyStructure = bs
 				case imap.FetchFlags:
-					flagList := strings.Split(mailContent["flags"].(string), ",")
 					returnMail.Flags = flagList
 
 				case imap.FetchInternalDate:
@@ -260,7 +259,6 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 					}
 
 					if !section.Peek {
-						flagList := strings.Split(mailContent["flags"].(string), ",")
 						if HasAnyFlag(flagList, []string{imap.RecentFlag, "Recent"}) {
 							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag, "Recent"})
 							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
@@ -557,6 +555,7 @@ func HasFlag(flags []string, flagToFind string) bool {
 
 func HasAnyFlag(flags []string, flagToFind []string) bool {
 
+	log.Printf("Check for flags [%v] in [%v]", flagToFind, flags)
 	for _, f := range flags {
 		f = strings.ToLower(f)
 		for _, f1 := range flagToFind {
