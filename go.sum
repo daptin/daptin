@@ -149,6 +149,8 @@ github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a h1:W3JRCnyixXReLt
 github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a/go.mod h1:P/AQ+7EvskopP7BmztqwWtb8WLxGXlJnFpQWlru1cKg=
 github.com/artpar/quickgomail v0.2.0 h1:93o7n9WsduLhxODdiCceEXWk0W2yFUJ3iWCEd0ZvblA=
 github.com/artpar/quickgomail v0.2.0/go.mod h1:0XFezvkcPJn6ItAzCkXrOeTSD07Ge875ixgi2ECzFvk=
+github.com/artpar/quickgomail v0.3.0 h1:/pHe3V+ce+RJubEf6xPDXoHAMlaRu8c5NrEUAdOi4TA=
+github.com/artpar/quickgomail v0.3.0/go.mod h1:0XFezvkcPJn6ItAzCkXrOeTSD07Ge875ixgi2ECzFvk=
 github.com/artpar/rclone v0.0.0-20190429081623-dc525e165a5e h1:CPrXYKxusJFgDaXSgN4s7Co01SPkbkRpvqUjyTv+gcY=
 github.com/artpar/rclone v0.0.0-20190429081623-dc525e165a5e/go.mod h1:ankBAQKq8v+uolrustRJ3sEjTJ5h5zAiE8VaHavsuPI=
 github.com/artpar/rclone v0.0.0-20190731131039-d1a73dc74a2a h1:nSkZb6JbASBUadiiJGxcwmNreIAtVth92C5M4sI8mpA=
