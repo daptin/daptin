@@ -315,7 +315,7 @@ func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []
 	recent := false
 	deleted := false
 
-	if HasAnyFlag(newFlags, []string{"\\recent", "recent"}) {
+	if HasAnyFlag(newFlags, []string{imap.RecentFlag}) {
 		recent = true
 	} else {
 		seen = true
@@ -323,12 +323,14 @@ func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []
 
 	if HasAnyFlag(newFlags, []string{"\\seen", "seen"}) {
 		seen = true
-		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{"\\recent", "recent"})
+		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
+		log.Printf("New flags: [%v]", newFlags)
 	}
 
 	if HasAnyFlag(newFlags, []string{"\\expunge", "expunge", "\\deleted", "deleted"}) {
-		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{"\\recent", "recent"})
+		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
 		newFlags = backendutil.UpdateFlags(newFlags, imap.AddFlags, []string{"\\Seen"})
+		log.Printf("New flags: [%v]", newFlags)
 		deleted = true
 		seen = true
 	}

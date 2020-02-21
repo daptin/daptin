@@ -375,7 +375,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								"user_account_id":  mailAccount["user_account_id"],
 								"seen":             false,
 								"recent":           true,
-								"flags":            "RECENT",
+								"flags":            "\\Recent",
 								"size":             mailSize,
 							},
 						}
