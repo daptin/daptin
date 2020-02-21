@@ -247,6 +247,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 					uid := mailContent["id"].(int64)
 					returnMail.Uid = uint32(uid)
 				default:
+					log.Printf("Fetch default [%v] update flags: %v", item, flagList)
 
 					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
 					header, err := textproto.ReadHeader(bodyReader)
@@ -258,6 +259,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 						break
 					}
 
+					log.Printf("Fetch default section peek [%v]: %v", section, section.Peek)
 					if !section.Peek {
 						if HasAnyFlag(flagList, []string{imap.RecentFlag, "Recent"}) {
 							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag, "Recent"})
@@ -565,6 +567,7 @@ func HasAnyFlag(flags []string, flagToFind []string) bool {
 		}
 	}
 
+	log.Printf("[%v] not found in [%v]", flagToFind, flags)
 	return false
 }
 
