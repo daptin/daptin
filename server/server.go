@@ -15,7 +15,6 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
-	"github.com/emersion/go-sasl"
 	"github.com/gin-gonic/gin"
 	"github.com/hpcloud/tail"
 	"github.com/icrowley/fake"
@@ -295,14 +294,14 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		imapServer.AllowInsecureAuth = false
 		imapServer.Enable(idle.NewExtension())
 		imapServer.Debug = os.Stdout
-		imapServer.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
-
-			return &Crammd5{
-				dbResource:  cruds["mail"],
-				conn:        conn,
-				imapBackend: imapBackend,
-			}
-		})
+		//imapServer.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
+		//
+		//	return &Crammd5{
+		//		dbResource:  cruds["mail"],
+		//		conn:        conn,
+		//		imapBackend: imapBackend,
+		//	}
+		//})
 
 		tlsConfig, _, _, _, _, err := certificateManager.GetTLSConfig(hostname, true)
 		resource.CheckErr(err, "Failed to get certificate for IMAP [%v]", hostname)
