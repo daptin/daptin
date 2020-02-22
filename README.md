@@ -67,6 +67,14 @@ Easily consume the following features on any device
     - JSON
     - CSV
 
+Javascript/Typescript Client
+===
+
+https://github.com/daptin/daptin-js-client
+
+Starter kit: https://github.com/daptin/vue_typescript_starter_kit
+
+
 Define Schema
 
 <img src="https://github.com/daptin/daptin/raw/master/images/api.jpg">
