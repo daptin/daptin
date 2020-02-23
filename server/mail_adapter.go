@@ -14,16 +14,18 @@ import (
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go-guerrilla/response"
-	"github.com/artpar/parsemail"
 	quickgomail "github.com/artpar/quickgomail"
-	"github.com/bjarneh/latinx"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/emersion/go-message"
+	_ "github.com/emersion/go-message/charset"
+	mailpacket "github.com/emersion/go-message/mail"
 	"github.com/emersion/go-msgauth/dkim"
 	log "github.com/sirupsen/logrus"
 	"github.com/smancke/mailck"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // ----------------------------------------------------------------------------------
@@ -184,11 +186,9 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						e.QueuedId = e.Hashes[0]
 					}
 
-					var co Compressor
-					// a compressor was set by the Compress processor
-					if c, ok := e.Values["zlib-compressor"]; ok {
-						co = c.(Compressor)
-					}
+					//if c, ok := e.Values["zlib-compressor"]; ok {
+					//	co = c.(Compressor)
+					//}
 
 					for i := range e.RcptTo {
 						// use the To header, otherwise rcpt to
@@ -214,20 +214,14 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						}
 
 						mailBytes := e.Data.Bytes()
-						parsedMail, err := parsemail.Parse(bytes.NewReader(mailBytes))
-						body = parsedMail.TextBody
 
-						if strings.Index(parsedMail.Header.Get("Content-type"), "iso-8859-1") > -1 {
-							converter := latinx.Get(latinx.ISO_8859_1)
-							textBodyBytes, err := converter.Decode([]byte(body))
-							if err != nil {
-								log.Printf("Failed to convert iso 8859 to utf8: %v", err)
-							}
-							body = string(textBodyBytes)
-						}
+						parsedMail, err := mailpacket.CreateReader(bytes.NewReader(mailBytes))
+						resource.CheckErr(err, "Failed to parse mail from bytes")
 
-						if err != nil {
-							log.Printf("Failed to parse email body: %v", err)
+						if message.IsUnknownCharset(err) {
+							log.Println("Unknown encoding:", err)
+						} else if err != nil {
+							log.Fatal(err)
 						}
 
 						log.Printf("Authorized login: %v", e.AuthorizedLogin)
@@ -235,13 +229,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						var mailBody interface{}
 						var mailSize int
 						// `mail` column
-						if body == "redis" {
-							// data already saved in redis
-							mailBody = ""
-						} else if co != nil {
-							// use a compressor (automatically adds e.DeliveryHeader)
-							//mailBytes = []byte(co.String())
-						}
+
 						mailSize = len(mailBytes)
 						mailBody = base64.StdEncoding.EncodeToString(mailBytes)
 						pr := &http.Request{}
@@ -274,7 +262,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 							log.Printf("Private key [%v] %v", e.MailFrom.Host, string(privateKeyPemByte))
 							log.Printf("Public key [%v] %v", e.MailFrom.Host, string(publicKeyBytes))
-							
+
 							block, _ := pem.Decode([]byte(privateKeyPemByte))
 							resource.CheckErr(err, "Failed to read pem bytes")
 							if err != nil {
@@ -285,8 +273,8 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							resource.CheckErr(err, "Failed to parse private key")
 
 							options := &dkim.SignOptions{
-								Domain:   e.MailFrom.Host,
 								Selector: "daptin",
+								Domain:   e.MailFrom.Host,
 								Signer:   privateKey,
 							}
 
@@ -308,20 +296,33 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						}
 
 						result, _ := mailck.Check(rcpt.String(), sender)
+						spamScore := 100
 						switch {
 
 						case result.IsValid():
 							log.Printf("SPF check for [%v] was successful: %v", sender, result)
-
+							spamScore = 0
 						case result.IsError():
 							// something went wrong in the smtp communication
 							// we can't say for sure if the address is valid or not
 							log.Printf("SPF check for [%v] was failed: %v", sender, result)
-
+							spamScore = 50
 						case result.IsInvalid():
 
 							log.Printf("554 Error: blacked listed sender: %v", result)
+							spamScore = 200
+						}
 
+						dkimResult, err := dkim.Verify(bytes.NewReader(mailBytes))
+
+						resource.CheckErr(err, "Failed to verify dkim signature in incoming mail")
+
+						for _, res := range dkimResult {
+							if res == nil {
+								spamScore += 100
+							} else if res.Err != nil {
+								spamScore += 100
+							}
 						}
 
 						user, _, err := dbResource.GetSingleRowByReferenceId("user_account", mailAccount["user_account_id"].(string))
@@ -334,7 +335,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 						mailboxName := "INBOX"
 
-						if result.IsInvalid() {
+						if spamScore > 50 {
 							mailboxName = "Spam"
 						}
 
@@ -356,24 +357,44 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							PlainRequest: pr,
 						}
 
+						spam := false
+						flags := "\\Recent"
+						if spamScore > 50 {
+							flags += ",\\Spam"
+							spam = true
+						}
+
+						hasAttachment := false
+						for part, err := parsedMail.NextPart(); err != nil; {
+							if err != nil {
+								break
+							}
+							a := part.Header
+							_, ok := a.(*mailpacket.AttachmentHeader)
+							if ok {
+								hasAttachment = true
+								break
+							}
+						}
+
 						model := api2go.Api2GoModel{
 							Data: map[string]interface{}{
-								"message_id":     mid,
-								"mail_id":        hash,
-								"from_address":   trimToLimit(e.MailFrom.String(), 255),
-								"to_address":     to,
-								"sender_address": sender,
-								"subject":        trimToLimit(e.Subject, 255),
-								"body":           body,
-								"mail":           mailBody,
-								"spam_score":     0,
-								"hash":           hash,
-								//"uid":              nextUid,
+								"message_id":       mid,
+								"mail_id":          hash,
+								"from_address":     trimToLimit(e.MailFrom.String(), 255),
+								"to_address":       to,
+								"sender_address":   sender,
+								"subject":          trimToLimit(e.Subject, 255),
+								"body":             body,
+								"mail":             mailBody,
+								"spam_score":       spamScore,
+								"spam":             spam,
+								"hash":             hash,
 								"content_type":     contentType,
 								"reply_to_address": replyTo,
-								"internal_date":    parsedMail.Date,
+								"internal_date":    time.Now(),
 								"recipient":        recipient,
-								"has_attachment":   len(parsedMail.Attachments) > 0,
+								"has_attachment":   hasAttachment,
 								"ip_addr":          e.RemoteIP,
 								"return_path":      trimToLimit(e.MailFrom.String(), 255),
 								"is_tls":           e.TLS,
@@ -381,7 +402,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								"user_account_id":  mailAccount["user_account_id"],
 								"seen":             false,
 								"recent":           true,
-								"flags":            "\\Recent",
+								"flags":            flags,
 								"size":             mailSize,
 							},
 						}
