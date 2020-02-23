@@ -224,7 +224,8 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 		log.Printf("Failed to parse value as private key: %v", err)
 	} else {
 
-		asn1Bytes := x509.MarshalPKCS1PublicKey(&privateKey.PublicKey)
+		asn1Bytes, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+		CheckErr(err, "Failed to marshal key as pkix public key")
 
 		var pemkey = &pem.Block{
 			Type:  "PUBLIC KEY",

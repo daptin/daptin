@@ -112,7 +112,8 @@ func GetPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
 
 	privateKeyBytes := pem.EncodeToMemory(privateKey)
 
-	asn1Bytes := x509.MarshalPKCS1PublicKey(&key.PublicKey)
+	asn1Bytes, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+	CheckErr(err, "Failed to marshal as PKIX public key")
 
 	var pemkey = &pem.Block{
 		Type:  "PUBLIC KEY",
