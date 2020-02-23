@@ -319,13 +319,13 @@ func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []
 		seen = true
 	}
 
-	if HasAnyFlag(newFlags, []string{"\\seen", "seen"}) {
+	if HasAnyFlag(newFlags, []string{"\\seen"}) {
 		seen = true
 		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
 		log.Printf("New flags: [%v]", newFlags)
 	}
 
-	if HasAnyFlag(newFlags, []string{"\\expunge", "expunge", "\\deleted", "deleted"}) {
+	if HasAnyFlag(newFlags, []string{"\\expunge", "\\deleted"}) {
 		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
 		newFlags = backendutil.UpdateFlags(newFlags, imap.AddFlags, []string{"\\Seen"})
 		log.Printf("New flags: [%v]", newFlags)
@@ -380,7 +380,6 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 	if len(ids) < 1 {
 		return 0, nil
 	}
-
 
 	query, args, err := statementbuilder.Squirrel.Delete("mail_mail_id_has_usergroup_usergroup_id").Where(squirrel.Eq{
 		"mail_id": ids,

@@ -141,6 +141,8 @@ github.com/artpar/go-guerrilla v1.5.2 h1:L9G1LaXwddgtXXby21gRexoFGAZ6hNV5aUKcw9q
 github.com/artpar/go-guerrilla v1.5.2/go.mod h1:sfKsJOlZNXa7BL0w5NPZIFvs+r1CYeqI521DZ+j9iGE=
 github.com/artpar/go-imap v1.0.2 h1:L7TNdsjklbGvnUEzE9UX8k6+fxF5j54kKlT4Ea3Im5c=
 github.com/artpar/go-imap v1.0.2/go.mod h1:nFyAxrMrbER1l/5qeZGvJvECTNqma5tw0U2y+Ows/9w=
+github.com/artpar/go-imap v1.0.3 h1:pb8dxHOqRaGEzdfZgKIzm6AXyceYCFp/Sy9eElJpkmk=
+github.com/artpar/go-imap v1.0.3/go.mod h1:BvEzBXLpNmfjOY9w7Mz5gmMdO4AHWmHOWkKjAZ/Gsnw=
 github.com/artpar/go-imap-idle v1.0.2 h1:jvMquFXpidtAItwQEkmB6OtzxjV/5Jhu/Zik77iUimY=
 github.com/artpar/go-imap-idle v1.0.2/go.mod h1:WqQ0e132Pff2YVR0TIchrZ0mFpGFHjwObC6+nBCCALc=
 github.com/artpar/go.uuid v1.2.0 h1:qdQ3xmquOWNwisqzjq5dRhE+51EvljUOrVDiHyxb3wo=
@@ -269,6 +271,8 @@ github.com/emersion/go-message v0.10.3 h1:4pajGb3Rq+gHLfRcWysgcwtGRNgLpB8LC6X/vR
 github.com/emersion/go-message v0.10.3/go.mod h1:3h+HsGTCFHmk4ngJ2IV/YPhdlaOcR6hcgqM3yca9v7c=
 github.com/emersion/go-message v0.10.4-0.20190609165112-592ace5bc1ca h1:OYhqtJI4eOLvGtRIsUfP87VMJ1J/o6ks1tah9DlYkn4=
 github.com/emersion/go-message v0.10.4-0.20190609165112-592ace5bc1ca/go.mod h1:3h+HsGTCFHmk4ngJ2IV/YPhdlaOcR6hcgqM3yca9v7c=
+github.com/emersion/go-message v0.11.1 h1:0C/S4JIXDTSfXB1vpqdimAYyK4+79fgEAMQ0dSL+Kac=
+github.com/emersion/go-message v0.11.1/go.mod h1:C4jnca5HOTo4bGN9YdqNQM9sITuT3Y0K6bSUw9RklvY=
 github.com/emersion/go-milter v0.0.0-20190311184326-c3095a41a6fe/go.mod h1:aEaq7U51ARlk+2UeXTtdrDYeYWAUn/QjEwWzs7lD8OU=
 github.com/emersion/go-msgauth v0.4.0 h1:LM9vNyaecGbhWiwKCAnzql7sVfgL072/QL5ZsIaHSL8=
 github.com/emersion/go-msgauth v0.4.0/go.mod h1:7r9HUSXL1dq+KK7Xqg0JlyBxNFGf5+JouRvSz4wBZCQ=
@@ -278,6 +282,8 @@ github.com/emersion/go-sasl v0.0.0-20190520160400-47d427600317 h1:tYZxAY8nu3JJQK
 github.com/emersion/go-sasl v0.0.0-20190520160400-47d427600317/go.mod h1:G/dpzLu16WtQpBfQ/z3LYiYJn3ZhKSGWn83fyoyQe/k=
 github.com/emersion/go-sasl v0.0.0-20190817083125-240c8404624e h1:ba7YsgX5OV8FjGi5ZWml8Jng6oBrJAb3ahqWMJ5Ce8Q=
 github.com/emersion/go-sasl v0.0.0-20190817083125-240c8404624e/go.mod h1:G/dpzLu16WtQpBfQ/z3LYiYJn3ZhKSGWn83fyoyQe/k=
+github.com/emersion/go-sasl v0.0.0-20191210011802-430746ea8b9b h1:uhWtEWBHgop1rqEk2klKaxPAkVDCXexai6hSuRQ7Nvs=
+github.com/emersion/go-sasl v0.0.0-20191210011802-430746ea8b9b/go.mod h1:G/dpzLu16WtQpBfQ/z3LYiYJn3ZhKSGWn83fyoyQe/k=
 github.com/emersion/go-smtp v0.12.1 h1:1R8BDqrR2HhlGwgFYcOi+BVTvK1bMjAB65QcVpJ5sNA=
 github.com/emersion/go-smtp v0.12.1/go.mod h1:SD9V/xa4ndMw77lR3Mf7htkp8RBNYuPh9UeuBs9tpUQ=
 github.com/emersion/go-smtp-mta v0.0.0-20170206201558-f9b2f2fd6e9a h1:Wi3E7FGda69LojHLoXI+6GdC8a8a0rHRxM5oAFp/j4Y=
@@ -566,6 +572,8 @@ github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czP
 github.com/magiconair/properties v1.8.1 h1:ZC2Vc7/ZFkGmsVC9KvOjumD+G5lXy2RtTKyzRKO2BQ4=
 github.com/magiconair/properties v1.8.1/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/martinlindhe/base36 v0.0.0-20190418230009-7c6542dfbb41/go.mod h1:+AtEs8xrBpCeYgSLoY/aJ6Wf37jtBuR0s35750M27+8=
+github.com/martinlindhe/base36 v1.0.0 h1:eYsumTah144C0A8P1T/AVSUk5ZoLnhfYFM3OGQxB52A=
+github.com/martinlindhe/base36 v1.0.0/go.mod h1:+AtEs8xrBpCeYgSLoY/aJ6Wf37jtBuR0s35750M27+8=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.0 h1:v2XXALHHh6zHfYTJ+cSkwtyffnaOyR1MXaA91mTrb8o=
 github.com/mattn/go-colorable v0.1.0/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=

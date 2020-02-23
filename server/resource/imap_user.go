@@ -76,8 +76,6 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 			hasSpam = true
 		} else if mailBoxName == "archive" {
 			hasArchive = true
-		} else {
-			log.Printf("Special box [%v]", mailBoxName)
 		}
 		boxes = append(boxes, &mb)
 	}
