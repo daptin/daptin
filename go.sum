@@ -145,6 +145,8 @@ github.com/artpar/go-imap v1.0.3 h1:pb8dxHOqRaGEzdfZgKIzm6AXyceYCFp/Sy9eElJpkmk=
 github.com/artpar/go-imap v1.0.3/go.mod h1:BvEzBXLpNmfjOY9w7Mz5gmMdO4AHWmHOWkKjAZ/Gsnw=
 github.com/artpar/go-imap-idle v1.0.2 h1:jvMquFXpidtAItwQEkmB6OtzxjV/5Jhu/Zik77iUimY=
 github.com/artpar/go-imap-idle v1.0.2/go.mod h1:WqQ0e132Pff2YVR0TIchrZ0mFpGFHjwObC6+nBCCALc=
+github.com/artpar/go-smtp-mta v0.2.0 h1:vMLmwGQIdR5Ahz+H+3ntCWEXNfRO07G41k0d1mdFFqY=
+github.com/artpar/go-smtp-mta v0.2.0/go.mod h1:EIqAUc+a+nOejq6EG14deUNdZZVKCSDU4gAngJR4oj4=
 github.com/artpar/go.uuid v1.2.0 h1:qdQ3xmquOWNwisqzjq5dRhE+51EvljUOrVDiHyxb3wo=
 github.com/artpar/go.uuid v1.2.0/go.mod h1:Cg5lixaVcqAhvDZ6BFtqgP89gP3hSs4ok7eJ3ZZUIFY=
 github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a h1:W3JRCnyixXReLtgazoi45+mXLosITx/juCTy9IPs5kE=
@@ -286,7 +288,6 @@ github.com/emersion/go-sasl v0.0.0-20191210011802-430746ea8b9b h1:uhWtEWBHgop1rq
 github.com/emersion/go-sasl v0.0.0-20191210011802-430746ea8b9b/go.mod h1:G/dpzLu16WtQpBfQ/z3LYiYJn3ZhKSGWn83fyoyQe/k=
 github.com/emersion/go-smtp v0.12.1 h1:1R8BDqrR2HhlGwgFYcOi+BVTvK1bMjAB65QcVpJ5sNA=
 github.com/emersion/go-smtp v0.12.1/go.mod h1:SD9V/xa4ndMw77lR3Mf7htkp8RBNYuPh9UeuBs9tpUQ=
-github.com/emersion/go-smtp-mta v0.0.0-20170206201558-f9b2f2fd6e9a h1:Wi3E7FGda69LojHLoXI+6GdC8a8a0rHRxM5oAFp/j4Y=
 github.com/emersion/go-smtp-mta v0.0.0-20170206201558-f9b2f2fd6e9a/go.mod h1:TfbkEAFaMf4zCiWYvPESSmSfvRIVrce85WXXFJ1IeLY=
 github.com/emersion/go-textwrapper v0.0.0-20160606182133-d0e65e56babe h1:40SWqY0zE3qCi6ZrtTf5OUdNm5lDnGnjRSq9GgmeTrg=
 github.com/emersion/go-textwrapper v0.0.0-20160606182133-d0e65e56babe/go.mod h1:aqO8z8wPrjkscevZJFVE1wXJrLpC5LtJG7fqLOsPb2U=

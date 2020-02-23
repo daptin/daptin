@@ -14,7 +14,7 @@ import (
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go-guerrilla/response"
-	quickgomail "github.com/artpar/quickgomail"
+	mta "github.com/artpar/go-smtp-mta"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/emersion/go-message"
@@ -286,10 +286,15 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 							finalMail := b.Bytes()
 							log.Printf("Final Mail: [%v]", string(finalMail))
-							err = quickgomail.Message{
-								To:   rcpt.String(),
-								Body: finalMail,
-							}.Send()
+							//err = quickgomail.Message{
+							//	To:   rcpt.String(),
+							//	Body: finalMail,
+							//}.Send()
+
+							i2 := mta.Sender{
+								Hostname: e.MailFrom.Host,
+							}
+							err = (&i2).Send(e.MailFrom.String(), []string{rcpt.String()}, bytes.NewReader(finalMail))
 
 							resource.CheckErr(err, "Failed to send mail to actual destination")
 							continue

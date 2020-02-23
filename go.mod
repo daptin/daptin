@@ -18,6 +18,7 @@ require (
 	github.com/artpar/go-guerrilla v1.5.2
 	github.com/artpar/go-imap v1.0.3
 	github.com/artpar/go-imap-idle v1.0.2
+	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
 	github.com/artpar/quickgomail v0.3.0
@@ -40,8 +41,7 @@ require (
 	github.com/emersion/go-message v0.11.1
 	github.com/emersion/go-msgauth v0.4.0
 	github.com/emersion/go-sasl v0.0.0-20191210011802-430746ea8b9b
-	github.com/emersion/go-smtp v0.12.1 // indirect
-	github.com/emersion/go-smtp-mta v0.0.0-20170206201558-f9b2f2fd6e9a // indirect
+	github.com/emersion/go-smtp-mta v0.0.0-20170206201558-f9b2f2fd6e9a
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/gabriel-vasile/mimetype v0.3.15 // indirect
 	github.com/getkin/kin-openapi v0.2.0
