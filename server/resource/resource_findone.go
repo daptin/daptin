@@ -54,7 +54,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		languagePreferences = prefs.([]string)
 	}
 	if languagePreferences != nil && len(languagePreferences) > 0 {
-		log.Printf("Language preference: %v", languagePreferences)
+		//log.Printf("Language preference: %v", languagePreferences)
 	}
 
 	data, include, err := dr.GetSingleRowByReferenceId(modelName, referenceId)

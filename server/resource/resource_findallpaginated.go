@@ -96,7 +96,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		languagePreferences = prefs.([]string)
 	}
 	if languagePreferences != nil && len(languagePreferences) > 0 {
-		log.Printf("Language preference: %v", languagePreferences)
+		//log.Printf("Language preference: %v", languagePreferences)
 	}
 
 	pageNumber := uint64(0)

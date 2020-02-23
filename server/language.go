@@ -48,6 +48,7 @@ func GetLanguagePreference(header string, defaultLanguage string) []string {
 	languageTags, _, err := language.ParseAcceptLanguage(preferredLanguage)
 	resource.CheckErr(err, "Failed to parse Accept-Language header [%v]", preferredLanguage)
 	pref := make([]string, 0)
+	prefMap := make(map[string]bool)
 
 	if len(languageTags) == 1 && languageTags[0].String() == defaultLanguage {
 
@@ -58,6 +59,10 @@ func GetLanguagePreference(header string, defaultLanguage string) []string {
 			if conf == 0 {
 				continue
 			}
+			if prefMap[base.String()] == true {
+				continue
+			}
+			prefMap[base.String()] = true
 			pref = append(pref, base.String())
 		}
 

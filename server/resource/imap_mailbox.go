@@ -170,7 +170,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 		}
 
 		for _, mailContent := range mails {
-			log.Printf("Return mailContent: %v", mailContent)
+			//log.Printf("Return mailContent: %v", mailContent)
 
 			bodyContents, e := base64.StdEncoding.DecodeString(mailContent["mail"].(string))
 			if e != nil {
@@ -203,6 +203,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 
 					flagList := strings.Split(mailContent["flags"].(string), ",")
 					log.Printf("Mail flags: %v at fetch item [%v]", flagList, subItems)
+
 					switch subItems {
 					case imap.FetchEnvelope:
 
@@ -216,22 +217,11 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 							break
 						}
 						returnMail.Envelope = enve
-					case imap.FetchBody, imap.FetchBodyStructure:
-						log.Printf("Fetch Body [%v] update flags: ", subItems == imap.FetchBody)
+					case imap.FetchBodyStructure:
+						log.Printf("Fetch Body [%v] update flags: ", subItems == imap.FetchBodyStructure)
 						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
 						header, err := textproto.ReadHeader(bodyReader)
 
-						if subItems == imap.FetchBody {
-							if HasAnyFlag(flagList, []string{imap.RecentFlag}) {
-								newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
-								log.Printf("New flags: [%v]", newFlags)
-								err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
-								if err != nil {
-									log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
-								}
-							}
-
-						}
 						bs, err := backendutil.FetchBodyStructure(header, bodyReader, subItems == imap.FetchBodyStructure)
 						if err != nil {
 							log.Printf("Failed to fetch body structure for email [%v] == %v", mailContent["id"], err)
@@ -252,34 +242,37 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 					default:
 						log.Printf("Fetch default [%v] update flags: %v", subItems, flagList)
 
-						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-						header, err := textproto.ReadHeader(bodyReader)
-
 						section, err := imap.ParseBodySectionName(subItems)
-						if err != nil {
-							log.Printf("Failed to fetch structure for email [%v] == %v", mailContent["id"], err)
+						if CheckErr(err, "failed to parse item name") {
 							skipMail = true
 							break
 						}
 
-						log.Printf("Fetch default section peek [%v]: %v", section, section.Peek)
 						if !section.Peek {
 							if HasAnyFlag(flagList, []string{imap.RecentFlag}) {
-								newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
-								log.Printf("New flags: [%v]", newFlags)
-								err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), newFlags)
+								flagList = backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
+								log.Printf("New flags: [%v]", flagList)
+								err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), flagList)
 								if err != nil {
 									log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
 								}
 							}
 						}
 
+						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+						header, err := textproto.ReadHeader(bodyReader)
+
+						log.Printf("Fetch default section peek [%v]: %v", section, section.Peek)
+
 						l, err := backendutil.FetchBodySection(header, bodyReader, section)
 						if err != nil || l.Len() == 0 {
 							log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
-							// skipMail = true
-							// break
+							skipMail = true
+							break
 						}
+						flagList = backendutil.UpdateFlags(flagList, imap.AddFlags, []string{imap.SeenFlag})
+						err = dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), flagList)
+						CheckErr(err, "Failed to update mail with seen flag")
 
 						returnMail.Body[section] = l
 						//responseItems = append(responseItems, string(item), l)
