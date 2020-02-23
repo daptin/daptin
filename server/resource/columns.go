@@ -2083,9 +2083,16 @@ var StandardTables = []TableInfo{
 			{
 				Name:         "xclient_on",
 				ColumnName:   "xclient_on",
-				DataType:     "bool",
+				DataType:     "int(1)",
 				ColumnType:   "truefalse",
-				DefaultValue: "false",
+				DefaultValue: "0",
+			},
+			{
+				Name:         "always_on_tls",
+				ColumnName:   "always_on_tls",
+				DataType:     "int(1)",
+				ColumnType:   "truefalse",
+				DefaultValue: "1",
 			},
 		},
 	},
@@ -2299,6 +2306,13 @@ var StandardTables = []TableInfo{
 			{
 				Name:         "deleted",
 				ColumnName:   "deleted",
+				DataType:     "bool",
+				ColumnType:   "truefalse",
+				DefaultValue: "false",
+			},
+			{
+				Name:         "spam",
+				ColumnName:   "spam",
 				DataType:     "bool",
 				ColumnType:   "truefalse",
 				DefaultValue: "false",
