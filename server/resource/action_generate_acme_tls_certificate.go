@@ -6,7 +6,6 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"github.com/artpar/api2go"
@@ -219,17 +218,13 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 
 	rootCert := string(certificates.IssuerCertificate)
 
-
 	publicKeyBytes := ""
 	privateKey, err := ParseRsaPrivateKeyFromPemStr(string(certificates.PrivateKey))
 	if err != nil {
 		log.Printf("Failed to parse value as private key: %v", err)
 	} else {
 
-		asn1Bytes, err := asn1.Marshal(privateKey.PublicKey)
-		if err != nil {
-			log.Printf("Failed to generate public key: %v", err)
-		}
+		asn1Bytes := x509.MarshalPKCS1PublicKey(&privateKey.PublicKey)
 
 		var pemkey = &pem.Block{
 			Type:  "PUBLIC KEY",
@@ -239,16 +234,15 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 		publicKeyBytes = string(pem.EncodeToMemory(pemkey))
 	}
 
-
 	newCertificate := map[string]interface{}{
-		"hostname":        hostname,
-		"issuer":          "acme",
-		"generated_at":    time.Now().Format(time.RFC3339),
-		"certificate_pem": certificateString,
-		"private_key_pem": string(certificates.PrivateKey),
-		"public_key_pem":  publicKeyBytes,
+		"hostname":         hostname,
+		"issuer":           "acme",
+		"generated_at":     time.Now().Format(time.RFC3339),
+		"certificate_pem":  certificateString,
+		"private_key_pem":  string(certificates.PrivateKey),
+		"public_key_pem":   publicKeyBytes,
 		"root_certificate": rootCert,
-		"reference_id":    certificateSubject["reference_id"].(string),
+		"reference_id":     certificateSubject["reference_id"].(string),
 	}
 
 	data := api2go.NewApi2GoModelWithData("certificate", nil, 0, nil, newCertificate)
@@ -275,10 +269,8 @@ func ParseRsaPrivateKeyFromPemStr(privPEM string) (*rsa.PrivateKey, error) {
 
 	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 
-
 	return priv, err
 }
-
 
 func NewAcmeTlsCertificateGenerateActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore, hostSwitch *gin.Engine) (ActionPerformerInterface, error) {
 

@@ -265,14 +265,21 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 							r := strings.NewReader(string(mailBytes))
 
-							_, _, privateKeyPemByte, _, _, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false)
+							_, _, privateKeyPemByte, publicKeyBytes, _, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false)
 							if err != nil {
 								log.Errorf("Failed to get private key for domain [%v]", e.MailFrom.Host)
 								log.Errorf("Refusing to send mail without signing")
 								continue
 							}
 
+							log.Printf("Private key [%v] %v", e.MailFrom.Host, string(privateKeyPemByte))
+							log.Printf("Public key [%v] %v", e.MailFrom.Host, string(publicKeyBytes))
+							
 							block, _ := pem.Decode([]byte(privateKeyPemByte))
+							resource.CheckErr(err, "Failed to read pem bytes")
+							if err != nil {
+								continue
+							}
 							privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 
 							resource.CheckErr(err, "Failed to parse private key")
