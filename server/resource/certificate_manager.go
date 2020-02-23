@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"github.com/artpar/api2go"
@@ -104,6 +103,7 @@ func GetPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
 	bitSize := 2048
 
 	key, err := rsa.GenerateKey(reader, bitSize)
+	CheckErr(err, "Failed to generate key of size [%v]", bitSize)
 
 	var privateKey = &pem.Block{
 		Type:  "PRIVATE KEY",
@@ -112,10 +112,7 @@ func GetPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
 
 	privateKeyBytes := pem.EncodeToMemory(privateKey)
 
-	asn1Bytes, err := asn1.Marshal(key.PublicKey)
-	if err != nil {
-		return nil, nil, key, err
-	}
+	asn1Bytes := x509.MarshalPKCS1PublicKey(&key.PublicKey)
 
 	var pemkey = &pem.Block{
 		Type:  "PUBLIC KEY",
