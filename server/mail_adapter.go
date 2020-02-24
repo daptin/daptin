@@ -275,6 +275,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							options := &dkim.SignOptions{
 								Selector:               "daptin",
 								HeaderCanonicalization: dkim.CanonicalizationRelaxed,
+								BodyCanonicalization:   dkim.CanonicalizationRelaxed,
 								Domain:                 e.MailFrom.Host,
 								Signer:                 privateKey,
 							}
