@@ -296,11 +296,11 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 									continue
 								}
 								for _, val := range headerValue {
-									newMailString = newMailString + headerName + ": " + val + "\r\n\r\n"
+									newMailString = newMailString + headerName + ": " + val + "\r\n"
 								}
 							}
 
-							newMailString = newMailString + string(body)
+							newMailString = newMailString + "\r\n" + string(body)
 
 							var b bytes.Buffer
 							if err := dkim.Sign(&b, bytes.NewReader([]byte(newMailString)), options); err != nil {
