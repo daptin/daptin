@@ -18,7 +18,7 @@ require (
 	github.com/artpar/go-guerrilla v1.5.2
 	github.com/artpar/go-imap v1.0.3
 	github.com/artpar/go-imap-idle v1.0.2
-	github.com/artpar/go-smtp-mta v0.3.0
+	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
 	github.com/artpar/quickgomail v0.3.0
