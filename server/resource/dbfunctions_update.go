@@ -652,7 +652,7 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 		}
 		_, ok = currentActions[worldIdString][action.Name]
 		if ok {
-			log.Infof("Action [%v] on [%v] already present in database", action.Name, action.OnType)
+			//log.Infof("Action [%v] on [%v] already present in database", action.Name, action.OnType)
 
 			actionJson, err := json.Marshal(action)
 			CheckErr(err, "Failed to marshal action infields")
