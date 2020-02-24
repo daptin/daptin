@@ -1413,7 +1413,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "active",
 				ColumnName: "active",
-				DataType:   "bool",
+				DataType:   "int(1)",
 				ColumnType: "truefalse",
 			},
 			{
