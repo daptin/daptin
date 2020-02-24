@@ -147,6 +147,8 @@ github.com/artpar/go-imap-idle v1.0.2 h1:jvMquFXpidtAItwQEkmB6OtzxjV/5Jhu/Zik77i
 github.com/artpar/go-imap-idle v1.0.2/go.mod h1:WqQ0e132Pff2YVR0TIchrZ0mFpGFHjwObC6+nBCCALc=
 github.com/artpar/go-smtp-mta v0.2.0 h1:vMLmwGQIdR5Ahz+H+3ntCWEXNfRO07G41k0d1mdFFqY=
 github.com/artpar/go-smtp-mta v0.2.0/go.mod h1:EIqAUc+a+nOejq6EG14deUNdZZVKCSDU4gAngJR4oj4=
+github.com/artpar/go-smtp-mta v0.3.0 h1:ZFfZgmZWplItKRSD0ofsbbfzL2anqtJyEM+SE4fKtI4=
+github.com/artpar/go-smtp-mta v0.3.0/go.mod h1:EIqAUc+a+nOejq6EG14deUNdZZVKCSDU4gAngJR4oj4=
 github.com/artpar/go.uuid v1.2.0 h1:qdQ3xmquOWNwisqzjq5dRhE+51EvljUOrVDiHyxb3wo=
 github.com/artpar/go.uuid v1.2.0/go.mod h1:Cg5lixaVcqAhvDZ6BFtqgP89gP3hSs4ok7eJ3ZZUIFY=
 github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a h1:W3JRCnyixXReLtgazoi45+mXLosITx/juCTy9IPs5kE=
