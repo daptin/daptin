@@ -23,7 +23,9 @@ import (
 	"github.com/emersion/go-msgauth/dkim"
 	log "github.com/sirupsen/logrus"
 	"github.com/smancke/mailck"
+	"io/ioutil"
 	"net/http"
+	mail1 "net/mail"
 	"strings"
 	"time"
 )
@@ -214,6 +216,8 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						}
 
 						mailBytes := e.Data.Bytes()
+						message1, err := mail1.ReadMessage(bytes.NewReader(mailBytes))
+						message1.Header.Date()
 
 						parsedMail, err := mailpacket.CreateReader(bytes.NewReader(mailBytes))
 						resource.CheckErr(err, "Failed to parse mail from bytes")
@@ -252,6 +256,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 
 							r := strings.NewReader(string(mailBytes))
+							netMesasge, _ := mail1.ReadMessage(r)
 
 							_, _, privateKeyPemByte, publicKeyBytes, _, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false)
 							if err != nil {
@@ -280,23 +285,22 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								Signer:                 privateKey,
 							}
 
+							body, _ := ioutil.ReadAll(netMesasge.Body)
+							newMailBytes := []byte(fmt.Sprintf("From: %s\r\nSubject: %s\r\nTo: %s\r\n\r\nDate: %s\r\n%s", e.MailFrom.String(), e.Subject, rcpt.String(), time.Now().Format(time.RFC822Z), body))
+
 							var b bytes.Buffer
-							if err := dkim.Sign(&b, r, options); err != nil {
+							if err := dkim.Sign(&b, bytes.NewReader(newMailBytes), options); err != nil {
 								log.Errorf("Failed to sign outgoing mail via dkim, not sending it ahead [%v]", err)
 								return nil, err
 							}
 
 							finalMail := b.Bytes()
-							log.Printf("Final Mail: [%v]", string(finalMail))
-							//err = quickgomail.Message{
-							//	To:   rcpt.String(),
-							//	Body: finalMail,
-							//}.Send()
+							log.Printf("Final Mail: From [%v] to [%v] [%v]", e.MailFrom.String(), rcpt.String(), string(finalMail))
 
 							i2 := mta.Sender{
 								Hostname: e.MailFrom.Host,
 							}
-							err = (&i2).Send(e.MailFrom.String(), []string{rcpt.String()}, bytes.NewReader(finalMail))
+							err = (&i2).Send(e.MailFrom.String(), []string{rcpt.String()}, bytes.NewReader(newMailBytes))
 
 							resource.CheckErr(err, "Failed to send mail to actual destination")
 							continue
