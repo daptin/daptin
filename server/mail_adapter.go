@@ -254,6 +254,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								log.Errorf("Refusing to send mail without login")
 								return nil, errors.New("unauthorized")
 							}
+							fmt.Printf("Original Mail: \n%s\n", string(mailBytes))
 
 							r := strings.NewReader(string(mailBytes))
 							netMesasge, _ := mail1.ReadMessage(r)
@@ -286,7 +287,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 
 							body, _ := ioutil.ReadAll(netMesasge.Body)
-							newMailString := fmt.Sprintf("From: %s\r\nSubject: %s\r\nTo: %s\r\n\r\nDate: %s\r\n", e.MailFrom.String(), e.Subject, rcpt.String(), time.Now().Format(time.RFC822Z))
+							newMailString := fmt.Sprintf("From: %s\r\nSubject: %s\r\nTo: %s\r\nDate: %s\r\n", e.MailFrom.String(), e.Subject, rcpt.String(), time.Now().Format(time.RFC822Z))
 
 							for headerName, headerValue := range e.Header {
 								headerNameSmall := strings.ToLower(headerName)
@@ -295,7 +296,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 									continue
 								}
 								for _, val := range headerValue {
-									newMailString = newMailString + headerName + ": " + val + "\r\n"
+									newMailString = newMailString + headerName + ": " + val + "\r\n\r\n"
 								}
 							}
 
