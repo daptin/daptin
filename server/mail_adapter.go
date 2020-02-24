@@ -14,7 +14,7 @@ import (
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go-guerrilla/response"
-	mta "github.com/artpar/go-smtp-mta"
+	"github.com/artpar/go-smtp-mta"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/emersion/go-message"
@@ -273,7 +273,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							resource.CheckErr(err, "Failed to parse private key")
 
 							options := &dkim.SignOptions{
-								Selector: "daptin",
+								Selector: "d1",
 								Domain:   e.MailFrom.Host,
 								Signer:   privateKey,
 							}
