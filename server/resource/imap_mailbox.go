@@ -372,6 +372,7 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 		},
 	}
 
+	log.Printf("Search query for mail: %v", searchRequest.QueryParams)
 	results, _, _, err := dimb.dbResource["mail"].PaginatedFindAllWithoutFilters(searchRequest)
 
 	if err != nil {
