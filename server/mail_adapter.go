@@ -286,21 +286,35 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 
 							body, _ := ioutil.ReadAll(netMesasge.Body)
-							newMailBytes := []byte(fmt.Sprintf("From: %s\r\nSubject: %s\r\nTo: %s\r\n\r\nDate: %s\r\n%s", e.MailFrom.String(), e.Subject, rcpt.String(), time.Now().Format(time.RFC822Z), body))
+							newMailString := fmt.Sprintf("From: %s\r\nSubject: %s\r\nTo: %s\r\n\r\nDate: %s\r\n", e.MailFrom.String(), e.Subject, rcpt.String(), time.Now().Format(time.RFC822Z))
+
+							for headerName, headerValue := range e.Header {
+								headerNameSmall := strings.ToLower(headerName)
+
+								if headerNameSmall == "date" || headerNameSmall == "to" || headerNameSmall == "from" || headerNameSmall == "subject" {
+									continue
+								}
+								for _, val := range headerValue {
+									newMailString = newMailString + headerName + ": " + val + "\r\n"
+								}
+							}
+
+							newMailString = newMailString + string(body)
 
 							var b bytes.Buffer
-							if err := dkim.Sign(&b, bytes.NewReader(newMailBytes), options); err != nil {
+							if err := dkim.Sign(&b, bytes.NewReader([]byte(newMailString)), options); err != nil {
 								log.Errorf("Failed to sign outgoing mail via dkim, not sending it ahead [%v]", err)
 								return nil, err
 							}
 
 							finalMail := b.Bytes()
+							fmt.Printf("Mail\n%s", string(finalMail))
 							log.Printf("Final Mail: From [%v] to [%v] [%v]", e.MailFrom.String(), rcpt.String(), string(finalMail))
 
 							i2 := mta.Sender{
 								Hostname: e.MailFrom.Host,
 							}
-							err = (&i2).Send(e.MailFrom.String(), []string{rcpt.String()}, bytes.NewReader(newMailBytes))
+							err = (&i2).Send(e.MailFrom.String(), []string{rcpt.String()}, bytes.NewReader(finalMail))
 
 							resource.CheckErr(err, "Failed to send mail to actual destination")
 							continue
