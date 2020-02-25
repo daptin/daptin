@@ -351,7 +351,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("world type mismatch")
 	}
 
-	resp, err = r.Get(baseAddress+"/api/gallery_image", req.Header{
+	resp, err = r.Get(baseAddress+"/api/gallery_image?sort=reference_id,-created_at", req.Header{
 		"Authorization": "Bearer " + token,
 	})
 
