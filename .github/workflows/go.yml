@@ -25,7 +25,7 @@ jobs:
           - job_name: linux
             os: ubuntu-latest
             go: '1.13.x'
-            modules: 'off'
+            modules: 'on'
             gotags: cmount
             build_flags: '-include "^linux/"'
             check: true
@@ -35,7 +35,7 @@ jobs:
           - job_name: mac
             os: macOS-latest
             go: '1.13.x'
-            modules: 'off'
+            modules: 'on'
             gotags: ''  # cmount doesn't work on osx travis for some reason
             build_flags: '-include "^darwin/amd64" -cgo'
             quicktest: true
@@ -45,7 +45,7 @@ jobs:
           - job_name: windows_amd64
             os: windows-latest
             go: '1.13.x'
-            modules: 'off'
+            modules: 'on'
             gotags: cmount
             build_flags: '-include "^windows/amd64" -cgo'
             quicktest: true
@@ -55,7 +55,7 @@ jobs:
           - job_name: windows_386
             os: windows-latest
             go: '1.13.x'
-            modules: 'off'
+            modules: 'on'
             gotags: cmount
             goarch: '386'
             cgo: '1'
@@ -66,7 +66,7 @@ jobs:
           - job_name: other_os
             os: ubuntu-latest
             go: '1.13.x'
-            modules: 'off'
+            modules: 'on'
             build_flags: '-exclude "^(windows/|darwin/amd64|linux/)"'
             compile_all: true
             deploy: true
@@ -81,19 +81,19 @@ jobs:
           - job_name: go1.10
             os: ubuntu-latest
             go: '1.10.x'
-            modules: 'off'
+            modules: 'on'
             quicktest: true
 
           - job_name: go1.11
             os: ubuntu-latest
             go: '1.11.x'
-            modules: 'off'
+            modules: 'on'
             quicktest: true
 
           - job_name: go1.12
             os: ubuntu-latest
             go: '1.12.x'
-            modules: 'off'
+            modules: 'on'
             quicktest: true
 
     name: ${{ matrix.job_name }}
