@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	rice "github.com/GeertJohan/go.rice"
+	"github.com/GeertJohan/go.rice"
 	"github.com/artpar/go-guerrilla"
 	imapServer "github.com/artpar/go-imap/server"
 	"github.com/daptin/daptin/server"
@@ -29,9 +29,6 @@ import (
 var stream = health.NewStream()
 
 func init() {
-	//goagain.Strategy = goagain.Double
-	//log.SetFlags(log.Lmicroseconds | log.Lshortfile)
-	//log.SetPrefix(fmt.Sprintf("Daptin Process ID: %d ", syscall.Getpid()))
 
 	logFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
 	if !ok || logFileLocation == "" {
@@ -91,9 +88,9 @@ func main() {
 	var certManager *resource.CertificateManager
 	var configStore *resource.ConfigStore
 	var ftpServer *server2.FtpServer
-	var imapServerInst *imapServer.Server
+	var imapServerInstance *imapServer.Server
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInst = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInstance = server.Main(boxRoot, db)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -103,7 +100,9 @@ func main() {
 
 		log.Printf("Close down services and db connection")
 		taskScheduler.StopTasks()
-		ftpServer.Stop()
+		if ftpServer != nil {
+			ftpServer.Stop()
+		}
 
 		if mailDaemon != nil {
 			mailDaemon.Shutdown()
@@ -125,7 +124,7 @@ func main() {
 		log.Printf("Create new connections")
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInst = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInstance = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 		log.Printf("Restart complete")
 	})
