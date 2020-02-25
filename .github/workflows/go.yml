@@ -78,6 +78,18 @@ jobs:
             quicktest: true
             racequicktest: true
 
+          - job_name: go1.10
+            os: ubuntu-latest
+            go: '1.11.x'
+            modules: 'on'
+            quicktest: true
+
+          - job_name: go1.11
+            os: ubuntu-latest
+            go: '1.11.x'
+            modules: 'on'
+            quicktest: true
+
           - job_name: go1.12
             os: ubuntu-latest
             go: '1.12.x'
@@ -110,7 +122,6 @@ jobs:
           echo '::set-env name=BUILD_FLAGS::${{ matrix.build_flags }}'
           if [[ "${{ matrix.goarch }}" != "" ]]; then echo '::set-env name=GOARCH::${{ matrix.goarch }}' ; fi
           if [[ "${{ matrix.cgo }}" != "" ]]; then echo '::set-env name=CGO_ENABLED::${{ matrix.cgo }}' ; fi
-
       - name: Install Libraries on Linux
         shell: bash
         run: |
@@ -154,7 +165,6 @@ jobs:
           make vars
           printf "\n\nSystem environment:\n\n"
           env
-
       - name: Run tests
         shell: bash
         run: |
@@ -193,7 +203,6 @@ jobs:
         run: |
           echo '::set-env name=GOPATH::${{ runner.workspace }}'
           echo '::add-path::${{ runner.workspace }}/bin'
-
       - name: Cross-compile daptin
         run: |
           docker pull billziss/xgo-cgofuse
@@ -209,12 +218,10 @@ jobs:
               -targets=android/*,ios/* \
               -dest build \
               .
-
       - name: Build daptin
         run: |
           docker pull golang
-          docker run --rm -e "GO111MODULE=on" -v "$PWD":/usr/src/daptin -w /usr/src/daptin golang go build -v
-
+          docker run --rm -v "$PWD":/usr/src/daptin -w /usr/src/daptin golang go build -mod=vendor -v
       - name: Upload artifacts
         run: |
           make circleci_upload
