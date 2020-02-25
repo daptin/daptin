@@ -23,7 +23,7 @@ require (
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
 	github.com/artpar/quickgomail v0.3.0
 	github.com/artpar/rclone v1.50.6
-	github.com/artpar/resty v1.0.1
+	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
 	github.com/aws/aws-sdk-go v1.27.0
 	github.com/bamzi/jobrunner v0.0.0-20161019143021-273175f8b6eb // indirect
@@ -118,7 +118,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200109152110-61a87790db17
 	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a // indirect
 	golang.org/x/mobile v0.0.0-20190923204409-d3ece3b6da5f // indirect
-	golang.org/x/net v0.0.0-20191109021931-daa7c04131f5
+	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/text v0.3.2
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
