@@ -187,17 +187,6 @@ jobs:
           make compile_all
         if: matrix.compile_all
 
-      - name: Deploy built binaries
-        shell: bash
-        run: |
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then make release_dep ; fi
-          make travis_beta
-        env:
-          DAPTIN_CONFIG_PASS: ${{ secrets.DAPTIN_CONFIG_PASS }}
-        # working-directory: '$(modulePath)'
-        # Deploy binaries if enabled in config && not a PR && not a fork
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
   xgo:
     timeout-minutes: 60
     name: "xgo cross compile"
