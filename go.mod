@@ -22,7 +22,7 @@ require (
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
 	github.com/artpar/quickgomail v0.3.0
-	github.com/artpar/rclone v1.50.3
+	github.com/artpar/rclone v1.50.4
 	github.com/artpar/resty v1.0.1
 	github.com/artpar/stats v1.0.2
 	github.com/aws/aws-sdk-go v1.25.31
@@ -116,7 +116,7 @@ require (
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/tealeg/xlsx v0.0.0-20181024002044-dbf71b6a931e
 	github.com/ugorji/go v1.1.7 // indirect
-	golang.org/x/crypto v0.0.0-20191108234033-bd318be0434a
+	golang.org/x/crypto v0.0.0-20200109152110-61a87790db17
 	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a // indirect
 	golang.org/x/mobile v0.0.0-20190923204409-d3ece3b6da5f // indirect
 	golang.org/x/net v0.0.0-20191109021931-daa7c04131f5
