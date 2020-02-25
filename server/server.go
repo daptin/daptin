@@ -2,12 +2,20 @@ package server
 
 import (
 	"fmt"
+	"io"
+	"net"
+	"os"
+	"strings"
+	"time"
+
+	server2 "github.com/fclairamb/ftpserver/server"
+
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/go-guerrilla"
-	"github.com/artpar/go-imap-idle"
+	idle "github.com/artpar/go-imap-idle"
 	"github.com/artpar/go-imap/server"
-	"github.com/artpar/go.uuid"
+	uuid "github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/stats"
@@ -18,22 +26,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hpcloud/tail"
 	"github.com/icrowley/fake"
-	"io"
-	"os"
-	"strings"
-	"time"
+
 	//"github.com/gin-gonic/gin"
-	graphqlhandler "github.com/graphql-go/handler"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
+
+	graphqlhandler "github.com/graphql-go/handler"
+	log "github.com/sirupsen/logrus"
 )
 
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon,
-	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server.Server) {
+	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server) {
 
 	/// Start system initialise
 	log.Infof("Load config files")
@@ -328,8 +334,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
-	//log.Printf("Created task scheduler: %v", TaskScheduler)
-	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
+	log.Printf("Created task scheduler: %v", TaskScheduler)
+	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware)
+
+	for k := range cruds {
+		cruds[k].SubsiteFolderCache = subsiteCacheFolders
+	}
+
 	hostSwitch.handlerMap["api"] = defaultRouter
 	hostSwitch.handlerMap["dashboard"] = defaultRouter
 
@@ -356,7 +367,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	TaskScheduler.StartTasks()
 
-	assetColumnFolders := CreateAssetColumnSync(&initConfig, db, cruds, authMiddleware)
+	assetColumnFolders := CreateAssetColumnSync(cruds)
 	for k := range cruds {
 		cruds[k].AssetFolderCache = assetColumnFolders
 	}
@@ -366,6 +377,32 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	authMiddleware.SetUserUserGroupCrud(cruds["user_account_user_account_id_has_usergroup_usergroup_id"])
 
 	fsmManager := resource.NewFsmManager(db, cruds)
+
+	enableFtp, err := configStore.GetConfigValueFor("ftp.enable", "backend")
+	if err != nil {
+		enableFtp = "false"
+		err = configStore.SetConfigValueFor("ftp.enable", enableFtp, "backend")
+		auth.CheckErr(err, "Failed to store default valuel for ftp.enable")
+	}
+
+	var ftpServer *server2.FtpServer
+	if enableFtp == "true" {
+
+		ftp_interface, err := configStore.GetConfigValueFor("ftp.listen_interface", "backend")
+		if err != nil {
+			ftp_interface = "0.0.0.0:2121"
+			err = configStore.SetConfigValueFor("ftp.listen_interface", ftp_interface, "backend")
+			resource.CheckErr(err, "Failed to store default value for ftp.listen_interface")
+		}
+		// ftpListener, err := net.Listen("tcp", ftp_interface)
+		// resource.CheckErr(err, "Failed to create listener for FTP")
+		ftpServer, err = CreateFtpServers(cruds, certificateManager, nil)
+		auth.CheckErr(err, "Failed to creat FTP server")
+		go func() {
+			err = ftpServer.ListenAndServe()
+			resource.CheckErr(err, "Failed to listen at ftp interface")
+		}()
+	}
 
 	defaultRouter.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
@@ -483,8 +520,58 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
 
-	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, imapServer
+	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer, imapServer
 
+}
+
+func CreateFtpServers(resources map[string]*resource.DbResource, certManager *resource.CertificateManager, listener net.Listener) (*server2.FtpServer, error) {
+
+	subsites, err := resources["ftp_server"].GetAllSites()
+	if err != nil {
+		return nil, err
+	}
+	cloudStores, err := resources["cloud_store"].GetAllCloudStores()
+
+	if err != nil {
+		return nil, err
+	}
+	cloudStoreMap := make(map[string]resource.CloudStore)
+	for _, cloudStore := range cloudStores {
+		cloudStoreMap[cloudStore.ReferenceId] = cloudStore
+	}
+	var driver *DaptinFtpDriver
+
+	sites := make([]SubSiteAssetCache, 0)
+	for _, ftpServer := range subsites {
+
+		if !ftpServer.FtpEnabled {
+			continue
+		}
+
+		assetCacheFolder, ok := resources["site"].SubsiteFolderCache[ftpServer.ReferenceId]
+		if !ok {
+			continue
+		}
+		site := SubSiteAssetCache{
+			SubSite:          ftpServer,
+			AssetFolderCache: assetCacheFolder,
+		}
+		sites = append(sites, site)
+
+	}
+
+	driver, err = NewDaptinFtpDriver(resources, certManager, sites)
+	driver.DaptinFtpServerSettings.Server.Listener = listener
+	driver.DaptinFtpServerSettings.Server.ListenAddr = "0.0.0.0:2121"
+	ftpS := server2.NewFtpServer(driver)
+	resource.CheckErr(err, "Failed to create daptin ftp driver [%v]", driver)
+	return ftpS, err
+
+}
+
+type SubSiteAssetCache struct {
+	resource.SubSite
+	resource.AssetFolderCache
 }
 
 type Crammd5 struct {

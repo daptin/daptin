@@ -2,6 +2,11 @@ package server
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"strings"
+
 	"github.com/artpar/go.uuid"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
 	"github.com/artpar/stats"
@@ -12,10 +17,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strings"
 )
 
 type HostSwitch struct {
@@ -28,7 +29,7 @@ type JsonApiError struct {
 	Message string
 }
 
-func CreateAssetColumnSync(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) map[string]map[string]resource.AssetFolderCache {
+func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map[string]resource.AssetFolderCache {
 
 	stores, err := cruds["cloud_store"].GetAllCloudStores()
 	assetCache := make(map[string]map[string]resource.AssetFolderCache)
@@ -93,12 +94,13 @@ func CreateAssetColumnSync(cmsConfig *resource.CmsConfig, db database.DatabaseCo
 
 }
 
-func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) HostSwitch {
+func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) (HostSwitch, map[string]resource.AssetFolderCache) {
 
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
 
 	hs := HostSwitch{}
+	subsiteCacheFolders := make(map[string]resource.AssetFolderCache)
 	hs.handlerMap = make(map[string]*gin.Engine)
 	hs.siteMap = make(map[string]resource.SubSite)
 	hs.authMiddleware = authMiddleware
@@ -119,7 +121,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 	if err != nil {
 		log.Errorf("Failed to load sites from database: %v", err)
-		return hs
+		return hs, subsiteCacheFolders
 	}
 
 	for _, site := range sites {
@@ -169,6 +171,13 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 			AsUserEmail: adminEmailId,
 			Schedule:    "@every 1h",
 		})
+
+		subsiteCacheFolders[site.ReferenceId] = resource.AssetFolderCache{
+			LocalSyncPath: tempDirectoryPath,
+			Keyname:       "",
+			CloudStore:    cloudStore,
+		}
+
 		resource.CheckErr(err, "Failed to register task to sync storage")
 
 		subsiteStats := stats.New()
@@ -212,7 +221,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 	cmsConfig.SubSites = siteMap
 
-	return hs
+	return hs, subsiteCacheFolders
 }
 
 type StaticFsWithDefaultIndex struct {

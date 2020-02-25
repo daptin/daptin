@@ -3,7 +3,16 @@ package main
 import (
 	"errors"
 	"flag"
-	"github.com/GeertJohan/go.rice"
+	server3 "github.com/fclairamb/ftpserver/server"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
+	rice "github.com/GeertJohan/go.rice"
 	"github.com/artpar/go-guerrilla"
 	server2 "github.com/artpar/go-imap/server"
 	"github.com/daptin/daptin/server"
@@ -15,13 +24,6 @@ import (
 	"github.com/jamiealquiza/envy"
 	"github.com/jmoiron/sqlx"
 	"github.com/sadlil/go-trigger"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"os"
-	"strings"
-	"testing"
-	"time"
 )
 
 const testData = `{
@@ -86,8 +88,8 @@ func TestServer(t *testing.T) {
 	os.Remove("daptin_test.db")
 	log.Printf("Failed to delete existing file %v", err)
 
-	var db_type = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
-	var connection_string = flag.String("db_connection_string", "daptin_test.db", "\n\tSQLite: test.db\n"+
+	var dbType = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
+	var connectionString = flag.String("db_connection_string", "daptin_test.db", "\n\tSQLite: test.db\n"+
 		"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
 		"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
@@ -113,9 +115,9 @@ func TestServer(t *testing.T) {
 	} else {
 		boxRoot = boxRoot1.HTTPBox()
 	}
-	statementbuilder.InitialiseStatementBuilder(*db_type)
+	statementbuilder.InitialiseStatementBuilder(*dbType)
 
-	db, err := server.GetDbConnection(*db_type, *connection_string)
+	db, err := server.GetDbConnection(*dbType, *connectionString)
 	if err != nil {
 		panic(err)
 	}
@@ -127,6 +129,7 @@ func TestServer(t *testing.T) {
 	var configStore *resource.ConfigStore
 	var certManager *resource.CertificateManager
 	var imapServer *server2.Server
+	var ftpServer *server3.FtpServer
 
 	configStore, _ = resource.NewConfigStore(db)
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
@@ -134,7 +137,7 @@ func TestServer(t *testing.T) {
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
 	configStore.SetConfigValueFor("logs.enable", "true", "backend")
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer = server.Main(boxRoot, db)
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -150,9 +153,9 @@ func TestServer(t *testing.T) {
 			log.Printf("Failed to close DB connections: %v", err)
 		}
 
-		db, err = server.GetDbConnection(*db_type, *connection_string)
+		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer , imapServer= server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
 
@@ -172,7 +175,7 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Errorf("test failed %v", err)
 	}
-	log.Printf("it never started in test: %v", imapServer)
+	log.Printf("it never started in test: %v %v", imapServer, ftpServer)
 
 	log.Printf("Shutdown now")
 
@@ -367,21 +370,21 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		return err
 	}
 
-	var createdId string
-	createdId = createImageResp["data"].(map[string]interface{})["attributes"].(map[string]interface{})["reference_id"].(string)
+	var createdID string
+	createdID = createImageResp["data"].(map[string]interface{})["attributes"].(map[string]interface{})["reference_id"].(string)
 
-	t.Logf("Image create response id: %v", createdId)
+	t.Logf("Image create response id: %v", createdID)
 
-	resp, err = r.Get(baseAddress + "/api/gallery_image/" + createdId)
+	resp, err = r.Get(baseAddress + "/api/gallery_image/" + createdID)
 	readImageResp := make(map[string]interface{})
 	err = resp.ToJSON(&readImageResp)
 	if err != nil {
 		return err
 	}
 
-	t.Logf("Image read response id: %v", readImageResp)
+	//t.Logf("Image read response id: %v", readImageResp)
 
-	resp, err = r.Get(baseAddress + "/asset/gallery_image/" + createdId + "/file.png")
+	resp, err = r.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png")
 	if err != nil {
 		return err
 	}
@@ -396,7 +399,6 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	if imgLen == 0 {
 		t.Errorf("Image length is 0")
 	}
-
 
 	Params := []string{
 		"boxblur=0.5",
@@ -440,7 +442,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	for _, param := range Params {
-		resp, err = r.Get(baseAddress + "/asset/gallery_image/" + createdId + "/file.png?" + param)
+		resp, err = r.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png?" + param)
 		if err != nil {
 			return err
 		}
@@ -451,9 +453,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		}
 		t.Logf("Image length [%v]: %v", param, len(imbBody))
 
-
 	}
-
 
 	// do a sign in
 	resp, err = r.Post(baseAddress+"/action/world/become_admin", req.BodyJSON(map[string]interface{}{
@@ -486,9 +486,6 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	t.Logf("Hostname from config: %v", resp.String())
-
-
-
 
 	return nil
 

@@ -5,9 +5,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-/**
-  Become administrator of daptin action implementation
-*/
+// BecomeAdminActionPerformer daptin action implementation
 type BecomeAdminActionPerformer struct {
 	cruds map[string]*DbResource
 }
@@ -17,7 +15,7 @@ func (d *BecomeAdminActionPerformer) Name() string {
 	return "__become_admin"
 }
 
-// Perform action and try to make the current user the admin of the system
+// BecomeAdminActionPerformer Perform action and try to make the current user the admin of the system
 // Checks CanBecomeAdmin and then invokes BecomeAdmin if true
 func (d *BecomeAdminActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
