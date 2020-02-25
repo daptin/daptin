@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	server3 "github.com/fclairamb/ftpserver/server"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -128,6 +129,7 @@ func TestServer(t *testing.T) {
 	var configStore *resource.ConfigStore
 	var certManager *resource.CertificateManager
 	var imapServer *server2.Server
+	var ftpServer *server3.FtpServer
 
 	configStore, _ = resource.NewConfigStore(db)
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
@@ -135,7 +137,7 @@ func TestServer(t *testing.T) {
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
 	configStore.SetConfigValueFor("logs.enable", "true", "backend")
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer = server.Main(boxRoot, db)
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -153,7 +155,7 @@ func TestServer(t *testing.T) {
 
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer , imapServer= server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
 
@@ -173,7 +175,7 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Errorf("test failed %v", err)
 	}
-	log.Printf("it never started in test: %v", imapServer)
+	log.Printf("it never started in test: %v %v", imapServer, ftpServer)
 
 	log.Printf("Shutdown now")
 
@@ -380,7 +382,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		return err
 	}
 
-	t.Logf("Image read response id: %v", readImageResp)
+	//t.Logf("Image read response id: %v", readImageResp)
 
 	resp, err = r.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png")
 	if err != nil {

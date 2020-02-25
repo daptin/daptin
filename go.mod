@@ -25,7 +25,7 @@ require (
 	github.com/artpar/rclone v1.50.3
 	github.com/artpar/resty v1.0.1
 	github.com/artpar/stats v1.0.2
-	github.com/aws/aws-sdk-go v1.25.31
+	github.com/aws/aws-sdk-go v1.27.0
 	github.com/bamzi/jobrunner v0.0.0-20161019143021-273175f8b6eb // indirect
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/coreos/etcd v3.3.15+incompatible // indirect
@@ -43,7 +43,7 @@ require (
 	github.com/emersion/go-sasl v0.0.0-20191210011802-430746ea8b9b
 	github.com/emersion/go-smtp-mta v0.0.0-20170206201558-f9b2f2fd6e9a
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
-	github.com/fclairamb/ftpserver v0.0.0-20200205001808-94ebeca09cf0
+	github.com/fclairamb/ftpserver v0.0.0-20200221221851-84e5d668e655
 	github.com/gabriel-vasile/mimetype v0.3.15 // indirect
 	github.com/getkin/kin-openapi v0.2.0
 	github.com/ghodss/yaml v1.0.0
@@ -82,7 +82,7 @@ require (
 	github.com/jamiealquiza/envy v1.1.0
 	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
-	github.com/json-iterator/go v1.1.7
+	github.com/json-iterator/go v1.1.8
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kr/pty v1.1.8 // indirect
 	github.com/leodido/go-urn v0.0.0-20181204092800-a67a23e1c1af // indirect
@@ -100,8 +100,6 @@ require (
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/otp v1.2.0
-	github.com/prometheus/common v0.7.0 // indirect
-	github.com/prometheus/procfs v0.0.5 // indirect
 	github.com/robfig/cron v1.0.0
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.4.0 // indirect

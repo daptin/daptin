@@ -125,7 +125,7 @@ func (driver *DaptinFtpDriver) GetTLSConfig() (*tls.Config, error) {
 		break
 	}
 
-	tls1, _, _, _, err := driver.CertManager.GetTLSConfig(driver.Sites[firstSite].Hostname)
+	tls1, _, _, _, _, err := driver.CertManager.GetTLSConfig(driver.Sites[firstSite].Hostname, true)
 	if err != nil {
 		return nil, err
 	}
@@ -147,11 +147,11 @@ func (driver *DaptinFtpDriver) WelcomeUser(cc server.ClientContext) (string, err
 	cc.SetDebug(true)
 	// This will remain the official name for now
 	return fmt.Sprintf(
-			"Welcome on daptin FTP server, you're on dir %s, your ID is %d, your IP:port is %s, we currently have %d clients connected",
-			driver.BaseDir,
-			cc.ID(),
-			cc.RemoteAddr(),
-			nbClients),
+		"Welcome on daptin FTP server, you're on dir %s, your ID is %d, your IP:port is %s, we currently have %d clients connected",
+		driver.BaseDir,
+		cc.ID(),
+		cc.RemoteAddr(),
+		nbClients),
 		nil
 }
 
@@ -176,6 +176,23 @@ func (driver *DaptinFtpDriver) AuthUser(cc server.ClientContext, user, pass stri
 // UserLeft is called when the user disconnects, even if he never authenticated
 func (driver *DaptinFtpDriver) UserLeft(cc server.ClientContext) {
 	atomic.AddInt32(&driver.nbClients, -1)
+}
+
+func (driver *ClientDriver) SetFileMtime(cc server.ClientContext, path string, mtime time.Time) error {
+
+	dirParts := strings.Split(path, string(os.PathSeparator))
+
+	if len(dirParts) == 2 {
+		subsiteName := dirParts[1]
+		_, ok := driver.FtpDriver.Sites[subsiteName]
+		if !ok {
+			return errors.New("invalid path " + subsiteName)
+		}
+		driver.CurrentDir = subsiteName
+	}
+
+	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) + strings.Join(dirParts[2:], string(os.PathSeparator))
+	return os.Chtimes(path, mtime, mtime)
 }
 
 // ChangeDirectory changes the current working directory
