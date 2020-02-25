@@ -1,14 +1,18 @@
 package resource
 
 import (
+	"context"
 	"encoding/base64"
+	"errors"
+	"fmt"
 	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/cmd"
+	"github.com/artpar/rclone/fs"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	//"os"
 	"archive/zip"
-	"encoding/json"
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
@@ -78,8 +82,23 @@ func EndsWithCheck(str string, endsWith string) bool {
 	return i
 
 }
+func EndsWith(str string, endsWith string) (string, bool) {
+	if len(endsWith) > len(str) {
+		return "", false
+	}
 
-func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+	if len(endsWith) == len(str) && endsWith != str {
+		return "", false
+	}
+
+	suffix := str[len(str)-len(endsWith):]
+	prefix := str[:len(str)-len(endsWith)]
+	i := suffix == endsWith
+	return prefix, i
+
+}
+
+func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -91,26 +110,42 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 	//defer os.RemoveAll(tempDirectoryPath) // clean up
 
 	CheckErr(err, "Failed to create temp tempDirectoryPath for rclone upload")
-	files := inFields["file"].([]interface{})
-	for _, fileInterface := range files {
-		file := fileInterface.(map[string]interface{})
-		fileName := file["name"].(string)
-		temproryFilePath := filepath.Join(tempDirectoryPath, fileName)
+	files, ok := inFields["file"].([]interface{})
+	if ok {
 
-		fileContentsBase64 := file["file"].(string)
-		fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
-		log.Infof("Write file [%v] for upload", temproryFilePath)
-		CheckErr(err, "Failed to convert base64 to []bytes")
+		for _, fileInterface := range files {
+			file := fileInterface.(map[string]interface{})
+			fileName := file["name"].(string)
+			temproryFilePath := filepath.Join(tempDirectoryPath, fileName)
 
-		err = ioutil.WriteFile(temproryFilePath, fileBytes, 0666)
-		CheckErr(err, "Failed to write file bytes to temp file for rclone upload")
+			fileContentsBase64, ok := file["file"].(string)
+			if !ok {
+				fileContentsBase64, ok = file["contents"].(string)
+				if !ok {
+					continue
+				}
+			}
+			splitParts := strings.Split(fileContentsBase64, ",")
+			encodedPart := splitParts[0]
+			if len(splitParts) > 1 {
+				encodedPart = splitParts[1]
+			}
+			fileBytes, err := base64.StdEncoding.DecodeString(encodedPart)
+			log.Infof("Write file [%v] for upload", temproryFilePath)
+			CheckErr(err, "Failed to convert base64 to []bytes")
 
-		if EndsWithCheck(fileName, ".zip") {
-			unzip(temproryFilePath, tempDirectoryPath)
-			err = os.Remove(temproryFilePath)
-			CheckErr(err, "Failed to remove zip file after extraction")
+			err = ioutil.WriteFile(temproryFilePath, fileBytes, 0666)
+			CheckErr(err, "Failed to write file bytes to temp file for rclone upload")
+
+			if EndsWithCheck(fileName, ".zip") {
+				unzip(temproryFilePath, tempDirectoryPath)
+				err = os.Remove(temproryFilePath)
+				CheckErr(err, "Failed to remove zip file after extraction")
+			}
+
 		}
-
+	} else {
+		return nil, nil, []error{errors.New("improper file attachment")}
 	}
 
 	//targetInformation := inFields["subject"]
@@ -144,13 +179,20 @@ func (d *FileUploadActionPerformer) DoAction(request ActionRequest, inFields map
 	config.FileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
+	cobraCommand := &cobra.Command{
+		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
+	}
+	fs.Config.LogLevel = fs.LogLevelNotice
 
-	go cmd.Run(true, true, nil, func() error {
+	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-		err := sync.CopyDir(fdst, fsrc, true)
+
+		ctx := context.Background()
+
+		err := sync.CopyDir(ctx, fdst, fsrc, true)
 		os.RemoveAll(tempDirectoryPath)
 		InfoErr(err, "Failed to sync files for upload to cloud")
 		return err

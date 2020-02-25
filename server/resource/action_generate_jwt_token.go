@@ -2,11 +2,11 @@ package resource
 
 import (
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
 	"github.com/dgrijalva/jwt-go"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
 	"strings"
 	"time"
 )
@@ -22,7 +22,7 @@ func (d *GenerateJwtTokenActionPerformer) Name() string {
 	return "jwt.token"
 }
 
-func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *GenerateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -86,7 +86,10 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 			responseAttrs = make(map[string]interface{})
 			responseAttrs["value"] = string(tokenString)
 			responseAttrs["key"] = "token"
+
 			actionResponse := NewActionResponse("client.store.set", responseAttrs)
+			responses = append(responses, actionResponse)
+			actionResponse = NewActionResponse("client.cookie.set", responseAttrs)
 			responses = append(responses, actionResponse)
 
 			notificationAttrs := make(map[string]string)
@@ -108,7 +111,6 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request ActionRequest, inFiel
 			responseAttrs["title"] = "Failed"
 			responseAttrs["message"] = "Invalid username or password"
 			responses = append(responses, NewActionResponse("client.notify", responseAttrs))
-
 		}
 
 	}

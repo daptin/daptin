@@ -2,14 +2,13 @@ package resource
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
-	"gopkg.in/Masterminds/squirrel.v1"
 	"strconv"
 	"strings"
 	"time"
@@ -30,13 +29,25 @@ func GetObjectByWhereClause(objType string, db database.DatabaseConnection, quer
 	}
 
 	stmt, err := db.Preparex(q)
-	defer stmt.Close()
+	if stmt != nil {
+		defer func() {
+			err = stmt.Close()
+			CheckErr(err, "Failed to close prepared query [%v]", objType)
+		}()
+	} else {
+		return nil, err
+	}
 	rows, err := stmt.Queryx(v...)
 
 	if err != nil {
 		return result, err
 	}
-	defer rows.Close()
+	if rows != nil {
+		defer func() {
+			err = rows.Close()
+			CheckErr(err, "Failed to close rows after get object by where clause [%s]", objType)
+		}()
+	}
 
 	return RowsToMap(rows, objType)
 }
@@ -125,6 +136,7 @@ type SubSite struct {
 	Path         string
 	CloudStoreId *int64 `db:"cloud_store_id"`
 	Permission   PermissionInstance
+	FtpEnabled   bool   `db:"ftp_enabled"`
 	UserId       *int64 `db:"user_account_id"`
 	ReferenceId  string `db:"reference_id"`
 	Enable       bool   `db:"enable"`
@@ -148,7 +160,7 @@ type CloudStore struct {
 }
 
 func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
-	cloudStores := []CloudStore{}
+	var cloudStores []CloudStore
 
 	rows, err := resource.GetAllObjects("cloud_store")
 	if err != nil {
@@ -219,6 +231,58 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 
 }
 
+type Integration struct {
+	Name                        string
+	SpecificationLanguage       string
+	SpecificationFormat         string
+	Specification               string
+	AuthenticationType          string
+	AuthenticationSpecification string
+	Enable                      bool
+}
+
+func (resource *DbResource) GetActiveIntegrations() ([]Integration, error) {
+
+	integrations := make([]Integration, 0)
+	rows, _, err := resource.GetRowsByWhereClause("integration")
+	if err == nil && len(rows) > 0 {
+
+		for _, row := range rows {
+			i, ok := row["enable"].(int64)
+			if !ok {
+				iI, ok := row["enable"].(int)
+
+				if ok {
+					i = int64(iI)
+				} else {
+					strI, ok := row["enable"].(string)
+					if ok {
+						i, err = strconv.ParseInt(strI, 10, 32)
+						CheckErr(err, "Failed to convert column 'enable' value to int")
+					}
+
+				}
+
+			}
+
+			integration := Integration{
+				Name:                        row["name"].(string),
+				SpecificationLanguage:       row["specification_language"].(string),
+				SpecificationFormat:         row["specification_format"].(string),
+				Specification:               row["specification"].(string),
+				AuthenticationType:          row["authentication_type"].(string),
+				AuthenticationSpecification: row["authentication_specification"].(string),
+				Enable:                      i == 1,
+			}
+			integrations = append(integrations, integration)
+		}
+
+	}
+
+	return integrations, err
+
+}
+
 func (resource *DbResource) GetCloudStoreByName(name string) (CloudStore, error) {
 	var cloudStore CloudStore
 
@@ -229,8 +293,10 @@ func (resource *DbResource) GetCloudStoreByName(name string) (CloudStore, error)
 		cloudStore.Name = row["name"].(string)
 		cloudStore.StoreType = row["store_type"].(string)
 		params := make(map[string]interface{})
-		err = json.Unmarshal([]byte(row["store_parameters"].(string)), params)
-		CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
+		if row["store_parameters"] != nil && row["store_parameters"].(string) != "" {
+			err = json.Unmarshal([]byte(row["store_parameters"].(string)), &params)
+			CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
+		}
 		cloudStore.StoreParameters = params
 		cloudStore.RootPath = row["root_path"].(string)
 		cloudStore.StoreProvider = row["store_provider"].(string)
@@ -253,8 +319,10 @@ func (resource *DbResource) GetCloudStoreByReferenceId(referenceID string) (Clou
 		cloudStore.Name = row["name"].(string)
 		cloudStore.StoreType = row["store_type"].(string)
 		params := make(map[string]interface{})
-		err = json.Unmarshal([]byte(row["store_parameters"].(string)), params)
-		CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
+		if row["store_parameters"] != nil && row["store_parameters"].(string) != "" {
+			err = json.Unmarshal([]byte(row["store_parameters"].(string)), &params)
+			CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
+		}
 		cloudStore.StoreParameters = params
 		cloudStore.RootPath = row["root_path"].(string)
 		cloudStore.StoreProvider = row["store_provider"].(string)
@@ -269,7 +337,7 @@ func (resource *DbResource) GetCloudStoreByReferenceId(referenceID string) (Clou
 
 func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
 
-	marketPlaces := []Marketplace{}
+	var marketPlaces []Marketplace
 
 	s, v, err := statementbuilder.Squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s."+USER_ACCOUNT_ID_COLUMN, "s.reference_id").
 		From("marketplace s").
@@ -300,7 +368,7 @@ func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
 
 func (resource *DbResource) GetAllTasks() ([]Task, error) {
 
-	tasks := []Task{}
+	var tasks []Task
 
 	s, v, err := statementbuilder.Squirrel.Select("t.name", "t.action_name", "t.entity_name", "t.schedule", "t.active", "t.attributes", "t.as_user_id").
 		From("task t").
@@ -351,9 +419,10 @@ func (resource *DbResource) GetMarketplaceByReferenceId(referenceId string) (Mar
 
 func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
-	sites := []SubSite{}
+	var sites []SubSite
 
-	s, v, err := statementbuilder.Squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s."+USER_ACCOUNT_ID_COLUMN, "s.path", "s.reference_id", "s.id", "s.enable").
+	s, v, err := statementbuilder.Squirrel.Select("s.name", "s.hostname", "s.cloud_store_id",
+		"s."+USER_ACCOUNT_ID_COLUMN, "s.path", "s.reference_id", "s.id", "s.enable", "s.ftp_enabled").
 		From("site s").
 		ToSql()
 	if err != nil {
@@ -364,7 +433,10 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 	if err != nil {
 		return sites, err
 	}
-	defer rows.Close()
+	defer func() {
+		err = rows.Close()
+		CheckErr(err, "Failed to close rows after getting all sites")
+	}()
 
 	for rows.Next() {
 		var site SubSite

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/alexeyco/simpletable"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
@@ -16,10 +16,10 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/tealeg/xlsx"
-	"gopkg.in/Masterminds/squirrel.v1"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -197,40 +197,46 @@ func UpdateMarketplaces(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	CheckErr(err, "Failed to create query for marketplace select")
 
+	existingMarketPlaces := make(map[string]Marketplace)
 	res, err := db.Queryx(s, v...)
 	CheckErr(err, "Failed to scan market places")
-	defer res.Close()
-	existingMarketPlaces := make(map[string]Marketplace)
-	for res.Next() {
-		m := make(map[string]interface{})
-		res.MapScan(m)
-		streamNameString, ok := m["endpoint"].(string)
-		if !ok {
-			streamName := string(m["endpoint"].([]uint8))
-			streamNameString = streamName
-		}
-		rootPath := m["root_path"]
-		rootPathString := ""
-		if rootPath != nil {
-			rps, ok := rootPath.(string)
+	if res != nil {
+		defer func() {
+			err = res.Close()
+			CheckErr(err, "Failed to close query")
+		}()
+
+		for res.Next() {
+			m := make(map[string]interface{})
+			err = res.MapScan(m)
+			CheckErr(err, "Failed to scan marketplace row to map")
+			streamNameString, ok := m["endpoint"].(string)
 			if !ok {
-				rootPathString = string(rootPath.([]uint8))
-			} else {
-				rootPathString = rps
+				streamName := string(m["endpoint"].([]uint8))
+				streamNameString = streamName
 			}
-		}
+			rootPath := m["root_path"]
+			rootPathString := ""
+			if rootPath != nil {
+				rps, ok := rootPath.(string)
+				if !ok {
+					rootPathString = string(rootPath.([]uint8))
+				} else {
+					rootPathString = rps
+				}
+			}
 
-		endPointString, ok := m["endpoint"].(string)
-		if !ok {
-			endPointString = string(m["endpoint"].([]uint8))
-		}
-		existingMarketPlaces[streamNameString] = Marketplace{
-			Endpoint: endPointString,
-			RootPath: rootPathString,
-		}
+			endPointString, ok := m["endpoint"].(string)
+			if !ok {
+				endPointString = string(m["endpoint"].([]uint8))
+			}
+			existingMarketPlaces[streamNameString] = Marketplace{
+				Endpoint: endPointString,
+				RootPath: rootPathString,
+			}
 
+		}
 	}
-
 	log.Infof("We have %d existing market places", len(existingMarketPlaces))
 
 	for _, marketplace := range initConfig.Marketplaces {
@@ -475,7 +481,12 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	rows, err := db.Queryx(s, v...)
 	CheckErr(err, "Failed to query existing exchanges")
-	defer rows.Close()
+	if rows != nil {
+		defer func() {
+			err = rows.Close()
+			CheckErr(err, "Failed to close query")
+		}()
+	}
 
 	if err == nil {
 		for rows.Next() {
@@ -641,7 +652,7 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 		}
 		_, ok = currentActions[worldIdString][action.Name]
 		if ok {
-			log.Infof("Action [%v] on [%v] already present in database", action.Name, action.OnType)
+			//log.Infof("Action [%v] on [%v] already present in database", action.Name, action.OnType)
 
 			actionJson, err := json.Marshal(action)
 			CheckErr(err, "Failed to marshal action infields")
@@ -677,7 +688,7 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 				action.InstanceOptional,
 				adminUserId,
 				u.String(),
-				auth.ALLOW_ALL_PERMISSIONS.IntValue()).ToSql()
+				auth.ALLOW_ALL_PERMISSIONS).ToSql()
 
 			_, err = db.Exec(s, v...)
 			if err != nil {
@@ -689,8 +700,8 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 	return nil
 }
 
-func ImportDataFiles(initConfig *CmsConfig, db sqlx.Ext, cruds map[string]*DbResource) {
-	importCount := len(initConfig.Imports)
+func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*DbResource) {
+	importCount := len(imports)
 
 	if importCount == 0 {
 		return
@@ -723,16 +734,30 @@ func ImportDataFiles(initConfig *CmsConfig, db sqlx.Ext, cruds map[string]*DbRes
 		PlainRequest: pr,
 	}
 
-	for _, importFile := range initConfig.Imports {
+	schemaFolderDefinedByEnv, ok := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
+
+	if !ok {
+		schemaFolderDefinedByEnv = ""
+	} else {
+		if schemaFolderDefinedByEnv[len(schemaFolderDefinedByEnv)-1] != '/' {
+			schemaFolderDefinedByEnv = schemaFolderDefinedByEnv + "/"
+		}
+	}
+
+	for _, importFile := range imports {
 
 		log.Infof("Process import file %v", importFile.String())
-		fileBytes, err := ioutil.ReadFile(importFile.FilePath)
+		filePath := importFile.FilePath
+		if filePath[0] != '/' {
+			filePath = schemaFolderDefinedByEnv + filePath
+		}
+		fileBytes, err := ioutil.ReadFile(filePath)
 		if err != nil {
-			log.Errorf("Failed to read file [%v]: %v", importFile.FilePath, err)
+			log.Errorf("Failed to read file [%v]: %v", filePath, err)
 			continue
 		}
 
-		importSuccess := false
+		//importSuccess := false
 		log.Printf("Uploaded file is type: %v", importFile.FileType)
 		switch importFile.FileType {
 
@@ -766,10 +791,10 @@ func ImportDataFiles(initConfig *CmsConfig, db sqlx.Ext, cruds map[string]*DbRes
 				continue
 			}
 
-			importSuccess = true
-			errors := ImportDataMapArray(data, cruds[importFile.Entity], req)
-			if len(errors) > 0 {
-				for _, err := range errors {
+			//importSuccess = true
+			errors1 := ImportDataMapArray(data, cruds[importFile.Entity], req)
+			if len(errors1) > 0 {
+				for _, err := range errors1 {
 					log.Errorf("Error while importing json data: %v", err)
 				}
 			}
@@ -784,13 +809,13 @@ func ImportDataFiles(initConfig *CmsConfig, db sqlx.Ext, cruds map[string]*DbRes
 			}
 
 			header := data[0]
-			importSuccess = true
+			data = data[1:]
 			for i, h := range header {
 				header[i] = SmallSnakeCaseText(h)
 			}
-			errors := ImportDataStringArray(data, header, importFile.Entity, cruds[importFile.Entity], req)
-			if len(errors) > 0 {
-				for _, err := range errors {
+			errors1 := ImportDataStringArray(data, header, importFile.Entity, cruds[importFile.Entity], req)
+			if len(errors1) > 0 {
+				for _, err := range errors1 {
 					log.Errorf("Error while importing json data: %v", err)
 				}
 			}
@@ -799,10 +824,10 @@ func ImportDataFiles(initConfig *CmsConfig, db sqlx.Ext, cruds map[string]*DbRes
 			CheckErr(errors.New("unknown file type"), "Failed to import [%v]: [%v]", importFile.FileType, importFile.FilePath)
 		}
 
-		if importSuccess {
-			err := os.Remove(importFile.FilePath)
-			CheckErr(err, "Failed to remove import file after import [%v]", importFile.FilePath)
-		}
+		//if importSuccess {
+		//	err := os.Remove(filePath)
+		//	CheckErr(err, "Failed to remove import file after import [%v]", filePath)
+		//}
 
 	}
 
@@ -810,18 +835,73 @@ func ImportDataFiles(initConfig *CmsConfig, db sqlx.Ext, cruds map[string]*DbRes
 
 func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api2go.Request) []error {
 	errs := make([]error, 0)
+
+	uniqueColumns := make([]api2go.ColumnInfo, 0)
+
+	for _, col := range crud.TableInfo().Columns {
+
+		if col.IsUnique {
+			uniqueColumns = append(uniqueColumns, col)
+		}
+
+	}
+
 	for _, row := range data {
-		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, row)
+
+		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, int64(crud.TableInfo().DefaultPermission), nil, row)
 		_, err := crud.Create(model, req)
 		if err != nil {
+			log.Printf(" [%v] Error while importing insert data row: %v == %v", crud.tableInfo.TableName, err, row)
 			errs = append(errs, err)
 		}
+
+		if len(uniqueColumns) > 0 {
+			for _, uniqueCol := range uniqueColumns {
+				log.Infof("Try to update data by unique column: %v", uniqueCol.ColumnName)
+				uniqueColumnValue, ok := row[uniqueCol.ColumnName]
+				if !ok || uniqueColumnValue == nil {
+					continue
+				}
+				stringVal, isString := uniqueColumnValue.(string)
+				if isString && len(stringVal) == 0 {
+					continue
+				}
+				existingRow, err := crud.GetObjectByWhereClause(crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
+				if err != nil {
+					continue
+				}
+
+				for key, val := range row {
+					existingRow[key] = val
+				}
+
+				obj := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, 0, nil, existingRow)
+				_, err = crud.Update(obj, req)
+				if err != nil {
+					log.Errorf("Failed to update table [%v] update row by unique column [%v]: %v", crud.tableInfo.TableName, uniqueCol.ColumnName, err)
+				}
+				break
+
+			}
+		}
+
 	}
 	return errs
 }
 
 func ImportDataStringArray(data [][]string, headers []string, entityName string, crud *DbResource, req api2go.Request) []error {
 	errs := make([]error, 0)
+
+	uniqueColumns := make([]api2go.ColumnInfo, 0)
+
+	for _, col := range crud.TableInfo().Columns {
+
+		if col.IsUnique {
+			uniqueColumns = append(uniqueColumns, col)
+		}
+
+	}
+
 	for _, rowArray := range data {
 
 		rowMap := make(map[string]interface{})
@@ -829,11 +909,47 @@ func ImportDataStringArray(data [][]string, headers []string, entityName string,
 		for i, header := range headers {
 			rowMap[header] = rowArray[i]
 		}
-		model := api2go.NewApi2GoModelWithData(entityName, nil, auth.DEFAULT_PERMISSION.IntValue(), nil, rowMap)
+		model := api2go.NewApi2GoModelWithData(entityName, nil, int64(crud.TableInfo().DefaultPermission), nil, rowMap)
 		_, err := crud.Create(model, req)
 		if err != nil {
 			errs = append(errs, err)
 		}
+
+		if err != nil {
+			// create row failed, try to update row by unique columns
+
+			if len(uniqueColumns) > 0 {
+				for _, uniqueCol := range uniqueColumns {
+					log.Infof("Try to update data by unique column: %v", uniqueCol.ColumnName)
+					uniqueColumnValue, ok := rowMap[uniqueCol.ColumnName]
+					if !ok || uniqueColumnValue == nil {
+						continue
+					}
+					stringVal, isString := uniqueColumnValue.(string)
+					if isString && len(stringVal) == 0 {
+						continue
+					}
+					existingRow, err := crud.GetObjectByWhereClause(entityName, uniqueCol.ColumnName, uniqueColumnValue)
+					if err != nil {
+						continue
+					}
+
+					for _, key := range headers {
+						existingRow[key] = rowMap[key]
+					}
+
+					obj := api2go.NewApi2GoModelWithData(entityName, nil, 0, nil, existingRow)
+					_, err = crud.Update(obj, req)
+					if err != nil {
+						log.Errorf("Failed to update table [%v] update row by unique column [%v]: %v", entityName, uniqueCol.ColumnName, err)
+					}
+					break
+
+				}
+			}
+
+		}
+
 	}
 	return errs
 }
@@ -876,7 +992,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		u1 := u.String()
 		s, v, err = statementbuilder.Squirrel.Insert("usergroup").
 			Columns("name", "reference_id", "permission").
-			Values("guests", u1, auth.DEFAULT_PERMISSION.IntValue()).ToSql()
+			Values("guests", u1, auth.DEFAULT_PERMISSION).ToSql()
 
 		CheckErr(err, "Failed to create insert user-group sql for guests")
 		_, err = tx.Exec(s, v...)
@@ -886,7 +1002,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		u1 = u.String()
 		s, v, err = statementbuilder.Squirrel.Insert("usergroup").
 			Columns("name", "reference_id", "permission").
-			Values("administrators", u1, auth.DEFAULT_PERMISSION.IntValue()).ToSql()
+			Values("administrators", u1, auth.DEFAULT_PERMISSION).ToSql()
 		CheckErr(err, "Failed to create insert user-group sql for administrators")
 		_, err = tx.Exec(s, v...)
 		CheckErr(err, "Failed to insert user-group sql for administrators")
@@ -940,12 +1056,12 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 	defaultWorldPermission := auth.DEFAULT_PERMISSION
 
 	if systemHasNoAdmin {
-		defaultWorldPermission = auth.NewPermission(auth.CRUD|auth.Execute, auth.CRUD|auth.Execute, auth.CRUD|auth.Execute)
+		defaultWorldPermission = auth.GuestCRUD | auth.GuestExecute | auth.UserCRUD | auth.UserExecute | auth.GroupCRUD | auth.GroupExecute
 	}
 
 	st := simpletable.New()
 	st.Header = &simpletable.Header{
-		[]*simpletable.Cell{
+		Cells: []*simpletable.Cell{
 			{
 				Text: "TableName",
 			},
@@ -968,6 +1084,11 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		u, _ := uuid.NewV4()
 
 		refId := u.String()
+
+		if strings.Index(table.TableName, "_has_") > -1 {
+			table.IsJoinTable = true
+		}
+
 		schema, err := json.Marshal(table)
 
 		var cou int
@@ -999,6 +1120,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 				Set("world_schema_json", string(schema)).
 				Set("is_top_level", table.IsTopLevel).
 				Set("is_hidden", table.IsHidden).
+				Set("is_join_table", table.IsJoinTable).
+				Set("icon", table.Icon).
 				Set("default_order", table.DefaultOrder).
 				Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
 			CheckErr(err, "Failed to create update default permission sql")
@@ -1009,17 +1132,17 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		} else {
 
 			if table.Permission == 0 {
-				table.Permission = defaultWorldPermission.IntValue()
+				table.Permission = defaultWorldPermission
 			}
 			if table.DefaultPermission == 0 {
-				table.DefaultPermission = defaultWorldPermission.IntValue()
+				table.DefaultPermission = defaultWorldPermission
 			}
 
 			log.Infof("Insert table data (IsTopLevel[%v], IsHidden[%v]) [%v]", table.IsTopLevel, table.IsHidden, table.TableName)
 
 			s, v, err = statementbuilder.Squirrel.Insert("world").
-				Columns("table_name", "world_schema_json", "permission", "reference_id", "default_permission", USER_ACCOUNT_ID_COLUMN, "is_top_level", "is_hidden", "default_order").
-				Values(table.TableName, string(schema), table.Permission, refId, table.DefaultPermission, userId, table.IsTopLevel, table.IsHidden, table.DefaultOrder).ToSql()
+				Columns("table_name", "world_schema_json", "permission", "reference_id", "default_permission", USER_ACCOUNT_ID_COLUMN, "is_top_level", "is_hidden", "default_order", "is_join_table").
+				Values(table.TableName, string(schema), table.Permission, refId, table.DefaultPermission, userId, table.IsTopLevel, table.IsHidden, table.DefaultOrder, table.IsJoinTable).ToSql()
 			_, err = tx.Exec(s, v...)
 			CheckErr(err, "Failed to insert into world table about "+table.TableName)
 			//initConfig.Tables[i].DefaultPermission = defaultWorldPermission
@@ -1030,7 +1153,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 	st.Body = stBody
 	st.Print()
 
-	s, v, err = statementbuilder.Squirrel.Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden").
+	s, v, err = statementbuilder.Squirrel.Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden", "is_join_table").
 		From("world").
 		ToSql()
 
@@ -1049,15 +1172,16 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		var tabInfo TableInfo
 		var tableSchema []byte
 		var permission, defaultPermission int64
-		var isTopLevel, isHidden bool
-		err = res.Scan(&tableSchema, &permission, &defaultPermission, &isTopLevel, &isHidden)
+		var isTopLevel, isHidden, isJoinTable bool
+		err = res.Scan(&tableSchema, &permission, &defaultPermission, &isTopLevel, &isHidden, &isJoinTable)
 		CheckErr(err, "Failed to scan table info")
 		err = json.Unmarshal(tableSchema, &tabInfo)
 		CheckErr(err, "Failed to convert json to table schema")
-		tabInfo.Permission = permission
-		tabInfo.DefaultPermission = defaultPermission
+		tabInfo.Permission = auth.AuthPermission(permission)
+		tabInfo.DefaultPermission = auth.AuthPermission(defaultPermission)
 		tabInfo.IsTopLevel = isTopLevel
 		tabInfo.IsHidden = isHidden
+		tabInfo.IsJoinTable = isJoinTable
 		tables = append(tables, tabInfo)
 	}
 	initConfig.Tables = tables

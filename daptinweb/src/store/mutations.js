@@ -8,6 +8,11 @@ export default {
   SET_USER(state, user) {
     state.user = user
   },
+  SET_LANGUAGE(state, language) {
+    console.log("set language")
+    localStorage.setItem("LANGUAGE", language)
+    state.language = language;
+  },
   SET_LAST_URL(state, route) {
     if (route) {
       window.localStorage.setItem("last_route", JSON.stringify(route));

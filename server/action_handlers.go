@@ -3,22 +3,20 @@ package server
 import (
 	"github.com/artpar/go-guerrilla"
 	"github.com/daptin/daptin/server/resource"
+	"log"
 )
 
-func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon) []resource.ActionPerformerInterface {
+func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon, hostSwitch HostSwitch, certificateManager *resource.CertificateManager) []resource.ActionPerformerInterface {
+
 	performers := make([]resource.ActionPerformerInterface, 0)
 
 	becomeAdminPerformer, err := resource.NewBecomeAdminPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create become admin performer")
 	performers = append(performers, becomeAdminPerformer)
 
-	otpLoginBeginActionPerformerPerformer, err := resource.NewOtpLoginBeginActionPerformer(cruds, configStore)
-	resource.CheckErr(err, "Failed to create otp login performer")
-	performers = append(performers, otpLoginBeginActionPerformerPerformer)
-
-	otpRegisterBeginActionPerformer, err := resource.NewOtpRegisterBeginActionPerformer(cruds, configStore)
-	resource.CheckErr(err, "Failed to create otp register begin performer")
-	performers = append(performers, otpRegisterBeginActionPerformer)
+	otpGenerateActionPerformer, err := resource.NewOtpGenerateActionPerformer(cruds, configStore)
+	resource.CheckErr(err, "Failed to create otp generator")
+	performers = append(performers, otpGenerateActionPerformer)
 
 	otpLoginVerifyActionPerformer, err := resource.NewOtpLoginVerifyActionPerformer(cruds, configStore)
 	resource.CheckErr(err, "Failed to create otp verify performer")
@@ -53,8 +51,12 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	performers = append(performers, oauth2response)
 
 	storeSyncAction, err := resource.NewSyncSiteStorageActionPerformer(cruds)
-	resource.CheckErr(err, "Failed to create oauth2 response handler")
+	resource.CheckErr(err, "Failed to site sync action performer")
 	performers = append(performers, storeSyncAction)
+
+	columnStoreSyncAction, err := resource.NewSyncColumnStorageActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create column storage sync performer")
+	performers = append(performers, columnStoreSyncAction)
 
 	oauthProfileExchangePerformer, err := resource.NewOuathProfileExchangePerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create oauth2 profile exchange handler")
@@ -80,7 +82,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create marketplace package install performer")
 	performers = append(performers, marketplacePackage)
 
-	mailServerSync, err := resource.NewMailServersSyncActionPerformer(cruds, mailDaemon)
+	mailServerSync, err := resource.NewMailServersSyncActionPerformer(cruds, mailDaemon, certificateManager)
 	resource.CheckErr(err, "Failed to create mail server sync performer")
 	performers = append(performers, mailServerSync)
 
@@ -104,6 +106,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create column delete performer")
 	performers = append(performers, columnDeletePerformer)
 
+	columnRenamePerformer, err := resource.NewRenameWorldColumnPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create column rename performer")
+	performers = append(performers, columnRenamePerformer)
+
 	enableGraphqlPerformer, err := resource.NewGraphqlEnablePerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create enable graphql performer")
 	performers = append(performers, enableGraphqlPerformer)
@@ -111,6 +117,37 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	fileUploadPerformer, err := resource.NewFileUploadActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, fileUploadPerformer)
+
+	acmeTlsCertificateGenerateActionPerformer, err := resource.NewAcmeTlsCertificateGenerateActionPerformer(cruds, configStore, hostSwitch.handlerMap["api"])
+	resource.CheckErr(err, "Failed to create acme tls certificate generator")
+	performers = append(performers, acmeTlsCertificateGenerateActionPerformer)
+
+	selfTlsCertificateGenerateActionPerformer, err := resource.NewSelfTlsCertificateGenerateActionPerformer(cruds, configStore, certificateManager)
+	resource.CheckErr(err, "Failed to create self tls certificate generator")
+	performers = append(performers, selfTlsCertificateGenerateActionPerformer)
+
+	integrationInstallationPerformer, err := resource.NewIntegrationInstallationPerformer(initConfig, cruds, configStore)
+	resource.CheckErr(err, "Failed to create integration installation performer")
+	performers = append(performers, integrationInstallationPerformer)
+
+	integrations, err := cruds["world"].GetActiveIntegrations()
+	if err == nil {
+
+		for _, integration := range integrations {
+
+			performer, err := resource.NewIntegrationActionPerformer(integration, initConfig, cruds, configStore)
+
+			if err != nil {
+
+				log.Printf("Failed to create integration action performer for: %v", integration.Name)
+				continue
+			}
+
+			performers = append(performers, performer)
+
+		}
+
+	}
 
 	return performers
 }

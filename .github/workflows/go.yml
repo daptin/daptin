@@ -1,0 +1,39 @@
+name: Go
+on: [push]
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+
+    - name: Get dependencies
+      run: |
+        go get -v -t -d ./... && go env && export PATH=/home/runner/go/bin:$PATH && export && go get github.com/GeertJohan/go.rice/rice
+        if [ -f Gopkg.toml ]; then
+            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+            dep ensure
+        fi
+
+    - name: Test
+      run: go test ./...
+
+    - name: Build
+      run: go build -v -o daptin .
+
+    - name: Review
+      run: ls -lah daptin && file daptin
+    - name: Upload daptin
+      uses: actions/upload-artifact@v1
+      with:
+        name: daptin
+        path: daptin

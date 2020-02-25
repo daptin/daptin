@@ -18,7 +18,7 @@ func (d *GraphqlEnableActionPerformer) Name() string {
 
 // Perform action and try to make the current user the admin of the system
 // Checks CanGraphqlEnable and then invokes GraphqlEnable if true
-func (d *GraphqlEnableActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *GraphqlEnableActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	err := d.cruds["world"].configStore.SetConfigValueFor("graphql.enable", "true", "backend")
 

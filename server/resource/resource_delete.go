@@ -5,9 +5,9 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/statementbuilder"
-	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
 )
 
@@ -32,6 +32,8 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 		sessionUser = user.(*auth.SessionUser)
 
 	}
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
 
 	m := dr.model
 	//log.Infof("Get all resource type: %v\n", m)
@@ -106,7 +108,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 							otherObjectPermission := dr.GetObjectPermissionById(rel.GetObject(), objectId)
 
-							if !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+							if !isAdmin || !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 								canDeleteAllIds = false
 								break
 							}
@@ -114,7 +116,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 						}
 
 						if canDeleteAllIds {
-							for relationId, _ := range ids {
+							for relationId := range ids {
 								log.Infof("Delete relation with [%v][%v]", joinTableName, relationId)
 								err = dr.Cruds[joinTableName].DeleteWithoutFilters(relationId, req)
 								CheckErr(err, "Failed to delete join 1")
@@ -142,7 +144,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 					defer res.Close()
 					if err == nil {
 
-						ids := []string{}
+						var ids []string
 						for res.Next() {
 							var s string
 							res.Scan(&s)
@@ -251,7 +253,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 					defer res.Close()
 					if err == nil {
 
-						ids := []string{}
+						var ids []string
 						for res.Next() {
 							var s string
 							res.Scan(&s)
@@ -301,18 +303,46 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 	}
 
-	//queryBuilder := statementbuilder.Squirrel.Update(m.GetTableName()).Set("deleted_at", time.Now()).Where(squirrel.Eq{"reference_id": id})
-	queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName()).Where(squirrel.Eq{"reference_id": id})
+	languagePreferences := make([]string, 0)
+	prefs := req.PlainRequest.Context().Value("language_preference")
+	if prefs != nil {
+		languagePreferences = prefs.([]string)
+	}
+	if len(languagePreferences) > 0 && dr.tableInfo.TranslationsEnabled {
 
-	sql1, args, err := queryBuilder.ToSql()
-	if err != nil {
-		log.Infof("Error: %v", err)
+		for _, lang := range languagePreferences {
+
+			queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName() + "_i18n").
+				Where(squirrel.Eq{"translation_reference_id": parentId}).
+				Where(squirrel.Eq{"language_id": lang})
+
+			sql1, args, err := queryBuilder.ToSql()
+			if err != nil {
+				log.Infof("Error: %v", err)
+				return err
+			}
+
+			log.Infof("Delete Sql: %v\n", sql1)
+
+			_, err = dr.db.Exec(sql1, args...)
+
+		}
+	} else {
+
+		queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName()).Where(squirrel.Eq{"reference_id": id})
+
+		sql1, args, err := queryBuilder.ToSql()
+		if err != nil {
+			log.Infof("Error: %v", err)
+			return err
+		}
+
+		log.Infof("Delete Sql: %v\n", sql1)
+
+		_, err = dr.db.Exec(sql1, args...)
 		return err
 	}
 
-	log.Infof("Delete Sql: %v\n", sql1)
-
-	_, err = dr.db.Exec(sql1, args...)
 	return err
 
 }

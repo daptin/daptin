@@ -11,7 +11,7 @@ const AppConfig = function () {
     hostname: window.location.hostname,
   };
 
-  if (that.location.hostname == "site.daptin.com") {
+  if (that.location.hostname === "site.daptin.com") {
     that.apiRoot = that.location.protocol + "//api.daptin.com:6336"
   }
 

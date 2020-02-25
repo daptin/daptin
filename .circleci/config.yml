@@ -1,0 +1,62 @@
+test_with_go_modules: &test_with_go_modules
+  steps:
+  - run: sudo rm -rf /usr/local/go
+  - run: wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
+  - run: sudo tar -xf go1.13.3.linux-amd64.tar.gz
+  - run: sudo mv go /usr/local
+  - run: rm go1.13.3.linux-amd64.tar.gz
+  - run: export GOROOT=/usr/local/go
+  - run: export PATH=$GOROOT/bin:$PATH
+  - checkout
+  - run: export GO111MODULE=on
+  - run: go get
+  - run: go build  -ldflags='-extldflags "-static"' -a -installsuffix cgo -o main
+  - run: ls -lah
+  - run: mkdir docker_dir
+  - run: cp main docker_dir/main
+  - run: cp Dockerfile docker_dir/Dockerfile
+  - run: cd docker_dir
+  - run: docker build -t daptin/daptin:circleci .
+  - run: docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
+  - run: docker push daptin/daptin:circleci
+  - run: cd ..
+  - store_artifacts:
+      path: main
+      destination: daptin
+
+test_without_go_modules: &test_without_go_modules
+  working_directory: /go/src/github.com/daptin/daptin
+  steps:
+  - checkout
+  - run: go get -v -t -d ./...
+  - run: go test ./...
+  - run: go vet ./...
+  - run: go build
+  - store_artifacts:
+      path: /go/src/github.com/daptin/daptin/main
+      destination: daptin
+
+defaults: &defaults
+  <<: *test_with_go_modules
+
+version: 2
+jobs:
+  golang:latest:
+    <<: *defaults
+    machine:
+      image: ubuntu-1604:201903-01
+  coveralls:
+    steps:
+    - checkout
+    - run: go get github.com/daptin/daptin
+    - run: go test ./... -coverpkg github.com/daptin/daptin/... -v -cover -coverprofile=coverage.out
+    - run: go get github.com/mattn/goveralls
+    - run: /go/bin/goveralls -coverprofile=coverage.out -service=circle-ci -repotoken $GOVERTOKEN
+    docker:
+    - image: circleci/golang:latest
+workflows:
+  version: 2
+  build:
+    jobs:
+    - golang:latest
+    - coveralls

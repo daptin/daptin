@@ -7,7 +7,7 @@
     </div>
     <div class="col-md-12" style="position: relative; height: 700px;">
       <template v-if="viewMode == 'table'">
-        <div id="tableView"></div>
+        <div id="tableView" ref="tableViewDiv"></div>
       </template>
 
       <vuecard v-if="viewMode == 'card'" ref="vuetable"
@@ -71,6 +71,9 @@
 <script>
   import {Notification} from 'element-ui';
   import Spreadsheet from "x-data-spreadsheet";
+  import jexcel from 'jexcel';
+
+  require('jexcel/dist/jexcel.min.css')
 
   export default {
     name: 'table-view',
@@ -251,10 +254,11 @@
 
 
               if (!that.sheet) {
-                that.sheet = new Spreadsheet("#tableView");
-                that.sheet.change(function (d) {
-                  console.log("that sheet data changed", arguments);
-                });
+                console.log("creating new spreadsheet")
+                // that.sheet = new Spreadsheet("#tableView");
+                // that.sheet.change(function (d) {
+                //   console.log("that sheet data changed", arguments);
+                // });
               }
 
               console.log("load data for table");
@@ -266,46 +270,63 @@
                 }
               }).then(function (data) {
 
-                var spreadSheetData = {};
+                var headers = [];
+                var spreadSheetData = [];
                 var rows = data.data;
+                console.log("loaded data", data, spreadSheetData);
 
+                for (var column in that.selectedWorldColumns) {
+                  if (column.endsWith("_id")) {
+                    continue
+                  }
+                  if (column.substring(0, 2) == "__") {
+                    continue
+                  }
+                  headers.push(column)
+                }
+                spreadSheetData.push(headers)
+                var widths = [];
+                var maxLength = [];
                 for (var i = 0; i < rows.length; i++) {
-                  var j = 0;
-                  spreadSheetData[i] = {};
-                  for (var column in that.selectedWorldColumns) {
+                  var row = [];
+                  for (var j in headers) {
+                    var column = headers[j];
                     // console.log("spps s", i, column, column, rows[i])
                     if (rows[i][column] instanceof Array) {
-                      spreadSheetData[i][j] = {
-                        text: rows[i][column].join(",")
-                      };
+                      row.push(rows[i][column].join(","))
                     } else if (rows[i][column] instanceof Object) {
-                      spreadSheetData[i][j] = {
-                        text: JSON.stringify(rows[i][column])
-                      };
+                      row.push(JSON.stringify(rows[i][column]))
                     } else {
-                      spreadSheetData[i][j] = {
-                        text: rows[i][column]
-                      };
-
+                      row.push(rows[i][column])
+                    }
+                    if (!maxLength[j] || maxLength[j] < new String(row[j]).length) {
+                      maxLength[j] = row[j] ? new String(row[j]).length : 0;
                     }
                     j += 1;
                   }
+                  spreadSheetData.push(row)
                 }
 
-                // console.log("loaded data", data, spreadSheetData);
-                that.sheet
-                  .loadData({
-                    borders: [
-                      ['thin', '#0366d6'],
-                    ],
-                    styles: [
-                      {bgcolor: '#f4f5f8', wrapText: true, color: '#900b09', bbi: 0, bti: 0, bri: 0, bli: 0},
-                    ],
-                    merges: [
-                      [[2, 2], [3, 3]],
-                    ],
-                    cellmm: spreadSheetData,
-                  }) // load data
+                for (var i = 0; i < maxLength.length; i++) {
+                  if (maxLength[i] > 1000) {
+                    maxLength[i] = 1000;
+                  }
+                  widths[i] = maxLength[i] * 3 + 100;
+                }
+
+                console.log("immediate load data", widths)
+
+                let spreadsheet = jexcel(that.$refs.tableViewDiv, {
+                  data: spreadSheetData,
+                  colWidths: widths,
+                });
+                // Object.assign(this, spreadsheet);
+
+
+                // that.sheet = new Spreadsheet("#tableView").loadData({rows: spreadSheetData}).change(function(d){
+                //   console.log("sheet data change", d)
+                // });
+
 
               })
             }
@@ -325,6 +346,7 @@
         return
       }
       that.selectedWorldColumns = Object.keys(jsonModel["attributes"])
+      that.reloadData(that.selectedWorld)
     },
     watch: {
       'finder': function (newFinder, oldFinder) {

@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/pkg/errors"
@@ -10,7 +11,6 @@ import (
 	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
-	"gopkg.in/Masterminds/squirrel.v1"
 	"net/http"
 	"strings"
 	"time"
@@ -126,7 +126,11 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 		return err
 	}
 
-	sessionUser := &auth.SessionUser{userId, user_reference_id, nil}
+	sessionUser := &auth.SessionUser{
+		UserId:          userId,
+		UserReferenceId: user_reference_id,
+		Groups:          nil,
+	}
 
 	pr := &http.Request{
 		Method: "POST",
@@ -137,13 +141,13 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 		PlainRequest: pr,
 	}
 
-	model := api2go.NewApi2GoModelWithData("oauth_token", nil, auth.DEFAULT_PERMISSION.IntValue(), nil, storeToken)
+	model := api2go.NewApi2GoModelWithData("oauth_token", nil, int64(auth.DEFAULT_PERMISSION), nil, storeToken)
 
 	_, err = dr.Cruds["oauth_token"].CreateWithoutFilter(model, req)
 	return err
 }
 
-func (d *OauthLoginResponseActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *OauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	state := inFieldMap["state"].(string)
 	//user := inFieldMap["user"].(map[string]interface{})

@@ -3,16 +3,17 @@ package resource
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Masterminds/squirrel"
+	"github.com/araddon/dateparse"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -162,7 +163,7 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
 		return PermissionInstance{
-			"", []auth.GroupPermission{}, auth.NewPermission(auth.None, auth.None, auth.None),
+			"", []auth.GroupPermission{}, auth.AuthPermission(0),
 		}
 	}
 
@@ -188,7 +189,7 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 	}
 	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, i)
 
-	perm.Permission = auth.ParsePermission(resultObject["permission"].(int64))
+	perm.Permission = auth.AuthPermission(resultObject["permission"].(int64))
 	if err != nil {
 		log.Errorf("Failed to scan permission 2: %v", err)
 	}
@@ -222,14 +223,14 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
 		return PermissionInstance{
-			"", []auth.GroupPermission{}, auth.NewPermission(auth.None, auth.None, auth.None),
+			"", []auth.GroupPermission{}, auth.AuthPermission(0),
 		}
 	}
 
 	resultObject := make(map[string]interface{})
 	err = dr.db.QueryRowx(selectQuery, queryParameters...).MapScan(resultObject)
 	if err != nil {
-		log.Errorf("Failed to scan permission 1 [%v]: %v", id, err)
+		log.Errorf("Failed to scan permission 3 [%v]: %v", id, err)
 	}
 	//log.Infof("permi map: %v", resultObject)
 	var perm PermissionInstance
@@ -243,7 +244,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 
 	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, resultObject["id"].(int64))
 
-	perm.Permission = auth.ParsePermission(resultObject["permission"].(int64))
+	perm.Permission = auth.AuthPermission(resultObject["permission"].(int64))
 	if err != nil {
 		log.Errorf("Failed to scan permission 2: %v", err)
 	}
@@ -286,7 +287,7 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 
 	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, m["id"].(int64))
 
-	perm.Permission = auth.ParsePermission(m["permission"].(int64))
+	perm.Permission = auth.AuthPermission(m["permission"].(int64))
 
 	//log.Infof("PermissionInstance for [%v]: %v", typeName, perm)
 	return perm
@@ -352,7 +353,7 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 			GroupReferenceId:    refId,
 			ObjectReferenceId:   refId,
 			RelationReferenceId: refId,
-			Permission:          auth.ParsePermission(dr.Cruds["usergroup"].model.GetDefaultPermission()),
+			Permission:          auth.AuthPermission(dr.Cruds["usergroup"].model.GetDefaultPermission()),
 		})
 		return s
 	}
@@ -385,18 +386,15 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 
 // Check if someone can invoke the become admin action
 // checks if there is only 1 real user in the system
-// No one can become admin once there are two non admin users
+// No one can become admin once we have an adminstrator
 func (dbResource *DbResource) CanBecomeAdmin() bool {
 
-	var count int
-
-	row := dbResource.db.QueryRowx("select count(*) from " + USER_ACCOUNT_TABLE_NAME + " where email != 'guest@cms.go'")
-	err := row.Scan(&count)
-	if err != nil {
-		return false
+	adminRefId := dbResource.GetAdminReferenceId()
+	if adminRefId == "" {
+		return true
 	}
 
-	return count < 2
+	return false
 
 }
 
@@ -471,7 +469,7 @@ func (d *DbResource) CreateMailAccountBox(mailAccountId string, sessionUser *aut
 }
 
 // Returns the user mail account box row of a user
-func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) (error) {
+func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) error {
 
 	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
 		squirrel.Eq{
@@ -505,7 +503,7 @@ func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName strin
 }
 
 // Returns the user mail account box row of a user
-func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) (error) {
+func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) error {
 
 	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
 		squirrel.Eq{
@@ -529,7 +527,7 @@ func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string
 }
 
 // Returns the user mail account box row of a user
-func (d *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool) (error) {
+func (d *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool) error {
 
 	query, args, err := statementbuilder.Squirrel.Update("mail_box").Set("subscribed", subscribed).Where(squirrel.Eq{
 		"mail_account_id": mailAccountId,
@@ -621,7 +619,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 
 	query, args, err := statementbuilder.Squirrel.Insert("user_account_user_account_id_has_usergroup_usergroup_id").
 		Columns(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "permission", "reference_id").
-		Values(userId, adminUsergroupId, auth.DEFAULT_PERMISSION.IntValue(), reference_id.String()).
+		Values(userId, adminUsergroupId, int64(auth.DEFAULT_PERMISSION), reference_id.String()).
 		ToSql()
 
 	_, err = dbResource.db.Exec(query, args...)
@@ -634,14 +632,14 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 	}
 
 	_, err = dbResource.db.Exec("update world set permission = ?, default_permission = ? where table_name like '%_audit'",
-		auth.NewPermission(auth.Create, auth.Create, auth.Create).IntValue(),
-		auth.NewPermission(auth.Read, auth.Read, auth.Read).IntValue())
+		int64(auth.GuestCreate|auth.UserCreate|auth.GroupCreate),
+		int64(auth.GuestRead|auth.UserRead|auth.GroupRead))
 	if err != nil {
 		log.Errorf("Failed to world update audit permissions: %v", err)
 	}
 
-	_, err = dbResource.db.Exec("update action set permission = ?", auth.NewPermission(auth.None, auth.Read|auth.Execute, auth.CRUD|auth.Execute|auth.Refer).IntValue())
-	_, err = dbResource.db.Exec("update action set permission = ? where action_name in ('signin')", auth.NewPermission(auth.Peek|auth.Execute, auth.Read|auth.Execute, auth.Create|auth.Execute).IntValue())
+	_, err = dbResource.db.Exec("update action set permission = ?", int64(auth.UserRead|auth.UserExecute|auth.GroupCRUD|auth.GroupExecute|auth.GroupRefer))
+	_, err = dbResource.db.Exec("update action set permission = ? where action_name in ('signin')", int64(auth.GuestPeek|auth.GuestExecute|auth.UserRead|auth.UserExecute|auth.GroupRead|auth.GroupExecute))
 
 	if err != nil {
 		log.Errorf("Failed to update audit permissions: %v", err)
@@ -693,7 +691,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 				GroupReferenceId:    originalGroupIdStr,
 				ObjectReferenceId:   refId.(string),
 				RelationReferenceId: refId.(string),
-				Permission:          auth.ParsePermission(dr.Cruds["usergroup"].model.GetDefaultPermission()),
+				Permission:          auth.AuthPermission(dr.Cruds["usergroup"].model.GetDefaultPermission()),
 			},
 		}
 	} else if loc > -1 {
@@ -726,7 +724,10 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 			}
 		}
 
-		perm.Permission = auth.ParsePermission(i64)
+		perm.Permission = auth.AuthPermission(i64)
+	} else {
+		pe := dr.GetObjectPermissionByReferenceId(rowType, refId.(string))
+		perm.Permission = pe.Permission
 	}
 	//log.Infof("Row permission: %v  ---------------- %v", perm, row)
 	return perm
@@ -775,7 +776,7 @@ func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 }
 func (dr *DbResource) GetUserIdByUsergroupId(usergroupId int64) string {
 
-	s, q, err := statementbuilder.Squirrel.Select("u.reference_id").From("user_account_user_account_id_has_usergroup_usergroup_id uu").LeftJoin("user u on uu.user_account_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).OrderBy("uu.created_at").Limit(1).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select("u.reference_id").From("user_account_user_account_id_has_usergroup_usergroup_id uu").LeftJoin("user_account u on uu.user_account_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).OrderBy("uu.created_at").Limit(1).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create sql query: %v", err)
 		return ""
@@ -785,8 +786,8 @@ func (dr *DbResource) GetUserIdByUsergroupId(usergroupId int64) string {
 
 	err = dr.db.QueryRowx(s, q...).Scan(&refId)
 	if err != nil {
-		log.Errorf("Failed to execute query: %v == %v", s, q)
-		log.Errorf("Failed to scan user group id from the result 2: %v", err)
+		//log.Errorf("Failed to execute query: %v == %v", s, q)
+		//log.Errorf("Failed to scan user group id from the result 2: %v", err)
 	}
 
 	return refId
@@ -867,7 +868,7 @@ func (dr *DbResource) GetSingleRowById(typeName string, id int64) (map[string]in
 
 }
 
-func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val string) (map[string]interface{}, error) {
+func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val interface{}) (map[string]interface{}, error) {
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(squirrel.Eq{column: val}).ToSql()
 	if err != nil {
 		return nil, err
@@ -884,7 +885,7 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 
 	if len(m) == 0 {
 		log.Infof("No result found for [%v] [%v][%v]", typeName, column, val)
-		return nil, err
+		return nil, errors.New(fmt.Sprintf("no [%s=%s] object found", column, val))
 	}
 
 	return m[0], err
@@ -913,8 +914,39 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 	return m[0], err
 }
 
-func (dr *DbResource) TruncateTable(typeName string) error {
+func (dr *DbResource) TruncateTable(typeName string, skipRelations bool) error {
 	log.Printf("Truncate table: %v", typeName)
+
+	if !skipRelations {
+
+		var err error
+		for _, rel := range dr.tableInfo.Relations {
+
+			if rel.Relation == "belongs_to" {
+				if rel.Subject == dr.tableInfo.TableName {
+					// err = dr.TruncateTable(rel.Object, true)
+				} else {
+					err = dr.TruncateTable(rel.Object, true)
+				}
+			}
+			if rel.Relation == "has_many" {
+				err = dr.TruncateTable(rel.GetJoinTableName(), true)
+			}
+			if rel.Relation == "has_many_and_belongs_to_many" {
+				err = dr.TruncateTable(rel.GetJoinTableName(), true)
+			}
+			if rel.Relation == "has_one" {
+				if rel.Subject == dr.tableInfo.TableName {
+					// err = dr.TruncateTable(rel.Object, true)
+				} else {
+					err = dr.TruncateTable(rel.Object, true)
+				}
+			}
+
+			CheckErr(err, "Failed to truncate related table before truncate table [%v] [%v]", typeName, rel)
+			err = nil
+		}
+	}
 
 	s, q, err := statementbuilder.Squirrel.Delete(typeName).ToSql()
 	if err != nil {
@@ -922,6 +954,7 @@ func (dr *DbResource) TruncateTable(typeName string) error {
 	}
 
 	_, err = dr.db.Exec(s, q...)
+
 	return err
 
 }
@@ -929,15 +962,36 @@ func (dr *DbResource) TruncateTable(typeName string) error {
 // Update the data and set the values using the data map without an validation or transformations
 // Invoked by data import action
 func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{}) error {
+	var err error
 
 	columnMap := dr.Cruds[typeName].model.GetColumnMap()
 
 	cols := make([]string, 0)
 	vals := make([]interface{}, 0)
 	for columnName := range columnMap {
+		colInfo, ok := dr.tableInfo.GetColumnByName(columnName)
+		if !ok {
+			log.Infof("No column named [%v]", columnName)
+			continue
+		}
+		value := data[columnName]
+		switch colInfo.ColumnType {
+		case "datetime":
+			if value != nil {
+				value, err = dateparse.ParseLocal(value.(string))
+				if err != nil {
+					log.Errorf("Failed to parse value as time, insert will fail [%v][%v]: %v", columnName, value, err)
+					continue
+				}
+			}
+		}
+
+		if columnName == "permission" {
+			value = dr.tableInfo.DefaultPermission
+		}
 
 		cols = append(cols, columnName)
-		vals = append(vals, data[columnName])
+		vals = append(vals, value)
 
 	}
 
@@ -948,6 +1002,9 @@ func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{})
 	}
 
 	_, err = dr.db.Exec(sqlString, args...)
+	if err != nil {
+		log.Errorf("Failed SQL  [%v] [%v]", sqlString, args)
+	}
 	return err
 }
 
@@ -1155,9 +1212,9 @@ func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (i
 
 // select "column" from "typeName" where matchColumn in (values)
 // returns list of values of the column
-func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectColumn, matchColumn string, values []string) ([]interface{}, error) {
+func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectColumn []string, matchColumn string, values []string) ([]interface{}, error) {
 
-	s, q, err := statementbuilder.Squirrel.Select(selectColumn).From(typeName).Where(squirrel.Eq{matchColumn: values}).ToSql()
+	s, q, err := statementbuilder.Squirrel.Select(selectColumn...).From(typeName).Where(squirrel.Eq{matchColumn: values}).ToSql()
 	if err != nil {
 		return nil, err
 	}
@@ -1225,14 +1282,18 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 				stringVal, ok := val.(string)
 				if ok {
-					parsedValue, err := time.Parse(DATE_LAYOUT, stringVal)
-					if InfoErr(err, "Failed to parse time from: %v", err) {
-						row[key] = nil
+					parsedValue, _, err := fieldtypes.GetTime(stringVal)
+					if err != nil {
+						parsedValue, _, err := fieldtypes.GetDateTime(stringVal)
+						if InfoErr(err, "Failed to parse date time from [%v]: %v", columnInfo.ColumnName, stringVal) {
+							row[key] = nil
+						} else {
+							row[key] = parsedValue
+						}
 					} else {
 						row[key] = parsedValue
 					}
 				}
-
 			}
 
 			if !columnInfo.IsForeignKey {
@@ -1262,11 +1323,11 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 				refId, err := dr.GetIdToReferenceId(namespace, referenceIdInt)
 
-				row[key] = refId
 				if err != nil {
 					log.Errorf("Failed to get ref id for [%v][%v]: %v", namespace, val, err)
 					continue
 				}
+				row[key] = refId
 
 				if includedRelationMap != nil && (includedRelationMap[namespace] || includedRelationMap["*"]) {
 					obj, err := dr.GetIdToObject(namespace, referenceIdInt)
@@ -1290,7 +1351,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				}
 
 				for _, file := range foreignFilesList {
-					file["src"] = columnInfo.ForeignKeyData.Namespace + "/" + file["name"].(string)
+					file["src"] = file["name"].(string)
 				}
 
 				row[key] = foreignFilesList
@@ -1302,7 +1363,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 				if includedRelationMap != nil && (includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"]) {
 
-					resolvedFilesList, err := dr.GetFileFromCloudStore(columnInfo.ForeignKeyData, foreignFilesList)
+					resolvedFilesList, err := dr.GetFileFromLocalCloudStore(dr.TableInfo().TableName, columnInfo.ColumnName, foreignFilesList)
 					CheckErr(err, "Failed to resolve file from cloud store")
 					row[key] = resolvedFilesList
 					for _, file := range resolvedFilesList {
@@ -1360,6 +1421,36 @@ func (resource *DbResource) GetFileFromCloudStore(data api2go.ForeignKeyData, fi
 		fileName := fileItem["name"].(string)
 		bytes, err := ioutil.ReadFile(cloudStore.RootPath + "/" + data.KeyName + "/" + fileName)
 		CheckErr(err, "Failed to read file on storage")
+		if err != nil {
+			continue
+		}
+		newFileItem["reference_id"] = fileItem["name"]
+		newFileItem["contents"] = base64.StdEncoding.EncodeToString(bytes)
+		resp = append(resp, newFileItem)
+	}
+	return resp, nil
+}
+
+// resolve a file column from data in column to actual file on a cloud store
+// returns a map containing the metadata of the file and the file contents as base64 encoded
+// can be sent to browser to invoke downloading js and data urls
+func (resource *DbResource) GetFileFromLocalCloudStore(tableName string, columnName string, filesList []map[string]interface{}) (resp []map[string]interface{}, err error) {
+
+	assetFolder, ok := resource.AssetFolderCache[tableName][columnName]
+	if !ok {
+		return nil, errors.New("not a synced folder")
+	}
+
+	for _, fileItem := range filesList {
+		newFileItem := make(map[string]interface{})
+
+		for key, val := range fileItem {
+			newFileItem[key] = val
+		}
+
+		filePath := fileItem["src"].(string)
+		bytes, err := ioutil.ReadFile(assetFolder.LocalSyncPath + "/" + filePath)
+		CheckErr(err, "Failed to read file on storage [%v]: %v", assetFolder.LocalSyncPath, filePath)
 		if err != nil {
 			continue
 		}

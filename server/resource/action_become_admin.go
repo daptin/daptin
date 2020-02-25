@@ -5,9 +5,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-/**
-  Become administrator of daptin action implementation
-*/
+// BecomeAdminActionPerformer daptin action implementation
 type BecomeAdminActionPerformer struct {
 	cruds map[string]*DbResource
 }
@@ -17,9 +15,9 @@ func (d *BecomeAdminActionPerformer) Name() string {
 	return "__become_admin"
 }
 
-// Perform action and try to make the current user the admin of the system
+// BecomeAdminActionPerformer Perform action and try to make the current user the admin of the system
 // Checks CanBecomeAdmin and then invokes BecomeAdmin if true
-func (d *BecomeAdminActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *BecomeAdminActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	if !d.cruds["world"].CanBecomeAdmin() {
 		return nil, nil, []error{errors.New("Unauthorized")}
@@ -35,7 +33,7 @@ func (d *BecomeAdminActionPerformer) DoAction(request ActionRequest, inFieldMap 
 	if d.cruds["world"].BecomeAdmin(user["id"].(int64)) {
 		responseAttrs["location"] = "/"
 		responseAttrs["window"] = "self"
-		responseAttrs["delay"] = 15000
+		responseAttrs["delay"] = 7000
 	}
 
 	actionResponse := NewActionResponse("client.redirect", responseAttrs)

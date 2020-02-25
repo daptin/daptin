@@ -655,7 +655,7 @@ a:hover, a:active, a:focus {
     width: 180px;
     left: 50px;
     background: #524da7;
-    color: black;
+    color: white;
   }
 
   .sidebar-mini.sidebar-collapse .sidebar-menu > li:hover > a > span {
@@ -2461,12 +2461,10 @@ a:hover, a:active, a:focus {
 
 dd {
   margin-left: 0;
-  font-weight: 600;
   font-size: 15px;
 }
 
 dt {
-  font-weight: 400;
   font-size: 11px;
 }
 

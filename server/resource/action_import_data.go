@@ -2,7 +2,6 @@ package resource
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -17,7 +16,7 @@ func (d *ImportDataPerformer) Name() string {
 	return "__data_import"
 }
 
-func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *ImportDataPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -99,11 +98,11 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 
 			if !ok {
 				log.Infof("Wanted to truncate table, but no instance yet: %v", tableName)
-				d.cruds["world"].TruncateTable(tableName)
+				d.cruds["world"].TruncateTable(tableName, false)
 				continue
 			}
 
-			err := instance.TruncateTable(tableName)
+			err := instance.TruncateTable(tableName, false)
 			if err != nil {
 				log.Errorf("Failed to truncate table before importing data: %v", err)
 			}
@@ -125,7 +124,7 @@ func (d *ImportDataPerformer) DoAction(request ActionRequest, inFields map[strin
 
 				err := d.cruds[tableName].DirectInsert(tableName, data)
 				if err != nil {
-					log.Errorf("Was about to inser this: %v", data)
+					log.Errorf("Was about to insert this: %v", data)
 					log.Errorf("Failed to direct insert into table [%v] : %v", tableName, err)
 				}
 			}

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-docker pull karalabe/xgo-latest
-go get github.com/karalabe/xgo
+docker pull kolaente/xgo-latest
+go get github.com/kolaente/xgo
 go get github.com/GeertJohan/go.rice
 go get github.com/GeertJohan/go.rice/rice
-xgo github.com/daptin/daptin
+xgo  --targets="*/*" --tags netgo -ldflags='-linkmode external -extldflags "-static"' .

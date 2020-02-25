@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"strings"
 
-	//"gopkg.in/Masterminds/squirrel.v1"
+	//"github.com/Masterminds/squirrel"
 
 	"github.com/daptin/daptin/server/auth"
 	//"strings"
@@ -33,7 +33,13 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
+	}
 
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
+
+	if isAdmin {
+		return results, nil
 	}
 
 	notIncludedMapCache := make(map[string]bool)
@@ -66,6 +72,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 		}
 
 		permission := dr.GetRowPermission(result)
+
 		//log.Infof("Row Permission for [%v] for [%v]", permission, result)
 
 		if req.PlainRequest.Method == "GET" {
@@ -108,7 +115,13 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
+	}
 
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
+
+	if isAdmin {
+		return results, nil
 	}
 
 	returnMap := make([]map[string]interface{}, 0)

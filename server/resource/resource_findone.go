@@ -1,15 +1,27 @@
 package resource
 
 import (
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/pkg/errors"
-	"log"
 	//"strings"
+	log "github.com/sirupsen/logrus"
 )
 
 // FindOne returns an object by its ID
 // Possible Responder success status code 200
 func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Responder, error) {
+
+	if referenceId == "mine" && dr.tableInfo.TableName == "user_account" {
+		log.Printf("Request for mine")
+		sessionUser := req.PlainRequest.Context().Value("user")
+		if sessionUser != nil {
+			authUser := sessionUser.(*auth.SessionUser)
+			log.Printf("Overrider reference id mine with %v", authUser.UserReferenceId)
+			referenceId = authUser.UserReferenceId
+		}
+	}
 
 	for _, bf := range dr.ms.BeforeFindOne {
 		//log.Printf("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
@@ -35,7 +47,44 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	//	parts := strings.Split(modelName, "_has_")
 	//}
 
+
+	languagePreferences := make([]string, 0)
+	prefs := req.PlainRequest.Context().Value("language_preference")
+	if prefs != nil {
+		languagePreferences = prefs.([]string)
+	}
+	if languagePreferences != nil && len(languagePreferences) > 0 {
+		//log.Printf("Language preference: %v", languagePreferences)
+	}
+
 	data, include, err := dr.GetSingleRowByReferenceId(modelName, referenceId)
+
+	if len(languagePreferences) > 0 {
+		for _, lang := range languagePreferences {
+			data_i18n_id, err := dr.GetIdByWhereClause(modelName+"_i18n", squirrel.Eq{
+				"translation_reference_id": data["id"],
+				"language_id":              lang,
+			})
+			if err == nil && len(data_i18n_id) > 0 {
+				for _, data_i18n := range data_i18n_id {
+					translatedObj, err := dr.GetIdToObject(modelName+"_i18n", data_i18n)
+					CheckErr(err, "Failed to fetch translated object for [%v][%v][%v]", modelName, lang, data["id"])
+					for colName, valName := range translatedObj {
+						if IsStandardColumn(colName) {
+							continue
+						}
+						if valName == nil {
+							continue
+						}
+						data[colName] = valName
+					}
+				}
+				break
+			} else {
+				CheckErr(err, "No translated rows for [%v][%v][%v]", modelName, referenceId, lang)
+			}
+		}
+	}
 
 	//log.Printf("Single row result: %v", data)
 	for _, bf := range dr.ms.AfterFindOne {
@@ -66,17 +115,20 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	a.Data = data
 
 	for _, inc := range include {
-		p, ok := inc["permission"].(int64)
-		if !ok {
-			log.Printf("Failed to convert [%v] to permission: %v", inc["permission"], inc["__type"])
-			p = 0
-		}
 		incType := inc["__type"].(string)
-		if BeginsWith(incType, "image.") {
+
+		if BeginsWith(incType, "image.") || BeginsWith(incType, "file.") {
 			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, nil, 0, nil, inc))
 		} else {
+			p, ok := inc["permission"].(int64)
+			if !ok {
+				log.Printf("Failed to convert [%v] to permission: %v", inc["permission"], inc["__type"])
+				p = 0
+			}
+
 			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dr.Cruds[incType].model.GetColumns(), int64(p), dr.Cruds[incType].model.GetRelations(), inc))
 		}
+
 	}
 
 	return NewResponse(nil, a, 200, nil), err

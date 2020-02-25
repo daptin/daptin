@@ -1,9 +1,9 @@
 package server
 
 import (
-	"encoding/json"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -52,7 +52,7 @@ func InArrayIndex(val interface{}, array interface{}) (index int) {
 	return
 }
 
-func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource) (map[string]*resource.DbResource) {
+func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource) map[string]*resource.DbResource {
 	for _, table := range tables {
 
 		if table.TableName == "" {
@@ -60,15 +60,20 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 			continue
 		}
 
-		model := api2go.NewApi2GoModel(table.TableName, table.Columns, table.DefaultPermission, table.Relations)
+		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
 
 		res := resource.NewDbResource(model, db, ms, cruds, configStore, table)
 
 		cruds[table.TableName] = res
 
 		if table.IsJoinTable {
+			// we do not expose join table as web api
 			continue
 		}
+
+		//if table.IsJoinTable {
+		//	continue
+		//}
 
 		log.Infof("Add Resources To Api2Go: %v", table.TableName)
 
@@ -92,8 +97,8 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 	sql, args, err := statementbuilder.Squirrel.Select("table_name", "permission", "default_permission",
 		"world_schema_json", "is_top_level", "is_hidden", "is_state_tracking_enabled", "default_order",
-	).From("world").Where("table_name not like '%_has_%'").Where("table_name not like '%_audit'").Where("table_name not in (?,?,?,?)",
-		"world", "action", resource.USER_ACCOUNT_TABLE_NAME, "usergroup").ToSql()
+	).From("world").Where("table_name not like '%_has_%'").Where("table_name not like '%_audit'").Where("table_name not in (?,?,?)",
+		"world", "action", "usergroup").ToSql()
 	if err != nil {
 		return nil, err
 	}
@@ -125,14 +130,25 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 		err = json.Unmarshal([]byte(world_schema_json), &t)
 
+		for i, col := range t.Columns {
+			if col.Name == "" && col.ColumnName != "" {
+				col.Name = col.ColumnName
+			} else if col.Name != "" && col.ColumnName == "" {
+				col.ColumnName = col.Name
+			} else if col.Name == "" && col.ColumnName == "" {
+				log.Printf("Error, column without name in existing tables: %v", t)
+			}
+			t.Columns[i] = col
+		}
+
 		if err != nil {
 			log.Errorf("Failed to unmarshal json schema: %v", err)
 			continue
 		}
 
 		t.TableName = table_name
-		t.Permission = permission
-		t.DefaultPermission = default_permission
+		t.Permission = auth.AuthPermission(permission)
+		t.DefaultPermission = auth.AuthPermission(default_permission)
 		t.IsHidden = is_hidden
 		t.IsTopLevel = is_top_level
 		t.IsStateTrackingEnabled = is_state_tracking_enabled

@@ -6,31 +6,6 @@
         <span class="page">Dashboard</span>
       </router-link>
     </li>
-    <!--<li class="pageLink" v-on:click="toggleMenu">-->
-      <!--<router-link :to="{name: 'AllInOne', params: {}}">-->
-        <!--<i class="fas fa-align-justify"></i>-->
-        <!--<span class="page">All</span>-->
-      <!--</router-link>-->
-    <!--</li>-->
-    <li class="treeview">
-      <a href="#">
-        <i class="fas fa-book"></i>
-        <span>Items</span>
-        <span class="pull-right-container">
-          <i class="fa fa-angle-left fa-fw pull-right"></i>
-        </span>
-      </a>
-      <ul class="treeview-menu">
-
-        <li class="pageLink" v-on:click="toggleMenu" v-for="w in topWorlds"
-            v-if="w.table_name != 'user_account' && w.table_name != 'usergroup'">
-          <router-link :class="w.table_name + '-link'" :to="{name: 'Entity', params: {tablename: w.table_name}}">
-            <span class="page">{{w.table_name | titleCase}}</span>
-          </router-link>
-        </li>
-      </ul>
-    </li>
-
 
     <li class="treeview">
       <a href="#">
@@ -86,8 +61,8 @@
       </a>
       <ul class="treeview-menu">
 
-        <li><a href="https://github.com/artpar/daptin/wiki" target="_blank"><span class="fa fa-files-o"></span>
-          Dev help</a></li>
+        <li><a href="https://docs.dapt.in" target="_blank"><span class="fa fa-files-o"></span>
+          Documentation</a></li>
 
 
         <li><a href="https://github.com/artpar/daptin/issues/new" target="_blank"><span class="fa fa-cogs"></span>
@@ -117,7 +92,7 @@
         }
         // window.$('li.pageLink.active').removeClass('active')
         // Add it to the item that was clicked
-        event.toElement.parentElement.className = 'pageLink active'
+        // event.toElement.parentElement.className = 'pageLink active'
       }
     },
     props: {

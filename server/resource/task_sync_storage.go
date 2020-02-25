@@ -1,21 +1,28 @@
 package resource
 
 import (
-	"encoding/json"
+	"context"
+	"fmt"
 	"github.com/artpar/rclone/cmd"
+	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/artpar/rclone/lib/pacer"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"strings"
 )
 
-func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, tempDirectoryPath string) error {
+func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, cloudPath string, tempDirectoryPath string) error {
 
 	oauthTokenId := cloudStore.OAutoTokenId
 
 	token, oauthConf, err := res.GetTokenByTokenReferenceId(oauthTokenId)
 	CheckErr(err, "Failed to get oauth2 token for scheduled storage sync")
+	if err != nil {
+		log.Printf("Storage syncing will fail without valid token: OAuthTokenID [%v]", oauthTokenId)
+		// return err
+	}
 
 	//hostRouter := httprouter.New()
 
@@ -33,21 +40,32 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, tempDirectoryPat
 		tempDirectoryPath,
 	}
 
+	if cloudPath != "" {
+		args[0] = args[0] + "/" + cloudPath
+	}
+
 	fsrc, fdst := cmd.NewFsSrcDst(args)
-	pacer := pacer.Pacer{}
-	pacer.SetRetries(5)
+	pacer1 := pacer.Pacer{}
+	pacer1.SetRetries(5)
 	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
-	go cmd.Run(true, true, nil, func() error {
+
+	cobraCommand := &cobra.Command{
+		Use: fmt.Sprintf("Sync cloud store [%v] to path [%v]", cloudStore.Name, tempDirectoryPath),
+	}
+	fs.Config.LogLevel = fs.LogLevelNotice
+
+	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Either source or destination is empty")
 			return nil
 		}
+		ctx := context.Background()
 		log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-		dir := sync.CopyDir(fdst, fsrc, true)
+		dir := sync.CopyDir(ctx, fdst, fsrc, true)
 		return dir
 	})
 

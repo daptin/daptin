@@ -2,7 +2,6 @@ package resource
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/conform"
@@ -89,7 +88,7 @@ var EntityTypeToColumnTypeMap = map[fieldtypes.EntityType]string{
 	fieldtypes.Namespace:   "namespace",
 }
 
-func (d *UploadXlsFileToEntityPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *UploadXlsFileToEntityPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	//actions := make([]ActionResponse, 0)
 	log.Infof("Do action: %v", d.Name())
@@ -258,7 +257,7 @@ nextFile:
 		if create_if_not_exists || add_missing_columns {
 			go restart()
 		} else {
-			ImportDataFiles(d.cmsConfig, d.cruds[entityName].db, d.cruds)
+			ImportDataFiles(sources, d.cruds[entityName].db, d.cruds)
 		}
 
 		return nil, successResponses, nil

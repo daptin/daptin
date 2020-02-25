@@ -6,9 +6,11 @@ import (
 	"github.com/artpar/go.uuid"
 	"github.com/graphql-go/graphql"
 	"github.com/icrowley/fake"
+	log "github.com/sirupsen/logrus"
 	validator2 "gopkg.in/go-playground/validator.v9"
-	"log"
 	"math/rand"
+	"strings"
+
 	"time"
 )
 
@@ -49,6 +51,8 @@ func (ct ColumnType) Fake() interface{} {
 	case "time":
 		return randate().Format("15:04:05")
 	case "day":
+		return fake.Day()
+	case "enum":
 		return fake.Day()
 	case "month":
 		return fake.Month()
@@ -111,6 +115,8 @@ func (ct ColumnType) Fake() interface{} {
 		return ""
 	case "image":
 		return ""
+	case "video":
+		return ""
 	case "url":
 		return "https://places.com/"
 	default:
@@ -147,15 +153,22 @@ var ColumnTypes = []ColumnType{
 		GraphqlType:   graphql.String,
 	},
 	{
+		Name:          "enum",
+		BlueprintType: "string",
+		ReclineType:   "string",
+		DataTypes:     []string{"varchar(50)", "varchar(20)", "varchar(10)"},
+		GraphqlType:   graphql.String,
+	},
+	{
 		Name:          "date",
-		BlueprintType: "date-only",
+		BlueprintType: "string",
 		ReclineType:   "date",
 		DataTypes:     []string{"timestamp"},
 		GraphqlType:   graphql.DateTime,
 	},
 	{
 		Name:          "time",
-		BlueprintType: "time-only",
+		BlueprintType: "string",
 		ReclineType:   "time",
 		DataTypes:     []string{"timestamp"},
 		GraphqlType:   graphql.String,
@@ -199,7 +212,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "datetime",
-		BlueprintType: "datetime",
+		BlueprintType: "string",
 		ReclineType:   "date-time",
 		DataTypes:     []string{"timestamp"},
 		GraphqlType:   graphql.DateTime,
@@ -291,7 +304,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "timestamp",
-		BlueprintType: "datetime",
+		BlueprintType: "string",
 		ReclineType:   "date-time",
 		DataTypes:     []string{"timestamp"},
 		GraphqlType:   graphql.DateTime,
@@ -335,9 +348,9 @@ var ColumnTypes = []ColumnType{
 		GraphqlType:   graphql.String,
 	},
 	{
-		Name:          "rating.10",
+		Name:          "rating",
 		BlueprintType: "number",
-		ReclineType:   "string",
+		ReclineType:   "number",
 		Validations:   []string{"min=0,max=10"},
 		DataTypes:     []string{"int(4)"},
 		GraphqlType:   graphql.Int,
@@ -358,6 +371,13 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "label",
+		ReclineType:   "string",
+		BlueprintType: "string",
+		DataTypes:     []string{"varchar(100)"},
+		GraphqlType:   graphql.String,
+	},
+	{
+		Name:          "hidden",
 		ReclineType:   "string",
 		BlueprintType: "string",
 		DataTypes:     []string{"varchar(100)"},
@@ -386,7 +406,7 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "file",
-		BlueprintType: "file",
+		BlueprintType: "string",
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 		DataTypes:     []string{"blob"},
@@ -402,7 +422,23 @@ var ColumnTypes = []ColumnType{
 	},
 	{
 		Name:          "image",
-		BlueprintType: "file",
+		BlueprintType: "string",
+		ReclineType:   "binary",
+		Validations:   []string{"base64"},
+		DataTypes:     []string{"blob"},
+		GraphqlType:   graphql.String,
+	},
+	{
+		Name:          "gzip",
+		BlueprintType: "string",
+		ReclineType:   "binary",
+		Validations:   []string{"base64"},
+		DataTypes:     []string{"blob"},
+		GraphqlType:   graphql.String,
+	},
+	{
+		Name:          "video",
+		BlueprintType: "string",
 		ReclineType:   "binary",
 		Validations:   []string{"base64"},
 		DataTypes:     []string{"blob"},
@@ -414,14 +450,6 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "string",
 		Validations:   []string{"url"},
 		DataTypes:     []string{"varchar(500)"},
-		GraphqlType:   graphql.String,
-	},
-	{
-		Name:          "image",
-		BlueprintType: "file",
-		ReclineType:   "binary",
-		Validations:   []string{"base64"},
-		DataTypes:     []string{"text"},
 		GraphqlType:   graphql.String,
 	},
 }
@@ -444,14 +472,15 @@ func (ctm *ColumnTypeManager) GetBlueprintType(columnType string) string {
 	return ctm.ColumnMap[columnType].BlueprintType
 }
 func (ctm *ColumnTypeManager) GetGraphqlType(columnType string) *graphql.Scalar {
-	if _, ok := ctm.ColumnMap[columnType]; !ok {
+	col := strings.Split(columnType, ".")[0]
+	if _, ok := ctm.ColumnMap[col]; !ok {
 		log.Printf("No column definition for type: %v", columnType)
 		return graphql.String
 	}
-	return ctm.ColumnMap[columnType].GraphqlType
+	return ctm.ColumnMap[col].GraphqlType
 }
 
-func (ctm *ColumnTypeManager) GetFakedata(colTypeName string) string {
+func (ctm *ColumnTypeManager) GetFakeData(colTypeName string) string {
 	return fmt.Sprintf("%v", ctm.ColumnMap[colTypeName].Fake())
 }
 
@@ -461,11 +490,4 @@ func (ctm *ColumnTypeManager) IsValidValue(val string, colType string, validator
 	}
 	return validator.Var(val, ctm.ColumnMap[colType].Validations[0])
 
-}
-
-var CollectionTypes = []string{
-	"Pair",
-	"Triplet",
-	"Set",
-	"OrderedSet",
 }

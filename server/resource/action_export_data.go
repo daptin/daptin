@@ -2,7 +2,6 @@ package resource
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
 	log "github.com/sirupsen/logrus"
@@ -17,7 +16,7 @@ func (d *ExportDataPerformer) Name() string {
 	return "__data_export"
 }
 
-func (d *ExportDataPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *ExportDataPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

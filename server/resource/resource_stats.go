@@ -2,10 +2,10 @@ package resource
 
 import (
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
 	"regexp"
 	"sort"
 	"strings"
@@ -56,6 +56,11 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 	for _, group := range req.GroupBy {
 		projections = append(projections, group)
 	}
+
+	if len(projections) == 0 {
+		projections = append(projections, "count(*) as count")
+	}
+
 	selectBuilder := statementbuilder.Squirrel.Select(projections...)
 	builder := selectBuilder.From(req.RootEntity)
 	builder = builder.GroupBy(req.GroupBy...)
@@ -102,9 +107,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 			case "notin":
 				builder = function(squirrel.Eq{leftVal: strings.Split(rightVal, ",")})
 			}
-
 		}
-
 	}
 
 	sql, args, err := builder.ToSql()
@@ -116,10 +119,10 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 	log.Infof("Stats query: %v == %v", sql, args)
 	res, err := dr.db.Queryx(sql, args...)
 	CheckErr(err, "Failed to query stats: %v", err)
-	defer res.Close()
 	if err != nil {
 		return AggregateData{}, err
 	}
+	defer res.Close()
 
 	rows, err := RowsToMap(res, "aggregate_"+req.RootEntity)
 	CheckErr(err, "Failed to scan ")

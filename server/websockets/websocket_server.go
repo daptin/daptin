@@ -9,9 +9,9 @@ import (
 )
 
 type WebSocketPayload struct {
-	Method  string  `json:"method"`
-	Path    string  `json:"path"`
-	Payload Message `json:"payload"`
+	Method   string  `json:"method"`
+	TypeName string  `json:"type"`
+	Payload  Message `json:"payload"`
 }
 
 type Message struct {
