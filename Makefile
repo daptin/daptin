@@ -44,7 +44,7 @@ endif
 .PHONY: daptin test_all vars version
 
 daptin:
-	go get ./...
+	go get
 	go build -v --ldflags "-s -X github.com/daptin/daptin/fs.Version=$(TAG)" $(BUILDTAGS)
 	mkdir -p `go env GOPATH`/bin/
 	cp -av daptin`go env GOEXE` `go env GOPATH`/bin/daptin`go env GOEXE`.new
