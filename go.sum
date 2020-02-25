@@ -863,6 +863,8 @@ github.com/prometheus/tsdb v0.10.0/go.mod h1:oi49uRhEe9dPUTlS3JRZOwJuVi6tmh10QSg
 github.com/putdotio/go-putio v0.0.0-20190731220109-37c0795af843/go.mod h1:EWtDL88jJLLWZzywr0QaPO+mGP8gFpvl8dcox8qTk3Y=
 github.com/putdotio/go-putio v0.0.0-20190822121956-19b9c636c877 h1:sKIa5MAIViLAnQbEo+uiDi2FMowy8KcdZW8XZpmyNxs=
 github.com/putdotio/go-putio v0.0.0-20190822121956-19b9c636c877/go.mod h1:EWtDL88jJLLWZzywr0QaPO+mGP8gFpvl8dcox8qTk3Y=
+github.com/putdotio/go-putio v1.2.0 h1:sDWg48aKQlCT8o5jBal61nwjGDqlf/u/YxJg6SLFSEc=
+github.com/putdotio/go-putio v1.2.0/go.mod h1:tEYWIvsVbQ0CtwRF8vyWegONethUHJ6zN3W59n2+X4E=
 github.com/rainycape/memcache v0.0.0-20150622160815-1031fa0ce2f2/go.mod h1:7tZKcyumwBO6qip7RNQ5r77yrssm9bfCowcLEBcU5IA=
 github.com/rclone/rclone v1.49.3/go.mod h1:VpljyG+YNflubTUvhZBH/tpA6ziCZZdNx3sIDA/NETg=
 github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
