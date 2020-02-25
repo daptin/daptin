@@ -597,7 +597,7 @@ jsonapi.replaceMiddleware('errors', {
       return;
     }
 
-    if (response.status == 400) {
+    if (response.status == 400 || response.status == 500) {
       __WEBPACK_IMPORTED_MODULE_1_element_ui__["Notification"].error({
         "title": "Failed",
         "message": response.title
@@ -5767,7 +5767,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         }
 
         if (columnMeta.ColumnType == "truefalse") {
-          that.model[columnMeta.ColumnName] = that.model[columnMeta.ColumnName] === "1" || that.model[columnMeta.ColumnName] === 1;
+          that.model[columnMeta.ColumnName] = that.model[columnMeta.ColumnName] === "1" || that.model[columnMeta.ColumnName] === 1 || that.model[columnMeta.ColumnName] === "true" || that.model[columnMeta.ColumnName] === true;
         }
 
         if (columnMeta.ColumnType == "date") {
@@ -13518,4 +13518,4 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
 
 /***/ })
 ],[287]);
-//# sourceMappingURL=app.5dec331a8a7d5197805c.js.map
+//# sourceMappingURL=app.9149a5f4294afd66af70.js.map
