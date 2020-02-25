@@ -309,7 +309,7 @@ func (dr *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
 }
 func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []string) error {
 
-	log.Printf("Update mail flags for [%v][%v]: %v", mailBoxId, mailId, newFlags)
+	//log.Printf("Update mail flags for [%v][%v]: %v", mailBoxId, mailId, newFlags)
 	seen := false
 	recent := false
 	deleted := false
