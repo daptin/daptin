@@ -465,19 +465,19 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		//log.Infof("Sort order: %v", so)
 		if so[0] == '-' {
 			ord := prefix + so[1:] + " desc"
-			queryBuilder = queryBuilder.OrderBy(ord)
-			countQueryBuilder = countQueryBuilder.OrderBy(ord)
+			// queryBuilder = queryBuilder.OrderBy(ord)
+			// countQueryBuilder = countQueryBuilder.OrderBy(ord)
 			orders = append(orders, ord)
 		} else {
 			if so[0] == '+' {
 				ord := prefix + so[1:] + " asc"
-				queryBuilder = queryBuilder.OrderBy(ord)
-				countQueryBuilder = countQueryBuilder.OrderBy(ord)
+				// queryBuilder = queryBuilder.OrderBy(ord)
+				// countQueryBuilder = countQueryBuilder.OrderBy(ord)
 				orders = append(orders, ord)
 			} else {
 				ord := prefix + so + " asc"
-				queryBuilder = queryBuilder.OrderBy(ord)
-				countQueryBuilder = countQueryBuilder.OrderBy(ord)
+				// queryBuilder = queryBuilder.OrderBy(ord)
+				// countQueryBuilder = countQueryBuilder.OrderBy(ord)
 				orders = append(orders, ord)
 			}
 		}
