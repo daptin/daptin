@@ -34,6 +34,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		maxSize, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_size"]), 10, 32)
 		maxClients, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_clients"]), 10, 32)
 		alwaysOnTls := fmt.Sprintf("%v", server["always_on_tls"]) == "1"
+		authenticationRequired := fmt.Sprintf("%v", server["authentication_required"]) == "1"
 
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
@@ -92,7 +93,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 			TLS:             serverTlsConfig,
 			MaxClients:      int(maxClients),
 			XClientOn:       fmt.Sprintf("%v", server["xclient_on"]) == "1",
-			AuthRequired:    false,
+			AuthRequired:    authenticationRequired,
 			AuthTypes:       []string{"LOGIN"},
 		}
 		hosts = append(hosts, hostname)

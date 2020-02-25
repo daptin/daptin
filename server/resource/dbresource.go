@@ -17,18 +17,19 @@ import (
 )
 
 type DbResource struct {
-	model            *api2go.Api2GoModel
-	db               sqlx.Ext
-	connection       database.DatabaseConnection
-	tableInfo        *TableInfo
-	Cruds            map[string]*DbResource
-	ms               *MiddlewareSet
-	ActionHandlerMap map[string]ActionPerformerInterface
-	configStore      *ConfigStore
-	contextCache     map[string]interface{}
-	defaultGroups    []int64
-	contextLock      sync.RWMutex
-	AssetFolderCache map[string]map[string]AssetFolderCache
+	model              *api2go.Api2GoModel
+	db                 sqlx.Ext
+	connection         database.DatabaseConnection
+	tableInfo          *TableInfo
+	Cruds              map[string]*DbResource
+	ms                 *MiddlewareSet
+	ActionHandlerMap   map[string]ActionPerformerInterface
+	configStore        *ConfigStore
+	contextCache       map[string]interface{}
+	defaultGroups      []int64
+	contextLock        sync.RWMutex
+	AssetFolderCache   map[string]map[string]AssetFolderCache
+	SubsiteFolderCache map[string]AssetFolderCache
 }
 
 type AssetFolderCache struct {
@@ -308,7 +309,7 @@ func (dr *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
 }
 func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []string) error {
 
-	log.Printf("Update mail flags for [%v][%v]: %v", mailBoxId, mailId, newFlags)
+	//log.Printf("Update mail flags for [%v][%v]: %v", mailBoxId, mailId, newFlags)
 	seen := false
 	recent := false
 	deleted := false
