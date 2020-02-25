@@ -193,89 +193,90 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 			skipMail := false
 
 			//responseItems := make([]interface{}, 0)
-			for _, item := range items {
+			for _, item1 := range items {
 
-				if skipMail {
-					break
-				}
+				for _, subItems := range item1.Expand() {
 
-				switch item {
-				case imap.FetchEnvelope:
-					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-					header, _ := textproto.ReadHeader(bodyReader)
-
-					enve, err := backendutil.FetchEnvelope(header)
-					if err != nil {
-						log.Printf("Failed to fetch envelop for email [%v] == %v", mailContent["id"], err)
-						skipMail = true
+					if skipMail {
 						break
 					}
-					returnMail.Envelope = enve
-				case imap.FetchBody, imap.FetchBodyStructure:
-					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-					header, err := textproto.ReadHeader(bodyReader)
 
-					if item == imap.FetchBody {
-						flagList := strings.Split(mailContent["flags"].(string), ",")
-						if HasFlag(flagList, imap.RecentFlag) {
-							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
-							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), strings.Join(newFlags, ","))
-							if err != nil {
-								log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
-							}
-						}
-
-					}
-					bs, err := backendutil.FetchBodyStructure(header, bodyReader, item == imap.FetchBodyStructure)
-					if err != nil {
-						log.Printf("Failed to fetch body structure for email [%v] == %v", mailContent["id"], err)
-						skipMail = true
-						break
-					}
-					returnMail.BodyStructure = bs
-				case imap.FetchFlags:
 					flagList := strings.Split(mailContent["flags"].(string), ",")
-					returnMail.Flags = flagList
+					log.Printf("Mail flags: %v at fetch item [%v]", flagList, subItems)
 
-				case imap.FetchInternalDate:
-					returnMail.InternalDate = mailContent["internal_date"].(time.Time)
-				case imap.FetchRFC822Size:
-					returnMail.Size = uint32(mailContent["size"].(int64))
-				case imap.FetchUid:
-					uid := mailContent["id"].(int64)
-					returnMail.Uid = uint32(uid)
-				default:
+					switch subItems {
+					case imap.FetchEnvelope:
 
-					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-					header, err := textproto.ReadHeader(bodyReader)
+						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+						header, _ := textproto.ReadHeader(bodyReader)
 
-					section, err := imap.ParseBodySectionName(item)
-					if err != nil {
-						log.Printf("Failed to fetch structure for email [%v] == %v", mailContent["id"], err)
-						skipMail = true
-						break
-					}
+						enve, err := backendutil.FetchEnvelope(header)
+						if err != nil {
+							log.Printf("Failed to fetch envelop for email [%v] == %v", mailContent["id"], err)
+							skipMail = true
+							break
+						}
+						returnMail.Envelope = enve
+					case imap.FetchBodyStructure:
+						log.Printf("Fetch Body [%v] update flags: ", subItems == imap.FetchBodyStructure)
+						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+						header, err := textproto.ReadHeader(bodyReader)
 
-					if !section.Peek {
-						flagList := strings.Split(mailContent["flags"].(string), ",")
-						if HasFlag(flagList, imap.RecentFlag) {
-							newFlags := backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
-							err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), strings.Join(newFlags, ","))
-							if err != nil {
-								log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
+						bs, err := backendutil.FetchBodyStructure(header, bodyReader, subItems == imap.FetchBodyStructure)
+						if err != nil {
+							log.Printf("Failed to fetch body structure for email [%v] == %v", mailContent["id"], err)
+							skipMail = true
+							break
+						}
+						returnMail.BodyStructure = bs
+					case imap.FetchFlags:
+						returnMail.Flags = flagList
+
+					case imap.FetchInternalDate:
+						returnMail.InternalDate = mailContent["internal_date"].(time.Time)
+					case imap.FetchRFC822Size:
+						returnMail.Size = uint32(mailContent["size"].(int64))
+					case imap.FetchUid:
+						uid := mailContent["id"].(int64)
+						returnMail.Uid = uint32(uid)
+					default:
+						log.Printf("Fetch default [%v] update flags: %v", subItems, flagList)
+
+						section, err := imap.ParseBodySectionName(subItems)
+						if CheckErr(err, "failed to parse item name") {
+							skipMail = true
+							break
+						}
+
+						if !section.Peek {
+							if HasAnyFlag(flagList, []string{imap.RecentFlag}) {
+								flagList = backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
+								log.Printf("New flags: [%v]", flagList)
+								err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), flagList)
+								if err != nil {
+									log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
+								}
 							}
 						}
-					}
 
-					l, err := backendutil.FetchBodySection(header, bodyReader, section)
-					if err != nil || l.Len() == 0 {
-						log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
-						// skipMail = true
-						// break
-					}
+						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+						header, err := textproto.ReadHeader(bodyReader)
 
-					returnMail.Body[section] = l
-					//responseItems = append(responseItems, string(item), l)
+						log.Printf("Fetch default section peek [%v]: %v", section, section.Peek)
+
+						l, err := backendutil.FetchBodySection(header, bodyReader, section)
+						if err != nil || l.Len() == 0 {
+							log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
+							skipMail = true
+							break
+						}
+						flagList = backendutil.UpdateFlags(flagList, imap.AddFlags, []string{imap.SeenFlag})
+						err = dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), flagList)
+						CheckErr(err, "Failed to update mail with seen flag")
+
+						returnMail.Body[section] = l
+						//responseItems = append(responseItems, string(item), l)
+					}
 				}
 			}
 
@@ -331,6 +332,32 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 		}
 	}
 
+	if len(criteria.WithoutFlags) > 0 {
+		for _, flag := range criteria.WithFlags {
+			switch strings.ToLower(flag) {
+			case "\\deleted":
+				queries = append(queries, Query{
+					ColumnName: "deleted",
+					Operator:   "is",
+					Value:      false,
+				})
+			}
+		}
+	}
+
+	if len(criteria.Header) > 0 {
+		for headerName, flag := range criteria.Header {
+			switch strings.ToLower(headerName) {
+			case "Message-ID":
+				queries = append(queries, Query{
+					ColumnName: "message_id",
+					Operator:   "is",
+					Value:      flag,
+				})
+			}
+		}
+	}
+
 	queryJson, _ := json.Marshal(queries)
 
 	searchRequest := api2go.Request{
@@ -345,6 +372,7 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 		},
 	}
 
+	log.Printf("Search query for mail: %v", searchRequest.QueryParams)
 	results, _, _, err := dimb.dbResource["mail"].PaginatedFindAllWithoutFilters(searchRequest)
 
 	if err != nil {
@@ -352,9 +380,15 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 	}
 
 	ids := make([]uint32, 0)
+	log.Printf("Mail search results: %v", results)
 	for i, res := range results {
 		if uid {
-			ids = append(ids, uint32(res["id"].(int64)))
+			id, err := dimb.dbResource["mail"].GetReferenceIdToId("mail", res["reference_id"].(string))
+			if err != nil {
+				CheckErr(err, "Failed to get id from reference id")
+				continue
+			}
+			ids = append(ids, uint32(id))
 		} else {
 			ids = append(ids, uint32(i+1))
 		}
@@ -386,8 +420,9 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		PlainRequest: httpRequest,
 	}
 
-	if !HasFlag(flags, "\\Recent") {
-		flags = append(flags, "\\Recent")
+	if !HasAnyFlag(flags, []string{imap.RecentFlag}) {
+		flags = backendutil.UpdateFlags(flags, imap.AddFlags, []string{imap.RecentFlag})
+		log.Printf("New flags: [%v]", flags)
 	}
 
 	messageEntity, err := message.Read(bytes.NewReader(mailBody))
@@ -518,7 +553,22 @@ func HasFlag(flags []string, flagToFind string) bool {
 	}
 
 	return false
+}
 
+func HasAnyFlag(flags []string, flagToFind []string) bool {
+
+	log.Printf("Check for flags [%v] in [%v]", flagToFind, flags)
+	for _, f := range flags {
+		f = strings.ToLower(f)
+		for _, f1 := range flagToFind {
+			if strings.ToLower(f1) == f {
+				return true
+			}
+		}
+	}
+
+	log.Printf("[%v] not found in [%v]", flagToFind, flags)
+	return false
 }
 
 // UpdateMessagesFlags alters flags for the specified message(s).
@@ -527,6 +577,7 @@ func HasFlag(flags []string, flagToFind string) bool {
 // via a message update.
 func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet, operation imap.FlagsOp, flags []string) error {
 
+	log.Printf("Update messages flags: [%v] :[%v]: %v", seqset, operation, flags)
 	var mails []map[string]interface{}
 	var err error
 	for _, seq := range seqset.Set {
@@ -543,6 +594,7 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 		for _, mailRow := range mails {
 			currentFlags := strings.Split(mailRow["flags"].(string), ",")
 			newFlags := backendutil.UpdateFlags(currentFlags, operation, flags)
+			log.Printf("New flags: [%v]", newFlags)
 			hasDupe := false
 			fla := map[string]bool{}
 			for _, f := range newFlags {
@@ -556,7 +608,7 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 			if hasDupe {
 				log.Printf("Duplicate flag: %v", newFlags)
 			}
-			err = dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailRow["id"].(int64), strings.Join(newFlags, ","))
+			err = dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailRow["id"].(int64), newFlags)
 			if err != nil {
 				return err
 			}
@@ -610,8 +662,9 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 			delete(mail, "id")
 			mail["recent"] = true
 			mailFlags := strings.Split(mail["flags"].(string), ",")
-			if !HasFlag(mailFlags, "\\Recent") {
-				mailFlags = append(mailFlags, "\\Recent")
+			if !HasAnyFlag(mailFlags, []string{imap.RecentFlag}) {
+				mailFlags = backendutil.UpdateFlags(mailFlags, imap.AddFlags, []string{imap.RecentFlag})
+				log.Printf("New flags: [%v]", mailFlags)
 				mail["flags"] = strings.Join(mailFlags, ",")
 			}
 

@@ -3,7 +3,6 @@ package resource
 import (
 	"fmt"
 	"github.com/daptin/daptin/server/auth"
-	"golang.org/x/text/language"
 	"strconv"
 	"strings"
 
@@ -91,11 +90,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 	}
 
-	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
-	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), "en")
-
+	languagePreferences := make([]string, 0)
+	prefs := req.PlainRequest.Context().Value("language_preference")
+	if prefs != nil {
+		languagePreferences = prefs.([]string)
+	}
 	if languagePreferences != nil && len(languagePreferences) > 0 {
-		log.Printf("Language preference: %v", languagePreferences)
+		//log.Printf("Language preference: %v", languagePreferences)
 	}
 
 	pageNumber := uint64(0)
@@ -396,7 +397,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			if !ok {
 				continue
 			}
-			log.Infof("Reverse Relation %v", rel.String())
+			//log.Infof("Reverse Relation %v", rel.String())
 
 			var subjectName string
 			/**
@@ -495,8 +496,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	log.Printf("Id query: [%s]", idsListQuery)
-	log.Printf("Id query args: %v", args)
+	//log.Printf("Id query: [%s]", idsListQuery)
+	//log.Printf("Id query args: %v", args)
 	stmt, err := dr.connection.Preparex(idsListQuery)
 	if err != nil {
 		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
@@ -574,7 +575,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 
 	sql1, args, err := queryBuilder.ToSql()
-	log.Printf("Query: %v == %v", sql1, args)
+	//log.Printf("Query: %v == %v", sql1, args)
 
 	if err != nil {
 		log.Infof("Error: %v", err)
@@ -623,33 +624,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 }
 
-func GetLanguagePreference(header string, defaultLanguage string) []string {
-	preferredLanguage := header
-
-	if preferredLanguage == "" {
-		preferredLanguage = defaultLanguage
-	}
-
-	languageTags, _, err := language.ParseAcceptLanguage(preferredLanguage)
-	CheckErr(err, "Failed to parse Accept-Language header [%v]", preferredLanguage)
-	pref := make([]string, 0)
-
-	if len(languageTags) == 1 && languageTags[0].String() == defaultLanguage {
-
-	} else {
-
-		for _, tag := range languageTags {
-			base, conf := tag.Base()
-			if conf == 0 {
-				continue
-			}
-			pref = append(pref, base.String())
-		}
-
-	}
-	return pref
-}
-
 func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix string) squirrel.SelectBuilder {
 
 	if len(queries) == 0 {
@@ -664,6 +638,9 @@ func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix str
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
 		case "is":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		case "in":
+			//queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (?)", prefix+filterQuery.ColumnName), filterQuery.Value)
+			queryBuilder.Where(squirrel.Eq{prefix + filterQuery.ColumnName: filterQuery.Value.([]string)})
 		case "is not":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 		case "before":

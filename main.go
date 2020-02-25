@@ -59,7 +59,7 @@ func main() {
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
 	var port = flag.String("port", ":6336", "daptin port")
 	var httpsPort = flag.String("https_port", ":6443", "daptin https port")
-	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
+	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: debug, test, release")
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
@@ -101,18 +101,28 @@ func main() {
 	err = trigger.On("restart", func() {
 		log.Printf("Trigger restart")
 
+		log.Printf("Close down services and db connection")
 		taskScheduler.StopTasks()
 		ftpServer.Stop()
-		mailDaemon.Shutdown()
-		err = imapServerInst.Close()
-		if err != nil {
-			log.Printf("Failed to close DB connections: %v", err)
+
+		if mailDaemon != nil {
+			mailDaemon.Shutdown()
 		}
+
+		if imapServerInstance != nil {
+			err = imapServerInstance.Close()
+			if err != nil {
+				log.Printf("Failed to close imap server connections: %v", err)
+			}
+		}
+
 		err = db.Close()
 		if err != nil {
 			log.Printf("Failed to close DB connections: %v", err)
 		}
 
+		log.Printf("All connections closed")
+		log.Printf("Create new connections")
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInst = server.Main(boxRoot, db)
@@ -131,7 +141,7 @@ func main() {
 	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), portValue)
 
 	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
-	_, certBytes, privateBytes, _, err := certManager.GetTLSConfig(hostname)
+	_, certBytes, privateBytes, _, _, err := certManager.GetTLSConfig(hostname, true)
 
 	if err == nil {
 		go func() {

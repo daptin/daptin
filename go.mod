@@ -15,15 +15,16 @@ require (
 	github.com/artpar/api2go v2.4.0+incompatible
 	github.com/artpar/api2go-adapter v1.0.0
 	github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6
-	github.com/artpar/go-guerrilla v0.0.0-20190527052415-a0ff13624d2e
-	github.com/artpar/go-imap v1.0.2
+	github.com/artpar/go-guerrilla v1.5.2
+	github.com/artpar/go-imap v1.0.3
 	github.com/artpar/go-imap-idle v1.0.2
+	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
+	github.com/artpar/quickgomail v0.3.0
 	github.com/artpar/rclone v1.50.3
 	github.com/artpar/resty v1.0.1
 	github.com/artpar/stats v1.0.2
-	github.com/asaskevich/EventBus v0.0.0-20180103000110-68a521d7cbbb // indirect
 	github.com/aws/aws-sdk-go v1.25.31
 	github.com/bamzi/jobrunner v0.0.0-20161019143021-273175f8b6eb // indirect
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
@@ -37,8 +38,10 @@ require (
 	github.com/disintegration/gift v1.2.0
 	github.com/dlclark/regexp2 v0.0.0-20171009020623-7632a260cbaf // indirect
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
-	github.com/emersion/go-message v0.10.4-0.20190609165112-592ace5bc1ca
-	github.com/emersion/go-sasl v0.0.0-20190520160400-47d427600317
+	github.com/emersion/go-message v0.11.1
+	github.com/emersion/go-msgauth v0.4.0
+	github.com/emersion/go-sasl v0.0.0-20191210011802-430746ea8b9b
+	github.com/emersion/go-smtp-mta v0.0.0-20170206201558-f9b2f2fd6e9a
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/fclairamb/ftpserver v0.0.0-20200205001808-94ebeca09cf0
 	github.com/gabriel-vasile/mimetype v0.3.15 // indirect
@@ -105,6 +108,7 @@ require (
 	github.com/russross/blackfriday v2.0.0+incompatible
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
 	github.com/sirupsen/logrus v1.4.2
+	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect

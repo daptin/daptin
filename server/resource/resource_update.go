@@ -63,9 +63,12 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 	//dataToInsert := make(map[string]interface{})
 
-	// todo: change this hardcode default en language and move to config store as part of maybe @resource.TableInfo
-	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), DEFAULT_LANGUAGE)
 
+	languagePreferences := make([]string, 0)
+	prefs := req.PlainRequest.Context().Value("language_preference")
+	if prefs != nil {
+		languagePreferences = prefs.([]string)
+	}
 	var colsList []string
 	var valsList []interface{}
 	if len(allChanges) > 0 {

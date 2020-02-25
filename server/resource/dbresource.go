@@ -2,14 +2,15 @@ package resource
 
 import (
 	"encoding/base64"
-	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-imap"
+	"github.com/artpar/go-imap/backend/backendutil"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -306,28 +307,36 @@ func (dr *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
 	return id
 
 }
-func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags string) error {
+func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []string) error {
 
+	log.Printf("Update mail flags for [%v][%v]: %v", mailBoxId, mailId, newFlags)
 	seen := false
 	recent := false
 	deleted := false
 
-	for _, flag := range strings.Split(newFlags, ",") {
-		flag = strings.ToUpper(flag)
-		if flag == "\\RECENT" {
-			recent = true
-		}
-		if flag == "\\SEEN" {
-			seen = true
-		}
-		if flag == "\\EXPUNGE" || flag == "\\DELETED" {
-			deleted = true
-		}
+	if HasAnyFlag(newFlags, []string{imap.RecentFlag}) {
+		recent = true
+	} else {
+		seen = true
+	}
+
+	if HasAnyFlag(newFlags, []string{"\\seen"}) {
+		seen = true
+		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
+		log.Printf("New flags: [%v]", newFlags)
+	}
+
+	if HasAnyFlag(newFlags, []string{"\\expunge", "\\deleted"}) {
+		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
+		newFlags = backendutil.UpdateFlags(newFlags, imap.AddFlags, []string{"\\Seen"})
+		log.Printf("New flags: [%v]", newFlags)
+		deleted = true
+		seen = true
 	}
 
 	query, args, err := statementbuilder.Squirrel.
 		Update("mail").
-		Set("flags", newFlags).
+		Set("flags", strings.Join(newFlags, ",")).
 		Set("seen", seen).
 		Set("recent", recent).
 		Set("deleted", deleted).
@@ -373,14 +382,30 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, nil
 	}
 
-	questionMarks := strings.Join(strings.Split(strings.Trim(strings.Repeat("?;", len(ids)), ";"), ";"), ",")
-	_, err = dr.db.Exec(fmt.Sprintf("delete from mail_mail_id_has_usergroup_usergroup_id where mail_id in (%s)", questionMarks), ids...)
+	query, args, err := statementbuilder.Squirrel.Delete("mail_mail_id_has_usergroup_usergroup_id").Where(squirrel.Eq{
+		"mail_id": ids,
+	}).ToSql()
+
+	if err != nil {
+		log.Printf("Query: %v", query)
+		return 0, err
+	}
+
+	_, err = dr.db.Exec(query, args...)
 	if err != nil {
 		return 0, err
 	}
 
-	result, err := dr.db.Exec(fmt.Sprintf("delete from mail where id in (%s)", questionMarks), ids...)
+	query, args, err = statementbuilder.Squirrel.Delete("mail").Where(squirrel.Eq{
+		"id": ids,
+	}).ToSql()
 	if err != nil {
+		return 0, err
+	}
+
+	result, err := dr.db.Exec(query, args...)
+	if err != nil {
+		log.Printf("Query: %v", query)
 		return 0, err
 	}
 

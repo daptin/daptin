@@ -302,8 +302,12 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 		}
 
 	}
-	languagePreferences := GetLanguagePreference(req.Header.Get("Accept-Language"), DEFAULT_LANGUAGE)
 
+	languagePreferences := make([]string, 0)
+	prefs := req.PlainRequest.Context().Value("language_preference")
+	if prefs != nil {
+		languagePreferences = prefs.([]string)
+	}
 	if len(languagePreferences) > 0 && dr.tableInfo.TranslationsEnabled {
 
 		for _, lang := range languagePreferences {

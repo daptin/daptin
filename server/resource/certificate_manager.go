@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"github.com/artpar/api2go"
@@ -104,6 +103,7 @@ func GetPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
 	bitSize := 2048
 
 	key, err := rsa.GenerateKey(reader, bitSize)
+	CheckErr(err, "Failed to generate key of size [%v]", bitSize)
 
 	var privateKey = &pem.Block{
 		Type:  "PRIVATE KEY",
@@ -112,10 +112,8 @@ func GetPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
 
 	privateKeyBytes := pem.EncodeToMemory(privateKey)
 
-	asn1Bytes, err := asn1.Marshal(key.PublicKey)
-	if err != nil {
-		return nil, nil, key, err
-	}
+	asn1Bytes, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+	CheckErr(err, "Failed to marshal as PKIX public key")
 
 	var pemkey = &pem.Block{
 		Type:  "PUBLIC KEY",
@@ -127,36 +125,37 @@ func GetPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
 	return publicKeyBytes, privateKeyBytes, key, nil
 }
 
-func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte, []byte, []byte, error) {
+func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound bool) (*tls.Config, []byte, []byte, []byte, []byte, error) {
 
+	log.Printf("Get certificate for [%v]: %v", hostname, createIfNotFound)
 	hostname = strings.Split(hostname, ":")[0]
 	certMap, err := cm.cruds["certificate"].GetObjectByWhereClause("certificate", "hostname", hostname)
 
-	if err != nil || certMap == nil || certMap["certificate_pem"] == nil || certMap["certificate_pem"].(string) == "" {
+	if createIfNotFound && (err != nil || certMap == nil || certMap["certificate_pem"] == nil || certMap["certificate_pem"].(string) == "") {
 
 		publicKeyPem, privateKeyPem, key, err := GetPublicPrivateKeyPEMBytes()
 		if err != nil {
 			log.Printf("Failed to generate key: %v", err)
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 
 		certBytesPEM, err := GenerateCertPEMWithKey(hostname, key)
 
 		if err != nil {
 			log.Printf("Failed to load cert bytes pem: %v", err)
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 
 		cert, err := tls.X509KeyPair(certBytesPEM, privateKeyPem)
 		if err != nil {
 			log.Printf("Failed to load cert pair: %v", err)
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 
 		tlsConfig := &tls.Config{
-			Certificates:       []tls.Certificate{cert},
-			ServerName:         hostname,
-			ClientAuth:         tls.NoClientCert,
+			Certificates: []tls.Certificate{cert},
+			ServerName:   hostname,
+			ClientAuth:   tls.NoClientCert,
 		}
 
 		adminUserReferenceId := cm.cruds["certificate"].GetAdminReferenceId()
@@ -166,12 +165,13 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 		}
 
 		newCertificate := map[string]interface{}{
-			"hostname":        hostname,
-			"issuer":          "self",
-			"generated_at":    time.Now().Format(time.RFC3339),
-			"certificate_pem": string(certBytesPEM),
-			"private_key_pem": string(privateKeyPem),
-			"public_key_pem":  string(publicKeyPem),
+			"hostname":         hostname,
+			"issuer":           "self",
+			"generated_at":     time.Now().Format(time.RFC3339),
+			"certificate_pem":  string(certBytesPEM),
+			"private_key_pem":  string(privateKeyPem),
+			"root_certificate": string(certBytesPEM),
+			"public_key_pem":   string(publicKeyPem),
 		}
 		request := &http.Request{
 			Method: "PUT",
@@ -202,34 +202,43 @@ func (cm *CertificateManager) GetTLSConfig(hostname string) (*tls.Config, []byte
 			}
 		}
 
-		return tlsConfig, certBytesPEM, privateKeyPem, publicKeyPem, nil
-	} else {
+		return tlsConfig, certBytesPEM, privateKeyPem, publicKeyPem, certBytesPEM, nil
+	} else if certMap != nil && err == nil {
 
-		var ok bool
-		certPEM, ok := certMap["certificate_pem"].(string)
-		privatePEM, ok := certMap["private_key_pem"].(string)
-		publicPEM, ok := certMap["public_key_pem"].(string)
-		if !ok {
+		certPEM := certMap["certificate_pem"].(string)
 
-		}
+		privatePEM := AsStringOrEmpty(certMap["private_key_pem"])
+
+		publicPEM := AsStringOrEmpty(certMap["public_key_pem"])
+		rootCert := AsStringOrEmpty(certMap["root_certificate"])
 
 		privatePEMDecrypted, err := Decrypt([]byte(cm.encryptionSecret), privatePEM)
-		publicPEMDecrypted, err := Decrypt([]byte(cm.encryptionSecret), publicPEM)
+		publicPEMDecrypted := publicPEM
 
 		if err != nil {
 			log.Printf("Failed to load cert: %v", err)
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 
 		cert, err := tls.X509KeyPair([]byte(certPEM), []byte(privatePEMDecrypted))
+		rootCaCert := x509.NewCertPool()
+		rootCaCert.AppendCertsFromPEM([]byte(rootCert))
 
 		tlsConfig := &tls.Config{
 			Certificates: []tls.Certificate{cert},
 			ServerName:   hostname,
+			RootCAs:      rootCaCert,
 			ClientAuth:   tls.VerifyClientCertIfGiven,
 		}
 
-		return tlsConfig, []byte(certPEM), []byte(privatePEMDecrypted), []byte(publicPEMDecrypted), nil
+		return tlsConfig, []byte(certPEM), []byte(privatePEMDecrypted), []byte(publicPEMDecrypted), []byte(rootCert), nil
 
 	}
+	return nil, nil, nil, nil, nil, errors.New("certificate not found")
+}
+func AsStringOrEmpty(i interface{}) string {
+	if i == nil {
+		return ""
+	}
+	return i.(string)
 }
