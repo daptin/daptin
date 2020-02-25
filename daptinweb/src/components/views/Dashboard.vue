@@ -24,66 +24,100 @@
     <section class="content">
 
       <div class="row">
-
-        <div class="col-lg-3 col-xs-6" v-bind:key="world.id" v-for="world in worlds">
-          <!-- small box -->
-          <div class="small-box" style="background-color: #444; color: white;">
-            <div class="inner">
-              <h3>{{world.Count}}</h3>
-
-              <p>{{world.TableName | titleCase}}s </p>
-            </div>
-
-            <div class="icon">
-              <i style="color: #bbb" :class="'fa ' + world.Icon"></i>
-            </div>
-            <router-link :to="{name: 'Entity', params: { tablename: world.TableName}}" class="small-box-footer">
-              <i class="fa fa-arrow-circle-right"></i>
-            </router-link>
-          </div>
-        </div>
+        <div class="col-md-6">
+          <div class="row">
 
 
-      </div>
+            <div class="col-lg-4 col-xs-6" v-bind:key="world.id" v-for="world in worlds">
+              <!-- small box -->
+              <div class="small-box" :style="{backgroundColor: stringToColor(world.TableName), color: 'white'}">
+                <div class="inner">
+                  <h3>{{world.Count}}</h3>
 
-      <!-- Main row -->
-      <!-- /.row -->
-      <div class="row">
-        <div class="col-md-3" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0" v-bind:key="tableName">
+                  <p>{{world.TableName | titleCase}}s </p>
+                </div>
 
-          <div class="box box-solid">
-            <div class="box-header with-border">
-              <h3 class="box-title">{{tableName | titleCase}}</h3>
-
-              <div class="box-tools">
-                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
-                </button>
+                <div class="icon">
+                  <i style="color: #bbb" :class="'fa ' + world.Icon"></i>
+                </div>
+                <router-link :to="{name: 'Entity', params: { tablename: world.TableName}}" class="small-box-footer">
+                  <i class="fa fa-arrow-circle-right"></i>
+                </router-link>
               </div>
             </div>
-            <div class="box-body no-padding">
-              <ul class="nav nav-pills nav-stacked">
-                <li v-for="action in worlds" v-if="action.InstanceOptional" v-bind:key="action.Name">
-                  <router-link :to="{name: 'Action', params: {tablename: action.OnType, actionname: action.Name}}">
-                    {{action.Label}}
-                  </router-link>
-                </li>
-
-              </ul>
-            </div>
-            <!-- /.box-body -->
           </div>
-
-
         </div>
-      </div>
 
-
-      <div class="row">
-
-        <div class="col-md-12">
+        <div class="col-md-6">
 
           <div class="row">
-            <div class="col-md-12">
+            <div class="col-md-9">
+
+
+              <h3>Create</h3>
+
+              <div class="row">
+                <div class="col-sm-12">
+                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-plus "></i><br/>Upload Schema JSON
+                  </router-link>
+
+
+                  <router-link
+                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
+                    class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-file-excel"></i><br/>Upload XLSX
+                  </router-link>
+
+                  <router-link
+                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_csv_to_system_schema'}}"
+                    class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-file-alt"></i><br/>Upload CSV
+                  </router-link>
+
+                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fab fa-js"></i><br/>Upload Data JSON
+                  </router-link>
+
+                  <router-link :to="{name : 'NewItem'}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-pencil-alt"></i><br/>Online designer
+                  </router-link>
+                </div>
+
+              </div>
+
+              <h3>User</h3>
+              <div class="row">
+                <div class="col-sm-12">
+                  <router-link :to="{name: 'Action', params: {tablename: 'user_account', actionname: 'signup'}}"
+
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-user-plus"></i><br/>Create new user
+                  </router-link>
+
+                  <router-link :to="{name: 'NewEntity', params:{tablename: 'usergroup'}}"
+
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-users"></i><br/>Create new user group
+                  </router-link>
+
+                  <router-link
+                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'become_an_administrator'}}"
+                    class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-lock"></i><br/>Become admin
+                  </router-link>
+
+                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'restart_daptin'}}"
+                               class="btn btn-lg btn-app dashboard_button">
+                    <i class="fas fa-retweet"></i><br/>Restart
+                  </router-link>
+                </div>
+              </div>
+
+              <h3>Special Objects</h3>
 
               <div class="row">
                 <div class="col-sm-12">
@@ -141,76 +175,17 @@
               </div>
 
 
-              <h3>People</h3>
-              <div class="row">
-                <div class="col-sm-12">
-                  <router-link :to="{name: 'Action', params: {tablename: 'user_account', actionname: 'signup'}}"
-
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-user-plus"></i><br/>Create new user
-                  </router-link>
-
-                  <router-link :to="{name: 'NewEntity', params:{tablename: 'usergroup'}}"
-
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-users"></i><br/>Create new user group
-                  </router-link>
-
-                  <router-link
-                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'become_an_administrator'}}"
-                    class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-lock"></i><br/>Become admin
-                  </router-link>
-
-                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'restart_daptin'}}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-retweet"></i><br/>Restart
-                  </router-link>
-                </div>
-              </div>
 
 
-              <h3>Create</h3>
 
-              <div class="row">
-                <div class="col-sm-12">
-                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-plus "></i><br/>Upload Schema JSON
-                  </router-link>
-
-
-                  <router-link
-                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
-                    class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-file-excel"></i><br/>Upload XLSX
-                  </router-link>
-
-                  <router-link
-                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_csv_to_system_schema'}}"
-                    class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-file-alt"></i><br/>Upload CSV
-                  </router-link>
-
-                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fab fa-js"></i><br/>Upload Data JSON
-                  </router-link>
-
-                  <router-link :to="{name : 'NewItem'}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-pencil-alt"></i><br/>Online designer
-                  </router-link>
-                </div>
-
-              </div>
 
               <h3>Backup</h3>
               <div class="row">
 
                 <div class="col-sm-12">
-                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
-                               class="btn btn-lg btn-app dashboard_button">
+                  <router-link
+                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'download_system_schema'}}"
+                    class="btn btn-lg btn-app dashboard_button">
                     <i class="fas fa-object-group"></i><br/>Download JSON schema
                   </router-link>
 
@@ -223,10 +198,54 @@
 
 
             </div>
+
+            <div class="col-md-3">
+              <div class="row">
+                <div class="col-md-12" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0"
+                     v-bind:key="tableName">
+
+                  <div class="box box-solid" v-if="worlds.filter(function(e){return e.InstanceOptional}).length > 0">
+                    <div class="box-header with-border">
+                      <h3 class="box-title">{{tableName | titleCase}}</h3>
+
+                      <div class="box-tools">
+                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                          class="fa fa-minus"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="box-body no-padding">
+                      <ul class="nav nav-pills nav-stacked">
+                        <li v-for="action in worlds" v-if="action.InstanceOptional" v-bind:key="action.Name">
+                          <router-link
+                            :to="{name: 'Action', params: {tablename: action.OnType, actionname: action.Name}}">
+                            {{action.Label}}
+                          </router-link>
+                        </li>
+
+                      </ul>
+                    </div>
+                    <!-- /.box-body -->
+                  </div>
+
+
+                </div>
+              </div>
+            </div>
           </div>
 
 
         </div>
+
+      </div>
+
+      <!-- Main row -->
+      <!-- /.row -->
+
+
+      <div class="row">
+
+
 
 
       </div>
@@ -298,8 +317,9 @@
     },
     methods: {
       stringToColor(str) {
-        //        console.log("String to color", str, window.stringToColor(str))
-        return "#" + window.stringToColor(str);
+
+        return "#333";
+
       },
       reloadData() {
         let that = this;
@@ -318,20 +338,20 @@
             that.worlds = worlds
               .map(function (e) {
                 let parse = JSON.parse(e.world_schema_json);
-                parse.Icon = e.icon;
+                parse.Icon = !parse.Icon || parse.Icon == "" ? "fa-star" : parse.Icon;
                 parse.Count = 0;
                 return parse;
               })
               .filter(function (e) {
-                console.log("filter ", e);
+                // console.log("filter ", e);
                 return (
                   !e.IsHidden &&
                   !e.IsJoinTable &&
-                  e.TableName.indexOf("_state") == -1
+                  e.TableName.indexOf("_state") === -1
                 );
               });
             that.worlds.forEach(function (w) {
-              console.log("call stats", w);
+              // console.log("call stats", w);
 
               statsManger
                 .getStats(w.TableName, {
@@ -340,7 +360,7 @@
                 .then(
                   function (stats) {
                     stats = stats.data;
-                    console.log("Stats received", stats);
+                    // console.log("Stats received", stats);
 
                     const rows = stats.data;
                     const totalCount = rows[0]["count"];
@@ -352,11 +372,22 @@
                 );
             });
 
+            that.worlds.sort(function (a, b) {
+
+              const nameA = a.TableName;
+              const nameB = b.TableName;
+              if (nameA < nameB) //sort string ascending
+                return -1;
+              if (nameA > nameB)
+                return 1;
+              return 0
+            });
+
             let actionGroups = {
               System: [],
               User: []
             };
-            console.log("worlds in dashboard", worlds);
+            // console.log("worlds in dashboard", worlds);
             for (let i = 0; i < worlds.length; i++) {
               let tableName = worlds[i].table_name;
               let actions = actionManager.getActions(tableName);
@@ -364,7 +395,7 @@
               if (!actions) {
                 continue;
               }
-              console.log("actions for ", tableName, actions);
+              // console.log("actions for ", tableName, actions);
               let actionKeys = Object.keys(actions);
               for (let j = 0; j < actionKeys.length; j++) {
                 let action = actions[actionKeys[j]];
@@ -388,7 +419,7 @@
               }
             }
 
-            console.log("load world actions tabld");
+            // console.log("load world actions tables");
             that.worldActions = newWorldActions;
             that.actionGroups = actionGroups;
           });

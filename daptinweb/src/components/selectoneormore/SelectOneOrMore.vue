@@ -89,7 +89,7 @@
         jsonApi.findAll(this.schema.inputType, {
           page: 1,
           size: 20,
-          query: query
+          filter: query
         }).then(function (data) {
           data = data.data;
           console.log("remote method response", data)

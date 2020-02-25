@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"log"
 	"net/http"
+	log "github.com/sirupsen/logrus"
+
 	"strings"
 )
 

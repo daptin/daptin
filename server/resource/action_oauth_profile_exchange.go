@@ -5,7 +5,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	//"context"
 	"bytes"
-	"encoding/json"
 	"golang.org/x/oauth2"
 	"io/ioutil"
 	"net/http"
@@ -78,7 +77,7 @@ type TokenResponse struct {
 	Scope string
 }
 
-func (d *OuathProfileExchangePerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *OuathProfileExchangePerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	authenticator := inFieldMap["authenticator"].(string)
 	token := inFieldMap["token"].(string)

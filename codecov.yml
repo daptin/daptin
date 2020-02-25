@@ -1,4 +1,5 @@
 codecov:
+  token: 6a46942b-1e99-4589-953a-a4d3e90bae33
   notify:
     require_ci_to_pass: yes
 
@@ -19,9 +20,6 @@ parsers:
       loop: yes
       method: no
       macro: no
-
-codecov:
-  token: 6a46942b-1e99-4589-953a-a4d3e90bae33
 
 comment:
   layout: "reach, diff, flags, files, footer"

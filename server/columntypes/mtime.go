@@ -3,9 +3,9 @@ package fieldtypes
 import (
 	"errors"
 	"sort"
+	"strings"
 	"time"
 	//"fmt"
-	//	"log"
 	//	"fmt"
 )
 
@@ -28,6 +28,7 @@ func (s ByLength) Less(i, j int) bool {
 func init() {
 	timeFormat = []string{
 		"3:04PM",
+		"3:04 PM",
 	}
 	dateFormat = []string{
 		"02 Jan 2006",
@@ -71,6 +72,8 @@ func init() {
 		"2006-01-02 15:04:05.0",
 		"2006-01-02 15:04:05.00",
 		"2006-01-02 15:04:05.000",
+		"2006-01-02 15:04:05.000-0700",
+		"2006-01-02 15:04:05.000-07:00",
 		"2006-01-02 15:04:05",
 		"2006-01-02T15:04:05",
 		"2006-01-02T15:04:05.0",
@@ -87,6 +90,9 @@ func init() {
 }
 
 func GetTime(t string) (time.Time, string, error) {
+	if (strings.Index(t, "0000") > -1) {
+		return time.Time{}, "", errors.New("not a date")
+	}
 	for _, format := range timeFormat {
 		//fmt.Printf("Testing %s with %s\n", t, format)
 		t, err := time.Parse(format, t)

@@ -18,7 +18,7 @@ var headers = {
 var dataString = '{"attributes":{}}';
 
 var options = {
-    url: 'http://api.daptin.com:6336/action/world/restart_daptin',
+    url: 'http://localhost:6336/action/world/restart_daptin',
     method: 'POST',
     headers: headers,
     body: dataString
@@ -48,7 +48,7 @@ var headers = {
 var dataString = '{"attributes":{"marketplace_id":"0cbae4bf-961d-43ea-b57b-f7fb07736747"}}';
 
 var options = {
-    url: 'http://api.daptin.com:6336/action/marketplace/refresh_marketplace_packages',
+    url: 'http://localhost:6336/action/marketplace/refresh_marketplace_packages',
     method: 'POST',
     headers: headers,
     body: dataString
@@ -77,7 +77,7 @@ var headers = {
 var dataString = '{"attributes":{"count":100,"world_id":"a82bcd84-db3a-4542-b0ef-80e81fc62f8e"}}';
 
 var options = {
-    url: 'http://api.daptin.com:6336/action/world/generate_random_data',
+    url: 'http://localhost:6336/action/world/generate_random_data',
     method: 'POST',
     headers: headers,
     body: dataString
@@ -144,7 +144,7 @@ Install a package (data models, relations, actions, sites) from a [**market**](/
 
 !!! note "Curl"
 ```
-curl 'http://api.daptin.com:6336/action/world/upload_csv_to_system_schema' \
+curl 'http://localhost:6336/action/world/upload_csv_to_system_schema' \
 -H 'Authorization: Bearer <Token>' \
 --data-binary '{
                	"attributes": {
@@ -182,7 +182,7 @@ curl 'http://api.daptin.com:6336/action/world/upload_csv_to_system_schema' \
                   }
               }'
 
-    response = requests.post('http://api.daptin.com:6336/action/world/upload_csv_to_system_schema', headers=headers, data=data)
+    response = requests.post('http://localhost:6336/action/world/upload_csv_to_system_schema', headers=headers, data=data)
 
     ```
 

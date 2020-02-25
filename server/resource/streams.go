@@ -3,7 +3,8 @@ package resource
 import (
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/kniren/gota/dataframe"
+	"github.com/go-gota/gota/dataframe"
+	"github.com/go-gota/gota/series"
 )
 
 // StreamProcess handles the Read operations, and applies transformations on the data the create a new view
@@ -31,6 +32,11 @@ type Transformation struct {
 // Get the contract
 func (dr *StreamProcessor) GetContract() StreamContract {
 	return dr.contract
+}
+
+// Get the contract
+func (dr *StreamProcessor) GetName() string {
+	return dr.contract.StreamName
 }
 
 // FindOne implementation in accordance with JSONAPI
@@ -93,12 +99,74 @@ func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint
 
 		switch transformation.Operation {
 		case "select":
-			indexes := transformation.Attributes["columns"].([]string)
+			var indexes interface{}
+			indexes, ok := transformation.Attributes["Columns"].([]string)
+			if !ok {
+				indexes = makeIndexArray(transformation.Attributes["Columns"].([]interface{}))
+			}
 			df = df.Select(indexes)
 		case "rename":
-			oldName := transformation.Attributes["oldName"].(string)
-			newName := transformation.Attributes["newName"].(string)
+			oldName := transformation.Attributes["OldName"].(string)
+			newName := transformation.Attributes["NewName"].(string)
 			df = df.Rename(newName, oldName)
+
+		case "duplicate":
+			oldName := transformation.Attributes["ColumnName"].(string)
+			newName := transformation.Attributes["NewColumnName"].(string)
+
+			newVals := make([]interface{}, 0)
+
+			for _, row := range items {
+				row[newName] = row[oldName]
+				newVals = append(newVals, row[oldName])
+			}
+
+			df = df.Mutate(
+				series.New(newVals, series.String, newName),
+			)
+		case "drop":
+			var indexes interface{}
+			indexes, ok := transformation.Attributes["Columns"].([]string)
+			if !ok {
+				indexes = makeIndexArray(transformation.Attributes["Columns"].([]interface{}))
+			}
+			df = df.Drop(indexes)
+
+		case "filter":
+
+			colName, ok := transformation.Attributes["ColumnName"]
+
+			if !ok {
+				continue
+			}
+
+			colnNameString, ok := colName.(string)
+
+			if !ok || colnNameString == "" {
+				continue
+			}
+
+			comparator, ok := transformation.Attributes["Comparator"]
+
+			if !ok {
+				continue
+			}
+			comparatorString, ok := comparator.(string)
+			if !ok {
+				continue
+			}
+			comparatorStringVal := series.Comparator(comparatorString)
+
+			value := transformation.Attributes["Value"]
+
+			filter := dataframe.F{
+				Colname:    colnNameString,
+				Comparator: comparatorStringVal,
+				Comparando: value,
+			}
+
+			df = df.Filter(filter)
+
 		}
 
 	}
@@ -114,6 +182,48 @@ func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint
 
 	newResponder := NewResponse(nil, newList, responder.StatusCode(), &responder.Pagination)
 	return totalCount, newResponder, nil
+}
+
+func makeIndexArray(indexes []interface{}) interface{} {
+
+	if len(indexes) == 0 {
+		return []string{}
+	}
+
+	switch indexes[0].(type) {
+	case []int:
+		retArr := make([][]int, 0)
+		for _, v := range indexes {
+			retArr = append(retArr, v.([]int))
+		}
+		return retArr
+	case int:
+		retArr := make([]int, 0)
+		for _, v := range indexes {
+			retArr = append(retArr, v.(int))
+		}
+		return retArr
+	case []bool:
+		retArr := make([][]bool, 0)
+		for _, v := range indexes {
+			retArr = append(retArr, v.([]bool))
+		}
+		return retArr
+	case string:
+		retArr := make([]string, 0)
+		for _, v := range indexes {
+			retArr = append(retArr, v.(string))
+		}
+		return retArr
+	case []string:
+		retArr := make([][]string, 0)
+		for _, v := range indexes {
+			retArr = append(retArr, v.([]string))
+		}
+		return retArr
+	}
+	return []string{}
+
 }
 
 // Creates a new stream processor which will apply the given contract

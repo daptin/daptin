@@ -1,11 +1,11 @@
-# Authentication
+## Authentication
 
 <img src="/images/users_and_groups.png">
 
 Daptin maintains its own user accounts and User groups in the database. Users are identified by ```email``` which is a unique key in the ```user_account``` entity. Passwords are stored using bcrypt with a cost of 11. Password field has a column_type ```password``` which makes daptin to bcrypt it before storing, and password fields are never returned in any JSONAPI call.
 
 
-## Sign Up
+### Sign Up
 
 Sign up is an action on user entity. Sign up takes four inputs:
 
@@ -25,7 +25,7 @@ When the user initiates a Sign up action, the following things happen
 
 This means that every user has his own dedicated user group by default.
 
-## Sign In
+### Sign In
 
 Sign In is also an action on user entity. Sign in takes two inputs:
 
@@ -42,17 +42,17 @@ When the user initiates Sign in action, the following things happen:
 The main outcome of the Sign In action is the jwt token, which is to be used in the ```Authorization``` header of following calls.
 
 
-# Guests
+## Guests
 
 Requests **without** a valid `Authorization Bearer` `token` will be referred to as "guests requests". Requests with a valid token will have an identified user in the context.
 
-# Users
+## Users
 
 Daptin has a built-in user system. Users are identified by their authorization token or other means of identification. Users are idenfied as registered users or guests.
 
 You can choose to disable new user registration by changing the `signup` action permissions.
 
-## API Examples
+### API Examples
 
 
 Users are just like any other data you maintain. Users information is stored in the `user_account` table and exposed over ```/api/user_account``` endpoint.
@@ -61,7 +61,7 @@ Users are just like any other data you maintain. Users information is stored in 
 You can choose to allow ```read/write``` permission directly to that ```table``` to allow other users/processes to use this api to ```read/create/update/delete``` users.
 
 
-## Signup API
+### Signup API
 
 Sign up action can be allowed to guests to allow open registration by anyone. Users with enough permission over the `user_account` table can create users manually.
 
@@ -69,7 +69,7 @@ Users registered using signup action are their own owners. Hence they can update
 
 !!! note "POST call for user registration"
     ```bash
-    curl 'http://api.daptin.com:6336/action/user_account/signup' \
+    curl 'http://localhost:6336/action/user_account/signup' \
     -H 'Authorization: Bearer null' \
     -H 'Content-Type: application/json;charset=UTF-8' \
     -H 'Accept: application/json, text/plain, */*' \
@@ -94,7 +94,7 @@ You can either allow guests to be able to invoke `sign up` action or allow only 
 This user can sign in now (generate an auth token). But what he can access is again based on the permission of the system.
 
 
-### CURL
+#### CURL
 
 Creating a user manually
 
@@ -114,11 +114,11 @@ curl '/api/user_account' \
 ```
 
 
-## Sign in
+### Sign in
 
 !!! note "POST call for sign in"
     ```bash
-    curl 'http://api.daptin.com:6336/action/user_account/signin' \
+    curl 'http://localhost:6336/action/user_account/signin' \
     -H 'Content-Type: application/json;charset=UTF-8' \
     -H 'Accept: application/json, text/plain, */*' \
     --data-binary '{"attributes":{"email":"<Email>","password":"<Password>"}}'
@@ -154,7 +154,7 @@ curl '/api/user_account' \
 
 
 
-### Node JS
+#### Node JS
 
 ```
 import requests
@@ -174,17 +174,17 @@ data = '{
         	}
         }'
 
-response = requests.post('http://api.daptin.com:6336/api/user', headers=headers, data=data)
+response = requests.post('http://localhost:6336/api/user', headers=headers, data=data)
 
 ```
 You can manually add users from the users page, or allow sign-up action to be performed by guests which will take care of creating a user and an associated usergroup for that user. All new signed up users will also be added to the "users" usergroup.
 
 
-## Social login
+### Social login
 
 Oauth connection can be used to allow guests to identify themselves based on the email provided by the oauth id provider.
 
-### Social login
+#### Social login
 
 
 Allow users to login using their existing social accounts like twitter/google/github.
@@ -196,16 +196,16 @@ Create a [OAuth Connection](/extend/oauth_connection) and mark "Allow login" to 
 Examples
 
 !!! note "Google login configuration"
-    ![Google oauth](images/oauth/google.png)
+    ![Google oauth](/images/oauth/google.png)
 
 !!! note "Dropbox login configuration"
-    ![Google oauth](images/oauth/dropbox.png)
+    ![Google oauth](/images/oauth/dropbox.png)
 
 !!! note "Github login configuration"
-    ![Google oauth](images/oauth/github.png)
+    ![Google oauth](/images/oauth/github.png)
 
 !!! note "Linkedin login configuration"
-    ![Google oauth](images/oauth/linkedin.png)
+    ![Google oauth](/images/oauth/linkedin.png)
 
 
 !!! note "Encrypted values"
@@ -213,18 +213,18 @@ Examples
 
 
 
-## Setting default user group for new sign-ups.
+### Setting default user group for new sign-ups.
 
 You can configure which User groups should newly registered users be added to after their signup.
 
 This can be configured in the table properties from the dashboard or by updating the entity configuration from the API
 
 
-## Authentication token
+### Authentication token
 
 The authentication token is a JWT token issued by daptin on sign in action. Users can create new actions to allow other means of generating JWT token. It is as simple as adding another outcome to an action.
 
-### Server side
+#### Server side
 
 Daptin uses oAuth2 based authentication strategy. HTTP calls are checked for ```Authorization``` header, and if present, validated as a JWT token. The JWT token should have been issued by daptin earlier and should not have expired. To see how to generate JWT token, checkout the [sing-in action](/actions/signin).
 
@@ -232,18 +232,18 @@ The JWT token contains the issuer information (daptin) plus basic user profile (
 
 If the token is absent or invalid, the user is considered as a guest. Guests also have certain permissions. Checkout the [Authorization docs](/auth/authorization) for details.
 
-### Client side
+#### Client side
 
 On the client side, for dashboard, the token is stored in local storage. The local storage is cleared on logout or if the server responds with a 401 Unauthorized status.
 
 
-## User groups
+### User groups
 
 User groups is a group concept that helps you manage "who" can interact with daptin, and in what ways.
 
 Users and Objects belong to one or more user group.
 
-## Permission model
+### Permission model
 
 Every read/write to the system passes through two level of permission check.
 
@@ -258,35 +258,35 @@ The `world` table contains two columns:
 
 The default permission for an object is picked from the default permission setting, and can be changed after the object creation (if the permission allows).
 
-### Peek
+#### Peek
 
 **Peek** gives access to the user to read data in the system but not allow it in response as data. So while the query to read the data will execute and certain **actions** can be allowed over them, directly trying to read the data in response will fail.
 
-### [C] Create
+#### [C] Create
 
 **Create** allows a new row to be created by using the POST api. Note: this doesn't apply over indirect creations using *actions**.
 
-### [R] Read
+#### [R] Read
 
 **Read** allows the data to be served in the http response body. The response will usually follow the JSONAPI.org structure.
 
-### [U] Update
+#### [U] Update
 
 **Update** allows the data fields to be updated using the PUT/PATCH http methods.
 
-### [D] Delete
+#### [D] Delete
 
 **Delete** gives permission to be delete a row or certain type of data using DELETE http method. Unless you have enabled **auditing**, you will permanently loose this data.
 
-### [R] Refer
+#### [R] Refer
 
 **Refer** gives permission to add data/users to usergroups. Note that you will also need certain permission on the **usergroup** as well.
 
-### [X] Execute
+#### [X] Execute
 
 **Execute** gives permission to invoke action over data (like export). Note that giving access to a **type of data** doesn't give access to all rows of that **entity type**.
 
-## Authorization
+### Authorization
 
 Authorization is the part where daptin decides if the caller has enough permission to execute the call. Access check happens at two levels:
 
@@ -295,26 +295,12 @@ Authorization is the part where daptin decides if the caller has enough permissi
 
 Both the checks have a "before" and "after" part.
 
-### Entity level permission check
 
-The world table has the list of all entities. Consider the scenario where we created a todo list. The world table would have a row to represent this entity
-
-Entity | Permission
----    | ---
-todo   | 112000006 |
-
-Here:
-
-- 112 is for owners, which basically means 64 + 32 + 16 = Refer/Execute/Delete
-- 000 is for group users, no permission allowed in this case
-- 006 is for guest users, which is 2 + 4 = Read/Create
-
-
-### Object level permission check
+#### Object level permission check
 
 Once the call clears the entity level check, an object level permission check is applied. This happens in cases where the action is going to affect/read an existing row. The permission is stored in the same way. Each table has a permission column which stores the permission in ```OOOGGGXXX``` format.
 
-### Order of permission check
+#### Order of permission check
 
 The permission is checked in order of:
 
@@ -328,7 +314,7 @@ Things to note here:
   - eg, you cannot say owner is 'not allowed' to read but read by guest is allowed.
 - Permission check is done in a hierarchy type order
 
-### Access flow
+#### Access flow
 
 Every "interaction" in daptin goes through two levels of access. Each level has a ```before``` and ```after``` check.
 
@@ -345,65 +331,12 @@ So the actual checks happen in following order:
 
 Each of these checks can filter out objects where the user does not have enough permission.
 
-### Entity level permission
+#### Entity level permission
 
 Entity level permission are set in the world table and can be updated from dashboard. This can be done by updating the "permission" column for the entity.
 
 For these changes to take effect a restart is necessary.
 
-### Instance level permission
+#### Instance level permission
 
 Like we saw in the [entity documentation](/setting-up/entities), every table has a ```permission``` column. No restart is necessary for changes in these permission.
-
-### Permission column
-
-The permission column contains a nine digit number, which decides the access for guests (the world), user groups and owner
-
-The nine digits can be represented as follows:
-
-```UUUGGGWWW```
-
-Each entity has a permission field which is added by daptin. The permission field is a 9 digit number, in the following format
-
-The first three digits(UUU) represent the permission for the owner.
-The next three digits(GGG) represent the permission for the group.
-The last three digits(WWW)  represent the permission for guest users.
-
-U = User
-G = Group
-W = World
-
-- Peek - 1
-- Read - 2
-- Create - 4
-- Update - 8
-- Delete - 16
-- Execute - 32
-- Refer - 64
-
-
-Here is another way of looking at it:
-
-Permissions:
-
-Owner | Group | World | Description
---- | --- | --- | ---
-002|000|000|read by owner
-000|020|000|read by group
-000|000|002|read by anybody (other)
-004|000|000|write by owner
-000|004|000|write by group
-000|000|004|write by anybody
-032|000|000|execute by owner
-000|032|000|execute by group
-000|000|032|execute by anybody
-
-To get a combination, just add them up.
-
-For example, to get
-
-- read, write, execute by owner
-- read, execute, by group
-- execute by anybody
-
-you would add (002 + 004 + 032),(002 + 032),(032) to give 038034032.

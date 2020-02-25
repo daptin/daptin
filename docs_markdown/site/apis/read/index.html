@@ -10,11 +10,11 @@
   <link rel="shortcut icon" href="../../images/favicon.png">
   
   <title>Read, search, filter - Daptin</title>
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Muli:400,700|Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet' type='text/css'>
 
   <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
   <link href="../../css/theme_extra.css" rel="stylesheet">
   
   <script>
@@ -25,9 +25,7 @@
   </script>
   
   <script src="../../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script> 
   
   <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -57,191 +55,506 @@
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-	<ul class="current">
-	  
+	<ul class="tocbase current">
+    
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Daptin</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../..">Introduction</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../setting-up/installation/">Installation</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../setting-up/settingup/">Getting started</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../setting-up/access/">User management</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../setting-up/data_modeling/">Data model</a>
-	    </li>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">API reference</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">API reference</span>
-    <ul class="subnav">
-                <li class=" current">
-                    
-    <span class="caption-text">CRUD</span>
-    <ul class="subnav">
-                <li class="toctree-l3 current">
-                    
-    <a class="current" href="./">Read, search, filter</a>
-    <ul class="subnav">
-            
-    <li class="toctree-l4"><a href="#get-apientityname">GET /api/&lt;entityName&gt;</a></li>
-    
-        <ul>
-        
-            <li><a class="toctree-l5" href="#parameters">Parameters</a></li>
-        
-        </ul>
-    
 
-    <li class="toctree-l4"><a href="#response">Response</a></li>
-    
 
-    <li class="toctree-l4"><a href="#examples">Examples</a></li>
-    
-        <ul>
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../overview/">Overview</a>
+  </li>
         
-            <li><a class="toctree-l5" href="#curl-example">Curl example</a></li>
-        
-            <li><a class="toctree-l5" href="#jquery-ajax-example">jQuery ajax example</a></li>
-        
-            <li><a class="toctree-l5" href="#node-js-example">Node js example</a></li>
-        
-            <li><a class="toctree-l5" href="#python-example">Python example</a></li>
-        
-            <li><a class="toctree-l5" href="#php-example">PHP example</a></li>
-        
-        </ul>
-    
+          
+  <li class="navtree toctree-l2 label">
+    <p class="caption">CRUD</p>
+  </li>
 
-    <li class="toctree-l4"><a href="#filtering">Filtering</a></li>
-    
-        <ul>
-        
-            <li><a class="toctree-l5" href="#example">Example</a></li>
-        
-        </ul>
-    
 
+  
+
+  
+    <li class="navtree toctree-l2 group">
+      <ul class="navtree subnav-l2 current">
+          
+
+
+  
+    
+    <li class="navtree toctree-l3 page current">
+      <a class="current" href="./">
+        Read, search, filter
+      </a>
+    </li>
+    
+      
+
+  <li class="toctree-l3 current with-children">
+    <a href="#get-apientityname">
+      GET /api/&lt;entityName&gt;
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3 current">
+    <ul class="subnav-l3 current">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#parameters">Parameters</a>
+        </li>
+    
     </ul>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+
+      
+
+  <li class="toctree-l3">
+    <a href="#response">
+      Response
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+      
+
+  <li class="toctree-l3">
+    <a href="#examples">
+      Examples
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3">
+    <ul class="subnav-l3 toc-hidden">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#curl-example">Curl example</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#jquery-ajax-example">jQuery ajax example</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#node-js-example">Node js example</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#python-example">Python example</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#php-example">PHP example</a>
+        </li>
+    
+    </ul>
+  </li>
+
+      
+
+  <li class="toctree-l3">
+    <a href="#filtering">
+      Filtering
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3">
+    <ul class="subnav-l3 toc-hidden">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#example">Example</a>
+        </li>
+    
+    </ul>
+  </li>
+
+
+  
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../create/">Create</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../update/">Update</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../delete/">Delete</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../relation/">Relations</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../execute/">Execute</a>
-                </li>
-    </ul>
-                </li>
-                <li class="">
-                    
-    <span class="caption-text">Action APIs</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
+  </li>
+        
+      </ul>
+    </li>
+        
+          
+  <li class="navtree toctree-l2 label">
+    <p class="caption">Features</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l2 group">
+      <ul class="navtree subnav-l2 current">
+          
+
+
+  <li class="navtree toctree-l3 inactive">
+    <a class="" href="../../features/enable-graphql/">GraphQL</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
+    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
+    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
+    <a class="" href="../../features/enable-smtp-imap/">SMTP/IMPS server</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
+    <a class="" href="../../features/enable-logs/">Logs</a>
+  </li>
+        
+      </ul>
+    </li>
+        
+          
+  <li class="navtree toctree-l2 label">
+    <p class="caption">Action APIs</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l2 group">
+      <ul class="navtree subnav-l2 current">
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../actions/actions/">Using actions</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../actions/default_actions/">Actions list</a>
-                </li>
-    </ul>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
+    <a class="" href="../../actions/examples/">Examples</a>
+  </li>
+        
+      </ul>
+    </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../state/machines/">State tracking</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">OAuth Management</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Asset and file storage</span>
-    <ul class="subnav">
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/oauth_connection/">Connections</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/oauth_token/">Tokens</a>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Integrations</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../integrations/overview/">Overview</a>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Asset and file storage</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../cloudstore/cloudstore/">Connecting with cloud store</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Sub-sites</span>
-    <ul class="subnav">
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../cloudstore/assetcolumns/">Cloud store backed asset columns</a>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Sub-sites</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../subsite/subsite/">Creating a subsite</a>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../subsite/grapes/">Live editing a subsite</a>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../subsite/basic_auth/">Basic Authentication</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Sharing</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Sharing</span>
-    <ul class="subnav">
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../extend/marketplace/">Marketplace</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Reference</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Reference</span>
-    <ul class="subnav">
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../data-modeling/data_storage/">Data store format</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../streams/streams/">Data streams</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
           
-        </ul>
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../streams/streams/">Data streams</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../setting-up/enabling-features/">Enable/Disabling features</a>
+  </li>
+        
+      </ul>
+    </li>
+    
+  </ul>
       </div>
       &nbsp;
     </nav>
@@ -273,9 +586,6 @@
     
     <li>Read, search, filter</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="https://github.com/daptin/daptin/edit/master/docs/apis/read.md"
-          class="icon icon-github"> Edit on GitHub</a>
       
     </li>
   </ul>
@@ -343,103 +653,109 @@
 <h1 id="response">Response<a class="headerlink" href="#response" title="Permanent link">Link</a></h1>
 <div class="admonition note">
 <p class="admonition-title">Response example</p>
-<pre class="codehilite"><code>{
-    "links": {
-        "current_page": 1,
-        "from": 0,
-        "last_page": 1,
-        "per_page": 10,
-        "to": 10,
-        "total": 1
+<div class="codehilite"><pre><span></span>{
+    &quot;links&quot;: {
+        &quot;current_page&quot;: 1,
+        &quot;from&quot;: 0,
+        &quot;last_page&quot;: 1,
+        &quot;per_page&quot;: 10,
+        &quot;to&quot;: 10,
+        &quot;total&quot;: 1
     },
-    "data": [{
-        "type": "book",
-        "id": "29d11cb3-3fad-4972-bf3b-9cfc6da9e6a6",
-        "attributes": {
-            "__type": "book",
-            "confirmed": 0,
-            "created_at": "2018-04-05 15:47:29",
-            "title": "book title",
-            "name": "book name",
-            "permission": 127127127,
-            "reference_id": "29d11cb3-3fad-4972-bf3b-9cfc6da9e6a6",
-            "updated_at": null,
-            "user_id": "696c98d3-3b8b-41da-a510-08e6948cf661"
+    &quot;data&quot;: [{
+        &quot;type&quot;: &quot;book&quot;,
+        &quot;id&quot;: &quot;29d11cb3-3fad-4972-bf3b-9cfc6da9e6a6&quot;,
+        &quot;attributes&quot;: {
+            &quot;__type&quot;: &quot;book&quot;,
+            &quot;confirmed&quot;: 0,
+            &quot;created_at&quot;: &quot;2018-04-05 15:47:29&quot;,
+            &quot;title&quot;: &quot;book title&quot;,
+            &quot;name&quot;: &quot;book name&quot;,
+            &quot;permission&quot;: 127127127,
+            &quot;reference_id&quot;: &quot;29d11cb3-3fad-4972-bf3b-9cfc6da9e6a6&quot;,
+            &quot;updated_at&quot;: null,
+            &quot;user_id&quot;: &quot;696c98d3-3b8b-41da-a510-08e6948cf661&quot;
         },
-        "relationships": {
-            "author_id": {
-                "links": {
-                    "related": "/api/book/&lt;book-id/author_id",
-                    "self": "/api/book/&lt;book-id&gt;/relationships/author_id"
+        &quot;relationships&quot;: {
+            &quot;author_id&quot;: {
+                &quot;links&quot;: {
+                    &quot;related&quot;: &quot;/api/book/&lt;book-id/author_id&quot;,
+                    &quot;self&quot;: &quot;/api/book/&lt;book-id&gt;/relationships/author_id&quot;
                 },
-                "data": []
+                &quot;data&quot;: []
             }
         }
     }]
-}</code></pre>
+}
+</pre></div>
 
 </div>
 <h1 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">Link</a></h1>
 <h2 id="curl-example">Curl example<a class="headerlink" href="#curl-example" title="Permanent link">Link</a></h2>
-<pre class="codehilite"><code>curl '/api/&amp;lt;entityName&amp;gt;?sort=&amp;amp;page[number]=1&amp;amp;page[size]=10' \
-  -H 'Authorization: Bearer &amp;lt;AccessToken&amp;gt;'</code></pre>
+<div class="codehilite"><pre><span></span>curl &#39;/api/&lt;entityName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39; \
+  -H &#39;Authorization: Bearer &lt;AccessToken&gt;&#39;
+</pre></div>
 
 
 <h2 id="jquery-ajax-example">jQuery ajax example<a class="headerlink" href="#jquery-ajax-example" title="Permanent link">Link</a></h2>
-<pre class="codehilite"><code>$.ajax({
+<div class="codehilite"><pre><span></span>$.ajax({
     method: &quot;GET&quot;,
-    url: '/api/&amp;lt;entityName&amp;gt;?sort=&amp;amp;page[number]=1&amp;amp;page[size]=10',
+    url: &#39;/api/&lt;entityName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39;,
     success: function(response){
         console.log(response.data);
     }
-  })</code></pre>
+  })
+</pre></div>
 
 
 <h2 id="node-js-example">Node js example<a class="headerlink" href="#node-js-example" title="Permanent link">Link</a></h2>
-<pre class="codehilite"><code>var request = require('request');
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
 
-var headers = {
-    'Authorization': 'Bearer &amp;lt;AccessToken&amp;gt;'
-};
+<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer &lt;AccessToken&gt;&#39;</span>
+<span class="p">};</span>
 
-var options = {
-    url: '/api/&amp;lt;entityName&amp;gt;?sort=&amp;amp;page[number]=1&amp;amp;page[size]=10',
-    headers: headers
-};
+<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;/api/&lt;entityName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span><span class="p">,</span>
+    <span class="nx">headers</span>: <span class="kt">headers</span>
+<span class="p">};</span>
 
-function callback(error, response, body) {
-    if (!error &amp;amp;&amp;amp; response.statusCode == 200) {
-        console.log(body);
-    }
-}
+<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-request(options, callback);</code></pre>
+<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+</pre></div>
 
 
 <h2 id="python-example">Python example<a class="headerlink" href="#python-example" title="Permanent link">Link</a></h2>
-<pre class="codehilite"><code>import requests
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">requests</span>
 
-headers = {
-    'Authorization': 'Bearer &amp;lt;AccessToken&amp;gt;',
-}
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;AccessToken&gt;&#39;</span><span class="p">,</span>
+<span class="p">}</span>
 
-params = (
-    ('sort', '-created_at'),
-    ('page[number]', '1'),
-    ('page[size]', '10'),
-)
+<span class="n">params</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="s1">&#39;sort&#39;</span><span class="p">,</span> <span class="s1">&#39;-created_at&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;page[number]&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;page[size]&#39;</span><span class="p">,</span> <span class="s1">&#39;10&#39;</span><span class="p">),</span>
+<span class="p">)</span>
 
-response = requests.get('http://api.daptin.com:6336/api/laptop', headers=headers, params=params)</code></pre>
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:6336/api/laptop&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+</pre></div>
 
 
 <h2 id="php-example">PHP example<a class="headerlink" href="#php-example" title="Permanent link">Link</a></h2>
-<pre class="codehilite"><code>&amp;lt;?php
-include('vendor/rmccue/requests/library/Requests.php');
-Requests::register_autoloader();
-$headers = array(
-    'Authorization' =&amp;gt; 'Bearer &amp;lt;AccessToken&amp;gt;'
-);
-$response = Requests::get('http://api.daptin.com:6336/api/laptop?sort=&amp;amp;page[number]=1&amp;amp;page[size]=10', $headers);</code></pre>
+<div class="codehilite"><pre><span></span><span class="cp">&lt;?php</span>
+<span class="k">include</span><span class="p">(</span><span class="s1">&#39;vendor/rmccue/requests/library/Requests.php&#39;</span><span class="p">);</span>
+<span class="nx">Requests</span><span class="o">::</span><span class="na">register_autoloader</span><span class="p">();</span>
+<span class="nv">$headers</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
+    <span class="s1">&#39;Authorization&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;Bearer &lt;AccessToken&gt;&#39;</span>
+<span class="p">);</span>
+<span class="nv">$response</span> <span class="o">=</span> <span class="nx">Requests</span><span class="o">::</span><span class="na">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:6336/api/laptop?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span><span class="p">,</span> <span class="nv">$headers</span><span class="p">);</span>
+</pre></div>
 
 
 <h1 id="filtering">Filtering<a class="headerlink" href="#filtering" title="Permanent link">Link</a></h1>
@@ -503,8 +819,9 @@ $response = Requests::get('http://api.daptin.com:6336/api/laptop?sort=&amp;amp;p
 </tbody>
 </table>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">Link</a></h2>
-<pre class="codehilite"><code>curl '/api/world?query=[{&quot;column&quot;: &quot;is_hidden&quot;, &quot;operator&quot;: &quot;any of&quot;, &quot;value&quot;:&quot;1,0&quot;}] \
-  -H 'Authorization: Bearer &amp;lt;AccessToken&amp;gt;'</code></pre>
+<div class="codehilite"><pre><span></span>curl &#39;/api/world?query=[{&quot;column&quot;: &quot;is_hidden&quot;, &quot;operator&quot;: &quot;any of&quot;, &quot;value&quot;:&quot;1,0&quot;}] \
+  -H &#39;Authorization: Bearer &lt;AccessToken&gt;&#39;
+</pre></div>
               
             </div>
           </div>
@@ -515,7 +832,7 @@ $response = Requests::get('http://api.daptin.com:6336/api/laptop?sort=&amp;amp;p
         <a href="../create/" class="btn btn-neutral float-right" title="Create">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../../setting-up/data_modeling/" class="btn btn-neutral" title="Data model"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../overview/" class="btn btn-neutral" title="Overview"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -540,10 +857,8 @@ $response = Requests::get('http://api.daptin.com:6336/api/laptop?sort=&amp;amp;p
   <div class="rst-versions" role="note" style="cursor: pointer">
     <span class="rst-current-version" data-toggle="rst-current-version">
       
-          <a href="https://github.com/daptin/daptin/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
-      
-        <span><a href="../../setting-up/data_modeling/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../overview/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
         <span style="margin-left: 15px"><a href="../create/" style="color: #fcfcfc">Next &raquo;</a></span>

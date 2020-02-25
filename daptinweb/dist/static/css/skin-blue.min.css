@@ -102,7 +102,7 @@
 }
 
 .skin-blue .treeview-menu > li.active > a, .skin-blue .treeview-menu > li > a:hover {
-  color: #000
+  color: #000;
 }
 
 .skin-blue .sidebar-form {

@@ -1,10 +1,13 @@
 package resource
 
 import (
+	"context"
+	"fmt"
 	"github.com/artpar/rclone/cmd"
+	"github.com/artpar/rclone/fs"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 
-	"encoding/json"
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
@@ -19,7 +22,7 @@ func (d *SyncSiteStorageActionPerformer) Name() string {
 	return "site.storage.sync"
 }
 
-func (d *SyncSiteStorageActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -51,17 +54,24 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request ActionRequest, inField
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
 	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
-	go cmd.Run(true, true, nil, func() error {
+	cobraCommand := &cobra.Command{
+		Use: fmt.Sprintf("Sync site storage [%v]", cloudStoreId),
+	}
+	fs.Config.LogLevel = fs.LogLevelNotice
+
+	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Either source or destination is empty")
 			return nil
 		}
+
+		ctx := context.Background()
 		log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-		dir := sync.CopyDir(fdst, fsrc, true)
+		dir := sync.CopyDir(ctx, fdst, fsrc, true)
 		return dir
 	})
 

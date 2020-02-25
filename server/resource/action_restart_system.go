@@ -18,7 +18,7 @@ func (d *RestartSystemActionPerformer) Name() string {
 	return "__restart"
 }
 
-func (d *RestartSystemActionPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *RestartSystemActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -33,7 +33,7 @@ func (d *RestartSystemActionPerformer) DoAction(request ActionRequest, inFields 
 	restartAttrs = make(map[string]interface{})
 	restartAttrs["location"] = "/"
 	restartAttrs["window"] = "self"
-	restartAttrs["delay"] = 15000
+	restartAttrs["delay"] = 5000
 	actionResponse = NewActionResponse("client.redirect", restartAttrs)
 	responses = append(responses, actionResponse)
 

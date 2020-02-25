@@ -2,11 +2,10 @@ package resource
 
 import (
 	"crypto/md5"
-	"encoding/json"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
 	//"reflect"
 	"github.com/artpar/go.uuid"
 	//"strconv"
@@ -19,6 +18,8 @@ import (
 	"strings"
 	"time"
 )
+
+const DEFAULT_LANGUAGE = "en"
 
 func NewFromDbResourceWithTransaction(resources *DbResource, tx *sqlx.Tx) *DbResource {
 
@@ -52,8 +53,9 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
-
 	}
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
 
 	attrs := data.GetAllAsAttributes()
 
@@ -63,8 +65,8 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	u, _ := uuid.NewV4()
 	newUuid := u.String()
 
-	colsList := []string{}
-	valsList := []interface{}{}
+	var colsList []string
+	var valsList []interface{}
 	for _, col := range allColumns {
 
 		//log.Infof("Add column: %v", col.ColumnName)
@@ -136,10 +138,10 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 					foreignObjectPermission := dr.GetObjectPermissionByReferenceId(col.ForeignKeyData.Namespace, valString)
 
-					if foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+					if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 						uId = foreignObject["id"]
 					} else {
-						log.Printf("User cannot refer this object")
+						log.Printf("User cannot refer this object [%v][%v]", col.ForeignKeyData.Namespace, valString)
 						ok = false
 					}
 
@@ -175,18 +177,27 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 				actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
 
 				log.Infof("Initiate file upload action")
-				_, _, errs := uploadActionPerformer.DoAction(ActionRequest{}, actionRequestParameters)
+				_, _, errs := uploadActionPerformer.DoAction(Outcome{}, actionRequestParameters)
 				if errs != nil && len(errs) > 0 {
 					log.Errorf("Failed to upload attachments: %v", errs)
 				}
 
-				files := val.([]interface{})
-				for i := range files {
-					file := files[i].(map[string]interface{})
-					delete(file, "file")
-					files[i] = file
+				columnAssetCache, ok := dr.AssetFolderCache[dr.tableInfo.TableName][col.ColumnName]
+				if ok {
+					columnAssetCache.UploadFiles(val.([]interface{}))
 				}
-				val, err = json.Marshal(files)
+
+				files, ok := val.([]interface{})
+				if ok {
+					for i := range files {
+						file := files[i].(map[string]interface{})
+						delete(file, "file")
+						files[i] = file
+					}
+					val, err = json.Marshal(files)
+				} else {
+					val = nil
+				}
 				CheckErr(err, "Failed to marshal file data to column")
 
 			default:
@@ -235,6 +246,12 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 				if ok {
 					val = time.Unix(int64(floatVal), 0)
 					err = nil
+				} else {
+					int64Val, ok := val.(int64)
+					if ok {
+						val = time.Unix(int64Val, 0)
+						err = nil
+					}
 				}
 			}
 
@@ -257,6 +274,28 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			} else {
 				val = parsedTime
 			}
+
+		} else if col.ColumnType == "enum" {
+			valString, ok := val.(string)
+			if !ok {
+				valString = fmt.Sprintf("%v", val)
+			}
+
+			isEnumOption := false
+			valString = strings.ToLower(valString)
+			for _, enumVal := range col.Options {
+
+				if valString == enumVal.Value {
+					isEnumOption = true
+					break
+				}
+			}
+
+			if !isEnumOption {
+				log.Printf("Provided value is not a valid enum option, reject request [%v] [%v]", valString, col.Options)
+				return nil, errors.New(fmt.Sprintf("invalid value for %s", col.Name))
+			}
+			val = valString
 
 		} else if col.ColumnType == "time" {
 
@@ -327,6 +366,11 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		colsList = append(colsList, "reference_id")
 		valsList = append(valsList, newUuid)
 	}
+	languagePreferences := make([]string, 0)
+	prefs := req.PlainRequest.Context().Value("language_preference")
+	if prefs != nil {
+		languagePreferences = prefs.([]string)
+	}
 
 	colsList = append(colsList, "permission")
 	valsList = append(valsList, dr.model.GetDefaultPermission())
@@ -341,6 +385,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	}
 
 	query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
+
 	if err != nil {
 		log.Errorf("Failed to create insert query: %v", err)
 		return nil, err
@@ -351,15 +396,41 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		log.Infof("Insert query: %v", query)
 		//log.Infof("Insert values: %v", vals)
 		log.Errorf("Failed to execute insert query: %v", err)
+		log.Errorf("%v", vals)
 		return nil, err
 	}
-
 	createdResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), newUuid)
+
 	if err != nil {
 		log.Errorf("Failed to select the newly created entry: %v", err)
 		return nil, err
 	}
-	//
+
+	if dr.tableInfo.TranslationsEnabled && len(languagePreferences) > 0 {
+
+		for _, languagePreference := range languagePreferences {
+
+			colsList = append(colsList, "language_id")
+			valsList = append(valsList, languagePreference)
+
+			colsList = append(colsList, "translation_reference_id")
+			valsList = append(valsList, createdResource["id"])
+
+			query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n").Columns(colsList...).Values(valsList...).ToSql()
+			if err != nil {
+				log.Errorf("Failed to create insert query: %v", err)
+				return nil, err
+			}
+
+			_, err = dr.db.Exec(query, vals...)
+			if err != nil {
+				log.Infof("Insert query: %v", query)
+				log.Errorf("Failed to execute insert query: %v", err)
+				log.Errorf("%v", vals)
+				return nil, err
+			}
+		}
+	}
 
 	//log.Infof("Created entry: %v", createdResource)
 
@@ -371,7 +442,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
-			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
@@ -390,7 +461,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
-			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 

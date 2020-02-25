@@ -1,11 +1,12 @@
 package resource
 
 import (
+	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
 	"gopkg.in/go-playground/validator.v9"
 	"time"
 )
@@ -124,7 +125,7 @@ var ConfigTableStructure = TableInfo{
 			Name:       "Value",
 			ColumnName: "value",
 			ColumnType: "string",
-			DataType:   "varchar(100)",
+			DataType:   "varchar(5000)",
 			IsNullable: true,
 			IsIndexed:  true,
 		},
@@ -169,7 +170,7 @@ func (c *ConfigStore) SetDefaultEnv(env string) {
 }
 
 func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, error) {
-	var val string
+	var val interface{}
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
 		From(settingsTableName).
@@ -182,9 +183,9 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 
 	err = c.db.QueryRowx(s, v...).Scan(&val)
 	if err != nil {
-		log.Infof("Failed to scan config value: %v", err)
+		log.Infof("Failed to scan config value [%v]: %v", key, err)
 	}
-	return val, err
+	return fmt.Sprintf("%s", val), err
 }
 
 func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, error) {
@@ -206,11 +207,10 @@ func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, 
 	return val, err
 }
 
-func (c *ConfigStore) GetWebConfig() map[string]string {
+func (c *ConfigStore) GetAllConfig() map[string]string {
 
 	s, v, err := statementbuilder.Squirrel.Select("name", "value").
 		From(settingsTableName).
-		Where(squirrel.Eq{"configtype": "web"}).
 		Where(squirrel.Eq{"configstate": "enabled"}).
 		Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
 
@@ -231,6 +231,20 @@ func (c *ConfigStore) GetWebConfig() map[string]string {
 
 	return retMap
 
+}
+
+func (c *ConfigStore) DeleteConfigValueFor(key string, configtype string) error {
+
+	s, v, err := statementbuilder.Squirrel.Delete(settingsTableName).
+		Where(squirrel.Eq{"name": key}).
+		Where(squirrel.Eq{"configtype": configtype}).
+		Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
+
+	CheckErr(err, "Failed to create config insert query")
+
+	_, err = c.db.Exec(s, v...)
+	CheckErr(err, "Failed to execute config insert query")
+	return err
 }
 
 func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype string) error {
@@ -265,10 +279,12 @@ func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype strin
 
 		s, v, err := statementbuilder.Squirrel.Update(settingsTableName).
 			Set("value", val).
-			Set("previous_value", previousValue).
+			Set("updated_at", time.Now()).
+			Set("previousvalue", previousValue).
 			Where(squirrel.Eq{"name": key}).
 			Where(squirrel.Eq{"configstate": "enabled"}).
 			Where(squirrel.Eq{"configtype": configtype}).
+			Where(squirrel.NotEq{"value": val}).
 			Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
 
 		CheckErr(err, "Failed to create config insert query")
@@ -312,8 +328,10 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 
 		s, v, err := statementbuilder.Squirrel.Update(settingsTableName).
 			Set("value", val).
-			Set("previous_value", previousValue).
+			Set("previousvalue", previousValue).
+			Set("updated_at", time.Now()).
 			Where(squirrel.Eq{"name": key}).
+			Where(squirrel.NotEq{"value": val}).
 			Where(squirrel.Eq{"configstate": "enabled"}).
 			Where(squirrel.Eq{"configtype": configtype}).
 			Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()

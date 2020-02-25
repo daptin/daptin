@@ -2,8 +2,20 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/auth"
 	log "github.com/sirupsen/logrus"
 )
+
+func IsStandardColumn(colName string) bool {
+
+	for _, col := range StandardColumns {
+		if col.ColumnName == colName {
+			return true
+		}
+	}
+
+	return false
+}
 
 var StandardColumns = []api2go.ColumnInfo{
 	{
@@ -59,10 +71,12 @@ var StandardColumns = []api2go.ColumnInfo{
 
 var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("action", "belongs_to", "world"),
+	api2go.NewTableRelation("ftp_server", "belongs_to", "cloud_store"),
+	api2go.NewTableRelation("feed", "belongs_to", "stream"),
 	api2go.NewTableRelation("world", "has_many", "smd"),
 	api2go.NewTableRelation("oauth_token", "has_one", "oauth_connect"),
 	api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
-	api2go.NewTableRelation("user_account", "has_one", "user_otp_account"),
+	api2go.NewTableRelationWithNames("user_otp_account", "primary_user_otp", "belongs_to", "user_account", "otp_of_account"),
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "oauth_token"),
 	api2go.NewTableRelation("site", "has_one", "cloud_store"),
@@ -72,10 +86,100 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelationWithNames("task", "task_executed", "has_one", USER_ACCOUNT_TABLE_NAME, "as_user_id"),
 }
 
-var SystemSmds = []LoopbookFsmDescription{}
-var SystemExchanges = []ExchangeContract{}
+var SystemSmds []LoopbookFsmDescription
+var SystemExchanges []ExchangeContract
 
 var SystemActions = []Action{
+	{
+		Name:             "install_integration",
+		Label:            "Install integration",
+		OnType:           "integration",
+		InstanceOptional: false,
+		OutFields: []Outcome{
+			{
+				Type:   "integration.install",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"reference_id": "$.reference_id",
+				},
+			},
+		},
+	},
+	{
+		Name:             "download_certificate",
+		Label:            "Download certificate",
+		OnType:           "certificate",
+		InstanceOptional: false,
+		OutFields: []Outcome{
+			{
+				Type:   "client.file.download",
+				Method: "ACTIONRESPONSE",
+				Attributes: map[string]interface{}{
+					"content":     "!btoa(subject.certificate_pem)",
+					"name":        "!subject.hostname + '.pem.crt'",
+					"contentType": "application/x-x509-ca-cert",
+					"message":     "!'Certificate for ' + subject.hostname",
+				},
+			},
+		},
+	},
+	{
+		Name:             "download_public_key",
+		Label:            "Download public key",
+		OnType:           "certificate",
+		InstanceOptional: false,
+		OutFields: []Outcome{
+			{
+				Type:   "client.file.download",
+				Method: "ACTIONRESPONSE",
+				Attributes: map[string]interface{}{
+					"content":     "!btoa(subject.public_key_pem)",
+					"name":        "!subject.hostname + '.pem.key.pub'",
+					"contentType": "application/x-x509-ca-cert",
+					"message":     "!'Public Key for ' + subject.hostname",
+				},
+			},
+		},
+	},
+	{
+		Name:             "generate_acme_certificate",
+		Label:            "Generate ACME certificate",
+		OnType:           "certificate",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "email",
+				ColumnType: "label",
+				ColumnName: "email",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "acme.tls.generate",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"email":       "~email",
+					"certificate": "~subject",
+				},
+			},
+		},
+	},
+	{
+		Name:             "generate_self_certificate",
+		Label:            "Generate Self certificate",
+		OnType:           "certificate",
+		InstanceOptional: false,
+		InFields:         []api2go.ColumnInfo{},
+		OutFields: []Outcome{
+			{
+				Type:   "self.tls.generate",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"certificate": "~subject",
+				},
+			},
+		},
+	},
 	{
 		Name:             "register_otp",
 		Label:            "Register Mobile Number",
@@ -90,11 +194,21 @@ var SystemActions = []Action{
 		},
 		OutFields: []Outcome{
 			{
-				Type:   "otp.register.begin",
-				Method: "EXECUTE",
+				Type:      "otp.generate",
+				Method:    "EXECUTE",
+				Reference: "otp",
 				Attributes: map[string]interface{}{
 					"email":  "$.email",
 					"mobile": "~mobile_number",
+				},
+			},
+			{
+				Type:      "2factor.in",
+				Method:    "GET_api_key-SMS-phone_number-otp",
+				Condition: "!mobile_number != null && mobile_number != undefined && mobile_number != ''",
+				Attributes: map[string]interface{}{
+					"phone_number": "~mobile_number",
+					"otp":          "$otp.otp",
 				},
 			},
 		},
@@ -103,8 +217,18 @@ var SystemActions = []Action{
 		Name:             "verify_mobile_number",
 		Label:            "Verify Mobile Number",
 		OnType:           "user_otp_account",
-		InstanceOptional: false,
+		InstanceOptional: true,
 		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "mobile_number",
+				ColumnName: "mobile_number",
+				ColumnType: "label",
+			},
+			{
+				Name:       "email",
+				ColumnName: "email",
+				ColumnType: "label",
+			},
 			{
 				Name:       "otp",
 				ColumnName: "otp",
@@ -117,7 +241,45 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"otp":    "~otp",
-					"mobile": "$.mobile_number",
+					"mobile": "~mobile_number",
+				},
+			},
+		},
+	},
+	{
+		Name:             "send_otp",
+		Label:            "Send OTP to mobile",
+		OnType:           "user_otp_account",
+		InstanceOptional: true,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "mobile_number",
+				ColumnName: "mobile_number",
+				ColumnType: "label",
+			},
+			{
+				Name:       "email",
+				ColumnName: "email",
+				ColumnType: "label",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:      "otp.generate",
+				Method:    "EXECUTE",
+				Reference: "otp",
+				Attributes: map[string]interface{}{
+					"email":  "~email",
+					"mobile": "~mobile_number",
+				},
+			},
+			{
+				Type:      "2factor.in",
+				Method:    "GET_api_key-SMS-phone_number-otp",
+				Condition: "!mobile_number != null && mobile_number != undefined && mobile_number != ''",
+				Attributes: map[string]interface{}{
+					"phone_number": "~mobile_number",
+					"otp":          "$otp.otp",
 				},
 			},
 		},
@@ -174,6 +336,35 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "rename_column",
+		Label:            "Rename column",
+		OnType:           "world",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "column_name",
+				ColumnName: "column_name",
+				ColumnType: "label",
+			},
+			{
+				Name:       "new_column_name",
+				ColumnName: "new_column_name",
+				ColumnType: "label",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "world.column.rename",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"world_id":        "$.reference_id",
+					"column_name":     "~column_name",
+					"new_column_name": "~new_column_name",
+				},
+			},
+		},
+	},
+	{
 		Name:             "sync_site_storage",
 		Label:            "Sync site storage",
 		OnType:           "site",
@@ -197,19 +388,44 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "sync_column_storage",
+		Label:            "Sync column storage",
+		OnType:           "world",
+		InstanceOptional: true,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "Table name",
+				ColumnName: "table_name",
+				ColumnType: "label",
+			},
+			{
+				Name:       "Column name",
+				ColumnName: "column_name",
+				ColumnType: "label",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "column.storage.sync",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"column_name": "~column_name",
+					"table_name":  "~table_name",
+				},
+			},
+		},
+	},
+	{
 		Name:             "sync_mail_servers",
 		Label:            "Sync Mail Servers",
 		OnType:           "mail_server",
 		InstanceOptional: true,
-		InFields: []api2go.ColumnInfo{
-
-		},
+		InFields:         []api2go.ColumnInfo{},
 		OutFields: []Outcome{
 			{
-				Type:   "mail.servers.sync",
-				Method: "EXECUTE",
-				Attributes: map[string]interface{}{
-				},
+				Type:       "mail.servers.sync",
+				Method:     "EXECUTE",
+				Attributes: map[string]interface{}{},
 			},
 		},
 	},
@@ -382,7 +598,7 @@ var SystemActions = []Action{
 		Name:             "import_data",
 		Label:            "Import data from dump",
 		OnType:           "world",
-		InstanceOptional: true,
+		InstanceOptional: false,
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "JSON Dump file",
@@ -401,12 +617,11 @@ var SystemActions = []Action{
 				Type:   "__data_import",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"world_reference_id":       "$.reference_id",
-					"execute_middleware_chain": "~execute_middleware_chain",
-					"truncate_before_insert":   "~truncate_before_insert",
-					"dump_file":                "~dump_file",
-					"table_name":               "$.table_name",
-					"user":                     "~user",
+					"world_reference_id":     "$.reference_id",
+					"truncate_before_insert": "~truncate_before_insert",
+					"dump_file":              "~dump_file",
+					"table_name":             "$.table_name",
+					"user":                   "~user",
 				},
 			},
 		},
@@ -610,6 +825,12 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 			{
+				Name:       "mobile",
+				ColumnName: "mobile",
+				ColumnType: "label",
+				IsNullable: true,
+			},
+			{
 				Name:       "password",
 				ColumnName: "password",
 				ColumnType: "password",
@@ -645,6 +866,10 @@ var SystemActions = []Action{
 				ColumnName: "name",
 				Tags:       "trim",
 			},
+			{
+				ColumnName: "mobile",
+				Tags:       "trim",
+			},
 		},
 		OutFields: []Outcome{
 			{
@@ -673,6 +898,26 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"user_account_id": "$user.reference_id",
 					"usergroup_id":    "$usergroup.reference_id",
+				},
+			},
+			{
+				Type:      "otp.generate",
+				Method:    "EXECUTE",
+				Reference: "otp",
+				Condition: "!mobile != null && mobile != undefined && mobile != ''",
+				Attributes: map[string]interface{}{
+					"mobile": "~mobile",
+					"email":  "~email",
+				},
+			},
+			{
+				Type:      "2factor.in",
+				Method:    "GET_api_key-SMS-phone_number-otp",
+				Reference: "otp_account",
+				Condition: "!mobile != null && mobile != undefined && mobile != ''",
+				Attributes: map[string]interface{}{
+					"phone_number": "~mobile",
+					"otp":          "$otp.otp",
 				},
 			},
 			{
@@ -910,9 +1155,231 @@ var SystemActions = []Action{
 
 var adminsGroup = []string{"administrators"}
 
-var StandardTasks = []Task{}
+var StandardTasks []Task
 
 var StandardTables = []TableInfo{
+	{
+		TableName:     "certificate",
+		IsHidden:      true,
+		DefaultGroups: adminsGroup,
+		Icon:          "fa-certificate",
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "hostname",
+				ColumnName: "hostname",
+				IsUnique:   true,
+				IsIndexed:  true,
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+				IsNullable: false,
+			},
+			{
+				Name:         "issuer",
+				ColumnName:   "issuer",
+				ColumnType:   "label",
+				DataType:     "varchar(100)",
+				IsNullable:   false,
+				DefaultValue: "'self'",
+			},
+			{
+				Name:       "generated_at",
+				ColumnName: "generated_at",
+				ColumnType: "datetime",
+				DataType:   "timestamp",
+				IsNullable: false,
+			},
+			{
+				Name:       "certificate_pem",
+				ColumnName: "certificate_pem",
+				ColumnType: "content",
+				DataType:   "text",
+				IsNullable: true,
+			},
+			{
+				Name:       "root_certificate",
+				ColumnName: "root_certificate",
+				ColumnType: "content",
+				DataType:   "text",
+				IsNullable: true,
+			},
+			{
+				Name:       "private_key_pem",
+				ColumnName: "private_key_pem",
+				ColumnType: "encrypted",
+				DataType:   "text",
+				IsNullable: true,
+			},
+			{
+				Name:       "public_key_pem",
+				ColumnName: "public_key_pem",
+				ColumnType: "content",
+				DataType:   "text",
+				IsNullable: true,
+			},
+		},
+	},
+	{
+		TableName:     "feed",
+		IsHidden:      true,
+		DefaultGroups: adminsGroup,
+		Icon:          "fa-rss",
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "feed_name",
+				ColumnName: "feed_name",
+				IsUnique:   true,
+				IsIndexed:  true,
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+				IsNullable: false,
+			},
+			{
+				Name:         "title",
+				ColumnName:   "title",
+				ColumnType:   "label",
+				DataType:     "varchar(500)",
+				IsNullable:   false,
+				DefaultValue: "''",
+			},
+			{
+				Name:         "title",
+				ColumnName:   "title",
+				ColumnType:   "label",
+				DataType:     "varchar(500)",
+				IsNullable:   false,
+				DefaultValue: "''",
+			},
+			{
+				Name:       "description",
+				ColumnName: "description",
+				ColumnType: "label",
+				DataType:   "text",
+				IsNullable: false,
+			},
+			{
+				Name:         "link",
+				ColumnName:   "link",
+				ColumnType:   "label",
+				DataType:     "varchar(1000)",
+				IsNullable:   false,
+				DefaultValue: "''",
+			},
+			{
+				Name:         "author_name",
+				ColumnName:   "author_name",
+				ColumnType:   "label",
+				DataType:     "varchar(500)",
+				IsNullable:   false,
+				DefaultValue: "''",
+			},
+			{
+				Name:         "author_email",
+				ColumnName:   "author_email",
+				ColumnType:   "label",
+				DataType:     "varchar(500)",
+				IsNullable:   false,
+				DefaultValue: "''",
+			},
+			{
+				Name:         "enable",
+				ColumnName:   "enable",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				IsNullable:   false,
+				DefaultValue: "0",
+			},
+			{
+				Name:         "enable_atom",
+				ColumnName:   "enable_atom",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				IsNullable:   false,
+				DefaultValue: "1",
+			},
+			{
+				Name:         "enable_json",
+				ColumnName:   "enable_json",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				IsNullable:   false,
+				DefaultValue: "1",
+			},
+			{
+				Name:         "enable_rss",
+				ColumnName:   "enable_rss",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				IsNullable:   false,
+				DefaultValue: "1",
+			},
+			{
+				Name:         "page_size",
+				ColumnName:   "page_size",
+				ColumnType:   "measurement",
+				DataType:     "int(11)",
+				IsNullable:   false,
+				DefaultValue: "1000",
+			},
+		},
+	},
+	{
+		TableName:     "integration",
+		IsHidden:      false,
+		DefaultGroups: adminsGroup,
+		Icon:          "fa-exchange-alt",
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "name",
+				ColumnName: "name",
+				IsUnique:   true,
+				IsIndexed:  true,
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+				IsNullable: false,
+			},
+			{
+				Name:       "specification_language",
+				ColumnName: "specification_language",
+				ColumnType: "label",
+				DataType:   "varchar(20)",
+				IsNullable: false,
+			},
+			{
+				Name:         "specification_format",
+				ColumnName:   "specification_format",
+				ColumnType:   "label",
+				DataType:     "varchar(10)",
+				DefaultValue: "'json'",
+			},
+			{
+				Name:       "specification",
+				ColumnName: "specification",
+				ColumnType: "content",
+				DataType:   "text",
+				IsNullable: false,
+			},
+			{
+				Name:       "authentication_type",
+				ColumnName: "authentication_type",
+				ColumnType: "label",
+			},
+			{
+				Name:       "authentication_specification",
+				ColumnName: "authentication_specification",
+				ColumnType: "encrypted",
+				DataType:   "text",
+				IsNullable: false,
+			},
+			{
+				Name:         "enable",
+				ColumnName:   "enable",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				DefaultValue: "1",
+				IsNullable:   false,
+			},
+		},
+	},
 	{
 		TableName:     "task",
 		IsHidden:      true,
@@ -947,7 +1414,7 @@ var StandardTables = []TableInfo{
 			{
 				Name:       "active",
 				ColumnName: "active",
-				DataType:   "bool",
+				DataType:   "int(1)",
 				ColumnType: "truefalse",
 			},
 			{
@@ -1138,6 +1605,14 @@ var StandardTables = []TableInfo{
 				IsIndexed:  true,
 			},
 			{
+				Name:         "enable",
+				ColumnName:   "enable",
+				DataType:     "int(1)",
+				IsNullable:   false,
+				ColumnType:   "truefalse",
+				DefaultValue: "1",
+			},
+			{
 				Name:       "stream_contract",
 				ColumnName: "stream_contract",
 				DataType:   "text",
@@ -1148,12 +1623,14 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "user_otp_account",
-		Icon:          "fa-child",
+		Icon:          "fa-sms",
+		IsHidden:      true,
 		DefaultGroups: []string{},
 		Columns: []api2go.ColumnInfo{
 			{
 				ColumnName: "mobile_number",
 				IsIndexed:  true,
+				IsUnique:   true,
 				DataType:   "varchar(20)",
 				ColumnType: "label",
 			},
@@ -1175,7 +1652,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     USER_ACCOUNT_TABLE_NAME,
-		Icon:          "fa-child",
+		Icon:          "fa-user",
 		DefaultGroups: []string{"users"},
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1234,6 +1711,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName: "usergroup",
 		Icon:      "fa-users",
+		IsHidden:  true,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -1247,6 +1725,7 @@ var StandardTables = []TableInfo{
 	{
 		TableName:     "action",
 		DefaultGroups: adminsGroup,
+		IsHidden:      true,
 		Icon:          "fa-bolt",
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1523,6 +2002,33 @@ var StandardTables = []TableInfo{
 			},
 		},
 	},
+
+	{
+		TableName:     "ftp_server",
+		DefaultGroups: adminsGroup,
+		IsHidden:      true,
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "name",
+				ColumnName: "name",
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+			},
+			{
+				Name:       "hostname",
+				ColumnName: "hostname",
+				ColumnType: "label",
+				DataType:   "varchar(100)",
+			},
+			{
+				Name:       "listen_interface",
+				ColumnName: "listen_interface",
+				ColumnType: "label",
+				IsUnique:   true,
+				DataType:   "varchar(100)",
+			},
+		},
+	},
 	{
 		TableName:     "site",
 		DefaultGroups: adminsGroup,
@@ -1560,11 +2066,20 @@ var StandardTables = []TableInfo{
 				DataType:     "bool",
 				DefaultValue: "false",
 			},
+
+			{
+				Name:         "ftp_enabled",
+				ColumnName:   "ftp_enabled",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				DefaultValue: "0",
+			},
 		},
 	},
 	{
 		TableName:     "mail_server",
-		IsHidden:      false,
+		IsHidden:      true,
+		Icon:          "fa-envelope",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1578,14 +2093,14 @@ var StandardTables = []TableInfo{
 				ColumnName:   "is_enabled",
 				DataType:     "int(1)",
 				ColumnType:   "truefalse",
-				DefaultValue: "true",
+				DefaultValue: "0",
 			},
 			{
 				Name:         "listen_interface",
 				ColumnName:   "listen_interface",
 				DataType:     "varchar(100)",
 				ColumnType:   "label",
-				DefaultValue: "'0.0.0.0'",
+				DefaultValue: "'0.0.0.0:465'",
 			},
 			{
 				Name:         "max_size",
@@ -1593,13 +2108,6 @@ var StandardTables = []TableInfo{
 				DataType:     "int(11)",
 				ColumnType:   "measurement",
 				DefaultValue: "10000",
-			},
-			{
-				Name:       "tls",
-				ColumnName: "tls",
-				DataType:   "text",
-				ColumnType: "json",
-				IsNullable: true,
 			},
 			{
 				Name:         "max_clients",
@@ -1611,35 +2119,36 @@ var StandardTables = []TableInfo{
 			{
 				Name:         "xclient_on",
 				ColumnName:   "xclient_on",
-				DataType:     "bool",
+				DataType:     "int(1)",
 				ColumnType:   "truefalse",
-				DefaultValue: "false",
+				DefaultValue: "0",
+			},
+			{
+				Name:         "always_on_tls",
+				ColumnName:   "always_on_tls",
+				DataType:     "int(1)",
+				ColumnType:   "truefalse",
+				DefaultValue: "1",
 			},
 			{
 				Name:         "authentication_required",
 				ColumnName:   "authentication_required",
-				DataType:     "bool",
+				DataType:     "int(1)",
 				ColumnType:   "truefalse",
-				DefaultValue: "false",
-			},
-			{
-				Name:         "authentication_types",
-				ColumnName:   "authentication_types",
-				DataType:     "varchar(100)",
-				ColumnType:   "label",
-				DefaultValue: "",
+				DefaultValue: "1",
 			},
 		},
 	},
 	{
 		TableName:     "mail_account",
-		IsHidden:      false,
+		IsHidden:      true,
 		DefaultGroups: adminsGroup,
+		Icon:          "fa-envelope",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "username",
 				ColumnName: "username",
-				DataType:   "varchar(10¬0)",
+				DataType:   "varchar(100)",
 				ColumnType: "label",
 				IsUnique:   true,
 			},
@@ -1657,7 +2166,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "mail_box",
-		IsHidden:      false,
+		IsHidden:      true,
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1709,7 +2218,8 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "mail",
-		IsHidden:      false,
+		IsHidden:      true,
+		Icon:          "fa-envelope",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -1844,6 +2354,13 @@ var StandardTables = []TableInfo{
 				DefaultValue: "false",
 			},
 			{
+				Name:         "spam",
+				ColumnName:   "spam",
+				DataType:     "bool",
+				ColumnType:   "truefalse",
+				DefaultValue: "false",
+			},
+			{
 				Name:       "size",
 				ColumnName: "size",
 				DataType:   "int(11)",
@@ -1854,7 +2371,7 @@ var StandardTables = []TableInfo{
 				ColumnName:   "flags",
 				DataType:     "varchar(500)",
 				ColumnType:   "label",
-				DefaultValue: "'\\\\RECENT'",
+				DefaultValue: "",
 			},
 		},
 	},
@@ -1939,45 +2456,46 @@ var StandardStreams = []StreamContract{
 			{
 				Operation: "select",
 				Attributes: map[string]interface{}{
-					"columns": []string{"name", "email"},
+					"Columns": []string{"name", "email"},
 				},
 			},
 			{
 				Operation: "rename",
 				Attributes: map[string]interface{}{
-					"oldName": "name",
-					"newName": "transformed_user_name",
+					"OldName": "name",
+					"NewName": "transformed_user_name",
 				},
 			},
 			{
 				Operation: "rename",
 				Attributes: map[string]interface{}{
-					"oldName": "email",
-					"newName": "primary_email",
+					"OldName": "email",
+					"NewName": "primary_email",
 				},
+			},
+			{
+				Operation:  "filter",
+				Attributes: map[string]interface{}{},
 			},
 		},
 	},
 }
 
-var StandardData = []api2go.Api2GoModel{
-	{},
-}
-
 type TableInfo struct {
 	TableName              string `db:"table_name"`
 	TableId                int
-	DefaultPermission      int64 `db:"default_permission"`
+	DefaultPermission      auth.AuthPermission `db:"default_permission"`
 	Columns                []api2go.ColumnInfo
 	StateMachines          []LoopbookFsmDescription
 	Relations              []api2go.TableRelation
 	IsTopLevel             bool `db:"is_top_level"`
-	Permission             int64
+	Permission             auth.AuthPermission
 	UserId                 uint64   `db:"user_account_id"`
 	IsHidden               bool     `db:"is_hidden"`
 	IsJoinTable            bool     `db:"is_join_table"`
 	IsStateTrackingEnabled bool     `db:"is_state_tracking_enabled"`
 	IsAuditEnabled         bool     `db:"is_audit_enabled"`
+	TranslationsEnabled    bool     `db:"translation_enabled"`
 	DefaultGroups          []string `db:"default_groups"`
 	Validations            []ColumnTag
 	Conformations          []ColumnTag
@@ -1988,7 +2506,7 @@ type TableInfo struct {
 func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {
 
 	for _, col := range ti.Columns {
-		if col.Name == name {
+		if col.Name == name || col.ColumnName == name {
 			return &col, true
 		}
 	}

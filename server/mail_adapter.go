@@ -317,40 +317,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 							err = (&i2).Send(e.MailFrom.String(), []string{rcpt.String()}, bytes.NewReader(finalMail))
 
-							// resource.CheckErr(err, "Failed to send mail to actual destination")
-
-
-							model := api2go.Api2GoModel{
-								Data: map[string]interface{}{
-									"message_id":       mid,
-									"mail_id":          hash,
-									"from_address":     trimToLimit(e.MailFrom.String(), 255),
-									"to_address":       to,
-									"sender_address":   sender,
-									"subject":          trimToLimit(e.Subject, 255),
-									"body":             body,
-									"mail":             mailBody,
-									"spam_score":       spamScore,
-									"spam":             spam,
-									"hash":             hash,
-									"content_type":     contentType,
-									"reply_to_address": replyTo,
-									"internal_date":    time.Now(),
-									"recipient":        recipient,
-									"has_attachment":   hasAttachment,
-									"ip_addr":          e.RemoteIP,
-									"return_path":      trimToLimit(e.MailFrom.String(), 255),
-									"is_tls":           e.TLS,
-									"mail_box_id":      mailBox["reference_id"],
-									"user_account_id":  mailAccount["user_account_id"],
-									"seen":             false,
-									"recent":           true,
-									"flags":            flags,
-									"size":             mailSize,
-								},
-							}
-							_, err = dbResource.Cruds["outbox"].CreateWithoutFilter(&model, *req)
-
+							resource.CheckErr(err, "Failed to send mail to actual destination")
 							continue
 						}
 

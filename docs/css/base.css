@@ -1,0 +1,589 @@
+body {
+    background-color: #f8f8f8;
+    font-family: Nunito, sans-serif;
+}
+
+/***********************************************************************
+ Top bar
+ ***********************************************************************/
+
+.navbar {
+    background-color: #546e7a;
+    box-shadow: 0 1.5px 3px rgba(0, 0, 0, .24), 0 3px 8px rgba(0, 0, 0, .05);
+    border: none;
+    border-radius: 0px;
+    margin-bottom: 0px;
+    height: 50px;
+    z-index: 2;
+}
+
+.wm-top-page {
+    overflow: hidden;
+}
+
+.wm-page-content {
+    max-width: 700px;
+    position: relative;
+}
+
+.wm-page-top-frame {
+    display: none;
+}
+
+.wm-top-page > .wm-page-top-frame {
+    display: block;
+}
+
+.wm-top-page > .wm-page-content {
+    display: none;
+}
+
+.wm-top-brand {
+    display: inline-block;
+    float: left;
+    overflow: visible;
+    width: 0px;
+    height: 50px;
+    color: #fff;
+    font-size: 18px;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.wm-top-link, .wm-top-link:hover, .wm-top-link:active, .wm-top-link:visited, .wm-top-link:focus {
+    color: #fff;
+    text-decoration: none;
+}
+
+.wm-vcenter:before {
+    content: '';
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+    margin-left: -0.25em;
+}
+
+.wm-vcentered {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.wm-top-title {
+    display: inline-block;
+    line-height: 16px;
+    vertical-align: middle;
+}
+
+.wm-top-logo {
+    max-height: 100%;
+}
+
+.wm-top-version {
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 0px 5px;
+    color: #ddd;
+    font-size: 8pt;
+}
+
+.wm-top-tool {
+    height: 50px;
+    white-space: nowrap;
+}
+
+.wm-top-tool-expanded {
+    position: absolute;
+    right: 0px;
+    padding: inherit;
+    width: 100%;
+    background-color: #546e7a;
+}
+
+.wm-top-search {
+    width: 20rem;
+}
+
+#wm-toc-button {
+    margin-right: 1rem;
+    margin-left: 0.5rem;
+}
+
+/***********************************************************************
+ Table of contents (side pane)
+ ***********************************************************************/
+
+.wm-toc-pane {
+    position: absolute;
+    top: 0px;
+    padding-top: 70px;
+    height: 100%;
+    min-width: 250px;
+    max-width: 350px;
+    z-index: 1;
+    background-color: #f2f2f2;
+    border-right: 1px solid #e0e0e0;
+    overflow: auto;
+    margin-left: 0px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: 2rem;
+    transition: margin-left 0.3s;
+}
+
+.wm-content-pane {
+    position: absolute;
+    top: 0px;
+    padding-top: 50px;
+    height: 100%;
+    width: 100%;
+    z-index: 0;
+    padding-left: 250px;
+    transition: padding-left 0.3s;
+    /* required for iPhone to scroll the contained iframe */
+    -webkit-overflow-scrolling: touch;
+}
+
+.wm-toc-pane.wm-toc-dropdown {
+    position: absolute;
+    display: block;
+    top: 0;
+    left: 0;
+    margin-left: 0;
+    height: auto;
+    box-shadow: 2px 3px 4px 0 grey;
+}
+
+.wm-toc-repo {
+    margin-top: -15px;
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.wm-toc-hidden > .wm-toc-pane {
+    margin-left: -250px;
+}
+
+.wm-toc-hidden > .wm-content-pane {
+    padding-left: 0px;
+}
+
+.wm-small-show {
+    display: none;
+}
+
+#wm-search-form {
+    width: 100%;
+}
+
+#wm-search-show {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .wm-small-hide {
+        display: none;
+    }
+
+    .wm-small-show {
+        display: block;
+    }
+
+    .wm-small-left {
+        float: left !important;
+    }
+
+    #wm-search-show {
+        display: block;
+        margin-left: 1rem;
+    }
+
+    .wm-top-tool-expanded #wm-search-show {
+        display: none;
+    }
+
+    .wm-top-search {
+        display: none;
+    }
+
+    .wm-top-tool-expanded .wm-top-search {
+        display: table;
+        width: 100%;
+        padding: 0px;
+    }
+
+    .wm-top-page {
+        overflow: visible;
+    }
+
+    .wm-top-container {
+        /* This prevents horizontal overflow, but cuts off search results on bigger
+         * screens, so included in small-screen section */
+        overflow-x: hidden;
+    }
+
+    .wm-toc-pane {
+        display: none;
+    }
+
+    .wm-content-pane {
+        padding-left: 0px;
+        overflow: visible;
+    }
+}
+
+.wm-toctree {
+    list-style-type: none;
+    line-height: 16px;
+    padding-left: 0px;
+}
+
+.wm-toctree a, .wm-toctree a:visited, .wm-toctree a:hover, .wm-toctree a:focus {
+    color: #546e7a;
+    text-decoration: none;
+    outline: none;
+}
+
+.wm-toc-text {
+    display: block;
+    padding: 4px;
+    cursor: pointer;
+}
+
+.wm-toc-lev1 > .wm-toc-text {
+    padding-left: 14px;
+}
+
+.wm-toc-lev2 > .wm-toc-text {
+    padding-left: 28px;
+}
+
+.wm-toc-lev3 > .wm-toc-text {
+    padding-left: 42px;
+}
+
+.wm-toc-lev4 > .wm-toc-text {
+    padding-left: 56px;
+}
+
+.wm-toc-lev5 > .wm-toc-text {
+    padding-left: 70px;
+}
+
+.wm-toc-lev6 > .wm-toc-text {
+    padding-left: 84px;
+}
+
+.wm-toc-lev1 + .wm-page-toc {
+    margin-left: 14px;
+}
+
+.wm-toc-lev2 + .wm-page-toc {
+    margin-left: 28px;
+}
+
+.wm-toc-lev3 + .wm-page-toc {
+    margin-left: 42px;
+}
+
+.wm-toc-lev4 + .wm-page-toc {
+    margin-left: 56px;
+}
+
+.wm-toc-lev5 + .wm-page-toc {
+    margin-left: 70px;
+}
+
+.wm-toc-lev6 + .wm-page-toc {
+    margin-left: 84px;
+}
+
+.wm-toc-li-nested {
+    padding: 0px;
+    margin: 0px;
+}
+
+.wm-toc-opener > .wm-toc-text::before {
+    content: "\25B6 \FE0E";
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 8px;
+    width: 14px;
+}
+
+.wm-toc-opener.wm-toc-open > .wm-toc-text::before {
+    content: "\25BC \FE0E";
+}
+
+.wm-toc-li.wm-current, .wm-toc-li.wm-current:hover {
+    background-color: #546e7a;
+    color: white;
+}
+
+.wm-toc-li:hover {
+    background-color: #e0e0e0;
+}
+
+.wm-toc-li.wm-current a {
+    color: white;
+}
+
+.wm-toc-li-nested.wm-page-toc {
+    font-size: 16px;
+    line-height: 1.2rem;
+    overflow: hidden;
+    border-left: 1px solid #546e7a;
+}
+
+.wm-page-toc-opener > .wm-toc-text::after {
+    content: "\25C4";
+    display: inline-block;
+    float: right;
+    vertical-align: middle;
+    font-size: 8px;
+}
+
+.wm-page-toc-opener.wm-page-toc-open > .wm-toc-text::after {
+    content: "\25BC";
+}
+
+.wm-page-toc-text {
+    padding: 2px 2px 2px 1rem;
+    display: block;
+    cursor: pointer;
+}
+
+.wm-article {
+    width: 1px;
+    min-width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.btn:focus, .btn:active:focus, .btn.active:focus, .btn.focus, .btn:active.focus, .btn.active.focus {
+    outline: none;
+}
+
+.btn-default:focus, .btn-default.focus {
+    color: #333;
+    background-color: #fff;
+    border-color: #ccc;
+}
+
+.btn-default.greybtn {
+    color: #888;
+}
+
+.wm-article-nav-buttons {
+    margin: 1rem 0;
+}
+
+.wm-page-content img {
+    max-width: 100%;
+    display: inline-block;
+    padding: 4px;
+    line-height: 1.428571429;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 20px auto 30px auto;
+}
+
+.wm-page-content a {
+    color: #2fa4e7;
+}
+
+.wm-article-nav {
+    display: inline-block;
+    max-width: 48%;
+    white-space: nowrap;
+    color: #546e7a;
+    text-align: right;
+}
+
+.wm-article-nav > .btn-link {
+    display: block;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wm-article-nav > a, .wm-article-nav > a:visited, .wm-article-nav > a:hover, .wm-article-nav > a:focus {
+    color: #546e7a;
+    text-decoration: none;
+    outline: none;
+}
+
+/***********************************************************************
+ * Dropdown search results
+ ***********************************************************************/
+#mkdocs-search-results.dropdown-menu {
+    width: 40rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    white-space: normal;
+    max-height: calc(100vh - 60px);
+    max-width: 90vw;
+}
+
+#mkdocs-search-results {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif, FontAwesome;
+}
+
+.search-link {
+    font-size: 1.2rem;
+}
+
+.search-title {
+    font-weight: bold;
+    color: #337ab7;
+    padding-right: 1rem;
+}
+
+.search-text {
+    color: #666;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-text > b {
+    color: #000;
+}
+
+.wm-search-page {
+    list-style: none;
+    padding: 5px 0;
+}
+
+.wm-search-page > li {
+    padding: 1rem 0;
+    border-bottom: 1px solid #ccc;
+}
+
+.wm-search-page .search-link {
+    font-size: inherit;
+}
+
+.wm-search-page .search-link:hover, .wm-search-page .search-link:active {
+    text-decoration: none;
+}
+
+.wm-search-page .search-link:hover .search-title {
+    text-decoration: underline;
+}
+
+
+/***********************************************************************
+ * The rest is taken from base.css from mkdocs.
+ ***********************************************************************/
+
+.source-links {
+    float: right;
+}
+
+h1 {
+    color: #444;
+    font-weight: 400;
+    font-size: 42px;
+}
+
+h2, h3, h4, h5, h6 {
+    color: #444;
+    font-weight: 300;
+}
+
+hr {
+    border-top: 1px solid #aaa;
+}
+
+pre, .rst-content tt {
+    max-width: 100%;
+    background: #fff;
+    border: solid 1px #e1e4e5;
+    color: #333;
+    overflow-x: auto;
+}
+
+code.code-large, .rst-content tt.code-large {
+    font-size: 90%;
+}
+
+code {
+    padding: 2px 5px;
+    background: #fff;
+    border: solid 1px #e1e4e5;
+    color: #333;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+pre code {
+    background: transparent;
+    border: none;
+    white-space: pre;
+    word-wrap: normal;
+    font-family: monospace, serif;
+    font-size: 12px;
+}
+
+a code {
+    color: #2FA4E7;
+}
+
+a:hover code, a:focus code {
+    color: #157AB5;
+}
+
+footer {
+    margin-bottom: 10px;
+    text-align: center;
+    font-weight: 200;
+    font-size: smaller;
+}
+
+.modal-dialog {
+    margin-top: 60px;
+}
+
+.headerlink {
+    font-family: FontAwesome;
+    font-size: 14px;
+    display: none;
+    padding-left: .5em;
+}
+
+h1:hover .headerlink, h2:hover .headerlink, h3:hover .headerlink, h4:hover .headerlink, h5:hover .headerlink, h6:hover .headerlink {
+    display: inline-block;
+}
+
+.admonition {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    text-align: left;
+}
+
+.admonition.note { /* csslint allow: adjoining-classes */
+    color: #3a87ad;
+    background-color: #d9edf7;
+    border-color: #bce8f1;
+}
+
+.admonition.warning { /* csslint allow: adjoining-classes */
+    color: #c09853;
+    background-color: #fcf8e3;
+    border-color: #fbeed5;
+}
+
+.admonition.danger { /* csslint allow: adjoining-classes */
+    color: #b94a48;
+    background-color: #f2dede;
+    border-color: #eed3d7;
+}
+
+.admonition-title {
+    font-weight: bold;
+    text-align: left;
+}

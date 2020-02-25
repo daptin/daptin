@@ -3,11 +3,10 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	//log "github.com/sirupsen/logrus"
-	//"gopkg.in/Masterminds/squirrel.v1"
+	//"github.com/Masterminds/squirrel"
 	"errors"
 
 	"github.com/daptin/daptin/server/auth"
-	//"log"
 )
 
 // The TableAccessPermissionChecker middleware is resposible for entity level authorization check, before and after the changes
@@ -32,7 +31,13 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
+	}
 
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
+
+	if isAdmin {
+		return results, nil
 	}
 
 	tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
@@ -73,10 +78,22 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
-
 	}
 
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
+
+	if isAdmin {
+		return results, nil
+	}
+
+	//log.Printf("User Id: %v", sessionUser.UserReferenceId)
+	//log.Printf("User Groups: %v", sessionUser.Groups)
+
 	tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
+
+	//log.Printf("Table owner: %v", tableOwnership.UserId)
+	//log.Printf("Table groups: %v", tableOwnership.UserGroupId)
 
 	//log.Printf("[TableAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), tableOwnership)
 	if req.PlainRequest.Method == "GET" {

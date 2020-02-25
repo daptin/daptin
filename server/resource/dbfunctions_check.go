@@ -267,9 +267,15 @@ func PrintRelations(relations []api2go.TableRelation) {
 func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection, tx *sqlx.Tx) {
 
 	tables := []TableInfo{}
+	tableCreatedMap := map[string]bool{}
 
 	for _, table := range initConfig.Tables {
-		CheckTable(&table, db, tx)
+
+		if !tableCreatedMap[table.TableName] {
+			log.Infof("Check table %v", table.TableName)
+			CheckTable(&table, db, tx)
+			tableCreatedMap[table.TableName] = true
+		}
 		tables = append(tables, table)
 	}
 	initConfig.Tables = tables
@@ -315,9 +321,10 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 	//finalColumns := make(map[string]api2go.ColumnInfo, 0)
 	// if column name is empty, use name as column name
 	for i, c := range tableInfo.Columns {
-		if c.ColumnName == "" {
-			c.ColumnName = c.Name
-			tableInfo.Columns[i].ColumnName = c.Name
+		if c.ColumnName == "" && c.Name != "" {
+			tableInfo.Columns[i].ColumnName = SmallSnakeCaseText(c.Name)
+		} else if c.ColumnName != "" && c.Name == "" {
+			tableInfo.Columns[i].Name = c.ColumnName
 		}
 	}
 
@@ -334,15 +341,16 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 
 	s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
 	//log.Infof("Sql: %v", s)
-	rowx := tx.QueryRowx(s)
+	rowx := db.QueryRowx(s)
 	columns, err := rowx.Columns()
 	if err != nil {
 		log.Infof("Failed to select * from %v: %v", tableInfo.TableName, err)
 		CreateTable(tableInfo, tx)
 		return
 	} else {
-		var dest map[string]interface{}
-		rowx.Scan(&dest)
+		dest := make(map[string]interface{})
+		err = rowx.MapScan(dest)
+		CheckErr(err, "Failed to scan query result to map")
 	}
 
 	for _, col := range columns {
@@ -365,7 +373,8 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 
 			if info.DataType == "" {
 				log.Infof("No column type known for column: %v", info)
-				continue
+				info.DataType = "varchar(50)"
+				//continue
 			}
 
 			query := alterTableAddColumn(tableInfo.TableName, &info, tx.DriverName())
@@ -413,7 +422,7 @@ func PrintTableInfo(info *TableInfo, title string) {
 	}
 
 	table.Body = &tableBody
-	fmt.Println(title)
-	table.Println()
+	log.Println(title)
+	log.Println(table.String())
 
 }

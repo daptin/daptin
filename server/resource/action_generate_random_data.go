@@ -20,7 +20,7 @@ func (d *RandomDataGeneratePerformer) Name() string {
 	return "generate.random.data"
 }
 
-func (d *RandomDataGeneratePerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *RandomDataGeneratePerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -99,7 +99,7 @@ func GetFakeRow(columns []api2go.ColumnInfo) map[string]interface{} {
 			continue
 		}
 
-		fakeValue := ColumnManager.GetFakedata(col.ColumnType)
+		fakeValue := ColumnManager.GetFakeData(col.ColumnType)
 
 		row[col.ColumnName] = fakeValue
 

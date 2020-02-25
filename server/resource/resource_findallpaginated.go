@@ -2,15 +2,15 @@ package resource
 
 import (
 	"fmt"
+	"github.com/daptin/daptin/server/auth"
 	"strconv"
 	"strings"
 
 	"encoding/base64"
-	"encoding/json"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/Masterminds/squirrel.v1"
 	"net/url"
 )
 
@@ -22,7 +22,8 @@ func (dr *DbResource) GetTotalCount() uint64 {
 	}
 
 	var count uint64
-	dr.db.QueryRowx(s, v...).Scan(&count)
+	err = dr.db.QueryRowx(s, v...).Scan(&count)
+	CheckErr(err, "Failed to execute total count query [%s] [%v]", s, v)
 	//log.Infof("Count: [%v] %v", dr.model.GetTableName(), count)
 	return count
 }
@@ -37,7 +38,10 @@ func (dr *DbResource) GetTotalCountBySelectBuilder(builder squirrel.SelectBuilde
 	}
 
 	var count uint64
-	dr.db.QueryRowx(s, v...).Scan(&count)
+	err = dr.db.QueryRowx(s, v...).Scan(&count)
+	if err != nil {
+		log.Errorf("Failed to execute count query [%v] %v", s, err)
+	}
 	//log.Infof("Count: [%v] %v", dr.model.GetTableName(), count)
 	return count
 }
@@ -63,13 +67,36 @@ type Group struct {
 func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[string]interface{}, [][]map[string]interface{}, *PaginationData, error) {
 	//log.Infof("Find all row by params: [%v]: %v", dr.model.GetName(), req.QueryParams)
 	var err error
+
+	user := req.PlainRequest.Context().Value("user")
+	sessionUser := &auth.SessionUser{}
+
+	if user != nil {
+		sessionUser = user.(*auth.SessionUser)
+	}
+
+	adminId := dr.GetAdminReferenceId()
+	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
+
 	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
+	relatedTableName := ""
 	if dr.model.GetName() == "usergroup" && len(req.QueryParams) > 2 {
+		ok := false
 		for key := range req.QueryParams {
-			if EndsWithCheck(key, "Name") && req.QueryParams[key][0] == "usergroup_id" {
+			if relatedTableName, ok = EndsWith(key, "Name"); req.QueryParams[key][0] == "usergroup_id" && ok {
 				isRelatedGroupRequest = true
+				break
 			}
 		}
+	}
+
+	languagePreferences := make([]string, 0)
+	prefs := req.PlainRequest.Context().Value("language_preference")
+	if prefs != nil {
+		languagePreferences = prefs.([]string)
+	}
+	if languagePreferences != nil && len(languagePreferences) > 0 {
+		//log.Printf("Language preference: %v", languagePreferences)
 	}
 
 	pageNumber := uint64(0)
@@ -89,7 +116,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			//so we join it back to read it as json
 			query[0] = strings.Join(query, ",")
 		}
-		if query[0][0] == '[' {
+		if len(query) > 0 && len(query[0]) > 0 && query[0][0] == '[' {
 			//log.Printf("Found query in request: %s", query[0])
 			err = json.Unmarshal([]byte(query[0]), &queries)
 			if CheckInfo(err, "Failed to unmarshal query as json, using as a filter instead") {
@@ -106,7 +133,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		log.Printf("Found groups in request: %s", queryS)
 		if err == nil {
 			err = json.Unmarshal(queryS, &groupings)
-			log.Printf("Groupings: %v", queries)
+			log.Printf("Groupings: %v", groupings)
 		}
 		InfoErr(err, fmt.Sprintf("Failed to read groups from request: %v", query[0]))
 	}
@@ -134,9 +161,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	includedRelations := make(map[string]bool, 0)
 	if len(req.QueryParams["included_relations"]) > 0 {
-		included := req.QueryParams["included_relations"][0]
-		includedRelationsList := strings.Split(included, ",")
-		for _, incl := range includedRelationsList {
+		//included := req.QueryParams["included_relations"][0]
+		//includedRelationsList := strings.Split(included, ",")
+		for _, incl := range req.QueryParams["included_relations"] {
 			includedRelations[incl] = true
 		}
 
@@ -176,10 +203,10 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		pageNumber = pageNumber * pageSize
 	}
 
-	m := dr.model
-	//log.Infof("Get all resource type: %v\n", m)
+	tableModel := dr.model
+	//log.Infof("Get all resource type: %v\n", tableModel)
 
-	cols := m.GetColumns()
+	cols := tableModel.GetColumns()
 	finalCols := make([]string, 0)
 	//log.Infof("Cols: %v", cols)
 
@@ -188,40 +215,79 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 		for _, col := range cols {
 			if !col.ExcludeFromApi && reqFieldMap[col.Name] && col.ColumnName != "permission" && col.ColumnName != "reference_id" {
-				finalCols = append(finalCols, prefix+col.ColumnName)
+				finalCols = append(finalCols, col.ColumnName)
 			}
 		}
 	} else {
 		for _, col := range cols {
-			if col.ExcludeFromApi || col.ColumnName == "permission" || col.ColumnName == "reference_id" {
+			if col.ExcludeFromApi || col.ColumnName == "permission" || col.ColumnName == "reference_id" || col.ColumnName == "id" {
 				continue
 			}
-			finalCols = append(finalCols, prefix+col.ColumnName)
+			finalCols = append(finalCols, col.ColumnName)
 		}
 	}
 
 	if _, ok := req.QueryParams["usergroup_id"]; ok && req.QueryParams["usergroupName"][0] == dr.model.GetName()+"_id" {
 		isRelatedGroupRequest = true
+		if relatedTableName == "" {
+			relatedTableName = dr.model.GetTableName()
+		}
 	}
 
+	idColumn := fmt.Sprintf("%s.id", tableModel.GetTableName())
+	distinctIdColumn := fmt.Sprintf("distinct(%s.id)", tableModel.GetTableName())
 	if isRelatedGroupRequest {
 		//log.Infof("Switch permission to join table j1 instead of %v%v", prefix, "permission")
 		if dr.model.GetName() == "usergroup" {
-			finalCols = append(finalCols, "usergroup.permission")
+			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName))
+			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as reference_id", relatedTableName, relatedTableName))
 			finalCols = append(finalCols, "usergroup.reference_id as relation_reference_id")
 		} else {
 			finalCols = append(finalCols, "usergroup_id.permission")
 			finalCols = append(finalCols, "usergroup_id.reference_id as relation_reference_id")
-
+			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as reference_id", relatedTableName, relatedTableName))
+			joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", relatedTableName, relatedTableName)
+			distinctIdColumn = fmt.Sprintf("distinct(%s.id)", joinTableName)
+			idColumn = fmt.Sprintf("%s.id", joinTableName)
 		}
-		finalCols = append(finalCols, prefix+"reference_id as reference_id")
+		//		finalCols = append(finalCols, prefix+"reference_id as reference_id")
 	} else {
 		finalCols = append(finalCols, prefix+"permission")
 		finalCols = append(finalCols, prefix+"reference_id")
+
 	}
 
-	queryBuilder := statementbuilder.Squirrel.Select(finalCols...).From(m.GetTableName()).Offset(pageNumber).Limit(pageSize)
-	countQueryBuilder := statementbuilder.Squirrel.Select("count(*)").From(m.GetTableName()).Offset(0).Limit(1)
+	queryBuilder := statementbuilder.Squirrel.Select(distinctIdColumn).From(tableModel.GetTableName())
+
+	joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", tableModel.GetTableName(), tableModel.GetTableName())
+	if !isRelatedGroupRequest && tableModel.GetTableName() != "usergroup" {
+		queryBuilder = queryBuilder.LeftJoin(
+			fmt.Sprintf("%s %s on %s.id=%s.%s_id",
+				joinTableName, joinTableName, tableModel.GetTableName(), joinTableName, tableModel.GetTableName(),
+			))
+	}
+
+	var countQueryBuilder squirrel.SelectBuilder
+	countQueryBuilder = statementbuilder.Squirrel.Select("count(*)").From(tableModel.GetTableName()).Offset(0).Limit(1)
+	if req.QueryParams["page[after]"] != nil && len(req.QueryParams["page[after]"]) > 0 {
+		id, err := dr.GetReferenceIdToId(dr.TableInfo().TableName, req.QueryParams["page[after]"][0])
+		if err != nil {
+			queryBuilder = queryBuilder.Where(squirrel.Gt{
+				dr.TableInfo().TableName + ".id": id,
+			}).Limit(pageSize)
+		}
+	} else if req.QueryParams["page[before]"] != nil && len(req.QueryParams["page[before]"]) > 0 {
+		id, err := dr.GetReferenceIdToId(dr.TableInfo().TableName, req.QueryParams["page[before]"][0])
+		if err != nil {
+			queryBuilder = queryBuilder.Where(squirrel.Lt{
+				dr.TableInfo().TableName + ".id": id,
+			}).Limit(pageSize)
+		}
+	} else {
+		queryBuilder = queryBuilder.Offset(pageNumber).Limit(pageSize)
+	}
+	joins := make([]string, 0)
+	joinFilters := make([]interface{}, 0)
 
 	infos := dr.model.GetColumns()
 
@@ -258,11 +324,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	queryBuilder = addFilters(queryBuilder, queries, prefix)
 
-	if len(groupings) > 0 && false {
-		for _, groupBy := range groupings {
-			queryBuilder = queryBuilder.GroupBy(fmt.Sprintf("%s %s", groupBy.ColumnName, groupBy.Order))
-		}
-	}
+	//if len(groupings) > 0 && false {
+	//	for _, groupBy := range groupings {
+	//		queryBuilder = queryBuilder.GroupBy(fmt.Sprintf("%s %s", groupBy.ColumnName, groupBy.Order))
+	//	}
+	//}
 
 	for _, rel := range dr.model.GetRelations() {
 
@@ -295,11 +361,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			}
 			if ok {
 
-				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetObject(), "id", "reference_id", queries)
+				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetObject(), []string{"id"}, "reference_id", queries)
 				//log.Infof("Converted ids: %v", ids)
 				if err != nil {
 					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
-					continue
+					return nil, nil, nil, err
 				}
 				switch rel.Relation {
 				case "has_one":
@@ -320,7 +386,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 					wh[rel.GetObjectName()+".id"] = ids
 					queryBuilder = queryBuilder.Join(rel.GetJoinString()).Where(wh)
 					countQueryBuilder = countQueryBuilder.Join(rel.GetJoinString()).Where(wh)
-
+					joins = append(joins, rel.GetJoinString())
+					joinFilters = append(joinFilters, wh)
 				}
 			}
 		}
@@ -330,7 +397,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			if !ok {
 				continue
 			}
-			log.Infof("Reverse Relation %v", rel.String())
+			//log.Infof("Reverse Relation %v", rel.String())
 
 			var subjectName string
 			/**
@@ -351,6 +418,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				}
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
+				joins = append(joins, rel.GetReverseJoinString())
+				joinFilters = append(joinFilters, squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 				break
 
 			case "belongs_to":
@@ -360,14 +429,16 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				if !ok || len(queries) < 1 {
 					continue
 				}
-				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), "id", "reference_id", queries)
+				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), []string{"id"}, "reference_id", queries)
 				if err != nil {
 					log.Errorf("Failed to convert [%v]refids to ids[%v]: %v", rel.GetSubject(), queries, err)
-					continue
+					return nil, nil, nil, err
 				}
 
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".id": ids})
 				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".id": ids})
+				joins = append(joins, rel.GetReverseJoinString())
+				joinFilters = append(joinFilters, squirrel.Eq{rel.GetSubjectName() + ".id": ids})
 				break
 			case "has_many":
 				subjectId := req.QueryParams[rel.GetSubject()+"_id"]
@@ -377,12 +448,15 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				//log.Infof("Has many [%v] : [%v] === %v", dr.model.GetName(), subjectId, req.QueryParams)
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
+				joins = append(joins, rel.GetReverseJoinString())
+				joinFilters = append(joinFilters, squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
 
 			}
 
 		}
 	}
 
+	orders := make([]string, 0)
 	for _, so := range sortOrder {
 
 		if len(so) < 1 {
@@ -390,41 +464,144 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 		//log.Infof("Sort order: %v", so)
 		if so[0] == '-' {
-			queryBuilder = queryBuilder.OrderBy(prefix + so[1:] + " desc")
-			countQueryBuilder = countQueryBuilder.OrderBy(prefix + so[1:] + " desc")
+			ord := prefix + so[1:] + " desc"
+			queryBuilder = queryBuilder.OrderBy(ord)
+			countQueryBuilder = countQueryBuilder.OrderBy(ord)
+			orders = append(orders, ord)
 		} else {
 			if so[0] == '+' {
-				queryBuilder = queryBuilder.OrderBy(prefix + so[1:] + " asc")
-				countQueryBuilder = countQueryBuilder.OrderBy(prefix + so[1:] + " asc")
+				ord := prefix + so[1:] + " asc"
+				queryBuilder = queryBuilder.OrderBy(ord)
+				countQueryBuilder = countQueryBuilder.OrderBy(ord)
+				orders = append(orders, ord)
 			} else {
-				queryBuilder = queryBuilder.OrderBy(prefix + so + " asc")
-				countQueryBuilder = countQueryBuilder.OrderBy(prefix + so + " asc")
+				ord := prefix + so + " asc"
+				queryBuilder = queryBuilder.OrderBy(ord)
+				countQueryBuilder = countQueryBuilder.OrderBy(ord)
+				orders = append(orders, ord)
 			}
 		}
 	}
 
+	if !isAdmin && tableModel.GetTableName() != "usergroup" {
+		queryBuilder = queryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
+			"((%s.permission & 32768) = 32768) or "+
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", tableModel.GetTableName(), joinTableName, tableModel.GetTableName(), tableModel.GetTableName()), sessionUser.UserId)
+		countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
+			//"((%s.permission & 32768) = 32768) or "+
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", tableModel.GetTableName(), tableModel.GetTableName(), tableModel.GetTableName()), sessionUser.UserId)
+	}
+
+	idsListQuery, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	//log.Printf("Id query: [%s]", idsListQuery)
+	//log.Printf("Id query args: %v", args)
+	stmt, err := dr.connection.Preparex(idsListQuery)
+	if err != nil {
+		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
+		log.Errorf("Failed to prepare sql: %v", err)
+		return nil, nil, nil, err
+	}
+	idsRow, err := stmt.Queryx(args...)
+	if err != nil {
+		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
+		log.Errorf("Failed to prepare sql: %v", err)
+		return nil, nil, nil, err
+	}
+	ids := make([]int64, 0)
+
+	for idsRow.Next() {
+		var id int64
+		err = idsRow.Scan(&id)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		ids = append(ids, id)
+	}
+
+	if !dr.tableInfo.TranslationsEnabled || len(languagePreferences) == 0 {
+
+		for i, col := range finalCols {
+			if strings.Index(col, ".") == -1 {
+				finalCols[i] = prefix + col
+			}
+		}
+
+		queryBuilder = statementbuilder.Squirrel.Select(finalCols...).From(tableModel.GetTableName()).Where(squirrel.Eq{
+			idColumn: ids,
+		}).OrderBy(orders...)
+	} else {
+		var preferredLanguage = languagePreferences[0]
+		translateTableName := tableModel.GetTableName() + "_i18n"
+
+		ifNullFunctionName := "IFNULL"
+		if dr.connection.DriverName() == "postgres" {
+			ifNullFunctionName = "COALESCE"
+		} else if dr.connection.DriverName() == "mssql" {
+			ifNullFunctionName = "ISNULL"
+		}
+
+		//translatedColumns := make([]string, 0)
+		for i, colName := range finalCols {
+			if IsStandardColumn(colName) {
+				finalCols[i] = prefix + colName
+			} else {
+				if strings.Index(colName, ".") == -1 {
+					finalCols[i] = ifNullFunctionName + "(" + translateTableName + "." + colName + "," + prefix + colName + ") as " + colName
+				} else {
+					finalCols[i] = colName
+				}
+			}
+		}
+
+		queryBuilder = statementbuilder.Squirrel.Select(finalCols...).From(tableModel.GetTableName()).
+			LeftJoin(translateTableName +
+				" on " + translateTableName + ".translation_reference_id = " + tableModel.GetTableName() + ".id" +
+				" and " + translateTableName + ".language_id = " + "'" + preferredLanguage + "'").Where(squirrel.Eq{
+			idColumn: ids,
+		}).OrderBy(orders...)
+
+	}
+
+	if len(joins) > 0 {
+		for _, j := range joins {
+			queryBuilder = queryBuilder.Join(j)
+		}
+		for _, w := range joinFilters {
+			queryBuilder = queryBuilder.Where(w)
+		}
+	}
+
 	sql1, args, err := queryBuilder.ToSql()
-	log.Printf("Query: %v == %v", sql1, args)
+	//log.Printf("Query: %v == %v", sql1, args)
 
 	if err != nil {
 		log.Infof("Error: %v", err)
 		return nil, nil, nil, err
 	}
 
-	stmt, err := dr.connection.Preparex(sql1)
+	stmt, err = dr.connection.Preparex(sql1)
 	if err != nil {
 		log.Infof("Findall select query sql: %v == %v", sql1, args)
 		log.Errorf("Failed to prepare sql: %v", err)
 		return nil, nil, nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		err = stmt.Close()
+		CheckErr(err, "Failed to close statement")
+	}()
 	rows, err := stmt.Queryx(args...)
 
 	if err != nil {
 		log.Infof("Error: %v", err)
 		return nil, nil, nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		err = rows.Close()
+		CheckErr(err, "Failed to close rows")
+	}()
 
 	//log.Infof("Included relations: %v", includedRelations)
 	results, includes, err := dr.ResultToArrayOfMap(rows, dr.model.GetColumnMap(), includedRelations)
@@ -446,6 +623,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	return results, includes, paginationData, err
 
 }
+
 func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix string) squirrel.SelectBuilder {
 
 	if len(queries) == 0 {
@@ -460,6 +638,9 @@ func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix str
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
 		case "is":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		case "in":
+			//queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (?)", prefix+filterQuery.ColumnName), filterQuery.Value)
+			queryBuilder.Where(squirrel.Eq{prefix + filterQuery.ColumnName: filterQuery.Value.([]string)})
 		case "is not":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 		case "before":
@@ -574,7 +755,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 			PageSize:   10,
 		}
 	}
-	log.Infof("Pagination :%v", pagination)
+	//log.Infof("Pagination :%v", pagination)
 
 	return uint(pagination.TotalCount), NewResponse(nil, result, 200, &api2go.Pagination{
 		Next:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageSize+pagination.PageNumber)},

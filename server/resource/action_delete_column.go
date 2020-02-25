@@ -1,11 +1,14 @@
 package resource
 
 import (
-	"encoding/json"
+	"context"
 	"github.com/artpar/api2go"
+	"github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"net/http"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type DeleteWorldColumnPerformer struct {
 	cmsConfig *CmsConfig
@@ -16,17 +19,22 @@ func (d *DeleteWorldColumnPerformer) Name() string {
 	return "world.column.delete"
 }
 
-func (d *DeleteWorldColumnPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *DeleteWorldColumnPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	worldId := inFields["world_id"].(string)
 	columnToDelete := inFields["column_name"].(string)
 
-	req := api2go.Request{
-		PlainRequest: &http.Request{
-			Method: "GET",
-		},
+	sessionUser := request.Attributes["user"]
+	httpReq := &http.Request{
+		Method: "GET",
 	}
-	table, err := d.cruds["world"].FindOne(worldId, req)
+
+	httpReq = httpReq.WithContext(context.WithValue(context.Background(), "user", sessionUser))
+	req := &api2go.Request{
+		PlainRequest: httpReq,
+	}
+
+	table, err := d.cruds["world"].FindOne(worldId, *req)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -67,7 +75,7 @@ func (d *DeleteWorldColumnPerformer) DoAction(request ActionRequest, inFields ma
 	tableData.Data["world_schema_json"] = schemaJson
 	delete(tableData.Data, "version")
 
-	_, err = d.cruds["world"].UpdateWithoutFilters(tableData, req)
+	_, err = d.cruds["world"].UpdateWithoutFilters(tableData, *req)
 	if err != nil {
 		return nil, nil, []error{err}
 	}

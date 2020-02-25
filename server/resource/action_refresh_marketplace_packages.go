@@ -15,7 +15,7 @@ func (d *RefreshMarketplacePackagelistPerformer) Name() string {
 	return "marketplace.package.refresh"
 }
 
-func (d *RefreshMarketplacePackagelistPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *RefreshMarketplacePackagelistPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	marketReferenceId := inFieldMap["marketplace_id"].(string)
 	marketplaceHandler, ok := d.cmsConfig.MarketplaceHandlers[marketReferenceId]

@@ -1,11 +1,10 @@
 package resource
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/resty"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
@@ -22,7 +21,7 @@ func toJson(obj interface{}) string {
 	return string(r)
 }
 
-func (d *NetworkRequestActionPerformer) DoAction(request ActionRequest, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *NetworkRequestActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	headers, isHeader := inFieldMap["Headers"]
 	headerMap := make(map[string]string)

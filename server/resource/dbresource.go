@@ -1,41 +1,86 @@
 package resource
 
 import (
-	"fmt"
+	"encoding/base64"
+	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-imap"
+	"github.com/artpar/go-imap/backend/backendutil"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
-	"gopkg.in/Masterminds/squirrel.v1"
+	"io/ioutil"
+	"log"
+	"os"
 	"strings"
+	"sync"
 )
 
 type DbResource struct {
-	model            *api2go.Api2GoModel
-	db               sqlx.Ext
-	connection       database.DatabaseConnection
-	tableInfo        *TableInfo
-	Cruds            map[string]*DbResource
-	ms               *MiddlewareSet
-	ActionHandlerMap map[string]ActionPerformerInterface
-	configStore      *ConfigStore
-	contextCache     map[string]interface{}
-	defaultGroups    []int64
+	model              *api2go.Api2GoModel
+	db                 sqlx.Ext
+	connection         database.DatabaseConnection
+	tableInfo          *TableInfo
+	Cruds              map[string]*DbResource
+	ms                 *MiddlewareSet
+	ActionHandlerMap   map[string]ActionPerformerInterface
+	configStore        *ConfigStore
+	contextCache       map[string]interface{}
+	defaultGroups      []int64
+	contextLock        sync.RWMutex
+	AssetFolderCache   map[string]map[string]AssetFolderCache
+	SubsiteFolderCache map[string]AssetFolderCache
 }
 
-func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, tableInfo TableInfo) *DbResource {
+type AssetFolderCache struct {
+	LocalSyncPath string
+	Keyname       string
+	CloudStore    CloudStore
+}
+
+func (afc *AssetFolderCache) UploadFiles(files []interface{}) {
+
+	for i := range files {
+		file := files[i].(map[string]interface{})
+		contents, ok := file["file"]
+		if !ok {
+			contents = file["contents"]
+		}
+		if contents != nil {
+
+			contentString, ok := contents.(string)
+			if ok {
+
+				if contentString[0:11] == "data:image/" {
+					contentString = strings.Split(contentString, "base64,")[1]
+				}
+				fileBytes, e := base64.StdEncoding.DecodeString(contentString)
+				if e != nil {
+					continue
+				}
+				ioutil.WriteFile(afc.LocalSyncPath+"/"+file["name"].(string), fileBytes, os.ModePerm)
+			}
+		}
+	}
+
+}
+
+func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
+	ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore,
+	tableInfo TableInfo) *DbResource {
 	//log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
 	return &DbResource{
-		model:         model,
-		db:            db,
-		connection:    db,
-		ms:            ms,
-		configStore:   configStore,
-		Cruds:         cruds,
-		tableInfo:     &tableInfo,
-		defaultGroups: GroupNamesToIds(db, tableInfo.DefaultGroups),
-		contextCache:  make(map[string]interface{}),
+		model:            model,
+		db:               db,
+		connection:       db,
+		ms:               ms,
+		configStore:      configStore,
+		Cruds:            cruds,
+		tableInfo:        &tableInfo,
+		defaultGroups:    GroupNamesToIds(db, tableInfo.DefaultGroups),
+		contextCache:     make(map[string]interface{}),
+		contextLock:      sync.RWMutex{},
+		AssetFolderCache: make(map[string]map[string]AssetFolderCache),
 	}
 }
 func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int64 {
@@ -65,16 +110,23 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int6
 }
 
 func (dr *DbResource) PutContext(key string, val interface{}) {
+	dr.contextLock.Lock()
+	defer dr.contextLock.Unlock()
+
 	dr.contextCache[key] = val
 }
 
 func (dr *DbResource) GetContext(key string) interface{} {
+
+	dr.contextLock.RLock()
+	defer dr.contextLock.RUnlock()
+
 	return dr.contextCache[key]
 }
 
 func (dr *DbResource) GetAdminReferenceId() string {
 	cacheVal := dr.GetContext("administrator_reference_id")
-	if cacheVal == nil {
+	if cacheVal == nil || cacheVal == "" {
 
 		userRefId := dr.GetUserIdByUsergroupId(2)
 		dr.PutContext("administrator_reference_id", userRefId)
@@ -82,6 +134,10 @@ func (dr *DbResource) GetAdminReferenceId() string {
 	} else {
 		return cacheVal.(string)
 	}
+}
+
+func (dr *DbResource) TableInfo() *TableInfo {
+	return dr.tableInfo
 }
 
 func (dr *DbResource) GetAdminEmailId() string {
@@ -99,7 +155,7 @@ func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, sto
 
 	q := statementbuilder.Squirrel.Select("*").From("mail").Where(squirrel.Eq{
 		"mail_box_id": mailBoxId,
-		"deleted": false,
+		"deleted":     false,
 	}).Offset(uint64(start - 1))
 
 	if stop > 0 {
@@ -129,7 +185,7 @@ func (dr *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32
 
 	q := statementbuilder.Squirrel.Select("*").From("mail").Where(squirrel.Eq{
 		"mail_box_id": mailBoxId,
-		"deleted": false,
+		"deleted":     false,
 	}).Where(squirrel.GtOrEq{
 		"id": start,
 	})
@@ -251,28 +307,36 @@ func (dr *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
 	return id
 
 }
-func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags string) error {
+func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []string) error {
 
+	//log.Printf("Update mail flags for [%v][%v]: %v", mailBoxId, mailId, newFlags)
 	seen := false
 	recent := false
 	deleted := false
 
-	for _, flag := range strings.Split(newFlags, ",") {
-		flag = strings.ToUpper(flag)
-		if flag == "\\RECENT" {
-			recent = true
-		}
-		if flag == "\\SEEN" {
-			seen = true
-		}
-		if flag == "\\EXPUNGE" || flag == "\\DELETED" {
-			deleted = true
-		}
+	if HasAnyFlag(newFlags, []string{imap.RecentFlag}) {
+		recent = true
+	} else {
+		seen = true
+	}
+
+	if HasAnyFlag(newFlags, []string{"\\seen"}) {
+		seen = true
+		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
+		log.Printf("New flags: [%v]", newFlags)
+	}
+
+	if HasAnyFlag(newFlags, []string{"\\expunge", "\\deleted"}) {
+		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
+		newFlags = backendutil.UpdateFlags(newFlags, imap.AddFlags, []string{"\\Seen"})
+		log.Printf("New flags: [%v]", newFlags)
+		deleted = true
+		seen = true
 	}
 
 	query, args, err := statementbuilder.Squirrel.
 		Update("mail").
-		Set("flags", newFlags).
+		Set("flags", strings.Join(newFlags, ",")).
 		Set("seen", seen).
 		Set("recent", recent).
 		Set("deleted", deleted).
@@ -318,14 +382,30 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, nil
 	}
 
-	questionMarks := strings.Join(strings.Split(strings.Trim(strings.Repeat("?;", len(ids)), ";"), ";"), ",")
-	_, err = dr.db.Exec(fmt.Sprintf("delete from mail_mail_id_has_usergroup_usergroup_id where mail_id in (%s)", questionMarks), ids...)
+	query, args, err := statementbuilder.Squirrel.Delete("mail_mail_id_has_usergroup_usergroup_id").Where(squirrel.Eq{
+		"mail_id": ids,
+	}).ToSql()
+
+	if err != nil {
+		log.Printf("Query: %v", query)
+		return 0, err
+	}
+
+	_, err = dr.db.Exec(query, args...)
 	if err != nil {
 		return 0, err
 	}
 
-	result, err := dr.db.Exec(fmt.Sprintf("delete from mail where id in (%s)", questionMarks), ids...)
+	query, args, err = statementbuilder.Squirrel.Delete("mail").Where(squirrel.Eq{
+		"id": ids,
+	}).ToSql()
 	if err != nil {
+		return 0, err
+	}
+
+	result, err := dr.db.Exec(query, args...)
+	if err != nil {
+		log.Printf("Query: %v", query)
 		return 0, err
 	}
 

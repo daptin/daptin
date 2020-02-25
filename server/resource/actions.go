@@ -6,7 +6,7 @@ import (
 
 // Outcome is call to a internal function with attributes as parameters
 // Outcome has a particular `type`, it can be one of the data entities already defined
-// Method is the type of outcome: GET/PUT/POST/DELETE/UPDATE/PATCH/EXECUTE
+// Method is the type of outcome: GET/PUT/POST/DELETE/UPDATE/PATCH/EXECUTE/INTEGRATION
 // Condition can be specified in JS to be checked, false condition will skip processing the outcome
 // set SkipInResponse to true to not include action outcome in the http response of the action call
 // reference is a name you can assign to the outcome of, which can be used in furthur chained outcomes
@@ -15,7 +15,7 @@ import (
 // JS scripting can be used to reference existing outcomes by reference names
 type Outcome struct {
 	Type           string
-	Method         string
+	Method         string // method name
 	Reference      string
 	SkipInResponse bool
 	Condition      string

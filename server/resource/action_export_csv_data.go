@@ -20,7 +20,7 @@ func (d *ExportCsvDataPerformer) Name() string {
 	return "__csv_data_export"
 }
 
-func (d *ExportCsvDataPerformer) DoAction(request ActionRequest, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *ExportCsvDataPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -75,7 +75,7 @@ func (d *ExportCsvDataPerformer) DoAction(request ActionRequest, inFields map[st
 		csvWriter := gocsv.NewSafeCSVWriter(csvFileWriter)
 		firstRow := contentArray[0]
 
-		for colName, _ := range firstRow {
+		for colName := range firstRow {
 			columnKeys = append(columnKeys, colName)
 		}
 

@@ -85,11 +85,14 @@ func (ati *ActiveTaskInstance) Run() {
 	if ati.Task.AsUserEmail != "" {
 		permission, err := ati.DbResource.GetObjectByWhereClause(USER_ACCOUNT_TABLE_NAME, "email", ati.Task.AsUserEmail)
 		CheckErr(err, "Failed to load user by email [%v]", ati.Task.AsUserEmail)
-		log.Printf("Loaded user permission: %v", permission)
-		usergroups := ati.DbResource.GetObjectUserGroupsByWhere(USER_ACCOUNT_TABLE_NAME, "reference_id", permission["reference_id"].(string))
-		sessionUser.UserReferenceId = permission["reference_id"].(string)
-		sessionUser.UserId = permission["id"].(int64)
-		sessionUser.Groups = usergroups
+		//log.Printf("Loaded user permission: %v", permission)
+		refId := permission["reference_id"]
+		if refId != nil {
+			usergroups := ati.DbResource.GetObjectUserGroupsByWhere(USER_ACCOUNT_TABLE_NAME, "reference_id", refId.(string))
+			sessionUser.UserReferenceId = permission["reference_id"].(string)
+			sessionUser.UserId = permission["id"].(int64)
+			sessionUser.Groups = usergroups
+		}
 	}
 
 	pr1 := http.Request{
@@ -119,6 +122,7 @@ func (dts *DefaultTaskScheduler) AddTask(task Task) error {
 
 	return err
 }
+
 func (db *DbResource) NewActiveTaskInstance(task Task) *ActiveTaskInstance {
 	return &ActiveTaskInstance{
 		Task: task,
