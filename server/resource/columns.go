@@ -2094,6 +2094,13 @@ var StandardTables = []TableInfo{
 				ColumnType:   "truefalse",
 				DefaultValue: "1",
 			},
+			{
+				Name:         "authentication_required",
+				ColumnName:   "authentication_required",
+				DataType:     "int(1)",
+				ColumnType:   "truefalse",
+				DefaultValue: "1",
+			},
 		},
 	},
 	{
