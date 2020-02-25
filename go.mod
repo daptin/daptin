@@ -22,7 +22,7 @@ require (
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
 	github.com/artpar/quickgomail v0.3.0
-	github.com/artpar/rclone v1.50.4
+	github.com/artpar/rclone v1.50.6
 	github.com/artpar/resty v1.0.1
 	github.com/artpar/stats v1.0.2
 	github.com/aws/aws-sdk-go v1.27.0

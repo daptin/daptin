@@ -183,6 +183,8 @@ github.com/artpar/rclone v1.50.3 h1:53RRpbF2Z5YpOCYwqkP8BncuH+G7yVPT/X9tI1xUWws=
 github.com/artpar/rclone v1.50.3/go.mod h1:rXHmMgzRIu2/t5xRjy60ShHS0ljNc1mRCKYCiiH8OfE=
 github.com/artpar/rclone v1.50.4 h1:wSRV922x+61nRnUl1S5hefkKvfyk4OjZMXhNQhD7sy0=
 github.com/artpar/rclone v1.50.4/go.mod h1:d0D6KoapX0kXd9c+Q+X/x8IiHITy3atU1998SnKLYNE=
+github.com/artpar/rclone v1.50.6 h1:VOHfjZSkG6HR2ScKiI8PQzfi2qcHY2PMnPtmo8NCeLI=
+github.com/artpar/rclone v1.50.6/go.mod h1:d0D6KoapX0kXd9c+Q+X/x8IiHITy3atU1998SnKLYNE=
 github.com/artpar/resty v1.0.1 h1:4O4Vb+uRYvRACcuHGyVmlX38uB+1g8j9u0FEAAQmlKE=
 github.com/artpar/resty v1.0.1/go.mod h1:A6LhStY3eAcsVKc7NUPPDsSC0LZaZnqK917LyWhXVsU=
 github.com/artpar/stats v0.0.0-20181112204834-fc5c06ed3df0 h1:M8HTVPExAIsTvCp4hh72WcH6UsRxixF8FlfEXHq+ndA=
@@ -760,6 +762,7 @@ github.com/nsf/termbox-go v0.0.0-20190325093121-288510b9734e/go.mod h1:IuKpRQcYE
 github.com/nsf/termbox-go v0.0.0-20190624072549-eeb6cd0a1762/go.mod h1:IuKpRQcYE1Tfu+oAQqaLisqDeXgjyyltCfsaoYN18NQ=
 github.com/nsf/termbox-go v0.0.0-20190817171036-93860e161317 h1:hhGN4SFXgXo61Q4Sjj/X9sBjyeSa2kdpaOzCO+8EVQw=
 github.com/nsf/termbox-go v0.0.0-20190817171036-93860e161317/go.mod h1:IuKpRQcYE1Tfu+oAQqaLisqDeXgjyyltCfsaoYN18NQ=
+github.com/nsf/termbox-go v0.0.0-20191229070316-58d4fcbce2a7 h1:OkWEy7aQeQTbgdrcGi9bifx+Y6bMM7ae7y42hDFaBvA=
 github.com/nsf/termbox-go v0.0.0-20191229070316-58d4fcbce2a7/go.mod h1:IuKpRQcYE1Tfu+oAQqaLisqDeXgjyyltCfsaoYN18NQ=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
