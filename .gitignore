@@ -7,7 +7,6 @@ temp.*daptin.json
 docker_dir/
 npm-debug.log
 rice-box.go
-bin/
 build/
 projectFilesBackup/
 daptinweb/static/samples/devsupport.json
