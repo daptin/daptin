@@ -1,13 +1,19 @@
 package server
 
 import (
-	"crypto/tls"
-	"encoding/base64"
 	"fmt"
+	"io"
+	"net"
+	"os"
+	"strings"
+	"time"
+
+	server2 "github.com/fclairamb/ftpserver/server"
+
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/go-guerrilla"
-	"github.com/artpar/go-imap"
+	"github.com/artpar/go-imap-idle"
 	"github.com/artpar/go-imap/server"
 	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/fs"
@@ -17,23 +23,23 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
-	"github.com/emersion/go-sasl"
 	"github.com/gin-gonic/gin"
+	"github.com/hpcloud/tail"
 	"github.com/icrowley/fake"
-	"strings"
-	"time"
 
 	//"github.com/gin-gonic/gin"
-	graphqlhandler "github.com/graphql-go/handler"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
+
+	graphqlhandler "github.com/graphql-go/handler"
+	log "github.com/sirupsen/logrus"
 )
 
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon, resource.TaskScheduler) {
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon,
+	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server) {
 
 	/// Start system initialise
 	log.Infof("Load config files")
@@ -57,11 +63,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	fs.Config.StatsLogLevel = 200
 
 	initialiseResources(&initConfig, db)
+
 	/// end system initialise
 
-	r := gin.Default()
+	defaultRouter := gin.Default()
 
-	r.Use(func() gin.HandlerFunc {
+	defaultRouter.Use(func() gin.HandlerFunc {
 		return func(c *gin.Context) {
 			beginning, recorder := Stats.Begin(c.Writer)
 			defer Stats.End(beginning, stats.WithRecorder(recorder))
@@ -69,15 +76,15 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		}
 	}())
 
-	r.GET("/statistics", func(c *gin.Context) {
+	defaultRouter.GET("/statistics", func(c *gin.Context) {
 		c.JSON(http.StatusOK, Stats.Data())
 	})
 
 	// 6 UID FETCH 1:2 (UID)
-	r.Use(CorsMiddlewareFunc)
-	r.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
+	defaultRouter.Use(NewCorsMiddleware().CorsMiddlewareFunc)
+	defaultRouter.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
 
-	r.GET("/favicon.ico", func(c *gin.Context) {
+	defaultRouter.GET("/favicon.ico", func(c *gin.Context) {
 
 		file, err := boxRoot.Open("static/img/favicon.png")
 		if err != nil {
@@ -94,7 +101,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		resource.CheckErr(err, "Failed to write favico")
 	})
 
-	r.GET("/favicon.png", func(c *gin.Context) {
+	defaultRouter.GET("/favicon.png", func(c *gin.Context) {
 
 		file, err := boxRoot.Open("static/img/favicon.png")
 		if err != nil {
@@ -108,23 +115,109 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			return
 		}
 		_, err = c.Writer.Write(fileContents)
-		resource.CheckErr(err, "Failed to write favico")
+		resource.CheckErr(err, "Failed to write favicon")
 	})
 
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
+	defaultRouter.Use(NewLanguageMiddleware(configStore).LanguageMiddlewareFunc)
+
+	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
+	if err != nil {
+		name, e := os.Hostname()
+		if e != nil {
+			name = "localhost"
+		}
+		hostname = name
+		configStore.SetConfigValueFor("hostname", hostname, "backend")
+	}
+
+	initConfig.Hostname = hostname
 
 	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
 	if err != nil {
 		u, _ := uuid.NewV4()
 		newSecret := u.String()
-		configStore.SetConfigValueFor("jwt.secret", newSecret, "backend")
+		err = configStore.SetConfigValueFor("jwt.secret", newSecret, "backend")
+		resource.CheckErr(err, "Failed to store secret in database")
 		jwtSecret = newSecret
+	}
+
+	enablelogs, err := configStore.GetConfigValueFor("logs.enable", "backend")
+	if err != nil {
+		err = configStore.SetConfigValueFor("logs.enable", "false", "backend")
+		resource.CheckErr(err, "Failed to store a default value for logs.enable")
+	}
+
+	var ok bool
+	LogFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
+	if !ok || LogFileLocation == "" {
+		LogFileLocation = "daptin.log"
+	}
+
+	go func() {
+
+		for {
+
+			fileInfo, err := os.Stat(LogFileLocation)
+			if err != nil {
+				log.Errorf("Failed to stat log file: %v", err)
+				time.Sleep(30 * time.Minute)
+				continue
+			}
+
+			fileMbs := fileInfo.Size() / (1024 * 1024)
+			//log.Printf("Current log size: %d MB", fileMbs)
+			if fileMbs > 100 {
+				err = os.Remove(LogFileLocation)
+				resource.CheckErr(err, "Failed to remove log file [%v]", LogFileLocation)
+				_, err = os.Create(LogFileLocation)
+				resource.CheckErr(err, "Failed to create new log file after cleanup")
+				f, e := os.OpenFile(LogFileLocation, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+				if e != nil {
+					log.Errorf("Failed to open logfile %v", e)
+				}
+
+				mwriter := io.MultiWriter(f, os.Stdout)
+
+				log.SetOutput(mwriter)
+				log.Infof("Truncated log file, cleaned %d MB", fileMbs)
+
+			}
+			time.Sleep(30 * time.Minute)
+
+		}
+	}()
+
+	if enablelogs == "true" {
+
+		defaultRouter.GET("/__logs", func(c *gin.Context) {
+			logTail, err := tail.TailFile("daptin.log", tail.Config{
+				Follow: true,
+				ReOpen: true,
+				Location: &tail.SeekInfo{
+					Offset: 0,
+					Whence: 2,
+				},
+			})
+			if err != nil {
+				_ = c.AbortWithError(500, err)
+				return
+			}
+
+			for line := range logTail.Lines {
+				_, err = c.Writer.WriteString(line.Text + "\n")
+				resource.CheckErr(err, "Failed to write line for logs")
+				c.Writer.Flush()
+			}
+
+		})
 	}
 
 	enableGraphql, err := configStore.GetConfigValueFor("graphql.enable", "backend")
 	if err != nil {
-		configStore.SetConfigValueFor("graphql.enable", fmt.Sprintf("%v", initConfig.EnableGraphQL), "backend")
+		err = configStore.SetConfigValueFor("graphql.enable", fmt.Sprintf("%v", initConfig.EnableGraphQL), "backend")
+		resource.CheckErr(err, "Failed to set a default value for graphql.enable")
 	} else {
 		if enableGraphql == "true" {
 			initConfig.EnableGraphQL = true
@@ -136,8 +229,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	err = CheckSystemSecrets(configStore)
 	resource.CheckErr(err, "Failed to initialise system secrets")
 
-	r.GET("/config", CreateConfigHandler(configStore))
-
 	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend")
 	resource.CheckErr(err, "No default jwt token issuer set")
 	if err != nil {
@@ -147,15 +238,15 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 	authMiddleware := auth.NewAuthMiddlewareBuilder(db, jwtTokenIssuer)
 	auth.InitJwtMiddleware([]byte(jwtSecret), jwtTokenIssuer)
-	r.Use(authMiddleware.AuthCheckMiddleware)
+	defaultRouter.Use(authMiddleware.AuthCheckMiddleware)
 
 	cruds := make(map[string]*resource.DbResource)
-	r.GET("/actions", resource.CreateGuestActionListHandler(&initConfig))
+	defaultRouter.GET("/actions", resource.CreateGuestActionListHandler(&initConfig))
 
 	api := api2go.NewAPIWithRouting(
 		"api",
 		api2go.NewStaticResolver("/"),
-		gingonic.New(r),
+		gingonic.New(defaultRouter),
 	)
 
 	ms := BuildMiddlewareSet(&initConfig, &cruds)
@@ -167,14 +258,18 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		configStore.SetConfigIntValueFor("rclone.retries", rcloneRetries, "backend")
 	}
 
+	certificateManager, err := resource.NewCertificateManager(cruds, configStore)
+	resource.CheckErr(err, "Failed to create certificate manager")
+
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 
-	mailDaemon, err := StartSMTPMailServer(cruds["mail"])
+	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager, hostname)
 
 	if err == nil {
 		err = mailDaemon.Start()
+
 		if err != nil {
-			log.Errorf("Failed to start mail daemon: %s", err)
+			log.Errorf("Failed to mail daemon start: %s", err)
 		} else {
 			log.Infof("Started mail server")
 		}
@@ -182,128 +277,53 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		log.Errorf("Failed to start mail daemon: %s", err)
 	}
 
+	var imapServer *server.Server
+	imapServer = nil
 	// Create a memory backend
 	enableImapServer, err := configStore.GetConfigValueFor("imap.enabled", "backend")
 	if err == nil && enableImapServer == "true" {
 		imapListenInterface, err := configStore.GetConfigValueFor("imap.listen_interface", "backend")
 		if err != nil {
-			configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend")
+			err = configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend")
+			resource.CheckErr(err, "Failed to store default imap listen interface in config")
 			imapListenInterface = ":1143"
 		}
+
+		hostname, err := configStore.GetConfigValueFor("hostname", "backend")
+		hostname = "imap." + hostname
 		imapBackend := resource.NewImapServer(cruds)
 
 		// Create a new server
-		s := server.New(imapBackend)
-		s.Addr = imapListenInterface
+		imapServer = server.New(imapBackend)
+		imapServer.Addr = imapListenInterface
+		imapServer.Debug = nil
+		imapServer.AllowInsecureAuth = false
+		imapServer.Enable(idle.NewExtension())
+		imapServer.Debug = os.Stdout
+		//imapServer.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
+		//
+		//	return &Crammd5{
+		//		dbResource:  cruds["mail"],
+		//		conn:        conn,
+		//		imapBackend: imapBackend,
+		//	}
+		//})
 
-		//s.Debug = os.Stdout
+		tlsConfig, _, _, _, _, err := certificateManager.GetTLSConfig(hostname, true)
+		resource.CheckErr(err, "Failed to get certificate for IMAP [%v]", hostname)
+		imapServer.TLSConfig = tlsConfig
 
-		s.EnableAuth(sasl.Login, func(conn server.Conn) sasl.Server {
-			return sasl.NewLoginServer(func(username, password string) error {
-				user, err := conn.Server().Backend.Login(conn.Info(), username, password)
-				if err != nil {
-					return err
-				}
-
-				ctx := conn.Context()
-				ctx.State = imap.AuthenticatedState
-				ctx.User = user
-				return nil
-			})
-		})
-
-		s.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
-
-			return &Crammd5{
-				dbResource:  cruds["mail"],
-				conn:        conn,
-				imapBackend: imapBackend,
-			}
-		})
-		var LocalhostCert = []byte(`-----BEGIN CERTIFICATE-----
-MIIETzCCAregAwIBAgIQH/X44kGApj052IIhHfJrszANBgkqhkiG9w0BAQsFADBh
-MR4wHAYDVQQKExVta2NlcnQgZGV2ZWxvcG1lbnQgQ0ExGzAZBgNVBAsMEmFydHBh
-ckBhYmJhZC5sb2NhbDEiMCAGA1UEAwwZbWtjZXJ0IGFydHBhckBhYmJhZC5sb2Nh
-bDAeFw0xOTA2MTAwNDU3MjdaFw0yOTA2MTAwNDU3MjdaMEQxJzAlBgNVBAoTHm1r
-Y2VydCBkZXZlbG9wbWVudCBjZXJ0aWZpY2F0ZTEZMBcGA1UECwwQcm9vdEBhYmJh
-ZC5sb2NhbDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAN2pi0zl9EJH
-qtKBdlaEXoOU4YwHdzwxyfExcBeCMjyAkHPRPnWZKEJfgDc5WcF7wr/kxHCTrUhI
-RwRz/o5BIIjZmMrswFdCxZ74lKgHpYZl5s2+VAKgmAUhFOV33t/uL9tK2HevqfXi
-FaseVIENIjKkdVHOwOfRcRbd2rmB3QV+b+sb82etqnnkPxIdVE9cHMaHVFIBiGe9
-95LMPwrnq4aeHdATapVC4R6T6CK/dl2lzH95P61QsBa7t/awJ4EzcAMpUbEutEEw
-BZy24heKgKaw+mOHuyCcuOff8EJ/hsf6VqoPzNJz0sZcbiQlXdRK7Ibmu5hZjQTc
-bp3Ql+Bj2Q8CAwEAAaOBnzCBnDAOBgNVHQ8BAf8EBAMCBaAwEwYDVR0lBAwwCgYI
-KwYBBQUHAwEwDAYDVR0TAQH/BAIwADAfBgNVHSMEGDAWgBRs0GlUpxTRlDw0D+eF
-O8+2CRuc2TBGBgNVHREEPzA9ggpkYXB0aW4uY29tggwqLmRhcHRpbi5jb22CCWxv
-Y2FsaG9zdIcEfwAAAYcQAAAAAAAAAAAAAAAAAAAAATANBgkqhkiG9w0BAQsFAAOC
-AYEARMqj64kOfU7WHVgiOvsvTAxsyc9b7tmez5tid0o6VFBzH7XHq6uUJmMy21nm
-3h8K2O/ovRlzXIMtfUjWYirSAoy0frkMXe6A7oZojpgFOjDJ699N7MDKiQ6ijzRc
-gA9qVgK/ATrmVCtd9HlHgSbcXhaf3YUR++icvT5+3osvyNkGrNWRI+TyfogXj81e
-7UCqnZjFOJidA6RZbMnCgoOS2+2P2CnUVkMazibd9Hc158dI9Hg9VyntnTOl4nWw
-8rDfauWbg0AOus/q8qnPcZDR6DahC6piEgWeyC1P6dBDFDYMmCMIegGfgcZmA70T
-S50eo3+VlsDuRmtg5Dfh4zC6Bb/rx0CBx9KJid8f1eBUQ4EFYaZDPQ3XBWDvduVe
-TjjoGFkD5QRz/601bFVP6/DqDcjDbxbjyarWfxTu1nHukKkxemb265zLhtVwAbfd
-SoGwaheGW0/zeaGZGQwnL4hCkJokHagmsSg3ZynqoinNVrJJBKfisucmzUlC365P
-uBww
------END CERTIFICATE-----`)
-
-		// LocalhostKey is the private key for localhostCert.
-		var LocalhostKey = []byte(`-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDdqYtM5fRCR6rS
-gXZWhF6DlOGMB3c8McnxMXAXgjI8gJBz0T51mShCX4A3OVnBe8K/5MRwk61ISEcE
-c/6OQSCI2ZjK7MBXQsWe+JSoB6WGZebNvlQCoJgFIRTld97f7i/bSth3r6n14hWr
-HlSBDSIypHVRzsDn0XEW3dq5gd0Ffm/rG/Nnrap55D8SHVRPXBzGh1RSAYhnvfeS
-zD8K56uGnh3QE2qVQuEek+giv3Zdpcx/eT+tULAWu7f2sCeBM3ADKVGxLrRBMAWc
-tuIXioCmsPpjh7sgnLjn3/BCf4bH+laqD8zSc9LGXG4kJV3USuyG5ruYWY0E3G6d
-0JfgY9kPAgMBAAECggEAQ4XuRVKXgclLJC0D238fO34S5xEvJUsVdT/WIZMrsnqH
-hoBrQm+RcAafjDMQQHxu6v3JSXHzC13ZJGYhWTxFqOqAPPC59tsEUFTxE+6gYbyQ
-/oPIG7TIGmflcbF+V0C7m1XFc1Azug9RAnuOynExxbOLeYw9/2AxzwFuK6x/o7g7
-N1pTKS2BLUyC4trn19llo1Vf8tX9mSKjlluQy/ewF2LP/zhZSw50Qts3KMcuBXGx
-BF4YjGjHSOELmZh+sM7ZZasfKxJ9QnCF2cqXSvVydDo20TwOwZKvcsJDmwpVcLqX
-H4cHJLFfO4A3aBBOhu+Cs1uHjs3VXRSvv/mo3G+oQQKBgQDnp4TSQ/C2thhQTOO/
-GXAznBXZo4FLdzk6YodOvfLYC7/e6xL7QYz1U4BxrGEVy3EMKmJ1798e8OctHIk7
-AV+wI4AL2QBx5sMNFAjb9+CXl/Gqhbk+U4fjnmc+bsNy9vR/qvjlIt/Jp9y85zeF
-QSO6/xTlLLHpe1J293OUv9nstwKBgQD09TInZ1U1fFMjC6BWjCDGLNC8//rFFKAR
-jTjLEYCY0DuN6PJfywUS6ZoHKHoXKe60qaFRHqAk83T6iHExAlirwqylu6QSyxeQ
-vWcSnoAJqHY7j84uC+Vf6WEEwAN4XImcmT8in9MtbEPZI8ytjN6K5XNsHOc9ORYW
-XY+6xy5OaQKBgGc8Gk7yBBYItHEksuH43i3Bw2MIIJiW+yPvwMjwkYaCRfF75Suf
-nMe/fKAr5+Akl66KPPK+ATrytLM/4lAvXotKZsfg3vfjlM0BPql4n9gu2H3bth/2
-bbqcXvpNtkBHmdJDSUQj9IMTkaWFjRKPYvL0tkUjU+3vDWMDB7kkfmOlAoGAbWJE
-iCXzfdPLiB279onSZMxEVfF0uKbSJ6RJVRy2sQZjYaZA/Re6Z0ybNFEV29wktNX+
-rCuh1X5FoU5mRT1H/UMMN2HIDYBVQJPjQAQ5JpbsXQKFTjiPr7mWUjmwEwI3jQ89
-iyeVdHYhAgijcGg0RA/b784kUEl6nHghI4WoHukCgYEAgZMXR1uCqsvmTEe2jkPX
-sS6Lb/Elxq5uRlEays/t19zzc7S4kU+VT02oUYHUQm7VSQmHLvqD7lrgKjVS4ihc
-aMgXlWWI/k15RrrmdE3HMkV0HfPnZVrRsilZTYF4mTCvEehQVMGhDGHgrxGY4nTE
-fagus7nZFuPIRAU1dz5Ni1g=
------END PRIVATE KEY-----`)
-
-		cert, err := tls.X509KeyPair(LocalhostCert, LocalhostKey)
-		if err != nil {
-			log.Printf("Failed to load cert: %v", err)
-		}
-
-		tlsConfig := &tls.Config{
-			InsecureSkipVerify: false,
-			Certificates:       []tls.Certificate{cert},
-		}
-
-		// Since we will use this server for testing only, we can allow plain text
-		// authentication over unencrypted connections
-		s.AllowInsecureAuth = true
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		s.TLSConfig = tlsConfig
-		//idleExt := idle.NewExtension()
-		//s.Enable(idleExt)
-
-		log.Printf("Starting IMAP server at %s\n", imapListenInterface)
+		log.Printf("Starting IMAP server at %s: %v\n", imapListenInterface, hostname)
 
 		go func() {
-			if err := s.ListenAndServe(); err != nil {
-				log.Fatal(err)
+			if EndsWithCheck(imapListenInterface, ":993") {
+				if err := imapServer.ListenAndServeTLS(); err != nil {
+					resource.CheckErr(err, "Imap server is not listening anymore")
+				}
+			} else {
+				if err := imapServer.ListenAndServe(); err != nil {
+					resource.CheckErr(err, "Imap server is not listening anymore")
+				}
 			}
 		}()
 
@@ -312,37 +332,45 @@ fagus7nZFuPIRAU1dz5Ni1g=
 			configStore.SetConfigValueFor("imap.enabled", "false", "backend")
 		}
 	}
+	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
-	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon)
+	log.Printf("Created task scheduler: %v", TaskScheduler)
+	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware)
+
+	for k := range cruds {
+		cruds[k].SubsiteFolderCache = subsiteCacheFolders
+	}
+
+	hostSwitch.handlerMap["api"] = defaultRouter
+	hostSwitch.handlerMap["dashboard"] = defaultRouter
+
+	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager)
 	initConfig.ActionPerformers = actionPerformers
 
 	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
 
 	// todo : move this somewhere and make it part of something
 	actionHandlerMap := actionPerformersListToMap(actionPerformers)
-	for k, _ := range cruds {
+	for k := range cruds {
 		cruds[k].ActionHandlerMap = actionHandlerMap
 	}
 
-	resource.ImportDataFiles(&initConfig, db, cruds)
-
-	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
+	resource.ImportDataFiles(initConfig.Imports, db, cruds)
 
 	err = TaskScheduler.AddTask(resource.Task{
-		EntityName: "mail_server",
-		ActionName: "sync_mail_servers",
-		Attributes: map[string]interface{}{
-		},
+		EntityName:  "mail_server",
+		ActionName:  "sync_mail_servers",
+		Attributes:  map[string]interface{}{},
 		AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(),
-		Schedule:    "@every 10m",
+		Schedule:    "@every 1h",
 	})
 
 	TaskScheduler.StartTasks()
 
-	hostSwitch := CreateSubSites(&initConfig, db, cruds, authMiddleware)
-
-	hostSwitch.handlerMap["api"] = r
-	hostSwitch.handlerMap["dashboard"] = r
+	assetColumnFolders := CreateAssetColumnSync(cruds)
+	for k := range cruds {
+		cruds[k].AssetFolderCache = assetColumnFolders
+	}
 
 	authMiddleware.SetUserCrud(cruds[resource.USER_ACCOUNT_TABLE_NAME])
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
@@ -350,7 +378,33 @@ fagus7nZFuPIRAU1dz5Ni1g=
 
 	fsmManager := resource.NewFsmManager(db, cruds)
 
-	r.GET("/ping", func(c *gin.Context) {
+	enableFtp, err := configStore.GetConfigValueFor("ftp.enable", "backend")
+	if err != nil {
+		enableFtp = "false"
+		err = configStore.SetConfigValueFor("ftp.enable", enableFtp, "backend")
+		auth.CheckErr(err, "Failed to store default valuel for ftp.enable")
+	}
+
+	var ftpServer *server2.FtpServer
+	if enableFtp == "true" {
+
+		ftp_interface, err := configStore.GetConfigValueFor("ftp.listen_interface", "backend")
+		if err != nil {
+			ftp_interface = "0.0.0.0:2121"
+			err = configStore.SetConfigValueFor("ftp.listen_interface", ftp_interface, "backend")
+			resource.CheckErr(err, "Failed to store default value for ftp.listen_interface")
+		}
+		// ftpListener, err := net.Listen("tcp", ftp_interface)
+		// resource.CheckErr(err, "Failed to create listener for FTP")
+		ftpServer, err = CreateFtpServers(cruds, certificateManager, nil)
+		auth.CheckErr(err, "Failed to creat FTP server")
+		go func() {
+			err = ftpServer.ListenAndServe()
+			resource.CheckErr(err, "Failed to listen at ftp interface")
+		}()
+	}
+
+	defaultRouter.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
 	})
 
@@ -360,10 +414,26 @@ fagus7nZFuPIRAU1dz5Ni1g=
 	modelHandler := CreateReclineModelHandler()
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
 	resource.InitialiseColumnManager()
+
+	dbAssetHandler := CreateDbAssetHandler(cruds)
+	defaultRouter.GET("/asset/:typename/:resource_id/:columnname", dbAssetHandler)
+
+	feedHandler := CreateFeedHandler(cruds, streamProcessors)
+	defaultRouter.GET("/feed/:feedname", feedHandler)
+
+	configHandler := CreateConfigHandler(&initConfig, cruds, configStore)
+	defaultRouter.GET("/_config/:end/:key", configHandler)
+	defaultRouter.GET("/_config", configHandler)
+	defaultRouter.POST("/_config/:end/:key", configHandler)
+	defaultRouter.PATCH("/_config/:end/:key", configHandler)
+	defaultRouter.PUT("/_config/:end/:key", configHandler)
+	defaultRouter.DELETE("/_config/:end/:key", configHandler)
+
 	resource.RegisterTranslations()
 
 	if initConfig.EnableGraphQL {
 
+		// TODO: add state machine change api available as graphql
 		graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
 
 		graphqlHttpHandler := graphqlhandler.New(&graphqlhandler.Config{
@@ -373,59 +443,66 @@ fagus7nZFuPIRAU1dz5Ni1g=
 		})
 
 		// serve HTTP
-		r.Handle("GET", "/graphql", func(c *gin.Context) {
+		defaultRouter.Handle("GET", "/graphql", func(c *gin.Context) {
 			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
 		})
 		// serve HTTP
-		r.Handle("POST", "/graphql", func(c *gin.Context) {
+		defaultRouter.Handle("POST", "/graphql", func(c *gin.Context) {
 			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
 		})
 		// serve HTTP
-		r.Handle("PUT", "/graphql", func(c *gin.Context) {
+		defaultRouter.Handle("PUT", "/graphql", func(c *gin.Context) {
 			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
 		})
 		// serve HTTP
-		r.Handle("PATCH", "/graphql", func(c *gin.Context) {
+		defaultRouter.Handle("PATCH", "/graphql", func(c *gin.Context) {
 			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
 		})
 		// serve HTTP
-		r.Handle("DELETE", "/graphql", func(c *gin.Context) {
+		defaultRouter.Handle("DELETE", "/graphql", func(c *gin.Context) {
 			graphqlHttpHandler.ServeHTTP(c.Writer, c.Request)
 		})
 	}
 
-	r.GET("/jsmodel/:typename", handler)
-	r.GET("/stats/:typename", statsHandler)
-	r.GET("/meta", metaHandler)
-	r.GET("/apispec.raml", blueprintHandler)
-	r.GET("/recline_model", modelHandler)
-	r.OPTIONS("/jsmodel/:typename", handler)
-	r.OPTIONS("/apispec.raml", blueprintHandler)
-	r.OPTIONS("/recline_model", modelHandler)
-	r.GET("/system", func(c *gin.Context) {
+	defaultRouter.GET("/jsmodel/:typename", handler)
+	defaultRouter.GET("/stats/:typename", statsHandler)
+	defaultRouter.GET("/meta", metaHandler)
+	defaultRouter.GET("/openapi.yaml", blueprintHandler)
+	defaultRouter.GET("/recline_model", modelHandler)
+	defaultRouter.OPTIONS("/jsmodel/:typename", handler)
+	defaultRouter.OPTIONS("/openapi.yaml", blueprintHandler)
+	defaultRouter.OPTIONS("/recline_model", modelHandler)
+	defaultRouter.GET("/system", func(c *gin.Context) {
 		c.AbortWithStatusJSON(200, Stats.Data())
 	})
 
-	r.POST("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
-	r.GET("/action/:typename/:actionName", resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers))
+	actionHandler := resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers)
+	defaultRouter.POST("/action/:typename/:actionName", actionHandler)
+	defaultRouter.GET("/action/:typename/:actionName", actionHandler)
 
-	r.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
-	r.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
+	defaultRouter.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
+	defaultRouter.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
 
-	loader := CreateSubSiteContentHandler(&initConfig, cruds, db)
-	r.POST("/site/content/load", loader)
-	r.GET("/site/content/load", loader)
-	r.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
+	//loader := CreateSubSiteContentHandler(&initConfig, cruds, db)
+	//defaultRouter.POST("/site/content/load", loader)
+	//defaultRouter.GET("/site/content/load", loader)
+	//defaultRouter.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
-	webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
-	websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
+	// TODO: make websockets functional at /live
+	//webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
+	//websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
 
-	go websocketServer.Listen(r)
+	//go websocketServer.Listen(defaultRouter)
 
 	indexFile, err := boxRoot.Open("index.html")
-	indexFileContents, err := ioutil.ReadAll(indexFile)
 
-	r.NoRoute(func(c *gin.Context) {
+	var indexFileContents = []byte("")
+	if indexFile != nil {
+
+		indexFileContents, err = ioutil.ReadAll(indexFile)
+	}
+
+	defaultRouter.NoRoute(func(c *gin.Context) {
 		resource.CheckErr(err, "Failed to open index.html")
 		if err != nil {
 			c.AbortWithStatus(500)
@@ -435,11 +512,66 @@ fagus7nZFuPIRAU1dz5Ni1g=
 		resource.CheckErr(err, "Failed to write index html")
 	})
 
-	//r.Run(fmt.Sprintf(":%v", *port))
-	// CleanUpConfigFiles()
+	defaultRouter.GET("", func(c *gin.Context) {
+		_, err = c.Writer.Write(indexFileContents)
+		resource.CheckErr(err, "Failed to write index html")
+	})
 
-	return hostSwitch, mailDaemon, TaskScheduler
+	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
+	CleanUpConfigFiles()
 
+	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer, imapServer
+
+}
+
+func CreateFtpServers(resources map[string]*resource.DbResource, certManager *resource.CertificateManager, listener net.Listener) (*server2.FtpServer, error) {
+
+	subsites, err := resources["ftp_server"].GetAllSites()
+	if err != nil {
+		return nil, err
+	}
+	cloudStores, err := resources["cloud_store"].GetAllCloudStores()
+
+	if err != nil {
+		return nil, err
+	}
+	cloudStoreMap := make(map[string]resource.CloudStore)
+	for _, cloudStore := range cloudStores {
+		cloudStoreMap[cloudStore.ReferenceId] = cloudStore
+	}
+	var driver *DaptinFtpDriver
+
+	sites := make([]SubSiteAssetCache, 0)
+	for _, ftpServer := range subsites {
+
+		if !ftpServer.FtpEnabled {
+			continue
+		}
+
+		assetCacheFolder, ok := resources["site"].SubsiteFolderCache[ftpServer.ReferenceId]
+		if !ok {
+			continue
+		}
+		site := SubSiteAssetCache{
+			SubSite:          ftpServer,
+			AssetFolderCache: assetCacheFolder,
+		}
+		sites = append(sites, site)
+
+	}
+
+	driver, err = NewDaptinFtpDriver(resources, certManager, sites)
+	driver.DaptinFtpServerSettings.Server.Listener = listener
+	driver.DaptinFtpServerSettings.Server.ListenAddr = "0.0.0.0:2121"
+	ftpS := server2.NewFtpServer(driver)
+	resource.CheckErr(err, "Failed to create daptin ftp driver [%v]", driver)
+	return ftpS, err
+
+}
+
+type SubSiteAssetCache struct {
+	resource.SubSite
+	resource.AssetFolderCache
 }
 
 type Crammd5 struct {
@@ -456,13 +588,13 @@ type Crammd5 struct {
 // authentication has failed, an error is returned.
 func (c *Crammd5) Next(response []byte) (challenge []byte, done bool, err error) {
 
-	log.Printf("Client sent: %v", string(response))
+	log.Printf(""+
+		"Client sent: %v", string(response))
 
 	if string(response) == "" {
 		newChallenge := fmt.Sprintf("<%v.%v.%v>", fake.DigitsN(8), time.Now().UnixNano(), "daptin")
 		c.challenge = newChallenge
-		return []byte(""), false, nil
-		return []byte(base64.StdEncoding.EncodeToString([]byte(newChallenge))), false, nil
+		return []byte(c.challenge), false, nil
 	}
 
 	parts := strings.SplitN(string(response), " ", 2)
@@ -478,18 +610,54 @@ func (c *Crammd5) Next(response []byte) (challenge []byte, done bool, err error)
 func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseConnection) {
 	resource.CheckRelations(initConfig)
 	resource.CheckAuditTables(initConfig)
+	resource.CheckTranslationTables(initConfig)
 	//AddStateMachines(&initConfig, db)
+
+	var errc error
 	tx, errb := db.Beginx()
-	//_, errb := db.Exec("begin")
 	resource.CheckErr(errb, "Failed to begin transaction")
 
-	resource.CheckAllTableStatus(initConfig, db, tx)
-	resource.CreateRelations(initConfig, tx)
-	resource.CreateUniqueConstraints(initConfig, tx)
-	resource.CreateIndexes(initConfig, tx)
-	resource.UpdateWorldTable(initConfig, tx)
-	errc := tx.Commit()
-	resource.CheckErr(errc, "Failed to commit transaction")
+	if tx != nil {
+
+		resource.CheckAllTableStatus(initConfig, db, tx)
+
+		errc = tx.Commit()
+		resource.CheckErr(errc, "Failed to commit transaction after creating tables")
+
+	}
+	tx, errb = db.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction")
+
+	if tx != nil {
+
+		resource.CreateRelations(initConfig, tx)
+		errc = tx.Commit()
+		resource.CheckErr(errc, "Failed to commit transaction after creating relations")
+	}
+
+	tx, errb = db.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction")
+	if tx != nil {
+		resource.CreateUniqueConstraints(initConfig, tx)
+		errc = tx.Commit()
+		resource.CheckErr(errc, "Failed to commit transaction after creating unique constrains")
+	}
+	tx, errb = db.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction")
+	if tx != nil {
+		resource.CreateIndexes(initConfig, tx)
+		errc = tx.Commit()
+	}
+	resource.CheckErr(errc, "Failed to commit transaction after creating indexes")
+
+	tx, errb = db.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction")
+
+	if tx != nil {
+		resource.UpdateWorldTable(initConfig, tx)
+		errc = tx.Commit()
+	}
+	resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
 
 	resource.UpdateStateMachineDescriptions(initConfig, db)
 	resource.UpdateExchanges(initConfig, db)
@@ -508,6 +676,9 @@ func actionPerformersListToMap(interfaces []resource.ActionPerformerInterface) m
 	m := make(map[string]resource.ActionPerformerInterface)
 
 	for _, api := range interfaces {
+		if api == nil {
+			continue
+		}
 		m[api.Name()] = api
 	}
 	return m
@@ -531,7 +702,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 		}
 
 		if isBeingModified {
-			log.Debugf("Table %s is being modified", existableTable.TableName)
+			log.Printf("Table %s is being modified", existableTable.TableName)
 			tableBeingModified := initConfigTables[indexBeingModified]
 
 			if len(tableBeingModified.Columns) > 0 {
@@ -541,7 +712,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 					colIndex := -1
 					for i, existingColumn := range existableTable.Columns {
 						//log.Infof("Table column old/new [%v][%v] == [%v][%v] @ %v", tableBeingModified.TableName, newColumnDef.Name, existableTable.TableName, existingColumn.Name, i)
-						if existingColumn.Name == newColumnDef.Name || existingColumn.ColumnName == newColumnDef.ColumnName {
+						if existingColumn.ColumnName == newColumnDef.ColumnName {
 							columnAlreadyExist = true
 							colIndex = i
 							break
@@ -549,7 +720,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 					}
 					//log.Infof("Decide for table column [%v][%v] @ index: %v [%v]", tableBeingModified.TableName, newColumnDef.Name, colIndex, columnAlreadyExist)
 					if columnAlreadyExist {
-						//log.Infof("Modifying existing columns[%v][%v] is not supported at present. not sure what would break. and alter query isnt being run currently.", existableTable.TableName, newColumnDef.Name);
+						//log.Infof("Modifying existing columns[%v][%v] is not supported at present. not sure what would break. and alter query isnt being run currently.", existableTable.Columns[colIndex], newColumnDef);
 
 						existableTable.Columns[colIndex].DefaultValue = newColumnDef.DefaultValue
 						existableTable.Columns[colIndex].ExcludeFromApi = newColumnDef.ExcludeFromApi
@@ -559,6 +730,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 						existableTable.Columns[colIndex].Options = newColumnDef.Options
 						existableTable.Columns[colIndex].DataType = newColumnDef.DataType
 						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
+						existableTable.Columns[colIndex].ForeignKeyData = newColumnDef.ForeignKeyData
 
 					} else {
 						existableTable.Columns = append(existableTable.Columns, newColumnDef)
@@ -621,7 +793,7 @@ type WebSocketConnectionHandlerImpl struct {
 }
 
 func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message websockets.WebSocketPayload, request *http.Request) {
-
+	// todo: complete implementation
 }
 
 func AddStreamsToApi2Go(api *api2go.API, processors []*resource.StreamProcessor, db database.DatabaseConnection, middlewareSet *resource.MiddlewareSet, configStore *resource.ConfigStore) {
