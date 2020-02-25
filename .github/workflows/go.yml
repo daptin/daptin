@@ -180,13 +180,6 @@ jobs:
           make racequicktest
         if: matrix.racequicktest
 
-      - name: Code quality test
-        shell: bash
-        run: |
-          make build_dep
-          make check
-        if: matrix.check
-
       - name: Compile all architectures test
         shell: bash
         run: |
