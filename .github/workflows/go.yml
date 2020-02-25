@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        job_name: ['linux', 'mac', 'windows_amd64', 'windows_386', 'other_os', 'modules_race', 'go1.10', 'go1.11', 'go1.12']
+        job_name: ['linux', 'mac', 'windows_amd64', 'windows_386', 'other_os', 'modules_race', 'go1.10']
 
         include:
           - job_name: linux
@@ -77,18 +77,6 @@ jobs:
             modules: 'on'
             quicktest: true
             racequicktest: true
-
-          - job_name: go1.10
-            os: ubuntu-latest
-            go: '1.10.x'
-            modules: 'on'
-            quicktest: true
-
-          - job_name: go1.11
-            os: ubuntu-latest
-            go: '1.11.x'
-            modules: 'on'
-            quicktest: true
 
           - job_name: go1.12
             os: ubuntu-latest
@@ -225,7 +213,7 @@ jobs:
       - name: Build daptin
         run: |
           docker pull golang
-          docker run --rm -v "$PWD":/usr/src/daptin -w /usr/src/daptin golang go build -mod=vendor -v
+          docker run --rm -e "GO111MODULE=on" -v "$PWD":/usr/src/daptin -w /usr/src/daptin golang go build -v
 
       - name: Upload artifacts
         run: |
