@@ -74,11 +74,12 @@ func (d *NetworkRequestActionPerformer) DoAction(request Outcome, inFieldMap map
 	}
 	methodString := strings.ToUpper(method.(string))
 
-	client := resty.R()
+	client := resty.New().R()
 	resty.DetectContentType(false)
 
 	if isBody {
 		client.SetBody(bodyMap)
+
 	}
 	if isFormData {
 		client.SetFormData(formDataMap)

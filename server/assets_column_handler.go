@@ -12,7 +12,6 @@ import (
 	"github.com/disintegration/gift"
 	"github.com/gin-gonic/gin"
 	"github.com/h2non/filetype"
-	"github.com/russross/blackfriday"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -464,9 +463,8 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 			}
 		} else if colInfo.ColumnType == "markdown" {
 
-			outHtml := blackfriday.Run([]byte(colData.(string)))
 			c.Writer.Header().Set("Content-Type", "text/html")
-			c.Writer.Write(outHtml)
+			c.Writer.Write([]byte("<pre>" + colData.(string) + "</pre>"))
 			c.AbortWithStatus(200)
 
 		}

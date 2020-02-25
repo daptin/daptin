@@ -16,7 +16,7 @@ require (
 	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
-	github.com/artpar/rclone v1.50.6
+	github.com/artpar/rclone v1.50.7
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
@@ -78,7 +78,6 @@ require (
 	github.com/pquerna/otp v1.2.0
 	github.com/putdotio/go-putio/putio v0.0.0-20200123120452-16d982cac2b8 // indirect
 	github.com/robfig/cron v1.0.0
-	github.com/russross/blackfriday v2.0.0+incompatible
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
 	github.com/siebenmann/smtpd v0.0.0-20170816215504-b93303610bbe // indirect
 	github.com/simplereach/timeutils v1.2.0 // indirect
