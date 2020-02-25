@@ -43,6 +43,7 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 	hasSent := false
 	hasSpam := false
 	hasArchive := false
+	hasInbox := false
 
 	for _, box := range mailBoxes {
 		if box["user_account_id"] == nil {
@@ -62,20 +63,18 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 			},
 		}
 
-		if strings.ToLower(mb.name) == "trash" {
+		mailBoxName := strings.ToLower(mb.name)
+		if mailBoxName == "trash" {
 			hasTrash = true
-		}
-
-		if strings.ToLower(mb.name) == "draft" {
+		} else if mailBoxName == "inbox" {
+			hasInbox = true
+		} else if mailBoxName == "draft" {
 			hasDraft = true
-		}
-		if strings.ToLower(mb.name) == "sent" {
+		} else if mailBoxName == "sent" {
 			hasSent = true
-		}
-		if strings.ToLower(mb.name) == "spam" {
+		} else if mailBoxName == "spam" {
 			hasSpam = true
-		}
-		if strings.ToLower(mb.name) == "archive" {
+		} else if mailBoxName == "archive" {
 			hasArchive = true
 		}
 		boxes = append(boxes, &mb)
@@ -103,6 +102,19 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 		mailBox, err := diu.GetMailbox("Spam")
 		if err != nil {
 			log.Printf("Failed to fetch Spam mailbox for imap account [%v]: %v", diu.username, err)
+		} else {
+			boxes = append(boxes, mailBox)
+		}
+	}
+
+	if !hasInbox {
+		err = diu.CreateMailbox("INBOX")
+		if err != nil {
+			log.Printf("Failed to create Inbox mailbox for imap account [%v]: %v", diu.username, err)
+		}
+		mailBox, err := diu.GetMailbox("INBOX")
+		if err != nil {
+			log.Printf("Failed to fetch Inbox mailbox for imap account [%v]: %v", diu.username, err)
 		} else {
 			boxes = append(boxes, mailBox)
 		}
@@ -219,6 +231,7 @@ func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 // has a different unique identifier validity value.
 func (diu *DaptinImapUser) CreateMailbox(name string) error {
 
+	log.Printf("Creating mailbox with name [%v] for mail account id [%v]", name, diu.mailAccountId)
 	box, err := diu.dbResource["mail_box"].GetAllObjectsWithWhere("mail_box",
 		squirrel.Eq{
 			"mail_account_id": diu.mailAccountId,

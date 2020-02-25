@@ -1,42 +1,30 @@
-package resource
+package server
 
 import (
 	"fmt"
-	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-guerrilla/backends"
-	log "github.com/sirupsen/logrus"
+	"github.com/daptin/daptin/server/resource"
 	"io/ioutil"
+	"log"
 	"path/filepath"
 	"strconv"
 )
 
-type MailServersSyncActionPerformer struct {
-	cruds              map[string]*DbResource
-	mailDaemon         *guerrilla.Daemon
-	certificateManager *CertificateManager
-}
+func StartSMTPMailServer(resource *resource.DbResource, certificateManager *resource.CertificateManager, primaryHostname string) (*guerrilla.Daemon, error) {
 
-func (d *MailServersSyncActionPerformer) Name() string {
-	return "mail.servers.sync"
-}
-
-func (d *MailServersSyncActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
-
-	//log.Printf("Sync mail servers")
-	responses := make([]ActionResponse, 0)
-
-	servers, err := d.cruds["mail_server"].GetAllObjects("mail_server")
+	servers, err := resource.GetAllObjects("mail_server")
 
 	if err != nil {
-		return nil, []ActionResponse{}, []error{err}
+		return nil, err
 	}
 
 	serverConfig := make([]guerrilla.ServerConfig, 0)
+	hosts := []string{}
+
 	sourceDirectoryName := "daptin-certs"
 	tempDirectoryPath, err := ioutil.TempDir("", sourceDirectoryName)
 
-	var hosts []string
 	for _, server := range servers {
 
 		var serverTlsConfig guerrilla.ServerTLSConfig
@@ -51,7 +39,7 @@ func (d *MailServersSyncActionPerformer) DoAction(request Outcome, inFields map[
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
 		hostname := server["hostname"].(string)
-		_, certBytes, privatePEMBytes, publicKeyBytes, rootCertBytes, err := d.certificateManager.GetTLSConfig(hostname, true)
+		_, certBytes, privatePEMBytes, publicKeyBytes, rootCertBytes, err := certificateManager.GetTLSConfig(hostname, true)
 
 		if err != nil {
 			log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
@@ -108,41 +96,30 @@ func (d *MailServersSyncActionPerformer) DoAction(request Outcome, inFields map[
 			AuthRequired:    authenticationRequired,
 			AuthTypes:       []string{"LOGIN"},
 		}
-
-		hosts = append(hosts, server["hostname"].(string))
+		hosts = append(hosts, hostname)
 
 		serverConfig = append(serverConfig, config)
 
 	}
 
 	hosts = append(hosts, "*")
-	err = d.mailDaemon.ReloadConfig(guerrilla.AppConfig{
-		Servers:      serverConfig,
-		AllowedHosts: hosts,
-		BackendConfig: backends.BackendConfig{
-			"save_process":       "HeadersParser|Debugger|Hasher|Header|Compressor|DaptinSql",
-			"log_received_mails": true,
-			"save_workers_size":  1,
-			"primary_mail_host":  "localhost",
+	d := guerrilla.Daemon{
+		Config: &guerrilla.AppConfig{
+			AllowedHosts: hosts,
+			LogLevel:     "debug",
+			BackendConfig: backends.BackendConfig{
+				"save_process":       "HeadersParser|Debugger|Hasher|Header|Compressor|DaptinSql",
+				"log_received_mails": true,
+				"mail_table":         "mail",
+				"save_workers_size":  1,
+				"primary_mail_host":  primaryHostname,
+			},
+			Servers: serverConfig,
 		},
-	})
-
-	//err = d.mailDaemon.Start()
-	if err != nil {
-		log.Printf("Failed to start mail server: %v", err)
 	}
 
-	return nil, responses, nil
-}
+	d.AddProcessor("DaptinSql", DaptinSmtpDbResource(resource, certificateManager))
+	d.AddAuthenticator(DaptinSmtpAuthenticatorCreator(resource))
 
-func NewMailServersSyncActionPerformer(cruds map[string]*DbResource, mailDaemon *guerrilla.Daemon, certificateManager *CertificateManager) (ActionPerformerInterface, error) {
-
-	handler := MailServersSyncActionPerformer{
-		cruds:              cruds,
-		mailDaemon:         mailDaemon,
-		certificateManager: certificateManager,
-	}
-
-	return &handler, nil
-
+	return &d, nil
 }

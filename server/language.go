@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/text/language"
@@ -32,7 +33,8 @@ func (lm *LanguageMiddleware) LanguageMiddlewareFunc(c *gin.Context) {
 
 	pref := GetLanguagePreference(c.GetHeader("Accept-Language"), lm.defaultLanguage)
 
-	c.Set("language_preference", pref)
+	//c.Request.Context("language_preference", pref)
+	c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), "language_preference", pref))
 
 }
 
@@ -46,6 +48,7 @@ func GetLanguagePreference(header string, defaultLanguage string) []string {
 	languageTags, _, err := language.ParseAcceptLanguage(preferredLanguage)
 	resource.CheckErr(err, "Failed to parse Accept-Language header [%v]", preferredLanguage)
 	pref := make([]string, 0)
+	prefMap := make(map[string]bool)
 
 	if len(languageTags) == 1 && languageTags[0].String() == defaultLanguage {
 
@@ -56,6 +59,10 @@ func GetLanguagePreference(header string, defaultLanguage string) []string {
 			if conf == 0 {
 				continue
 			}
+			if prefMap[base.String()] == true {
+				continue
+			}
+			prefMap[base.String()] = true
 			pref = append(pref, base.String())
 		}
 

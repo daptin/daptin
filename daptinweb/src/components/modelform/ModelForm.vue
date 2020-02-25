@@ -319,7 +319,7 @@
           }
 
           if (columnMeta.ColumnType == "truefalse") {
-            that.model[columnMeta.ColumnName] = that.model[columnMeta.ColumnName] === "1" || that.model[columnMeta.ColumnName] === 1;
+            that.model[columnMeta.ColumnName] = that.model[columnMeta.ColumnName] === "1" || that.model[columnMeta.ColumnName] === 1 || that.model[columnMeta.ColumnName] === "true" || that.model[columnMeta.ColumnName] === true;
           }
 
           if (columnMeta.ColumnType == "date") {

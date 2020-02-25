@@ -1,0 +1,4300 @@
+github.com/daptin/daptin
+  ├ flag
+  ├ io
+  ├ io/ioutil
+  ├ net/http
+  ├ os
+  ├ strings
+  ├ syscall
+  ├ time
+  ├ github.com/GeertJohan/go.rice
+  │ ├ archive/zip
+  │ ├ bytes
+  │ ├ errors
+  │ ├ fmt
+  │ ├ io
+  │ ├ io/ioutil
+  │ ├ log
+  │ ├ net/http
+  │ ├ os
+  │ ├ path/filepath
+  │ ├ runtime
+  │ ├ sort
+  │ ├ strings
+  │ ├ time
+  │ ├ github.com/GeertJohan/go.rice/embedded
+  │ │ ├ fmt
+  │ │ ├ path/filepath
+  │ │ ├ strings
+  │ │ └ time
+  │ └ github.com/daaku/go.zipexe
+  │   ├ archive/zip
+  │   ├ debug/elf
+  │   ├ debug/macho
+  │   ├ debug/pe
+  │   ├ errors
+  │   ├ io
+  │   └ os
+  ├ github.com/GeertJohan/go.rice/embedded
+  ├ github.com/artpar/go-guerrilla
+  │ ├ bufio
+  │ ├ bytes
+  │ ├ crypto/rand
+  │ ├ crypto/tls
+  │ ├ crypto/x509
+  │ ├ encoding/json
+  │ ├ errors
+  │ ├ fmt
+  │ ├ io
+  │ ├ io/ioutil
+  │ ├ net
+  │ ├ net/textproto
+  │ ├ os
+  │ ├ path/filepath
+  │ ├ reflect
+  │ ├ strings
+  │ ├ sync
+  │ ├ sync/atomic
+  │ ├ syscall
+  │ ├ time
+  │ ├ github.com/artpar/go-guerrilla/authenticators
+  │ │ ├ strings
+  │ │ └ github.com/artpar/go-guerrilla/backends
+  │ │   ├ bytes
+  │ │   ├ compress/zlib
+  │ │   ├ crypto/md5
+  │ │   ├ database/sql
+  │ │   ├ errors
+  │ │   ├ fmt
+  │ │   ├ io
+  │ │   ├ math/big
+  │ │   ├ math/rand
+  │ │   ├ net
+  │ │   ├ net/textproto
+  │ │   ├ reflect
+  │ │   ├ regexp
+  │ │   ├ runtime/debug
+  │ │   ├ strconv
+  │ │   ├ strings
+  │ │   ├ sync
+  │ │   ├ sync/atomic
+  │ │   ├ time
+  │ │   ├ github.com/artpar/go-guerrilla/log
+  │ │   │ ├ bufio
+  │ │   │ ├ io
+  │ │   │ ├ io/ioutil
+  │ │   │ ├ net
+  │ │   │ ├ os
+  │ │   │ ├ strings
+  │ │   │ ├ sync
+  │ │   │ └ github.com/sirupsen/logrus
+  │ │   │   ├ bufio
+  │ │   │   ├ bytes
+  │ │   │   ├ context
+  │ │   │   ├ encoding/json
+  │ │   │   ├ fmt
+  │ │   │   ├ io
+  │ │   │   ├ log
+  │ │   │   ├ os
+  │ │   │   ├ reflect
+  │ │   │   ├ runtime
+  │ │   │   ├ sort
+  │ │   │   ├ strings
+  │ │   │   ├ sync
+  │ │   │   ├ sync/atomic
+  │ │   │   ├ time
+  │ │   │   └ golang.org/x/sys/unix (unresolved)
+  │ │   ├ github.com/artpar/go-guerrilla/mail
+  │ │   │ ├ bufio
+  │ │   │ ├ bytes
+  │ │   │ ├ crypto/md5
+  │ │   │ ├ errors
+  │ │   │ ├ fmt
+  │ │   │ ├ io
+  │ │   │ ├ mime
+  │ │   │ ├ net
+  │ │   │ ├ net/textproto
+  │ │   │ ├ strings
+  │ │   │ ├ sync
+  │ │   │ ├ time
+  │ │   │ └ github.com/artpar/go-guerrilla/mail/rfc5321
+  │ │   │   ├ bytes
+  │ │   │   ├ errors
+  │ │   │   ├ net
+  │ │   │   ├ strconv
+  │ │   │   └ strings
+  │ │   └ github.com/artpar/go-guerrilla/response
+  │ │     ├ fmt
+  │ │     ├ math/rand
+  │ │     └ time
+  │ ├ github.com/artpar/go-guerrilla/backends
+  │ ├ github.com/artpar/go-guerrilla/log
+  │ ├ github.com/artpar/go-guerrilla/mail
+  │ ├ github.com/artpar/go-guerrilla/mail/rfc5321
+  │ ├ github.com/artpar/go-guerrilla/response
+  │ ├ github.com/asaskevich/EventBus
+  │ │ ├ errors
+  │ │ ├ fmt
+  │ │ ├ net
+  │ │ ├ net/http
+  │ │ ├ net/rpc
+  │ │ ├ reflect
+  │ │ └ sync
+  │ └ github.com/sirupsen/logrus
+  ├ github.com/artpar/go-imap/server
+  │ ├ crypto/tls
+  │ ├ errors
+  │ ├ fmt
+  │ ├ io
+  │ ├ log
+  │ ├ net
+  │ ├ os
+  │ ├ runtime/debug
+  │ ├ sync
+  │ ├ time
+  │ ├ github.com/artpar/go-imap
+  │ │ ├ bufio
+  │ │ ├ bytes
+  │ │ ├ crypto/tls
+  │ │ ├ errors
+  │ │ ├ fmt
+  │ │ ├ io
+  │ │ ├ io/ioutil
+  │ │ ├ mime
+  │ │ ├ net
+  │ │ ├ net/textproto
+  │ │ ├ regexp
+  │ │ ├ strconv
+  │ │ ├ strings
+  │ │ ├ sync
+  │ │ ├ time
+  │ │ ├ unicode
+  │ │ └ github.com/artpar/go-imap/utf7
+  │ │   ├ encoding/base64
+  │ │   ├ errors
+  │ │   ├ unicode/utf16
+  │ │   ├ unicode/utf8
+  │ │   ├ golang.org/x/text/encoding
+  │ │   │ ├ errors
+  │ │   │ ├ io
+  │ │   │ ├ strconv
+  │ │   │ ├ unicode/utf8
+  │ │   │ ├ golang.org/x/text/encoding/internal/identifier (unresolved)
+  │ │   │ └ golang.org/x/text/transform (unresolved)
+  │ │   └ golang.org/x/text/transform
+  │ ├ github.com/artpar/go-imap/backend
+  │ │ ├ errors
+  │ │ ├ time
+  │ │ └ github.com/artpar/go-imap
+  │ ├ github.com/artpar/go-imap/commands
+  │ │ ├ bufio
+  │ │ ├ encoding/base64
+  │ │ ├ errors
+  │ │ ├ io
+  │ │ ├ strings
+  │ │ ├ time
+  │ │ ├ github.com/artpar/go-imap
+  │ │ ├ github.com/artpar/go-imap/utf7
+  │ │ └ github.com/emersion/go-sasl
+  │ │   ├ bytes
+  │ │   ├ encoding/json
+  │ │   ├ errors
+  │ │   ├ fmt
+  │ │   └ strconv
+  │ ├ github.com/artpar/go-imap/responses
+  │ │ ├ encoding/base64
+  │ │ ├ errors
+  │ │ ├ fmt
+  │ │ ├ github.com/artpar/go-imap
+  │ │ ├ github.com/artpar/go-imap/utf7
+  │ │ └ github.com/emersion/go-sasl
+  │ └ github.com/emersion/go-sasl
+  ├ github.com/daptin/daptin/server
+  │ ├ bytes
+  │ ├ context
+  │ ├ crypto/md5
+  │ ├ crypto/x509
+  │ ├ database/sql
+  │ ├ encoding/base64
+  │ ├ encoding/pem
+  │ ├ errors
+  │ ├ fmt
+  │ ├ image
+  │ ├ image/color
+  │ ├ image/jpeg
+  │ ├ image/png
+  │ ├ io
+  │ ├ io/ioutil
+  │ ├ log
+  │ ├ net/http
+  │ ├ net/url
+  │ ├ os
+  │ ├ path/filepath
+  │ ├ reflect
+  │ ├ strconv
+  │ ├ strings
+  │ ├ time
+  │ ├ github.com/Masterminds/squirrel
+  │ │ ├ bytes
+  │ │ ├ context
+  │ │ ├ database/sql
+  │ │ ├ database/sql/driver
+  │ │ ├ errors
+  │ │ ├ fmt
+  │ │ ├ io
+  │ │ ├ reflect
+  │ │ ├ sort
+  │ │ ├ strings
+  │ │ ├ sync
+  │ │ └ github.com/lann/builder (unresolved)
+  │ ├ github.com/anthonynsimon/bild/blur
+  │ │ ├ image
+  │ │ ├ math
+  │ │ ├ github.com/anthonynsimon/bild/clone
+  │ │ │ ├ image
+  │ │ │ ├ image/draw
+  │ │ │ └ github.com/anthonynsimon/bild/parallel
+  │ │ │   ├ runtime
+  │ │ │   └ sync
+  │ │ └ github.com/anthonynsimon/bild/convolution
+  │ │   ├ fmt
+  │ │   ├ image
+  │ │   ├ math
+  │ │   ├ github.com/anthonynsimon/bild/clone
+  │ │   └ github.com/anthonynsimon/bild/parallel
+  │ ├ github.com/anthonynsimon/bild/effect
+  │ │ ├ image
+  │ │ ├ image/color
+  │ │ ├ math
+  │ │ ├ github.com/anthonynsimon/bild/adjust
+  │ │ │ ├ image
+  │ │ │ ├ image/color
+  │ │ │ ├ math
+  │ │ │ ├ github.com/anthonynsimon/bild/clone
+  │ │ │ ├ github.com/anthonynsimon/bild/math/f64
+  │ │ │ ├ github.com/anthonynsimon/bild/parallel
+  │ │ │ └ github.com/anthonynsimon/bild/util
+  │ │ │   ├ fmt
+  │ │ │   ├ image
+  │ │ │   ├ image/color
+  │ │ │   ├ math
+  │ │ │   └ github.com/anthonynsimon/bild/math/f64
+  │ │ ├ github.com/anthonynsimon/bild/blend
+  │ │ │ ├ image
+  │ │ │ ├ math
+  │ │ │ ├ github.com/anthonynsimon/bild/clone
+  │ │ │ ├ github.com/anthonynsimon/bild/fcolor
+  │ │ │ │ └ github.com/anthonynsimon/bild/math/f64
+  │ │ │ ├ github.com/anthonynsimon/bild/math/f64
+  │ │ │ └ github.com/anthonynsimon/bild/parallel
+  │ │ ├ github.com/anthonynsimon/bild/blur
+  │ │ ├ github.com/anthonynsimon/bild/clone
+  │ │ ├ github.com/anthonynsimon/bild/convolution
+  │ │ ├ github.com/anthonynsimon/bild/math/f64
+  │ │ ├ github.com/anthonynsimon/bild/parallel
+  │ │ └ github.com/anthonynsimon/bild/util
+  │ ├ github.com/artpar/api2go
+  │ │ ├ context
+  │ │ ├ encoding/json
+  │ │ ├ errors
+  │ │ ├ fmt
+  │ │ ├ io/ioutil
+  │ │ ├ log
+  │ │ ├ net/http
+  │ │ ├ net/url
+  │ │ ├ reflect
+  │ │ ├ regexp
+  │ │ ├ strconv
+  │ │ ├ strings
+  │ │ ├ sync
+  │ │ ├ time
+  │ │ ├ github.com/artpar/api2go/jsonapi
+  │ │ │ ├ bytes
+  │ │ │ ├ encoding/json
+  │ │ │ ├ errors
+  │ │ │ ├ fmt
+  │ │ │ ├ reflect
+  │ │ │ ├ strings
+  │ │ │ └ unicode
+  │ │ ├ github.com/artpar/api2go/routing
+  │ │ │ ├ net/http
+  │ │ │ └ github.com/julienschmidt/httprouter
+  │ │ │   ├ context
+  │ │ │   ├ net/http
+  │ │ │   ├ strings
+  │ │ │   ├ sync
+  │ │ │   ├ unicode
+  │ │ │   └ unicode/utf8
+  │ │ ├ github.com/artpar/go.uuid
+  │ │ │ ├ bytes
+  │ │ │ ├ crypto/md5
+  │ │ │ ├ crypto/rand
+  │ │ │ ├ crypto/sha1
+  │ │ │ ├ database/sql/driver
+  │ │ │ ├ encoding/binary
+  │ │ │ ├ encoding/hex
+  │ │ │ ├ fmt
+  │ │ │ ├ hash
+  │ │ │ ├ io
+  │ │ │ ├ net
+  │ │ │ ├ os
+  │ │ │ ├ sync
+  │ │ │ └ time
+  │ │ └ github.com/sirupsen/logrus
+  │ ├ github.com/artpar/api2go-adapter/gingonic
+  │ │ ├ net/http
+  │ │ ├ github.com/artpar/api2go/routing
+  │ │ └ github.com/gin-gonic/gin
+  │ │   ├ bufio
+  │ │   ├ bytes
+  │ │   ├ encoding/base64
+  │ │   ├ encoding/xml
+  │ │   ├ errors
+  │ │   ├ fmt
+  │ │   ├ html/template
+  │ │   ├ io
+  │ │   ├ io/ioutil
+  │ │   ├ log
+  │ │   ├ math
+  │ │   ├ mime/multipart
+  │ │   ├ net
+  │ │   ├ net/http
+  │ │   ├ net/http/httputil
+  │ │   ├ net/url
+  │ │   ├ os
+  │ │   ├ path
+  │ │   ├ reflect
+  │ │   ├ regexp
+  │ │   ├ runtime
+  │ │   ├ strconv
+  │ │   ├ strings
+  │ │   ├ sync
+  │ │   ├ time
+  │ │   ├ unicode
+  │ │   ├ github.com/gin-contrib/sse
+  │ │   │ ├ bytes
+  │ │   │ ├ encoding/json
+  │ │   │ ├ fmt
+  │ │   │ ├ io
+  │ │   │ ├ io/ioutil
+  │ │   │ ├ net/http
+  │ │   │ ├ reflect
+  │ │   │ ├ strconv
+  │ │   │ └ strings
+  │ │   ├ github.com/gin-gonic/gin/binding
+  │ │   │ ├ bytes
+  │ │   │ ├ encoding/xml
+  │ │   │ ├ errors
+  │ │   │ ├ fmt
+  │ │   │ ├ io
+  │ │   │ ├ io/ioutil
+  │ │   │ ├ mime/multipart
+  │ │   │ ├ net/http
+  │ │   │ ├ net/textproto
+  │ │   │ ├ reflect
+  │ │   │ ├ strconv
+  │ │   │ ├ strings
+  │ │   │ ├ sync
+  │ │   │ ├ time
+  │ │   │ ├ github.com/gin-gonic/gin/internal/json
+  │ │   │ │ └ encoding/json
+  │ │   │ ├ github.com/golang/protobuf/proto
+  │ │   │ │ ├ bufio
+  │ │   │ │ ├ bytes
+  │ │   │ │ ├ encoding
+  │ │   │ │ ├ encoding/json
+  │ │   │ │ ├ errors
+  │ │   │ │ ├ fmt
+  │ │   │ │ ├ io
+  │ │   │ │ ├ log
+  │ │   │ │ ├ math
+  │ │   │ │ ├ reflect
+  │ │   │ │ ├ sort
+  │ │   │ │ ├ strconv
+  │ │   │ │ ├ strings
+  │ │   │ │ ├ sync
+  │ │   │ │ ├ sync/atomic
+  │ │   │ │ ├ unicode/utf8
+  │ │   │ │ └ unsafe
+  │ │   │ ├ github.com/ugorji/go/codec
+  │ │   │ │ ├ bufio
+  │ │   │ │ ├ bytes
+  │ │   │ │ ├ encoding
+  │ │   │ │ ├ encoding/base64
+  │ │   │ │ ├ encoding/binary
+  │ │   │ │ ├ errors
+  │ │   │ │ ├ fmt
+  │ │   │ │ ├ io
+  │ │   │ │ ├ math
+  │ │   │ │ ├ net/rpc
+  │ │   │ │ ├ reflect
+  │ │   │ │ ├ sort
+  │ │   │ │ ├ strconv
+  │ │   │ │ ├ strings
+  │ │   │ │ ├ sync
+  │ │   │ │ ├ sync/atomic
+  │ │   │ │ ├ time
+  │ │   │ │ ├ unicode
+  │ │   │ │ ├ unicode/utf16
+  │ │   │ │ ├ unicode/utf8
+  │ │   │ │ └ unsafe
+  │ │   │ ├ gopkg.in/go-playground/validator.v9
+  │ │   │ │ ├ bytes
+  │ │   │ │ ├ context
+  │ │   │ │ ├ crypto/sha256
+  │ │   │ │ ├ errors
+  │ │   │ │ ├ fmt
+  │ │   │ │ ├ net
+  │ │   │ │ ├ net/url
+  │ │   │ │ ├ os
+  │ │   │ │ ├ reflect
+  │ │   │ │ ├ regexp
+  │ │   │ │ ├ strconv
+  │ │   │ │ ├ strings
+  │ │   │ │ ├ sync
+  │ │   │ │ ├ sync/atomic
+  │ │   │ │ ├ time
+  │ │   │ │ ├ unicode/utf8
+  │ │   │ │ ├ github.com/go-playground/universal-translator
+  │ │   │ │ │ ├ encoding/json
+  │ │   │ │ │ ├ errors
+  │ │   │ │ │ ├ fmt
+  │ │   │ │ │ ├ io
+  │ │   │ │ │ ├ io/ioutil
+  │ │   │ │ │ ├ os
+  │ │   │ │ │ ├ path/filepath
+  │ │   │ │ │ ├ strconv
+  │ │   │ │ │ ├ strings
+  │ │   │ │ │ └ github.com/go-playground/locales
+  │ │   │ │ │   ├ strconv
+  │ │   │ │ │   ├ time
+  │ │   │ │ │   └ github.com/go-playground/locales/currency
+  │ │   │ │ └ github.com/leodido/go-urn
+  │ │   │ │   ├ fmt
+  │ │   │ │   └ strings
+  │ │   │ └ gopkg.in/yaml.v2
+  │ │   │   ├ bytes
+  │ │   │   ├ encoding
+  │ │   │   ├ encoding/base64
+  │ │   │   ├ errors
+  │ │   │   ├ fmt
+  │ │   │   ├ io
+  │ │   │   ├ math
+  │ │   │   ├ reflect
+  │ │   │   ├ regexp
+  │ │   │   ├ sort
+  │ │   │   ├ strconv
+  │ │   │   ├ strings
+  │ │   │   ├ sync
+  │ │   │   ├ time
+  │ │   │   ├ unicode
+  │ │   │   └ unicode/utf8
+  │ │   ├ github.com/gin-gonic/gin/internal/json
+  │ │   ├ github.com/gin-gonic/gin/render
+  │ │   │ ├ bytes
+  │ │   │ ├ encoding/xml
+  │ │   │ ├ fmt
+  │ │   │ ├ html/template
+  │ │   │ ├ io
+  │ │   │ ├ net/http
+  │ │   │ ├ strconv
+  │ │   │ ├ github.com/gin-gonic/gin/internal/json
+  │ │   │ ├ github.com/golang/protobuf/proto
+  │ │   │ ├ github.com/ugorji/go/codec
+  │ │   │ └ gopkg.in/yaml.v2
+  │ │   └ github.com/mattn/go-isatty
+  │ │     └ golang.org/x/sys/unix (unresolved)
+  │ ├ github.com/artpar/api2go/jsonapi
+  │ ├ github.com/artpar/go-guerrilla
+  │ ├ github.com/artpar/go-guerrilla/authenticators
+  │ ├ github.com/artpar/go-guerrilla/backends
+  │ ├ github.com/artpar/go-guerrilla/mail
+  │ ├ github.com/artpar/go-guerrilla/response
+  │ ├ github.com/artpar/go-imap-idle
+  │ │ ├ bufio
+  │ │ ├ errors
+  │ │ ├ strings
+  │ │ ├ time
+  │ │ ├ github.com/artpar/go-imap
+  │ │ ├ github.com/artpar/go-imap/client
+  │ │ │ ├ crypto/rand
+  │ │ │ ├ crypto/tls
+  │ │ │ ├ encoding/base64
+  │ │ │ ├ errors
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ log
+  │ │ │ ├ net
+  │ │ │ ├ os
+  │ │ │ ├ sync
+  │ │ │ ├ syscall
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/go-imap
+  │ │ │ ├ github.com/artpar/go-imap/commands
+  │ │ │ ├ github.com/artpar/go-imap/responses
+  │ │ │ └ github.com/emersion/go-sasl
+  │ │ ├ github.com/artpar/go-imap/responses
+  │ │ └ github.com/artpar/go-imap/server
+  │ ├ github.com/artpar/go-imap/server
+  │ ├ github.com/artpar/go.uuid
+  │ ├ github.com/artpar/rclone/backend/all
+  │ │ ├ github.com/artpar/rclone/backend/alias
+  │ │ │ ├ errors
+  │ │ │ ├ strings
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ encoding/csv
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ log
+  │ │ │ │ ├ math
+  │ │ │ │ ├ mime
+  │ │ │ │ ├ net
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ os
+  │ │ │ │ ├ path
+  │ │ │ │ ├ path/filepath
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ reflect
+  │ │ │ │ │ ├ regexp
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ │   ├ fmt
+  │ │ │ │ │   ├ io
+  │ │ │ │ │   ├ path
+  │ │ │ │ │   ├ runtime
+  │ │ │ │ │   └ strings
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ net/http
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ syscall
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ └ github.com/artpar/rclone/lib/errors
+  │ │ │ │ │   ├ errors
+  │ │ │ │ │   ├ fmt
+  │ │ │ │ │   └ reflect
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fspath
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ path
+  │ │ │ │ │ ├ path/filepath
+  │ │ │ │ │ ├ regexp
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ └ github.com/artpar/rclone/fs/driveletter
+  │ │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ │ │ ├ crypto/md5
+  │ │ │ │ │ ├ crypto/sha1
+  │ │ │ │ │ ├ encoding/hex
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ hash
+  │ │ │ │ │ ├ hash/crc32
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ github.com/artpar/rclone/backend/dropbox/dbhash
+  │ │ │ │ │ │ ├ crypto/sha256
+  │ │ │ │ │ │ └ hash
+  │ │ │ │ │ ├ github.com/artpar/rclone/backend/mailru/mrhash
+  │ │ │ │ │ │ ├ crypto/sha1
+  │ │ │ │ │ │ ├ encoding
+  │ │ │ │ │ │ ├ encoding/hex
+  │ │ │ │ │ │ ├ errors
+  │ │ │ │ │ │ ├ hash
+  │ │ │ │ │ │ └ strconv
+  │ │ │ │ │ ├ github.com/artpar/rclone/backend/onedrive/quickxorhash
+  │ │ │ │ │ │ └ hash
+  │ │ │ │ │ ├ github.com/jzelinskie/whirlpool
+  │ │ │ │ │ │ ├ encoding/binary
+  │ │ │ │ │ │ └ hash
+  │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ │ │ ├ math/rand
+  │ │ │ │ │ ├ sync
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ ├ github.com/artpar/rclone/lib/errors
+  │ │ │ │ │ └ golang.org/x/time/rate
+  │ │ │ │ │   ├ context
+  │ │ │ │ │   ├ fmt
+  │ │ │ │ │   ├ math
+  │ │ │ │ │   ├ sync
+  │ │ │ │ │   └ time
+  │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ └ github.com/sirupsen/logrus
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ └ github.com/artpar/rclone/fs/fspath
+  │ │ ├ github.com/artpar/rclone/backend/amazonclouddrive
+  │ │ │ ├ context
+  │ │ │ ├ encoding/json
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ log
+  │ │ │ ├ net/http
+  │ │ │ ├ path
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ │ ├ bufio
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ crypto/rand
+  │ │ │ │ ├ crypto/sha256
+  │ │ │ │ ├ encoding/base64
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ log
+  │ │ │ │ ├ math/rand
+  │ │ │ │ ├ os
+  │ │ │ │ ├ os/user
+  │ │ │ │ ├ path/filepath
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ runtime
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ syscall
+  │ │ │ │ ├ time
+  │ │ │ │ ├ unicode/utf8
+  │ │ │ │ ├ github.com/Unknwon/goconfig
+  │ │ │ │ │ ├ bufio
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ ├ os
+  │ │ │ │ │ ├ path
+  │ │ │ │ │ ├ regexp
+  │ │ │ │ │ ├ runtime
+  │ │ │ │ │ ├ strconv
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ sync
+  │ │ │ │ │ └ time
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ context
+  │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ os
+  │ │ │ │ │ ├ os/signal
+  │ │ │ │ │ ├ sort
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ sync
+  │ │ │ │ │ ├ syscall
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ ├ unicode/utf8
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/asyncreader
+  │ │ │ │ │ │ ├ io
+  │ │ │ │ │ │ ├ sync
+  │ │ │ │ │ │ ├ time
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/lib/pool
+  │ │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ │ ├ log
+  │ │ │ │ │ │ │ ├ sync
+  │ │ │ │ │ │ │ ├ time
+  │ │ │ │ │ │ │ └ github.com/artpar/rclone/lib/mmap
+  │ │ │ │ │ │ │   ├ os
+  │ │ │ │ │ │ │   ├ github.com/pkg/errors
+  │ │ │ │ │ │ │   └ golang.org/x/sys/unix
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ │ │ │ │ ├ io
+  │ │ │ │ │ │ │ ├ sync
+  │ │ │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/rc
+  │ │ │ │ │ │ ├ context
+  │ │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ io
+  │ │ │ │ │ │ ├ math
+  │ │ │ │ │ │ ├ net/http/pprof
+  │ │ │ │ │ │ ├ os
+  │ │ │ │ │ │ ├ runtime
+  │ │ │ │ │ │ ├ sort
+  │ │ │ │ │ │ ├ strconv
+  │ │ │ │ │ │ ├ strings
+  │ │ │ │ │ │ ├ sync
+  │ │ │ │ │ │ ├ time
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/cmd/serve/httplib
+  │ │ │ │ │ │ │ ├ context
+  │ │ │ │ │ │ │ ├ crypto/tls
+  │ │ │ │ │ │ │ ├ crypto/x509
+  │ │ │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ │ ├ html/template
+  │ │ │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ │ │ ├ log
+  │ │ │ │ │ │ │ ├ net
+  │ │ │ │ │ │ │ ├ net/http
+  │ │ │ │ │ │ │ ├ strings
+  │ │ │ │ │ │ │ ├ time
+  │ │ │ │ │ │ │ ├ github.com/abbot/go-http-auth
+  │ │ │ │ │ │ │ │ ├ bytes
+  │ │ │ │ │ │ │ │ ├ crypto/md5
+  │ │ │ │ │ │ │ │ ├ crypto/rand
+  │ │ │ │ │ │ │ │ ├ crypto/sha1
+  │ │ │ │ │ │ │ │ ├ crypto/subtle
+  │ │ │ │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ │ │ │ ├ encoding/csv
+  │ │ │ │ │ │ │ │ ├ errors
+  │ │ │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ │ │ ├ net/http
+  │ │ │ │ │ │ │ │ ├ net/url
+  │ │ │ │ │ │ │ │ ├ os
+  │ │ │ │ │ │ │ │ ├ sort
+  │ │ │ │ │ │ │ │ ├ strconv
+  │ │ │ │ │ │ │ │ ├ strings
+  │ │ │ │ │ │ │ │ ├ sync
+  │ │ │ │ │ │ │ │ ├ time
+  │ │ │ │ │ │ │ │ ├ golang.org/x/crypto/bcrypt
+  │ │ │ │ │ │ │ │ │ ├ crypto/rand
+  │ │ │ │ │ │ │ │ │ ├ crypto/subtle
+  │ │ │ │ │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ │ │ │ │ ├ errors
+  │ │ │ │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ │ │ │ ├ io
+  │ │ │ │ │ │ │ │ │ ├ strconv
+  │ │ │ │ │ │ │ │ │ └ golang.org/x/crypto/blowfish
+  │ │ │ │ │ │ │ │ │   └ strconv
+  │ │ │ │ │ │ │ │ └ golang.org/x/net/context
+  │ │ │ │ │ │ │ │   ├ context
+  │ │ │ │ │ │ │ │   └ time
+  │ │ │ │ │ │ │ ├ github.com/artpar/rclone/cmd/serve/httplib/serve/data
+  │ │ │ │ │ │ │ │ ├ bytes
+  │ │ │ │ │ │ │ │ ├ compress/gzip
+  │ │ │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ │ │ ├ html/template
+  │ │ │ │ │ │ │ │ ├ io
+  │ │ │ │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ │ │ │ ├ net/http
+  │ │ │ │ │ │ │ │ ├ os
+  │ │ │ │ │ │ │ │ ├ path
+  │ │ │ │ │ │ │ │ ├ time
+  │ │ │ │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/fs/cache
+  │ │ │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ │ │ └ github.com/artpar/rclone/lib/cache
+  │ │ │ │ │ │ │   ├ sync
+  │ │ │ │ │ │ │   └ time
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ │ │ │ │ ├ crypto/aes
+  │ │ │ │ │ │ │ ├ crypto/cipher
+  │ │ │ │ │ │ │ ├ crypto/rand
+  │ │ │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ │ │ ├ io
+  │ │ │ │ │ │ │ ├ log
+  │ │ │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/fs/version
+  │ │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ │ ├ regexp
+  │ │ │ │ │ │ │ ├ strconv
+  │ │ │ │ │ │ │ ├ strings
+  │ │ │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/lib/atexit
+  │ │ │ │ │ │ │ ├ os
+  │ │ │ │ │ │ │ ├ os/signal
+  │ │ │ │ │ │ │ ├ sync
+  │ │ │ │ │ │ │ ├ syscall
+  │ │ │ │ │ │ │ └ github.com/artpar/rclone/fs
+  │ │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ │ └ golang.org/x/time/rate
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ │ ├ github.com/artpar/rclone/fs/driveletter
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ context
+  │ │ │ │ │ ├ crypto/tls
+  │ │ │ │ │ ├ crypto/x509
+  │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ ├ log
+  │ │ │ │ │ ├ net
+  │ │ │ │ │ ├ net/http
+  │ │ │ │ │ ├ net/http/cookiejar
+  │ │ │ │ │ ├ net/http/httputil
+  │ │ │ │ │ ├ reflect
+  │ │ │ │ │ ├ sync
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ ├ golang.org/x/net/publicsuffix
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ net/http/cookiejar
+  │ │ │ │ │ │ └ strings
+  │ │ │ │ │ └ golang.org/x/time/rate
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fspath
+  │ │ │ │ ├ github.com/artpar/rclone/fs/rc
+  │ │ │ │ ├ github.com/artpar/rclone/lib/random
+  │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ ├ math/rand
+  │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ ├ github.com/artpar/rclone/lib/terminal
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ os
+  │ │ │ │ │ ├ runtime
+  │ │ │ │ │ ├ sync
+  │ │ │ │ │ ├ github.com/mattn/go-colorable
+  │ │ │ │ │ │ ├ bytes
+  │ │ │ │ │ │ ├ io
+  │ │ │ │ │ │ ├ os
+  │ │ │ │ │ │ └ github.com/mattn/go-isatty (unresolved)
+  │ │ │ │ │ └ golang.org/x/crypto/ssh/terminal
+  │ │ │ │ │   ├ bytes
+  │ │ │ │ │   ├ io
+  │ │ │ │ │   ├ strconv
+  │ │ │ │ │   ├ sync
+  │ │ │ │ │   ├ unicode/utf8
+  │ │ │ │ │   └ golang.org/x/sys/unix
+  │ │ │ │ ├ github.com/mitchellh/go-homedir
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ os
+  │ │ │ │ │ ├ os/exec
+  │ │ │ │ │ ├ path/filepath
+  │ │ │ │ │ ├ runtime
+  │ │ │ │ │ ├ strconv
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ └ sync
+  │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ ├ golang.org/x/crypto/nacl/secretbox
+  │ │ │ │ │ ├ golang.org/x/crypto/internal/subtle
+  │ │ │ │ │ │ └ unsafe
+  │ │ │ │ │ ├ golang.org/x/crypto/poly1305
+  │ │ │ │ │ │ ├ crypto/subtle
+  │ │ │ │ │ │ └ encoding/binary
+  │ │ │ │ │ └ golang.org/x/crypto/salsa20/salsa
+  │ │ │ │ ├ golang.org/x/crypto/ssh/terminal
+  │ │ │ │ └ golang.org/x/text/unicode/norm
+  │ │ │ │   ├ encoding/binary
+  │ │ │ │   ├ fmt
+  │ │ │ │   ├ io
+  │ │ │ │   ├ sync
+  │ │ │ │   ├ unicode/utf8
+  │ │ │ │   └ golang.org/x/text/transform (unresolved)
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ │ ├ runtime
+  │ │ │ │ ├ strings
+  │ │ │ │ └ github.com/artpar/rclone/lib/encoder
+  │ │ │ │   ├ bytes
+  │ │ │ │   ├ fmt
+  │ │ │ │   ├ io
+  │ │ │ │   ├ strconv
+  │ │ │ │   ├ strings
+  │ │ │ │   └ unicode/utf8
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/dircache
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ log
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ └ github.com/pkg/errors
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ │ ├ context
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ html/template
+  │ │ │ │ ├ net
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ sync/atomic
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ │ ├ github.com/artpar/rclone/lib/random
+  │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ ├ github.com/skratchdot/open-golang/open
+  │ │ │ │ │ └ os/exec
+  │ │ │ │ └ golang.org/x/oauth2
+  │ │ │ │   ├ bytes
+  │ │ │ │   ├ context
+  │ │ │ │   ├ errors
+  │ │ │ │   ├ fmt
+  │ │ │ │   ├ io
+  │ │ │ │   ├ net/http
+  │ │ │ │   ├ net/url
+  │ │ │ │   ├ strconv
+  │ │ │ │   ├ strings
+  │ │ │ │   ├ sync
+  │ │ │ │   ├ time
+  │ │ │ │   └ golang.org/x/oauth2/internal
+  │ │ │ │     ├ context
+  │ │ │ │     ├ crypto/rsa
+  │ │ │ │     ├ crypto/x509
+  │ │ │ │     ├ encoding/json
+  │ │ │ │     ├ encoding/pem
+  │ │ │ │     ├ errors
+  │ │ │ │     ├ fmt
+  │ │ │ │     ├ io
+  │ │ │ │     ├ io/ioutil
+  │ │ │ │     ├ math
+  │ │ │ │     ├ mime
+  │ │ │ │     ├ net/http
+  │ │ │ │     ├ net/url
+  │ │ │ │     ├ strconv
+  │ │ │ │     ├ strings
+  │ │ │ │     ├ sync
+  │ │ │ │     ├ time
+  │ │ │ │     └ golang.org/x/net/context/ctxhttp
+  │ │ │ │       ├ context
+  │ │ │ │       ├ io
+  │ │ │ │       ├ net/http
+  │ │ │ │       ├ net/url
+  │ │ │ │       └ strings
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/ncw/go-acd
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ mime/multipart
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ os
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ └ github.com/google/go-querystring/query
+  │ │ │ │   ├ bytes
+  │ │ │ │   ├ fmt
+  │ │ │ │   ├ net/url
+  │ │ │ │   ├ reflect
+  │ │ │ │   ├ strconv
+  │ │ │ │   ├ strings
+  │ │ │ │   └ time
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ └ golang.org/x/oauth2
+  │ │ ├ github.com/artpar/rclone/backend/azureblob
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ crypto/md5
+  │ │ │ ├ encoding/base64
+  │ │ │ ├ encoding/binary
+  │ │ │ ├ encoding/hex
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ path
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ github.com/Azure/azure-pipeline-go/pipeline
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ log
+  │ │ │ │ ├ log/syslog
+  │ │ │ │ ├ net
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ os
+  │ │ │ │ ├ runtime
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ └ github.com/mattn/go-ieproxy (unresolved)
+  │ │ │ ├ github.com/Azure/azure-storage-blob-go/azblob
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ crypto/hmac
+  │ │ │ │ ├ crypto/rand
+  │ │ │ │ ├ crypto/sha256
+  │ │ │ │ ├ encoding/base64
+  │ │ │ │ ├ encoding/binary
+  │ │ │ │ ├ encoding/xml
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ math/rand
+  │ │ │ │ ├ net
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ os
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ runtime
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ sync/atomic
+  │ │ │ │ ├ syscall
+  │ │ │ │ ├ time
+  │ │ │ │ ├ unsafe
+  │ │ │ │ └ github.com/Azure/azure-pipeline-go/pipeline (unresolved)
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/fs/walk
+  │ │ │ │ ├ context
+  │ │ │ │ ├ path
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ ├ github.com/artpar/rclone/fs/dirtree
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ path
+  │ │ │ │ │ ├ sort
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ └ github.com/artpar/rclone/lib/errors
+  │ │ │ │ ├ github.com/artpar/rclone/fs/filter
+  │ │ │ │ │ ├ bufio
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ context
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ log
+  │ │ │ │ │ ├ os
+  │ │ │ │ │ ├ path
+  │ │ │ │ │ ├ regexp
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ │ └ golang.org/x/sync/errgroup
+  │ │ │ │ │   ├ context
+  │ │ │ │ │   └ sync
+  │ │ │ │ ├ github.com/artpar/rclone/fs/list
+  │ │ │ │ │ ├ context
+  │ │ │ │ │ ├ sort
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/filter
+  │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ └ github.com/pkg/errors
+  │ │ │ ├ github.com/artpar/rclone/lib/bucket
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ strings
+  │ │ │ │ └ sync
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ └ github.com/pkg/errors
+  │ │ ├ github.com/artpar/rclone/backend/b2
+  │ │ │ ├ bufio
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ crypto/sha1
+  │ │ │ ├ encoding/hex
+  │ │ │ ├ fmt
+  │ │ │ ├ hash
+  │ │ │ ├ io
+  │ │ │ ├ net/http
+  │ │ │ ├ path
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/b2/api
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ path
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ └ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/fs/walk
+  │ │ │ ├ github.com/artpar/rclone/lib/bucket
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ encoding/xml
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ mime/multipart
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ │ └ github.com/pkg/errors
+  │ │ │ └ github.com/pkg/errors
+  │ │ ├ github.com/artpar/rclone/backend/box
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ crypto/rsa
+  │ │ │ ├ crypto/sha1
+  │ │ │ ├ encoding/base64
+  │ │ │ ├ encoding/json
+  │ │ │ ├ encoding/pem
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ io/ioutil
+  │ │ │ ├ log
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ path
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/box/api
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ fmt
+  │ │ │ │ └ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/dircache
+  │ │ │ ├ github.com/artpar/rclone/lib/jwtutil
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ crypto/rand
+  │ │ │ │ ├ crypto/rsa
+  │ │ │ │ ├ encoding/hex
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ ├ golang.org/x/oauth2
+  │ │ │ │ └ golang.org/x/oauth2/jws
+  │ │ │ │   ├ bytes
+  │ │ │ │   ├ crypto
+  │ │ │ │   ├ crypto/rand
+  │ │ │ │   ├ crypto/rsa
+  │ │ │ │   ├ crypto/sha256
+  │ │ │ │   ├ encoding/base64
+  │ │ │ │   ├ encoding/json
+  │ │ │ │   ├ errors
+  │ │ │ │   ├ fmt
+  │ │ │ │   ├ strings
+  │ │ │ │   └ time
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ ├ github.com/youmark/pkcs8
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ crypto
+  │ │ │ │ ├ crypto/aes
+  │ │ │ │ ├ crypto/cipher
+  │ │ │ │ ├ crypto/des
+  │ │ │ │ ├ crypto/ecdsa
+  │ │ │ │ ├ crypto/rand
+  │ │ │ │ ├ crypto/rsa
+  │ │ │ │ ├ crypto/sha1
+  │ │ │ │ ├ crypto/sha256
+  │ │ │ │ ├ crypto/x509
+  │ │ │ │ ├ crypto/x509/pkix
+  │ │ │ │ ├ encoding/asn1
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ hash
+  │ │ │ │ ├ golang.org/x/crypto/pbkdf2
+  │ │ │ │ │ ├ crypto/hmac
+  │ │ │ │ │ └ hash
+  │ │ │ │ └ golang.org/x/crypto/scrypt
+  │ │ │ │   ├ crypto/sha256
+  │ │ │ │   ├ errors
+  │ │ │ │   ├ math/bits
+  │ │ │ │   └ golang.org/x/crypto/pbkdf2
+  │ │ │ ├ golang.org/x/oauth2
+  │ │ │ └ golang.org/x/oauth2/jws
+  │ │ ├ github.com/artpar/rclone/backend/cache
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ crypto/tls
+  │ │ │ ├ encoding/binary
+  │ │ │ ├ encoding/json
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ io/ioutil
+  │ │ │ ├ math
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ os
+  │ │ │ ├ os/signal
+  │ │ │ ├ path
+  │ │ │ ├ path/filepath
+  │ │ │ ├ runtime
+  │ │ │ ├ sort
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ syscall
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/crypt
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ crypto/aes
+  │ │ │ │ ├ crypto/cipher
+  │ │ │ │ ├ crypto/rand
+  │ │ │ │ ├ encoding/base32
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ time
+  │ │ │ │ ├ unicode/utf8
+  │ │ │ │ ├ github.com/artpar/rclone/backend/crypt/pkcs7
+  │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fspath
+  │ │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ ├ github.com/rfjakob/eme
+  │ │ │ │ │ ├ crypto/cipher
+  │ │ │ │ │ └ log
+  │ │ │ │ ├ golang.org/x/crypto/nacl/secretbox
+  │ │ │ │ └ golang.org/x/crypto/scrypt
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/cache
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/fspath
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/fs/operations
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ encoding/csv
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ log
+  │ │ │ │ ├ path
+  │ │ │ │ ├ path/filepath
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ sync/atomic
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/artpar/rclone/backend/crypt
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ │ ├ github.com/artpar/rclone/fs/cache
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ │ ├ github.com/artpar/rclone/fs/march
+  │ │ │ │ │ ├ context
+  │ │ │ │ │ ├ path
+  │ │ │ │ │ ├ sort
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ sync
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/dirtree
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/filter
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/list
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/walk
+  │ │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ │ └ golang.org/x/text/unicode/norm
+  │ │ │ │ ├ github.com/artpar/rclone/fs/object
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ context
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ └ github.com/artpar/rclone/fs/hash
+  │ │ │ │ ├ github.com/artpar/rclone/fs/rc
+  │ │ │ │ ├ github.com/artpar/rclone/fs/walk
+  │ │ │ │ ├ github.com/artpar/rclone/lib/random
+  │ │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ ├ github.com/spf13/pflag
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ ├ encoding/csv
+  │ │ │ │ │ ├ encoding/hex
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ flag
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ net
+  │ │ │ │ │ ├ os
+  │ │ │ │ │ ├ reflect
+  │ │ │ │ │ ├ sort
+  │ │ │ │ │ ├ strconv
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ └ time
+  │ │ │ │ └ golang.org/x/sync/errgroup
+  │ │ │ ├ github.com/artpar/rclone/fs/rc
+  │ │ │ ├ github.com/artpar/rclone/fs/walk
+  │ │ │ ├ github.com/artpar/rclone/lib/atexit
+  │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ ├ github.com/etcd-io/bbolt
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ hash/fnv
+  │ │ │ │ ├ io
+  │ │ │ │ ├ log
+  │ │ │ │ ├ os
+  │ │ │ │ ├ runtime
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ syscall
+  │ │ │ │ ├ time
+  │ │ │ │ └ unsafe
+  │ │ │ ├ github.com/patrickmn/go-cache
+  │ │ │ │ ├ crypto/rand
+  │ │ │ │ ├ encoding/gob
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ math
+  │ │ │ │ ├ math/big
+  │ │ │ │ ├ math/rand
+  │ │ │ │ ├ os
+  │ │ │ │ ├ runtime
+  │ │ │ │ ├ sync
+  │ │ │ │ └ time
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ ├ golang.org/x/net/websocket
+  │ │ │ │ ├ bufio
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ crypto/rand
+  │ │ │ │ ├ crypto/sha1
+  │ │ │ │ ├ crypto/tls
+  │ │ │ │ ├ encoding/base64
+  │ │ │ │ ├ encoding/binary
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ net
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ └ time
+  │ │ │ └ golang.org/x/time/rate
+  │ │ ├ github.com/artpar/rclone/backend/chunker
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ crypto/md5
+  │ │ │ ├ crypto/sha1
+  │ │ │ ├ encoding/hex
+  │ │ │ ├ encoding/json
+  │ │ │ ├ fmt
+  │ │ │ ├ hash
+  │ │ │ ├ io
+  │ │ │ ├ io/ioutil
+  │ │ │ ├ path
+  │ │ │ ├ regexp
+  │ │ │ ├ sort
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/fspath
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/fs/operations
+  │ │ │ └ github.com/pkg/errors
+  │ │ ├ github.com/artpar/rclone/backend/crypt
+  │ │ ├ github.com/artpar/rclone/backend/drive
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ crypto/tls
+  │ │ │ ├ encoding/json
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ io/ioutil
+  │ │ │ ├ log
+  │ │ │ ├ mime
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ os
+  │ │ │ ├ path
+  │ │ │ ├ regexp
+  │ │ │ ├ sort
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ text/template
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/fs/walk
+  │ │ │ ├ github.com/artpar/rclone/lib/dircache
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ ├ golang.org/x/oauth2
+  │ │ │ ├ golang.org/x/oauth2/google
+  │ │ │ │ ├ bufio
+  │ │ │ │ ├ context
+  │ │ │ │ ├ crypto/rsa
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ log
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ os
+  │ │ │ │ ├ os/user
+  │ │ │ │ ├ path/filepath
+  │ │ │ │ ├ runtime
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ time
+  │ │ │ │ ├ cloud.google.com/go/compute/metadata
+  │ │ │ │ │ ├ context
+  │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ ├ net
+  │ │ │ │ │ ├ net/http
+  │ │ │ │ │ ├ net/url
+  │ │ │ │ │ ├ os
+  │ │ │ │ │ ├ runtime
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ sync
+  │ │ │ │ │ └ time
+  │ │ │ │ ├ golang.org/x/oauth2
+  │ │ │ │ ├ golang.org/x/oauth2/internal
+  │ │ │ │ ├ golang.org/x/oauth2/jws
+  │ │ │ │ └ golang.org/x/oauth2/jwt
+  │ │ │ │   ├ context
+  │ │ │ │   ├ encoding/json
+  │ │ │ │   ├ fmt
+  │ │ │ │   ├ io
+  │ │ │ │   ├ io/ioutil
+  │ │ │ │   ├ net/http
+  │ │ │ │   ├ net/url
+  │ │ │ │   ├ strings
+  │ │ │ │   ├ time
+  │ │ │ │   ├ golang.org/x/oauth2
+  │ │ │ │   ├ golang.org/x/oauth2/internal
+  │ │ │ │   └ golang.org/x/oauth2/jws
+  │ │ │ ├ google.golang.org/api/drive/v2
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ google.golang.org/api/googleapi
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ ├ net/http
+  │ │ │ │ │ ├ net/url
+  │ │ │ │ │ ├ strconv
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ └ google.golang.org/api/googleapi/internal/uritemplates
+  │ │ │ │ │   ├ bytes
+  │ │ │ │ │   ├ errors
+  │ │ │ │ │   ├ regexp
+  │ │ │ │ │   ├ strconv
+  │ │ │ │ │   └ strings
+  │ │ │ │ ├ google.golang.org/api/internal/gensupport
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ context
+  │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ ├ math
+  │ │ │ │ │ ├ mime
+  │ │ │ │ │ ├ mime/multipart
+  │ │ │ │ │ ├ net/http
+  │ │ │ │ │ ├ net/textproto
+  │ │ │ │ │ ├ net/url
+  │ │ │ │ │ ├ reflect
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ sync
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ ├ github.com/googleapis/gax-go/v2
+  │ │ │ │ │ │ ├ bytes
+  │ │ │ │ │ │ ├ context
+  │ │ │ │ │ │ ├ math/rand
+  │ │ │ │ │ │ ├ strings
+  │ │ │ │ │ │ ├ time
+  │ │ │ │ │ │ ├ google.golang.org/grpc (unresolved)
+  │ │ │ │ │ │ ├ google.golang.org/grpc/codes (unresolved)
+  │ │ │ │ │ │ └ google.golang.org/grpc/status (unresolved)
+  │ │ │ │ │ └ google.golang.org/api/googleapi
+  │ │ │ │ ├ google.golang.org/api/option
+  │ │ │ │ │ ├ net/http
+  │ │ │ │ │ ├ golang.org/x/oauth2
+  │ │ │ │ │ ├ golang.org/x/oauth2/google
+  │ │ │ │ │ ├ google.golang.org/api/internal
+  │ │ │ │ │ │ ├ context
+  │ │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ │ ├ errors
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ │ ├ net/http
+  │ │ │ │ │ │ ├ golang.org/x/oauth2
+  │ │ │ │ │ │ ├ golang.org/x/oauth2/google
+  │ │ │ │ │ │ ├ google.golang.org/grpc
+  │ │ │ │ │ │ └ google.golang.org/grpc/naming
+  │ │ │ │ │ │   ├ context
+  │ │ │ │ │ │   ├ errors
+  │ │ │ │ │ │   ├ fmt
+  │ │ │ │ │ │   ├ net
+  │ │ │ │ │ │   ├ strconv
+  │ │ │ │ │ │   ├ time
+  │ │ │ │ │ │   └ google.golang.org/grpc/grpclog (unresolved)
+  │ │ │ │ │ └ google.golang.org/grpc
+  │ │ │ │ └ google.golang.org/api/transport/http
+  │ │ │ │   ├ context
+  │ │ │ │   ├ errors
+  │ │ │ │   ├ net/http
+  │ │ │ │   ├ go.opencensus.io/plugin/ochttp
+  │ │ │ │   │ ├ context
+  │ │ │ │   │ ├ crypto/tls
+  │ │ │ │   │ ├ io
+  │ │ │ │   │ ├ net/http
+  │ │ │ │   │ ├ net/http/httptrace
+  │ │ │ │   │ ├ strconv
+  │ │ │ │   │ ├ strings
+  │ │ │ │   │ ├ sync
+  │ │ │ │   │ ├ time
+  │ │ │ │   │ ├ go.opencensus.io/plugin/ochttp/propagation/b3 (unresolved)
+  │ │ │ │   │ ├ go.opencensus.io/stats (unresolved)
+  │ │ │ │   │ ├ go.opencensus.io/stats/view (unresolved)
+  │ │ │ │   │ ├ go.opencensus.io/tag (unresolved)
+  │ │ │ │   │ ├ go.opencensus.io/trace (unresolved)
+  │ │ │ │   │ └ go.opencensus.io/trace/propagation (unresolved)
+  │ │ │ │   ├ golang.org/x/oauth2
+  │ │ │ │   ├ google.golang.org/api/googleapi/transport
+  │ │ │ │   │ ├ errors
+  │ │ │ │   │ └ net/http
+  │ │ │ │   ├ google.golang.org/api/internal
+  │ │ │ │   ├ google.golang.org/api/option
+  │ │ │ │   └ google.golang.org/api/transport/http/internal/propagation
+  │ │ │ │     ├ encoding/binary
+  │ │ │ │     ├ encoding/hex
+  │ │ │ │     ├ fmt
+  │ │ │ │     ├ net/http
+  │ │ │ │     ├ strconv
+  │ │ │ │     ├ strings
+  │ │ │ │     ├ go.opencensus.io/trace
+  │ │ │ │     └ go.opencensus.io/trace/propagation
+  │ │ │ ├ google.golang.org/api/drive/v3
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ google.golang.org/api/googleapi
+  │ │ │ │ ├ google.golang.org/api/internal/gensupport
+  │ │ │ │ ├ google.golang.org/api/option
+  │ │ │ │ └ google.golang.org/api/transport/http
+  │ │ │ └ google.golang.org/api/googleapi
+  │ │ ├ github.com/artpar/rclone/backend/dropbox
+  │ │ │ ├ context
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ log
+  │ │ │ ├ path
+  │ │ │ ├ regexp
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/dropbox/dbhash
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ log
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ golang.org/x/net/context
+  │ │ │ │ └ golang.org/x/oauth2
+  │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/auth
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ mime
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ strconv
+  │ │ │ │ └ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox (unresolved)
+  │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/common
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ └ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox (unresolved)
+  │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ log
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/async (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/auth (unresolved)
+  │ │ │ │ └ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/file_properties (unresolved)
+  │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/sharing
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ log
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/async (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/auth (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/seen_state (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_common (unresolved)
+  │ │ │ │ └ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users (unresolved)
+  │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ log
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/async (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/auth (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/file_properties (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_common (unresolved)
+  │ │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/team_policies (unresolved)
+  │ │ │ │ └ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users (unresolved)
+  │ │ │ ├ github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ └ golang.org/x/oauth2
+  │ │ ├ github.com/artpar/rclone/backend/fichier
+  │ │ │ ├ context
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ net/http
+  │ │ │ ├ regexp
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/dircache
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ └ github.com/pkg/errors
+  │ │ ├ github.com/artpar/rclone/backend/ftp
+  │ │ │ ├ context
+  │ │ │ ├ crypto/tls
+  │ │ │ ├ io
+  │ │ │ ├ net/textproto
+  │ │ │ ├ os
+  │ │ │ ├ path
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ ├ github.com/jlaffaye/ftp
+  │ │ │ │ ├ bufio
+  │ │ │ │ ├ context
+  │ │ │ │ ├ crypto/tls
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ net
+  │ │ │ │ ├ net/textproto
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ └ time
+  │ │ │ └ github.com/pkg/errors
+  │ │ ├ github.com/artpar/rclone/backend/googlecloudstorage
+  │ │ │ ├ context
+  │ │ │ ├ encoding/base64
+  │ │ │ ├ encoding/hex
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ io/ioutil
+  │ │ │ ├ log
+  │ │ │ ├ net/http
+  │ │ │ ├ os
+  │ │ │ ├ path
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/fs/walk
+  │ │ │ ├ github.com/artpar/rclone/lib/bucket
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ ├ golang.org/x/oauth2
+  │ │ │ ├ golang.org/x/oauth2/google
+  │ │ │ ├ google.golang.org/api/googleapi
+  │ │ │ └ google.golang.org/api/storage/v1
+  │ │ │   ├ bytes
+  │ │ │   ├ context
+  │ │ │   ├ encoding/json
+  │ │ │   ├ errors
+  │ │ │   ├ fmt
+  │ │ │   ├ io
+  │ │ │   ├ net/http
+  │ │ │   ├ net/url
+  │ │ │   ├ strconv
+  │ │ │   ├ strings
+  │ │ │   ├ google.golang.org/api/googleapi
+  │ │ │   ├ google.golang.org/api/internal/gensupport
+  │ │ │   ├ google.golang.org/api/option
+  │ │ │   └ google.golang.org/api/transport/http
+  │ │ ├ github.com/artpar/rclone/backend/googlephotos
+  │ │ │ ├ context
+  │ │ │ ├ encoding/json
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ log
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ path
+  │ │ │ ├ regexp
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/googlephotos/api
+  │ │ │ │ ├ fmt
+  │ │ │ │ └ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/dirtree
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/fs/log
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ log
+  │ │ │ │ ├ log/syslog
+  │ │ │ │ ├ os
+  │ │ │ │ ├ path
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ runtime
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/flags
+  │ │ │ │ │ ├ log
+  │ │ │ │ │ ├ os
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ └ github.com/spf13/pflag
+  │ │ │ │ ├ github.com/sirupsen/logrus
+  │ │ │ │ └ golang.org/x/sys/unix
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ ├ golang.org/x/oauth2
+  │ │ │ └ golang.org/x/oauth2/google
+  │ │ ├ github.com/artpar/rclone/backend/http
+  │ │ │ ├ context
+  │ │ │ ├ io
+  │ │ │ ├ mime
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ path
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ └ golang.org/x/net/html
+  │ │ │   ├ bufio
+  │ │ │   ├ bytes
+  │ │ │   ├ errors
+  │ │ │   ├ fmt
+  │ │ │   ├ io
+  │ │ │   ├ strconv
+  │ │ │   ├ strings
+  │ │ │   ├ unicode/utf8
+  │ │ │   └ golang.org/x/net/html/atom
+  │ │ ├ github.com/artpar/rclone/backend/hubic
+  │ │ │ ├ context
+  │ │ │ ├ encoding/json
+  │ │ │ ├ fmt
+  │ │ │ ├ io/ioutil
+  │ │ │ ├ log
+  │ │ │ ├ net/http
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/swift
+  │ │ │ │ ├ bufio
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ path
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ │ ├ github.com/artpar/rclone/fs/operations
+  │ │ │ │ ├ github.com/artpar/rclone/fs/walk
+  │ │ │ │ ├ github.com/artpar/rclone/lib/bucket
+  │ │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ │ ├ github.com/ncw/swift
+  │ │ │ │ │ ├ bufio
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ crypto/hmac
+  │ │ │ │ │ ├ crypto/md5
+  │ │ │ │ │ ├ crypto/rand
+  │ │ │ │ │ ├ crypto/sha1
+  │ │ │ │ │ ├ encoding/hex
+  │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ hash
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ ├ mime
+  │ │ │ │ │ ├ net/http
+  │ │ │ │ │ ├ net/url
+  │ │ │ │ │ ├ os
+  │ │ │ │ │ ├ path
+  │ │ │ │ │ ├ strconv
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ sync
+  │ │ │ │ │ └ time
+  │ │ │ │ └ github.com/pkg/errors
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/ncw/swift
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ └ golang.org/x/oauth2
+  │ │ ├ github.com/artpar/rclone/backend/jottacloud
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ crypto/md5
+  │ │ │ ├ encoding/hex
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ io/ioutil
+  │ │ │ ├ log
+  │ │ │ ├ math/rand
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ os
+  │ │ │ ├ path
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/jottacloud/api
+  │ │ │ │ ├ encoding/xml
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ time
+  │ │ │ │ └ github.com/pkg/errors
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/fs/walk
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ └ golang.org/x/oauth2
+  │ │ ├ github.com/artpar/rclone/backend/koofr
+  │ │ │ ├ context
+  │ │ │ ├ encoding/base64
+  │ │ │ ├ errors
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ net/http
+  │ │ │ ├ path
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/koofr/go-httpclient
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ crypto/tls
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ encoding/xml
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ mime/multipart
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/http/httputil
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ os
+  │ │ │ │ ├ strings
+  │ │ │ │ └ time
+  │ │ │ └ github.com/koofr/go-koofrclient
+  │ │ │   ├ fmt
+  │ │ │   ├ io
+  │ │ │   ├ net/http
+  │ │ │   ├ net/url
+  │ │ │   ├ path
+  │ │ │   └ github.com/koofr/go-httpclient (unresolved)
+  │ │ ├ github.com/artpar/rclone/backend/local
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ io/ioutil
+  │ │ │ ├ os
+  │ │ │ ├ path
+  │ │ │ ├ path/filepath
+  │ │ │ ├ regexp
+  │ │ │ ├ runtime
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ sync/atomic
+  │ │ │ ├ syscall
+  │ │ │ ├ time
+  │ │ │ ├ unicode/utf8
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/file
+  │ │ │ │ └ os
+  │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ └ golang.org/x/sys/unix
+  │ │ ├ github.com/artpar/rclone/backend/mailru
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ encoding/hex
+  │ │ │ ├ encoding/json
+  │ │ │ ├ fmt
+  │ │ │ ├ hash
+  │ │ │ ├ io
+  │ │ │ ├ io/ioutil
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ path
+  │ │ │ ├ path/filepath
+  │ │ │ ├ sort
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/mailru/api
+  │ │ │ │ ├ bufio
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ encoding/binary
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ log
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ │ └ github.com/pkg/errors
+  │ │ │ ├ github.com/artpar/rclone/backend/mailru/mrhash
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/fs/object
+  │ │ │ ├ github.com/artpar/rclone/fs/operations
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ └ golang.org/x/oauth2
+  │ │ ├ github.com/artpar/rclone/backend/mega
+  │ │ │ ├ context
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ path
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ └ github.com/t3rm1n4l/go-mega
+  │ │ │   ├ bytes
+  │ │ │   ├ crypto/aes
+  │ │ │   ├ crypto/cipher
+  │ │ │   ├ crypto/rand
+  │ │ │   ├ crypto/sha512
+  │ │ │   ├ encoding/base64
+  │ │ │   ├ encoding/binary
+  │ │ │   ├ encoding/json
+  │ │ │   ├ errors
+  │ │ │   ├ fmt
+  │ │ │   ├ io
+  │ │ │   ├ io/ioutil
+  │ │ │   ├ log
+  │ │ │   ├ math/big
+  │ │ │   ├ math/rand
+  │ │ │   ├ net
+  │ │ │   ├ net/http
+  │ │ │   ├ os
+  │ │ │   ├ path/filepath
+  │ │ │   ├ regexp
+  │ │ │   ├ strings
+  │ │ │   ├ sync
+  │ │ │   ├ time
+  │ │ │   └ golang.org/x/crypto/pbkdf2 (unresolved)
+  │ │ ├ github.com/artpar/rclone/backend/onedrive
+  │ │ │ ├ context
+  │ │ │ ├ encoding/base64
+  │ │ │ ├ encoding/hex
+  │ │ │ ├ encoding/json
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ log
+  │ │ │ ├ net/http
+  │ │ │ ├ path
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/onedrive/api
+  │ │ │ │ ├ strings
+  │ │ │ │ └ time
+  │ │ │ ├ github.com/artpar/rclone/backend/onedrive/quickxorhash
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/atexit
+  │ │ │ ├ github.com/artpar/rclone/lib/dircache
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ └ golang.org/x/oauth2
+  │ │ ├ github.com/artpar/rclone/backend/opendrive
+  │ │ │ ├ context
+  │ │ │ ├ encoding/json
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ path
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/dircache
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ └ github.com/pkg/errors
+  │ │ ├ github.com/artpar/rclone/backend/pcloud
+  │ │ │ ├ context
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ log
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ path
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/pcloud/api
+  │ │ │ │ ├ fmt
+  │ │ │ │ └ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/dircache
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ └ golang.org/x/oauth2
+  │ │ ├ github.com/artpar/rclone/backend/premiumizeme
+  │ │ │ ├ context
+  │ │ │ ├ encoding/json
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ log
+  │ │ │ ├ net
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ path
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/premiumizeme/api
+  │ │ │ │ └ fmt
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/dircache
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/random
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ └ golang.org/x/oauth2
+  │ │ ├ github.com/artpar/rclone/backend/putio
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ encoding/base64
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ log
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ path
+  │ │ │ ├ regexp
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/dircache
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ ├ github.com/putdotio/go-putio/putio
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ mime/multipart
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ └ time
+  │ │ │ └ golang.org/x/oauth2
+  │ │ ├ github.com/artpar/rclone/backend/qingstor
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ crypto/md5
+  │ │ │ ├ fmt
+  │ │ │ ├ hash
+  │ │ │ ├ io
+  │ │ │ ├ net/http
+  │ │ │ ├ path
+  │ │ │ ├ regexp
+  │ │ │ ├ sort
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/fs/walk
+  │ │ │ ├ github.com/artpar/rclone/lib/bucket
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ ├ github.com/yunify/qingstor-sdk-go/v3/config
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ os
+  │ │ │ │ ├ path
+  │ │ │ │ ├ runtime
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/yunify/qingstor-sdk-go/v3/logger
+  │ │ │ │ │ ├ context
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ └ github.com/pengsrc/go-shared/log
+  │ │ │ │ │   ├ bufio
+  │ │ │ │ │   ├ context
+  │ │ │ │ │   ├ errors
+  │ │ │ │ │   ├ fmt
+  │ │ │ │ │   ├ io
+  │ │ │ │ │   ├ os
+  │ │ │ │ │   ├ os/signal
+  │ │ │ │ │   ├ path
+  │ │ │ │ │   ├ runtime
+  │ │ │ │ │   ├ strconv
+  │ │ │ │ │   ├ strings
+  │ │ │ │ │   ├ sync
+  │ │ │ │ │   ├ syscall
+  │ │ │ │ │   ├ time
+  │ │ │ │ │   ├ github.com/pengsrc/go-shared/buffer (unresolved)
+  │ │ │ │ │   ├ github.com/pengsrc/go-shared/check (unresolved)
+  │ │ │ │ │   ├ github.com/pengsrc/go-shared/convert (unresolved)
+  │ │ │ │ │   └ github.com/pengsrc/go-shared/reopen (unresolved)
+  │ │ │ │ ├ github.com/yunify/qingstor-sdk-go/v3/utils
+  │ │ │ │ │ ├ context
+  │ │ │ │ │ ├ net
+  │ │ │ │ │ ├ net/url
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ └ github.com/yunify/qingstor-sdk-go/v3/request/errors
+  │ │ │ │ │   ├ fmt
+  │ │ │ │ │   └ strings
+  │ │ │ │ └ gopkg.in/yaml.v2
+  │ │ │ ├ github.com/yunify/qingstor-sdk-go/v3/request/errors
+  │ │ │ └ github.com/yunify/qingstor-sdk-go/v3/service
+  │ │ │   ├ fmt
+  │ │ │   ├ io
+  │ │ │   ├ net/http
+  │ │ │   ├ strings
+  │ │ │   ├ time
+  │ │ │   ├ github.com/yunify/qingstor-sdk-go/v3/config
+  │ │ │   ├ github.com/yunify/qingstor-sdk-go/v3/request
+  │ │ │   │ ├ errors
+  │ │ │   │ ├ fmt
+  │ │ │   │ ├ net/http
+  │ │ │   │ ├ reflect
+  │ │ │   │ ├ strconv
+  │ │ │   │ ├ time
+  │ │ │   │ ├ github.com/pengsrc/go-shared/convert
+  │ │ │   │ ├ github.com/yunify/qingstor-sdk-go/v3/logger
+  │ │ │   │ ├ github.com/yunify/qingstor-sdk-go/v3/request/builder
+  │ │ │   │ │ ├ bytes
+  │ │ │   │ │ ├ crypto/md5
+  │ │ │   │ │ ├ encoding/base64
+  │ │ │   │ │ ├ encoding/json
+  │ │ │   │ │ ├ errors
+  │ │ │   │ │ ├ fmt
+  │ │ │   │ │ ├ io
+  │ │ │   │ │ ├ io/ioutil
+  │ │ │   │ │ ├ net/http
+  │ │ │   │ │ ├ net/url
+  │ │ │   │ │ ├ reflect
+  │ │ │   │ │ ├ regexp
+  │ │ │   │ │ ├ runtime
+  │ │ │   │ │ ├ strconv
+  │ │ │   │ │ ├ strings
+  │ │ │   │ │ ├ time
+  │ │ │   │ │ ├ unicode
+  │ │ │   │ │ ├ github.com/pengsrc/go-shared/convert
+  │ │ │   │ │ ├ github.com/yunify/qingstor-sdk-go/v3
+  │ │ │   │ │ ├ github.com/yunify/qingstor-sdk-go/v3/logger
+  │ │ │   │ │ ├ github.com/yunify/qingstor-sdk-go/v3/request/data
+  │ │ │   │ │ │ └ github.com/yunify/qingstor-sdk-go/v3/config
+  │ │ │   │ │ └ github.com/yunify/qingstor-sdk-go/v3/utils
+  │ │ │   │ ├ github.com/yunify/qingstor-sdk-go/v3/request/data
+  │ │ │   │ ├ github.com/yunify/qingstor-sdk-go/v3/request/signer
+  │ │ │   │ │ ├ crypto/hmac
+  │ │ │   │ │ ├ crypto/sha256
+  │ │ │   │ │ ├ encoding/base64
+  │ │ │   │ │ ├ fmt
+  │ │ │   │ │ ├ net/http
+  │ │ │   │ │ ├ sort
+  │ │ │   │ │ ├ strings
+  │ │ │   │ │ ├ github.com/pengsrc/go-shared/convert
+  │ │ │   │ │ ├ github.com/yunify/qingstor-sdk-go/v3/logger
+  │ │ │   │ │ └ github.com/yunify/qingstor-sdk-go/v3/utils
+  │ │ │   │ └ github.com/yunify/qingstor-sdk-go/v3/request/unpacker
+  │ │ │   │   ├ bytes
+  │ │ │   │   ├ encoding/json
+  │ │ │   │   ├ fmt
+  │ │ │   │   ├ io
+  │ │ │   │   ├ net/http
+  │ │ │   │   ├ reflect
+  │ │ │   │   ├ strconv
+  │ │ │   │   ├ time
+  │ │ │   │   ├ github.com/pengsrc/go-shared/convert
+  │ │ │   │   ├ github.com/yunify/qingstor-sdk-go/v3/logger
+  │ │ │   │   ├ github.com/yunify/qingstor-sdk-go/v3/request/data
+  │ │ │   │   └ github.com/yunify/qingstor-sdk-go/v3/request/errors
+  │ │ │   ├ github.com/yunify/qingstor-sdk-go/v3/request/data
+  │ │ │   ├ github.com/yunify/qingstor-sdk-go/v3/request/errors
+  │ │ │   └ github.com/yunify/qingstor-sdk-go/v3/utils
+  │ │ ├ github.com/artpar/rclone/backend/s3
+  │ │ │ ├ context
+  │ │ │ ├ crypto/hmac
+  │ │ │ ├ crypto/sha1
+  │ │ │ ├ encoding/base64
+  │ │ │ ├ encoding/hex
+  │ │ │ ├ encoding/xml
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ path
+  │ │ │ ├ regexp
+  │ │ │ ├ sort
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/fs/walk
+  │ │ │ ├ github.com/artpar/rclone/lib/bucket
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ ├ github.com/aws/aws-sdk-go/aws
+  │ │ │ │ ├ context
+  │ │ │ │ ├ io
+  │ │ │ │ ├ log
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ os
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/awserr (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/credentials (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/endpoints (unresolved)
+  │ │ │ │ └ github.com/aws/aws-sdk-go/internal/sdkio (unresolved)
+  │ │ │ ├ github.com/aws/aws-sdk-go/aws/awserr
+  │ │ │ ├ github.com/aws/aws-sdk-go/aws/corehandlers
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ os
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ runtime
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/awserr (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/credentials (unresolved)
+  │ │ │ │ └ github.com/aws/aws-sdk-go/aws/request (unresolved)
+  │ │ │ ├ github.com/aws/aws-sdk-go/aws/credentials
+  │ │ │ ├ github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds
+  │ │ │ │ ├ bufio
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/awserr (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/client (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/credentials (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/ec2metadata (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/request (unresolved)
+  │ │ │ │ └ github.com/aws/aws-sdk-go/internal/sdkuri (unresolved)
+  │ │ │ ├ github.com/aws/aws-sdk-go/aws/defaults
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ net
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ os
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/awserr (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/corehandlers (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/credentials (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/credentials/endpointcreds (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/ec2metadata (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/endpoints (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/request (unresolved)
+  │ │ │ │ └ github.com/aws/aws-sdk-go/internal/shareddefaults (unresolved)
+  │ │ │ ├ github.com/aws/aws-sdk-go/aws/ec2metadata
+  │ │ │ ├ github.com/aws/aws-sdk-go/aws/request
+  │ │ │ ├ github.com/aws/aws-sdk-go/aws/session
+  │ │ │ │ ├ crypto/tls
+  │ │ │ │ ├ crypto/x509
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ net
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ os
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/awserr (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/client (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/corehandlers (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/credentials (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/credentials/processcreds (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/credentials/stscreds (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/csm (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/defaults (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/endpoints (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/request (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/internal/ini (unresolved)
+  │ │ │ │ └ github.com/aws/aws-sdk-go/internal/shareddefaults (unresolved)
+  │ │ │ ├ github.com/aws/aws-sdk-go/service/s3
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ crypto/md5
+  │ │ │ │ ├ crypto/sha256
+  │ │ │ │ ├ encoding/base64
+  │ │ │ │ ├ encoding/hex
+  │ │ │ │ ├ encoding/xml
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ hash
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ sync/atomic
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/awserr (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/awsutil (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/client (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/client/metadata (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/request (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/signer/v4 (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/internal/s3err (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/internal/sdkio (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/private/protocol (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/private/protocol/eventstream (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/private/protocol/eventstream/eventstreamapi (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/private/protocol/rest (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/private/protocol/restxml (unresolved)
+  │ │ │ │ └ github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil (unresolved)
+  │ │ │ ├ github.com/aws/aws-sdk-go/service/s3/s3manager
+  │ │ │ │ ├ bufio
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/awserr (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/awsutil (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/client (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/credentials (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/aws/request (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/internal/sdkio (unresolved)
+  │ │ │ │ ├ github.com/aws/aws-sdk-go/service/s3 (unresolved)
+  │ │ │ │ └ github.com/aws/aws-sdk-go/service/s3/s3iface (unresolved)
+  │ │ │ ├ github.com/ncw/swift
+  │ │ │ └ github.com/pkg/errors
+  │ │ ├ github.com/artpar/rclone/backend/sftp
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ io/ioutil
+  │ │ │ ├ os
+  │ │ │ ├ os/user
+  │ │ │ ├ path
+  │ │ │ ├ regexp
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/env
+  │ │ │ │ ├ os
+  │ │ │ │ └ github.com/mitchellh/go-homedir
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ ├ github.com/pkg/sftp
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ encoding
+  │ │ │ │ ├ encoding/binary
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ os
+  │ │ │ │ ├ path
+  │ │ │ │ ├ path/filepath
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ sync/atomic
+  │ │ │ │ ├ syscall
+  │ │ │ │ ├ time
+  │ │ │ │ ├ unicode/utf8
+  │ │ │ │ ├ github.com/kr/fs
+  │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ ├ os
+  │ │ │ │ │ └ path/filepath
+  │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ └ golang.org/x/crypto/ssh
+  │ │ │ │   ├ bufio
+  │ │ │ │   ├ bytes
+  │ │ │ │   ├ crypto
+  │ │ │ │   ├ crypto/aes
+  │ │ │ │   ├ crypto/cipher
+  │ │ │ │   ├ crypto/des
+  │ │ │ │   ├ crypto/dsa
+  │ │ │ │   ├ crypto/ecdsa
+  │ │ │ │   ├ crypto/elliptic
+  │ │ │ │   ├ crypto/hmac
+  │ │ │ │   ├ crypto/md5
+  │ │ │ │   ├ crypto/rand
+  │ │ │ │   ├ crypto/rc4
+  │ │ │ │   ├ crypto/rsa
+  │ │ │ │   ├ crypto/sha1
+  │ │ │ │   ├ crypto/sha256
+  │ │ │ │   ├ crypto/sha512
+  │ │ │ │   ├ crypto/subtle
+  │ │ │ │   ├ crypto/x509
+  │ │ │ │   ├ encoding/asn1
+  │ │ │ │   ├ encoding/base64
+  │ │ │ │   ├ encoding/binary
+  │ │ │ │   ├ encoding/hex
+  │ │ │ │   ├ encoding/pem
+  │ │ │ │   ├ errors
+  │ │ │ │   ├ fmt
+  │ │ │ │   ├ hash
+  │ │ │ │   ├ io
+  │ │ │ │   ├ io/ioutil
+  │ │ │ │   ├ log
+  │ │ │ │   ├ math
+  │ │ │ │   ├ math/big
+  │ │ │ │   ├ math/bits
+  │ │ │ │   ├ math/rand
+  │ │ │ │   ├ net
+  │ │ │ │   ├ os
+  │ │ │ │   ├ reflect
+  │ │ │ │   ├ sort
+  │ │ │ │   ├ strconv
+  │ │ │ │   ├ strings
+  │ │ │ │   ├ sync
+  │ │ │ │   ├ sync/atomic
+  │ │ │ │   ├ time
+  │ │ │ │   ├ golang.org/x/crypto/curve25519 (unresolved)
+  │ │ │ │   ├ golang.org/x/crypto/ed25519 (unresolved)
+  │ │ │ │   ├ golang.org/x/crypto/internal/chacha20 (unresolved)
+  │ │ │ │   └ golang.org/x/crypto/poly1305 (unresolved)
+  │ │ │ ├ github.com/xanzy/ssh-agent
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ net
+  │ │ │ │ ├ os
+  │ │ │ │ └ golang.org/x/crypto/ssh/agent (unresolved)
+  │ │ │ └ golang.org/x/crypto/ssh
+  │ │ ├ github.com/artpar/rclone/backend/sharefile
+  │ │ │ ├ bytes
+  │ │ │ ├ compress/gzip
+  │ │ │ ├ context
+  │ │ │ ├ crypto/md5
+  │ │ │ ├ encoding/hex
+  │ │ │ ├ encoding/json
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ io/ioutil
+  │ │ │ ├ log
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ os
+  │ │ │ ├ path
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/sharefile/api
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ time
+  │ │ │ │ └ github.com/pkg/errors
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/encodings
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/dircache
+  │ │ │ ├ github.com/artpar/rclone/lib/oauthutil
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/random
+  │ │ │ ├ github.com/artpar/rclone/lib/readers
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ └ golang.org/x/oauth2
+  │ │ ├ github.com/artpar/rclone/backend/swift
+  │ │ ├ github.com/artpar/rclone/backend/union
+  │ │ │ ├ context
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ path
+  │ │ │ ├ path/filepath
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/cache
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ └ github.com/pkg/errors
+  │ │ ├ github.com/artpar/rclone/backend/webdav
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ encoding/xml
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ os/exec
+  │ │ │ ├ path
+  │ │ │ ├ strings
+  │ │ │ ├ time
+  │ │ │ ├ github.com/artpar/rclone/backend/webdav/api
+  │ │ │ │ ├ encoding/xml
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ └ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/backend/webdav/odrvcookie
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ encoding/xml
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ html/template
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/http/cookiejar
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ └ golang.org/x/net/publicsuffix
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configmap
+  │ │ │ ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │ │ ├ github.com/artpar/rclone/fs/config/obscure
+  │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ ├ github.com/artpar/rclone/fs/fshttp
+  │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/rclone/lib/rest
+  │ │ │ └ github.com/pkg/errors
+  │ │ └ github.com/artpar/rclone/backend/yandex
+  │ │   ├ context
+  │ │   ├ encoding/json
+  │ │   ├ fmt
+  │ │   ├ io
+  │ │   ├ log
+  │ │   ├ net/http
+  │ │   ├ net/url
+  │ │   ├ path
+  │ │   ├ strconv
+  │ │   ├ strings
+  │ │   ├ time
+  │ │   ├ github.com/artpar/rclone/backend/yandex/api
+  │ │   │ ├ fmt
+  │ │   │ └ strings
+  │ │   ├ github.com/artpar/rclone/fs
+  │ │   ├ github.com/artpar/rclone/fs/config
+  │ │   ├ github.com/artpar/rclone/fs/config/configmap
+  │ │   ├ github.com/artpar/rclone/fs/config/configstruct
+  │ │   ├ github.com/artpar/rclone/fs/config/obscure
+  │ │   ├ github.com/artpar/rclone/fs/encodings
+  │ │   ├ github.com/artpar/rclone/fs/fserrors
+  │ │   ├ github.com/artpar/rclone/fs/hash
+  │ │   ├ github.com/artpar/rclone/lib/oauthutil
+  │ │   ├ github.com/artpar/rclone/lib/pacer
+  │ │   ├ github.com/artpar/rclone/lib/readers
+  │ │   ├ github.com/artpar/rclone/lib/rest
+  │ │   ├ github.com/pkg/errors
+  │ │   └ golang.org/x/oauth2
+  │ ├ github.com/artpar/rclone/fs
+  │ ├ github.com/artpar/rclone/fs/config
+  │ ├ github.com/artpar/stats
+  │ │ ├ bufio
+  │ │ ├ fmt
+  │ │ ├ net
+  │ │ ├ net/http
+  │ │ ├ os
+  │ │ ├ sync
+  │ │ └ time
+  │ ├ github.com/daptin/daptin/server/apiblueprint
+  │ │ ├ bytes
+  │ │ ├ fmt
+  │ │ ├ strings
+  │ │ ├ github.com/advance512/yaml
+  │ │ │ ├ bytes
+  │ │ │ ├ encoding
+  │ │ │ ├ encoding/base64
+  │ │ │ ├ errors
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ math
+  │ │ │ ├ os
+  │ │ │ ├ reflect
+  │ │ │ ├ regexp
+  │ │ │ ├ sort
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ unicode
+  │ │ │ └ unicode/utf8
+  │ │ ├ github.com/artpar/api2go
+  │ │ ├ github.com/daptin/daptin/server/resource
+  │ │ │ ├ archive/zip
+  │ │ │ ├ bufio
+  │ │ │ ├ bytes
+  │ │ │ ├ context
+  │ │ │ ├ crypto
+  │ │ │ ├ crypto/aes
+  │ │ │ ├ crypto/cipher
+  │ │ │ ├ crypto/hmac
+  │ │ │ ├ crypto/md5
+  │ │ │ ├ crypto/rand
+  │ │ │ ├ crypto/rsa
+  │ │ │ ├ crypto/tls
+  │ │ │ ├ crypto/x509
+  │ │ │ ├ crypto/x509/pkix
+  │ │ │ ├ encoding/base64
+  │ │ │ ├ encoding/csv
+  │ │ │ ├ encoding/hex
+  │ │ │ ├ encoding/pem
+  │ │ │ ├ errors
+  │ │ │ ├ fmt
+  │ │ │ ├ io
+  │ │ │ ├ io/ioutil
+  │ │ │ ├ log
+  │ │ │ ├ math/big
+  │ │ │ ├ math/rand
+  │ │ │ ├ net
+  │ │ │ ├ net/http
+  │ │ │ ├ net/url
+  │ │ │ ├ os
+  │ │ │ ├ path/filepath
+  │ │ │ ├ reflect
+  │ │ │ ├ regexp
+  │ │ │ ├ sort
+  │ │ │ ├ strconv
+  │ │ │ ├ strings
+  │ │ │ ├ sync
+  │ │ │ ├ time
+  │ │ │ ├ unicode/utf8
+  │ │ │ ├ github.com/Masterminds/squirrel
+  │ │ │ ├ github.com/alexeyco/simpletable
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ math
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ strings
+  │ │ │ │ └ unicode/utf8
+  │ │ │ ├ github.com/araddon/dateparse
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ ├ unicode
+  │ │ │ │ └ unicode/utf8
+  │ │ │ ├ github.com/artpar/api2go
+  │ │ │ ├ github.com/artpar/conform
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ html/template
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ unicode
+  │ │ │ │ ├ unicode/utf8
+  │ │ │ │ └ github.com/etgryphon/stringUp
+  │ │ │ │   ├ bytes
+  │ │ │ │   └ regexp
+  │ │ │ ├ github.com/artpar/go-guerrilla
+  │ │ │ ├ github.com/artpar/go-guerrilla/backends
+  │ │ │ ├ github.com/artpar/go-imap
+  │ │ │ ├ github.com/artpar/go-imap/backend
+  │ │ │ ├ github.com/artpar/go-imap/backend/backendutil
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ mime
+  │ │ │ │ ├ net/mail
+  │ │ │ │ ├ net/textproto
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/artpar/go-imap
+  │ │ │ │ ├ github.com/emersion/go-message
+  │ │ │ │ │ ├ bufio
+  │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ mime
+  │ │ │ │ │ ├ mime/quotedprintable
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ github.com/emersion/go-message/textproto
+  │ │ │ │ │ │ ├ bufio
+  │ │ │ │ │ │ ├ bytes
+  │ │ │ │ │ │ ├ crypto/rand
+  │ │ │ │ │ │ ├ errors
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ io
+  │ │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ │ ├ net/textproto
+  │ │ │ │ │ │ ├ regexp
+  │ │ │ │ │ │ └ strings
+  │ │ │ │ │ └ github.com/emersion/go-textwrapper
+  │ │ │ │ │   └ io
+  │ │ │ │ ├ github.com/emersion/go-message/mail
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ container/list
+  │ │ │ │ │ ├ crypto/rand
+  │ │ │ │ │ ├ encoding/binary
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ mime
+  │ │ │ │ │ ├ net/mail
+  │ │ │ │ │ ├ os
+  │ │ │ │ │ ├ regexp
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ ├ github.com/emersion/go-message
+  │ │ │ │ │ └ github.com/martinlindhe/base36
+  │ │ │ │ │   ├ math
+  │ │ │ │ │   ├ math/big
+  │ │ │ │ │   └ strings
+  │ │ │ │ └ github.com/emersion/go-message/textproto
+  │ │ │ ├ github.com/artpar/go.uuid
+  │ │ │ ├ github.com/artpar/parsemail
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ encoding/base64
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ mime
+  │ │ │ │ ├ mime/multipart
+  │ │ │ │ ├ net/mail
+  │ │ │ │ ├ strings
+  │ │ │ │ └ time
+  │ │ │ ├ github.com/artpar/rclone/cmd
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ log
+  │ │ │ │ ├ math/rand
+  │ │ │ │ ├ os
+  │ │ │ │ ├ os/exec
+  │ │ │ │ ├ path
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ runtime
+  │ │ │ │ ├ runtime/pprof
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ │ ├ github.com/artpar/rclone/fs/cache
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/configflags
+  │ │ │ │ │ ├ log
+  │ │ │ │ │ ├ net
+  │ │ │ │ │ ├ path/filepath
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/config/flags
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/log
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/rc
+  │ │ │ │ │ ├ github.com/sirupsen/logrus
+  │ │ │ │ │ └ github.com/spf13/pflag
+  │ │ │ │ ├ github.com/artpar/rclone/fs/config/flags
+  │ │ │ │ ├ github.com/artpar/rclone/fs/filter
+  │ │ │ │ ├ github.com/artpar/rclone/fs/filter/filterflags
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/config/flags
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/filter
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/rc
+  │ │ │ │ │ └ github.com/spf13/pflag
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fspath
+  │ │ │ │ ├ github.com/artpar/rclone/fs/log
+  │ │ │ │ ├ github.com/artpar/rclone/fs/rc/rcflags
+  │ │ │ │ │ ├ github.com/artpar/rclone/cmd/serve/httplib/httpflags
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/cmd/serve/httplib
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/fs/config/flags
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/fs/rc
+  │ │ │ │ │ │ └ github.com/spf13/pflag
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/config/flags
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/rc
+  │ │ │ │ │ └ github.com/spf13/pflag
+  │ │ │ │ ├ github.com/artpar/rclone/fs/rc/rcserver
+  │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ ├ flag
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ mime
+  │ │ │ │ │ ├ net/http
+  │ │ │ │ │ ├ net/url
+  │ │ │ │ │ ├ path/filepath
+  │ │ │ │ │ ├ regexp
+  │ │ │ │ │ ├ sort
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ github.com/artpar/rclone/cmd/serve/httplib
+  │ │ │ │ │ ├ github.com/artpar/rclone/cmd/serve/httplib/serve
+  │ │ │ │ │ │ ├ bytes
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ html/template
+  │ │ │ │ │ │ ├ io
+  │ │ │ │ │ │ ├ net/http
+  │ │ │ │ │ │ ├ net/url
+  │ │ │ │ │ │ ├ path
+  │ │ │ │ │ │ ├ strconv
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ │ │ │ └ github.com/artpar/rclone/lib/rest
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/cache
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/list
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/rc
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/rc/jobs
+  │ │ │ │ │ │ ├ context
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ runtime/debug
+  │ │ │ │ │ │ ├ sync
+  │ │ │ │ │ │ ├ sync/atomic
+  │ │ │ │ │ │ ├ time
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ │ │ │ ├ github.com/artpar/rclone/fs/rc
+  │ │ │ │ │ │ └ github.com/pkg/errors
+  │ │ │ │ │ ├ github.com/artpar/rclone/fs/rc/rcflags
+  │ │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ │ └ github.com/skratchdot/open-golang/open
+  │ │ │ │ ├ github.com/artpar/rclone/lib/atexit
+  │ │ │ │ ├ github.com/artpar/rclone/lib/terminal
+  │ │ │ │ ├ github.com/pkg/errors
+  │ │ │ │ ├ github.com/spf13/cobra
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ os
+  │ │ │ │ │ ├ path/filepath
+  │ │ │ │ │ ├ reflect
+  │ │ │ │ │ ├ sort
+  │ │ │ │ │ ├ strconv
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ text/template
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ ├ unicode
+  │ │ │ │ │ └ github.com/spf13/pflag
+  │ │ │ │ └ github.com/spf13/pflag
+  │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ ├ github.com/artpar/rclone/fs/config
+  │ │ │ ├ github.com/artpar/rclone/fs/sync
+  │ │ │ │ ├ context
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ path
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ github.com/artpar/rclone/fs
+  │ │ │ │ ├ github.com/artpar/rclone/fs/accounting
+  │ │ │ │ ├ github.com/artpar/rclone/fs/filter
+  │ │ │ │ ├ github.com/artpar/rclone/fs/fserrors
+  │ │ │ │ ├ github.com/artpar/rclone/fs/hash
+  │ │ │ │ ├ github.com/artpar/rclone/fs/march
+  │ │ │ │ ├ github.com/artpar/rclone/fs/operations
+  │ │ │ │ ├ github.com/artpar/rclone/fs/rc
+  │ │ │ │ └ github.com/pkg/errors
+  │ │ │ ├ github.com/artpar/rclone/lib/pacer
+  │ │ │ ├ github.com/artpar/resty
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ context
+  │ │ │ │ ├ crypto/tls
+  │ │ │ │ ├ crypto/x509
+  │ │ │ │ ├ encoding/base64
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ encoding/xml
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ log
+  │ │ │ │ ├ math
+  │ │ │ │ ├ math/rand
+  │ │ │ │ ├ mime/multipart
+  │ │ │ │ ├ net
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/http/cookiejar
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ os
+  │ │ │ │ ├ path/filepath
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ runtime
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ time
+  │ │ │ │ └ golang.org/x/net/publicsuffix
+  │ │ │ ├ github.com/bjarneh/latinx
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ └ unicode/utf8
+  │ │ │ ├ github.com/daptin/daptin/server/auth
+  │ │ │ │ ├ context
+  │ │ │ │ ├ encoding/base64
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ github.com/artpar/api2go
+  │ │ │ │ ├ github.com/daptin/daptin/server/database
+  │ │ │ │ │ ├ database/sql
+  │ │ │ │ │ └ github.com/jmoiron/sqlx
+  │ │ │ │ │   ├ bytes
+  │ │ │ │ │   ├ context
+  │ │ │ │ │   ├ database/sql
+  │ │ │ │ │   ├ database/sql/driver
+  │ │ │ │ │   ├ errors
+  │ │ │ │ │   ├ fmt
+  │ │ │ │ │   ├ io/ioutil
+  │ │ │ │ │   ├ path/filepath
+  │ │ │ │ │   ├ reflect
+  │ │ │ │ │   ├ strconv
+  │ │ │ │ │   ├ strings
+  │ │ │ │ │   ├ sync
+  │ │ │ │ │   ├ unicode
+  │ │ │ │ │   └ github.com/jmoiron/sqlx/reflectx (unresolved)
+  │ │ │ │ ├ github.com/daptin/daptin/server/jwt
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ net/http
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ github.com/dgrijalva/jwt-go
+  │ │ │ │ │ │ ├ bytes
+  │ │ │ │ │ │ ├ crypto
+  │ │ │ │ │ │ ├ crypto/ecdsa
+  │ │ │ │ │ │ ├ crypto/hmac
+  │ │ │ │ │ │ ├ crypto/rand
+  │ │ │ │ │ │ ├ crypto/rsa
+  │ │ │ │ │ │ ├ crypto/subtle
+  │ │ │ │ │ │ ├ crypto/x509
+  │ │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ │ ├ encoding/pem
+  │ │ │ │ │ │ ├ errors
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ math/big
+  │ │ │ │ │ │ ├ strings
+  │ │ │ │ │ │ ├ sync
+  │ │ │ │ │ │ └ time
+  │ │ │ │ │ └ github.com/sirupsen/logrus
+  │ │ │ │ ├ github.com/daptin/daptin/server/statementbuilder
+  │ │ │ │ │ └ github.com/Masterminds/squirrel
+  │ │ │ │ ├ github.com/dgrijalva/jwt-go
+  │ │ │ │ ├ github.com/gin-gonic/gin
+  │ │ │ │ ├ github.com/sirupsen/logrus
+  │ │ │ │ └ golang.org/x/crypto/bcrypt
+  │ │ │ ├ github.com/daptin/daptin/server/columntypes
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ net
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/json-iterator/go
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ encoding
+  │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ io
+  │ │ │ │ │ ├ math
+  │ │ │ │ │ ├ math/big
+  │ │ │ │ │ ├ reflect
+  │ │ │ │ │ ├ sort
+  │ │ │ │ │ ├ strconv
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ sync
+  │ │ │ │ │ ├ unicode
+  │ │ │ │ │ ├ unicode/utf16
+  │ │ │ │ │ ├ unicode/utf8
+  │ │ │ │ │ ├ unsafe
+  │ │ │ │ │ ├ github.com/modern-go/concurrent
+  │ │ │ │ │ │ ├ context
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ runtime
+  │ │ │ │ │ │ ├ runtime/debug
+  │ │ │ │ │ │ ├ sync
+  │ │ │ │ │ │ └ time
+  │ │ │ │ │ └ github.com/modern-go/reflect2
+  │ │ │ │ │   ├ reflect
+  │ │ │ │ │   ├ runtime
+  │ │ │ │ │   ├ strings
+  │ │ │ │ │   ├ unsafe
+  │ │ │ │ │   └ github.com/modern-go/concurrent (unresolved)
+  │ │ │ │ └ github.com/sirupsen/logrus
+  │ │ │ ├ github.com/daptin/daptin/server/csvmap
+  │ │ │ │ ├ encoding/csv
+  │ │ │ │ ├ fmt
+  │ │ │ │ └ io
+  │ │ │ ├ github.com/daptin/daptin/server/database
+  │ │ │ ├ github.com/daptin/daptin/server/statementbuilder
+  │ │ │ ├ github.com/dgrijalva/jwt-go
+  │ │ │ ├ github.com/dop251/goja
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ go/ast
+  │ │ │ │ ├ io
+  │ │ │ │ ├ log
+  │ │ │ │ ├ math
+  │ │ │ │ ├ math/big
+  │ │ │ │ ├ math/rand
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ sync/atomic
+  │ │ │ │ ├ time
+  │ │ │ │ ├ unicode/utf16
+  │ │ │ │ ├ unicode/utf8
+  │ │ │ │ ├ github.com/dlclark/regexp2 (unresolved)
+  │ │ │ │ ├ github.com/dop251/goja/ast (unresolved)
+  │ │ │ │ ├ github.com/dop251/goja/file (unresolved)
+  │ │ │ │ ├ github.com/dop251/goja/parser (unresolved)
+  │ │ │ │ ├ github.com/dop251/goja/token (unresolved)
+  │ │ │ │ ├ github.com/go-sourcemap/sourcemap (unresolved)
+  │ │ │ │ ├ golang.org/x/text/cases
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ unicode
+  │ │ │ │ │ ├ unicode/utf8
+  │ │ │ │ │ ├ golang.org/x/text/internal
+  │ │ │ │ │ │ ├ sort
+  │ │ │ │ │ │ └ golang.org/x/text/language
+  │ │ │ │ │ │   ├ errors
+  │ │ │ │ │ │   ├ fmt
+  │ │ │ │ │ │   ├ sort
+  │ │ │ │ │ │   ├ strconv
+  │ │ │ │ │ │   ├ strings
+  │ │ │ │ │ │   ├ golang.org/x/text/internal/language
+  │ │ │ │ │ │   │ ├ bytes
+  │ │ │ │ │ │   │ ├ errors
+  │ │ │ │ │ │   │ ├ fmt
+  │ │ │ │ │ │   │ ├ sort
+  │ │ │ │ │ │   │ ├ strconv
+  │ │ │ │ │ │   │ ├ strings
+  │ │ │ │ │ │   │ └ golang.org/x/text/internal/tag
+  │ │ │ │ │ │   │   └ sort
+  │ │ │ │ │ │   └ golang.org/x/text/internal/language/compact
+  │ │ │ │ │ │     ├ sort
+  │ │ │ │ │ │     ├ strings
+  │ │ │ │ │ │     └ golang.org/x/text/internal/language
+  │ │ │ │ │ ├ golang.org/x/text/language
+  │ │ │ │ │ ├ golang.org/x/text/transform
+  │ │ │ │ │ └ golang.org/x/text/unicode/norm
+  │ │ │ │ ├ golang.org/x/text/collate
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ sort
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ golang.org/x/text/internal/colltab
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ sort
+  │ │ │ │ │ │ ├ unicode
+  │ │ │ │ │ │ ├ unicode/utf8
+  │ │ │ │ │ │ ├ golang.org/x/text/language
+  │ │ │ │ │ │ └ golang.org/x/text/unicode/norm
+  │ │ │ │ │ ├ golang.org/x/text/language
+  │ │ │ │ │ └ golang.org/x/text/unicode/norm
+  │ │ │ │ ├ golang.org/x/text/language
+  │ │ │ │ └ golang.org/x/text/unicode/norm
+  │ │ │ ├ github.com/emersion/go-message
+  │ │ │ ├ github.com/emersion/go-message/charset
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ github.com/emersion/go-message
+  │ │ │ │ ├ golang.org/x/text/encoding
+  │ │ │ │ ├ golang.org/x/text/encoding/charmap
+  │ │ │ │ │ ├ unicode/utf8
+  │ │ │ │ │ ├ golang.org/x/text/encoding (unresolved)
+  │ │ │ │ │ ├ golang.org/x/text/encoding/internal (unresolved)
+  │ │ │ │ │ ├ golang.org/x/text/encoding/internal/identifier (unresolved)
+  │ │ │ │ │ └ golang.org/x/text/transform (unresolved)
+  │ │ │ │ ├ golang.org/x/text/encoding/ianaindex
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ sort
+  │ │ │ │ │ ├ strings
+  │ │ │ │ │ ├ golang.org/x/text/encoding (unresolved)
+  │ │ │ │ │ ├ golang.org/x/text/encoding/charmap (unresolved)
+  │ │ │ │ │ ├ golang.org/x/text/encoding/internal/identifier (unresolved)
+  │ │ │ │ │ ├ golang.org/x/text/encoding/japanese (unresolved)
+  │ │ │ │ │ ├ golang.org/x/text/encoding/korean (unresolved)
+  │ │ │ │ │ ├ golang.org/x/text/encoding/simplifiedchinese (unresolved)
+  │ │ │ │ │ ├ golang.org/x/text/encoding/traditionalchinese (unresolved)
+  │ │ │ │ │ └ golang.org/x/text/encoding/unicode (unresolved)
+  │ │ │ │ └ golang.org/x/text/encoding/simplifiedchinese
+  │ │ │ ├ github.com/emersion/go-message/textproto
+  │ │ │ ├ github.com/getkin/kin-openapi/openapi2
+  │ │ │ │ ├ fmt
+  │ │ │ │ └ github.com/getkin/kin-openapi/openapi3 (unresolved)
+  │ │ │ ├ github.com/getkin/kin-openapi/openapi2conv
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ github.com/getkin/kin-openapi/openapi2 (unresolved)
+  │ │ │ │ └ github.com/getkin/kin-openapi/openapi3 (unresolved)
+  │ │ │ ├ github.com/getkin/kin-openapi/openapi3
+  │ │ │ ├ github.com/ghodss/yaml
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ encoding
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ unicode
+  │ │ │ │ ├ unicode/utf8
+  │ │ │ │ └ gopkg.in/yaml.v2
+  │ │ │ ├ github.com/gin-gonic/gin
+  │ │ │ ├ github.com/go-acme/lego/v3/certcrypto
+  │ │ │ │ ├ crypto
+  │ │ │ │ ├ crypto/ecdsa
+  │ │ │ │ ├ crypto/elliptic
+  │ │ │ │ ├ crypto/rand
+  │ │ │ │ ├ crypto/rsa
+  │ │ │ │ ├ crypto/x509
+  │ │ │ │ ├ crypto/x509/pkix
+  │ │ │ │ ├ encoding/asn1
+  │ │ │ │ ├ encoding/pem
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ math/big
+  │ │ │ │ ├ time
+  │ │ │ │ └ golang.org/x/crypto/ocsp
+  │ │ │ │   ├ crypto
+  │ │ │ │   ├ crypto/ecdsa
+  │ │ │ │   ├ crypto/elliptic
+  │ │ │ │   ├ crypto/rand
+  │ │ │ │   ├ crypto/rsa
+  │ │ │ │   ├ crypto/sha1
+  │ │ │ │   ├ crypto/sha256
+  │ │ │ │   ├ crypto/sha512
+  │ │ │ │   ├ crypto/x509
+  │ │ │ │   ├ crypto/x509/pkix
+  │ │ │ │   ├ encoding/asn1
+  │ │ │ │   ├ errors
+  │ │ │ │   ├ fmt
+  │ │ │ │   ├ math/big
+  │ │ │ │   ├ strconv
+  │ │ │ │   └ time
+  │ │ │ ├ github.com/go-acme/lego/v3/certificate
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ crypto
+  │ │ │ │ ├ crypto/x509
+  │ │ │ │ ├ encoding/base64
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/go-acme/lego/v3/acme
+  │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ └ time
+  │ │ │ │ ├ github.com/go-acme/lego/v3/acme/api
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ context
+  │ │ │ │ │ ├ crypto
+  │ │ │ │ │ ├ crypto/x509
+  │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ ├ encoding/json
+  │ │ │ │ │ ├ encoding/pem
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ io/ioutil
+  │ │ │ │ │ ├ net/http
+  │ │ │ │ │ ├ regexp
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ ├ github.com/cenkalti/backoff/v3
+  │ │ │ │ │ │ ├ context
+  │ │ │ │ │ │ ├ math/rand
+  │ │ │ │ │ │ ├ sync
+  │ │ │ │ │ │ └ time
+  │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme
+  │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme/api/internal/nonces
+  │ │ │ │ │ │ ├ errors
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ net/http
+  │ │ │ │ │ │ ├ sync
+  │ │ │ │ │ │ └ github.com/go-acme/lego/v3/acme/api/internal/sender
+  │ │ │ │ │ │   ├ encoding/json
+  │ │ │ │ │ │   ├ fmt
+  │ │ │ │ │ │   ├ io
+  │ │ │ │ │ │   ├ io/ioutil
+  │ │ │ │ │ │   ├ net/http
+  │ │ │ │ │ │   ├ runtime
+  │ │ │ │ │ │   ├ strings
+  │ │ │ │ │ │   └ github.com/go-acme/lego/v3/acme
+  │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme/api/internal/secure
+  │ │ │ │ │ │ ├ crypto
+  │ │ │ │ │ │ ├ crypto/ecdsa
+  │ │ │ │ │ │ ├ crypto/elliptic
+  │ │ │ │ │ │ ├ crypto/rsa
+  │ │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme/api/internal/nonces
+  │ │ │ │ │ │ └ gopkg.in/square/go-jose.v2
+  │ │ │ │ │ │   ├ bytes
+  │ │ │ │ │ │   ├ compress/flate
+  │ │ │ │ │ │   ├ crypto
+  │ │ │ │ │ │   ├ crypto/aes
+  │ │ │ │ │ │   ├ crypto/cipher
+  │ │ │ │ │ │   ├ crypto/ecdsa
+  │ │ │ │ │ │   ├ crypto/elliptic
+  │ │ │ │ │ │   ├ crypto/hmac
+  │ │ │ │ │ │   ├ crypto/rand
+  │ │ │ │ │ │   ├ crypto/rsa
+  │ │ │ │ │ │   ├ crypto/sha1
+  │ │ │ │ │ │   ├ crypto/sha256
+  │ │ │ │ │ │   ├ crypto/sha512
+  │ │ │ │ │ │   ├ crypto/subtle
+  │ │ │ │ │ │   ├ crypto/x509
+  │ │ │ │ │ │   ├ encoding/base64
+  │ │ │ │ │ │   ├ encoding/binary
+  │ │ │ │ │ │   ├ errors
+  │ │ │ │ │ │   ├ fmt
+  │ │ │ │ │ │   ├ hash
+  │ │ │ │ │ │   ├ io
+  │ │ │ │ │ │   ├ math/big
+  │ │ │ │ │ │   ├ reflect
+  │ │ │ │ │ │   ├ regexp
+  │ │ │ │ │ │   ├ strings
+  │ │ │ │ │ │   ├ golang.org/x/crypto/ed25519
+  │ │ │ │ │ │   ├ golang.org/x/crypto/pbkdf2
+  │ │ │ │ │ │   ├ gopkg.in/square/go-jose.v2/cipher (unresolved)
+  │ │ │ │ │ │   └ gopkg.in/square/go-jose.v2/json (unresolved)
+  │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme/api/internal/sender
+  │ │ │ │ │ ├ github.com/go-acme/lego/v3/certcrypto
+  │ │ │ │ │ └ github.com/go-acme/lego/v3/log
+  │ │ │ │ │   ├ log
+  │ │ │ │ │   └ os
+  │ │ │ │ ├ github.com/go-acme/lego/v3/certcrypto
+  │ │ │ │ ├ github.com/go-acme/lego/v3/challenge
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ └ github.com/go-acme/lego/v3/acme
+  │ │ │ │ ├ github.com/go-acme/lego/v3/log
+  │ │ │ │ ├ github.com/go-acme/lego/v3/platform/wait
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ └ github.com/go-acme/lego/v3/log
+  │ │ │ │ ├ golang.org/x/crypto/ocsp
+  │ │ │ │ └ golang.org/x/net/idna
+  │ │ │ │   ├ fmt
+  │ │ │ │   ├ math
+  │ │ │ │   ├ strings
+  │ │ │ │   ├ unicode/utf8
+  │ │ │ │   ├ golang.org/x/text/secure/bidirule
+  │ │ │ │   │ ├ errors
+  │ │ │ │   │ ├ unicode/utf8
+  │ │ │ │   │ ├ golang.org/x/text/transform
+  │ │ │ │   │ └ golang.org/x/text/unicode/bidi
+  │ │ │ │   │   ├ container/list
+  │ │ │ │   │   ├ fmt
+  │ │ │ │   │   ├ log
+  │ │ │ │   │   ├ sort
+  │ │ │ │   │   └ unicode/utf8
+  │ │ │ │   ├ golang.org/x/text/unicode/bidi
+  │ │ │ │   └ golang.org/x/text/unicode/norm
+  │ │ │ ├ github.com/go-acme/lego/v3/lego
+  │ │ │ │ ├ crypto/tls
+  │ │ │ │ ├ crypto/x509
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ net
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ os
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/go-acme/lego/v3/acme/api
+  │ │ │ │ ├ github.com/go-acme/lego/v3/certcrypto
+  │ │ │ │ ├ github.com/go-acme/lego/v3/certificate
+  │ │ │ │ ├ github.com/go-acme/lego/v3/challenge/resolver
+  │ │ │ │ │ ├ bytes
+  │ │ │ │ │ ├ context
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ sort
+  │ │ │ │ │ ├ strconv
+  │ │ │ │ │ ├ time
+  │ │ │ │ │ ├ github.com/cenkalti/backoff/v3
+  │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme
+  │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme/api
+  │ │ │ │ │ ├ github.com/go-acme/lego/v3/challenge
+  │ │ │ │ │ ├ github.com/go-acme/lego/v3/challenge/dns01
+  │ │ │ │ │ │ ├ bufio
+  │ │ │ │ │ │ ├ crypto/sha256
+  │ │ │ │ │ │ ├ encoding/base64
+  │ │ │ │ │ │ ├ errors
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ net
+  │ │ │ │ │ │ ├ os
+  │ │ │ │ │ │ ├ strconv
+  │ │ │ │ │ │ ├ strings
+  │ │ │ │ │ │ ├ sync
+  │ │ │ │ │ │ ├ time
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme/api
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/challenge
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/log
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/platform/wait
+  │ │ │ │ │ │ └ github.com/miekg/dns
+  │ │ │ │ │ │   ├ bufio
+  │ │ │ │ │ │   ├ bytes
+  │ │ │ │ │ │   ├ context
+  │ │ │ │ │ │   ├ crypto
+  │ │ │ │ │ │   ├ crypto/dsa
+  │ │ │ │ │ │   ├ crypto/ecdsa
+  │ │ │ │ │ │   ├ crypto/elliptic
+  │ │ │ │ │ │   ├ crypto/hmac
+  │ │ │ │ │ │   ├ crypto/md5
+  │ │ │ │ │ │   ├ crypto/rand
+  │ │ │ │ │ │   ├ crypto/rsa
+  │ │ │ │ │ │   ├ crypto/sha1
+  │ │ │ │ │ │   ├ crypto/sha256
+  │ │ │ │ │ │   ├ crypto/sha512
+  │ │ │ │ │ │   ├ crypto/tls
+  │ │ │ │ │ │   ├ crypto/x509
+  │ │ │ │ │ │   ├ encoding/asn1
+  │ │ │ │ │ │   ├ encoding/base32
+  │ │ │ │ │ │   ├ encoding/base64
+  │ │ │ │ │ │   ├ encoding/binary
+  │ │ │ │ │ │   ├ encoding/hex
+  │ │ │ │ │ │   ├ errors
+  │ │ │ │ │ │   ├ fmt
+  │ │ │ │ │ │   ├ hash
+  │ │ │ │ │ │   ├ io
+  │ │ │ │ │ │   ├ math/big
+  │ │ │ │ │ │   ├ math/rand
+  │ │ │ │ │ │   ├ net
+  │ │ │ │ │ │   ├ os
+  │ │ │ │ │ │   ├ path/filepath
+  │ │ │ │ │ │   ├ reflect
+  │ │ │ │ │ │   ├ sort
+  │ │ │ │ │ │   ├ strconv
+  │ │ │ │ │ │   ├ strings
+  │ │ │ │ │ │   ├ sync
+  │ │ │ │ │ │   ├ syscall
+  │ │ │ │ │ │   ├ time
+  │ │ │ │ │ │   ├ golang.org/x/crypto/ed25519
+  │ │ │ │ │ │   ├ golang.org/x/net/ipv4
+  │ │ │ │ │ │   │ ├ encoding/binary
+  │ │ │ │ │ │   │ ├ errors
+  │ │ │ │ │ │   │ ├ fmt
+  │ │ │ │ │ │   │ ├ net
+  │ │ │ │ │ │   │ ├ runtime
+  │ │ │ │ │ │   │ ├ sync
+  │ │ │ │ │ │   │ ├ syscall
+  │ │ │ │ │ │   │ ├ time
+  │ │ │ │ │ │   │ ├ unsafe
+  │ │ │ │ │ │   │ ├ golang.org/x/net/bpf
+  │ │ │ │ │ │   │ │ ├ encoding/binary
+  │ │ │ │ │ │   │ │ ├ errors
+  │ │ │ │ │ │   │ │ └ fmt
+  │ │ │ │ │ │   │ ├ golang.org/x/net/internal/iana
+  │ │ │ │ │ │   │ └ golang.org/x/net/internal/socket
+  │ │ │ │ │ │   │   ├ encoding/binary
+  │ │ │ │ │ │   │   ├ errors
+  │ │ │ │ │ │   │   ├ net
+  │ │ │ │ │ │   │   ├ os
+  │ │ │ │ │ │   │   ├ runtime
+  │ │ │ │ │ │   │   ├ strconv
+  │ │ │ │ │ │   │   ├ sync
+  │ │ │ │ │ │   │   ├ syscall
+  │ │ │ │ │ │   │   ├ time
+  │ │ │ │ │ │   │   ├ unsafe
+  │ │ │ │ │ │   │   └ golang.org/x/sys/unix
+  │ │ │ │ │ │   ├ golang.org/x/net/ipv6
+  │ │ │ │ │ │   │ ├ encoding/binary
+  │ │ │ │ │ │   │ ├ errors
+  │ │ │ │ │ │   │ ├ fmt
+  │ │ │ │ │ │   │ ├ net
+  │ │ │ │ │ │   │ ├ runtime
+  │ │ │ │ │ │   │ ├ sync
+  │ │ │ │ │ │   │ ├ syscall
+  │ │ │ │ │ │   │ ├ time
+  │ │ │ │ │ │   │ ├ unsafe
+  │ │ │ │ │ │   │ ├ golang.org/x/net/bpf
+  │ │ │ │ │ │   │ ├ golang.org/x/net/internal/iana
+  │ │ │ │ │ │   │ └ golang.org/x/net/internal/socket
+  │ │ │ │ │ │   └ golang.org/x/sys/unix
+  │ │ │ │ │ ├ github.com/go-acme/lego/v3/challenge/http01
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ net
+  │ │ │ │ │ │ ├ net/http
+  │ │ │ │ │ │ ├ net/textproto
+  │ │ │ │ │ │ ├ strings
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme/api
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/challenge
+  │ │ │ │ │ │ └ github.com/go-acme/lego/v3/log
+  │ │ │ │ │ ├ github.com/go-acme/lego/v3/challenge/tlsalpn01
+  │ │ │ │ │ │ ├ crypto/rsa
+  │ │ │ │ │ │ ├ crypto/sha256
+  │ │ │ │ │ │ ├ crypto/tls
+  │ │ │ │ │ │ ├ crypto/x509/pkix
+  │ │ │ │ │ │ ├ encoding/asn1
+  │ │ │ │ │ │ ├ fmt
+  │ │ │ │ │ │ ├ net
+  │ │ │ │ │ │ ├ net/http
+  │ │ │ │ │ │ ├ strings
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/acme/api
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/certcrypto
+  │ │ │ │ │ │ ├ github.com/go-acme/lego/v3/challenge
+  │ │ │ │ │ │ └ github.com/go-acme/lego/v3/log
+  │ │ │ │ │ └ github.com/go-acme/lego/v3/log
+  │ │ │ │ └ github.com/go-acme/lego/v3/registration
+  │ │ │ │   ├ crypto
+  │ │ │ │   ├ errors
+  │ │ │ │   ├ net/http
+  │ │ │ │   ├ github.com/go-acme/lego/v3/acme
+  │ │ │ │   ├ github.com/go-acme/lego/v3/acme/api
+  │ │ │ │   └ github.com/go-acme/lego/v3/log
+  │ │ │ ├ github.com/go-acme/lego/v3/registration
+  │ │ │ ├ github.com/go-gota/gota/dataframe
+  │ │ │ │ ├ encoding/csv
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ unicode/utf8
+  │ │ │ │ └ github.com/go-gota/gota/series (unresolved)
+  │ │ │ ├ github.com/go-gota/gota/series
+  │ │ │ ├ github.com/go-playground/locales/en
+  │ │ │ │ ├ math
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/go-playground/locales
+  │ │ │ │ └ github.com/go-playground/locales/currency
+  │ │ │ ├ github.com/go-playground/universal-translator
+  │ │ │ ├ github.com/gobuffalo/flect
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ encoding
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ os
+  │ │ │ │ ├ path/filepath
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ unicode
+  │ │ │ │ └ unicode/utf8
+  │ │ │ ├ github.com/gocarina/gocsv
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ encoding
+  │ │ │ │ ├ encoding/csv
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ os
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ └ sync
+  │ │ │ ├ github.com/graphql-go/graphql
+  │ │ │ │ ├ context
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ math
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/graphql-go/graphql/gqlerrors (unresolved)
+  │ │ │ │ ├ github.com/graphql-go/graphql/language/ast (unresolved)
+  │ │ │ │ ├ github.com/graphql-go/graphql/language/kinds (unresolved)
+  │ │ │ │ ├ github.com/graphql-go/graphql/language/parser (unresolved)
+  │ │ │ │ ├ github.com/graphql-go/graphql/language/printer (unresolved)
+  │ │ │ │ ├ github.com/graphql-go/graphql/language/source (unresolved)
+  │ │ │ │ └ github.com/graphql-go/graphql/language/visitor (unresolved)
+  │ │ │ ├ github.com/icrowley/fake
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ compress/gzip
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ math/rand
+  │ │ │ │ ├ net
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ os
+  │ │ │ │ ├ path
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ time
+  │ │ │ │ └ github.com/corpix/uarand (unresolved)
+  │ │ │ ├ github.com/imroc/req
+  │ │ │ │ ├ bufio
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ compress/gzip
+  │ │ │ │ ├ context
+  │ │ │ │ ├ crypto/tls
+  │ │ │ │ ├ encoding/json
+  │ │ │ │ ├ encoding/xml
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ io
+  │ │ │ │ ├ io/ioutil
+  │ │ │ │ ├ mime/multipart
+  │ │ │ │ ├ net
+  │ │ │ │ ├ net/http
+  │ │ │ │ ├ net/http/cookiejar
+  │ │ │ │ ├ net/http/httputil
+  │ │ │ │ ├ net/textproto
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ os
+  │ │ │ │ ├ path/filepath
+  │ │ │ │ ├ regexp
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ └ time
+  │ │ │ ├ github.com/jinzhu/copier
+  │ │ │ │ ├ database/sql
+  │ │ │ │ ├ errors
+  │ │ │ │ └ reflect
+  │ │ │ ├ github.com/jmoiron/sqlx
+  │ │ │ ├ github.com/json-iterator/go
+  │ │ │ ├ github.com/looplab/fsm
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ strings
+  │ │ │ │ └ sync
+  │ │ │ ├ github.com/pkg/errors
+  │ │ │ ├ github.com/pquerna/otp
+  │ │ │ │ ├ crypto/md5
+  │ │ │ │ ├ crypto/sha1
+  │ │ │ │ ├ crypto/sha256
+  │ │ │ │ ├ crypto/sha512
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ hash
+  │ │ │ │ ├ image
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ github.com/boombuler/barcode
+  │ │ │ │ │ ├ errors
+  │ │ │ │ │ ├ fmt
+  │ │ │ │ │ ├ image
+  │ │ │ │ │ ├ image/color
+  │ │ │ │ │ └ math
+  │ │ │ │ └ github.com/boombuler/barcode/qr
+  │ │ │ │   ├ errors
+  │ │ │ │   ├ fmt
+  │ │ │ │   ├ image
+  │ │ │ │   ├ image/color
+  │ │ │ │   ├ math
+  │ │ │ │   ├ strconv
+  │ │ │ │   ├ strings
+  │ │ │ │   ├ github.com/boombuler/barcode (unresolved)
+  │ │ │ │   └ github.com/boombuler/barcode/utils (unresolved)
+  │ │ │ ├ github.com/pquerna/otp/totp
+  │ │ │ │ ├ crypto/rand
+  │ │ │ │ ├ encoding/base32
+  │ │ │ │ ├ math
+  │ │ │ │ ├ net/url
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/pquerna/otp
+  │ │ │ │ └ github.com/pquerna/otp/hotp
+  │ │ │ │   ├ crypto/hmac
+  │ │ │ │   ├ crypto/rand
+  │ │ │ │   ├ crypto/subtle
+  │ │ │ │   ├ encoding/base32
+  │ │ │ │   ├ encoding/binary
+  │ │ │ │   ├ fmt
+  │ │ │ │   ├ math
+  │ │ │ │   ├ net/url
+  │ │ │ │   ├ strings
+  │ │ │ │   └ github.com/pquerna/otp
+  │ │ │ ├ github.com/robfig/cron
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ log
+  │ │ │ │ ├ math
+  │ │ │ │ ├ sort
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ └ time
+  │ │ │ ├ github.com/sadlil/go-trigger
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ reflect
+  │ │ │ │ └ sync
+  │ │ │ ├ github.com/sirupsen/logrus
+  │ │ │ ├ github.com/spf13/cobra
+  │ │ │ ├ github.com/tealeg/xlsx
+  │ │ │ │ ├ archive/zip
+  │ │ │ │ ├ bytes
+  │ │ │ │ ├ encoding/xml
+  │ │ │ │ ├ errors
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ image/color
+  │ │ │ │ ├ io
+  │ │ │ │ ├ math
+  │ │ │ │ ├ os
+  │ │ │ │ ├ path
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ sync
+  │ │ │ │ ├ time
+  │ │ │ │ └ unicode/utf8
+  │ │ │ ├ golang.org/x/crypto/bcrypt
+  │ │ │ ├ golang.org/x/net/context
+  │ │ │ ├ golang.org/x/oauth2
+  │ │ │ ├ gopkg.in/go-playground/validator.v9
+  │ │ │ ├ gopkg.in/go-playground/validator.v9/translations/en
+  │ │ │ │ ├ fmt
+  │ │ │ │ ├ log
+  │ │ │ │ ├ reflect
+  │ │ │ │ ├ strconv
+  │ │ │ │ ├ strings
+  │ │ │ │ ├ time
+  │ │ │ │ ├ github.com/go-playground/locales
+  │ │ │ │ ├ github.com/go-playground/universal-translator
+  │ │ │ │ └ gopkg.in/go-playground/validator.v9
+  │ │ │ └ gopkg.in/src-d/go-git.v4
+  │ │ │   ├ bytes
+  │ │ │   ├ context
+  │ │ │   ├ errors
+  │ │ │   ├ fmt
+  │ │ │   ├ io
+  │ │ │   ├ io/ioutil
+  │ │ │   ├ os
+  │ │ │   ├ path
+  │ │ │   ├ path/filepath
+  │ │ │   ├ regexp
+  │ │ │   ├ sort
+  │ │ │   ├ strconv
+  │ │ │   ├ strings
+  │ │ │   ├ syscall
+  │ │ │   ├ time
+  │ │ │   ├ unicode/utf8
+  │ │ │   ├ github.com/sergi/go-diff/diffmatchpatch (unresolved)
+  │ │ │   ├ golang.org/x/crypto/openpgp (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-billy.v4 (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-billy.v4/osfs (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-billy.v4/util (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/config (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/internal/revision (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/cache (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/filemode (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/format/gitignore (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/format/index (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/format/packfile (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/object (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/protocol/packp (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/capability (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/sideband (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/revlist (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/storer (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/transport (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/plumbing/transport/client (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/storage (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/storage/filesystem (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/storage/memory (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/utils/diff (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/utils/ioutil (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/utils/merkletrie (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/utils/merkletrie/filesystem (unresolved)
+  │ │ │   ├ gopkg.in/src-d/go-git.v4/utils/merkletrie/index (unresolved)
+  │ │ │   └ gopkg.in/src-d/go-git.v4/utils/merkletrie/noder (unresolved)
+  │ │ ├ github.com/iancoleman/strcase
+  │ │ │ ├ regexp
+  │ │ │ └ strings
+  │ │ └ github.com/sirupsen/logrus
+  │ ├ github.com/daptin/daptin/server/auth
+  │ ├ github.com/daptin/daptin/server/columntypes
+  │ ├ github.com/daptin/daptin/server/database
+  │ ├ github.com/daptin/daptin/server/resource
+  │ ├ github.com/daptin/daptin/server/statementbuilder
+  │ ├ github.com/daptin/daptin/server/websockets
+  │ │ ├ fmt
+  │ │ ├ io
+  │ │ ├ net/http
+  │ │ ├ github.com/daptin/daptin/server/auth
+  │ │ ├ github.com/gin-gonic/gin
+  │ │ ├ github.com/sirupsen/logrus
+  │ │ └ golang.org/x/net/websocket
+  │ ├ github.com/disintegration/gift
+  │ │ ├ image
+  │ │ ├ image/color
+  │ │ ├ image/draw
+  │ │ ├ math
+  │ │ ├ runtime
+  │ │ └ sync
+  │ ├ github.com/emersion/go-message
+  │ ├ github.com/emersion/go-message/charset
+  │ ├ github.com/emersion/go-message/mail
+  │ ├ github.com/emersion/go-msgauth/dkim
+  │ │ ├ bufio
+  │ │ ├ bytes
+  │ │ ├ crypto
+  │ │ ├ crypto/rand
+  │ │ ├ crypto/rsa
+  │ │ ├ crypto/subtle
+  │ │ ├ crypto/x509
+  │ │ ├ encoding/base64
+  │ │ ├ errors
+  │ │ ├ fmt
+  │ │ ├ io
+  │ │ ├ io/ioutil
+  │ │ ├ net
+  │ │ ├ net/textproto
+  │ │ ├ regexp
+  │ │ ├ sort
+  │ │ ├ strconv
+  │ │ ├ strings
+  │ │ ├ time
+  │ │ ├ unicode
+  │ │ └ golang.org/x/crypto/ed25519 (unresolved)
+  │ ├ github.com/emersion/go-smtp-mta
+  │ │ ├ crypto/tls
+  │ │ ├ errors
+  │ │ ├ io
+  │ │ ├ net
+  │ │ ├ strings
+  │ │ └ github.com/emersion/go-smtp
+  │ │   ├ crypto/tls
+  │ │   ├ encoding/base64
+  │ │   ├ errors
+  │ │   ├ fmt
+  │ │   ├ io
+  │ │   ├ io/ioutil
+  │ │   ├ log
+  │ │   ├ net
+  │ │   ├ net/textproto
+  │ │   ├ os
+  │ │   ├ runtime/debug
+  │ │   ├ strconv
+  │ │   ├ strings
+  │ │   ├ sync
+  │ │   ├ time
+  │ │   └ github.com/emersion/go-sasl
+  │ ├ github.com/gin-contrib/static
+  │ │ ├ net/http
+  │ │ ├ os
+  │ │ ├ path
+  │ │ ├ strings
+  │ │ └ github.com/gin-gonic/gin (unresolved)
+  │ ├ github.com/gin-gonic/gin
+  │ ├ github.com/go-sql-driver/mysql
+  │ │ ├ bytes
+  │ │ ├ context
+  │ │ ├ crypto/rand
+  │ │ ├ crypto/rsa
+  │ │ ├ crypto/sha1
+  │ │ ├ crypto/sha256
+  │ │ ├ crypto/tls
+  │ │ ├ crypto/x509
+  │ │ ├ database/sql
+  │ │ ├ database/sql/driver
+  │ │ ├ encoding/binary
+  │ │ ├ encoding/pem
+  │ │ ├ errors
+  │ │ ├ fmt
+  │ │ ├ io
+  │ │ ├ log
+  │ │ ├ math
+  │ │ ├ net
+  │ │ ├ net/url
+  │ │ ├ os
+  │ │ ├ reflect
+  │ │ ├ sort
+  │ │ ├ strconv
+  │ │ ├ strings
+  │ │ ├ sync
+  │ │ ├ sync/atomic
+  │ │ └ time
+  │ ├ github.com/gobuffalo/flect
+  │ ├ github.com/gorilla/feeds
+  │ │ ├ crypto/rand
+  │ │ ├ encoding/json
+  │ │ ├ encoding/xml
+  │ │ ├ fmt
+  │ │ ├ io
+  │ │ ├ net/url
+  │ │ ├ sort
+  │ │ ├ strings
+  │ │ └ time
+  │ ├ github.com/graphql-go/graphql
+  │ ├ github.com/graphql-go/handler
+  │ │ ├ context
+  │ │ ├ encoding/json
+  │ │ ├ fmt
+  │ │ ├ html/template
+  │ │ ├ io/ioutil
+  │ │ ├ net/http
+  │ │ ├ net/url
+  │ │ ├ strings
+  │ │ ├ github.com/graphql-go/graphql (unresolved)
+  │ │ └ github.com/graphql-go/graphql/gqlerrors (unresolved)
+  │ ├ github.com/graphql-go/relay
+  │ │ ├ encoding/base64
+  │ │ ├ encoding/json
+  │ │ ├ errors
+  │ │ ├ fmt
+  │ │ ├ reflect
+  │ │ ├ strconv
+  │ │ ├ strings
+  │ │ ├ github.com/graphql-go/graphql (unresolved)
+  │ │ └ golang.org/x/net/context
+  │ ├ github.com/h2non/filetype
+  │ │ ├ errors
+  │ │ ├ io
+  │ │ ├ os
+  │ │ ├ github.com/h2non/filetype/matchers (unresolved)
+  │ │ └ github.com/h2non/filetype/types (unresolved)
+  │ ├ github.com/hpcloud/tail
+  │ │ ├ bufio
+  │ │ ├ errors
+  │ │ ├ fmt
+  │ │ ├ io
+  │ │ ├ io/ioutil
+  │ │ ├ log
+  │ │ ├ os
+  │ │ ├ strings
+  │ │ ├ sync
+  │ │ ├ time
+  │ │ ├ github.com/hpcloud/tail/ratelimiter (unresolved)
+  │ │ ├ github.com/hpcloud/tail/util (unresolved)
+  │ │ ├ github.com/hpcloud/tail/watch (unresolved)
+  │ │ └ gopkg.in/tomb.v1 (unresolved)
+  │ ├ github.com/iancoleman/strcase
+  │ ├ github.com/icrowley/fake
+  │ ├ github.com/jmoiron/sqlx
+  │ ├ github.com/json-iterator/go
+  │ ├ github.com/julienschmidt/httprouter
+  │ ├ github.com/lib/pq
+  │ │ ├ bufio
+  │ │ ├ bytes
+  │ │ ├ context
+  │ │ ├ crypto/md5
+  │ │ ├ crypto/tls
+  │ │ ├ crypto/x509
+  │ │ ├ database/sql
+  │ │ ├ database/sql/driver
+  │ │ ├ encoding/binary
+  │ │ ├ encoding/hex
+  │ │ ├ errors
+  │ │ ├ fmt
+  │ │ ├ io
+  │ │ ├ io/ioutil
+  │ │ ├ math
+  │ │ ├ net
+  │ │ ├ net/url
+  │ │ ├ os
+  │ │ ├ os/user
+  │ │ ├ path
+  │ │ ├ path/filepath
+  │ │ ├ reflect
+  │ │ ├ runtime
+  │ │ ├ sort
+  │ │ ├ strconv
+  │ │ ├ strings
+  │ │ ├ sync
+  │ │ ├ sync/atomic
+  │ │ ├ time
+  │ │ ├ unicode
+  │ │ └ github.com/lib/pq/oid (unresolved)
+  │ ├ github.com/mattn/go-sqlite3
+  │ │ ├ context
+  │ │ ├ crypto/sha1
+  │ │ ├ crypto/sha256
+  │ │ ├ crypto/sha512
+  │ │ ├ database/sql
+  │ │ ├ database/sql/driver
+  │ │ ├ errors
+  │ │ ├ fmt
+  │ │ ├ io
+  │ │ ├ math
+  │ │ ├ net/url
+  │ │ ├ reflect
+  │ │ ├ runtime
+  │ │ ├ strconv
+  │ │ ├ strings
+  │ │ ├ sync
+  │ │ ├ time
+  │ │ ├ unsafe
+  │ │ └ C
+  │ ├ github.com/russross/blackfriday
+  │ │ ├ bytes
+  │ │ ├ fmt
+  │ │ ├ html
+  │ │ ├ io
+  │ │ ├ regexp
+  │ │ ├ strconv
+  │ │ ├ strings
+  │ │ ├ unicode/utf8
+  │ │ └ github.com/shurcooL/sanitized_anchor_name (unresolved)
+  │ ├ github.com/sirupsen/logrus
+  │ ├ github.com/smancke/mailck
+  │ │ ├ context
+  │ │ ├ fmt
+  │ │ ├ net
+  │ │ ├ net/smtp
+  │ │ ├ regexp
+  │ │ └ strings
+  │ ├ github.com/spf13/viper
+  │ │ ├ bytes
+  │ │ ├ encoding/csv
+  │ │ ├ encoding/json
+  │ │ ├ fmt
+  │ │ ├ io
+  │ │ ├ log
+  │ │ ├ os
+  │ │ ├ path/filepath
+  │ │ ├ reflect
+  │ │ ├ runtime
+  │ │ ├ strings
+  │ │ ├ sync
+  │ │ ├ time
+  │ │ ├ unicode
+  │ │ ├ github.com/fsnotify/fsnotify (unresolved)
+  │ │ ├ github.com/hashicorp/hcl (unresolved)
+  │ │ ├ github.com/hashicorp/hcl/hcl/printer (unresolved)
+  │ │ ├ github.com/magiconair/properties (unresolved)
+  │ │ ├ github.com/mitchellh/mapstructure (unresolved)
+  │ │ ├ github.com/pelletier/go-toml (unresolved)
+  │ │ ├ github.com/spf13/afero (unresolved)
+  │ │ ├ github.com/spf13/cast (unresolved)
+  │ │ ├ github.com/spf13/jwalterweatherman (unresolved)
+  │ │ ├ github.com/spf13/pflag (unresolved)
+  │ │ └ gopkg.in/yaml.v2 (unresolved)
+  │ ├ golang.org/x/net/context
+  │ └ golang.org/x/text/language
+  ├ github.com/daptin/daptin/server/resource
+  ├ github.com/daptin/daptin/server/statementbuilder
+  ├ github.com/gin-gonic/gin
+  ├ github.com/gocraft/health
+  │ ├ bytes
+  │ ├ encoding/json
+  │ ├ errors
+  │ ├ fmt
+  │ ├ io
+  │ ├ net
+  │ ├ net/http
+  │ ├ os
+  │ ├ reflect
+  │ ├ runtime
+  │ ├ sort
+  │ ├ strconv
+  │ ├ time
+  │ └ github.com/gocraft/health/stack (unresolved)
+  ├ github.com/jamiealquiza/envy
+  │ ├ flag
+  │ ├ fmt
+  │ ├ os
+  │ ├ strings
+  │ ├ github.com/spf13/cobra (unresolved)
+  │ └ github.com/spf13/pflag (unresolved)
+  ├ github.com/sadlil/go-trigger
+  └ github.com/sirupsen/logrus
+589 dependencies (102 internal, 487 external, 0 testing).

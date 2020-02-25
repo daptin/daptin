@@ -82,7 +82,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create marketplace package install performer")
 	performers = append(performers, marketplacePackage)
 
-	mailServerSync, err := resource.NewMailServersSyncActionPerformer(cruds, mailDaemon)
+	mailServerSync, err := resource.NewMailServersSyncActionPerformer(cruds, mailDaemon, certificateManager)
 	resource.CheckErr(err, "Failed to create mail server sync performer")
 	performers = append(performers, mailServerSync)
 

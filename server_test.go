@@ -13,6 +13,7 @@ import (
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/artpar/go-guerrilla"
+	server2 "github.com/artpar/go-imap/server"
 	"github.com/daptin/daptin/server"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -94,7 +95,7 @@ func TestServer(t *testing.T) {
 	var webDashboardSource = flag.String("dashboard", "daptinweb/dist", "path to dist folder for daptin web dashboard")
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
 	var port = flag.String("port", ":6337", "Daptin port")
-	var runtimeMode = flag.String("runtime", "debug", "Runtime for Gin: debug, test, release")
+	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: debug, test, release")
 
 	gin.SetMode(*runtimeMode)
 
@@ -126,6 +127,7 @@ func TestServer(t *testing.T) {
 	var taskScheduler resource.TaskScheduler
 	var configStore *resource.ConfigStore
 	var certManager *resource.CertificateManager
+	var imapServer *server2.Server
 
 	configStore, _ = resource.NewConfigStore(db)
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
@@ -133,7 +135,7 @@ func TestServer(t *testing.T) {
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
 	configStore.SetConfigValueFor("logs.enable", "true", "backend")
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, _ = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -151,12 +153,12 @@ func TestServer(t *testing.T) {
 
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, _ = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, imapServer = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
 
 	name, _ := os.Hostname()
-	certManager.GetTLSConfig(name)
+	certManager.GetTLSConfig(name, true)
 
 	log.Printf("Listening at port: %v", *port)
 
@@ -171,6 +173,7 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Errorf("test failed %v", err)
 	}
+	log.Printf("it never started in test: %v", imapServer)
 
 	log.Printf("Shutdown now")
 

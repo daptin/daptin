@@ -23,7 +23,6 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
-	"github.com/emersion/go-sasl"
 	"github.com/gin-gonic/gin"
 	"github.com/hpcloud/tail"
 	"github.com/icrowley/fake"
@@ -264,12 +263,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 
-	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager)
+	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager, hostname)
 
 	if err == nil {
 		err = mailDaemon.Start()
+
 		if err != nil {
-			log.Errorf("Failed to start mail daemon: %s", err)
+			log.Errorf("Failed to mail daemon start: %s", err)
 		} else {
 			log.Infof("Started mail server")
 		}
@@ -278,49 +278,52 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 
 	var imapServer *server.Server
+	imapServer = nil
 	// Create a memory backend
 	enableImapServer, err := configStore.GetConfigValueFor("imap.enabled", "backend")
 	if err == nil && enableImapServer == "true" {
 		imapListenInterface, err := configStore.GetConfigValueFor("imap.listen_interface", "backend")
-		hostname, err := configStore.GetConfigValueFor("hostname", "backend")
 		if err != nil {
-			configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend")
+			err = configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend")
+			resource.CheckErr(err, "Failed to store default imap listen interface in config")
 			imapListenInterface = ":1143"
 		}
+
+		hostname, err := configStore.GetConfigValueFor("hostname", "backend")
+		hostname = "imap." + hostname
 		imapBackend := resource.NewImapServer(cruds)
 
 		// Create a new server
 		imapServer = server.New(imapBackend)
 		imapServer.Addr = imapListenInterface
-		imapServer.Debug = os.Stdout
+		imapServer.Debug = nil
+		imapServer.AllowInsecureAuth = false
 		imapServer.Enable(idle.NewExtension())
-		//s.Debug = os.Stdout
-		imapServer.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
+		imapServer.Debug = os.Stdout
+		//imapServer.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
+		//
+		//	return &Crammd5{
+		//		dbResource:  cruds["mail"],
+		//		conn:        conn,
+		//		imapBackend: imapBackend,
+		//	}
+		//})
 
-			return &Crammd5{
-				dbResource:  cruds["mail"],
-				conn:        conn,
-				imapBackend: imapBackend,
-			}
-		})
-
-		tlsConfig, _, _, _, err := certificateManager.GetTLSConfig(hostname)
-
-		//ioutil.WriteFile("/tmp/daptin.cert.pem", certPEMBytes, 0600)
-		//ioutil.WriteFile("/tmp/daptin.private.pem", privateKeyPEMBytes, 0600)
-		//ioutil.WriteFile("/tmp/daptin.public.pem", publicKeyPEMBytes, 0600)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
+		tlsConfig, _, _, _, _, err := certificateManager.GetTLSConfig(hostname, true)
+		resource.CheckErr(err, "Failed to get certificate for IMAP [%v]", hostname)
 		imapServer.TLSConfig = tlsConfig
 
-		log.Printf("Starting IMAP server at %s\n", imapListenInterface)
+		log.Printf("Starting IMAP server at %s: %v\n", imapListenInterface, hostname)
 
 		go func() {
-			if err := imapServer.ListenAndServe(); err != nil {
-				log.Fatal(err)
+			if EndsWithCheck(imapListenInterface, ":993") {
+				if err := imapServer.ListenAndServeTLS(); err != nil {
+					resource.CheckErr(err, "Imap server is not listening anymore")
+				}
+			} else {
+				if err := imapServer.ListenAndServe(); err != nil {
+					resource.CheckErr(err, "Imap server is not listening anymore")
+				}
 			}
 		}()
 
@@ -480,11 +483,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	defaultRouter.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
 	defaultRouter.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
 
-	loader := CreateSubSiteContentHandler(&initConfig, cruds, db)
-
-	defaultRouter.POST("/site/content/load", loader)
-	defaultRouter.GET("/site/content/load", loader)
-	defaultRouter.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
+	//loader := CreateSubSiteContentHandler(&initConfig, cruds, db)
+	//defaultRouter.POST("/site/content/load", loader)
+	//defaultRouter.GET("/site/content/load", loader)
+	//defaultRouter.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
 	// TODO: make websockets functional at /live
 	//webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
@@ -586,7 +588,8 @@ type Crammd5 struct {
 // authentication has failed, an error is returned.
 func (c *Crammd5) Next(response []byte) (challenge []byte, done bool, err error) {
 
-	log.Printf("Client sent: %v", string(response))
+	log.Printf(""+
+		"Client sent: %v", string(response))
 
 	if string(response) == "" {
 		newChallenge := fmt.Sprintf("<%v.%v.%v>", fake.DigitsN(8), time.Now().UnixNano(), "daptin")
