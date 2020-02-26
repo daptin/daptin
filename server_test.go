@@ -191,6 +191,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	resp, err := r.Get(baseAddress + "/api/world")
 	if err != nil {
+		log.Printf("Failed to get %s %s", "world", err)
 		return err
 	}
 
@@ -231,6 +232,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	resp, err = r.Get(baseAddress + "/meta?query=column_types")
 	if err != nil {
+		log.Printf("Failed to get %s %s", "meta", err)
 		return err
 	}
 
@@ -288,11 +290,13 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	resp, err = r.Get(baseAddress + "/recline_model")
 	if err != nil {
+		log.Printf("Failed to get %s %s", "recline_model", err)
 		return err
 	}
 	reclineModelMap := make(map[string]interface{})
 	err = resp.ToJSON(&reclineModelMap)
 	if err != nil {
+		log.Printf("Failed to get %s %s", "json recline model", err)
 		return err
 	}
 
@@ -302,11 +306,13 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	resp, err = r.Get(baseAddress + "/jsmodel/world.js")
 	if err != nil {
+		log.Printf("Failed to get %s %s", "jsmodel world", err)
 		return err
 	}
 	jsModelMap := make(map[string]interface{})
 	err = resp.ToJSON(&jsModelMap)
 	if err != nil {
+		log.Printf("Failed to get %s %s", "unmarshal jsmomdel world", err)
 		return err
 	}
 
@@ -316,21 +322,25 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	_, err = r.Get(baseAddress + "/favicon.ico")
 	if err != nil {
+		log.Printf("Failed to get %s %s", "favicon.ico", err)
 		return err
 	}
 
 	_, err = r.Get(baseAddress + "/favicon.png")
 	if err != nil {
+		log.Printf("Failed to get %s %s", "favicon.png", err)
 		return err
 	}
 
 	resp, err = r.Get(baseAddress + "/statistics")
 	if err != nil {
+		log.Printf("Failed to get %s %s", "statistics", err)
 		return err
 	}
 
 	resp, err = r.Get(baseAddress + "/openapi.yaml")
 	if err != nil {
+		log.Printf("Failed to get %s %s", "openapi.yaml", err)
 		return err
 	}
 
@@ -339,6 +349,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		"Authorization": "Bearer " + token,
 	})
 	if err != nil {
+		log.Printf("Failed to get %s %s", "world with token ", err)
 		return err
 	}
 
@@ -356,17 +367,20 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	})
 
 	if err != nil {
+		log.Printf("Failed to get %s %s", "gallerty image get", err)
 		return err
 	}
 
 	resp, err = r.Post(baseAddress+"/api/gallery_image", req.BodyJSON(OneImage))
 	if err != nil {
+		log.Printf("Failed to get %s %s", "gallery image post", err)
 		return err
 	}
 
 	createImageResp := make(map[string]interface{})
 	err = resp.ToJSON(&createImageResp)
 	if err != nil {
+		log.Printf("Failed to get %s %s", "unmarshal gallery image post", err)
 		return err
 	}
 
@@ -379,6 +393,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	readImageResp := make(map[string]interface{})
 	err = resp.ToJSON(&readImageResp)
 	if err != nil {
+		log.Printf("Failed to get %s %s", "unmarshal gallery image get", err)
 		return err
 	}
 
@@ -386,11 +401,13 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	resp, err = r.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png")
 	if err != nil {
+		log.Printf("Failed to get %s %s", "gallery image get by id", err)
 		return err
 	}
 
 	imbBody, err := ioutil.ReadAll(resp.Response().Body)
 	if err != nil {
+		log.Printf("Failed to get %s %s", "read image body gallery image get by id", err)
 		return err
 	}
 	imgLen := len(imbBody)
@@ -444,11 +461,13 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	for _, param := range Params {
 		resp, err = r.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png?" + param)
 		if err != nil {
+			log.Printf("Failed to get %s %s", param, err)
 			return err
 		}
 
 		imbBody, err := ioutil.ReadAll(resp.Response().Body)
 		if err != nil {
+			log.Printf("Failed to get read image %s %s", param, err)
 			return err
 		}
 		t.Logf("Image length [%v]: %v", param, len(imbBody))
@@ -463,6 +482,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	})
 
 	if err != nil {
+		log.Printf("Failed to get read image %s %s", "become admin", err)
 		return err
 	}
 
@@ -473,6 +493,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		"Authorization": "Bearer " + token,
 	})
 	if err != nil {
+		log.Printf("Failed to get read image %s %s", "config hostname get", err)
 		return err
 	}
 
@@ -482,6 +503,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		"Authorization": "Bearer " + token,
 	}, "test")
 	if err != nil {
+		log.Printf("Failed to get read image %s %s", "config hostname post", err)
 		return err
 	}
 
