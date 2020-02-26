@@ -77,7 +77,7 @@ func TestServer(t *testing.T) {
 
 	schema := strings.Replace(testSchemas, "${imagePath}", tempDir, -1)
 	schema = strings.Replace(schema, "${rootPath}", tempDir, -1)
-	schema = strings.Replace("/", string(os.PathSeparator), tempDir, -1)
+	schema = strings.Replace(schema, "/", string(os.PathSeparator), -1)
 	data := strings.Replace(testData, "${rootPath}", tempDir, -1)
 	data = strings.Replace(data, "/", string(os.PathSeparator), -1)
 
