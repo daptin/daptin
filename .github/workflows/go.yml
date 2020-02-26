@@ -211,7 +211,7 @@ jobs:
           go get -v github.com/GeertJohan/go.rice
           xgo \
               -image=artpar/daptin-xgo \
-              -targets=darwin/386,darwin/amd64,linux/386,linux/amd64,windows/386,windows/amd64 \
+              -targets=linux/386,linux/amd64,windows/386,windows/amd64 \
               --tags netgo -ldflags='-linkmode external -extldflags "-static"' -dest build \
               .
           xgo \
