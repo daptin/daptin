@@ -128,10 +128,7 @@ jobs:
           sudo modprobe fuse
           sudo chmod 666 /dev/fuse
           sudo chown root:$USER /etc/fuse.conf
-          sudo apt-get install fuse libfuse-dev rpm pkg-config libssl-dev
-          git clone https://github.com/mackyle/xar.git /tmp/xar && cd /tmp/xar/xar && ./autogen.sh --prefix=/ && make -j8 && make install && ./autogen.sh --prefix=/ && make -j8 && make install && cd / && rm -rf /tmp/xar
-          git clone https://github.com/tpoechtrager/apple-libtapi /tmp/tapi && ls -lah /tmp/tapi && cd /tmp/tapi && INSTALLPREFIX=/ ./build.sh && ./install.sh && cd / && rm -rf /tmp/tapi
-          git clone https://github.com/skaht/Csu-85 /tmp/crt0 && cd /tmp/crt0 && make && make install && cd / && rm -rf /tmp/crt0 && cp /usr/local/lib/crt0.o /lib/crt0.o
+          sudo apt-get install fuse libfuse-dev rpm pkg-config
         if: matrix.os == 'ubuntu-latest'
 
       - name: Install Libraries on macOS
@@ -139,10 +136,6 @@ jobs:
         run: |
           brew update
           brew cask install osxfuse
-          brew install openssl
-          git clone https://github.com/mackyle/xar.git /tmp/xar && cd /tmp/xar/xar && ./autogen.sh --prefix=/ && make -j8 && make install && ./autogen.sh --prefix=/ && make -j8 && make install && cd / && rm -rf /tmp/xar
-          git clone https://github.com/tpoechtrager/apple-libtapi /tmp/tapi && ls -lah /tmp/tapi && cd /tmp/tapi && INSTALLPREFIX=/ ./build.sh && ./install.sh && cd / && rm -rf /tmp/tapi
-          git clone https://github.com/skaht/Csu-85 /tmp/crt0 && cd /tmp/crt0 && make && make install && cd / && rm -rf /tmp/crt0 && cp /usr/local/lib/crt0.o /lib/crt0.o
         if: matrix.os == 'macOS-latest'
 
       - name: Install Libraries on Windows
@@ -229,10 +222,3 @@ jobs:
         run: |
           docker pull golang
           docker run --rm -v "$PWD":/usr/src/daptin -w /usr/src/daptin golang go build -mod=vendor -v
-      - name: Upload artifacts
-        run: |
-          make circleci_upload
-        env:
-          DAPTIN_CONFIG_PASS: ${{ secrets.DAPTIN_CONFIG_PASS }}
-        # Upload artifacts if not a PR && not a fork
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
