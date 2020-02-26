@@ -284,7 +284,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	token = responseAttr["Attributes"].(map[string]interface{})["value"].(string)
 
-	t.Logf("Token: %v", token)
+	//t.Logf("Token: %v", token)
 
 	resp, err = r.Get(baseAddress + "/recline_model")
 	if err != nil {
