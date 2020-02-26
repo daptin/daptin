@@ -4,8 +4,10 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gobuffalo/flect"
-	"github.com/jinzhu/configor"
+	"github.com/naoina/toml"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -64,8 +66,27 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 	for _, fileName := range files {
 		log.Infof("Process file: %v", fileName)
+
+		fileBytes, err := ioutil.ReadFile(fileName)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
 		initConfig := resource.CmsConfig{}
-		err = configor.Load(&initConfig, fileName)
+
+		switch {
+		case EndsWithCheck(fileName, "yml"):
+			fallthrough
+		case EndsWithCheck(fileName, "yaml"):
+			err = yaml.Unmarshal(fileBytes, &initConfig)
+		case EndsWithCheck(fileName, "json"):
+			err = json.Unmarshal(fileBytes, &initConfig)
+		case EndsWithCheck(fileName, "toml"):
+			err = toml.Unmarshal(fileBytes, &initConfig)
+
+		}
+
 		js, _ := json.Marshal(initConfig)
 		log.Printf("Loaded config: %v", string(js))
 

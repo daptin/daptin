@@ -59,7 +59,6 @@ require (
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/imroc/req v0.2.4
 	github.com/jamiealquiza/envy v1.1.0
-	github.com/jinzhu/configor v1.1.1
 	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
 	github.com/json-iterator/go v1.1.8
@@ -71,6 +70,7 @@ require (
 	github.com/lib/pq v1.0.0
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
 	github.com/mattn/go-sqlite3 v1.11.0
+	github.com/naoina/toml v0.1.1
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/otp v1.2.0
 	github.com/robfig/cron v1.0.0
@@ -92,6 +92,7 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.8.1
+	gopkg.in/yaml.v2 v2.2.5
 )
 
 go 1.13
