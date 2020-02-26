@@ -82,7 +82,7 @@ require (
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/cobra v0.0.5
 	github.com/tealeg/xlsx v0.0.0-20181024002044-dbf71b6a931e
-	github.com/ugorji/go/codec v1.1.7 // indirect
+	github.com/ugorji/go v1.1.7 // indirect
 	golang.org/x/crypto v0.0.0-20200109152110-61a87790db17
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
