@@ -205,9 +205,10 @@ jobs:
           echo '::add-path::${{ runner.workspace }}/bin'
       - name: Cross-compile daptin
         run: |
-          docker pull billziss/xgo-cgofuse
-          GO111MODULE=auto go get -v github.com/karalabe/xgo
-          GO111MODULE=auto go get -v github.com/GeertJohan/go.rice
+          export GO111MODULE=on
+          docker pull artpar/daptin-xgo
+          go get -v github.com/karalabe/xgo
+          go get -v github.com/GeertJohan/go.rice
           xgo \
               -image=artpar/daptin-xgo \
               -targets=darwin/386,darwin/amd64,linux/386,linux/amd64,windows/386,windows/amd64 \
