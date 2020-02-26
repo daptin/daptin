@@ -4,8 +4,8 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gobuffalo/flect"
+	"github.com/jinzhu/configor"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 )
@@ -64,16 +64,8 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 	for _, fileName := range files {
 		log.Infof("Process file: %v", fileName)
-
-		viper.SetConfigFile(fileName)
-
-		err = viper.ReadInConfig()
-		if err != nil {
-			errs = append(errs, err)
-		}
-
 		initConfig := resource.CmsConfig{}
-		err = viper.Unmarshal(&initConfig)
+		err = configor.Load(&initConfig, fileName)
 
 		if err != nil {
 			errs = append(errs, err)
