@@ -32,7 +32,7 @@ const testData = `{
       "name": "local-store",
       "store_type": "local",
       "store_provider": "local",
-      "root_path": "${rootPath}/gallery",
+      "root_path": "${rootPath}\\gallery",
       "store_parameters": "{}",
       "reference_id": "ca122915-4dbb-42cf-aa19-c89a14e6fa9a"
     }
@@ -75,9 +75,9 @@ func TestServer(t *testing.T) {
 	schema = strings.Replace(schema, "${rootPath}", tempDir, -1)
 	data := strings.Replace(testData, "${rootPath}", tempDir, -1)
 	_ = os.Mkdir(tempDir, 0777)
-	if os.PathSeparator == '\\' {
-		schema = strings.Replace(schema, "/", string(os.PathSeparator+os.PathSeparator), -1)
-		data = strings.Replace(data, "/", string(os.PathSeparator+os.PathSeparator), -1)
+	if os.PathSeparator == '/' {
+		schema = strings.Replace(schema, "\\\\", string(os.PathSeparator), -1)
+		data = strings.Replace(data, "\\\\", string(os.PathSeparator), -1)
 	}
 
 	_ = os.Mkdir(tempDir+string(os.PathSeparator)+"gallery", 0777)
