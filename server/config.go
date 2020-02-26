@@ -1,12 +1,13 @@
 package server
 
 import (
+	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
+	yaml2 "github.com/ghodss/yaml"
 	"github.com/gobuffalo/flect"
 	"github.com/naoina/toml"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -74,12 +75,19 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		}
 
 		initConfig := resource.CmsConfig{}
+		fmt.Printf("Loaded config: \n%v", string(fileBytes))
 
 		switch {
 		case EndsWithCheck(fileName, "yml"):
 			fallthrough
 		case EndsWithCheck(fileName, "yaml"):
-			err = yaml.Unmarshal(fileBytes, &initConfig)
+			jsonBytes, err := yaml2.YAMLToJSON(fileBytes)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			err = json.Unmarshal(jsonBytes, &initConfig)
+			//err = yaml.UnmarshalStrict(fileBytes, &initConfig)
 		case EndsWithCheck(fileName, "json"):
 			err = json.Unmarshal(fileBytes, &initConfig)
 		case EndsWithCheck(fileName, "toml"):
