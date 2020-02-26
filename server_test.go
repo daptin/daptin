@@ -69,24 +69,24 @@ Imports:
 
 func TestServer(t *testing.T) {
 
-	tempDir := os.TempDir() + "/daptintest"
+	tempDir := os.TempDir() + string(os.PathSeparator) + "daptintest"
 
-	os.Mkdir(tempDir, 0777)
-	os.Mkdir(tempDir+"/gallery", 0777)
-	os.Mkdir(tempDir+"/gallery/images", 0777)
+	_ = os.Mkdir(tempDir, 0777)
+	_ = os.Mkdir(tempDir+string(os.PathSeparator)+"gallery", 0777)
+	_ = os.Mkdir(tempDir+string(os.PathSeparator)+"gallery/images", 0777)
 
 	schema := strings.Replace(testSchemas, "${imagePath}", tempDir, -1)
 	schema = strings.Replace(schema, "${rootPath}", tempDir, -1)
+	schema = strings.Replace("/", string(os.PathSeparator), tempDir, -1)
 	data := strings.Replace(testData, "${rootPath}", tempDir, -1)
+	data = strings.Replace(data, "/", string(os.PathSeparator), -1)
 
-	ioutil.WriteFile(tempDir+"/schema_test_daptin.yaml", []byte(schema), os.ModePerm)
-	ioutil.WriteFile(tempDir+"/initial_data.json", []byte(data), os.ModePerm)
+	_ = ioutil.WriteFile(tempDir+string(os.PathSeparator)+"schema_test_daptin.yaml", []byte(schema), os.ModePerm)
+	_ = ioutil.WriteFile(tempDir+string(os.PathSeparator)+"initial_data.json", []byte(data), os.ModePerm)
 
-	os.Setenv("DAPTIN_SCHEMA_FOLDER", tempDir)
+	_ = os.Setenv("DAPTIN_SCHEMA_FOLDER", tempDir)
 
-	err := os.Remove("daptin_test.db")
-	os.Remove("daptin_test.db")
-	log.Printf("Failed to delete existing file %v", err)
+	_ = os.Remove("daptin_test.db")
 
 	var dbType = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
 	var connectionString = flag.String("db_connection_string", "daptin_test.db", "\n\tSQLite: test.db\n"+
@@ -155,7 +155,7 @@ func TestServer(t *testing.T) {
 
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer , imapServer= server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
 

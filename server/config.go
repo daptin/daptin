@@ -47,8 +47,8 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			schemaPath = "."
 		}
 
-		if schemaPath[len(schemaPath)-1] != '/' {
-			schemaPath = schemaPath + "/"
+		if schemaPath[len(schemaPath)-1] != os.PathSeparator {
+			schemaPath = schemaPath + string(os.PathSeparator)
 		}
 		files1, _ = filepath.Glob(schemaPath + "schema_*.*")
 	}
