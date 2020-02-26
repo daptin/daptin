@@ -45,9 +45,6 @@ endif
 
 daptin:
 	go get
-	git clone https://github.com/mackyle/xar.git /tmp/xar && cd /tmp/xar/xar && ./autogen.sh --prefix=/ && make -j8 && make install && ./autogen.sh --prefix=/ && make -j8 && make install && cd / && rm -rf /tmp/xar
-	git clone https://github.com/tpoechtrager/apple-libtapi /tmp/tapi && ls -lah /tmp/tapi && cd /tmp/tapi && INSTALLPREFIX=/ ./build.sh && ./install.sh && cd / && rm -rf /tmp/tapi
-	git clone https://github.com/skaht/Csu-85 /tmp/crt0 && cd /tmp/crt0 && make && make install && cd / && rm -rf /tmp/crt0 && cp /usr/local/lib/crt0.o /lib/crt0.o
 	go build -v --ldflags "-linkmode external -extldflags '-static' -s -X github.com/daptin/daptin/fs.Version=$(TAG)" $(BUILDTAGS)
 	mkdir -p `go env GOPATH`/bin/
 	cp -av daptin`go env GOEXE` `go env GOPATH`/bin/daptin`go env GOEXE`.new
