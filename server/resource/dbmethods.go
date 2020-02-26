@@ -969,7 +969,6 @@ func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{})
 	cols := make([]string, 0)
 	vals := make([]interface{}, 0)
 
-
 	for columnName := range columnMap {
 		colInfo, ok := dr.tableInfo.GetColumnByName(columnName)
 		if !ok {

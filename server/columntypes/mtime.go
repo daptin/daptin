@@ -90,7 +90,7 @@ func init() {
 }
 
 func GetTime(t string) (time.Time, string, error) {
-	if (strings.Index(t, "0000") > -1) {
+	if strings.Index(t, "0000") > -1 {
 		return time.Time{}, "", errors.New("not a date")
 	}
 	for _, format := range timeFormat {
