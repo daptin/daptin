@@ -748,9 +748,12 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 
 		log.Infof("Process import file %v", importFile.String())
 		filePath := importFile.FilePath
-		if filePath[0] != '/' {
-			filePath = schemaFolderDefinedByEnv + filePath
+		if strings.Index(filePath, ":") == -1 {
+			if filePath[0] != '/' {
+				filePath = schemaFolderDefinedByEnv + filePath
+			}
 		}
+
 		fileBytes, err := ioutil.ReadFile(filePath)
 		if err != nil {
 			log.Errorf("Failed to read file [%v]: %v", filePath, err)
