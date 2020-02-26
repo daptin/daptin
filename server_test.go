@@ -63,7 +63,7 @@ const testSchemas = `Tables:
           Namespace: local-store
           KeyName: images
 Imports:
-  - FilePath: ${rootPath}/initial_data.json
+  - FilePath: initial_data.json
     Entity: site
     FileType: json`
 
