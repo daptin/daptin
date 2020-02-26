@@ -129,6 +129,9 @@ jobs:
           sudo chmod 666 /dev/fuse
           sudo chown root:$USER /etc/fuse.conf
           sudo apt-get install fuse libfuse-dev rpm pkg-config libssl-dev
+          git clone https://github.com/mackyle/xar.git /tmp/xar && cd /tmp/xar/xar && ./autogen.sh --prefix=/ && make -j8 && make install && ./autogen.sh --prefix=/ && make -j8 && make install && cd / && rm -rf /tmp/xar
+          git clone https://github.com/tpoechtrager/apple-libtapi /tmp/tapi && ls -lah /tmp/tapi && cd /tmp/tapi && INSTALLPREFIX=/ ./build.sh && ./install.sh && cd / && rm -rf /tmp/tapi
+          git clone https://github.com/skaht/Csu-85 /tmp/crt0 && cd /tmp/crt0 && make && make install && cd / && rm -rf /tmp/crt0 && cp /usr/local/lib/crt0.o /lib/crt0.o
         if: matrix.os == 'ubuntu-latest'
 
       - name: Install Libraries on macOS
@@ -137,6 +140,9 @@ jobs:
           brew update
           brew cask install osxfuse
           brew install openssl
+          git clone https://github.com/mackyle/xar.git /tmp/xar && cd /tmp/xar/xar && ./autogen.sh --prefix=/ && make -j8 && make install && ./autogen.sh --prefix=/ && make -j8 && make install && cd / && rm -rf /tmp/xar
+          git clone https://github.com/tpoechtrager/apple-libtapi /tmp/tapi && ls -lah /tmp/tapi && cd /tmp/tapi && INSTALLPREFIX=/ ./build.sh && ./install.sh && cd / && rm -rf /tmp/tapi
+          git clone https://github.com/skaht/Csu-85 /tmp/crt0 && cd /tmp/crt0 && make && make install && cd / && rm -rf /tmp/crt0 && cp /usr/local/lib/crt0.o /lib/crt0.o
         if: matrix.os == 'macOS-latest'
 
       - name: Install Libraries on Windows
@@ -207,15 +213,15 @@ jobs:
       - name: Cross-compile daptin
         run: |
           docker pull billziss/xgo-cgofuse
-          go get -v github.com/karalabe/xgo
-          go get -v github.com/GeertJohan/go.rice
+          GO111MODULE=auto go get -v github.com/karalabe/xgo
+          GO111MODULE=auto go get -v github.com/GeertJohan/go.rice
           xgo \
-              -image=billziss/xgo-cgofuse \
+              -image=artpar/daptin-xgo \
               -targets=darwin/386,darwin/amd64,linux/386,linux/amd64,windows/386,windows/amd64 \
-              --tags netgo -ldflags='-linkmode external -extldflags "-static"' -dest build
+              --tags netgo -ldflags='-linkmode external -extldflags "-static"' -dest build \
               .
           xgo \
-              -image=billziss/xgo-cgofuse \
+              -image=artpar/daptin-xgo \
               -targets=android/*,ios/* \
               --tags netgo -ldflags='-linkmode external -extldflags "-static"' -dest build \
               .
