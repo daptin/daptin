@@ -68,6 +68,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		err = configor.Load(&initConfig, fileName)
 
 		if err != nil {
+			log.Errorf("Failed to load config file: %v", err)
 			errs = append(errs, err)
 			continue
 		}
