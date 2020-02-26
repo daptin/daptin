@@ -209,6 +209,7 @@ jobs:
           docker pull artpar/daptin-xgo
           go get -v github.com/karalabe/xgo
           go get -v github.com/GeertJohan/go.rice
+          go get
           xgo \
               -image=artpar/daptin-xgo \
               -targets=linux/386,linux/amd64,windows/386,windows/amd64 \
