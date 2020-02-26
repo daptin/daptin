@@ -59,6 +59,7 @@ require (
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/imroc/req v0.2.4
 	github.com/jamiealquiza/envy v1.1.0
+	github.com/jinzhu/configor v1.1.1
 	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
 	github.com/json-iterator/go v1.1.8
@@ -69,9 +70,7 @@ require (
 	github.com/leodido/go-urn v0.0.0-20181204092800-a67a23e1c1af // indirect
 	github.com/lib/pq v1.0.0
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
-	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0
-	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/otp v1.2.0
 	github.com/robfig/cron v1.0.0
@@ -80,12 +79,9 @@ require (
 	github.com/simplereach/timeutils v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
-	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
-	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/viper v1.4.0
 	github.com/tealeg/xlsx v0.0.0-20181024002044-dbf71b6a931e
-	github.com/ugorji/go v1.1.7 // indirect
+	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/crypto v0.0.0-20200109152110-61a87790db17
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
