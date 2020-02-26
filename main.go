@@ -65,7 +65,10 @@ func main() {
 	stream.AddSink(&health.WriterSink{
 		Writer: os.Stdout,
 	})
-	boxRoot1, err := rice.FindBox(strings.ReplaceAll("daptinweb/dist/", "/", string(os.PathSeparator)))
+	boxRoot1, err := rice.FindBox("daptinweb/dist/")
+	if err != nil {
+		//boxRoot1, err = rice.FindBox("daptinweb\\\\dist\\\\")
+	}
 
 	var boxRoot http.FileSystem
 	if err != nil {
