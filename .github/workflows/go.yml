@@ -215,7 +215,3 @@ jobs:
               -targets=linux/386,linux/amd64,windows/386,windows/amd64 \
               --tags netgo -ldflags='-linkmode external -extldflags "-static"' -dest build \
               .
-      - name: Build daptin
-        run: |
-          docker pull golang
-          docker run --rm -v "$PWD":/usr/src/daptin -w /usr/src/daptin golang go build -mod=vendor -v
