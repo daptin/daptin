@@ -66,6 +66,8 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		log.Infof("Process file: %v", fileName)
 		initConfig := resource.CmsConfig{}
 		err = configor.Load(&initConfig, fileName)
+		js, _ := json.Marshal(initConfig)
+		log.Printf("Loaded config: %v", string(js))
 
 		if err != nil {
 			log.Errorf("Failed to load config file: %v", err)
