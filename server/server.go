@@ -24,9 +24,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/gin-gonic/gin"
-	"github.com/hpcloud/tail"
 	"github.com/icrowley/fake"
-
 	//"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"net/http"
@@ -191,27 +189,14 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	if enablelogs == "true" {
 
-		defaultRouter.GET("/__logs", func(c *gin.Context) {
-			logTail, err := tail.TailFile("daptin.log", tail.Config{
-				Follow: true,
-				ReOpen: true,
-				Location: &tail.SeekInfo{
-					Offset: 0,
-					Whence: 2,
-				},
-			})
-			if err != nil {
-				_ = c.AbortWithError(500, err)
-				return
-			}
-
-			for line := range logTail.Lines {
-				_, err = c.Writer.WriteString(line.Text + "\n")
-				resource.CheckErr(err, "Failed to write line for logs")
-				c.Writer.Flush()
-			}
-
-		})
+		//defaultRouter.GET("/__logs", func(c *gin.Context) {
+		//	webtail.ViewLog(c.Writer, c.Request, []httprouter.Param{
+		//		{
+		//			Key:   "name",
+		//			Value: "daptin.log",
+		//		},
+		//	})
+		//})
 	}
 
 	enableGraphql, err := configStore.GetConfigValueFor("graphql.enable", "backend")
