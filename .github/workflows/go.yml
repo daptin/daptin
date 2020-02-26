@@ -185,6 +185,17 @@ jobs:
           make compile_all
         if: matrix.compile_all
 
+      - name: Deploy built binaries
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then make release_dep ; fi
+          make travis_beta
+        env:
+          RCLONE_CONFIG_PASS: ${{ secrets.RCLONE_CONFIG_PASS }}
+        # working-directory: '$(modulePath)'
+        # Deploy binaries if enabled in config && not a PR && not a fork
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'rclone/rclone'
+
   xgo:
     timeout-minutes: 60
     name: "xgo cross compile"
