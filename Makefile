@@ -54,7 +54,7 @@ daptin:
 	mv -v `go env GOPATH`/bin/daptin`go env GOEXE`.new `go env GOPATH`/bin/daptin`go env GOEXE`
 
 test_all:
-	go install --ldflags " -linkmode external -extldflags '-static' -s -X github.com/daptin/daptin/fs.Version=$(TAG)" $(BUILDTAGS) github.com/daptin/daptin/fstest/test_all
+	go install --ldflags "-s -X github.com/daptin/daptin/fs.Version=$(TAG)" $(BUILDTAGS) github.com/daptin/daptin/fstest/test_all
 
 vars:
 	@echo SHELL="'$(SHELL)'"
