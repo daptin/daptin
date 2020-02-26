@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/apiblueprint"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -45,6 +46,18 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 	return func(c *gin.Context) {
 
 		typeName := c.Param("typename")
+
+		user := c.Request.Context().Value("user")
+		var sessionUser *auth.SessionUser
+		if user != nil {
+			sessionUser = user.(*auth.SessionUser)
+		}
+
+		perm := cruds[typeName].GetObjectPermissionByWhereClause("world", "table_name", typeName)
+		if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
+			c.AbortWithStatus(403)
+			return
+		}
 
 		aggReq := resource.AggregationRequest{}
 

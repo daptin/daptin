@@ -63,7 +63,6 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 	//dataToInsert := make(map[string]interface{})
 
-
 	languagePreferences := make([]string, 0)
 	prefs := req.PlainRequest.Context().Value("language_preference")
 	if prefs != nil {

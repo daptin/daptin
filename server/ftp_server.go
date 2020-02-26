@@ -90,7 +90,7 @@ func (driver *DaptinFtpDriver) GetSettings() (*server.Settings, error) {
 		driver.Logger.Printf("Fetching our external IP address...")
 
 		if publicIP, err = externalIP(); err != nil {
-			resource.CheckErr(err, "Couldn't fetch an external IP", )
+			resource.CheckErr(err, "Couldn't fetch an external IP")
 		} else {
 			driver.Logger.Printf(
 				"Fetched our external IP address %v %v %v %v",
@@ -147,11 +147,11 @@ func (driver *DaptinFtpDriver) WelcomeUser(cc server.ClientContext) (string, err
 	cc.SetDebug(true)
 	// This will remain the official name for now
 	return fmt.Sprintf(
-		"Welcome on daptin FTP server, you're on dir %s, your ID is %d, your IP:port is %s, we currently have %d clients connected",
-		driver.BaseDir,
-		cc.ID(),
-		cc.RemoteAddr(),
-		nbClients),
+			"Welcome on daptin FTP server, you're on dir %s, your ID is %d, your IP:port is %s, we currently have %d clients connected",
+			driver.BaseDir,
+			cc.ID(),
+			cc.RemoteAddr(),
+			nbClients),
 		nil
 }
 
