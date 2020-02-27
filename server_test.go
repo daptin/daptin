@@ -33,7 +33,7 @@ const testData = `{
       "name": "local-store",
       "store_type": "local",
       "store_provider": "local",
-      "root_path": "${rootPath}\\gallery",
+      "root_path": "${rootPath}gallery",
       "store_parameters": "{}",
       "reference_id": "ca122915-4dbb-42cf-aa19-c89a14e6fa9a"
     }
@@ -74,7 +74,8 @@ func TestServer(t *testing.T) {
 	if dir[len(dir)-1] != os.PathSeparator {
 		dir = dir + string(os.PathSeparator)
 	}
-	tempDir := dir + "daptintest"
+	tempDir := dir + "daptintest" + string(os.PathSeparator)
+	t.Logf("Test directory: %v", dir)
 
 	m := make(map[string]interface{})
 	err := json.Unmarshal([]byte(testData), &m)
@@ -84,10 +85,7 @@ func TestServer(t *testing.T) {
 	schema = strings.Replace(schema, "${rootPath}", tempDir, -1)
 	data := strings.Replace(testData, "${rootPath}", tempDir, -1)
 	_ = os.Mkdir(tempDir, 0777)
-	if os.PathSeparator == '/' {
-		schema = strings.Replace(schema, "\\\\", string(os.PathSeparator), -1)
-		data = strings.Replace(data, "\\\\", string(os.PathSeparator), -1)
-	}
+
 
 	err = json.Unmarshal([]byte(data), &m)
 	t.Errorf("Err: %v", err)
