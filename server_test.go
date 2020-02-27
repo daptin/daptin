@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	server3 "github.com/fclairamb/ftpserver/server"
@@ -12,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	rice "github.com/GeertJohan/go.rice"
+	"github.com/GeertJohan/go.rice"
 	"github.com/artpar/go-guerrilla"
 	server2 "github.com/artpar/go-imap/server"
 	"github.com/daptin/daptin/server"
@@ -32,7 +33,7 @@ const testData = `{
       "name": "local-store",
       "store_type": "local",
       "store_provider": "local",
-      "root_path": "${rootPath}\gallery",
+      "root_path": "${rootPath}\\gallery",
       "store_parameters": "{}",
       "reference_id": "ca122915-4dbb-42cf-aa19-c89a14e6fa9a"
     }
@@ -69,16 +70,27 @@ Imports:
 
 func TestServer(t *testing.T) {
 
-	tempDir := os.TempDir() + string(os.PathSeparator) + "daptintest"
+	dir := os.TempDir()
+	if dir[len(dir)-1] != os.PathSeparator {
+		dir = dir + string(os.PathSeparator)
+	}
+	tempDir := dir + "daptintest"
+
+	m := make(map[string]interface{})
+	err := json.Unmarshal([]byte(testData), &m)
+	t.Errorf("Err: %v", err)
 
 	schema := strings.Replace(testSchemas, "${imagePath}", tempDir, -1)
 	schema = strings.Replace(schema, "${rootPath}", tempDir, -1)
 	data := strings.Replace(testData, "${rootPath}", tempDir, -1)
 	_ = os.Mkdir(tempDir, 0777)
 	if os.PathSeparator == '/' {
-		schema = strings.Replace(schema, "\\", string(os.PathSeparator), -1)
-		data = strings.Replace(data, "\\", string(os.PathSeparator), -1)
+		schema = strings.Replace(schema, "\\\\", string(os.PathSeparator), -1)
+		data = strings.Replace(data, "\\\\", string(os.PathSeparator), -1)
 	}
+
+	err = json.Unmarshal([]byte(data), &m)
+	t.Errorf("Err: %v", err)
 
 	_ = os.Mkdir(tempDir+string(os.PathSeparator)+"gallery", 0777)
 	_ = os.Mkdir(tempDir+string(os.PathSeparator)+"gallery"+string(os.PathSeparator)+"images", 0777)
