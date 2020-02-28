@@ -1,3 +1,4 @@
+
 # Data model
 
 Tables are the basic data structure. Tables have columns. Each column has a particular data type. Tables are exposed as JSON APIs under the `/api/<entityName>` path.
@@ -6,6 +7,7 @@ Tables are the basic data structure. Tables have columns. Each column has a part
 
 Import CSV or XLS file and you can let Daptin create the entities for you based on intelligent data pre-processor.
 
+## Manual creation
 ## YAML/JSON schema
 
 If you are looking for a more reproducible way, design your entities and create JSON or YAML files. These files can be used again to create an exact same replica.

@@ -31,7 +31,49 @@
       </ul>
     </li>
 
-    <li class="treeview help-support">
+
+    <li class="treeview data-model">
+      <a href="#">
+        <i class="fas fa-keyboard"></i>
+        <span>Data Model</span>
+        <span class="pull-right-container">
+          <i class="fas fa-angle-left fa-fw pull-right"></i>
+        </span>
+      </a>
+      <ul class="treeview-menu">
+        <li class="pageLink" v-on:click="toggleMenu">
+          <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
+                       class="">
+            <i class="fas fa-plus "></i> Upload Schema JSON
+          </router-link>
+
+
+          <router-link
+            :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
+            class="">
+            <i class="fas fa-file-excel"></i> Upload XLSX
+          </router-link>
+
+          <router-link
+            :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_csv_to_system_schema'}}"
+            class="">
+            <i class="fas fa-file-alt"></i> Upload CSV
+          </router-link>
+
+          <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
+                       class="">
+            <i class="fab fa-js"></i> Upload Data JSON
+          </router-link>
+
+          <router-link :to="{name : 'NewItem'}"
+                       class="">
+            <i class="fas fa-pencil-alt"></i> Online designer
+          </router-link>
+        </li>
+      </ul>
+    </li>
+
+    <li class="treeview administration">
       <a href="#">
         <i class="fas fa-keyboard"></i>
         <span>Administration</span>
