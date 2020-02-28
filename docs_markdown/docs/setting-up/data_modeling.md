@@ -425,7 +425,7 @@ Use it for names, e-mail addresses, URL slugs, or any other form field where for
 Conform doesn't attempt any kind of validation on your fields.
 
 
-## Data Auditing
+## Data auditing
 
 To enable recoding of all historical data for a particular entity, enable data audit for it in the worlds configuration.
 
