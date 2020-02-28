@@ -35,18 +35,6 @@
             </form>
           </div>
 
-          <div class="col-sm-3 col-md-3">
-            <form class="navbar-form">
-              <div class="input-group">
-                <el-select filterable @change="setPreferredLanguage" v-model="preferredLanguageLocal"
-                           style="font-size: 16px; color: white; background-color: #0000005e"
-                        placeholder="Search" name="q">
-                  <el-option v-for="language in languages" :key="language.id" :label="language.label" :value="language.id"
-                          :selected="preferredLanguage === language.id"></el-option>
-                </el-select>
-              </div>
-            </form>
-          </div>
 
           <div class="navbar-custom-menu">"
             <ul class="nav navbar-nav">
@@ -68,6 +56,18 @@
                       <small></small>
                     </p>
                   </li>
+
+                  <form class="navbar-form">
+                    <div class="input-group">
+                      <el-select filterable @change="setPreferredLanguage" v-model="preferredLanguageLocal"
+                                 style="font-size: 16px; color: white; background-color: #0000005e"
+                                 placeholder="Search" name="q">
+                        <el-option v-for="language in languages" :key="language.id" :label="language.label" :value="language.id"
+                                   :selected="preferredLanguage === language.id"></el-option>
+                      </el-select>
+                    </div>
+                  </form>
+
 
                   <li class="user-footer">
 
