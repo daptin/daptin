@@ -130,6 +130,10 @@ func NewMarketplaceService(marketplace Marketplace) (*MarketplaceService, error)
 	gitRepo, err := libgit.Clone(marketplace.Endpoint, tempRepoDir, &libgit.CloneOptions{
 
 	})
+	CheckErr(err, "Failed to clone git repo")
+	if  gitRepo == nil {
+		return nil, err
+	}
 
 	err = gitRepo.CheckoutHead(&libgit.CheckoutOpts{
 		Strategy: libgit.CheckoutUseTheirs,
