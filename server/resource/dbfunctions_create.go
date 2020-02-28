@@ -619,6 +619,10 @@ func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) {
 	createTableQuery := MakeCreateTableQuery(tableInfo, db.DriverName())
 
 	log.Infof("Create table query: %v", tableInfo.TableName)
+	if len(tableInfo.TableName) < 2 {
+		log.Printf("Table name less than two characters is unacceptable [%v]", tableInfo.TableName)
+		return
+	}
 	log.Println(createTableQuery)
 	_, err := db.Exec(createTableQuery)
 	//db.Exec("COMMIT ")
@@ -655,6 +659,7 @@ func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
 		colsDone[c.ColumnName] = true
 		columnStrings = append(columnStrings, columnLine)
 	}
+
 	columnString := strings.Join(columnStrings, ",\n  ")
 	createTableQuery += columnString + ") "
 

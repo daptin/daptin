@@ -34,24 +34,27 @@
                 <div class="box">
                   <div class="box-header">
                     <h3 class="box-title">Columns</h3>
-                    <div class="box-tools pull-right">
-                      <button @click="data.Columns.push({})" class="btn btn-primary"><i class="fa fa-plus"></i></button>
-                    </div>
                   </div>
 
                   <div class="box-body">
                     <div class="form-group" v-for="col in data.Columns">
                       <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                           <input type="text" v-model="col.Name" placeholder="name" class="form-control"
                                  :disabled="col.ReadOnly">
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-3">
                           <select class="form-control" v-model="col.ColumnType" :disabled="col.ReadOnly">
                             <option :value="colData.Name" v-for="(colData, colTypeName) in columnTypes">
                               {{colTypeName | titleCase}}
                             </option>
                           </select>
+                        </div>
+                        <div class="col-md-2">
+                          <input v-model="col.IsUnique" type="checkbox"/> Unique
+                        </div>
+                        <div class="col-md-2">
+                          <input v-model="col.IsIndexed" type="checkbox"/> Indexed
                         </div>
                         <div class="col-md-1" style="padding-left: 0px;" v-if="!col.ReadOnly">
                           <button @click="removeColumn(col)" class="btn btn-danger btn-sm"><i
@@ -60,6 +63,14 @@
                       </div>
                     </div>
                   </div>
+
+                  <div class="box-footer">
+                    <div class="box-tools pull-right">
+                      <button @click="data.Columns.push({})" class="btn btn-primary"><i class="fa fa-plus"></i> Column
+                      </button>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
@@ -67,10 +78,7 @@
                 <div class="box">
                   <div class="box-header">
                     <h2 class="box-title">Relations</h2>
-                    <div class="box-tools pull-right">
-                      <button @click="data.Relations.push({})" class="btn btn-primary"><i class="fa fa-plus"></i>
-                      </button>
-                    </div>
+
                   </div>
                   <div class="box-body">
                     <div class="form-group" v-for="relation in data.Relations">
@@ -97,7 +105,23 @@
                       </div>
                     </div>
                   </div>
+                  <div class="box-footer">
+                    <div class="box-tools pull-right">
+                      <button @click="data.Relations.push({})" class="btn btn-primary"><i class="fa fa-plus"></i>
+                        Relation
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-3">
+                Row audit <input v-model="data.IsAuditEnabled" type="checkbox"/>
+              </div>
+              <div class="col-md-3">
+                Translations enabled <input v-model="data.TranslationsEnabled" type="checkbox"/>
               </div>
             </div>
 
@@ -161,10 +185,13 @@
           Tables: [
             {
               TableName: this.data.TableName,
+              TranslationsEnabled: this.data.TranslationsEnabled,
+              IsAuditEnabled: this.data.IsAuditEnabled,
               Columns: this.data.Columns.map(function (col) {
                 if (!col.Name) {
                   return null;
                 }
+                col.ColumnName = col.Name;
                 col.ColumnName = col.Name;
                 col.DataType = that.columnTypes[col.ColumnType].DataTypes[0];
                 return col;
@@ -196,13 +223,14 @@
     },
     data() {
       return {
-        columnTypes: [],
         data: {
           TableName: null,
+          IsAuditEnabled: false,
+          TranslationsEnabled: false,
           Columns: [
             {
               Name: 'name',
-              ColumnType: "measurement"
+              ColumnType: "label"
             }
           ],
           Relations: [{
@@ -213,11 +241,7 @@
             Object: "usergroup"
           }]
         },
-        columnTypes: [{
-          name: "varchar",
-          label: "Small text",
-          description: "For names"
-        }, {}],
+        columnTypes: [],
       }
     },
     mounted() {
