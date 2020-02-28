@@ -1,5 +1,4 @@
-Introduction
-===
+# Introduction
 
 <img src="images/logo.png" width="200" style="float: right"/>
 <br />
