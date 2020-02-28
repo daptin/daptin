@@ -10,7 +10,7 @@
     <li class="treeview">
       <a href="#">
         <i class="fa fa-users"></i>
-        <span>People</span>
+        <span>Users and groups</span>
         <span class="pull-right-container">
           <i class="fa fa-angle-left fa-fw pull-right"></i>
         </span>
@@ -31,6 +31,48 @@
       </ul>
     </li>
 
+
+    <li class="treeview help-support">
+      <a href="#">
+        <i class="fas fa-keyboard"></i>
+        <span>Data Model</span>
+        <span class="pull-right-container">
+          <i class="fas fa-angle-left fa-fw pull-right"></i>
+        </span>
+      </a>
+      <ul class="treeview-menu">
+        <li class="pageLink" v-on:click="toggleMenu">
+          <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
+                       class="">
+            <i class="fas fa-plus "></i> Upload Schema JSON
+          </router-link>
+
+
+          <router-link
+            :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
+            class="">
+            <i class="fas fa-file-excel"></i> Upload XLSX
+          </router-link>
+
+          <router-link
+            :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_csv_to_system_schema'}}"
+            class="">
+            <i class="fas fa-file-alt"></i> Upload CSV
+          </router-link>
+
+          <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
+                       class="">
+            <i class="fab fa-js"></i> Upload Data JSON
+          </router-link>
+
+          <router-link :to="{name : 'NewItem'}"
+                       class="">
+            <i class="fas fa-pencil-alt"></i> Online designer
+          </router-link>
+        </li>
+      </ul>
+    </li>
+
     <li class="treeview help-support">
       <a href="#">
         <i class="fas fa-keyboard"></i>
@@ -45,6 +87,62 @@
           <router-link :to="{name: 'Entity', params: {tablename: 'world'}}">
             <i class="fa fa-th"></i>
             <span class="page">All tables</span>
+          </router-link>
+          <router-link :to="{name: 'Entity', params:{tablename: 'marketplace'}}"
+                       class="">
+            <i class="fas fa-shopping-cart"></i>
+            Market places
+          </router-link>
+          <router-link :to="{name: 'Entity', params:{tablename: 'mail_server'}}"
+                       class=" ">
+            <i class="fas fa-shopping-cart"></i>
+            SMTP Servers
+          </router-link>
+          <router-link :to="{name: 'Entity', params:{tablename: 'mail_account'}}"
+                       class=" ">
+            <i class="fas fa-shopping-cart"></i>
+            Mail Accounts
+          </router-link>
+
+          <router-link :to="{name: 'Entity', params:{tablename: 'data_exchange'}}"
+
+                       class=" ">
+            <i class="fas fa-exchange-alt"></i>
+            Data Exchange
+          </router-link>
+
+          <router-link :to="{name: 'Entity', params:{tablename: 'oauth_token'}}"
+
+                       class=" ">
+            <i class="fas fa-key"></i> Oauth Tokens
+          </router-link>
+
+          <router-link :to="{name: 'Entity', params:{tablename: 'oauth_connect'}}"
+
+                       class=" ">
+            <i class="fas fa-plug"></i> Oauth Connections
+          </router-link>
+
+          <router-link :to="{name: 'Entity', params:{tablename: 'cloud_store'}}"
+
+                       class=" ">
+            <i class="fas fa-cloud"></i> Storage
+          </router-link>
+
+          <router-link :to="{name: 'Entity', params:{tablename: 'site'}}"
+
+                       class=" ">
+            <i class="fas fa-cubes "></i> Sub sites
+          </router-link>
+          <router-link :to="{name: 'Entity', params:{tablename: 'stream'}}"
+
+                       class=" ">
+            <i class="fas fa-film "></i> Data views
+          </router-link>
+
+          <router-link :to="{name: 'Entity', params:{tablename: 'json_schema'}}"
+                       class=" ">
+            <i class="fas fa-puzzle-piece "></i> Json Schemas
           </router-link>
         </li>
 
