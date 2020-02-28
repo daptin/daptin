@@ -11,7 +11,7 @@ Authentication involves identifying the current user of the request. Daptin expe
 
 ### Sign Up
 
-[Sign up is an action](/actions/actions.md) on user entity. Sign up takes four inputs:
+[Sign up is an action](/actions/actions) on user entity. Sign up takes four inputs:
 
 - Name
 - Email
@@ -86,7 +86,7 @@ curl '/api/user_account' \
 
 ### Sign In
 
-[Sign In is also an action](actions/actions.md) on user entity. Sign in takes two inputs:
+[Sign In is also an action](/actions/actions) on user entity. Sign in takes two inputs:
 
 - Email
 - Password
@@ -140,8 +140,8 @@ The main outcome of the Sign In action is the jwt token, which is to be used in 
 ```
 
 
-
 #### Directly into user_account table
+
 
 ```
 import requests
@@ -164,6 +164,8 @@ data = '{
 response = requests.post('http://localhost:6336/api/user', headers=headers, data=data)
 
 ```
+
+
 You can manually add users from the users page, or allow sign-up action to be performed by guests which will take care of creating a user and an associated usergroup for that user. All new signed up users will also be added to the "users" usergroup.
 
 
