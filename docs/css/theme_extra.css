@@ -13,6 +13,24 @@
     color: #838383;
 }
 
+p {
+    text-align: justify;
+}
+
+li {
+    line-height: 26px;
+}
+
+.wy-nav-content {
+    max-width: 1000px;
+}
+
+.codehilite {
+    background: black;
+    color: white;
+    padding: 10px;
+}
+
 /*
  * Long navigations run off the bottom of the screen as the nav
  * area doesn't scroll.
