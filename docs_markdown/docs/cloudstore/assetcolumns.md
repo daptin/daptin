@@ -26,6 +26,6 @@ Upload it using the dashboard (You can alternatively just edit that from the das
 
 Such columns like image./video./audio./markdown. will be served over HTTP in a simple GET call:
 
-/asset/<table_name>/<reference_id>/<column_name>.<extension>
+/asset/&lt;table_name&gt;/&lt;reference_id&gt;/&lt;column_name&gt;.&lt;extension&gt;
 
-<extension> can be anything relevant to the mimetype of the file. The column file will be dumped as it is. Useful for using in `img` html tag.
+&lt;extension&gt; can be anything relevant to the mimetype of the file. The column file will be dumped as it is. Useful for using in `img` html tag.

@@ -22,9 +22,8 @@ pages:
   - OAuth Connections: extend/oauth_connection.md
   - OAuth Tokens: extend/oauth_token.md
   - Integrations Overview: integrations/overview.md
-  - Asset and file storage:
-    - Connecting with cloud store: cloudstore/cloudstore.md
-    - Cloud store backed asset columns: cloudstore/assetcolumns.md
+  - Cloud store: cloudstore/cloudstore.md
+  - Cloud store backed asset columns: cloudstore/assetcolumns.md
   - Sub-sites:
     - Creating a subsite: subsite/subsite.md
     - Live editing a subsite: subsite/grapes.md
