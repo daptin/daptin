@@ -1,4 +1,4 @@
-# Enable graphql
+# Graphql
 
 By default the GraphQL endpoint is not enabled. If you want to use GraphQL endpoint, here is how you can enable it.
 

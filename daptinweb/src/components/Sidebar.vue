@@ -12,9 +12,6 @@
           <div>
             <p class="black">{{ user.name }}</p>
           </div>
-          <a href="javascript:;">
-            <i class="fas fa-circle text-success"></i> Online
-          </a>
         </div>
       </div> <!-- Sidebar user panel (optional) -->
       <div class="user-panel" v-if="!user">

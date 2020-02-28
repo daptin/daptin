@@ -6,7 +6,7 @@ Oauth connection are useful in consuming other parts of daptin easily, like clou
 
 To begin using oauth involved flows (eg GoogleDrive as data storage) first daptin needs to be configured about the oauth connection parameters. 
 
-## Creating a new oauth connection
+### Creating a new oauth connection
 
 - Log into the dashboard
 - Click the tile "OAuth connections"
