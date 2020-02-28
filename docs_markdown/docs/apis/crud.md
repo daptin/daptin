@@ -38,7 +38,7 @@ Read/Create/Update/Delete
 
 | Method | Path | Query params  | Request body | Description |
 | ------ | ---- | ------------- | ------------ | ----------- |
-| POST   | /stats/{typeName}         |  group/aggregate/project column     | { "id": " < reference id >", type: " < entity type > " }                                      | Start tracking according to the state machine for an object                                           |
+| GET   | /stats/{typeName}         |  group/filter/join/column/timestamp/timefrom/timeto/order     |         | Run aggregate function over entity table  |
 
 
 ### State machine APIs
