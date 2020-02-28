@@ -1,3 +1,5 @@
+# Getting started
+
 ## Accessing web dashboard
 
 Open up the dashboard on http://localhost:8080/

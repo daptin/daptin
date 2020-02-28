@@ -1,11 +1,11 @@
-# State machine introduction
+# State tracking
 
 State of an object can help you tracing any sort of progress while making sure you maintain the consistence of the state. For eg, you might want to track the status of a "blog post" in terms of "draft"/"edited"/"published" which pre-defined endpoints defining the flow of states.
 
 Tracking the status of things is one of the most common operation in most business flows. Daptin has a native support for state tracking and allows a lot of convienent features.
 
 
-# Defining a state machine
+## Defining a state machine
 
 Define a state machine in YAML or JSON as follows:
 

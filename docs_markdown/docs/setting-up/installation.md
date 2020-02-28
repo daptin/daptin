@@ -1,11 +1,11 @@
 # Installation
 
-## Deploy and get started
+## Deploying a new instance
 
 | Deployment preference      | Getting started                                                                                                               |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | Heroku                     | [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/daptin/daptin) |
-| Docker                     | docker run -p 8080:8080 daptin/daptin                                                                                         |
+| Docker                     | docker run -p 8080:8080 [daptin/daptin](https://hub.docker.com/r/daptin/daptin)                                               |
 | Kubernetes                 | [Service & Deployment YAML](#kubernetes)                                                                                      |
 | Development                | go get github.com/daptin/daptin                                                                                               |
 | Linux (386/amd64/arm5,6,7) | [Download static linux builds](https://github.com/daptin/daptin/releases)                                                     |
@@ -16,7 +16,7 @@
 
 
 
-## Native binary
+### Native binary
 
 Daptin is available as a native binary. You can download the binary for the following os from [github releases](https://github.com/daptin/daptin/releases)
 
@@ -30,16 +30,33 @@ Execute ```./daptin``` to run daptin.
 
 It will create a sqlite database on the disk and start listening on port 6336.
 
-Arguments:
+### CLI Options:
 
 Argument | Definition
 --- | ---
 port | set the port to listen
+http_port | set the https port to listen
+runtime | runtime test/debug/release for logs
+dashboard | path to default dashboard static build served at [ <listen_address>/ ]
 db_type | mysql/postgres/sqlite3
-db_connection_string |   SQLite: ```test.db``` <br>MySql: ```<username>:<password>@tcp(<hostname>:<port>)/<db_name>``` <br>Postgres: ```host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable```
+db_connection_string |   Database Connection String
 
 
-## Heroku deployment
+### Database connection string
+
+#### SQLite
+
+```-db_connection_string test.db```
+
+#### MySQL
+
+```-db_connection_string "<username>:<password>@tcp(<hostname>:<port>)/<db_name>"```
+
+#### POSTGRESql:
+
+```-db_connection_string "host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable"```
+
+### Heroku deployment
 
 Heroku is the best way to test out a live instance of daptin. Daptin has a very low memory footprint and can run smoothly even on heroku's smallest instance.
 
@@ -68,7 +85,7 @@ Start ```daptin``` on your machine using docker
 [https://hub.docker.com/r/daptin/daptin/](https://hub.docker.com/r/daptin/daptin/)
 
 
-## Docker-compose
+### Docker-compose
 
 Docker compose is a great tool to bring up a mysql/postgres backed daptin instance
 
@@ -105,7 +122,7 @@ services:
 ```
 
 
-## Kubernetes deployment
+### Kubernetes deployment
 
 Daptin can be infinitely scaled on kubernetes
 
@@ -162,7 +179,7 @@ Daptin can be infinitely scaled on kubernetes
     ```
 
 
-# Database configuration
+## Database configuration
 
 Daptin can use one of the following database for data persistence
 
@@ -174,33 +191,40 @@ If nothing specified, a **sqlite** database is created on the local file system 
 
 You can customise the database connection properties when starting daptin
 
-## MySQL
+### MySQL
 
 To use mysql, start daptin as follows
 
 ```./daptin -db_type=mysql -db_connection_string='<username>:<password>@tcp(<hostname>:<port>)/<db_name>'```
 
-## PostgreSQL
+### PostgreSQL
 
 ```./daptin -db_type=postgres -db_connection_string='host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable'```
 
-## SQLite
+### SQLite
 
 By default a "daptin.db" file is created to store data
 
 ```./daptin -db_type=sqlite -db_connection_string=db_file_name.db```
 
 
-# Port
+## Port
 
-Daptin will listen on port 6336 by default. You can change it by using the following argument
+Daptin will use the following ports for various services (when enabled)
 
 ```-port :8080```
 
-# Restart
+| Service             | Port               | To change                                        |
+| ------------------- | ------------------ | ------------------------------------------------ |
+| HTTP (JSON/GraphQL) | 6336               | CLI option ```-port :80```                       |
+| HTTPS               | 6443               | CLI option ```-https_port :80```                 |
+| IMAP                | 6443               | [_config entry](/setting-up/enabling-features) |
+| SMTP                | 2525               | [/mail_server](/features/enable-smtp-imap) row entry                       |
 
-Daptin relies on self re-configuration to configure new entities and APIs and changes to the other parts of the ststem. As soon as you upload a schema file, daptin will write the file to disk, and ```reconfigure``` itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.
+
+
+## Restart
+
+Various low level configure changes requires a reset of the server to take place. Restart can be triggered using an action API and takes about 5-10 seconds.
 
 You can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.
-
-

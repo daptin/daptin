@@ -1,10 +1,12 @@
+# Data model
+
 Tables are the basic data structure. Tables have columns. Each column has a particular data type. Tables are exposed as JSON APIs under the `/api/<entityName>` path.
 
-# Automatic creation
+## Automatic creation
 
 Import CSV or XLS file and you can let Daptin create the entities for you based on intelligent data pre-processor.
 
-# Manual creation
+## YAML/JSON schema
 
 If you are looking for a more reproducible way, design your entities and create JSON or YAML files. These files can be used again to create an exact same replica.
 
@@ -66,7 +68,7 @@ It gives us the following unique features:
 - Slice, Array and Map diving, which allows any or all levels of a multidimensional field to be validated.
 
 
-### Example
+### Validation Example
 
 ### JSON example
 
@@ -178,10 +180,6 @@ The entity designer is accessible from dashboard using the "Online designer" but
 
 ![Entity designer](/images/create_entity.png)
 
-## Market place
-
-Checkout [marketplace documentation](/extend/marketplace)
-
 
 ## Column specifications
 
@@ -199,6 +197,7 @@ IsNullable       | boolean|        are null values allowed
 Permission       | uint64 |        permission column (check authorization docs)
 DataType         | string |        the column type inside the database
 DefaultValue     | string |        default value if any (has to be inside single quotes for static values
+Options     | Array[value,label] |        Valid values if column in enum type
 
 ## Column types
 
@@ -235,7 +234,7 @@ Type Name | Description | Example
 	 file|uploads, connect storage for using this|
 	 url| Urls/links| http://docs.dapt.in
 
-# Data relations
+## Data relations
 
 A data oriented system with no relational knowledge of the data is next to an Excel sheet. Specifying relations in your data is the most important thing after creating your entities.
 
@@ -265,7 +264,7 @@ Checkout the [relation apis](/apis/relation) exposed by daptin.
     ```
 
 
-## Relations in JSON/YAML schema
+### Relations in JSON/YAML schema
 
 When uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.
 
@@ -293,7 +292,7 @@ Relations:
 
 This tells daptin that todo "has_one" project.
 
-## Relations types
+### Relations types
 
 Any entity can be associated to any other entity (or to itself) as one of the follows
 
@@ -303,7 +302,7 @@ belongs_to | a single object relation | No
 has_one | a single object relation | Yes
 has_many | many related objects | Yes
 
-## Default relations
+### Default relations
 
 Every entity created on daptin has at least two relations
 
@@ -318,7 +317,7 @@ These relations help you precisely control the authorization for each user.
 Read more about [authorization and permissions](/auth/authorization)
 
 
-## Multiple relation
+### Multiple relation
 
 There can be a scenario where two entities are related in more then 1 way. Consider the following example
 
@@ -373,17 +372,17 @@ Relations:
 Notice the "SubjectName" and "ObjectName" keys which helps to name our relations more intuitively.
 
 
-## SQL constraints
+### SQL constraints
 
-### belongs to
+#### belongs to
 
 - A column is added to the subject entity, which refers to the Object entity, set to non nullable
 
-### has one
+#### has one
 
 - Same as above, but nullable
 
-### has many
+#### has many
 
 - A join table is created
 
@@ -414,7 +413,7 @@ CSV upload provides an easy way to create entities. This takes away the complexi
 You can upload data from CSV. Daptin will take care of going through your XLS file and identifying column types. This is one of the easiest and fastest ways to create entities and uploading data in daptin. You can specify relations among entities later from the online designer.
 
 
-# Data conformations
+## Data conformations
 
 Daptin uses the excellent [leebenson/conform](https://github.com/leebenson/conform) library to apply conformations on data before storing them in the database
 
