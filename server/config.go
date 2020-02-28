@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
 	yaml2 "github.com/ghodss/yaml"
@@ -75,7 +74,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		}
 
 		initConfig := resource.CmsConfig{}
-		fmt.Printf("Loaded config: \n%v", string(fileBytes))
+		//fmt.Printf("Loaded config: \n%v", string(fileBytes))
 
 		switch {
 		case EndsWithCheck(fileName, "yml"):
@@ -95,8 +94,8 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 		}
 
-		js, _ := json.Marshal(initConfig)
-		log.Printf("Loaded config: %v", string(js))
+		//js, _ := json.Marshal(initConfig)
+		//log.Printf("Loaded config: %v", string(js))
 
 		if err != nil {
 			log.Errorf("Failed to load config file: %v", err)

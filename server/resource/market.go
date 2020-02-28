@@ -3,7 +3,7 @@ package resource
 import (
 	"github.com/artpar/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/src-d/go-git.v4"
+	libgit "github.com/libgit2/git2go"
 	"io/ioutil"
 	"os"
 )
@@ -18,7 +18,7 @@ type Marketplace struct {
 }
 
 type MarketplaceService struct {
-	gitRepo     *git.Repository
+	gitRepo     *libgit.Repository
 	repoPath    string
 	Marketplace Marketplace
 }
@@ -31,13 +31,13 @@ type MarketPackage struct {
 
 func (mp *MarketplaceService) RefreshRepository() error {
 
-	worktree, err := mp.gitRepo.Worktree()
+	err := mp.gitRepo.CheckoutHead(&libgit.CheckoutOpts{
+		Strategy: libgit.CheckoutUseTheirs,
+	})
 
 	if err != nil {
 		return err
 	}
-
-	err = worktree.Pull(&git.PullOptions{})
 
 	return err
 
@@ -127,9 +127,17 @@ func NewMarketplaceService(marketplace Marketplace) (*MarketplaceService, error)
 	err := os.Mkdir(tempRepoDir, 0777)
 	CheckErr(err, "Failed to create target path for marketplace repo")
 
-	gitRepo, err := git.PlainClone(tempRepoDir, false, &git.CloneOptions{
-		URL: marketplace.Endpoint,
+	gitRepo, err := libgit.Clone(marketplace.Endpoint, tempRepoDir, &libgit.CloneOptions{
+
 	})
+
+	err = gitRepo.CheckoutHead(&libgit.CheckoutOpts{
+		Strategy: libgit.CheckoutUseTheirs,
+	})
+
+	//gitRepo, err := git.PlainClone(tempRepoDir, false, &git.CloneOptions{
+	//	URL: marketplace.Endpoint,
+	//})
 
 	marketPlaceController := MarketplaceService{
 		gitRepo:     gitRepo,

@@ -10,6 +10,7 @@ require (
 	github.com/artpar/api2go v2.4.2+incompatible
 	github.com/artpar/api2go-adapter v1.0.1
 	github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6
+	github.com/artpar/git2go v0.29.1
 	github.com/artpar/go-guerrilla v1.5.2
 	github.com/artpar/go-imap v1.0.3
 	github.com/artpar/go-imap-idle v1.0.2
@@ -68,6 +69,7 @@ require (
 	github.com/labstack/gommon v0.2.8 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/lib/pq v1.0.0
+	github.com/libgit2/git2go v0.28.5-0.20200216144416-437c7c33440d
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0
@@ -92,8 +94,6 @@ require (
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/go-playground/validator.v9 v9.30.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
-	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
-	gopkg.in/src-d/go-git.v4 v4.8.1
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
 
