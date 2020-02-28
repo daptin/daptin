@@ -50,46 +50,9 @@
 
         <div class="col-md-6">
 
+
           <div class="row">
-            <div class="col-md-9">
-
-
-              <h3>Create</h3>
-
-              <div class="row">
-                <div class="col-sm-12">
-                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_system_schema'}}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-plus "></i><br/>Upload Schema JSON
-                  </router-link>
-
-
-                  <router-link
-                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
-                    class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-file-excel"></i><br/>Upload XLSX
-                  </router-link>
-
-                  <router-link
-                    :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_csv_to_system_schema'}}"
-                    class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-file-alt"></i><br/>Upload CSV
-                  </router-link>
-
-                  <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fab fa-js"></i><br/>Upload Data JSON
-                  </router-link>
-
-                  <router-link :to="{name : 'NewItem'}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-pencil-alt"></i><br/>Online designer
-                  </router-link>
-                </div>
-
-              </div>
-
-              <h3>User</h3>
+            <div class="col-md-12">
               <div class="row">
                 <div class="col-sm-12">
                   <router-link :to="{name: 'Action', params: {tablename: 'user_account', actionname: 'signup'}}"
@@ -117,67 +80,6 @@
                 </div>
               </div>
 
-              <h3>Special Objects</h3>
-
-              <div class="row">
-                <div class="col-sm-12">
-                  <router-link :to="{name: 'Entity', params:{tablename: 'marketplace'}}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-shopping-cart"></i><br/>
-                    Market places
-                  </router-link>
-
-                  <router-link :to="{name: 'Entity', params:{tablename: 'data_exchange'}}"
-
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-exchange-alt"></i><br/>
-                    Data Exchange
-                  </router-link>
-
-                  <router-link :to="{name: 'Entity', params:{tablename: 'oauth_token'}}"
-
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-key"></i><br/>
-                    Oauth Tokens
-                  </router-link>
-
-                  <router-link :to="{name: 'Entity', params:{tablename: 'oauth_connect'}}"
-
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-plug"></i>
-                    <br/>
-                    Oauth Connections
-                  </router-link>
-
-                  <router-link :to="{name: 'Entity', params:{tablename: 'cloud_store'}}"
-
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-cloud"></i><br/>Storage
-                  </router-link>
-
-                  <router-link :to="{name: 'Entity', params:{tablename: 'site'}}"
-
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-cubes "></i><br/>Sub sites
-                  </router-link>
-                  <router-link :to="{name: 'Entity', params:{tablename: 'stream'}}"
-
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-film "></i><br/>Data views
-                  </router-link>
-
-                  <router-link :to="{name: 'Entity', params:{tablename: 'json_schema'}}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-puzzle-piece "></i><br/>Json Schemas
-                  </router-link>
-                </div>
-
-              </div>
-
-
-
-
-
 
               <h3>Backup</h3>
               <div class="row">
@@ -199,39 +101,39 @@
 
             </div>
 
-            <div class="col-md-3">
-              <div class="row">
-                <div class="col-md-12" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0"
-                     v-bind:key="tableName">
+            <!--<div class="col-md-3">-->
+              <!--<div class="row">-->
+                <!--<div class="col-md-12" v-for="(worlds, tableName) in worldActions" v-if="worlds.length > 0"-->
+                     <!--v-bind:key="tableName">-->
 
-                  <div class="box box-solid" v-if="worlds.filter(function(e){return e.InstanceOptional}).length > 0">
-                    <div class="box-header with-border">
-                      <h3 class="box-title">{{tableName | titleCase}}</h3>
+                  <!--<div class="box box-solid" v-if="worlds.filter(function(e){return e.InstanceOptional}).length > 0">-->
+                    <!--<div class="box-header with-border">-->
+                      <!--<h3 class="box-title">{{tableName | titleCase}}</h3>-->
 
-                      <div class="box-tools">
-                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                          class="fa fa-minus"></i>
-                        </button>
-                      </div>
-                    </div>
-                    <div class="box-body no-padding">
-                      <ul class="nav nav-pills nav-stacked">
-                        <li v-for="action in worlds" v-if="action.InstanceOptional" v-bind:key="action.Name">
-                          <router-link
-                            :to="{name: 'Action', params: {tablename: action.OnType, actionname: action.Name}}">
-                            {{action.Label}}
-                          </router-link>
-                        </li>
+                      <!--<div class="box-tools">-->
+                        <!--<button type="button" class="btn btn-box-tool" data-widget="collapse"><i-->
+                          <!--class="fa fa-minus"></i>-->
+                        <!--</button>-->
+                      <!--</div>-->
+                    <!--</div>-->
+                    <!--<div class="box-body no-padding">-->
+                      <!--<ul class="nav nav-pills nav-stacked">-->
+                        <!--<li v-for="action in worlds" v-if="action.InstanceOptional" v-bind:key="action.Name">-->
+                          <!--<router-link-->
+                            <!--:to="{name: 'Action', params: {tablename: action.OnType, actionname: action.Name}}">-->
+                            <!--{{action.Label}}-->
+                          <!--</router-link>-->
+                        <!--</li>-->
 
-                      </ul>
-                    </div>
-                    <!-- /.box-body -->
-                  </div>
+                      <!--</ul>-->
+                    <!--</div>-->
+                    <!--&lt;!&ndash; /.box-body &ndash;&gt;-->
+                  <!--</div>-->
 
 
-                </div>
-              </div>
-            </div>
+                <!--</div>-->
+              <!--</div>-->
+            <!--</div>-->
           </div>
 
 
@@ -244,8 +146,6 @@
 
 
       <div class="row">
-
-
 
 
       </div>
