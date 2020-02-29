@@ -224,21 +224,10 @@
   </li>
         
           
-  <li class="navtree toctree-l2 label">
-    <p class="caption">Asset and file storage</p>
-  </li>
 
 
-  
-
-  
-    <li class="navtree toctree-l2 group">
-      <ul class="navtree subnav-l2 current">
-          
-
-
-  <li class="navtree toctree-l3 inactive">
-    <a class="" href="../cloudstore/">Connecting with cloud store</a>
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../cloudstore/">Cloud store</a>
   </li>
         
           
@@ -246,15 +235,16 @@
 
   
     
-    <li class="navtree toctree-l3 page current">
+    <li class="navtree toctree-l2 page current">
       <a class="current" href="./">
         Cloud store backed asset columns
+          <span class="toctree-expand"></span>
       </a>
     </li>
     
       
 
-  <li class="toctree-l3 current with-children">
+  <li class="toctree-l2 current with-children">
     <a href="#asset-columns">
       Asset columns
       <span class="toctree-expand"></span>
@@ -265,9 +255,6 @@
 
 
   
-        
-      </ul>
-    </li>
         
           
   <li class="navtree toctree-l2 label">
@@ -378,10 +365,6 @@
     
       
         
-          <li>Asset and file storage &raquo;</li>
-        
-      
-        
           <li>Features &raquo;</li>
         
       
@@ -413,8 +396,8 @@
 
 <p>Upload it using the dashboard (You can alternatively just edit that from the dashboard). This will trigger a reconfiguration of the system and initiate a local sync of the cloud directory in a temporary location. The cloud directory will be synced down stream every 15 minutes while the uploads will be asynced but instantaneous.</p>
 <p>Such columns like image./video./audio./markdown. will be served over HTTP in a simple GET call:</p>
-<p>/asset/<table_name>/<reference_id>/<column_name>.<extension></p>
-<p><extension> can be anything relevant to the mimetype of the file. The column file will be dumped as it is. Useful for using in <code>img</code> html tag.</p>
+<p>/asset/&lt;table_name&gt;/&lt;reference_id&gt;/&lt;column_name&gt;.&lt;extension&gt;</p>
+<p>&lt;extension&gt; can be anything relevant to the mimetype of the file. The column file will be dumped as it is. Useful for using in <code>img</code> html tag.</p>
               
             </div>
           </div>
@@ -425,7 +408,7 @@
         <a href="../../subsite/subsite/" class="btn btn-neutral float-right" title="Creating a subsite">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../cloudstore/" class="btn btn-neutral" title="Connecting with cloud store"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../cloudstore/" class="btn btn-neutral" title="Cloud store"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
