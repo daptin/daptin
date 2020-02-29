@@ -6,7 +6,7 @@
   Daptin
   <br>
 </h1>
-<h4>Headless CMS server</h4>
+<h4 align="center">Headless CMS server</h4>
 
 
 <p align="center">
