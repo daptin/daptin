@@ -532,32 +532,18 @@
   </li>
         
           
-  <li class="navtree toctree-l2 label">
-    <p class="caption">Asset and file storage</p>
-  </li>
 
 
-  
-
-  
-    <li class="navtree toctree-l2 group">
-      <ul class="navtree subnav-l2 current">
-          
-
-
-  <li class="navtree toctree-l3 inactive">
-    <a class="" href="../../cloudstore/cloudstore/">Connecting with cloud store</a>
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../cloudstore/cloudstore/">Cloud store</a>
   </li>
         
           
 
 
-  <li class="navtree toctree-l3 inactive">
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../cloudstore/assetcolumns/">Cloud store backed asset columns</a>
   </li>
-        
-      </ul>
-    </li>
         
           
   <li class="navtree toctree-l2 label">
@@ -688,7 +674,7 @@
 <h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">Link</a></h2>
 <p>Authentication involves identifying the current user of the request. Daptin expectes a JWT token issued at signin as <code>Authorization: Bearer &lt;Token&gt;</code> header, otherwise the request is considered coming from a <a href="#Guests">guest</a>.</p>
 <h3 id="sign-up">Sign Up<a class="headerlink" href="#sign-up" title="Permanent link">Link</a></h3>
-<p><a href="/actions/actions.md">Sign up is an action</a> on user entity. Sign up takes four inputs:</p>
+<p><a href="/actions/actions">Sign up is an action</a> on user entity. Sign up takes four inputs:</p>
 <ul>
 <li>Name</li>
 <li>Email</li>
@@ -749,7 +735,7 @@
 </pre></div>
 
 <h3 id="sign-in">Sign In<a class="headerlink" href="#sign-in" title="Permanent link">Link</a></h3>
-<p><a href="actions/actions.md">Sign In is also an action</a> on user entity. Sign in takes two inputs:</p>
+<p><a href="/actions/actions">Sign In is also an action</a> on user entity. Sign in takes two inputs:</p>
 <ul>
 <li>Email</li>
 <li>Password</li>
@@ -800,7 +786,7 @@
 </pre></div>
 
 <h4 id="directly-into-user_account-table">Directly into user_account table<a class="headerlink" href="#directly-into-user_account-table" title="Permanent link">Link</a></h4>
-<p><div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">requests</span>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">requests</span>
 
 <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;Auth Token&gt;&#39;</span><span class="p">,</span>
@@ -819,7 +805,8 @@
 
 <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://localhost:6336/api/user&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
 </pre></div>
-You can manually add users from the users page, or allow sign-up action to be performed by guests which will take care of creating a user and an associated usergroup for that user. All new signed up users will also be added to the "users" usergroup.</p>
+
+<p>You can manually add users from the users page, or allow sign-up action to be performed by guests which will take care of creating a user and an associated usergroup for that user. All new signed up users will also be added to the "users" usergroup.</p>
 <h3 id="guests">Guests<a class="headerlink" href="#guests" title="Permanent link">Link</a></h3>
 <p>Requests <strong>without</strong> a valid <code>Authorization Bearer</code> <code>token</code> will be referred to as "guests requests". Requests with a valid token will have an identified user in the context.</p>
 <h2 id="authorization">Authorization<a class="headerlink" href="#authorization" title="Permanent link">Link</a></h2>
