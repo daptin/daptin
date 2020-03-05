@@ -78,9 +78,9 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create oauth2 token generator")
 	performers = append(performers, oauth2tokenGenerator)
 
-	marketplacePackage, err := resource.NewMarketplacePackageInstaller(initConfig, cruds)
-	resource.CheckErr(err, "Failed to create marketplace package install performer")
-	performers = append(performers, marketplacePackage)
+	//marketplacePackage, err := resource.NewMarketplacePackageInstaller(initConfig, cruds)
+	//resource.CheckErr(err, "Failed to create marketplace package install performer")
+	//performers = append(performers, marketplacePackage)
 
 	mailServerSync, err := resource.NewMailServersSyncActionPerformer(cruds, mailDaemon, certificateManager)
 	resource.CheckErr(err, "Failed to create mail server sync performer")

@@ -335,37 +335,6 @@ func (resource *DbResource) GetCloudStoreByReferenceId(referenceID string) (Clou
 
 }
 
-func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
-
-	var marketPlaces []Marketplace
-
-	s, v, err := statementbuilder.Squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s."+USER_ACCOUNT_ID_COLUMN, "s.reference_id").
-		From("marketplace s").
-		ToSql()
-	if err != nil {
-		return marketPlaces, err
-	}
-
-	rows, err := resource.db.Queryx(s, v...)
-	if err != nil {
-		return marketPlaces, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var marketplace Marketplace
-		err = rows.StructScan(&marketplace)
-		if err != nil {
-			log.Errorf("Failed to scan marketplace from db to struct: %v", err)
-			continue
-		}
-		marketPlaces = append(marketPlaces, marketplace)
-	}
-
-	return marketPlaces, nil
-
-}
-
 func (resource *DbResource) GetAllTasks() ([]Task, error) {
 
 	var tasks []Task
@@ -398,22 +367,6 @@ func (resource *DbResource) GetAllTasks() ([]Task, error) {
 	}
 
 	return tasks, nil
-
-}
-
-func (resource *DbResource) GetMarketplaceByReferenceId(referenceId string) (Marketplace, error) {
-
-	marketPlace := Marketplace{}
-
-	s, v, err := statementbuilder.Squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s."+USER_ACCOUNT_ID_COLUMN, "s.reference_id").
-		From("marketplace s").Where(squirrel.Eq{"reference_id": referenceId}).
-		ToSql()
-	if err != nil {
-		return marketPlace, err
-	}
-
-	err = resource.db.QueryRowx(s, v...).StructScan(&marketPlace)
-	return marketPlace, err
 
 }
 

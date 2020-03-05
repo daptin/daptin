@@ -29,14 +29,14 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		Actions:                  make([]resource.Action, 0),
 		StateMachineDescriptions: make([]resource.LoopbookFsmDescription, 0),
 		Streams:                  make([]resource.StreamContract, 0),
-		Marketplaces:             make([]resource.Marketplace, 0),
+		//Marketplaces:             make([]resource.Marketplace, 0),
 	}
 
 	globalInitConfig.Tables = append(globalInitConfig.Tables, resource.StandardTables...)
 	globalInitConfig.Tasks = append(globalInitConfig.Tasks, resource.StandardTasks...)
 	globalInitConfig.Actions = append(globalInitConfig.Actions, resource.SystemActions...)
 	globalInitConfig.Streams = append(globalInitConfig.Streams, resource.StandardStreams...)
-	globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, resource.StandardMarketplaces...)
+	//globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, resource.StandardMarketplaces...)
 	globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
 	globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
 
@@ -119,7 +119,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 		globalInitConfig.Imports = append(globalInitConfig.Imports, initConfig.Imports...)
 		globalInitConfig.Streams = append(globalInitConfig.Streams, initConfig.Streams...)
-		globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, initConfig.Marketplaces...)
+		//globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, initConfig.Marketplaces...)
 		globalInitConfig.Tasks = append(globalInitConfig.Tasks, initConfig.Tasks...)
 		globalInitConfig.Actions = append(globalInitConfig.Actions, initConfig.Actions...)
 		globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, initConfig.StateMachineDescriptions...)
@@ -142,9 +142,9 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			}
 		}
 
-		for _, marketplace := range initConfig.Marketplaces {
-			log.Infof("Marketplace [%v][%v]", fileName, marketplace.Endpoint)
-		}
+		//for _, marketplace := range initConfig.Marketplaces {
+		//	log.Infof("Marketplace [%v][%v]", fileName, marketplace.Endpoint)
+		//}
 
 		for _, smd := range initConfig.StateMachineDescriptions {
 			log.Infof("Marketplace [%v][%v][%v]", fileName, smd.Name, smd.InitialState)
