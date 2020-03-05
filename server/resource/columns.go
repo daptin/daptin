@@ -445,54 +445,54 @@ var SystemActions = []Action{
 			},
 		},
 	},
-	{
-		Name:             "publish_package_to_market",
-		Label:            "Update package list",
-		OnType:           "marketplace",
-		InstanceOptional: false,
-		InFields:         []api2go.ColumnInfo{},
-		OutFields: []Outcome{
-			{
-				Type:   "marketplace.package.publish",
-				Method: "EXECUTE",
-				Attributes: map[string]interface{}{
-					"marketplace_id": "$.reference_id",
-				},
-			},
-		},
-	},
-	{
-		Name:             "visit_marketplace_github",
-		Label:            "Go to marketplace",
-		OnType:           "marketplace",
-		InstanceOptional: false,
-		InFields:         []api2go.ColumnInfo{},
-		OutFields: []Outcome{
-			{
-				Type:   "client.redirect",
-				Method: "ACTIONRESPONSE",
-				Attributes: map[string]interface{}{
-					"location": "$subject.endpoint",
-					"window":   "_blank",
-				}},
-		},
-	},
-	{
-		Name:             "refresh_marketplace_packages",
-		Label:            "Refresh marketplace",
-		OnType:           "marketplace",
-		InstanceOptional: false,
-		InFields:         []api2go.ColumnInfo{},
-		OutFields: []Outcome{
-			{
-				Type:   "marketplace.package.refresh",
-				Method: "EXECUTE",
-				Attributes: map[string]interface{}{
-					"marketplace_id": "$.reference_id",
-				},
-			},
-		},
-	},
+	//{
+	//	Name:             "publish_package_to_market",
+	//	Label:            "Update package list",
+	//	OnType:           "marketplace",
+	//	InstanceOptional: false,
+	//	InFields:         []api2go.ColumnInfo{},
+	//	OutFields: []Outcome{
+	//		{
+	//			Type:   "marketplace.package.publish",
+	//			Method: "EXECUTE",
+	//			Attributes: map[string]interface{}{
+	//				"marketplace_id": "$.reference_id",
+	//			},
+	//		},
+	//	},
+	//},
+	//{
+	//	Name:             "visit_marketplace_github",
+	//	Label:            "Go to marketplace",
+	//	OnType:           "marketplace",
+	//	InstanceOptional: false,
+	//	InFields:         []api2go.ColumnInfo{},
+	//	OutFields: []Outcome{
+	//		{
+	//			Type:   "client.redirect",
+	//			Method: "ACTIONRESPONSE",
+	//			Attributes: map[string]interface{}{
+	//				"location": "$subject.endpoint",
+	//				"window":   "_blank",
+	//			}},
+	//	},
+	//},
+	//{
+	//	Name:             "refresh_marketplace_packages",
+	//	Label:            "Refresh marketplace",
+	//	OnType:           "marketplace",
+	//	InstanceOptional: false,
+	//	InFields:         []api2go.ColumnInfo{},
+	//	OutFields: []Outcome{
+	//		{
+	//			Type:   "marketplace.package.refresh",
+	//			Method: "EXECUTE",
+	//			Attributes: map[string]interface{}{
+	//				"marketplace_id": "$.reference_id",
+	//			},
+	//		},
+	//	},
+	//},
 	{
 		Name:             "generate_random_data",
 		Label:            "Generate random data",
@@ -536,30 +536,30 @@ var SystemActions = []Action{
 	//		},
 	//	},
 	//},
-	{
-		Name:             "install_marketplace_package",
-		Label:            "Install package from market",
-		OnType:           "marketplace",
-		InstanceOptional: false,
-		InFields: []api2go.ColumnInfo{
-			{
-				Name:       "package_name",
-				ColumnName: "package_name",
-				ColumnType: "label",
-				IsNullable: false,
-			},
-		},
-		OutFields: []Outcome{
-			{
-				Type:   "marketplace.package.install",
-				Method: "EXECUTE",
-				Attributes: map[string]interface{}{
-					"package_name":   "~package_name",
-					"marketplace_id": "$.reference_id",
-				},
-			},
-		},
-	},
+	//{
+	//	Name:             "install_marketplace_package",
+	//	Label:            "Install package from market",
+	//	OnType:           "marketplace",
+	//	InstanceOptional: false,
+	//	InFields: []api2go.ColumnInfo{
+	//		{
+	//			Name:       "package_name",
+	//			ColumnName: "package_name",
+	//			ColumnType: "label",
+	//			IsNullable: false,
+	//		},
+	//	},
+	//	OutFields: []Outcome{
+	//		{
+	//			Type:   "marketplace.package.install",
+	//			Method: "EXECUTE",
+	//			Attributes: map[string]interface{}{
+	//				"package_name":   "~package_name",
+	//				"marketplace_id": "$.reference_id",
+	//			},
+	//		},
+	//	},
+	//},
 	{
 		Name:             "export_data",
 		Label:            "Export data for backup",
@@ -1431,34 +1431,34 @@ var StandardTables = []TableInfo{
 			},
 		},
 	},
-	{
-		TableName:     "marketplace",
-		IsHidden:      true,
-		DefaultGroups: adminsGroup,
-		Icon:          "fa-shopping-cart",
-		Columns: []api2go.ColumnInfo{
-			{
-				Name:       "name",
-				ColumnName: "name",
-				DataType:   "varchar(100)",
-				ColumnType: "label",
-				IsIndexed:  true,
-			},
-			{
-				Name:       "endpoint",
-				ColumnName: "endpoint",
-				DataType:   "varchar(200)",
-				ColumnType: "url",
-			},
-			{
-				Name:         "root_path",
-				ColumnName:   "root_path",
-				DataType:     "varchar(100)",
-				ColumnType:   "label",
-				DefaultValue: "''",
-			},
-		},
-	},
+	//{
+	//	TableName:     "marketplace",
+	//	IsHidden:      true,
+	//	DefaultGroups: adminsGroup,
+	//	Icon:          "fa-shopping-cart",
+	//	Columns: []api2go.ColumnInfo{
+	//		{
+	//			Name:       "name",
+	//			ColumnName: "name",
+	//			DataType:   "varchar(100)",
+	//			ColumnType: "label",
+	//			IsIndexed:  true,
+	//		},
+	//		{
+	//			Name:       "endpoint",
+	//			ColumnName: "endpoint",
+	//			DataType:   "varchar(200)",
+	//			ColumnType: "url",
+	//		},
+	//		{
+	//			Name:         "root_path",
+	//			ColumnName:   "root_path",
+	//			DataType:     "varchar(100)",
+	//			ColumnType:   "label",
+	//			DefaultValue: "''",
+	//		},
+	//	},
+	//},
 	{
 		TableName:     "json_schema",
 		Icon:          "fa-code",

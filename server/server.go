@@ -319,7 +319,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
-	log.Printf("Created task scheduler: %v", TaskScheduler)
 	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware)
 
 	for k := range cruds {
@@ -656,7 +655,6 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 	resource.CheckErr(err, "Failed to update action table")
 
 }
-
 
 func actionPerformersListToMap(interfaces []resource.ActionPerformerInterface) map[string]resource.ActionPerformerInterface {
 	m := make(map[string]resource.ActionPerformerInterface)
