@@ -121,11 +121,6 @@
 
               <div class="row">
                 <div class="col-sm-12">
-                  <router-link :to="{name: 'Entity', params:{tablename: 'marketplace'}}"
-                               class="btn btn-lg btn-app dashboard_button">
-                    <i class="fas fa-shopping-cart"></i><br/>
-                    Market places
-                  </router-link>
 
                   <router-link :to="{name: 'Entity', params:{tablename: 'data_exchange'}}"
 
