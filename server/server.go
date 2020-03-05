@@ -657,6 +657,7 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 
 }
 
+
 func actionPerformersListToMap(interfaces []resource.ActionPerformerInterface) map[string]resource.ActionPerformerInterface {
 	m := make(map[string]resource.ActionPerformerInterface)
 
