@@ -647,7 +647,7 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 	resource.UpdateStateMachineDescriptions(initConfig, db)
 	resource.UpdateExchanges(initConfig, db)
 	resource.UpdateStreams(initConfig, db)
-	resource.UpdateMarketplaces(initConfig, db)
+	//resource.UpdateMarketplaces(initConfig, db)
 	err := resource.UpdateTasksData(initConfig, db)
 	resource.CheckErr(err, "Failed to  update cron jobs")
 	resource.UpdateStandardData(initConfig, db)
@@ -656,6 +656,7 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 	resource.CheckErr(err, "Failed to update action table")
 
 }
+
 
 func actionPerformersListToMap(interfaces []resource.ActionPerformerInterface) map[string]resource.ActionPerformerInterface {
 	m := make(map[string]resource.ActionPerformerInterface)

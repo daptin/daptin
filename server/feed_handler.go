@@ -7,7 +7,6 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/feeds"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -21,13 +20,10 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 	}
 
 	feedsInfo, err := cruds["feed"].GetAllRawObjects("feed")
-	if err != nil {
-		log.Printf("Failed to load stream")
-	}
-	streamInfos, err := cruds["feed"].GetAllRawObjects("stream")
-	if err != nil {
-		log.Printf("Failed to load feeds")
-	}
+	resource.CheckErr(err, "Failed to load feeds")
+	streamInfos, err := cruds["stream"].GetAllRawObjects("stream")
+	resource.CheckErr(err, "Failed to load stream")
+
 	feedMap := make(map[string]map[string]interface{})
 	streamInfoMap := make(map[string]map[string]interface{})
 	for _, feed := range feedsInfo {

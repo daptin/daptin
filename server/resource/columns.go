@@ -2377,13 +2377,13 @@ var StandardTables = []TableInfo{
 	},
 }
 
-var StandardMarketplaces = []Marketplace{
-	{
-		RootPath: "",
-		Endpoint: "https://github.com/daptin/market.git",
-		Name:     "daptin",
-	},
-}
+//var StandardMarketplaces = []Marketplace{
+//	{
+//		RootPath: "",
+//		Endpoint: "https://github.com/daptin/market.git",
+//		Name:     "daptin",
+//	},
+//}
 
 var StandardStreams = []StreamContract{
 	{
