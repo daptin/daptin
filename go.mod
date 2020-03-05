@@ -68,7 +68,6 @@ require (
 	github.com/labstack/gommon v0.2.8 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/lib/pq v1.0.0
-	github.com/libgit2/git2go v0.28.5-0.20200216144416-437c7c33440d
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0
