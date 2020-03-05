@@ -10,7 +10,6 @@ require (
 	github.com/artpar/api2go v2.4.2+incompatible
 	github.com/artpar/api2go-adapter v1.0.1
 	github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6
-	github.com/artpar/git2go v0.29.1
 	github.com/artpar/go-guerrilla v1.5.2
 	github.com/artpar/go-imap v1.0.3
 	github.com/artpar/go-imap-idle v1.0.2

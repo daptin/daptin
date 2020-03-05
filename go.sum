@@ -109,8 +109,6 @@ github.com/artpar/api2go-adapter v1.0.1 h1:fxFFpFviAOy6lS1mHHBmNTBANQwAqnjvHyT39
 github.com/artpar/api2go-adapter v1.0.1/go.mod h1:h4OpxkcLLUP7ceSoz1sI8BCZKlz6PZdjG7EtMtwiJVI=
 github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6 h1:1Mh42T2/N38Z7SLYs1YcoSORPo4jYxgCXkaEgWCKs3U=
 github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6/go.mod h1:gTQE1bELgcZsb9xDvo0PSPOPGb5OQuhKRQ3zFZJDjLc=
-github.com/artpar/git2go v0.29.1 h1:x8y2bxNEpPt+LgPXhWFNJQt4HOL+0u9YSiGSltG9YRs=
-github.com/artpar/git2go v0.29.1/go.mod h1:712Pz9eUEi4JlIf0ZCQT9gFlCXC9T9iJgrzmJJkdPGo=
 github.com/artpar/go-guerrilla v1.5.2 h1:L9G1LaXwddgtXXby21gRexoFGAZ6hNV5aUKcw9qNLRE=
 github.com/artpar/go-guerrilla v1.5.2/go.mod h1:sfKsJOlZNXa7BL0w5NPZIFvs+r1CYeqI521DZ+j9iGE=
 github.com/artpar/go-httpclient v1.0.0 h1:IBXpL859/c1TIySxAaNwNv/mdG4PFo06vE+ybqnwuuk=
@@ -491,8 +489,6 @@ github.com/leodido/go-urn v1.2.0 h1:hpXL4XnriNwQ/ABnpepYM/1vCLWNDfUNts8dX3xTG6Y=
 github.com/leodido/go-urn v1.2.0/go.mod h1:+8+nEpDfqqsY+g338gtMEUOtuK+4dEMhiQEgxpxOKII=
 github.com/lib/pq v1.0.0 h1:X5PMW56eZitiTeO7tKzZxFCSpbFZJtkMMooicw2us9A=
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
-github.com/libgit2/git2go v0.28.4 h1:xfXnDnt31R2p7Yea7023C//NglM/1v+w87peBBwLZ3U=
-github.com/libgit2/git2go v0.28.4/go.mod h1:4bKN42efkbNYMZlvDfxGDxzl066GhpvIircZDsm8Y+Y=
 github.com/libgit2/git2go v0.28.5-0.20200216144416-437c7c33440d h1:UoMpo+zfIUlH4OZYdt9AcD+dKeC5NdOl8M2qKNDFaCY=
 github.com/libgit2/git2go v0.28.5-0.20200216144416-437c7c33440d/go.mod h1:4bKN42efkbNYMZlvDfxGDxzl066GhpvIircZDsm8Y+Y=
 github.com/lightstep/lightstep-tracer-common/golang/gogo v0.0.0-20190605223551-bc2310a04743/go.mod h1:qklhhLq1aX+mtWk9cPHPzaBjWImj5ULL6C7HFJtXQMM=
