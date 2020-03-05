@@ -56,8 +56,6 @@ var osarches = []string{
 	"netbsd/arm",
 	"openbsd/386",
 	"openbsd/amd64",
-	"plan9/386",
-	"plan9/amd64",
 	"solaris/amd64",
 }
 
