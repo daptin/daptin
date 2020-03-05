@@ -17,8 +17,6 @@ test_with_go_modules: &test_with_go_modules
   - run: cp Dockerfile docker_dir/Dockerfile
   - run: cd docker_dir
   - run: docker build -t daptin/daptin:circleci .
-  - run: docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
-  - run: docker push daptin/daptin:circleci
   - run: cd ..
   - store_artifacts:
       path: main
