@@ -34,34 +34,6 @@ request(options, callback);
 
 ```
 
-## Refresh marketplace packages
-
-Pull updates from marketplace repository. New changes are not applied immediately and these packages should be installed again for updates.
-
-```
-var request = require('request');
-
-var headers = {
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo'
-};
-
-var dataString = '{"attributes":{"marketplace_id":"0cbae4bf-961d-43ea-b57b-f7fb07736747"}}';
-
-var options = {
-    url: 'http://localhost:6336/action/marketplace/refresh_marketplace_packages',
-    method: 'POST',
-    headers: headers,
-    body: dataString
-};
-
-function callback(error, response, body) {
-    if (!error && response.statusCode == 200) {
-        console.log(body);
-    }
-}
-
-request(options, callback);
-```
 
 ## Generate random data
 
@@ -92,10 +64,6 @@ function callback(error, response, body) {
 request(options, callback);
 
 ```
-
-## Install package from market
-
-Install a package (data models, relations, actions, sites) from a [**market**](/extend/marketplace) using a ```package name```. This will reconfigure daptin and apply the necessary changes. Note: any updates to this package in the marketplace will not be imported automatically.
 
 
 ## Export data
@@ -264,20 +232,4 @@ curl 'http://localhost:6336/action/world/upload_csv_to_system_schema' \
     - app_key
 
     Creates a data exchange
-
-## Publish package to marketplace
-
-!!! note ""
-    Export the JSON schema of your APIs to be re-used by other users from a [**marketplace**](/extend/marketplace).
-
-## Update package list
-
-!!! note ""
-    Exports the schema of your APIs as a package to a [**marketplace**](/extend/marketplace). You can later install this package.
-
-
-## Visit marketplace
-
-!!! note ""
-    Redirects you to the [**marketplace**](/extend/marketplace) repository
 
