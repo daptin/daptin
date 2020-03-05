@@ -84,7 +84,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	resource.UpdateStateMachineDescriptions(&initConfig, wrapper)
 	resource.UpdateExchanges(&initConfig, wrapper)
 	resource.UpdateStreams(&initConfig, wrapper)
-	resource.UpdateMarketplaces(&initConfig, wrapper)
+	//resource.UpdateMarketplaces(&initConfig, wrapper)
 	resource.UpdateStandardData(&initConfig, wrapper)
 
 	err := resource.UpdateActionTable(&initConfig, wrapper)
