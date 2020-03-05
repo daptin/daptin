@@ -165,17 +165,7 @@
     
       
         <li class="toctree-l3">
-          <a class="toctree-l4" href="#refresh-marketplace-packages">Refresh marketplace packages</a>
-        </li>
-    
-      
-        <li class="toctree-l3">
           <a class="toctree-l4" href="#generate-random-data">Generate random data</a>
-        </li>
-    
-      
-        <li class="toctree-l3">
-          <a class="toctree-l4" href="#install-package-from-market">Install package from market</a>
         </li>
     
       
@@ -241,21 +231,6 @@
       
         <li class="toctree-l3">
           <a class="toctree-l4" href="#add-data-exchange">Add data exchange</a>
-        </li>
-    
-      
-        <li class="toctree-l3">
-          <a class="toctree-l4" href="#publish-package-to-marketplace">Publish package to marketplace</a>
-        </li>
-    
-      
-        <li class="toctree-l3">
-          <a class="toctree-l4" href="#update-package-list">Update package list</a>
-        </li>
-    
-      
-        <li class="toctree-l3">
-          <a class="toctree-l4" href="#visit-marketplace">Visit marketplace</a>
         </li>
     
     </ul>
@@ -397,13 +372,6 @@
       </ul>
     </li>
         
-          
-
-
-  <li class="navtree toctree-l2 inactive">
-    <a class="" href="../../extend/marketplace/">Marketplace</a>
-  </li>
-        
       </ul>
     </li>
     
@@ -514,32 +482,6 @@
 <span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
 </pre></div>
 
-<h2 id="refresh-marketplace-packages">Refresh marketplace packages<a class="headerlink" href="#refresh-marketplace-packages" title="Permanent link">Link</a></h2>
-<p>Pull updates from marketplace repository. New changes are not applied immediately and these packages should be installed again for updates.</p>
-<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
-
-<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo&#39;</span>
-<span class="p">};</span>
-
-<span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{&quot;marketplace_id&quot;:&quot;0cbae4bf-961d-43ea-b57b-f7fb07736747&quot;}}&#39;</span><span class="p">;</span>
-
-<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://localhost:6336/action/marketplace/refresh_marketplace_packages&#39;</span><span class="p">,</span>
-    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
-    <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
-    <span class="nx">body</span>: <span class="kt">dataString</span>
-<span class="p">};</span>
-
-<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
-</pre></div>
-
 <h2 id="generate-random-data">Generate random data<a class="headerlink" href="#generate-random-data" title="Permanent link">Link</a></h2>
 <p>Generate random data of any entity type to play around. Takes in a <code>count</code> parameter and generates that many rows. Daptin uses a fake data generator to generate quality random data for a wide variety of fields.</p>
 <div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
@@ -566,8 +508,6 @@
 <span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
 </pre></div>
 
-<h2 id="install-package-from-market">Install package from market<a class="headerlink" href="#install-package-from-market" title="Permanent link">Link</a></h2>
-<p>Install a package (data models, relations, actions, sites) from a <a href="/extend/marketplace"><strong>market</strong></a> using a <code>package name</code>. This will reconfigure daptin and apply the necessary changes. Note: any updates to this package in the marketplace will not be imported automatically.</p>
 <h2 id="export-data">Export data<a class="headerlink" href="#export-data" title="Permanent link">Link</a></h2>
 <div class="admonition note">
 <p>Export data as JSON dump. This will export for a single table if <code>table_name</code> param is specific, else it will export all data.</p>
@@ -717,18 +657,6 @@
 <li>app_key</li>
 </ul>
 <p>Creates a data exchange</p>
-</div>
-<h2 id="publish-package-to-marketplace">Publish package to marketplace<a class="headerlink" href="#publish-package-to-marketplace" title="Permanent link">Link</a></h2>
-<div class="admonition note">
-<p>Export the JSON schema of your APIs to be re-used by other users from a <a href="/extend/marketplace"><strong>marketplace</strong></a>.</p>
-</div>
-<h2 id="update-package-list">Update package list<a class="headerlink" href="#update-package-list" title="Permanent link">Link</a></h2>
-<div class="admonition note">
-<p>Exports the schema of your APIs as a package to a <a href="/extend/marketplace"><strong>marketplace</strong></a>. You can later install this package.</p>
-</div>
-<h2 id="visit-marketplace">Visit marketplace<a class="headerlink" href="#visit-marketplace" title="Permanent link">Link</a></h2>
-<div class="admonition note">
-<p>Redirects you to the <a href="/extend/marketplace"><strong>marketplace</strong></a> repository</p>
 </div>
               
             </div>
