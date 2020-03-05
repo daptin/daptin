@@ -19,7 +19,6 @@ Consume the following features easily on any device
 - Enable [Data Auditing](features/enable-data-auditing.md) from a single toggle
 - [Synchronous Data Exchange](extend/data_exchange/) with 3rd party APIs
 - [Multilingual tables](features/enable-multilingual-table.md) support, supports Accept-Language header 
-- [Market place](extend/marketplacce/) API to manage and share schemas
 - [Cloud storage sync](cloudstore/cloudstore/) like gdrive, dropbox, b2, s3 and more
 - [Asset column](cloudstore/assetcolumns/) to hold file and blob data, backed by storage
 - [Multiple websites](subsite/subsite/) under separate sub-domain/sub-paths

@@ -28,7 +28,6 @@ pages:
     - Creating a subsite: subsite/subsite.md
     - Live editing a subsite: subsite/grapes.md
     - Basic Authentication: subsite/basic_auth.md
-  - Marketplace: extend/marketplace.md
 - Reference Documents:
   - Data store format: data-modeling/data_storage.md
   - Data exchange and sync: extend/data_exchange.md
