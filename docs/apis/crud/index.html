@@ -476,13 +476,6 @@
       </ul>
     </li>
         
-          
-
-
-  <li class="navtree toctree-l2 inactive">
-    <a class="" href="../../extend/marketplace/">Marketplace</a>
-  </li>
-        
       </ul>
     </li>
     
@@ -881,19 +874,19 @@
 </div>
 <h3 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">Link</a></h3>
 <h4 id="curl-example">Curl example<a class="headerlink" href="#curl-example" title="Permanent link">Link</a></h4>
-<div class="codehilite"><pre><span></span><span class="nt">curl</span> <span class="s1">&#39;/api/&amp;lt;entityName&amp;gt;?sort=&amp;amp;page</span><span class="cp">[</span><span class="nx">number</span><span class="cp">]</span><span class="s1">=1&amp;amp;page</span><span class="cp">[</span><span class="nx">size</span><span class="cp">]</span><span class="s1">=10&#39;</span> <span class="err">\</span>
-  <span class="nt">-H</span> <span class="s1">&#39;Authorization: Bearer &amp;lt;AccessToken&amp;gt;&#39;</span>
+<div class="codehilite"><pre><span></span>curl &#39;/api/&lt;entityName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39; \
+  -H &#39;Authorization: Bearer &lt;AccessToken&gt;&#39;
 </pre></div>
 
 
 <h4 id="jquery-ajax-example">jQuery ajax example<a class="headerlink" href="#jquery-ajax-example" title="Permanent link">Link</a></h4>
-<div class="codehilite"><pre><span></span><span class="o">$</span><span class="p">.</span><span class="nc">ajax</span><span class="o">(</span><span class="p">{</span>
-    <span class="n">method</span><span class="p">:</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span>
-    <span class="n">url</span><span class="o">:</span> <span class="s1">&#39;/api/&amp;lt;entityName&amp;gt;?sort=&amp;amp;page</span><span class="cp">[</span><span class="nx">number</span><span class="cp">]</span><span class="s1">=1&amp;amp;page</span><span class="cp">[</span><span class="nx">size</span><span class="cp">]</span><span class="s1">=10&#39;</span><span class="p">,</span>
-    <span class="n">success</span><span class="o">:</span> <span class="nf">function</span><span class="p">(</span><span class="n">response</span><span class="p">)</span><span class="err">{</span>
-        <span class="n">console</span><span class="o">.</span><span class="nf">log</span><span class="p">(</span><span class="n">response</span><span class="err">.</span><span class="n">data</span><span class="p">);</span>
-    <span class="p">}</span>
-  <span class="err">}</span><span class="o">)</span>
+<div class="codehilite"><pre><span></span>$.ajax({
+    method: &quot;GET&quot;,
+    url: &#39;/api/&lt;entityName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39;,
+    success: function(response){
+        console.log(response.data);
+    }
+  })
 </pre></div>
 
 
@@ -901,16 +894,16 @@
 <div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
 
 <span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer &amp;lt;AccessToken&amp;gt;&#39;</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer &lt;AccessToken&gt;&#39;</span>
 <span class="p">};</span>
 
 <span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;/api/&amp;lt;entityName&amp;gt;?sort=&amp;amp;page[number]=1&amp;amp;page[size]=10&#39;</span><span class="p">,</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;/api/&lt;entityName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span><span class="p">,</span>
     <span class="nx">headers</span>: <span class="kt">headers</span>
 <span class="p">};</span>
 
 <span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;</span><span class="nx">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="nx">amp</span><span class="p">;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
         <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
     <span class="p">}</span>
 <span class="p">}</span>
@@ -923,7 +916,7 @@
 <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">requests</span>
 
 <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &amp;lt;AccessToken&amp;gt;&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;AccessToken&gt;&#39;</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="n">params</span> <span class="o">=</span> <span class="p">(</span>
@@ -937,13 +930,13 @@
 
 
 <h4 id="php-example">PHP example<a class="headerlink" href="#php-example" title="Permanent link">Link</a></h4>
-<div class="codehilite"><pre><span></span><span class="o">&amp;</span><span class="nt">lt</span><span class="o">;?</span><span class="nt">php</span>
-<span class="nt">include</span><span class="o">(</span><span class="s1">&#39;vendor/rmccue/requests/library/Requests.php&#39;</span><span class="o">);</span>
-<span class="nt">Requests</span><span class="p">::</span><span class="nd">register_autoloader</span><span class="o">();</span>
-<span class="o">$</span><span class="nt">headers</span> <span class="o">=</span> <span class="nt">array</span><span class="o">(</span>
-    <span class="s1">&#39;Authorization&#39;</span> <span class="o">=&amp;</span><span class="nt">gt</span><span class="o">;</span> <span class="s1">&#39;Bearer &amp;lt;AccessToken&amp;gt;&#39;</span>
-<span class="o">);</span>
-<span class="o">$</span><span class="nt">response</span> <span class="o">=</span> <span class="nt">Requests</span><span class="p">::</span><span class="nd">get</span><span class="o">(</span><span class="s1">&#39;http://localhost:6336/api/laptop?sort=&amp;amp;page</span><span class="cp">[</span><span class="nx">number</span><span class="cp">]</span><span class="s1">=1&amp;amp;page</span><span class="cp">[</span><span class="nx">size</span><span class="cp">]</span><span class="s1">=10&#39;</span><span class="o">,</span> <span class="o">$</span><span class="nt">headers</span><span class="o">);</span>
+<div class="codehilite"><pre><span></span><span class="cp">&lt;?php</span>
+<span class="k">include</span><span class="p">(</span><span class="s1">&#39;vendor/rmccue/requests/library/Requests.php&#39;</span><span class="p">);</span>
+<span class="nx">Requests</span><span class="o">::</span><span class="na">register_autoloader</span><span class="p">();</span>
+<span class="nv">$headers</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
+    <span class="s1">&#39;Authorization&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;Bearer &lt;AccessToken&gt;&#39;</span>
+<span class="p">);</span>
+<span class="nv">$response</span> <span class="o">=</span> <span class="nx">Requests</span><span class="o">::</span><span class="na">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:6336/api/laptop?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span><span class="p">,</span> <span class="nv">$headers</span><span class="p">);</span>
 </pre></div>
 
 
@@ -1008,8 +1001,8 @@
 </tbody>
 </table>
 <h4 id="example">Example<a class="headerlink" href="#example" title="Permanent link">Link</a></h4>
-<div class="codehilite"><pre><span></span><span class="nt">curl</span> <span class="s1">&#39;/api/world?query=</span><span class="cp">[</span><span class="p">{</span><span class="s2">&quot;column&quot;</span><span class="p">:</span> <span class="s2">&quot;is_hidden&quot;</span><span class="p">,</span> <span class="s2">&quot;operator&quot;</span><span class="p">:</span> <span class="s2">&quot;any of&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span><span class="s2">&quot;1,0&quot;</span><span class="p">}</span><span class="cp">]</span><span class="s1"> \</span>
-<span class="s1">  -H &#39;</span><span class="nt">Authorization</span><span class="o">:</span> <span class="nt">Bearer</span> <span class="o">&amp;</span><span class="nt">lt</span><span class="o">;</span><span class="nt">AccessToken</span><span class="o">&amp;</span><span class="nt">gt</span><span class="o">;</span><span class="err">&#39;</span>
+<div class="codehilite"><pre><span></span>curl &#39;/api/world?query=[{&quot;column&quot;: &quot;is_hidden&quot;, &quot;operator&quot;: &quot;any of&quot;, &quot;value&quot;:&quot;1,0&quot;}] \
+  -H &#39;Authorization: Bearer &lt;AccessToken&gt;&#39;
 </pre></div>
 
 
