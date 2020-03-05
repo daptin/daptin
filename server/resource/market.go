@@ -2,8 +2,8 @@ package resource
 
 import (
 	"github.com/artpar/go.uuid"
-	log "github.com/sirupsen/logrus"
 	libgit "github.com/libgit2/git2go"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 )
@@ -131,7 +131,7 @@ func NewMarketplaceService(marketplace Marketplace) (*MarketplaceService, error)
 
 	})
 	CheckErr(err, "Failed to clone git repo")
-	if  gitRepo == nil {
+	if gitRepo == nil {
 		return nil, err
 	}
 
