@@ -1,0 +1,19 @@
+name: "daptin"
+arch: "{{.Arch}}"
+platform: "linux"
+version: "{{.Version}}"
+section: "default"
+priority: "extra"
+provides:
+  - daptin
+maintainer: "Parth Mudgal <artpar@gmail.com>"
+description: |
+  Daptin - "headless cms"
+    is a headless cms providing CRUD apis in JSON and GraphQL endpoint
+    from most cloud providers.
+vendor: "daptin"
+homepage: "https://dapt.in"
+license: "GPLv3"
+bindir: "/usr/bin"
+files:
+  ./daptin: "/usr/bin/daptin"
