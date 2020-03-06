@@ -129,7 +129,6 @@ func substitute(inFile, outFile string, data interface{}) {
 // build the zip package return its name
 func buildZip(dir string) string {
 	// Now build the zip
-	run("cp", "-a", "../daptin.1", dir)
 	if *gitLog != "" {
 		run("cp", "-a", *gitLog, dir)
 	}
