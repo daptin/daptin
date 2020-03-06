@@ -232,4 +232,4 @@ jobs:
         with:
           name: daptin
           path: build/
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
