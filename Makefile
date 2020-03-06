@@ -177,9 +177,9 @@ compile_all:
 	go run bin/cross-compile.go -compile-only $(BUILDTAGS) $(TAG)
 
 appveyor_upload:
-	daptin --config bin/travis.daptin.conf -v copy --exclude '*beta-latest*' build/ $(BETA_UPLOAD)
+	rclone --config bin/travis.daptin.conf -v copy --exclude '*beta-latest*' build/ $(BETA_UPLOAD)
 ifndef BRANCH_PATH
-	daptin --config bin/travis.daptin.conf -v copy --include '*beta-latest*' --include version.txt build/ $(BETA_UPLOAD_ROOT)
+	rclone --config bin/travis.daptin.conf -v copy --include '*beta-latest*' --include version.txt build/ $(BETA_UPLOAD_ROOT)
 endif
 	@echo Beta release ready at $(BETA_URL)
 
