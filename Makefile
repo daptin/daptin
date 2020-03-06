@@ -199,9 +199,7 @@ ifeq (linux,$(filter linux,$(subst Linux,linux,$(TRAVIS_OS_NAME) $(AGENT_OS))))
 endif
 	git log $(LAST_TAG).. > /tmp/git-log.txt
 	go run bin/cross-compile.go -release beta-latest -git-log /tmp/git-log.txt $(BUILD_FLAGS) $(BUILDTAGS) $(TAG)
-	rclone --config bin/travis.daptin.conf -v copy --exclude '*beta-latest*' build/ $(BETA_UPLOAD)
 ifndef BRANCH_PATH
-	rclone --config bin/travis.daptin.conf -v copy --include '*beta-latest*' --include version.txt build/ $(BETA_UPLOAD_ROOT)$(BETA_SUBDIR)
 endif
 	@echo Beta release ready at $(BETA_URL)
 
