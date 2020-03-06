@@ -1,6 +1,6 @@
 // +build ignore
 
-// Cross compile rclone - in go because I hate bash ;-)
+// Cross compile daptin - in go because ;-)
 
 package main
 
@@ -129,9 +129,7 @@ func substitute(inFile, outFile string, data interface{}) {
 // build the zip package return its name
 func buildZip(dir string) string {
 	// Now build the zip
-	run("cp", "-a", "../MANUAL.txt", filepath.Join(dir, "README.txt"))
-	run("cp", "-a", "../MANUAL.html", filepath.Join(dir, "README.html"))
-	run("cp", "-a", "../rclone.1", dir)
+	run("cp", "-a", "../daptin.1", dir)
 	if *gitLog != "" {
 		run("cp", "-a", *gitLog, dir)
 	}
@@ -169,7 +167,7 @@ func buildDebAndRpm(dir, version, goarch string) []string {
 // build the binary in dir returning success or failure
 func compileArch(version, goos, goarch, dir string) bool {
 	log.Printf("Compiling %s/%s", goos, goarch)
-	output := filepath.Join(dir, "rclone")
+	output := filepath.Join(dir, "daptin")
 	if goos == "windows" {
 		output += ".exe"
 	}
@@ -179,7 +177,7 @@ func compileArch(version, goos, goarch, dir string) bool {
 	}
 	args := []string{
 		"go", "build",
-		"--ldflags", "-s -X github.com/rclone/rclone/fs.Version=" + version,
+		"--ldflags", "-s -X github.com/daptin/daptin/fs.Version=" + version,
 		"-i",
 		"-o", output,
 		"-tags", *tags,
@@ -257,7 +255,7 @@ func compile(version string) {
 		if goos == "darwin" {
 			userGoos = "osx"
 		}
-		dir := filepath.Join("rclone-" + version + "-" + userGoos + "-" + goarch)
+		dir := filepath.Join("daptin-" + version + "-" + userGoos + "-" + goarch)
 		run <- func() {
 			if !compileArch(version, goos, goarch, dir) {
 				failuresMu.Lock()
@@ -289,7 +287,7 @@ func main() {
 		run("mkdir", "build")
 	}
 	chdir("build")
-	err := ioutil.WriteFile("version.txt", []byte(fmt.Sprintf("rclone %s\n", version)), 0666)
+	err := ioutil.WriteFile("version.txt", []byte(fmt.Sprintf("daptin %s\n", version)), 0666)
 	if err != nil {
 		log.Fatalf("Couldn't write version.txt: %v", err)
 	}

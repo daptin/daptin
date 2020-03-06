@@ -6,7 +6,7 @@
 
 set -e
 
-REPO="rclone"
+REPO="daptin"
 
 if [ "$1" == "" ]; then
     echo "Syntax: $0 Version"
@@ -26,8 +26,8 @@ echo "Making release ${VERSION}"
 github-release release \
     --repo ${REPO} \
     --tag ${VERSION} \
-    --name "rclone" \
-    --description "Rclone - rsync for cloud storage. Sync files to and from many cloud storage providers."
+    --name "daptin" \
+    --description "Daptin - headless cms"
 
 for build in `ls build | grep -v current | grep -v testbuilds`; do
     echo "Uploading ${build}"

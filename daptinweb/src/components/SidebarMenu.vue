@@ -88,7 +88,7 @@
             <i class="fa fa-th"></i>
             <span class="page">All tables</span>
           </router-link>
-          <router-link :to="{name: 'Entity', params:{tablename: 'mail_server'}}"
+            <router-link :to="{name: 'Entity', params:{tablename: 'mail_server'}}"
                        class=" ">
             <i class="fas fa-shopping-cart"></i>
             SMTP Servers
