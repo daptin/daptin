@@ -78,8 +78,10 @@ func TestServer(t *testing.T) {
 	t.Logf("Test directory: %v", dir)
 
 	if os.PathSeparator == '\\' {
-		dir = strings.ReplaceAll(dir, "\\", "\\\\")
+		t.Logf("Update path for windows")
+		dir = strings.ReplaceAll(dir, string(os.PathSeparator), string(os.PathSeparator) + string(os.PathSeparator))
 	}
+	t.Logf("Test directory: %v", dir)
 
 	m := make(map[string]interface{})
 	err := json.Unmarshal([]byte(testData), &m)
