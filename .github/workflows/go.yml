@@ -185,6 +185,12 @@ jobs:
           make
           make compile_all
         if: matrix.compile_all
+      - name: Deploy built binaries
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then make release_dep ; fi
+          make travis_beta
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
       - uses: actions/upload-artifact@v1
         with:
           name: daptin
