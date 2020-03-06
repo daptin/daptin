@@ -140,7 +140,7 @@ website:
 	cd docs && hugo
 
 upload_website:	website
-	daptin -v sync docs/public memstore:www-daptin-org
+	rclone -v sync docs/public memstore:www-daptin-org
 
 tarball:
 	git archive -9 --format=tar.gz --prefix=daptin-$(TAG)/ -o build/daptin-$(TAG).tar.gz $(TAG)
@@ -156,8 +156,8 @@ check_sign:
 	cd build && gpg --verify SHA256SUMS && gpg --decrypt SHA256SUMS | sha256sum -c
 
 upload:
-	daptin -P copy build/ memstore:downloads-daptin-org/$(TAG)
-	daptin lsf build --files-only --include '*.{zip,deb,rpm}' --include version.txt | xargs -i bash -c 'i={}; j="$$i"; [[ $$i =~ (.*)(-v[0-9\.]+-)(.*) ]] && j=$${BASH_REMATCH[1]}-current-$${BASH_REMATCH[3]}; daptin copyto -v "memstore:downloads-daptin-org/$(TAG)/$$i" "memstore:downloads-daptin-org/$$j"'
+	rclone -P copy build/ memstore:downloads-daptin-org/$(TAG)
+	rclone lsf build --files-only --include '*.{zip,deb,rpm}' --include version.txt | xargs -i bash -c 'i={}; j="$$i"; [[ $$i =~ (.*)(-v[0-9\.]+-)(.*) ]] && j=$${BASH_REMATCH[1]}-current-$${BASH_REMATCH[3]}; daptin copyto -v "memstore:downloads-daptin-org/$(TAG)/$$i" "memstore:downloads-daptin-org/$$j"'
 
 upload_github:
 	./bin/upload-github $(TAG)
@@ -167,7 +167,7 @@ cross:	doc
 
 beta:
 	go run bin/cross-compile.go $(BUILDTAGS) $(TAG)
-	daptin -v copy build/ memstore:pub-daptin-org/$(TAG)
+	rclone -v copy build/ memstore:pub-daptin-org/$(TAG)
 	@echo Beta release ready at https://pub.daptin.org/$(TAG)/
 
 log_since_last_release:
@@ -207,7 +207,7 @@ endif
 
 # Fetch the binary builds from travis and appveyor
 fetch_binaries:
-	daptin -P sync --exclude "/testbuilds/**" --delete-excluded $(BETA_UPLOAD) build/
+	rclone -P sync --exclude "/testbuilds/**" --delete-excluded $(BETA_UPLOAD) build/
 
 serve:	website
 	cd docs && hugo server -v -w
