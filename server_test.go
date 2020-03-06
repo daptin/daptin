@@ -77,6 +77,10 @@ func TestServer(t *testing.T) {
 	tempDir := dir + "daptintest" + string(os.PathSeparator)
 	t.Logf("Test directory: %v", dir)
 
+	if os.PathSeparator == '\\' {
+		dir = strings.ReplaceAll(dir, "\\", "\\\\")
+	}
+
 	m := make(map[string]interface{})
 	err := json.Unmarshal([]byte(testData), &m)
 	t.Errorf("Err: %v", err)
@@ -85,7 +89,6 @@ func TestServer(t *testing.T) {
 	schema = strings.Replace(schema, "${rootPath}", tempDir, -1)
 	data := strings.Replace(testData, "${rootPath}", tempDir, -1)
 	_ = os.Mkdir(tempDir, 0777)
-
 
 	err = json.Unmarshal([]byte(data), &m)
 	t.Errorf("Err: %v", err)
