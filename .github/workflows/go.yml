@@ -128,21 +128,21 @@ jobs:
           sudo modprobe fuse
           sudo chmod 666 /dev/fuse
           sudo chown root:$USER /etc/fuse.conf
-          sudo apt-get install fuse libfuse-dev rpm pkg-config
+          sudo apt-get install fuse libfuse-dev rpm pkg-config rclone
         if: matrix.os == 'ubuntu-latest'
 
       - name: Install Libraries on macOS
         shell: bash
         run: |
           brew update
-          brew cask install osxfuse
+          brew cask install osxfuse rclone
         if: matrix.os == 'macOS-latest'
 
       - name: Install Libraries on Windows
         shell: powershell
         run: |
           $ProgressPreference = 'SilentlyContinue'
-          choco install -y winfsp zip
+          choco install -y winfsp zip rclone
           Write-Host "::set-env name=CPATH::C:\Program Files\WinFsp\inc\fuse;C:\Program Files (x86)\WinFsp\inc\fuse"
           if ($env:GOARCH -eq "386") {
             choco install -y mingw --forcex86 --force
