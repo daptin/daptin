@@ -194,7 +194,7 @@ jobs:
           RCLONE_CONFIG_PASS: ${{ secrets.RCLONE_CONFIG_PASS }}
         # working-directory: '$(modulePath)'
         # Deploy binaries if enabled in config && not a PR && not a fork
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'rclone/rclone'
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
   xgo:
     timeout-minutes: 60
@@ -236,4 +236,4 @@ jobs:
           RCLONE_CONFIG_PASS: ${{ secrets.RCLONE_CONFIG_PASS }}
         # working-directory: '$(modulePath)'
         # Deploy binaries if enabled in config && not a PR && not a fork
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'rclone/rclone'
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
