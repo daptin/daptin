@@ -185,18 +185,11 @@ jobs:
           make
           make compile_all
         if: matrix.compile_all
-
-      - name: Deploy built binaries
-        uses: actions/upload-artifact@v1
-        with:
-          name: daptin
-          path: build/
-        if: matrix.os == 'ubuntu-latest' && github.repository == 'daptin/daptin'
       - uses: actions/upload-artifact@v1
         with:
           name: daptin
           path: build/
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
   xgo:
     timeout-minutes: 60
@@ -229,13 +222,8 @@ jobs:
               --tags netgo -ldflags='-linkmode external -extldflags "-static"' -dest build \
               .
 
-      - name: Deploy built binaries
-        shell: bash
-        run: |
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then make release_dep ; fi
-          make travis_beta
-        env:
-          RCLONE_CONFIG_PASS: ${{ secrets.RCLONE_CONFIG_PASS }}
-        # working-directory: '$(modulePath)'
-        # Deploy binaries if enabled in config && not a PR && not a fork
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin
+          path: build/
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
