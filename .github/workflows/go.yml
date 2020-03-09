@@ -293,3 +293,15 @@ jobs:
           name: daptin-mips64le
           path: build/daptin-mips64le
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-windows-4.0-386.exe
+          path: build/daptin-windows-4.0-386.exe
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-windows-4.0-amd64.exe
+          path: build/daptin-windows-4.0-amd64.exe
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
