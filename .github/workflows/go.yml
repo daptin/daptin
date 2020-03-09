@@ -230,6 +230,5 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         with:
-          name: daptin
           path: build/
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
