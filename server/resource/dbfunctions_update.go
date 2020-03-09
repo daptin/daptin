@@ -757,38 +757,38 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 		if err != nil {
 			log.Printf(" [%v] Error while importing insert data row: %v == %v", crud.tableInfo.TableName, err, row)
 			errs = append(errs, err)
-		}
 
-		if len(uniqueColumns) > 0 {
-			for _, uniqueCol := range uniqueColumns {
-				log.Infof("Try to update data by unique column: %v", uniqueCol.ColumnName)
-				uniqueColumnValue, ok := row[uniqueCol.ColumnName]
-				if !ok || uniqueColumnValue == nil {
-					continue
-				}
-				stringVal, isString := uniqueColumnValue.(string)
-				if isString && len(stringVal) == 0 {
-					continue
-				}
-				existingRow, err := crud.GetObjectByWhereClause(crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
-				if err != nil {
-					continue
-				}
+			if len(uniqueColumns) > 0 {
+				for _, uniqueCol := range uniqueColumns {
+					log.Infof("Try to update data by unique column: %v", uniqueCol.ColumnName)
+					uniqueColumnValue, ok := row[uniqueCol.ColumnName]
+					if !ok || uniqueColumnValue == nil {
+						continue
+					}
+					stringVal, isString := uniqueColumnValue.(string)
+					if isString && len(stringVal) == 0 {
+						continue
+					}
+					existingRow, err := crud.GetObjectByWhereClause(crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
+					if err != nil {
+						continue
+					}
 
-				for key, val := range row {
-					existingRow[key] = val
-				}
+					for key, val := range row {
+						existingRow[key] = val
+					}
 
-				obj := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, 0, nil, existingRow)
-				_, err = crud.Update(obj, req)
-				if err != nil {
-					log.Errorf("Failed to update table [%v] update row by unique column [%v]: %v", crud.tableInfo.TableName, uniqueCol.ColumnName, err)
+					obj := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, 0, nil, existingRow)
+					_, err = crud.Update(obj, req)
+					if err != nil {
+						log.Errorf("Failed to update table [%v] update row by unique column [%v]: %v", crud.tableInfo.TableName, uniqueCol.ColumnName, err)
+					}
+					break
+
 				}
-				break
 
 			}
 		}
-
 	}
 	return errs
 }
