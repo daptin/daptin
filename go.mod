@@ -1,7 +1,6 @@
 module github.com/daptin/daptin
 
 require (
-	gitea.com/goftp/file-driver v0.0.0-20190812052443-efcdcba68b34 // indirect
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/Masterminds/squirrel v1.1.0
 	github.com/advance512/yaml v0.0.0-20141213031416-e401b2b02685
@@ -19,20 +18,17 @@ require (
 	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
-	github.com/artpar/rclone v1.50.12
+	github.com/artpar/rclone v1.50.13
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
-	github.com/coreos/go-etcd v2.0.0+incompatible // indirect
 	github.com/corpix/uarand v0.0.0 // indirect
-	github.com/cpuguy83/go-md2man v1.0.10 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/gift v1.2.0
 	github.com/dlclark/regexp2 v0.0.0-20171009020623-7632a260cbaf // indirect
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
 	github.com/emersion/go-message v0.11.1
 	github.com/emersion/go-msgauth v0.4.0
-	github.com/etcd-io/bbolt v1.3.3 // indirect
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/fclairamb/ftpserver v0.0.0-20200221221851-84e5d668e655
 	github.com/getkin/kin-openapi v0.2.0
@@ -87,7 +83,7 @@ require (
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/cobra v0.0.6
 	github.com/tealeg/xlsx v0.0.0-20181024002044-dbf71b6a931e
-	github.com/ugorji/go v1.1.7 // indirect
+	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
