@@ -230,5 +230,6 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         with:
+          name: daptin-xgo
           path: build/
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
