@@ -184,7 +184,7 @@ jobs:
           go get -v github.com/GeertJohan/go.rice/rice
           go install github.com/GeertJohan/go.rice/rice
           dir $GOPATH\\bin
-          $GOPATH\\bin\\rice embed-go
+          $GOPATH\\bin\\github.com/GeertJohan/go.rice/rice embed-go
         if: matrix.os == 'windows-latest'
 
       - name: Run tests
