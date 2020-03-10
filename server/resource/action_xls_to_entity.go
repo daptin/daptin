@@ -251,7 +251,8 @@ nextFile:
 		}
 
 		jsonFileName := fmt.Sprintf("schema_%v_daptin.json", entityName)
-		ioutil.WriteFile(jsonFileName, jsonStr, 0644)
+		err = ioutil.WriteFile(jsonFileName, jsonStr, 0644)
+		CheckErr(err, "Failed to write json to schema file [%v]", jsonFileName)
 		log.Printf("File %v written to disk for upload", jsonFileName)
 
 		if create_if_not_exists || add_missing_columns {
