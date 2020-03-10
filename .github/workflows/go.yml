@@ -195,7 +195,7 @@ jobs:
         with:
           name: platform-builds
           path: build/
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
   xgo:
     timeout-minutes: 60
