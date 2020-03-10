@@ -78,14 +78,17 @@ func TestServer(t *testing.T) {
 	tempDir := dir + "daptintest" + string(os.PathSeparator)
 	t.Logf("Test directory: %v", dir)
 
-	if os.PathSeparator == '\\' {
+	m := make(map[string]interface{})
+	err := json.Unmarshal([]byte(testData), &m)
+
+
+	if os.PathSeparator == '\\' && err != nil {
 		fmt.Printf("Update path for windows")
 		dir = strings.ReplaceAll(dir, string(os.PathSeparator), string(os.PathSeparator) + string(os.PathSeparator))
 	}
 	t.Logf("Test directory: %v", dir)
 
-	m := make(map[string]interface{})
-	err := json.Unmarshal([]byte(testData), &m)
+	err = json.Unmarshal([]byte(testData), &m)
 	t.Errorf("Err: %v", err)
 
 	schema := strings.Replace(testSchemas, "${imagePath}", tempDir, -1)

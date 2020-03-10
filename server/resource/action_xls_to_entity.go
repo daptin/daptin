@@ -8,7 +8,7 @@ import (
 	"github.com/daptin/daptin/server/columntypes"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/tealeg/xlsx/v2"
+	"github.com/tealeg/xlsx"
 	"io/ioutil"
 	"strconv"
 	"strings"
