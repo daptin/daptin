@@ -167,7 +167,7 @@ jobs:
           printf "\n\nSystem environment:\n\n"
           env
 
-      - name: Run tests
+      - name: Installl gorice on linux
         shell: bash
         run: |
           go get -v github.com/GeertJohan/go.rice
@@ -177,7 +177,7 @@ jobs:
           ls -lah rice-box.go
         if: matrix.os != 'windows-latest'
 
-      - name: Run tests
+      - name: Install gorice on windows
         shell: bash
         run: |
           go get -v github.com/GeertJohan/go.rice
@@ -187,16 +187,16 @@ jobs:
           dir $GOROOT
           dir $GOROOT\\bin
           $GOPATH\\bin\\rice.exe embed-go
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && matrix.goarch != '386'
 
-      - name: Run tests
+      - name: Run quick tests
         shell: bash
         run: |
           make
           make quicktest
         if: matrix.quicktest
 
-      - name: Race test
+      - name: Run Race test
         shell: bash
         run: |
           make racequicktest
@@ -208,7 +208,7 @@ jobs:
           make
           make compile_all
         if: matrix.compile_all
-      - name: Deploy built binaries
+      - name: Build and deploy built binaries
         shell: bash
         run: |
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then make release_dep ; fi
