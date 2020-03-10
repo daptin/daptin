@@ -190,6 +190,7 @@ jobs:
         run: |
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then make release_dep ; fi
           make travis_beta
+          ls -lah build/
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
       - uses: actions/upload-artifact@v1
         with:
@@ -224,7 +225,7 @@ jobs:
           go get
           xgo \
               -image=artpar/daptin-xgo \
-              -targets=linux/386,linux/amd64,linux/arm-5,linux/arm-6,linux/arm-7,linux/mips,linux/mips64,linux/mips64le,linux/mipsle,windows/386,windows/amd64 \
+              -targets=linux/386,darwin/amd64,linux/amd64,linux/arm-5,linux/arm-6,linux/arm-7,linux/mips,linux/mips64,linux/mips64le,linux/mipsle,windows/386,windows/amd64 \
               --tags netgo -ldflags='-linkmode external -extldflags "-static"' -dest build \
               .
 
@@ -238,6 +239,12 @@ jobs:
         with:
           name: daptin-linux-amd64
           path: build/daptin-linux-amd64
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-darwin-10.6-amd64
+          path: build/daptin-darwin-10.6-amd64
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
