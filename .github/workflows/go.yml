@@ -199,70 +199,70 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-          with:
+        with:
           name: daptin-beta-latest-freebsd-386.zip
           path: build/daptin-beta-latest-freebsd-386.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-          with:
+        with:
           name: daptin-beta-latest-freebsd-amd64.zip
           path: build/daptin-beta-latest-freebsd-amd64.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-          with:
+        with:
           name: daptin-beta-latest-freebsd-arm.zip
           path: build/daptin-beta-latest-freebsd-arm.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-          with:
+        with:
           name: daptin-beta-latest-netbsd-386.zip
           path: build/daptin-beta-latest-netbsd-386.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-          with:
+        with:
           name: daptin-beta-latest-netbsd-amd64.zip
           path: build/daptin-beta-latest-netbsd-amd64.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-          with:
+        with:
           name: daptin-beta-latest-netbsd-arm.zip
           path: build/daptin-beta-latest-netbsd-arm.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-          with:
+        with:
           name: daptin-beta-latest-openbsd-386.zip
           path: build/daptin-beta-latest-openbsd-386.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-          with:
+        with:
           name: daptin-beta-latest-openbsd-amd64.zip
           path: build/daptin-beta-latest-openbsd-amd64.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-          with:
+        with:
           name: daptin-beta-latest-osx-386.zip
           path: build/daptin-beta-latest-osx-386.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-          with:
+        with:
           name: daptin-beta-latest-solaris-amd64.zip
           path: build/daptin-beta-latest-solaris-amd64.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
