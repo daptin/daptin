@@ -80,7 +80,6 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/cobra v0.0.6
-	github.com/tealeg/xlsx v1.0.5
 	github.com/tealeg/xlsx/v2 v2.0.1
 	github.com/ugorji/go v1.1.7 // indirect
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
