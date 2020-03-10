@@ -311,6 +311,9 @@ jobs:
           docker pull artpar/daptin-xgo
           go get -v github.com/karalabe/xgo
           go get -v github.com/GeertJohan/go.rice
+          go get -v github.com/GeertJohan/go.rice/rice
+          go install github.com/GeertJohan/go.rice/rice
+          rice embed-go
           go get
           xgo \
               -image=artpar/daptin-xgo \

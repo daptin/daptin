@@ -8,7 +8,7 @@ import (
 	"github.com/daptin/daptin/server/columntypes"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/tealeg/xlsx"
+	"github.com/tealeg/xlsx/v2"
 	"io/ioutil"
 	"strconv"
 	"strings"
@@ -331,7 +331,7 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 	//columnNames = make([]string, 0)
 	properColumnNames := make([]string, 0)
 
-	headerRow := sheet.Rows[0]
+	headerRow := sheet.Row(0)
 
 	for i := 0; i < columnCount; i++ {
 		colName := headerRow.Cells[i].Value
@@ -348,7 +348,7 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 
 		dataMap := make(map[string]interface{})
 
-		currentRow := sheet.Rows[i]
+		currentRow := sheet.Row(i)
 		cCount := len(currentRow.Cells)
 		for j := 0; j < cCount; j++ {
 			i2 := currentRow.Cells[j].Value

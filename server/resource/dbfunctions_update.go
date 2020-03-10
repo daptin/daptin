@@ -15,7 +15,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/tealeg/xlsx"
+	"github.com/tealeg/xlsx/v2"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -203,10 +203,14 @@ func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 		return
 	}
 	existingStreams := make(map[string]StreamContract)
-	defer res.Close()
+	defer func(){
+		err = res.Close()
+		CheckErr(err, "Failed to close db results after query")
+	}()
 	for res.Next() {
 		m := make(map[string]interface{})
-		res.MapScan(m)
+		err = res.MapScan(m)
+		CheckErr(err, "Failed to map scan from db next to map")
 		streamName, ok := m["stream_name"].(string)
 		if !ok {
 			streamName = string(m["stream_name"].([]uint8))
