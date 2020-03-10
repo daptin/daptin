@@ -342,44 +342,44 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         with:
-          name: daptin-arm-5
-          path: build/daptin-arm-5
+          name: daptin-linux-arm-5
+          path: build/daptin-linux-arm-5
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
-          name: daptin-arm-5
-          path: build/daptin-arm-6
+          name: daptin-linux-arm-6
+          path: build/daptin-linux-arm-6
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
-          name: daptin-arm-5
-          path: build/daptin-arm-7
+          name: daptin-linux-arm-7
+          path: build/daptin-linux-arm-7
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
-          name: daptin-mips
-          path: build/daptin-mips
+          name: daptin-linux-mips
+          path: build/daptin-linux-mips
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
-          name: daptin-mipsle
-          path: build/daptin-mipsle
+          name: daptin-linux-mipsle
+          path: build/daptin-linux-mipsle
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
-          name: daptin-mips64
-          path: build/daptin-mips64
+          name: daptin-linux-mips64
+          path: build/daptin-linux-mips64
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
-          name: daptin-mips64le
-          path: build/daptin-mips64le
+          name: daptin-linux-mips64le
+          path: build/daptin-linux-mips64le
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
