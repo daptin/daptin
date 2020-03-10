@@ -15,7 +15,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/tealeg/xlsx"
+	"github.com/tealeg/xlsx/v2"
 	"io/ioutil"
 	"net/http"
 	"os"
