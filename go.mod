@@ -19,6 +19,7 @@ require (
 	github.com/artpar/rclone v1.50.17
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
+	github.com/artpar/xlsx/v2 v2.0.5
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/corpix/uarand v0.0.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -29,6 +30,7 @@ require (
 	github.com/emersion/go-msgauth v0.4.0
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/fclairamb/ftpserver v0.0.0-20200221221851-84e5d668e655
+	github.com/frankban/quicktest v1.7.3 // indirect
 	github.com/getkin/kin-openapi v0.2.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gin-contrib/static v0.0.0-20181225054800-cf5e10bbd933
@@ -64,6 +66,8 @@ require (
 	github.com/json-iterator/go v1.1.9
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kniren/gota v0.10.1 // indirect
+	github.com/kr/pretty v0.2.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/gommon v0.2.8 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
@@ -80,8 +84,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/cobra v0.0.6
-	github.com/tealeg/xlsx/v2 v2.0.1
-	github.com/ugorji/go v1.1.7 // indirect
+	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
