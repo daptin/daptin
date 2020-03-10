@@ -1001,7 +1001,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 
 		var cou int
 		s, v, err := statementbuilder.Squirrel.Select("count(*)").From("world").Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
-		tx.QueryRowx(s, v...).Scan(&cou)
+		err = tx.QueryRowx(s, v...).Scan(&cou)
+		CheckErr(err, "Failed to scan row after query [%v]", s)
 
 		stBody.Cells = append(stBody.Cells, []*simpletable.Cell{
 			{
@@ -1073,7 +1074,10 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		return
 	}
 
-	defer res.Close()
+	defer func(){
+		err = res.Close()
+		CheckErr(err, "Failed to close result after reading rows")
+	}()
 
 	tables := make([]TableInfo, 0)
 	for res.Next() {

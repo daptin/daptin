@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/conform"
+	"github.com/artpar/xlsx/v2"
 	"github.com/daptin/daptin/server/columntypes"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/artpar/xlsx/v2"
 	"io/ioutil"
 	"strconv"
 	"strings"
@@ -331,10 +331,10 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 	//columnNames = make([]string, 0)
 	properColumnNames := make([]string, 0)
 
-	headerRow := sheet.Row(0)
+	headerRow, _ := sheet.Row(0)
 
 	for i := 0; i < columnCount; i++ {
-		colName := headerRow.Cells[i].Value
+		colName := headerRow.GetCell(i).Value
 		if len(colName) < 1 {
 			//err = errors.New(fmt.Sprintf("Column %d name has less then 3 characters", i+1))
 			break
@@ -348,10 +348,10 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 
 		dataMap := make(map[string]interface{})
 
-		currentRow := sheet.Row(i)
-		cCount := len(currentRow.Cells)
+		currentRow, _ := sheet.Row(i)
+		cCount := columnCount
 		for j := 0; j < cCount; j++ {
-			i2 := currentRow.Cells[j].Value
+			i2 := currentRow.GetCell(j).Value
 			if strings.TrimSpace(i2) == "" {
 				continue
 			}
