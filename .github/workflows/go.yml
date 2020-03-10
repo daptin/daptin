@@ -167,7 +167,8 @@ jobs:
           printf "\n\nSystem environment:\n\n"
           env
           go get -v github.com/GeertJohan/go.rice
-          go install github.com/GeertJohan/go.rice
+          go get -v github.com/GeertJohan/go.rice/rice
+          go install github.com/GeertJohan/go.rice/rice
           $GOPATH/bin/rice embed-go
           ls -lah rice-box.go
       - name: Run tests
