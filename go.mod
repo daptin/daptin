@@ -1,7 +1,6 @@
 module github.com/daptin/daptin
 
 require (
-	gitea.com/goftp/file-driver v0.0.0-20190812052443-efcdcba68b34 // indirect
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/Masterminds/squirrel v1.1.0
 	github.com/advance512/yaml v0.0.0-20141213031416-e401b2b02685
@@ -12,29 +11,26 @@ require (
 	github.com/artpar/api2go-adapter v1.0.1
 	github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6
 	github.com/artpar/go-guerrilla v1.5.2
-	github.com/artpar/go-httpclient v1.0.0 // indirect
 	github.com/artpar/go-imap v1.0.3
 	github.com/artpar/go-imap-idle v1.0.2
-	github.com/artpar/go-koofrclient v1.0.1 // indirect
 	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
-	github.com/artpar/rclone v1.50.12
+	github.com/artpar/rclone v1.50.17
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
+	github.com/artpar/xlsx/v2 v2.0.5
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
-	github.com/coreos/go-etcd v2.0.0+incompatible // indirect
 	github.com/corpix/uarand v0.0.0 // indirect
-	github.com/cpuguy83/go-md2man v1.0.10 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/gift v1.2.0
 	github.com/dlclark/regexp2 v0.0.0-20171009020623-7632a260cbaf // indirect
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
 	github.com/emersion/go-message v0.11.1
 	github.com/emersion/go-msgauth v0.4.0
-	github.com/etcd-io/bbolt v1.3.3 // indirect
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/fclairamb/ftpserver v0.0.0-20200221221851-84e5d668e655
+	github.com/frankban/quicktest v1.7.3 // indirect
 	github.com/getkin/kin-openapi v0.2.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gin-contrib/static v0.0.0-20181225054800-cf5e10bbd933
@@ -70,6 +66,8 @@ require (
 	github.com/json-iterator/go v1.1.9
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kniren/gota v0.10.1 // indirect
+	github.com/kr/pretty v0.2.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/gommon v0.2.8 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
@@ -79,15 +77,14 @@ require (
 	github.com/naoina/toml v0.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.2.0
-	github.com/robfig/cron v1.0.0
+	github.com/robfig/cron/v3 v3.0.0
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
 	github.com/siebenmann/smtpd v0.0.0-20170816215504-b93303610bbe // indirect
 	github.com/simplereach/timeutils v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/cobra v0.0.6
-	github.com/tealeg/xlsx v0.0.0-20181024002044-dbf71b6a931e
-	github.com/ugorji/go v1.1.7 // indirect
+	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d

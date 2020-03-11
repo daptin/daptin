@@ -15,7 +15,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/tealeg/xlsx"
+	"github.com/artpar/xlsx/v2"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -203,10 +203,14 @@ func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 		return
 	}
 	existingStreams := make(map[string]StreamContract)
-	defer res.Close()
+	defer func(){
+		err = res.Close()
+		CheckErr(err, "Failed to close db results after query")
+	}()
 	for res.Next() {
 		m := make(map[string]interface{})
-		res.MapScan(m)
+		err = res.MapScan(m)
+		CheckErr(err, "Failed to map scan from db next to map")
 		streamName, ok := m["stream_name"].(string)
 		if !ok {
 			streamName = string(m["stream_name"].([]uint8))
@@ -997,7 +1001,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 
 		var cou int
 		s, v, err := statementbuilder.Squirrel.Select("count(*)").From("world").Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
-		tx.QueryRowx(s, v...).Scan(&cou)
+		err = tx.QueryRowx(s, v...).Scan(&cou)
+		CheckErr(err, "Failed to scan row after query [%v]", s)
 
 		stBody.Cells = append(stBody.Cells, []*simpletable.Cell{
 			{
@@ -1069,7 +1074,10 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		return
 	}
 
-	defer res.Close()
+	defer func(){
+		err = res.Close()
+		CheckErr(err, "Failed to close result after reading rows")
+	}()
 
 	tables := make([]TableInfo, 0)
 	for res.Next() {
