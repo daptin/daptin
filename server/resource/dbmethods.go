@@ -663,8 +663,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 			uid, _ := row[USER_ACCOUNT_ID_COLUMN].(string)
 			perm.UserId = uid
 		} else {
-			row, _ = dr.GetReferenceIdToObject(rowType, refId.(string))
-			u := row[USER_ACCOUNT_ID_COLUMN]
+			u, _ := dr.GetReferenceIdToObjectColumn(rowType, refId.(string), USER_ACCOUNT_ID_COLUMN)
 			if u != nil {
 				uid, _ := u.(string)
 				perm.UserId = uid
@@ -675,6 +674,19 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 
 	loc := strings.Index(rowType, "_has_")
 	//log.Infof("Location [%v]: %v", dr.model.GetName(), loc)
+
+	if BeginsWith(rowType, "file.") {
+		perm.UserGroupId = []auth.GroupPermission{
+			{
+				GroupReferenceId:    "",
+				ObjectReferenceId:   "",
+				RelationReferenceId: "",
+				Permission:          auth.AuthPermission(auth.GuestRead),
+			},
+		}
+		return perm
+	}
+
 	if loc == -1 && dr.Cruds[rowType].model.HasMany("usergroup") {
 
 		perm.UserGroupId = dr.GetObjectUserGroupsByWhere(rowType, "reference_id", refId.(string))
@@ -825,7 +837,10 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 	}
 
 	rows, err := dr.db.Queryx(s, q...)
-	defer rows.Close()
+	defer func() {
+		err = rows.Close()
+		CheckErr(err, "Failed to close rows after db query [%v]", s)
+	}()
 	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), map[string]bool{"*": true})
 	if err != nil {
 		return nil, nil, err
@@ -1097,7 +1112,10 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	if err != nil {
 		return nil, err
 	}
-	defer row.Close()
+	defer func() {
+		err = row.Close()
+		CheckErr(err, "Failed to close row after querying single row")
+	}()
 
 	results, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 	if err != nil {
@@ -1110,6 +1128,39 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	}
 
 	return results[0], err
+}
+
+// Load an object of type `typeName` using a reference_id
+// Used internally, can be used by actions
+func (dr *DbResource) GetReferenceIdToObjectColumn(typeName string, referenceId string, columnToSelect string) (interface{}, error) {
+	//log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
+	s, q, err := statementbuilder.Squirrel.Select(columnToSelect).From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	//log.Infof("Get object by reference id sql: %v", s)
+	row, err := dr.db.Queryx(s, q...)
+
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err = row.Close()
+		CheckErr(err, "Failed to close row after querying single row")
+	}()
+
+	results, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	//log.Infof("Have to return first of %d results", len(results))
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no such object [%v][%v]", typeName, referenceId)
+	}
+
+	return results[0][columnToSelect], err
 }
 
 // Load rows from the database of `typeName` with a where clause to filter rows
@@ -1357,11 +1408,6 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 				row[key] = foreignFilesList
 				log.Infof("set row[%v]  == %v", key, foreignFilesList)
-				if err != nil {
-					log.Errorf("Failed to get ref id for [%v][%v]: %v", namespace, val, err)
-					continue
-				}
-
 				if includedRelationMap != nil && (includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"]) {
 
 					resolvedFilesList, err := dr.GetFileFromLocalCloudStore(dr.TableInfo().TableName, columnInfo.ColumnName, foreignFilesList)

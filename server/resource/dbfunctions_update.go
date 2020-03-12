@@ -778,6 +778,7 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 				if err != nil {
 					continue
 				}
+				log.Infof("Existing [%v] found by unique column: %v = %v", crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
 
 				for key, val := range row {
 					existingRow[key] = val
