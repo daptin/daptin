@@ -81,15 +81,14 @@ func TestServer(t *testing.T) {
 	m := make(map[string]interface{})
 	err := json.Unmarshal([]byte(testData), &m)
 
-
 	if os.PathSeparator == '\\' && err != nil {
 		fmt.Printf("Update path for windows")
-		dir = strings.ReplaceAll(dir, string(os.PathSeparator), string(os.PathSeparator) + string(os.PathSeparator))
+		dir = strings.ReplaceAll(dir, string(os.PathSeparator), string(os.PathSeparator)+string(os.PathSeparator))
 	}
 	t.Logf("Test directory: %v", dir)
 
 	err = json.Unmarshal([]byte(testData), &m)
-	t.Errorf("Err: %v", err)
+	log.Printf("Err: %v", err)
 
 	schema := strings.Replace(testSchemas, "${imagePath}", tempDir, -1)
 	schema = strings.Replace(schema, "${rootPath}", tempDir, -1)
@@ -97,7 +96,7 @@ func TestServer(t *testing.T) {
 	_ = os.Mkdir(tempDir, 0777)
 
 	err = json.Unmarshal([]byte(data), &m)
-	t.Errorf("Err: %v", err)
+	log.Printf("Err: %v", err)
 
 	_ = os.Mkdir(tempDir+string(os.PathSeparator)+"gallery", 0777)
 	_ = os.Mkdir(tempDir+string(os.PathSeparator)+"gallery"+string(os.PathSeparator)+"images", 0777)
@@ -523,6 +522,14 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	resp, err = r.Post(baseAddress+"/_config/backend/hostname", req.Header{
 		"Authorization": "Bearer " + token,
 	}, "test")
+	if err != nil {
+		log.Printf("Failed to get read image %s %s", "config hostname post", err)
+		return err
+	}
+
+	resp, err = r.Get(baseAddress+"/_config/backend/hostname", req.Header{
+		"Authorization": "Bearer " + token,
+	})
 	if err != nil {
 		log.Printf("Failed to get read image %s %s", "config hostname post", err)
 		return err
