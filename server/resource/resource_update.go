@@ -64,10 +64,13 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 	//dataToInsert := make(map[string]interface{})
 
 	languagePreferences := make([]string, 0)
-	prefs := req.PlainRequest.Context().Value("language_preference")
-	if prefs != nil {
-		languagePreferences = prefs.([]string)
+	if dr.tableInfo.TranslationsEnabled {
+		prefs := req.PlainRequest.Context().Value("language_preference")
+		if prefs != nil {
+			languagePreferences = prefs.([]string)
+		}
 	}
+
 	var colsList []string
 	var valsList []interface{}
 	if len(allChanges) > 0 {
@@ -346,7 +349,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 		colsList = append(colsList, "version")
 		valsList = append(valsList, data.GetNextVersion())
 
-		if len(languagePreferences) == 0 || !dr.tableInfo.TranslationsEnabled {
+		if len(languagePreferences) == 0 {
 
 			builder := statementbuilder.Squirrel.Update(dr.model.GetName())
 
@@ -368,59 +371,57 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				return nil, err
 			}
 
-		}
+		} else if len(languagePreferences) > 0 {
 
-	}
+			for _, lang := range languagePreferences {
 
-	if len(languagePreferences) > 0 && dr.tableInfo.TranslationsEnabled {
+				langTableCols := make([]string, 0)
+				langTableVals := make([]interface{}, 0)
 
-		for _, lang := range languagePreferences {
+				for _, col := range colsList {
+					langTableCols = append(langTableCols, col)
+				}
 
-			langTableCols := make([]string, 0)
-			langTableVals := make([]interface{}, 0)
+				for _, val := range valsList {
+					langTableVals = append(langTableVals, val)
+				}
 
-			for _, col := range colsList {
-				langTableCols = append(langTableCols, col)
-			}
+				builder := statementbuilder.Squirrel.Update(dr.model.GetName() + "_i18n")
 
-			for _, val := range valsList {
-				langTableVals = append(langTableVals, val)
-			}
+				for i := range langTableCols {
+					builder = builder.Set(langTableCols[i], langTableVals[i])
+				}
 
-			builder := statementbuilder.Squirrel.Update(dr.model.GetName() + "_i18n")
+				query, vals, err := builder.Where(squirrel.Eq{"translation_reference_id": idInt}).Where(squirrel.Eq{"language_id": lang}).ToSql()
+				//log.Infof("Update query: %v", query)
+				if err != nil {
+					log.Errorf("Failed to create update query: %v", err)
+				}
 
-			for i := range langTableCols {
-				builder = builder.Set(langTableCols[i], langTableVals[i])
-			}
+				//log.Infof("Update query: %v == %v", query, vals)
+				res, err := dr.db.Exec(query, vals...)
+				rowsAffected, err := res.RowsAffected()
+				if err != nil || rowsAffected == 0 {
+					log.Errorf("Failed to execute update query: %v", err)
 
-			query, vals, err := builder.Where(squirrel.Eq{"translation_reference_id": idInt}).Where(squirrel.Eq{"language_id": lang}).ToSql()
-			//log.Infof("Update query: %v", query)
-			if err != nil {
-				log.Errorf("Failed to create update query: %v", err)
-			}
+					u, _ := uuid.NewV4()
+					nuuid := u.String()
 
-			//log.Infof("Update query: %v == %v", query, vals)
-			res, err := dr.db.Exec(query, vals...)
-			rowsAffected, err := res.RowsAffected()
-			if err != nil || rowsAffected == 0 {
-				log.Errorf("Failed to execute update query: %v", err)
+					langTableCols = append(langTableCols, "language_id", "translation_reference_id", "reference_id")
+					langTableVals = append(langTableVals, lang, idInt, nuuid)
 
-				u, _ := uuid.NewV4()
-				nuuid := u.String()
+					insert := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n")
+					insert = insert.Columns(langTableCols...)
+					insert = insert.Values(langTableVals...)
+					query, vals, err := insert.ToSql()
 
-				langTableCols = append(langTableCols, "language_id", "translation_reference_id", "reference_id")
-				langTableVals = append(langTableVals, lang, idInt, nuuid)
+					_, err = dr.db.Exec(query, vals...)
 
-				insert := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n")
-				insert = insert.Columns(langTableCols...)
-				insert = insert.Values(langTableVals...)
-				query, vals, err := insert.ToSql()
-
-				_, err = dr.db.Exec(query, vals...)
-
-				return nil, err
+					return nil, err
+				}
 			}
 		}
+
 	}
 
 	if data.IsDirty() && dr.tableInfo.IsAuditEnabled {

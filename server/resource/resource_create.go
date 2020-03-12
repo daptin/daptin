@@ -367,9 +367,11 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		valsList = append(valsList, newUuid)
 	}
 	languagePreferences := make([]string, 0)
-	prefs := req.PlainRequest.Context().Value("language_preference")
-	if prefs != nil {
-		languagePreferences = prefs.([]string)
+	if dr.tableInfo.TranslationsEnabled {
+		prefs := req.PlainRequest.Context().Value("language_preference")
+		if prefs != nil {
+			languagePreferences = prefs.([]string)
+		}
 	}
 
 	colsList = append(colsList, "permission")
@@ -406,7 +408,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		return nil, err
 	}
 
-	if dr.tableInfo.TranslationsEnabled && len(languagePreferences) > 0 {
+	if len(languagePreferences) > 0 {
 
 		for _, languagePreference := range languagePreferences {
 

@@ -304,11 +304,14 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 	}
 
 	languagePreferences := make([]string, 0)
-	prefs := req.PlainRequest.Context().Value("language_preference")
-	if prefs != nil {
-		languagePreferences = prefs.([]string)
+	if dr.tableInfo.TranslationsEnabled {
+		prefs := req.PlainRequest.Context().Value("language_preference")
+		if prefs != nil {
+			languagePreferences = prefs.([]string)
+		}
 	}
-	if len(languagePreferences) > 0 && dr.tableInfo.TranslationsEnabled {
+
+	if len(languagePreferences) > 0 {
 
 		for _, lang := range languagePreferences {
 
