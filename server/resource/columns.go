@@ -71,7 +71,6 @@ var StandardColumns = []api2go.ColumnInfo{
 
 var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("action", "belongs_to", "world"),
-	api2go.NewTableRelation("ftp_server", "belongs_to", "cloud_store"),
 	api2go.NewTableRelation("feed", "belongs_to", "stream"),
 	api2go.NewTableRelation("world", "has_many", "smd"),
 	api2go.NewTableRelation("oauth_token", "has_one", "oauth_connect"),
@@ -1324,7 +1323,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "integration",
-		IsHidden:      false,
+		IsHidden:      true,
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-exchange-alt",
 		Columns: []api2go.ColumnInfo{
@@ -1999,33 +1998,6 @@ var StandardTables = []TableInfo{
 				ColumnName: "store_parameters",
 				ColumnType: "json",
 				DataType:   "text",
-			},
-		},
-	},
-
-	{
-		TableName:     "ftp_server",
-		DefaultGroups: adminsGroup,
-		IsHidden:      true,
-		Columns: []api2go.ColumnInfo{
-			{
-				Name:       "name",
-				ColumnName: "name",
-				ColumnType: "label",
-				DataType:   "varchar(100)",
-			},
-			{
-				Name:       "hostname",
-				ColumnName: "hostname",
-				ColumnType: "label",
-				DataType:   "varchar(100)",
-			},
-			{
-				Name:       "listen_interface",
-				ColumnName: "listen_interface",
-				ColumnType: "label",
-				IsUnique:   true,
-				DataType:   "varchar(100)",
 			},
 		},
 	},

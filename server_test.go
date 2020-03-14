@@ -5,6 +5,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	server2 "github.com/fclairamb/ftpserver/server"
+	"github.com/jlaffaye/ftp"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -40,8 +42,16 @@ const testData = `{
   "site": [
     {
       "name": "gallery",
-      "hostname": "gallery.daptin.com",
+      "hostname": "site.daptin.com",
       "path": "gallery",
+      "cloud_store_id": "ca122915-4dbb-42cf-aa19-c89a14e6fa9a",
+      "ftp_enabled": "true",
+    }
+  ],
+  "ftp_server": [
+    {
+      "name": "localhost",
+      "hostname": "localhost",
       "cloud_store_id": "ca122915-4dbb-42cf-aa19-c89a14e6fa9a"
     }
   ]
@@ -147,15 +157,17 @@ func TestServer(t *testing.T) {
 	var configStore *resource.ConfigStore
 	var certManager *resource.CertificateManager
 	//var imapServer *server2.Server
-	//var ftpServer *server3.FtpServer
+	var ftpServer *server2.FtpServer
 
 	configStore, _ = resource.NewConfigStore(db)
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
+	configStore.SetConfigValueFor("ftp.enable", "true", "backend")
+	configStore.SetConfigValueFor("ftp.listen_interface", "0.0.0.0:2121", "backend")
 	configStore.SetConfigValueFor("imap.enabled", "true", "backend")
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
 	configStore.SetConfigValueFor("logs.enable", "true", "backend")
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, _, _ = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, _ = server.Main(boxRoot, db)
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -166,6 +178,7 @@ func TestServer(t *testing.T) {
 
 		taskScheduler.StartTasks()
 		mailDaemon.Shutdown()
+		ftpServer.Stop()
 		err = db.Close()
 		if err != nil {
 			log.Printf("Failed to close DB connections: %v", err)
@@ -173,7 +186,7 @@ func TestServer(t *testing.T) {
 
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, _, _ = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, _ = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
 
@@ -517,7 +530,6 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		return err
 	}
 
-
 	// do a restart
 	//resp, err = r.Post(baseAddress+"/action/world/restart", req.BodyJSON(map[string]interface{}{
 	//	"attributes": map[string]interface{}{},
@@ -533,8 +545,6 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	t.Logf("Sleeping for 5 seconds waiting for restart")
 	time.Sleep(5 * time.Second)
 	t.Logf("Wake up after sleep")
-
-
 
 	resp, err = r.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
 	if err != nil {
@@ -627,6 +637,49 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 	if strings.Index(graphqlResponse.String(), `"hostname": null`) == -1 {
 		t.Errorf("Expected string not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
+	}
+
+	c, err := ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second))
+ 	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = c.Login("anonymous", "anonymous")
+	if err == nil {
+		t.Errorf("Able to login FTP as anon")
+	}
+
+	// Do something with the FTP conn
+
+	if err := c.Quit(); err != nil {
+		log.Fatal(err)
+	}
+
+	c, err = ftp.Dial("0.0.0.0:2121f", ftp.DialWithTimeout(5*time.Second))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = c.Login("test@gmail.com", "tester123")
+	if err != nil {
+		t.Errorf("Not able to login FTP as test@gmail.com")
+	}
+
+	err = c.ChangeDir("localhost")
+	if err != nil {
+		t.Errorf("Not able to login FTP as test@gmail.com")
+	}
+
+	files, err := c.List("/gallery.daptin.com/")
+	if err != nil {
+		t.Errorf("Not able to login FTP as test@gmail.com")
+	}
+	for _, file := range files {
+		log.Printf("FTP File [%v]", file.Name)
+	}
+
+	if err := c.Quit(); err != nil {
+		log.Fatal(err)
 	}
 
 	return nil

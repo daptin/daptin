@@ -46,7 +46,7 @@ type DaptinFtpServerSettings struct {
 }
 
 // NewDaptinFtpDriver creates a new driver
-func NewDaptinFtpDriver(cruds map[string]*resource.DbResource, certManager *resource.CertificateManager, sites []SubSiteAssetCache) (*DaptinFtpDriver, error) {
+func NewDaptinFtpDriver(cruds map[string]*resource.DbResource, certManager *resource.CertificateManager, ftp_interface string, sites []SubSiteAssetCache) (*DaptinFtpDriver, error) {
 
 	siteMap := make(map[string]SubSiteAssetCache)
 	for _, site := range sites {
@@ -63,13 +63,13 @@ func NewDaptinFtpDriver(cruds map[string]*resource.DbResource, certManager *reso
 			MaxConnections: 100,
 			Server: server.Settings{
 				Listener:                 nil,
-				ListenAddr:               "127.0.0.1:2121",
+				ListenAddr:               ftp_interface,
 				PublicHost:               "",
 				PublicIPResolver:         nil,
 				PassiveTransferPortRange: nil,
 				ActiveTransferPortNon20:  false,
-				IdleTimeout:              0,
-				ConnectionTimeout:        0,
+				IdleTimeout:              5,
+				ConnectionTimeout:        5,
 				DisableMLSD:              false,
 				DisableMLST:              false,
 			},
@@ -250,9 +250,9 @@ func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string)
 	} else {
 		path := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
 			strings.Join(strings.Split(directory, string(os.PathSeparator))[2:], string(os.PathSeparator))
-		log.Printf("list Path: %v", path)
 		files, err = ioutil.ReadDir(path)
 	}
+	log.Printf("list Path: %v", files)
 
 	return files, err
 }

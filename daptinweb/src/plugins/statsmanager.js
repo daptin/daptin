@@ -22,7 +22,7 @@ const StatsManager = function () {
 
       for (var j = 0; j < values.length; j++) {
         list.push(encodeURIComponent(key) + "=" + encodeURIComponent(values));
-      }
+      } 
 
     }
 
