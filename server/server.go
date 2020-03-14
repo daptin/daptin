@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"strings"
 	"time"
@@ -380,9 +379,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		}
 		// ftpListener, err := net.Listen("tcp", ftp_interface)
 		// resource.CheckErr(err, "Failed to create listener for FTP")
-		ftpServer, err = CreateFtpServers(cruds, certificateManager, nil)
+		ftpServer, err = CreateFtpServers(cruds, certificateManager, ftp_interface)
 		auth.CheckErr(err, "Failed to creat FTP server")
 		go func() {
+			log.Printf("FTP server started at %v", ftp_interface)
 			err = ftpServer.ListenAndServe()
 			resource.CheckErr(err, "Failed to listen at ftp interface")
 		}()
@@ -513,9 +513,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 }
 
-func CreateFtpServers(resources map[string]*resource.DbResource, certManager *resource.CertificateManager, listener net.Listener) (*server2.FtpServer, error) {
+func CreateFtpServers(resources map[string]*resource.DbResource, certManager *resource.CertificateManager, ftp_interface string) (*server2.FtpServer, error) {
 
-	subsites, err := resources["ftp_server"].GetAllSites()
+	subsites, err := resources["site"].GetAllSites()
 	if err != nil {
 		return nil, err
 	}
@@ -549,9 +549,7 @@ func CreateFtpServers(resources map[string]*resource.DbResource, certManager *re
 
 	}
 
-	driver, err = NewDaptinFtpDriver(resources, certManager, sites)
-	driver.DaptinFtpServerSettings.Server.Listener = listener
-	driver.DaptinFtpServerSettings.Server.ListenAddr = "0.0.0.0:2121"
+	driver, err = NewDaptinFtpDriver(resources, certManager, ftp_interface, sites)
 	ftpS := server2.NewFtpServer(driver)
 	resource.CheckErr(err, "Failed to create daptin ftp driver [%v]", driver)
 	return ftpS, err

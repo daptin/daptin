@@ -224,7 +224,7 @@
   }
 
   .content-wrapper {
-    padding-top: 50px;
+    /*padding-top: 50px;*/
   }
 
   .main-sidebar {
