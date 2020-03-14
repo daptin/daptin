@@ -48,7 +48,6 @@ jobs:
             modules: 'on'
             gotags: cmount
             build_flags: '-include "^windows/amd64" -cgo'
-            racequicktest: true
             deploy: true
 
           - job_name: windows_386
