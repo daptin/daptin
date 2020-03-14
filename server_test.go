@@ -303,7 +303,9 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	token = responseAttr["Attributes"].(map[string]interface{})["value"].(string)
-
+	authTokenHeader := req.Header{
+		"Authorization": "Bearer " + token,
+	}
 	//t.Logf("Token: %v", token)
 
 	resp, err = r.Get(baseAddress + "/recline_model")
@@ -363,9 +365,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	// check user flow
-	resp, err = r.Get(baseAddress+"/api/world", req.Header{
-		"Authorization": "Bearer " + token,
-	})
+	resp, err = r.Get(baseAddress+"/api/world", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get %s %s", "world with token ", err)
 		return err
@@ -380,9 +380,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("world type mismatch")
 	}
 
-	resp, err = r.Get(baseAddress+"/api/gallery_image?sort=reference_id,-created_at", req.Header{
-		"Authorization": "Bearer " + token,
-	})
+	resp, err = r.Get(baseAddress+"/api/gallery_image?sort=reference_id,-created_at", authTokenHeader)
 
 	if err != nil {
 		log.Printf("Failed to get %s %s", "gallerty image get", err)
@@ -493,23 +491,19 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	// do a sign in
-	resp, err = r.Post(baseAddress+"/action/world/become_admin", req.BodyJSON(map[string]interface{}{
+	resp, err = r.Post(baseAddress+"/action/world/become_an_administrator", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{},
-	}), req.Header{
-		"Authorization": "Bearer " + token,
-	})
+	}), authTokenHeader)
 
 	if err != nil {
-		log.Printf("Failed to get read image %s %s", "become admin", err)
+		log.Printf("Failed to get read response %s %s", "become admin", err)
 		return err
 	}
 
 	becomeAdminResponse := resp.String()
 	t.Logf("Become admin response: [%v]", becomeAdminResponse)
 
-	resp, err = r.Get(baseAddress+"/_config/backend/hostname", req.Header{
-		"Authorization": "Bearer " + token,
-	})
+	resp, err = r.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get read image %s %s", "config hostname get", err)
 		return err
@@ -517,23 +511,123 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	t.Logf("Hostname from config: %v", resp.String())
 
-	resp, err = r.Post(baseAddress+"/_config/backend/hostname", req.Header{
-		"Authorization": "Bearer " + token,
-	}, "test")
+	resp, err = r.Post(baseAddress+"/_config/backend/hostname", authTokenHeader, "test")
 	if err != nil {
 		log.Printf("Failed to get read image %s %s", "config hostname post", err)
 		return err
 	}
 
-	resp, err = r.Get(baseAddress+"/_config/backend/hostname", req.Header{
-		"Authorization": "Bearer " + token,
-	})
+
+	// do a restart
+	//resp, err = r.Post(baseAddress+"/action/world/restart", req.BodyJSON(map[string]interface{}{
+	//	"attributes": map[string]interface{}{},
+	//}), authTokenHeader)
+	//
+	//if err != nil {
+	//	log.Printf("Failed execute action %s %s", "restart", err)
+	//	return err
+	//}
+
+	trigger.Fire("restart")
+
+	t.Logf("Sleeping for 5 seconds waiting for restart")
+	time.Sleep(5 * time.Second)
+	t.Logf("Wake up after sleep")
+
+
+
+	resp, err = r.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
 	if err != nil {
-		log.Printf("Failed to get read image %s %s", "config hostname post", err)
+		log.Printf("Failed to read %s %s", "config hostname get", err)
 		return err
 	}
-
 	t.Logf("Hostname from config: %v", resp.String())
+
+	graphqlResponse, err := r.Post(baseAddress+"/graphql",
+		`{"query":"query {\n  action {\n    action_name\n  }\n}","variables":null}`,
+		authTokenHeader)
+	if err != nil {
+		log.Printf("Failed to get graphql response for action query %s", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `"action_name": "generate_acme_certificate"`) == -1 {
+		t.Errorf("Expected action name not found in response from graphql [%v]", graphqlResponse.String())
+	}
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		`{"query":"query {\n  action {\n    action_name\n  }\n}","variables":null}`)
+	if err != nil {
+		log.Printf("Failed to get action name from graphl query %s", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `"action_name": "generate_acme_certificate"`) > -1 {
+		t.Errorf("Unexpected action name found in response from graphql [%v] without auth token", graphqlResponse.String())
+	}
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		`{"query":"mutation {\n  addCertificate (hostname: \"test\", issuer:\"localhost\", private_key_pem:\"\") {\n    created_at\n    reference_id\n  }\n  \n}","variables":{}}`)
+	if err != nil {
+		log.Printf("Failed to query graphql endpoint %s %s", "addCertificate", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
+		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token", graphqlResponse.String())
+	}
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		`{"query":"mutation {\n  addCertificate (hostname: \"test\", issuer:\"localhost\", private_key_pem:\"\") {\n    created_at\n    reference_id\n  }\n  \n}","variables":{}}`,
+		authTokenHeader)
+	if err != nil {
+		log.Printf("Failed to query graphql endpoint %s %s", "addCertificate", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `"reference_id": "`) == -1 {
+		t.Errorf("Expected 'reference_id' not found in response from graphql [%v] with auth token on certificate create", graphqlResponse.String())
+	}
+
+	certReferenceId := strings.Split(strings.Split(graphqlResponse.String(), `"reference_id": "`)[1], "\"")[0]
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (resource_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
+	if err != nil {
+		log.Printf("Failed to query graphql endpoint %s %s", "updateCertificate", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
+		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
+	}
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (resource_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId),
+		authTokenHeader)
+	if err != nil {
+		log.Printf("Failed to query graphql endpoint %s %s", "updateCertificate", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `"hostname": "hello"`) == -1 {
+		t.Errorf("Expected string not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
+	}
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (resource_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
+	if err != nil {
+		log.Printf("Failed to query graphql endpoint %s %s", "deleteCertificate", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
+		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
+	}
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (resource_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId),
+		authTokenHeader)
+	if err != nil {
+		log.Printf("Failed to query graphql endpoint %s %s", "deleteCertificate", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `"hostname": null`) == -1 {
+		t.Errorf("Expected string not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
+	}
 
 	return nil
 
