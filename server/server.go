@@ -503,6 +503,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
+	adminEmail := cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId()
+	if adminEmail == "" {
+		adminEmail = "No one"
+	}
+	log.Printf("Our admin is [%v]", adminEmail)
 
 	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer, imapServer
 

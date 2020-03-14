@@ -1186,7 +1186,7 @@ var StandardTables = []TableInfo{
 				ColumnName: "generated_at",
 				ColumnType: "datetime",
 				DataType:   "timestamp",
-				IsNullable: false,
+				IsNullable: true,
 			},
 			{
 				Name:       "certificate_pem",
