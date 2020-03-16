@@ -47,7 +47,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				PlainRequest: pr,
 			}
 			responder, err := resources[strings.ToLower(resolvedID.Type)].FindOne(resolvedID.ID, req)
-			if responder.Result() != nil {
+			if responder != nil && responder.Result() != nil {
 				return responder.Result().(api2go.Api2GoModel).Data, err
 			}
 			return nil, err
@@ -655,7 +655,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						sessionUser = sessionUserInterface.(*auth.SessionUser)
 					}
 
-					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceId(table.TableName, resourceId)
+					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceId(table.TableName, resourceId, nil)
 					if err != nil {
 						return nil, err
 					}

@@ -35,7 +35,7 @@ func (d *IntegrationInstallationPerformer) Name() string {
 func (d *IntegrationInstallationPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	referenceId := inFieldMap["reference_id"].(string)
-	integration, _, err := d.cruds["integration"].GetSingleRowByReferenceId("integration", referenceId)
+	integration, _, err := d.cruds["integration"].GetSingleRowByReferenceId("integration", referenceId, nil)
 
 	spec, ok := integration["specification"]
 	if !ok || spec == "" {

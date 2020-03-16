@@ -558,7 +558,7 @@ func CreateFtpServers(resources map[string]*resource.DbResource, certManager *re
 
 type SubSiteAssetCache struct {
 	resource.SubSite
-	resource.AssetFolderCache
+	*resource.AssetFolderCache
 }
 
 type Crammd5 struct {

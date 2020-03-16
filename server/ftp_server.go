@@ -215,18 +215,36 @@ func (driver *ClientDriver) ChangeDirectory(cc server.ClientContext, directory s
 		}
 		driver.CurrentDir = subsiteName
 	} else {
-		driver.CurrentDir = dirParts[1]
-		cdPath := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) + strings.Join(dirParts[2:], string(os.PathSeparator))
-		log.Printf("CD Path: %v", cdPath)
-		_, err = os.Stat(cdPath)
+		newDirName := dirParts[1]
+		_, ok := driver.FtpDriver.Sites[newDirName]
+		if !ok {
+			err = errors.New(fmt.Sprintf("no such path %v", directory))
+		} else {
+			driver.CurrentDir = newDirName
+			cdPath := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) + strings.Join(dirParts[2:], string(os.PathSeparator))
+			log.Printf("CD Path: %v", cdPath)
+			_, err = os.Stat(cdPath)
+		}
 	}
 	//driver.CurrentDir = directory
 	return err
 }
 
 // MakeDirectory creates a directory
-func (driver *ClientDriver) MakeDirectory(cc server.ClientContext, directory string) error {
-	return os.Mkdir(driver.CurrentDir+directory, 0750)
+func (driver *ClientDriver) MakeDirectory(cc server.ClientContext, path string) error {
+
+	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
+		strings.Join(strings.Split(path, string(os.PathSeparator))[2:], string(os.PathSeparator))
+
+	if len(strings.Split(path, string(os.PathSeparator))) == 2 {
+		return errors.New("cannot create new directory in /")
+	}
+
+	if driver.CurrentDir == "/" {
+		return errors.New("cannot create new directory in /")
+	}
+
+	return os.Mkdir(path, 0750)
 }
 
 // ListFiles lists the files of a directory
