@@ -513,6 +513,10 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		return err
 	}
 
+	t.Logf("Sleeping for 5 seconds waiting for restart")
+	time.Sleep(5 * time.Second)
+	t.Logf("Wake up after sleep")
+
 	becomeAdminResponse := resp.String()
 	t.Logf("Become admin response: [%v]", becomeAdminResponse)
 
@@ -676,6 +680,46 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 	for _, file := range files {
 		log.Printf("FTP File [%v]", file.Name)
+	}
+
+	files, err = c.List("/gallery.daptin.com/images")
+	if err != nil {
+		t.Errorf("Not able to list files in folder on /site.daptin.com/: %v", err)
+	}
+
+	curDir, err := c.CurrentDir()
+	if curDir != "/gallery.daptin.com/images" || err != nil {
+		t.Errorf("%v %v", curDir, err)
+	}
+
+	size, err := c.FileSize("image.png")
+	if size == 0 || err != nil {
+		t.Errorf("%v %v", size, err)
+	}
+
+	err = c.MakeDir("temp")
+	if err != nil {
+		t.Errorf("Failed to make temp %v", err)
+	}
+
+	err = c.Rename("image.png", "image_new.png")
+	if err != nil {
+		t.Errorf("Failed to make rename %v", err)
+	}
+	size, err = c.FileSize("image_new.png")
+	if size == 0 || err != nil {
+		t.Errorf("%v %v", size, err)
+	}
+	err = c.RemoveDir("temp")
+	if size == 0 || err != nil {
+		t.Errorf("failed to remove dir %v", err)
+	}
+
+	res, err := c.Retr("image_new.png")
+	var b []byte
+	l, _ := res.Read(b)
+	if l == 0 || err != nil {
+		t.Errorf("failed to remove dir %v", err)
 	}
 
 	if err := c.Quit(); err != nil {
