@@ -175,7 +175,7 @@ func TestServer(t *testing.T) {
 	trigger.On("restart", func() {
 		log.Printf("Trigger restart")
 
-		taskScheduler.StartTasks()
+		taskScheduler.StopTasks()
 		mailDaemon.Shutdown()
 		ftpServer.Stop()
 		imapServer.Close()
@@ -667,19 +667,19 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	err = c.ChangeDir("site.daptin.com")
 	if err != nil {
-		t.Errorf("Not able to change dir to localhost")
+		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
 	}
 
 	files, err := c.List("/gallery.daptin.com/")
 	if err != nil {
-		t.Errorf("Not able to list files in folder on /site.daptin.com/")
+		t.Errorf("Not able to list files in folder on /site.daptin.com/: %v", err)
 	}
 	for _, file := range files {
 		log.Printf("FTP File [%v]", file.Name)
 	}
 
 	if err := c.Quit(); err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	return nil
