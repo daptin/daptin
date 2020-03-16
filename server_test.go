@@ -643,7 +643,8 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("Expected string not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
 	}
 
-	c, err := ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second))
+	c, err := ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second), ftp.DialWithDebugOutput(os.Stdout))
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -669,12 +670,16 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("Not able to login FTP as test@gmail.com")
 	}
 
-	err = c.ChangeDir("site.daptin.com")
+	err = c.ChangeDir("/")
+	err = c.ChangeDir("/site.daptin.com/")
+	err = c.ChangeDir("/site.daptin.com")
+	err = c.ChangeDir("/site.daptin.com/images")
 	if err != nil {
 		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
 	}
 
-	files, err := c.List("/gallery.daptin.com/")
+	files, err := c.List("/")
+	files, err = c.List("/site.daptin.com/")
 	if err != nil {
 		t.Errorf("Not able to list files in folder on /site.daptin.com/: %v", err)
 	}
@@ -682,13 +687,13 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		log.Printf("FTP File [%v]", file.Name)
 	}
 
-	files, err = c.List("/gallery.daptin.com/images")
+	files, err = c.List(".")
 	if err != nil {
 		t.Errorf("Not able to list files in folder on /site.daptin.com/: %v", err)
 	}
 
 	curDir, err := c.CurrentDir()
-	if curDir != "/gallery.daptin.com/images" || err != nil {
+	if curDir != "/site.daptin.com/images" || err != nil {
 		t.Errorf("%v %v", curDir, err)
 	}
 
@@ -702,6 +707,11 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("Failed to make temp %v", err)
 	}
 
+	err = c.MakeDir("/test")
+	if err == nil {
+		t.Errorf("Was able to make /test in root dir %v", err)
+	}
+
 	err = c.Rename("image.png", "image_new.png")
 	if err != nil {
 		t.Errorf("Failed to make rename %v", err)
@@ -711,15 +721,18 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("%v %v", size, err)
 	}
 	err = c.RemoveDir("temp")
-	if size == 0 || err != nil {
+	if err != nil {
 		t.Errorf("failed to remove dir %v", err)
 	}
 
 	res, err := c.Retr("image_new.png")
-	var b []byte
-	l, _ := res.Read(b)
-	if l == 0 || err != nil {
+	if err != nil {
 		t.Errorf("failed to remove dir %v", err)
+	}
+	b := make([]byte, 100)
+	l, err := res.Read(b)
+	if l == 0 || err != nil {
+		t.Errorf("failed to read file %v", err)
 	}
 
 	if err := c.Quit(); err != nil {

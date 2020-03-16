@@ -9,6 +9,7 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -28,8 +29,8 @@ type DbResource struct {
 	contextCache       map[string]interface{}
 	defaultGroups      []int64
 	contextLock        sync.RWMutex
-	AssetFolderCache   map[string]map[string]AssetFolderCache
-	SubsiteFolderCache map[string]AssetFolderCache
+	AssetFolderCache   map[string]map[string]*AssetFolderCache
+	SubsiteFolderCache map[string]*AssetFolderCache
 }
 
 type AssetFolderCache struct {
@@ -38,7 +39,13 @@ type AssetFolderCache struct {
 	CloudStore    CloudStore
 }
 
-func (afc *AssetFolderCache) UploadFiles(files []interface{}) {
+func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
+
+	return os.Open(afc.LocalSyncPath + string(os.PathSeparator) + fileName)
+
+}
+
+func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 
 	for i := range files {
 		file := files[i].(map[string]interface{})
@@ -58,10 +65,15 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) {
 				if e != nil {
 					continue
 				}
-				ioutil.WriteFile(afc.LocalSyncPath+"/"+file["name"].(string), fileBytes, os.ModePerm)
+				localFilePath := afc.LocalSyncPath + "/" + file["name"].(string)
+				err := ioutil.WriteFile(localFilePath, fileBytes, os.ModePerm)
+				CheckErr(err, "Failed to write data to local file store")
+				return errors.WithMessage(err, "Failed to write data to local file store ")
 			}
 		}
 	}
+
+	return nil
 
 }
 
@@ -70,17 +82,18 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
 	tableInfo TableInfo) *DbResource {
 	//log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
 	return &DbResource{
-		model:            model,
-		db:               db,
-		connection:       db,
-		ms:               ms,
-		configStore:      configStore,
-		Cruds:            cruds,
-		tableInfo:        &tableInfo,
-		defaultGroups:    GroupNamesToIds(db, tableInfo.DefaultGroups),
-		contextCache:     make(map[string]interface{}),
-		contextLock:      sync.RWMutex{},
-		AssetFolderCache: make(map[string]map[string]AssetFolderCache),
+		model:              model,
+		db:                 db,
+		connection:         db,
+		ms:                 ms,
+		configStore:        configStore,
+		Cruds:              cruds,
+		tableInfo:          &tableInfo,
+		defaultGroups:      GroupNamesToIds(db, tableInfo.DefaultGroups),
+		contextCache:       make(map[string]interface{}),
+		contextLock:        sync.RWMutex{},
+		AssetFolderCache:   make(map[string]map[string]*AssetFolderCache),
+		SubsiteFolderCache: make(map[string]*AssetFolderCache),
 	}
 }
 func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int64 {

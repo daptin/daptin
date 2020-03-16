@@ -54,7 +54,7 @@ func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		if i == nil {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}
-		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceId("user_account", i.(string))
+		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceId("user_account", i.(string), nil)
 		if err != nil {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}

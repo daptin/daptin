@@ -1,9 +1,7 @@
 package server
 
 import (
-	"bytes"
 	"crypto/md5"
-	"encoding/base64"
 	"fmt"
 	"github.com/anthonynsimon/bild/blur"
 	"github.com/anthonynsimon/bild/effect"
@@ -11,13 +9,13 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/disintegration/gift"
 	"github.com/gin-gonic/gin"
-	"github.com/h2non/filetype"
 	"image"
 	"image/jpeg"
 	"image/png"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -83,28 +81,28 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 		if colData == nil {
 			c.AbortWithStatus(404)
 			return
-
 		}
 
 		if colInfo.IsForeignKey {
 
 			colType := strings.Split(colInfo.ColumnType, ".")[0]
+			//var filesData []interface{}
+			//err = json.Unmarshal([]byte(colData.(string)), &filesData)
+			//resource.CheckErr(err, "Failed to unmarshal file metadata")
 
-			files, ok := colData.([]map[string]interface{})
-
-			if !ok || len(files) < 1 {
-				c.AbortWithStatus(404)
-				return
+			fileToServe := ""
+			for _, fileData := range colData.([]map[string]interface{}) {
+				//fileData := fileInterface.(map[string]interface{})
+				fileName := fileData["name"].(string)
+				if c.Query(fileName) == fileName || fileToServe == "" {
+					fileToServe = fileName
+				}
 			}
 
-			contentBytes, e := base64.StdEncoding.DecodeString(files[0]["contents"].(string))
-			//fileName, ok := files[0]["name"].(string)
-			//if !ok {
-			//	c.AbortWithStatus(500)
-			//	return
-			//}
-			if e != nil {
-				c.AbortWithStatus(500)
+			file, err := cruds["world"].AssetFolderCache[typeName][columnName].GetFileByName(fileToServe)
+
+			if err != nil {
+				c.AbortWithStatus(404)
 				return
 			}
 
@@ -417,7 +415,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 
 				f := gift.New(filters...)
 
-				img, formatName, err := image.Decode(bytes.NewReader(contentBytes))
+				img, formatName, err := image.Decode(file)
 				log.Printf("Image format name: %v", formatName)
 				if err != nil {
 					c.AbortWithStatus(500)
@@ -445,20 +443,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 				c.AbortWithStatus(200)
 
 			default:
-
-				kind, err := filetype.Match(contentBytes)
-				if err != nil {
-					log.Printf("Failed to identify file type: %v", err)
-				}
-				etag, eTagerr := Etag(contentBytes)
-				c.Writer.Header().Set("Content-Type", kind.MIME.Value)
-				c.Writer.Header().Set("Cache-Control", "public, immutable, max-age=10000000")
-
-				if eTagerr == nil {
-					c.Writer.Header().Set("ETag", etag)
-				}
-				c.Writer.Write(contentBytes)
-				c.AbortWithStatus(200)
+				c.File(cruds["world"].AssetFolderCache[typeName][columnName].LocalSyncPath + string(os.PathSeparator) + fileToServe)
 
 			}
 		} else if colInfo.ColumnType == "markdown" {
