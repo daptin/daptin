@@ -678,14 +678,21 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 				continue
 			}
 
+			//cruds["world"].db.Exec("PRAGMA foreign_keys = OFF")
 			for typeName, data := range jsonData {
-				errs := ImportDataMapArray(data, cruds[typeName], req)
+				crud := cruds[typeName]
+				if crud == nil {
+					log.Errorf("%s is not a defined entity", typeName)
+					continue
+				}
+				errs := ImportDataMapArray(data, crud, req)
 				if len(errs) > 0 {
 					for _, err := range errs {
 						log.Errorf("Error while importing json data: %v", err)
 					}
 				}
 			}
+			//cruds["world"].db.Exec("PRAGMA foreign_keys = ON")
 
 		case "xlsx":
 			xlsxFile, err := xlsx.OpenBinary(fileBytes)

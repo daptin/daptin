@@ -302,11 +302,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		go func() {
 			if EndsWithCheck(imapListenInterface, ":993") {
 				if err := imapServer.ListenAndServeTLS(); err != nil {
-					resource.CheckErr(err, "Imap server is not listening anymore")
+					resource.CheckErr(err, "Imap server is not listening anymore 1")
 				}
 			} else {
 				if err := imapServer.ListenAndServe(); err != nil {
-					resource.CheckErr(err, "Imap server is not listening anymore")
+					resource.CheckErr(err, "Imap server is not listening anymore 2")
 				}
 			}
 		}()

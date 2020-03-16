@@ -240,7 +240,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			if ok {
 				val, err = dateparse.ParseLocal(valString)
 
-				CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
+				CheckErr(err, fmt.Sprintf("Failed to parse string as date time in create [%v]", val))
 			} else {
 				floatVal, ok := val.(float64)
 				if ok {
