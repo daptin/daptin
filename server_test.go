@@ -5,7 +5,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	ImapServer "github.com/artpar/go-imap/server"
 	server2 "github.com/fclairamb/ftpserver/server"
+
 	"github.com/jlaffaye/ftp"
 	"io/ioutil"
 	"log"
@@ -45,14 +47,7 @@ const testData = `{
       "hostname": "site.daptin.com",
       "path": "gallery",
       "cloud_store_id": "ca122915-4dbb-42cf-aa19-c89a14e6fa9a",
-      "ftp_enabled": "true",
-    }
-  ],
-  "ftp_server": [
-    {
-      "name": "localhost",
-      "hostname": "localhost",
-      "cloud_store_id": "ca122915-4dbb-42cf-aa19-c89a14e6fa9a"
+      "ftp_enabled": "true"
     }
   ]
 }`
@@ -84,24 +79,27 @@ func TestServer(t *testing.T) {
 		dir = dir + string(os.PathSeparator)
 	}
 	tempDir := dir + "daptintest" + string(os.PathSeparator)
-	t.Logf("Test directory: %v", dir)
-
-	m := make(map[string]interface{})
-	err := json.Unmarshal([]byte(testData), &m)
-
-	if os.PathSeparator == '\\' && err != nil {
-		fmt.Printf("Update path for windows")
-		dir = strings.ReplaceAll(dir, string(os.PathSeparator), string(os.PathSeparator)+string(os.PathSeparator))
-	}
-	t.Logf("Test directory: %v", dir)
-
-	err = json.Unmarshal([]byte(testData), &m)
-	log.Printf("Err: %v", err)
+	_ = os.Mkdir(tempDir, 0777)
+	t.Logf("Test directory: %v", tempDir)
 
 	schema := strings.Replace(testSchemas, "${imagePath}", tempDir, -1)
 	schema = strings.Replace(schema, "${rootPath}", tempDir, -1)
+
 	data := strings.Replace(testData, "${rootPath}", tempDir, -1)
-	_ = os.Mkdir(tempDir, 0777)
+	fmt.Println(data)
+
+	m := make(map[string]interface{})
+	err := json.Unmarshal([]byte(data), &m)
+	log.Printf("Err: %v", err)
+	t.Logf("Test directory: %v", tempDir)
+
+	if err != nil {
+		fmt.Printf("Update path for windows")
+		tempDir = strings.ReplaceAll(tempDir, string(os.PathSeparator), string(os.PathSeparator)+string(os.PathSeparator))
+		t.Logf("Test directory: %v", tempDir)
+		data = strings.Replace(testData, "${rootPath}", tempDir, -1)
+		fmt.Println(data)
+	}
 
 	err = json.Unmarshal([]byte(data), &m)
 	log.Printf("Err: %v", err)
@@ -158,6 +156,7 @@ func TestServer(t *testing.T) {
 	var certManager *resource.CertificateManager
 	//var imapServer *server2.Server
 	var ftpServer *server2.FtpServer
+	var imapServer *ImapServer.Server
 
 	configStore, _ = resource.NewConfigStore(db)
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
@@ -167,7 +166,7 @@ func TestServer(t *testing.T) {
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
 	configStore.SetConfigValueFor("logs.enable", "true", "backend")
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, _ = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer = server.Main(boxRoot, db)
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -179,6 +178,7 @@ func TestServer(t *testing.T) {
 		taskScheduler.StartTasks()
 		mailDaemon.Shutdown()
 		ftpServer.Stop()
+		imapServer.Close()
 		err = db.Close()
 		if err != nil {
 			log.Printf("Failed to close DB connections: %v", err)
@@ -186,7 +186,7 @@ func TestServer(t *testing.T) {
 
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, _ = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer = server.Main(boxRoot, db)
 		rhs.HostSwitch = &hostSwitch
 	})
 
@@ -640,7 +640,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	c, err := ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second))
- 	if err != nil {
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -655,7 +655,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		log.Fatal(err)
 	}
 
-	c, err = ftp.Dial("0.0.0.0:2121f", ftp.DialWithTimeout(5*time.Second))
+	c, err = ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -665,14 +665,14 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("Not able to login FTP as test@gmail.com")
 	}
 
-	err = c.ChangeDir("localhost")
+	err = c.ChangeDir("site.daptin.com")
 	if err != nil {
-		t.Errorf("Not able to login FTP as test@gmail.com")
+		t.Errorf("Not able to change dir to localhost")
 	}
 
 	files, err := c.List("/gallery.daptin.com/")
 	if err != nil {
-		t.Errorf("Not able to login FTP as test@gmail.com")
+		t.Errorf("Not able to list files in folder on /site.daptin.com/")
 	}
 	for _, file := range files {
 		log.Printf("FTP File [%v]", file.Name)

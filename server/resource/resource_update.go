@@ -213,7 +213,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 						//val, err = time.Parse("2006-01-02T15:04:05.999Z", valString)
 						val, _, err = fieldtypes.GetDateTime(valString)
-						CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
+						CheckErr(err, fmt.Sprintf("Failed to parse string as date time in update [%v]", val))
 					} else {
 						floatVal, ok := val.(float64)
 						if ok {
