@@ -544,11 +544,11 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	//	return err
 	//}
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(8 * time.Second)
 	trigger.Fire("restart")
 
 	t.Logf("Sleeping for 5 seconds waiting for restart")
-	time.Sleep(5 * time.Second)
+	time.Sleep(8 * time.Second)
 	t.Logf("Wake up after sleep")
 
 	resp, err = r.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
