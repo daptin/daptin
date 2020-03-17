@@ -1,4 +1,4 @@
-# Actions
+# What are actions
 
 Actions are the most useful concept in Daptin and we will see that everything you have done in Daptin was an action api call.
 

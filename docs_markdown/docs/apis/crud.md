@@ -1,7 +1,21 @@
-# APIs
+# API reference
+
+Daptin exposes various endpoints for each entity defined in the schema:
+
+ - Create
+ - Find one
+ - Update
+ - Delete
+ - Find all
+ - Find relations
+ - Execute action
+ - Aggregate
+ - State management
 
 
-## Overview
+All endpoints are protected using the JWT token.
+
+## API Overview
 
 ### CRUD API
 
