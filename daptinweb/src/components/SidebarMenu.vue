@@ -200,6 +200,13 @@
             <i class="fas fa-puzzle-piece "></i> Json Schemas
           </router-link>
         </li>
+        <li class="pageLink" v-on:click="toggleMenu">
+
+          <router-link :to="{name: 'Configuration'}"
+                       class=" ">
+            <i class="fas fa-puzzle-piece "></i> Settings
+          </router-link>
+        </li>
 
       </ul>
     </li>

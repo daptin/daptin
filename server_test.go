@@ -534,16 +534,6 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		return err
 	}
 
-	// do a restart
-	//resp, err = r.Post(baseAddress+"/action/world/restart", req.BodyJSON(map[string]interface{}{
-	//	"attributes": map[string]interface{}{},
-	//}), authTokenHeader)
-	//
-	//if err != nil {
-	//	log.Printf("Failed execute action %s %s", "restart", err)
-	//	return err
-	//}
-
 	time.Sleep(10 * time.Second)
 	trigger.Fire("restart")
 
