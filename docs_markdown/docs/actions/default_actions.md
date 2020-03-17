@@ -1,4 +1,4 @@
-# Actions
+# Actions list
 
 Use actions to build work flows to carry out tasks like syncing data or emailing your users. You can also give access to these workflows to your users and restrict their access by altering their **permission**.
 
