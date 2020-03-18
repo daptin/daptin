@@ -2347,6 +2347,45 @@ var StandardTables = []TableInfo{
 			},
 		},
 	},
+	{
+		TableName:     "outbox",
+		IsHidden:      true,
+		Icon:          "fa-envelope",
+		DefaultGroups: adminsGroup,
+		Columns: []api2go.ColumnInfo{
+			{
+				Name:       "from_address",
+				ColumnName: "from_address",
+				DataType:   "varchar(200)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "to_address",
+				ColumnName: "to_address",
+				DataType:   "varchar(200)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "to_host",
+				ColumnName: "to_host",
+				DataType:   "varchar(200)",
+				ColumnType: "label",
+			},
+			{
+				Name:       "mail",
+				ColumnName: "mail",
+				ColumnType: "gzip",
+				DataType:   "blob",
+			},
+			{
+				Name:         "sent",
+				ColumnName:   "sent",
+				ColumnType:   "truefalse",
+				DataType:     "int(1)",
+				DefaultValue: "0",
+			},
+		},
+	},
 }
 
 //var StandardMarketplaces = []Marketplace{
