@@ -274,6 +274,15 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("label not found")
 	}
 
+	resp, err = r.Get(baseAddress + "/stats/world?group=date(created_at),column=date(created_at),count")
+	if err != nil {
+		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
+		return err
+	}
+	if resp.Response().StatusCode != 403 {
+		t.Errorf("Was able to get aggreagte without auth token")
+	}
+
 	resp, err = r.Post(baseAddress+"/action/user_account/signup", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{
 			"email":           "test@gmail.com",
@@ -319,7 +328,14 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	authTokenHeader := req.Header{
 		"Authorization": "Bearer " + token,
 	}
-	//t.Logf("Token: %v", token)
+	t.Logf("Token: %v", token)
+
+	resp, err = r.Get(baseAddress+"/stats/world?group=date(created_at)&column=date(created_at),count(*)", authTokenHeader)
+	if err != nil {
+		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
+		return err
+	}
+	log.Printf("Aggregation response: %v", resp.String())
 
 	resp, err = r.Get(baseAddress + "/recline_model")
 	if err != nil {

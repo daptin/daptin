@@ -142,7 +142,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, inField
 
 	}
 	log.Infof("Response from exchange execution: %v", response.String())
-	log.Infof("Response from exchange execution: %v", err)
+	log.Infof("Error from exchange execution: %v", err)
 
 	return nil
 }
