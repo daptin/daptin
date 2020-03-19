@@ -2,6 +2,8 @@
 
 Use actions to build work flows to carry out tasks like syncing data or emailing your users. You can also give access to these workflows to your users and restrict their access by altering their **permission**.
 
+The following actions are available by default on a fresh instance. These actions cannot be deleted and will be recreated if deleted directly from the database.
+
 ## Restart daptin
 
 Restarts daptin immediately and reads file system for new config and data files and apply updates to the APIs as necessary.
