@@ -58,8 +58,8 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 			contentString, ok := contents.(string)
 			if ok {
 
-				if contentString[0:11] == "data:image/" {
-					contentString = strings.Split(contentString, "base64,")[1]
+				if contentString[0:4] == "data" {
+					contentString = contentString[strings.Index(contentString, "base64,")+7:]
 				}
 				fileBytes, e := base64.StdEncoding.DecodeString(contentString)
 				if e != nil {
