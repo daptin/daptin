@@ -50,7 +50,7 @@ func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password strin
 		return nil, err
 	}
 
-	userAccount, _, err := be.cruds[USER_ACCOUNT_TABLE_NAME].GetSingleRowByReferenceId("user_account", userMailAccount["user_account_id"].(string))
+	userAccount, _, err := be.cruds[USER_ACCOUNT_TABLE_NAME].GetSingleRowByReferenceId("user_account", userMailAccount["user_account_id"].(string), nil)
 	userId, _ := userAccount["id"].(int64)
 	groups := be.cruds[USER_ACCOUNT_TABLE_NAME].GetObjectUserGroupsByWhere("user_account", "id", userId)
 

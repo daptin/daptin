@@ -39,7 +39,6 @@ jobs:
             gotags: ''  # cmount doesn't work on osx travis for some reason
             build_flags: '-include "^darwin/amd64" -cgo'
             quicktest: true
-            racequicktest: true
             deploy: true
 
           - job_name: windows_amd64
@@ -48,8 +47,6 @@ jobs:
             modules: 'on'
             gotags: cmount
             build_flags: '-include "^windows/amd64" -cgo'
-            quicktest: true
-            racequicktest: true
             deploy: true
 
           - job_name: windows_386
@@ -60,7 +57,6 @@ jobs:
             goarch: '386'
             cgo: '1'
             build_flags: '-include "^windows/386" -cgo'
-            quicktest: true
             deploy: true
 
           - job_name: other_os
@@ -76,7 +72,6 @@ jobs:
             go: '1.13.x'
             modules: 'on'
             quicktest: true
-            racequicktest: true
 
           - job_name: go1.10
             os: ubuntu-latest

@@ -24,7 +24,6 @@
     <a href="http://godoc.org/github.com/daptin/daptin"><img alt="Go Doc" src="https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square"></a>
 </p>
 <p align="center">
-    <a href='https://coveralls.io/github/daptin/daptin'><img src='https://coveralls.io/repos/github/daptin/daptin/badge.svg' alt='Coverage Status' /></a>
     <a href="https://codecov.io/gh/daptin/daptin"><img alt="Codecov branch" src="https://img.shields.io/codecov/c/github/daptin/daptin/master.svg?style=flat-square"></a>
 </p>
 

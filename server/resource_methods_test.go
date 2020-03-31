@@ -238,28 +238,6 @@ func TestPaginatedFindAllWithoutFilters(t *testing.T) {
 
 }
 
-func TestCreateWithoutFilter(t *testing.T) {
-
-	wrapper, dbResource := GetResourceWithName("world")
-	defer wrapper.db.Close()
-	req := api2go.Request{
-		PlainRequest: &http.Request{
-			Method: "GET",
-		},
-		QueryParams: map[string][]string{},
-	}
-
-	data := map[string]interface{}{}
-	obj := api2go.NewApi2GoModelWithData("world", nil, 0, nil, data)
-	dbResource.CreateWithoutFilter(obj, req)
-
-	if !wrapper.HasExecuted("INSERT INTO world (reference_id,permission,created_at) VALUES") {
-		t.Errorf("Expected query not fired")
-		t.Fail()
-	}
-
-}
-
 func TestPaginatedFindAllWithoutFilter(t *testing.T) {
 
 	wrapper, dbResource := GetResourceWithName("world")

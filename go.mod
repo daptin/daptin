@@ -16,7 +16,7 @@ require (
 	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
-	github.com/artpar/rclone v1.50.17
+	github.com/artpar/rclone v1.50.19
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
 	github.com/artpar/xlsx/v2 v2.0.5
@@ -62,6 +62,7 @@ require (
 	github.com/imroc/req v0.2.4
 	github.com/jamiealquiza/envy v1.1.0
 	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
+	github.com/jlaffaye/ftp v0.0.0-20191218041957-e1b8fdd0dcc3
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
 	github.com/json-iterator/go v1.1.9
 	github.com/julienschmidt/httprouter v1.2.0

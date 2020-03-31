@@ -29,10 +29,10 @@ type JsonApiError struct {
 	Message string
 }
 
-func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map[string]resource.AssetFolderCache {
+func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map[string]*resource.AssetFolderCache {
 
 	stores, err := cruds["cloud_store"].GetAllCloudStores()
-	assetCache := make(map[string]map[string]resource.AssetFolderCache)
+	assetCache := make(map[string]map[string]*resource.AssetFolderCache)
 
 	if err != nil || len(stores) == 0 {
 		return assetCache
@@ -45,7 +45,7 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 
 	for tableName, tableResource := range cruds {
 
-		colCache := make(map[string]resource.AssetFolderCache)
+		colCache := make(map[string]*resource.AssetFolderCache)
 
 		tableInfo := tableResource.TableInfo()
 		for _, column := range tableInfo.Columns {
@@ -62,7 +62,7 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 					continue
 				}
 
-				assetCacheFolder := resource.AssetFolderCache{
+				assetCacheFolder := &resource.AssetFolderCache{
 					CloudStore:    cloudStore,
 					LocalSyncPath: tempDirectoryPath,
 					Keyname:       column.ForeignKeyData.KeyName,
@@ -94,13 +94,13 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 
 }
 
-func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) (HostSwitch, map[string]resource.AssetFolderCache) {
+func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) (HostSwitch, map[string]*resource.AssetFolderCache) {
 
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
 
 	hs := HostSwitch{}
-	subsiteCacheFolders := make(map[string]resource.AssetFolderCache)
+	subsiteCacheFolders := make(map[string]*resource.AssetFolderCache)
 	hs.handlerMap = make(map[string]*gin.Engine)
 	hs.siteMap = make(map[string]resource.SubSite)
 	hs.authMiddleware = authMiddleware
@@ -172,7 +172,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 			Schedule:    "@every 1h",
 		})
 
-		subsiteCacheFolders[site.ReferenceId] = resource.AssetFolderCache{
+		subsiteCacheFolders[site.ReferenceId] = &resource.AssetFolderCache{
 			LocalSyncPath: tempDirectoryPath,
 			Keyname:       "",
 			CloudStore:    cloudStore,

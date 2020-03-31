@@ -351,7 +351,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 						}
 
-						user, _, err := dbResource.GetSingleRowByReferenceId("user_account", mailAccount["user_account_id"].(string))
+						user, _, err := dbResource.GetSingleRowByReferenceId("user_account", mailAccount["user_account_id"].(string), nil)
 
 						sessionUser := &auth.SessionUser{
 							UserId:          user["id"].(int64),

@@ -22,6 +22,7 @@ import HomeComponent from './components/Home'
 // Import Views - Dash
 import DashboardView from './components/views/Dashboard.vue'
 import AllInOne from './components/views/AllInOne.vue'
+import ConfigurationEditor from "./components/ConfigurationEditor";
 
 // Routes
 const routes = [
@@ -77,6 +78,11 @@ const routes = [
             path: '/in/item/:tablename',
             name: 'Entity',
             component: EntityView
+          },
+          {
+            path: '/in/configuration',
+            name: 'Configuration',
+            component: ConfigurationEditor
           },
           {
             path: '/in/item/:tablename/new',

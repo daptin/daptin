@@ -19,13 +19,13 @@
         <li class="pageLink" v-on:click="toggleMenu">
           <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'user_account'}}">
             <i class="fa fa-user"></i>
-            <span class="page">User account</span>
+            <span class="page">User accounts</span>
           </router-link>
         </li>
         <li class="pageLink" v-on:click="toggleMenu">
           <router-link :class="'user-link'" :to="{name: 'Entity', params: {tablename: 'usergroup'}}">
             <i class="fa fa-users"></i>
-            <span class="page">User Group</span>
+            <span class="page">User groups</span>
           </router-link>
         </li>
       </ul>
@@ -34,7 +34,7 @@
 
     <li class="treeview help-support">
       <a href="#">
-        <i class="fas fa-keyboard"></i>
+        <i class="fas fa-plus"></i>
         <span>Data Model</span>
         <span class="pull-right-container">
           <i class="fas fa-angle-left fa-fw pull-right"></i>
@@ -48,11 +48,17 @@
           </router-link>
 
 
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
+
           <router-link
             :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_xls_to_system_schema'}}"
             class="">
             <i class="fas fa-file-excel"></i> Upload XLSX
           </router-link>
+
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
 
           <router-link
             :to="{name : 'Action', params: {tablename: 'world', actionname: 'upload_csv_to_system_schema'}}"
@@ -60,10 +66,16 @@
             <i class="fas fa-file-alt"></i> Upload CSV
           </router-link>
 
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
+
           <router-link :to="{name : 'Action', params: {tablename: 'world', actionname: 'import_data'}}"
                        class="">
             <i class="fab fa-js"></i> Upload Data JSON
           </router-link>
+
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
 
           <router-link :to="{name : 'NewItem'}"
                        class="">
@@ -84,20 +96,54 @@
       <ul class="treeview-menu">
 
         <li class="pageLink" v-on:click="toggleMenu">
+
           <router-link :to="{name: 'Entity', params: {tablename: 'world'}}">
             <i class="fa fa-th"></i>
             <span class="page">All tables</span>
           </router-link>
-            <router-link :to="{name: 'Entity', params:{tablename: 'mail_server'}}"
+
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
+          <router-link :to="{name: 'Entity', params:{tablename: 'mail_server'}}"
                        class=" ">
-            <i class="fas fa-shopping-cart"></i>
-            SMTP Servers
+            <i class="fas fa-envelope"></i>
+            SMTP servers
           </router-link>
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
+
+          <router-link :to="{name: 'Entity', params:{tablename: 'certificate'}}"
+                       class=" ">
+            <i class="fas fa-certificate"></i>
+            SSL certificates
+          </router-link>
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
+
+          <router-link :to="{name: 'Entity', params:{tablename: 'ftp_server'}}"
+                       class=" ">
+            <i class="fas fa-folder"></i>
+            FTP servers
+          </router-link>
+        </li>
+
+        <li class="pageLink" v-on:click="toggleMenu">
+
+          <router-link :to="{name: 'Entity', params:{tablename: 'integration'}}"
+                       class=" ">
+            <i class="fas fa-folder"></i>
+            Integrations
+          </router-link>
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
+
           <router-link :to="{name: 'Entity', params:{tablename: 'mail_account'}}"
                        class=" ">
             <i class="fas fa-shopping-cart"></i>
-            Mail Accounts
+            Mail accounts
           </router-link>
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
 
           <router-link :to="{name: 'Entity', params:{tablename: 'data_exchange'}}"
 
@@ -105,39 +151,60 @@
             <i class="fas fa-exchange-alt"></i>
             Data Exchange
           </router-link>
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
 
           <router-link :to="{name: 'Entity', params:{tablename: 'oauth_token'}}"
 
                        class=" ">
             <i class="fas fa-key"></i> Oauth Tokens
           </router-link>
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
 
           <router-link :to="{name: 'Entity', params:{tablename: 'oauth_connect'}}"
 
                        class=" ">
             <i class="fas fa-plug"></i> Oauth Connections
           </router-link>
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
 
           <router-link :to="{name: 'Entity', params:{tablename: 'cloud_store'}}"
 
                        class=" ">
             <i class="fas fa-cloud"></i> Storage
           </router-link>
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
 
           <router-link :to="{name: 'Entity', params:{tablename: 'site'}}"
 
                        class=" ">
             <i class="fas fa-cubes "></i> Sub sites
           </router-link>
+
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
+
           <router-link :to="{name: 'Entity', params:{tablename: 'stream'}}"
 
                        class=" ">
             <i class="fas fa-film "></i> Data views
           </router-link>
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
 
           <router-link :to="{name: 'Entity', params:{tablename: 'json_schema'}}"
                        class=" ">
             <i class="fas fa-puzzle-piece "></i> Json Schemas
+          </router-link>
+        </li>
+        <li class="pageLink" v-on:click="toggleMenu">
+
+          <router-link :to="{name: 'Configuration'}"
+                       class=" ">
+            <i class="fas fa-puzzle-piece "></i> Settings
           </router-link>
         </li>
 

@@ -1,5 +1,5 @@
-<div class="rst-versions" role="note" style="cursor: pointer">
-    <span class="rst-current-version" data-toggle="rst-current-version">
+<div class="rst-versions" role="note" style="display: none">
+    <span  class="rst-current-version" data-toggle="rst-current-version">
       {% if config.repo_name == 'GitHub' %}
           <a href="{{ config.repo_url }}" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       {% elif config.repo_name == 'Bitbucket' %}
@@ -7,6 +7,7 @@
       {% elif config.repo_name == 'GitLab' %}
           <a href="{{ config.repo_url }}" class="icon icon-gitlab" style="float: left; color: #fcfcfc"> GitLab</a>
       {% endif %}
+
       {% if page.previous_page %}
         <span><a href="{{ page.previous_page.url|url }}" style="color: #fcfcfc;">&laquo; Previous</a></span>
       {% endif %}
