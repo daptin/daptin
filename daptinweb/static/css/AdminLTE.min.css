@@ -597,6 +597,9 @@ a:hover, a:active, a:focus {
 .sidebar-menu .treeview-menu > li {
   margin: 0
 }
+.sidebar-menu .treeview-menu > li:hover {
+  background: white;
+}
 
 .sidebar-menu .treeview-menu > li > a {
   padding: 5px 5px 5px 15px;
@@ -654,8 +657,7 @@ a:hover, a:active, a:focus {
     position: absolute;
     width: 180px;
     left: 50px;
-    background: #524da7;
-    color: white;
+    background: #efeff4;
   }
 
   .sidebar-mini.sidebar-collapse .sidebar-menu > li:hover > a > span {

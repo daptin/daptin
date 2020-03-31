@@ -5,7 +5,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	server3 "github.com/fclairamb/ftpserver/server"
+	ImapServer "github.com/artpar/go-imap/server"
+	server2 "github.com/fclairamb/ftpserver/server"
+
+	"github.com/jlaffaye/ftp"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,7 +19,6 @@ import (
 
 	"github.com/GeertJohan/go.rice"
 	"github.com/artpar/go-guerrilla"
-	server2 "github.com/artpar/go-imap/server"
 	"github.com/daptin/daptin/server"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -42,9 +44,10 @@ const testData = `{
   "site": [
     {
       "name": "gallery",
-      "hostname": "gallery.daptin.com",
+      "hostname": "site.daptin.com",
       "path": "gallery",
-      "cloud_store_id": "ca122915-4dbb-42cf-aa19-c89a14e6fa9a"
+      "cloud_store_id": "ca122915-4dbb-42cf-aa19-c89a14e6fa9a",
+      "ftp_enabled": "true"
     }
   ]
 }`
@@ -76,28 +79,30 @@ func TestServer(t *testing.T) {
 		dir = dir + string(os.PathSeparator)
 	}
 	tempDir := dir + "daptintest" + string(os.PathSeparator)
-	t.Logf("Test directory: %v", dir)
-
-	m := make(map[string]interface{})
-	err := json.Unmarshal([]byte(testData), &m)
-
-
-	if os.PathSeparator == '\\' && err != nil {
-		fmt.Printf("Update path for windows")
-		dir = strings.ReplaceAll(dir, string(os.PathSeparator), string(os.PathSeparator) + string(os.PathSeparator))
-	}
-	t.Logf("Test directory: %v", dir)
-
-	err = json.Unmarshal([]byte(testData), &m)
-	t.Errorf("Err: %v", err)
+	_ = os.Mkdir(tempDir, 0777)
+	t.Logf("Test directory: %v", tempDir)
 
 	schema := strings.Replace(testSchemas, "${imagePath}", tempDir, -1)
 	schema = strings.Replace(schema, "${rootPath}", tempDir, -1)
+
 	data := strings.Replace(testData, "${rootPath}", tempDir, -1)
-	_ = os.Mkdir(tempDir, 0777)
+	fmt.Println(data)
+
+	m := make(map[string]interface{})
+	err := json.Unmarshal([]byte(data), &m)
+	log.Printf("Err: %v", err)
+	t.Logf("Test directory: %v", tempDir)
+
+	if err != nil {
+		fmt.Printf("Update path for windows")
+		tempDir = strings.ReplaceAll(tempDir, string(os.PathSeparator), string(os.PathSeparator)+string(os.PathSeparator))
+		t.Logf("Test directory: %v", tempDir)
+		data = strings.Replace(testData, "${rootPath}", tempDir, -1)
+		fmt.Println(data)
+	}
 
 	err = json.Unmarshal([]byte(data), &m)
-	t.Errorf("Err: %v", err)
+	log.Printf("Err: %v", err)
 
 	_ = os.Mkdir(tempDir+string(os.PathSeparator)+"gallery", 0777)
 	_ = os.Mkdir(tempDir+string(os.PathSeparator)+"gallery"+string(os.PathSeparator)+"images", 0777)
@@ -149,11 +154,14 @@ func TestServer(t *testing.T) {
 	var taskScheduler resource.TaskScheduler
 	var configStore *resource.ConfigStore
 	var certManager *resource.CertificateManager
-	var imapServer *server2.Server
-	var ftpServer *server3.FtpServer
+	//var imapServer *server2.Server
+	var ftpServer *server2.FtpServer
+	var imapServer *ImapServer.Server
 
 	configStore, _ = resource.NewConfigStore(db)
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
+	configStore.SetConfigValueFor("ftp.enable", "true", "backend")
+	configStore.SetConfigValueFor("ftp.listen_interface", "0.0.0.0:2121", "backend")
 	configStore.SetConfigValueFor("imap.enabled", "true", "backend")
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
 	configStore.SetConfigValueFor("logs.enable", "true", "backend")
@@ -167,8 +175,10 @@ func TestServer(t *testing.T) {
 	trigger.On("restart", func() {
 		log.Printf("Trigger restart")
 
-		taskScheduler.StartTasks()
+		taskScheduler.StopTasks()
 		mailDaemon.Shutdown()
+		ftpServer.Stop()
+		imapServer.Close()
 		err = db.Close()
 		if err != nil {
 			log.Printf("Failed to close DB connections: %v", err)
@@ -196,7 +206,7 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Errorf("test failed %v", err)
 	}
-	log.Printf("it never started in test: %v %v", imapServer, ftpServer)
+	//log.Printf("it never started in test: %v %v", imapServer, ftpServer)
 
 	log.Printf("Shutdown now")
 
@@ -264,6 +274,15 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("label not found")
 	}
 
+	resp, err = r.Get(baseAddress + "/stats/world?group=date(created_at),column=date(created_at),count")
+	if err != nil {
+		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
+		return err
+	}
+	if resp.Response().StatusCode != 403 {
+		t.Errorf("Was able to get aggreagte without auth token")
+	}
+
 	resp, err = r.Post(baseAddress+"/action/user_account/signup", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{
 			"email":           "test@gmail.com",
@@ -306,8 +325,17 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	token = responseAttr["Attributes"].(map[string]interface{})["value"].(string)
+	authTokenHeader := req.Header{
+		"Authorization": "Bearer " + token,
+	}
+	t.Logf("Token: %v", token)
 
-	//t.Logf("Token: %v", token)
+	resp, err = r.Get(baseAddress+"/stats/world?group=date(created_at)&column=date(created_at),count(*)", authTokenHeader)
+	if err != nil {
+		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
+		return err
+	}
+	log.Printf("Aggregation response: %v", resp.String())
 
 	resp, err = r.Get(baseAddress + "/recline_model")
 	if err != nil {
@@ -366,9 +394,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	// check user flow
-	resp, err = r.Get(baseAddress+"/api/world", req.Header{
-		"Authorization": "Bearer " + token,
-	})
+	resp, err = r.Get(baseAddress+"/api/world", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get %s %s", "world with token ", err)
 		return err
@@ -383,9 +409,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("world type mismatch")
 	}
 
-	resp, err = r.Get(baseAddress+"/api/gallery_image?sort=reference_id,-created_at", req.Header{
-		"Authorization": "Bearer " + token,
-	})
+	resp, err = r.Get(baseAddress+"/api/gallery_image?sort=reference_id,-created_at", authTokenHeader)
 
 	if err != nil {
 		log.Printf("Failed to get %s %s", "gallerty image get", err)
@@ -496,23 +520,23 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	// do a sign in
-	resp, err = r.Post(baseAddress+"/action/world/become_admin", req.BodyJSON(map[string]interface{}{
+	resp, err = r.Post(baseAddress+"/action/world/become_an_administrator", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{},
-	}), req.Header{
-		"Authorization": "Bearer " + token,
-	})
+	}), authTokenHeader)
 
 	if err != nil {
-		log.Printf("Failed to get read image %s %s", "become admin", err)
+		log.Printf("Failed to get read response %s %s", "become admin", err)
 		return err
 	}
+
+	t.Logf("Sleeping for 5 seconds waiting for restart")
+	time.Sleep(10 * time.Second)
+	t.Logf("Wake up after sleep")
 
 	becomeAdminResponse := resp.String()
 	t.Logf("Become admin response: [%v]", becomeAdminResponse)
 
-	resp, err = r.Get(baseAddress+"/_config/backend/hostname", req.Header{
-		"Authorization": "Bearer " + token,
-	})
+	resp, err = r.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get read image %s %s", "config hostname get", err)
 		return err
@@ -520,15 +544,207 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	t.Logf("Hostname from config: %v", resp.String())
 
-	resp, err = r.Post(baseAddress+"/_config/backend/hostname", req.Header{
-		"Authorization": "Bearer " + token,
-	}, "test")
+	resp, err = r.Post(baseAddress+"/_config/backend/hostname", authTokenHeader, "test")
 	if err != nil {
 		log.Printf("Failed to get read image %s %s", "config hostname post", err)
 		return err
 	}
 
+	time.Sleep(10 * time.Second)
+	trigger.Fire("restart")
+
+	t.Logf("Sleeping for 5 seconds waiting for restart")
+	time.Sleep(10 * time.Second)
+	t.Logf("Wake up after sleep")
+
+	resp, err = r.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
+	if err != nil {
+		log.Printf("Failed to read %s %s", "config hostname get", err)
+		return err
+	}
 	t.Logf("Hostname from config: %v", resp.String())
+
+	graphqlResponse, err := r.Post(baseAddress+"/graphql",
+		`{"query":"query {\n  action {\n    action_name\n  }\n}","variables":null}`,
+		authTokenHeader)
+	if err != nil {
+		log.Printf("Failed to get graphql response for action query %s", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `"action_name": "generate_acme_certificate"`) == -1 {
+		t.Errorf("Expected action name not found in response from graphql [%v]", graphqlResponse.String())
+	}
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		`{"query":"query {\n  action {\n    action_name\n  }\n}","variables":null}`)
+	if err != nil {
+		log.Printf("Failed to get action name from graphl query %s", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `"action_name": "generate_acme_certificate"`) > -1 {
+		t.Errorf("Unexpected action name found in response from graphql [%v] without auth token", graphqlResponse.String())
+	}
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		`{"query":"mutation {\n  addCertificate (hostname: \"test\", issuer:\"localhost\", private_key_pem:\"\") {\n    created_at\n    reference_id\n  }\n  \n}","variables":{}}`)
+	if err != nil {
+		log.Printf("Failed to query graphql endpoint %s %s", "addCertificate", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
+		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token", graphqlResponse.String())
+	}
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		`{"query":"mutation {\n  addCertificate (hostname: \"test\", issuer:\"localhost\", private_key_pem:\"\") {\n    created_at\n    reference_id\n  }\n  \n}","variables":{}}`,
+		authTokenHeader)
+	if err != nil {
+		log.Printf("Failed to query graphql endpoint %s %s", "addCertificate", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `"reference_id": "`) == -1 {
+		t.Errorf("Expected 'reference_id' not found in response from graphql [%v] with auth token on certificate create", graphqlResponse.String())
+	}
+
+	certReferenceId := strings.Split(strings.Split(graphqlResponse.String(), `"reference_id": "`)[1], "\"")[0]
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (resource_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
+	if err != nil {
+		log.Printf("Failed to query graphql endpoint %s %s", "updateCertificate", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
+		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
+	}
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (resource_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId),
+		authTokenHeader)
+	if err != nil {
+		log.Printf("Failed to query graphql endpoint %s %s", "updateCertificate", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `"hostname": "hello"`) == -1 {
+		t.Errorf("Expected string not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
+	}
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (resource_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
+	if err != nil {
+		log.Printf("Failed to query graphql endpoint %s %s", "deleteCertificate", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
+		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
+	}
+
+	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (resource_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId),
+		authTokenHeader)
+	if err != nil {
+		log.Printf("Failed to query graphql endpoint %s %s", "deleteCertificate", err)
+		return err
+	}
+	if strings.Index(graphqlResponse.String(), `"hostname": null`) == -1 {
+		t.Errorf("Expected string not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
+	}
+
+	c, err := ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second), ftp.DialWithDebugOutput(os.Stdout))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = c.Login("anonymous", "anonymous")
+	if err == nil {
+		t.Errorf("Able to login FTP as anon")
+	}
+
+	// Do something with the FTP conn
+
+	if err := c.Quit(); err != nil {
+		log.Fatal(err)
+	}
+
+	c, err = ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = c.Login("test@gmail.com", "tester123")
+	if err != nil {
+		t.Errorf("Not able to login FTP as test@gmail.com")
+	}
+
+	err = c.ChangeDir("/")
+	err = c.ChangeDir("/site.daptin.com/")
+	err = c.ChangeDir("/site.daptin.com")
+	err = c.ChangeDir("/site.daptin.com/images")
+	if err != nil {
+		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
+	}
+
+	files, err := c.List("/")
+	files, err = c.List("/site.daptin.com/")
+	if err != nil {
+		t.Errorf("Not able to list files in folder on /site.daptin.com/: %v", err)
+	}
+	for _, file := range files {
+		log.Printf("FTP File [%v]", file.Name)
+	}
+
+	files, err = c.List(".")
+	if err != nil {
+		t.Errorf("Not able to list files in folder on /site.daptin.com/: %v", err)
+	}
+
+	curDir, err := c.CurrentDir()
+	if curDir != "/site.daptin.com/images" || err != nil {
+		t.Errorf("%v %v", curDir, err)
+	}
+
+	size, err := c.FileSize("image.png")
+	if size == 0 || err != nil {
+		t.Errorf("%v %v", size, err)
+	}
+
+	err = c.MakeDir("temp")
+	if err != nil {
+		t.Errorf("Failed to make temp %v", err)
+	}
+
+	err = c.MakeDir("/test")
+	if err == nil {
+		t.Errorf("Was able to make /test in root dir %v", err)
+	}
+
+	err = c.Rename("image.png", "image_new.png")
+	if err != nil {
+		t.Errorf("Failed to make rename %v", err)
+	}
+	size, err = c.FileSize("image_new.png")
+	if size == 0 || err != nil {
+		t.Errorf("%v %v", size, err)
+	}
+	err = c.RemoveDir("temp")
+	if err != nil {
+		t.Errorf("failed to remove dir %v", err)
+	}
+
+	res, err := c.Retr("image_new.png")
+	if err != nil {
+		t.Errorf("failed to remove dir %v", err)
+	}
+	b := make([]byte, 100)
+	l, err := res.Read(b)
+	if l == 0 || err != nil {
+		t.Errorf("failed to read file %v", err)
+	}
+
+	if err := c.Quit(); err != nil {
+		t.Error(err)
+	}
 
 	return nil
 

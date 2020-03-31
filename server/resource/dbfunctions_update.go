@@ -678,14 +678,21 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 				continue
 			}
 
+			//cruds["world"].db.Exec("PRAGMA foreign_keys = OFF")
 			for typeName, data := range jsonData {
-				errs := ImportDataMapArray(data, cruds[typeName], req)
+				crud := cruds[typeName]
+				if crud == nil {
+					log.Errorf("%s is not a defined entity", typeName)
+					continue
+				}
+				errs := ImportDataMapArray(data, crud, req)
 				if len(errs) > 0 {
 					for _, err := range errs {
 						log.Errorf("Error while importing json data: %v", err)
 					}
 				}
 			}
+			//cruds["world"].db.Exec("PRAGMA foreign_keys = ON")
 
 		case "xlsx":
 			xlsxFile, err := xlsx.OpenBinary(fileBytes)
@@ -762,21 +769,22 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 			log.Printf(" [%v] Error while importing insert data row: %v == %v", crud.tableInfo.TableName, err, row)
 			errs = append(errs, err)
 
-			if len(uniqueColumns) > 0 {
-				for _, uniqueCol := range uniqueColumns {
-					log.Infof("Try to update data by unique column: %v", uniqueCol.ColumnName)
-					uniqueColumnValue, ok := row[uniqueCol.ColumnName]
-					if !ok || uniqueColumnValue == nil {
-						continue
-					}
-					stringVal, isString := uniqueColumnValue.(string)
-					if isString && len(stringVal) == 0 {
-						continue
-					}
-					existingRow, err := crud.GetObjectByWhereClause(crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
-					if err != nil {
-						continue
-					}
+		if len(uniqueColumns) > 0 {
+			for _, uniqueCol := range uniqueColumns {
+				log.Infof("Try to update data by unique column: %v", uniqueCol.ColumnName)
+				uniqueColumnValue, ok := row[uniqueCol.ColumnName]
+				if !ok || uniqueColumnValue == nil {
+					continue
+				}
+				stringVal, isString := uniqueColumnValue.(string)
+				if isString && len(stringVal) == 0 {
+					continue
+				}
+				existingRow, err := crud.GetObjectByWhereClause(crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
+				if err != nil {
+					continue
+				}
+				log.Infof("Existing [%v] found by unique column: %v = %v", crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
 
 					for key, val := range row {
 						existingRow[key] = val

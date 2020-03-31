@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -15,10 +14,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const DATE_LAYOUT = "2006-01-02 15:04:05"
@@ -412,137 +409,6 @@ func (d *DbResource) GetUserAccountRowByEmail(email string) (map[string]interfac
 
 }
 
-// Returns the user account row of a user by looking up on email
-func (d *DbResource) GetUserMailAccountRowByEmail(username string) (map[string]interface{}, error) {
-
-	mailAccount, _, err := d.Cruds["mail_account"].GetRowsByWhereClause("mail_account",
-		squirrel.Eq{"username": username})
-
-	if len(mailAccount) > 0 {
-
-		return mailAccount[0], err
-	}
-
-	return nil, errors.New("no such mail account")
-
-}
-
-// Returns the user mail account box row of a user
-func (d *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName string) (map[string]interface{}, error) {
-
-	mailAccount, _, err := d.Cruds["mail_box"].GetRowsByWhereClause("mail_box", squirrel.Eq{"mail_account_id": mailAccountId}, squirrel.Eq{"name": mailBoxName})
-
-	if len(mailAccount) > 0 {
-
-		return mailAccount[0], err
-	}
-
-	return nil, errors.New("no such mail box")
-
-}
-
-// Returns the user mail account box row of a user
-func (d *DbResource) CreateMailAccountBox(mailAccountId string, sessionUser *auth.SessionUser, mailBoxName string) (map[string]interface{}, error) {
-
-	httpRequest := &http.Request{
-		Method: "POST",
-	}
-
-	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
-	resp, err := d.Cruds["mail_box"].Create(&api2go.Api2GoModel{
-		Data: map[string]interface{}{
-			"name":            mailBoxName,
-			"mail_account_id": mailAccountId,
-			"uidvalidity":     time.Now().Unix(),
-			"nextuid":         1,
-			"subscribed":      true,
-			"attributes":      "",
-			"flags":           "\\*",
-			"permanent_flags": "\\*",
-		},
-	}, api2go.Request{
-		PlainRequest: httpRequest,
-	})
-
-	return resp.Result().(*api2go.Api2GoModel).Data, err
-
-}
-
-// Returns the user mail account box row of a user
-func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) error {
-
-	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
-		squirrel.Eq{
-			"mail_account_id": mailAccountId,
-			"name":            mailBoxName,
-		},
-	)
-	if err != nil || len(box) == 0 {
-		return errors.New("mailbox does not exist")
-	}
-
-	query, args, err := statementbuilder.Squirrel.Delete("mail").Where(squirrel.Eq{"mail_box_id": box[0]["id"]}).ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = d.db.Exec(query, args...)
-	if err != nil {
-		return err
-	}
-
-	query, args, err = statementbuilder.Squirrel.Delete("mail_box").Where(squirrel.Eq{"id": box[0]["id"]}).ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = d.db.Exec(query, args...)
-
-	return err
-
-}
-
-// Returns the user mail account box row of a user
-func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) error {
-
-	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
-		squirrel.Eq{
-			"mail_account_id": mailAccountId,
-			"name":            oldBoxName,
-		},
-	)
-	if err != nil || len(box) == 0 {
-		return errors.New("mailbox does not exist")
-	}
-
-	query, args, err := statementbuilder.Squirrel.Update("mail_box").Set("name", newBoxName).Where(squirrel.Eq{"id": box[0]["id"]}).ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = d.db.Exec(query, args...)
-
-	return err
-
-}
-
-// Returns the user mail account box row of a user
-func (d *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool) error {
-
-	query, args, err := statementbuilder.Squirrel.Update("mail_box").Set("subscribed", subscribed).Where(squirrel.Eq{
-		"mail_account_id": mailAccountId,
-		"name":            mailBoxName,
-	}).ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = d.db.Exec(query, args...)
-
-	return err
-
-}
-
 func (d *DbResource) GetUserPassword(email string) (string, error) {
 	passwordHash := ""
 
@@ -551,7 +417,7 @@ func (d *DbResource) GetUserPassword(email string) (string, error) {
 		return passwordHash, err
 	}
 	if len(existingUsers) < 1 {
-		return passwordHash, errors.New("User not found")
+		return passwordHash, errors.New("user not found")
 	}
 
 	passwordHash = existingUsers[0]["password"].(string)
@@ -663,8 +529,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 			uid, _ := row[USER_ACCOUNT_ID_COLUMN].(string)
 			perm.UserId = uid
 		} else {
-			row, _ = dr.GetReferenceIdToObject(rowType, refId.(string))
-			u := row[USER_ACCOUNT_ID_COLUMN]
+			u, _ := dr.GetReferenceIdToObjectColumn(rowType, refId.(string), USER_ACCOUNT_ID_COLUMN)
 			if u != nil {
 				uid, _ := u.(string)
 				perm.UserId = uid
@@ -675,6 +540,19 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 
 	loc := strings.Index(rowType, "_has_")
 	//log.Infof("Location [%v]: %v", dr.model.GetName(), loc)
+
+	if BeginsWith(rowType, "file.") {
+		perm.UserGroupId = []auth.GroupPermission{
+			{
+				GroupReferenceId:    "",
+				ObjectReferenceId:   "",
+				RelationReferenceId: "",
+				Permission:          auth.AuthPermission(auth.GuestRead),
+			},
+		}
+		return perm
+	}
+
 	if loc == -1 && dr.Cruds[rowType].model.HasMany("usergroup") {
 
 		perm.UserGroupId = dr.GetObjectUserGroupsByWhere(rowType, "reference_id", refId.(string))
@@ -816,7 +694,7 @@ func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 
 }
 
-func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId string) (map[string]interface{}, []map[string]interface{}, error) {
+func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId string, includedRelations map[string]bool) (map[string]interface{}, []map[string]interface{}, error) {
 	//log.Infof("Get single row by id: [%v][%v]", typeName, referenceId)
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
@@ -825,8 +703,11 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 	}
 
 	rows, err := dr.db.Queryx(s, q...)
-	defer rows.Close()
-	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), map[string]bool{"*": true})
+	defer func() {
+		err = rows.Close()
+		CheckErr(err, "Failed to close rows after db query [%v]", s)
+	}()
+	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), includedRelations)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1097,7 +978,10 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	if err != nil {
 		return nil, err
 	}
-	defer row.Close()
+	defer func() {
+		err = row.Close()
+		CheckErr(err, "Failed to close row after querying single row")
+	}()
 
 	results, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 	if err != nil {
@@ -1110,6 +994,39 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	}
 
 	return results[0], err
+}
+
+// Load an object of type `typeName` using a reference_id
+// Used internally, can be used by actions
+func (dr *DbResource) GetReferenceIdToObjectColumn(typeName string, referenceId string, columnToSelect string) (interface{}, error) {
+	//log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
+	s, q, err := statementbuilder.Squirrel.Select(columnToSelect).From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	//log.Infof("Get object by reference id sql: %v", s)
+	row, err := dr.db.Queryx(s, q...)
+
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err = row.Close()
+		CheckErr(err, "Failed to close row after querying single row")
+	}()
+
+	results, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	//log.Infof("Have to return first of %d results", len(results))
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no such object [%v][%v]", typeName, referenceId)
+	}
+
+	return results[0][columnToSelect], err
 }
 
 // Load rows from the database of `typeName` with a where clause to filter rows
@@ -1357,11 +1274,6 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 				row[key] = foreignFilesList
 				log.Infof("set row[%v]  == %v", key, foreignFilesList)
-				if err != nil {
-					log.Errorf("Failed to get ref id for [%v][%v]: %v", namespace, val, err)
-					continue
-				}
-
 				if includedRelationMap != nil && (includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"]) {
 
 					resolvedFilesList, err := dr.GetFileFromLocalCloudStore(dr.TableInfo().TableName, columnInfo.ColumnName, foreignFilesList)

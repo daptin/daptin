@@ -91,12 +91,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 
 	languagePreferences := make([]string, 0)
-	prefs := req.PlainRequest.Context().Value("language_preference")
-	if prefs != nil {
-		languagePreferences = prefs.([]string)
-	}
-	if languagePreferences != nil && len(languagePreferences) > 0 {
-		//log.Printf("Language preference: %v", languagePreferences)
+	if dr.tableInfo.TranslationsEnabled {
+		prefs := req.PlainRequest.Context().Value("language_preference")
+		if prefs != nil {
+			languagePreferences = prefs.([]string)
+		}
 	}
 
 	pageNumber := uint64(0)
@@ -521,7 +520,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		ids = append(ids, id)
 	}
 
-	if !dr.tableInfo.TranslationsEnabled || len(languagePreferences) == 0 {
+	if len(languagePreferences) == 0 {
 
 		for i, col := range finalCols {
 			if strings.Index(col, ".") == -1 {

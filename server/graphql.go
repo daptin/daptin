@@ -4,6 +4,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/gobuffalo/flect"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/relay"
 	"github.com/iancoleman/strcase"
@@ -46,7 +47,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				PlainRequest: pr,
 			}
 			responder, err := resources[strings.ToLower(resolvedID.Type)].FindOne(resolvedID.ID, req)
-			if responder.Result() != nil {
+			if responder != nil && responder.Result() != nil {
 				return responder.Result().(api2go.Api2GoModel).Data, err
 			}
 			return nil, err
@@ -654,7 +655,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						sessionUser = sessionUserInterface.(*auth.SessionUser)
 					}
 
-					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceId(table.TableName, resourceId)
+					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceId(table.TableName, resourceId, nil)
 					if err != nil {
 						return nil, err
 					}
@@ -722,13 +723,18 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						PlainRequest: pr,
 					}
 
-					created, err := resources[table.TableName].Delete(params.Args["resource_id"].(string), req)
+					_, err := resources[table.TableName].Delete(params.Args["resource_id"].(string), req)
 
 					if err != nil {
 						return nil, err
 					}
 
-					return created.Result().(*api2go.Api2GoModel).Data, err
+					return fmt.Sprintf(`{
+													"data": {
+														"delete%s": {
+														}
+													}
+												}`, flect.Capitalize(table.TableName)), err
 				},
 			}
 

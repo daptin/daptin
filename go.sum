@@ -130,6 +130,10 @@ github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a h1:W3JRCnyixXReLt
 github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a/go.mod h1:P/AQ+7EvskopP7BmztqwWtb8WLxGXlJnFpQWlru1cKg=
 github.com/artpar/rclone v1.50.17 h1:bbgJvEeoa6zhWUj2eBMgmq/vzwmAiZzx+eWu136teFg=
 github.com/artpar/rclone v1.50.17/go.mod h1:TosXfrtI0T33UiNY9ZAvJe1Ih+vZ0QUFgKBRAge7D8A=
+github.com/artpar/rclone v1.50.18 h1:t9KSe7Th6UE41GjNsoMA2Yr4BMLPiD75ZNAhOHJWKjg=
+github.com/artpar/rclone v1.50.18/go.mod h1:TosXfrtI0T33UiNY9ZAvJe1Ih+vZ0QUFgKBRAge7D8A=
+github.com/artpar/rclone v1.50.19 h1:BI1nMmU5nKB9lWcLYKwb5L9ptXrvRLXjbVTH9dR5OhE=
+github.com/artpar/rclone v1.50.19/go.mod h1:TosXfrtI0T33UiNY9ZAvJe1Ih+vZ0QUFgKBRAge7D8A=
 github.com/artpar/resty v1.0.3 h1:MNkSMhs4YU3tW+n93oewHrDRbXcFWcSPkPAtdsIBCmY=
 github.com/artpar/resty v1.0.3/go.mod h1:cHCPVVE3r81VxEHneVewv3RsfaWlm1ILT/Ks0HnYIrk=
 github.com/artpar/stats v1.0.2 h1:Ine3DijNIWpjIu2+yvkluJcqLuqmx0Xe8egoHu/3tRk=

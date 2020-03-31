@@ -356,7 +356,20 @@ OutFields:
 			if referenceId == nil || !ok {
 				return nil, api2go.NewHTTPError(err, "no reference id provided for GET_BY_ONE", 400)
 			}
-			responseObjects, _, err = dbResource.GetSingleRowByReferenceId(outcome.Type, referenceId.(string))
+
+			includedRelations := make(map[string]bool, 0)
+			if model.Data["included_relations"] != nil {
+				//included := req.QueryParams["included_relations"][0]
+				//includedRelationsList := strings.Split(included, ",")
+				for _, incl := range strings.Split(model.Data["included_relations"].(string), ",") {
+					includedRelations[incl] = true
+				}
+
+			} else {
+				includedRelations = nil
+			}
+
+			responseObjects, _, err = dbResource.GetSingleRowByReferenceId(outcome.Type, referenceId.(string), nil)
 			CheckErr(err, "Failed to get by id")
 
 			if err != nil {

@@ -10,21 +10,6 @@ import (
 	"io"
 )
 
-func main() {
-	originalText := "Encrypt this golang"
-	fmt.Println(originalText)
-
-	key := []byte("example key 1234")
-
-	// Encrypt value to base64
-	cryptoText, _ := Encrypt(key, originalText)
-	fmt.Println(cryptoText)
-
-	// Encrypt base64 crypto to original value
-	text, _ := Decrypt(key, cryptoText)
-
-	fmt.Printf(text)
-}
 
 // Encrypt string to base64 crypto using AES
 func Encrypt(key []byte, text string) (string, error) {

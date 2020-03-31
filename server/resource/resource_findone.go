@@ -48,15 +48,27 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	//}
 
 	languagePreferences := make([]string, 0)
-	prefs := req.PlainRequest.Context().Value("language_preference")
-	if prefs != nil {
-		languagePreferences = prefs.([]string)
-	}
-	if languagePreferences != nil && len(languagePreferences) > 0 {
-		//log.Printf("Language preference: %v", languagePreferences)
+	if dr.tableInfo.TranslationsEnabled {
+		prefs := req.PlainRequest.Context().Value("language_preference")
+		if prefs != nil {
+			languagePreferences = prefs.([]string)
+		}
 	}
 
-	data, include, err := dr.GetSingleRowByReferenceId(modelName, referenceId)
+	includedRelations := make(map[string]bool, 0)
+	if len(req.QueryParams["included_relations"]) > 0 {
+		//included := req.QueryParams["included_relations"][0]
+		//includedRelationsList := strings.Split(included, ",")
+		for _, incl := range req.QueryParams["included_relations"] {
+			includedRelations[incl] = true
+		}
+
+	} else {
+		includedRelations = nil
+	}
+
+
+	data, include, err := dr.GetSingleRowByReferenceId(modelName, referenceId, includedRelations)
 
 	if len(languagePreferences) > 0 {
 		for _, lang := range languagePreferences {
@@ -107,7 +119,6 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	}
 
 	delete(data, "id")
-	//delete(data, "deleted_at")
 
 	infos := dr.model.GetColumns()
 	var a = api2go.NewApi2GoModel(dr.model.GetTableName(), infos, dr.model.GetDefaultPermission(), dr.model.GetRelations())

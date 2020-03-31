@@ -46,7 +46,7 @@ type DaptinFtpServerSettings struct {
 }
 
 // NewDaptinFtpDriver creates a new driver
-func NewDaptinFtpDriver(cruds map[string]*resource.DbResource, certManager *resource.CertificateManager, sites []SubSiteAssetCache) (*DaptinFtpDriver, error) {
+func NewDaptinFtpDriver(cruds map[string]*resource.DbResource, certManager *resource.CertificateManager, ftp_interface string, sites []SubSiteAssetCache) (*DaptinFtpDriver, error) {
 
 	siteMap := make(map[string]SubSiteAssetCache)
 	for _, site := range sites {
@@ -63,13 +63,13 @@ func NewDaptinFtpDriver(cruds map[string]*resource.DbResource, certManager *reso
 			MaxConnections: 100,
 			Server: server.Settings{
 				Listener:                 nil,
-				ListenAddr:               "127.0.0.1:2121",
+				ListenAddr:               ftp_interface,
 				PublicHost:               "",
 				PublicIPResolver:         nil,
 				PassiveTransferPortRange: nil,
 				ActiveTransferPortNon20:  false,
-				IdleTimeout:              0,
-				ConnectionTimeout:        0,
+				IdleTimeout:              5,
+				ConnectionTimeout:        5,
 				DisableMLSD:              false,
 				DisableMLST:              false,
 			},
@@ -215,18 +215,36 @@ func (driver *ClientDriver) ChangeDirectory(cc server.ClientContext, directory s
 		}
 		driver.CurrentDir = subsiteName
 	} else {
-		driver.CurrentDir = dirParts[1]
-		cdPath := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) + strings.Join(dirParts[2:], string(os.PathSeparator))
-		log.Printf("CD Path: %v", cdPath)
-		_, err = os.Stat(cdPath)
+		newDirName := dirParts[1]
+		_, ok := driver.FtpDriver.Sites[newDirName]
+		if !ok {
+			err = errors.New(fmt.Sprintf("no such path %v", directory))
+		} else {
+			driver.CurrentDir = newDirName
+			cdPath := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) + strings.Join(dirParts[2:], string(os.PathSeparator))
+			log.Printf("CD Path: %v", cdPath)
+			_, err = os.Stat(cdPath)
+		}
 	}
 	//driver.CurrentDir = directory
 	return err
 }
 
 // MakeDirectory creates a directory
-func (driver *ClientDriver) MakeDirectory(cc server.ClientContext, directory string) error {
-	return os.Mkdir(driver.CurrentDir+directory, 0750)
+func (driver *ClientDriver) MakeDirectory(cc server.ClientContext, path string) error {
+
+	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
+		strings.Join(strings.Split(path, string(os.PathSeparator))[2:], string(os.PathSeparator))
+
+	if len(strings.Split(path, string(os.PathSeparator))) == 2 {
+		return errors.New("cannot create new directory in /")
+	}
+
+	if driver.CurrentDir == "/" {
+		return errors.New("cannot create new directory in /")
+	}
+
+	return os.Mkdir(path, 0750)
 }
 
 // ListFiles lists the files of a directory
@@ -250,9 +268,9 @@ func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string)
 	} else {
 		path := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
 			strings.Join(strings.Split(directory, string(os.PathSeparator))[2:], string(os.PathSeparator))
-		log.Printf("list Path: %v", path)
 		files, err = ioutil.ReadDir(path)
 	}
+	log.Printf("list Path: %v", files)
 
 	return files, err
 }
