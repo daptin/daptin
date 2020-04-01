@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/artpar/go.uuid"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
 	"github.com/artpar/stats"
 	"github.com/aviddiviner/gin-limit"
@@ -12,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
+	limit2 "github.com/yangxikun/gin-limit-by-key"
 	"golang.org/x/time/rate"
 	"io/ioutil"
 	"net/http"
@@ -198,7 +200,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		}())
 
 		hostRouter.Use(limit.MaxAllowed(max_connections))
-		hostRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
+		hostRouter.Use(limit2.NewRateLimiter(func(c *gin.Context) string {
 			return c.ClientIP() // limit rate by client ip
 		}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
 			return rate.NewLimiter(rate.Every(100*time.Millisecond), rate_limit), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour

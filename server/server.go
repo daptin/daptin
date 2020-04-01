@@ -130,16 +130,16 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
 
-	rate, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
+	rate1, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 	if err != nil {
-		rate = 25
+		rate1 = 25
 		err = configStore.SetConfigValueFor("limit.rate", "25", "backend")
 		resource.CheckErr(err, "Failed to store limit.rate default value in db")
 	}
 	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
 		return c.ClientIP() // limit rate by client ip
 	}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
-		return rate.NewLimiter(rate.Every(100*time.Millisecond), rate), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
+		return rate.NewLimiter(rate.Every(100*time.Millisecond), rate1), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
 	}, func(c *gin.Context) {
 		c.AbortWithStatus(429) // handle exceed rate limit request
 	}))
