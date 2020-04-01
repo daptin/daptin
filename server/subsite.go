@@ -10,21 +10,16 @@ import (
 	"github.com/artpar/go.uuid"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
 	"github.com/artpar/stats"
-	limit "github.com/aviddiviner/gin-limit"
+	"github.com/aviddiviner/gin-limit"
 	"github.com/daptin/daptin/server/auth"
-	rateLimit "github.com/yangxikun/gin-limit-by-key"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
+	rateLimit "github.com/yangxikun/gin-limit-by-key"
 	"golang.org/x/time/rate"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"os"
-	"strings"
 	"time"
 )
 
@@ -103,7 +98,7 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 
 }
 
-func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) (HostSwitch, map[string]*resource.AssetFolderCache) {
+func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware, configStore *resource.ConfigStore) (HostSwitch, map[string]*resource.AssetFolderCache) {
 
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
@@ -135,7 +130,6 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 	max_connections, err := configStore.GetConfigIntValueFor("limit.max_connectioins", "backend")
 	rate_limit, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
-
 
 	for _, site := range sites {
 
@@ -203,7 +197,6 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 				c.Next()
 			}
 		}())
-
 
 		hostRouter.Use(limit.MaxAllowed(max_connections))
 		hostRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
