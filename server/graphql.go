@@ -602,9 +602,10 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				}
 
 				if col.IsForeignKey {
-					if col.ForeignKeyData.DataSource == "self" {
-						finalGraphqlType1 = graphql.String
-					}
+					//if col.ForeignKeyData.DataSource == "self" {
+					//	finalGraphqlType1 = graphql.String
+					//}
+					continue
 				}
 
 				inputFields[col.ColumnName] = &graphql.ArgumentConfig{
