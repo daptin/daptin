@@ -73,18 +73,6 @@ jobs:
             modules: 'on'
             quicktest: true
 
-          - job_name: go1.10
-            os: ubuntu-latest
-            go: '1.11.x'
-            modules: 'on'
-            quicktest: true
-
-          - job_name: go1.11
-            os: ubuntu-latest
-            go: '1.11.x'
-            modules: 'on'
-            quicktest: true
-
           - job_name: go1.12
             os: ubuntu-latest
             go: '1.12.x'
