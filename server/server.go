@@ -133,8 +133,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	rate_limit, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 	if err != nil {
 		rate_limit = 25
-		err = configStore.SetConfigValueFor("limit.max_connections", "25", "backend")
-		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
+		err = configStore.SetConfigValueFor("limit.rate", "25", "backend")
+		resource.CheckErr(err, "Failed to store limit.rate default value in db")
 	}
 	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
 		return c.ClientIP() // limit rate by client ip
