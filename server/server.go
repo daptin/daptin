@@ -122,24 +122,24 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	resource.CheckErr(err, "Failed to get config store")
 	defaultRouter.Use(NewLanguageMiddleware(configStore).LanguageMiddlewareFunc)
 
-	max_connections, err := configStore.GetConfigIntValueFor("limit.max_connectioins", "backend")
+	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connectioins", "backend")
 	if err != nil {
-		max_connections = 25
+		maxConnections = 25
 		err = configStore.SetConfigValueFor("limit.max_connections", "25", "backend")
 		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
 	}
-	defaultRouter.Use(limit.MaxAllowed(max_connections))
+	defaultRouter.Use(limit.MaxAllowed(maxConnections))
 
-	rate_limit, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
+	rate, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 	if err != nil {
-		rate_limit = 25
+		rate = 25
 		err = configStore.SetConfigValueFor("limit.rate", "25", "backend")
 		resource.CheckErr(err, "Failed to store limit.rate default value in db")
 	}
 	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
 		return c.ClientIP() // limit rate by client ip
 	}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
-		return rate.NewLimiter(rate.Every(100*time.Millisecond), rate_limit), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
+		return rate.NewLimiter(rate.Every(100*time.Millisecond), rate), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
 	}, func(c *gin.Context) {
 		c.AbortWithStatus(429) // handle exceed rate limit request
 	}))
