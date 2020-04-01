@@ -42,10 +42,6 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 
 	modelName := dr.model.GetName()
 	log.Printf("Find [%s] by id [%s]", modelName, referenceId)
-	//
-	//if strings.Index(modelName, "_has_") > 0 {
-	//	parts := strings.Split(modelName, "_has_")
-	//}
 
 	languagePreferences := make([]string, 0)
 	if dr.tableInfo.TranslationsEnabled {
@@ -66,7 +62,6 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	} else {
 		includedRelations = nil
 	}
-
 
 	data, include, err := dr.GetSingleRowByReferenceId(modelName, referenceId, includedRelations)
 

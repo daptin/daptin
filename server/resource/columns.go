@@ -2453,6 +2453,11 @@ var StandardStreams = []StreamContract{
 	},
 }
 
+type TableRelation struct {
+	api2go.TableRelation
+	OnDelete string
+}
+
 type TableInfo struct {
 	TableName              string `db:"table_name"`
 	TableId                int
@@ -2473,7 +2478,7 @@ type TableInfo struct {
 	Conformations          []ColumnTag
 	DefaultOrder           string
 	Icon                   string
-	CompositeKeys [][]string
+	CompositeKeys          [][]string
 }
 
 func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {

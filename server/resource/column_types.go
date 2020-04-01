@@ -25,7 +25,7 @@ type ColumnType struct {
 	Conformations []string
 	ReclineType   string
 	DataTypes     []string
-	GraphqlType   *graphql.Scalar
+	GraphqlType   graphql.Type
 }
 
 func randate() time.Time {
@@ -471,7 +471,7 @@ func InitialiseColumnManager() {
 func (ctm *ColumnTypeManager) GetBlueprintType(columnType string) string {
 	return ctm.ColumnMap[columnType].BlueprintType
 }
-func (ctm *ColumnTypeManager) GetGraphqlType(columnType string) *graphql.Scalar {
+func (ctm *ColumnTypeManager) GetGraphqlType(columnType string) graphql.Type {
 	col := strings.Split(columnType, ".")[0]
 	if _, ok := ctm.ColumnMap[col]; !ok {
 		log.Printf("No column definition for type: %v", columnType)
