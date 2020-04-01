@@ -65,7 +65,9 @@ func NewDaptinFtpDriver(cruds map[string]*resource.DbResource, certManager *reso
 				Listener:                 nil,
 				ListenAddr:               ftp_interface,
 				PublicHost:               "",
-				PublicIPResolver:         nil,
+				PublicIPResolver:         func(ctx server.ClientContext) (string, error) {
+					return "", nil
+				},
 				PassiveTransferPortRange: nil,
 				ActiveTransferPortNon20:  false,
 				IdleTimeout:              5,
