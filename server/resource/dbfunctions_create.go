@@ -11,7 +11,7 @@ import (
 )
 
 func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
-	log.Infof("Create constraints")
+	log.Infof("Create constraints and indexes")
 	for _, table := range initConfig.Tables {
 
 		for _, column := range table.Columns {
@@ -26,6 +26,20 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 				}
 			}
 		}
+
+		if len(table.CompositeKeys) > 0 {
+			for _, compositeKeyCols := range table.CompositeKeys {
+				indexName := "i" + GetMD5Hash("index_cl_"+strings.Join(compositeKeyCols, ",")+"_"+"_unique")
+				alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + strings.Join(compositeKeyCols, ",") + ")"
+				log.Infof("Create unique index sql: %v", alterTable)
+				_, err := db.Exec(alterTable)
+				if err != nil {
+					log.Errorf("Table[%v] Column[%v]: Failed to create unique composite key index: %v", table.TableName, compositeKeyCols, err)
+					db.Exec("COMMIT ")
+				}
+			}
+		}
+
 
 		if strings.Index(table.TableName, "_has_") > -1 {
 

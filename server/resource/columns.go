@@ -2473,6 +2473,7 @@ type TableInfo struct {
 	Conformations          []ColumnTag
 	DefaultOrder           string
 	Icon                   string
+	CompositeKeys [][]string
 }
 
 func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {
