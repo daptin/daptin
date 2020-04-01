@@ -51,7 +51,7 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		if err != nil || userOtpProfile == nil {
 			return nil, nil, []error{errors.New("unregistered mobile number")}
 		}
-		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceId("user_account", userOtpProfile["otp_of_account"].(string))
+		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceId("user_account", userOtpProfile["otp_of_account"].(string), nil)
 	} else {
 		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmail(email.(string))
 		if err != nil {

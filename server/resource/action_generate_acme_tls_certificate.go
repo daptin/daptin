@@ -216,14 +216,34 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 
 	certificateString = strings.Split(certificateString, "-----END CERTIFICATE-----")[0] + "-----END CERTIFICATE-----"
 
+	rootCert := string(certificates.IssuerCertificate)
+
+	publicKeyBytes := ""
+	privateKey, err := ParseRsaPrivateKeyFromPemStr(string(certificates.PrivateKey))
+	if err != nil {
+		log.Printf("Failed to parse value as private key: %v", err)
+	} else {
+
+		asn1Bytes, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+		CheckErr(err, "Failed to marshal key as pkix public key")
+
+		var pemkey = &pem.Block{
+			Type:  "PUBLIC KEY",
+			Bytes: asn1Bytes,
+		}
+
+		publicKeyBytes = string(pem.EncodeToMemory(pemkey))
+	}
+
 	newCertificate := map[string]interface{}{
-		"hostname":        hostname,
-		"issuer":          "acme",
-		"generated_at":    time.Now().Format(time.RFC3339),
-		"certificate_pem": certificateString,
-		"private_key_pem": string(certificates.PrivateKey),
-		"public_key_pem":  nil,
-		"reference_id":    certificateSubject["reference_id"].(string),
+		"hostname":         hostname,
+		"issuer":           "acme",
+		"generated_at":     time.Now().Format(time.RFC3339),
+		"certificate_pem":  certificateString,
+		"private_key_pem":  string(certificates.PrivateKey),
+		"public_key_pem":   publicKeyBytes,
+		"root_certificate": rootCert,
+		"reference_id":     certificateSubject["reference_id"].(string),
 	}
 
 	data := api2go.NewApi2GoModelWithData("certificate", nil, 0, nil, newCertificate)
@@ -249,11 +269,8 @@ func ParseRsaPrivateKeyFromPemStr(privPEM string) (*rsa.PrivateKey, error) {
 	}
 
 	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
 
-	return priv, nil
+	return priv, err
 }
 
 func NewAcmeTlsCertificateGenerateActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore, hostSwitch *gin.Engine) (ActionPerformerInterface, error) {

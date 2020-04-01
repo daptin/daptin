@@ -44,6 +44,35 @@ $( document ).ready(function() {
     $("table.docutils:not(.field-list)").wrap("<div class='wy-table-responsive'></div>");
 
     $('table').addClass('docutils');
+
+    /*
+     * Custom rtd-dropdown
+     */
+    toggleCurrent = function (elem) {
+        var parent_li = elem.closest('li');
+        var menu_li = parent_li.next();
+        var menu_ul = menu_li.children('ul');
+        parent_li.siblings('li').not(menu_li).removeClass('current').removeClass('with-children');
+        parent_li.siblings().find('> ul').not(menu_ul).removeClass('current').addClass('toc-hidden');
+        parent_li.toggleClass('current').toggleClass('with-children');
+        menu_li.toggleClass('current');
+        menu_ul.toggleClass('current').toggleClass('toc-hidden');
+    }
+
+    // https://github.com/rtfd/sphinx_rtd_theme/blob/master/js/theme.js
+    $('.tocbase').find('.toctree-expand').each(function () {
+        var link = $(this).parent();
+        $(this).on('click', function (ev) {
+            console.log('click expand');
+            toggleCurrent(link);
+            ev.stopPropagation();
+            return false;
+        });
+        link.on('click', function (ev) {
+            console.log('click link');
+            toggleCurrent(link);
+        });
+    });
 });
 
 window.SphinxRtdTheme = (function (jquery) {

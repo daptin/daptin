@@ -1,9 +1,7 @@
 package server
 
 import (
-	"bytes"
 	"crypto/md5"
-	"encoding/base64"
 	"fmt"
 	"github.com/anthonynsimon/bild/blur"
 	"github.com/anthonynsimon/bild/effect"
@@ -11,14 +9,13 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/disintegration/gift"
 	"github.com/gin-gonic/gin"
-	"github.com/h2non/filetype"
-	"github.com/russross/blackfriday"
 	"image"
 	"image/jpeg"
 	"image/png"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -38,8 +35,7 @@ func Etag(content []byte) (string, error) {
 	return fmt.Sprintf(etagFormat, hash.Sum(nil)), nil
 }
 
-
-func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
+func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Context) {
 	return func(c *gin.Context) {
 		var typeName = c.Param("typename")
 		var resourceId = c.Param("resource_id")
@@ -85,29 +81,34 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		if colData == nil {
 			c.AbortWithStatus(404)
 			return
-
 		}
 
 		if colInfo.IsForeignKey {
 
 			colType := strings.Split(colInfo.ColumnType, ".")[0]
+			//var filesData []interface{}
+			//err = json.Unmarshal([]byte(colData.(string)), &filesData)
+			//resource.CheckErr(err, "Failed to unmarshal file metadata")
+
+			fileToServe := ""
+			for _, fileData := range colData.([]map[string]interface{}) {
+				//fileData := fileInterface.(map[string]interface{})
+				fileName := fileData["name"].(string)
+				if c.Query(fileName) == fileName || fileToServe == "" {
+					fileToServe = fileName
+				}
+			}
+
+			file, err := cruds["world"].AssetFolderCache[typeName][columnName].GetFileByName(fileToServe)
+
+			if err != nil {
+				c.AbortWithStatus(404)
+				return
+			}
 
 			switch colType {
 
 			case "image":
-
-				files, ok := colData.([]map[string]interface{})
-
-				if !ok || len(files) < 1 {
-					c.AbortWithStatus(404)
-					return
-				}
-
-				contentBytes, e := base64.StdEncoding.DecodeString(files[0]["contents"].(string))
-				if e != nil {
-					c.AbortWithStatus(500)
-					return
-				}
 
 				bildFilters := make([]func(image.Image) image.Image, 0)
 				filters := make([]gift.Filter, 0)
@@ -344,7 +345,7 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 							continue
 						}
 						angle, _ := strconv.ParseFloat(vals[0], 32)
-						backgroundColor, _ := ParseHexColor(vals[1])
+						backgroundColor, _ := ParseHexColor("#" + vals[1])
 						interpolation := gift.NearestNeighborInterpolation
 
 						switch vals[2] {
@@ -414,7 +415,7 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 
 				f := gift.New(filters...)
 
-				img, formatName, err := image.Decode(bytes.NewReader(contentBytes))
+				img, formatName, err := image.Decode(file)
 				log.Printf("Image format name: %v", formatName)
 				if err != nil {
 					c.AbortWithStatus(500)
@@ -442,40 +443,13 @@ func CreateDbAssetHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 				c.AbortWithStatus(200)
 
 			default:
-
-				files, ok := colData.([]map[string]interface{})
-
-				if !ok || len(files) < 1 {
-					c.AbortWithStatus(404)
-					return
-				}
-
-				contentBytes, e := base64.StdEncoding.DecodeString(files[0]["contents"].(string))
-				if e != nil {
-					c.AbortWithStatus(500)
-					return
-				}
-
-				kind, err := filetype.Match(contentBytes)
-				if err != nil {
-					log.Printf("Failed to identify file type: %v", err)
-				}
-				etag, eTagerr := Etag(contentBytes)
-				c.Writer.Header().Set("Content-Type", kind.MIME.Value)
-				c.Writer.Header().Set("Cache-Control", "public, immutable, max-age=10000000")
-
-				if eTagerr == nil {
-					c.Writer.Header().Set("ETag", etag)
-				}
-				c.Writer.Write(contentBytes)
-				c.AbortWithStatus(200)
+				c.File(cruds["world"].AssetFolderCache[typeName][columnName].LocalSyncPath + string(os.PathSeparator) + fileToServe)
 
 			}
 		} else if colInfo.ColumnType == "markdown" {
 
-			outHtml := blackfriday.Run([]byte(colData.(string)))
 			c.Writer.Header().Set("Content-Type", "text/html")
-			c.Writer.Write(outHtml)
+			c.Writer.Write([]byte("<pre>" + colData.(string) + "</pre>"))
 			c.AbortWithStatus(200)
 
 		}

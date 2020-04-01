@@ -10,11 +10,11 @@
   <link rel="shortcut icon" href="../../images/favicon.png">
   
   <title>Data model - Daptin</title>
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Muli:400,700|Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet' type='text/css'>
 
   <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
   <link href="../../css/theme_extra.css" rel="stylesheet">
   
   <script>
@@ -25,9 +25,7 @@
   </script>
   
   <script src="../../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script> 
   
   <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -57,213 +55,497 @@
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-	<ul class="current">
-	  
+	<ul class="tocbase current">
+    
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Daptin</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../..">Introduction</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../installation/">Installation</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../settingup/">Getting started</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../access/">User management</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1 current">
-		
-    <a class="current" href="./">Data model</a>
-    <ul class="subnav">
-            
-    <li class="toctree-l2"><a href="#automatic-creation">Automatic creation</a></li>
-    
 
-    <li class="toctree-l2"><a href="#manual-creation">Manual creation</a></li>
-    
-        <ul>
-        
-            <li><a class="toctree-l3" href="#data-validations">Data validations</a></li>
-        
-            <li><a class="toctree-l3" href="#online-entity-designer">Online entity designer</a></li>
-        
-            <li><a class="toctree-l3" href="#market-place">Market place</a></li>
-        
-            <li><a class="toctree-l3" href="#column-specifications">Column specifications</a></li>
-        
-            <li><a class="toctree-l3" href="#column-types">Column types</a></li>
-        
-        </ul>
-    
 
-    <li class="toctree-l2"><a href="#data-relations">Data relations</a></li>
+  
     
-        <ul>
-        
-            <li><a class="toctree-l3" href="#relations-in-jsonyaml-schema">Relations in JSON/YAML schema</a></li>
-        
-            <li><a class="toctree-l3" href="#relations-types">Relations types</a></li>
-        
-            <li><a class="toctree-l3" href="#default-relations">Default relations</a></li>
-        
-            <li><a class="toctree-l3" href="#multiple-relation">Multiple relation</a></li>
-        
-            <li><a class="toctree-l3" href="#sql-constraints">SQL constraints</a></li>
-        
-            <li><a class="toctree-l3" href="#importing-data">Importing data</a></li>
-        
-        </ul>
+    <li class="navtree toctree-l2 page current">
+      <a class="current" href="./">
+        Data model
+          <span class="toctree-expand"></span>
+      </a>
+    </li>
     
+      
 
-    <li class="toctree-l2"><a href="#data-conformations">Data conformations</a></li>
-    
-        <ul>
-        
-            <li><a class="toctree-l3" href="#data-auditing">Data Auditing</a></li>
-        
-        </ul>
-    
 
-    </ul>
-	    </li>
+
+  <li class="toctree-l2 current">
+    <ul class="subnav-l2 current">
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#automatic-creation">Automatic creation</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#manual-creation">Manual creation</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#yamljson-schema">YAML/JSON schema</a>
+        </li>
+    
+      
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">API reference</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../apis/overview/">Overview</a>
-                </li>
-                <li class="">
-                    
-    <span class="caption-text">CRUD</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/read/">Read, search, filter</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/create/">Create</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/update/">Update</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/delete/">Delete</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/relation/">Relations</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/execute/">Execute</a>
-                </li>
+
+  <li class="toctree-l3">
+    <a href="#data-validations">
+      Data validations
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3">
+    <ul class="subnav-l3 toc-hidden">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#validation-example">Validation Example</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#json-example">JSON example</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#yaml-example">YAML example</a>
+        </li>
+    
     </ul>
-                </li>
-                <li class="">
-                    
-    <span class="caption-text">Action APIs</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../actions/actions/">Using actions</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+
+      
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#online-entity-designer">Online entity designer</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#column-specifications">Column specifications</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#column-types">Column types</a>
+        </li>
+    
+      
+          
+
+  <li class="toctree-l3">
+    <a href="#data-relations">
+      Data relations
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3">
+    <ul class="subnav-l3 toc-hidden">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#relations-in-jsonyaml-schema">Relations in JSON/YAML schema</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#relations-types">Relations types</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#default-relations">Default relations</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#multiple-relation">Multiple relation</a>
+        </li>
+    
+      
+          
+
+  <li class="toctree-l4">
+    <a href="#sql-constraints">
+      SQL constraints
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l4">
+    <ul class="subnav-l4 toc-hidden">
+    
+      
+        <li class="toctree-l5">
+          <a class="toctree-l6" href="#belongs-to">belongs to</a>
+        </li>
+    
+      
+        <li class="toctree-l5">
+          <a class="toctree-l6" href="#has-one">has one</a>
+        </li>
+    
+      
+        <li class="toctree-l5">
+          <a class="toctree-l6" href="#has-many">has many</a>
+        </li>
+    
+    </ul>
+  </li>
+
+      
+    
+    </ul>
+  </li>
+
+      
+    
+      
+          
+
+  <li class="toctree-l3">
+    <a href="#importing-data">
+      Importing data
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3">
+    <ul class="subnav-l3 toc-hidden">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#excel-file-upload">Excel file upload</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#csv-file-upload">CSV file upload</a>
+        </li>
+    
+    </ul>
+  </li>
+
+      
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#data-conformations">Data conformations</a>
+        </li>
+    
+      
+          
+
+  <li class="toctree-l3">
+    <a href="#data-auditing">
+      Data auditing
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3">
+    <ul class="subnav-l3 toc-hidden">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#audit-tables">Audit tables</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#audit-row">Audit row</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#audit-table-permissions">Audit table permissions</a>
+        </li>
+    
+    </ul>
+  </li>
+
+      
+    
+    </ul>
+  </li>
+
+
+  
+        
+      </ul>
+    </li>
+    
+      
+
+
+  <li class="navtree toctree-l1 inactive">
+    <a class="" href="../../apis/crud/">API reference</a>
+  </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Actions</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../actions/actions/">What are actions</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../actions/default_actions/">Actions list</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../actions/examples/">Examples</a>
-                </li>
-    </ul>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Features</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-graphql/">GraphQL</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-smtp-imap/">SMTP/IMPS server</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-logs/">Logs</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../state/machines/">State tracking</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Asset and file storage</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../cloudstore/cloudstore/">Connecting with cloud store</a>
-                </li>
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/oauth_connection/">OAuth Connections</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/oauth_token/">OAuth Tokens</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../integrations/overview/">Integrations Overview</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../cloudstore/cloudstore/">Cloud store</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../cloudstore/assetcolumns/">Cloud store backed asset columns</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Sub-sites</span>
-    <ul class="subnav">
-                <li class="">
-                    
+  <li class="navtree toctree-l2 label">
+    <p class="caption">Sub-sites</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l2 group">
+      <ul class="navtree subnav-l2 current">
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../subsite/subsite/">Creating a subsite</a>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../subsite/grapes/">Live editing a subsite</a>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../subsite/basic_auth/">Basic Authentication</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
+      </ul>
+    </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Reference Documents</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Sharing</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../extend/marketplace/">Marketplace</a>
-                </li>
-    </ul>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Reference</span>
-    <ul class="subnav">
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../data-modeling/data_storage/">Data store format</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../streams/streams/">Data streams</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
           
-        </ul>
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../streams/streams/">Data streams</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../enabling-features/">Enable/Disabling features</a>
+  </li>
+        
+      </ul>
+    </li>
+    
+  </ul>
       </div>
       &nbsp;
     </nav>
@@ -284,12 +566,13 @@
     <li><a href="../..">Docs</a> &raquo;</li>
     
       
+        
+          <li>Daptin &raquo;</li>
+        
+      
     
     <li>Data model</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="https://github.com/daptin/daptin/edit/master/docs/setting-up/data_modeling.md"
-          class="icon icon-github"> Edit on GitHub</a>
       
     </li>
   </ul>
@@ -298,10 +581,12 @@
           <div role="main">
             <div class="section">
               
-                <p>Tables are the basic data structure. Tables have columns. Each column has a particular data type. Tables are exposed as JSON APIs under the <code>/api/&lt;entityName&gt;</code> path.</p>
-<h1 id="automatic-creation">Automatic creation<a class="headerlink" href="#automatic-creation" title="Permanent link">Link</a></h1>
+                <h1 id="data-model">Data model<a class="headerlink" href="#data-model" title="Permanent link">Link</a></h1>
+<p>Tables are the basic data structure. Tables have columns. Each column has a particular data type. Tables are exposed as JSON APIs under the <code>/api/&lt;entityName&gt;</code> path.</p>
+<h2 id="automatic-creation">Automatic creation<a class="headerlink" href="#automatic-creation" title="Permanent link">Link</a></h2>
 <p>Import CSV or XLS file and you can let Daptin create the entities for you based on intelligent data pre-processor.</p>
-<h1 id="manual-creation">Manual creation<a class="headerlink" href="#manual-creation" title="Permanent link">Link</a></h1>
+<h2 id="manual-creation">Manual creation<a class="headerlink" href="#manual-creation" title="Permanent link">Link</a></h2>
+<h2 id="yamljson-schema">YAML/JSON schema<a class="headerlink" href="#yamljson-schema" title="Permanent link">Link</a></h2>
 <p>If you are looking for a more reproducible way, design your entities and create JSON or YAML files. These files can be used again to create an exact same replica.</p>
 <p>Multiple schema json files can be uploaded, and changes are merged accordingly.</p>
 <p>Lets imagine we were creating a todo application and wanted to keep a track of the following for each todo item</p>
@@ -313,13 +598,13 @@
 </div>
 <div class="admonition note">
 <p class="admonition-title">YAML example</p>
-<div class="codehilite"><pre><span></span><span class="nt">Tables</span><span class="p">:</span>
-<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-  <span class="nt">Columns</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
-    <span class="nt">IsIndexed</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Tables</span><span class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+    <span class="l l-Scalar l-Scalar-Plain">IsIndexed</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
 </pre></div>
 
 </div>
@@ -359,7 +644,7 @@
 <li>Cross Field and Cross Struct validations by using validation tags or custom validators.</li>
 <li>Slice, Array and Map diving, which allows any or all levels of a multidimensional field to be validated.</li>
 </ul>
-<h3 id="example">Example<a class="headerlink" href="#example" title="Permanent link">Link</a></h3>
+<h3 id="validation-example">Validation Example<a class="headerlink" href="#validation-example" title="Permanent link">Link</a></h3>
 <h3 id="json-example">JSON example<a class="headerlink" href="#json-example" title="Permanent link">Link</a></h3>
 <p>JSON files are the primary way to create new entities in daptin. The above two ways ultimately create a JSON file or fetch from the market.</p>
 <p>The JSON for our <code>todo</code> entity will look as follows:</p>
@@ -417,48 +702,46 @@
 </ul>
 <h3 id="yaml-example">YAML example<a class="headerlink" href="#yaml-example" title="Permanent link">Link</a></h3>
 <p>YAML example for <code>todo</code> entity is as follows</p>
-<div class="codehilite"><pre><span></span><span class="nt">Tables</span><span class="p">:</span>
-<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-  <span class="nt">Columns</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
-    <span class="nt">IsIndexed</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">url</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">url</span>
-    <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">completed</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int(1)</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">truefalse</span>
-    <span class="nt">DefaultValue</span><span class="p">:</span> <span class="s">&#39;false&#39;</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">schedule</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
-    <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">order</span>
-    <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">item_order</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int(4)</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
-    <span class="nt">DefaultValue</span><span class="p">:</span> <span class="s">&#39;10&#39;</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
-    <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-  <span class="nt">Conformations</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">order</span>
-    <span class="nt">Tags</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">numeric</span>
-  <span class="nt">Validations</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
-<span class="nt">Tags</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">required</span>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Tables</span><span class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+    <span class="l l-Scalar l-Scalar-Plain">IsIndexed</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">url</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">url</span>
+    <span class="l l-Scalar l-Scalar-Plain">IsNullable</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">completed</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">int(1)</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">truefalse</span>
+    <span class="l l-Scalar l-Scalar-Plain">DefaultValue</span><span class="p p-Indicator">:</span> <span class="s">&#39;false&#39;</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">schedule</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
+    <span class="l l-Scalar l-Scalar-Plain">IsNullable</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">order</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">item_order</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">int(4)</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
+    <span class="l l-Scalar l-Scalar-Plain">DefaultValue</span><span class="p p-Indicator">:</span> <span class="s">&#39;10&#39;</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
+    <span class="l l-Scalar l-Scalar-Plain">IsNullable</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="l l-Scalar l-Scalar-Plain">Conformations</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">order</span>
+    <span class="l l-Scalar l-Scalar-Plain">Tags</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">numeric</span>
+  <span class="l l-Scalar l-Scalar-Plain">Validations</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+<span class="l l-Scalar l-Scalar-Plain">Tags</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">required</span>
 </pre></div>
 
 <p>You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.</p>
 <h2 id="online-entity-designer">Online entity designer<a class="headerlink" href="#online-entity-designer" title="Permanent link">Link</a></h2>
 <p>The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it. This is a basic designer and more advanced features to customise every aspect of the entity will be added later.</p>
 <p><img alt="Entity designer" src="/images/create_entity.png" /></p>
-<h2 id="market-place">Market place<a class="headerlink" href="#market-place" title="Permanent link">Link</a></h2>
-<p>Checkout <a href="/extend/marketplace">marketplace documentation</a></p>
 <h2 id="column-specifications">Column specifications<a class="headerlink" href="#column-specifications" title="Permanent link">Link</a></h2>
 <p>Columns of the entity can be customized:</p>
 <table>
@@ -519,6 +802,11 @@
 <td>DefaultValue</td>
 <td>string</td>
 <td>default value if any (has to be inside single quotes for static values</td>
+</tr>
+<tr>
+<td>Options</td>
+<td>Array[value,label]</td>
+<td>Valid values if column in enum type</td>
 </tr>
 </tbody>
 </table>
@@ -675,16 +963,16 @@
 </tr>
 </tbody>
 </table>
-<h1 id="data-relations">Data relations<a class="headerlink" href="#data-relations" title="Permanent link">Link</a></h1>
+<h2 id="data-relations">Data relations<a class="headerlink" href="#data-relations" title="Permanent link">Link</a></h2>
 <p>A data oriented system with no relational knowledge of the data is next to an Excel sheet. Specifying relations in your data is the most important thing after creating your entities.</p>
 <p>Relations are constraints among tables and help you keep clean and consistent data. Relational data is easily accessible over APIs using a path structure like <code>/api/&lt;entityName&gt;/&lt;id&gt;/&lt;relationName&gt;</code> and the response is consistent with <a href="https://JSONAPI.org">JSONAPI.org</a>.</p>
 <p>Checkout the <a href="/apis/relation">relation apis</a> exposed by daptin.</p>
 <div class="admonition note">
 <p class="admonition-title">YAML example</p>
-<div class="codehilite"><pre><span></span><span class="nt">Relations</span><span class="p">:</span>
-<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
-  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Relations</span><span class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
+  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
 </pre></div>
 
 </div>
@@ -702,27 +990,27 @@
 </pre></div>
 
 </div>
-<h2 id="relations-in-jsonyaml-schema">Relations in JSON/YAML schema<a class="headerlink" href="#relations-in-jsonyaml-schema" title="Permanent link">Link</a></h2>
+<h3 id="relations-in-jsonyaml-schema">Relations in JSON/YAML schema<a class="headerlink" href="#relations-in-jsonyaml-schema" title="Permanent link">Link</a></h3>
 <p>When uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.</p>
 <p>Continuing with our example of todos, lets say we want to group todo's in "projects" and each todo can belong to only a single project.</p>
 <p>Lets design a "project" entity:</p>
-<div class="codehilite"><pre><span></span><span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
-  <span class="nt">Columns</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
-    <span class="nt">IsIndexed</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+<div class="codehilite"><pre><span></span><span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
+  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
+    <span class="l l-Scalar l-Scalar-Plain">IsIndexed</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
 </pre></div>
 
 <p>A very simple table with just a name column. Now we can tell daptin about the relation between todos and projects</p>
-<div class="codehilite"><pre><span></span><span class="nt">Relations</span><span class="p">:</span>
-<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
-  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
-  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Relations</span><span class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
+  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
 </pre></div>
 
 <p>This tells daptin that todo "has_one" project.</p>
-<h2 id="relations-types">Relations types<a class="headerlink" href="#relations-types" title="Permanent link">Link</a></h2>
+<h3 id="relations-types">Relations types<a class="headerlink" href="#relations-types" title="Permanent link">Link</a></h3>
 <p>Any entity can be associated to any other entity (or to itself) as one of the follows</p>
 <table>
 <thead>
@@ -750,7 +1038,7 @@
 </tr>
 </tbody>
 </table>
-<h2 id="default-relations">Default relations<a class="headerlink" href="#default-relations" title="Permanent link">Link</a></h2>
+<h3 id="default-relations">Default relations<a class="headerlink" href="#default-relations" title="Permanent link">Link</a></h3>
 <p>Every entity created on daptin has at least two relations</p>
 <table>
 <thead>
@@ -775,7 +1063,7 @@
 </table>
 <p>These relations help you precisely control the authorization for each user.</p>
 <p>Read more about <a href="/auth/authorization">authorization and permissions</a></p>
-<h2 id="multiple-relation">Multiple relation<a class="headerlink" href="#multiple-relation" title="Permanent link">Link</a></h2>
+<h3 id="multiple-relation">Multiple relation<a class="headerlink" href="#multiple-relation" title="Permanent link">Link</a></h3>
 <p>There can be a scenario where two entities are related in more then 1 way. Consider the following example</p>
 <ul>
 <li>A blog entity</li>
@@ -784,57 +1072,57 @@
 <li>Each blog can have a "highlighted post" (blog has one "highlighted post")</li>
 </ul>
 <p>To achieve the above scenario, our schema would look like as follows</p>
-<div class="codehilite"><pre><span></span><span class="nt">Tables</span><span class="p">:</span>
-<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">blog</span>
-  <span class="nt">Columns</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">view_count</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int(11)</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
-<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
-  <span class="nt">Columns</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">body</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
-<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">comment</span>
-  <span class="nt">Columns</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">body</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
-  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">likes_count</span>
-    <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">likes_count</span>
-    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int(11)</span>
-    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
-<span class="nt">Relations</span><span class="p">:</span>
-<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">comment</span>
-  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">belongs_to</span>
-  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
-<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
-  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">belongs_to</span>
-  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">blog                   // this is our post belongs to blog relation</span>
-<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">blog</span>
-  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
-  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
-  <span class="nt">ObjectName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">current_post</span>
-  <span class="nt">SubjectName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">current_post_of   // this is our highlighted post relation</span>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">Tables</span><span class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">blog</span>
+  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">view_count</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">int(11)</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
+  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">body</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">TableName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">comment</span>
+  <span class="l l-Scalar l-Scalar-Plain">Columns</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">body</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">likes_count</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">likes_count</span>
+    <span class="l l-Scalar l-Scalar-Plain">DataType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">int(11)</span>
+    <span class="l l-Scalar l-Scalar-Plain">ColumnType</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
+<span class="l l-Scalar l-Scalar-Plain">Relations</span><span class="p p-Indicator">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">comment</span>
+  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">belongs_to</span>
+  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
+  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">belongs_to</span>
+  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">blog                   // this is our post belongs to blog relation</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Subject</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">blog</span>
+  <span class="l l-Scalar l-Scalar-Plain">Relation</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
+  <span class="l l-Scalar l-Scalar-Plain">Object</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
+  <span class="l l-Scalar l-Scalar-Plain">ObjectName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">current_post</span>
+  <span class="l l-Scalar l-Scalar-Plain">SubjectName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">current_post_of   // this is our highlighted post relation</span>
 </pre></div>
 
 <p>Notice the "SubjectName" and "ObjectName" keys which helps to name our relations more intuitively.</p>
-<h2 id="sql-constraints">SQL constraints<a class="headerlink" href="#sql-constraints" title="Permanent link">Link</a></h2>
-<h3 id="belongs-to">belongs to<a class="headerlink" href="#belongs-to" title="Permanent link">Link</a></h3>
+<h3 id="sql-constraints">SQL constraints<a class="headerlink" href="#sql-constraints" title="Permanent link">Link</a></h3>
+<h4 id="belongs-to">belongs to<a class="headerlink" href="#belongs-to" title="Permanent link">Link</a></h4>
 <ul>
 <li>A column is added to the subject entity, which refers to the Object entity, set to non nullable</li>
 </ul>
-<h3 id="has-one">has one<a class="headerlink" href="#has-one" title="Permanent link">Link</a></h3>
+<h4 id="has-one">has one<a class="headerlink" href="#has-one" title="Permanent link">Link</a></h4>
 <ul>
 <li>Same as above, but nullable</li>
 </ul>
-<h3 id="has-many">has many<a class="headerlink" href="#has-many" title="Permanent link">Link</a></h3>
+<h4 id="has-many">has many<a class="headerlink" href="#has-many" title="Permanent link">Link</a></h4>
 <ul>
 <li>A join table is created</li>
 </ul>
@@ -872,7 +1160,7 @@
 <h3 id="csv-file-upload">CSV file upload<a class="headerlink" href="#csv-file-upload" title="Permanent link">Link</a></h3>
 <p>CSV upload provides an easy way to create entities. This takes away the complexity of writing each column type. Daptin uses a combination of rules to identify columns and their types based on the data in the csv.</p>
 <p>You can upload data from CSV. Daptin will take care of going through your XLS file and identifying column types. This is one of the easiest and fastest ways to create entities and uploading data in daptin. You can specify relations among entities later from the online designer.</p>
-<h1 id="data-conformations">Data conformations<a class="headerlink" href="#data-conformations" title="Permanent link">Link</a></h1>
+<h2 id="data-conformations">Data conformations<a class="headerlink" href="#data-conformations" title="Permanent link">Link</a></h2>
 <p>Daptin uses the excellent <a href="https://github.com/leebenson/conform">leebenson/conform</a> library to apply conformations on data before storing them in the database</p>
 <ul>
 <li>Conform: keep user input in check (go, golang)</li>
@@ -880,7 +1168,7 @@
 </ul>
 <p>Use it for names, e-mail addresses, URL slugs, or any other form field where formatting matters.</p>
 <p>Conform doesn't attempt any kind of validation on your fields.</p>
-<h2 id="data-auditing">Data Auditing<a class="headerlink" href="#data-auditing" title="Permanent link">Link</a></h2>
+<h2 id="data-auditing">Data auditing<a class="headerlink" href="#data-auditing" title="Permanent link">Link</a></h2>
 <p>To enable recoding of all historical data for a particular entity, enable data audit for it in the worlds configuration.</p>
 <p>Audits are ready only and cannot be manipulated over api. You can configure the permission for your use case.</p>
 <p>All changes in daptin can be recorded by enabling <strong>auditing</strong>. History is maintained in separate audit tables which maintain a copy of all columns at each change. Audit table are entities just like regular entities. All Patch/Put/Delete calls to daptin will create an entry in the audit table if the entity is changed.</p>
@@ -916,7 +1204,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../../apis/overview/" class="btn btn-neutral float-right" title="Overview">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../../apis/crud/" class="btn btn-neutral float-right" title="API reference">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
         <a href="../access/" class="btn btn-neutral" title="User management"><span class="icon icon-circle-arrow-left"></span> Previous</a>
@@ -944,13 +1232,11 @@
   <div class="rst-versions" role="note" style="cursor: pointer">
     <span class="rst-current-version" data-toggle="rst-current-version">
       
-          <a href="https://github.com/daptin/daptin/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
-      
       
         <span><a href="../access/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
-        <span style="margin-left: 15px"><a href="../../apis/overview/" style="color: #fcfcfc">Next &raquo;</a></span>
+        <span style="margin-left: 15px"><a href="../../apis/crud/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>

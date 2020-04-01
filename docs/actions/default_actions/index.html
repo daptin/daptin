@@ -10,11 +10,11 @@
   <link rel="shortcut icon" href="../../images/favicon.png">
   
   <title>Actions list - Daptin</title>
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Muli:400,700|Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet' type='text/css'>
 
   <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
   <link href="../../css/theme_extra.css" rel="stylesheet">
   
   <script>
@@ -25,9 +25,7 @@
   </script>
   
   <script src="../../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script> 
   
   <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -57,212 +55,362 @@
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-	<ul class="current">
-	  
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../..">Introduction</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../setting-up/installation/">Installation</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../setting-up/settingup/">Getting started</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../setting-up/access/">User management</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../../setting-up/data_modeling/">Data model</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <span class="caption-text">API reference</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../apis/overview/">Overview</a>
-                </li>
-                <li class="">
-                    
-    <span class="caption-text">CRUD</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/read/">Read, search, filter</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/create/">Create</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/update/">Update</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/delete/">Delete</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/relation/">Relations</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/execute/">Execute</a>
-                </li>
-    </ul>
-                </li>
-                <li class=" current">
-                    
-    <span class="caption-text">Action APIs</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
-    <a class="" href="../actions/">Using actions</a>
-                </li>
-                <li class="toctree-l3 current">
-                    
-    <a class="current" href="./">Actions list</a>
-    <ul class="subnav">
-            
-    <li class="toctree-l4"><a href="#actions">Actions</a></li>
+	<ul class="tocbase current">
     
-        <ul>
-        
-            <li><a class="toctree-l5" href="#restart-daptin">Restart daptin</a></li>
-        
-            <li><a class="toctree-l5" href="#refresh-marketplace-packages">Refresh marketplace packages</a></li>
-        
-            <li><a class="toctree-l5" href="#generate-random-data">Generate random data</a></li>
-        
-            <li><a class="toctree-l5" href="#install-package-from-market">Install package from market</a></li>
-        
-            <li><a class="toctree-l5" href="#export-data">Export data</a></li>
-        
-            <li><a class="toctree-l5" href="#import-data">Import data</a></li>
-        
-            <li><a class="toctree-l5" href="#upload-file-to-a-cloud-store">Upload file to a cloud store</a></li>
-        
-            <li><a class="toctree-l5" href="#upload-xls">Upload XLS</a></li>
-        
-            <li><a class="toctree-l5" href="#upload-csv">Upload CSV</a></li>
-        
-            <li><a class="toctree-l5" href="#upload-schema">Upload schema</a></li>
-        
-            <li><a class="toctree-l5" href="#download-schema">Download Schema</a></li>
-        
-            <li><a class="toctree-l5" href="#become-administrator">Become administrator</a></li>
-        
-            <li><a class="toctree-l5" href="#sign-up">Sign up</a></li>
-        
-            <li><a class="toctree-l5" href="#sign-in">Sign in</a></li>
-        
-            <li><a class="toctree-l5" href="#oauth-login">Oauth login</a></li>
-        
-            <li><a class="toctree-l5" href="#oauth-login-response">Oauth login response</a></li>
-        
-            <li><a class="toctree-l5" href="#add-data-exchange">Add data exchange</a></li>
-        
-            <li><a class="toctree-l5" href="#publish-package-to-marketplace">Publish package to marketplace</a></li>
-        
-            <li><a class="toctree-l5" href="#update-package-list">Update package list</a></li>
-        
-            <li><a class="toctree-l5" href="#visit-marketplace">Visit marketplace</a></li>
-        
-        </ul>
     
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Daptin</p>
+  </li>
 
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../..">Introduction</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../setting-up/installation/">Installation</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../setting-up/settingup/">Getting started</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../setting-up/access/">User management</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../setting-up/data_modeling/">Data model</a>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+
+
+  <li class="navtree toctree-l1 inactive">
+    <a class="" href="../../apis/crud/">API reference</a>
+  </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Actions</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../actions/">What are actions</a>
+  </li>
+        
+          
+
+
+  
+    
+    <li class="navtree toctree-l2 page current">
+      <a class="current" href="./">
+        Actions list
+          <span class="toctree-expand"></span>
+      </a>
+    </li>
+    
+      
+
+
+
+  <li class="toctree-l2 current">
+    <ul class="subnav-l2 current">
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#restart-daptin">Restart daptin</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#generate-random-data">Generate random data</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#export-data">Export data</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#import-data">Import data</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#upload-file-to-a-cloud-store">Upload file to a cloud store</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#upload-xls">Upload XLS</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#upload-csv">Upload CSV</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#upload-schema">Upload schema</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#download-schema">Download Schema</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#become-administrator">Become administrator</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#sign-up">Sign up</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#sign-in">Sign in</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#oauth-login">Oauth login</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#oauth-login-response">Oauth login response</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#add-data-exchange">Add data exchange</a>
+        </li>
+    
     </ul>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+
+
+  
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../examples/">Examples</a>
-                </li>
-    </ul>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Features</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-graphql/">GraphQL</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-smtp-imap/">SMTP/IMPS server</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-logs/">Logs</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../state/machines/">State tracking</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Asset and file storage</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../cloudstore/cloudstore/">Connecting with cloud store</a>
-                </li>
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/oauth_connection/">OAuth Connections</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/oauth_token/">OAuth Tokens</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../integrations/overview/">Integrations Overview</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../cloudstore/cloudstore/">Cloud store</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../cloudstore/assetcolumns/">Cloud store backed asset columns</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Sub-sites</span>
-    <ul class="subnav">
-                <li class="">
-                    
+  <li class="navtree toctree-l2 label">
+    <p class="caption">Sub-sites</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l2 group">
+      <ul class="navtree subnav-l2 current">
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../subsite/subsite/">Creating a subsite</a>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../subsite/grapes/">Live editing a subsite</a>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../subsite/basic_auth/">Basic Authentication</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
+      </ul>
+    </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Reference Documents</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Sharing</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../extend/marketplace/">Marketplace</a>
-                </li>
-    </ul>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Reference</span>
-    <ul class="subnav">
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../data-modeling/data_storage/">Data store format</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../streams/streams/">Data streams</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
           
-        </ul>
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../streams/streams/">Data streams</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../setting-up/enabling-features/">Enable/Disabling features</a>
+  </li>
+        
+      </ul>
+    </li>
+    
+  </ul>
       </div>
       &nbsp;
     </nav>
@@ -284,19 +432,12 @@
     
       
         
-          <li>Action APIs &raquo;</li>
-        
-      
-        
-          <li>API reference &raquo;</li>
+          <li>Actions &raquo;</li>
         
       
     
     <li>Actions list</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="https://github.com/daptin/daptin/edit/master/docs/actions/default_actions.md"
-          class="icon icon-github"> Edit on GitHub</a>
       
     </li>
   </ul>
@@ -305,7 +446,7 @@
           <div role="main">
             <div class="section">
               
-                <h1 id="actions">Actions<a class="headerlink" href="#actions" title="Permanent link">Link</a></h1>
+                <h1 id="actions-list">Actions list<a class="headerlink" href="#actions-list" title="Permanent link">Link</a></h1>
 <p>Use actions to build work flows to carry out tasks like syncing data or emailing your users. You can also give access to these workflows to your users and restrict their access by altering their <strong>permission</strong>.</p>
 <h2 id="restart-daptin">Restart daptin<a class="headerlink" href="#restart-daptin" title="Permanent link">Link</a></h2>
 <p>Restarts daptin immediately and reads file system for new config and data files and apply updates to the APIs as necessary.</p>
@@ -319,33 +460,7 @@
 <span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{}}&#39;</span><span class="p">;</span>
 
 <span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://api.daptin.com:6336/action/world/restart_daptin&#39;</span><span class="p">,</span>
-    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
-    <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
-    <span class="nx">body</span>: <span class="kt">dataString</span>
-<span class="p">};</span>
-
-<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
-</pre></div>
-
-<h2 id="refresh-marketplace-packages">Refresh marketplace packages<a class="headerlink" href="#refresh-marketplace-packages" title="Permanent link">Link</a></h2>
-<p>Pull updates from marketplace repository. New changes are not applied immediately and these packages should be installed again for updates.</p>
-<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
-
-<span class="kd">var</span> <span class="nx">headers</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;Authorization&#39;</span><span class="o">:</span> <span class="s1">&#39;Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo&#39;</span>
-<span class="p">};</span>
-
-<span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{&quot;marketplace_id&quot;:&quot;0cbae4bf-961d-43ea-b57b-f7fb07736747&quot;}}&#39;</span><span class="p">;</span>
-
-<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://api.daptin.com:6336/action/marketplace/refresh_marketplace_packages&#39;</span><span class="p">,</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://localhost:6336/action/world/restart_daptin&#39;</span><span class="p">,</span>
     <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
     <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
     <span class="nx">body</span>: <span class="kt">dataString</span>
@@ -371,7 +486,7 @@
 <span class="kd">var</span> <span class="nx">dataString</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{&quot;count&quot;:100,&quot;world_id&quot;:&quot;a82bcd84-db3a-4542-b0ef-80e81fc62f8e&quot;}}&#39;</span><span class="p">;</span>
 
 <span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://api.daptin.com:6336/action/world/generate_random_data&#39;</span><span class="p">,</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://localhost:6336/action/world/generate_random_data&#39;</span><span class="p">,</span>
     <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
     <span class="nx">headers</span>: <span class="kt">headers</span><span class="p">,</span>
     <span class="nx">body</span>: <span class="kt">dataString</span>
@@ -386,8 +501,6 @@
 <span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
 </pre></div>
 
-<h2 id="install-package-from-market">Install package from market<a class="headerlink" href="#install-package-from-market" title="Permanent link">Link</a></h2>
-<p>Install a package (data models, relations, actions, sites) from a <a href="/extend/marketplace"><strong>market</strong></a> using a <code>package name</code>. This will reconfigure daptin and apply the necessary changes. Note: any updates to this package in the marketplace will not be imported automatically.</p>
 <h2 id="export-data">Export data<a class="headerlink" href="#export-data" title="Permanent link">Link</a></h2>
 <div class="admonition note">
 <p>Export data as JSON dump. This will export for a single table if <code>table_name</code> param is specific, else it will export all data.</p>
@@ -430,7 +543,7 @@
 <div class="admonition note">
 <p class="admonition-title">Curl</p>
 </div>
-<div class="codehilite"><pre><span></span><span class="nt">curl</span> <span class="s1">&#39;http://api.daptin.com:6336/action/world/upload_csv_to_system_schema&#39;</span> <span class="err">\</span>
+<div class="codehilite"><pre><span></span><span class="nt">curl</span> <span class="s1">&#39;http://localhost:6336/action/world/upload_csv_to_system_schema&#39;</span> <span class="err">\</span>
 <span class="nt">-H</span> <span class="s1">&#39;Authorization: Bearer &lt;Token&gt;&#39;</span> <span class="err">\</span>
 <span class="nt">--data-binary</span> <span class="s1">&#39;{</span>
 <span class="s1">                &quot;attributes&quot;: {</span>
@@ -467,7 +580,7 @@
               <span class="p">}</span>
           <span class="p">}</span><span class="s1">&#39;</span>
 
-<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://api.daptin.com:6336/action/world/upload_csv_to_system_schema&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://localhost:6336/action/world/upload_csv_to_system_schema&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -538,18 +651,6 @@
 </ul>
 <p>Creates a data exchange</p>
 </div>
-<h2 id="publish-package-to-marketplace">Publish package to marketplace<a class="headerlink" href="#publish-package-to-marketplace" title="Permanent link">Link</a></h2>
-<div class="admonition note">
-<p>Export the JSON schema of your APIs to be re-used by other users from a <a href="/extend/marketplace"><strong>marketplace</strong></a>.</p>
-</div>
-<h2 id="update-package-list">Update package list<a class="headerlink" href="#update-package-list" title="Permanent link">Link</a></h2>
-<div class="admonition note">
-<p>Exports the schema of your APIs as a package to a <a href="/extend/marketplace"><strong>marketplace</strong></a>. You can later install this package.</p>
-</div>
-<h2 id="visit-marketplace">Visit marketplace<a class="headerlink" href="#visit-marketplace" title="Permanent link">Link</a></h2>
-<div class="admonition note">
-<p>Redirects you to the <a href="/extend/marketplace"><strong>marketplace</strong></a> repository</p>
-</div>
               
             </div>
           </div>
@@ -560,7 +661,7 @@
         <a href="../examples/" class="btn btn-neutral float-right" title="Examples">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../actions/" class="btn btn-neutral" title="Using actions"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../actions/" class="btn btn-neutral" title="What are actions"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -584,8 +685,6 @@
 
   <div class="rst-versions" role="note" style="cursor: pointer">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      
-          <a href="https://github.com/daptin/daptin/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
         <span><a href="../actions/" style="color: #fcfcfc;">&laquo; Previous</a></span>

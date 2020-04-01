@@ -34,6 +34,11 @@ func (dr *StreamProcessor) GetContract() StreamContract {
 	return dr.contract
 }
 
+// Get the contract
+func (dr *StreamProcessor) GetName() string {
+	return dr.contract.StreamName
+}
+
 // FindOne implementation in accordance with JSONAPI
 // FindOne is not implemented for streams
 func (dr *StreamProcessor) FindOne(ID string, req api2go.Request) (api2go.Responder, error) {
@@ -104,6 +109,21 @@ func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint
 			oldName := transformation.Attributes["OldName"].(string)
 			newName := transformation.Attributes["NewName"].(string)
 			df = df.Rename(newName, oldName)
+
+		case "duplicate":
+			oldName := transformation.Attributes["ColumnName"].(string)
+			newName := transformation.Attributes["NewColumnName"].(string)
+
+			newVals := make([]interface{}, 0)
+
+			for _, row := range items {
+				row[newName] = row[oldName]
+				newVals = append(newVals, row[oldName])
+			}
+
+			df = df.Mutate(
+				series.New(newVals, series.String, newName),
+			)
 		case "drop":
 			var indexes interface{}
 			indexes, ok := transformation.Attributes["Columns"].([]string)

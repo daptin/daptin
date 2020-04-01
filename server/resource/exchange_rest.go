@@ -112,8 +112,9 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, inField
 	url := buildAttrs["url"].(string)
 	method := buildAttrs["method"].(string)
 
-	resty.SetDebug(true)
-	client := resty.R()
+	requestFactory := resty.New()
+	requestFactory.Debug = true
+	client := requestFactory.R()
 	client.SetBody(bodyMap)
 
 	client.SetHeaders(headersMap)
@@ -141,7 +142,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, inField
 
 	}
 	log.Infof("Response from exchange execution: %v", response.String())
-	log.Infof("Response from exchange execution: %v", err)
+	log.Infof("Error from exchange execution: %v", err)
 
 	return nil
 }

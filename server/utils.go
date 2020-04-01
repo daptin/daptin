@@ -8,8 +8,6 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 )
@@ -241,11 +239,11 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds *map[string]*resour
 
 func CleanUpConfigFiles() {
 
-	files, _ := filepath.Glob("schema_*_daptin.*")
-	log.Infof("Clean up config files: %v", files)
+	//files, _ := filepath.Glob("schema_*_daptin.*")
+	//log.Infof("Clean up config files: %v", files)
 
-	for _, fileName := range files {
-		os.Remove(fileName)
-	}
+	//for _, fileName := range files {
+	//	os.Remove(fileName)
+	//}
 
 }

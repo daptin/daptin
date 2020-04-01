@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/cmd"
+	"github.com/artpar/rclone/fs"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -181,8 +182,9 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
 	}
+	fs.Config.LogLevel = fs.LogLevelNotice
 
-	go cmd.Run(true, true, cobraCommand, func() error {
+	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil

@@ -15,7 +15,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/tealeg/xlsx"
+	"github.com/artpar/xlsx/v2"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -189,105 +189,6 @@ func GetTasks(connection database.DatabaseConnection) ([]Task, error) {
 
 }
 
-func UpdateMarketplaces(initConfig *CmsConfig, db database.DatabaseConnection) {
-
-	s, v, err := statementbuilder.Squirrel.Select("endpoint", "root_path").From("marketplace").ToSql()
-
-	adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
-
-	CheckErr(err, "Failed to create query for marketplace select")
-
-	existingMarketPlaces := make(map[string]Marketplace)
-	res, err := db.Queryx(s, v...)
-	CheckErr(err, "Failed to scan market places")
-	if res != nil {
-		defer func() {
-			err = res.Close()
-			CheckErr(err, "Failed to close query")
-		}()
-
-		for res.Next() {
-			m := make(map[string]interface{})
-			err = res.MapScan(m)
-			CheckErr(err, "Failed to scan marketplace row to map")
-			streamNameString, ok := m["endpoint"].(string)
-			if !ok {
-				streamName := string(m["endpoint"].([]uint8))
-				streamNameString = streamName
-			}
-			rootPath := m["root_path"]
-			rootPathString := ""
-			if rootPath != nil {
-				rps, ok := rootPath.(string)
-				if !ok {
-					rootPathString = string(rootPath.([]uint8))
-				} else {
-					rootPathString = rps
-				}
-			}
-
-			endPointString, ok := m["endpoint"].(string)
-			if !ok {
-				endPointString = string(m["endpoint"].([]uint8))
-			}
-			existingMarketPlaces[streamNameString] = Marketplace{
-				Endpoint: endPointString,
-				RootPath: rootPathString,
-			}
-
-		}
-	}
-	log.Infof("We have %d existing market places", len(existingMarketPlaces))
-
-	for _, marketplace := range initConfig.Marketplaces {
-
-		log.Infof("Process marketplace [%v]", marketplace.Endpoint)
-
-		schema, err := json.Marshal(marketplace)
-		CheckErr(err, "Failed to marshal marketplace contract")
-
-		_, ok := existingMarketPlaces[marketplace.Endpoint]
-
-		if ok {
-
-			log.Infof("Marketplace [%v] already present in db, updating db values", marketplace.Endpoint)
-
-			s, v, err := statementbuilder.Squirrel.Update("marketplace").
-				Set("root_path", marketplace.RootPath).
-				Where(squirrel.Eq{"endpoint": marketplace.Endpoint}).
-				ToSql()
-
-			_, err = db.Exec(s, v...)
-			CheckErr(err, "Failed to update table for marketplace contract")
-
-		} else {
-			log.Infof("We have a new marketplace contract: %v", marketplace.Endpoint)
-
-			existingMarketPlaces[marketplace.Endpoint] = marketplace
-			u, _ := uuid.NewV4()
-
-			s, v, err := statementbuilder.Squirrel.Insert("marketplace").Columns("endpoint", "name", "root_path", "reference_id", "permission", USER_ACCOUNT_ID_COLUMN).
-				Values(marketplace.Endpoint, marketplace.Name, schema, u.String(), auth.DEFAULT_PERMISSION, adminUserId).ToSql()
-
-			_, err = db.Exec(s, v...)
-			CheckErr(err, "Failed to insert into db about marketplace [%v]: %v", marketplace.Endpoint, err)
-
-		}
-
-	}
-
-	allMarketPlaces := make([]Marketplace, 0)
-
-	for _, marketplace := range existingMarketPlaces {
-
-		allMarketPlaces = append(allMarketPlaces, marketplace)
-
-	}
-
-	initConfig.Marketplaces = allMarketPlaces
-
-}
-
 func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	s, v, err := statementbuilder.Squirrel.Select("stream_name", "stream_contract").From("stream").ToSql()
@@ -302,10 +203,14 @@ func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 		return
 	}
 	existingStreams := make(map[string]StreamContract)
-	defer res.Close()
+	defer func(){
+		err = res.Close()
+		CheckErr(err, "Failed to close db results after query")
+	}()
 	for res.Next() {
 		m := make(map[string]interface{})
-		res.MapScan(m)
+		err = res.MapScan(m)
+		CheckErr(err, "Failed to map scan from db next to map")
 		streamName, ok := m["stream_name"].(string)
 		if !ok {
 			streamName = string(m["stream_name"].([]uint8))
@@ -652,7 +557,7 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 		}
 		_, ok = currentActions[worldIdString][action.Name]
 		if ok {
-			log.Infof("Action [%v] on [%v] already present in database", action.Name, action.OnType)
+			//log.Infof("Action [%v] on [%v] already present in database", action.Name, action.OnType)
 
 			actionJson, err := json.Marshal(action)
 			CheckErr(err, "Failed to marshal action infields")
@@ -748,9 +653,12 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 
 		log.Infof("Process import file %v", importFile.String())
 		filePath := importFile.FilePath
-		if filePath[0] != '/' {
-			filePath = schemaFolderDefinedByEnv + filePath
+		if strings.Index(filePath, ":") == -1 {
+			if filePath[0] != '/' {
+				filePath = schemaFolderDefinedByEnv + filePath
+			}
 		}
+
 		fileBytes, err := ioutil.ReadFile(filePath)
 		if err != nil {
 			log.Errorf("Failed to read file [%v]: %v", filePath, err)
@@ -770,14 +678,21 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 				continue
 			}
 
+			//cruds["world"].db.Exec("PRAGMA foreign_keys = OFF")
 			for typeName, data := range jsonData {
-				errs := ImportDataMapArray(data, cruds[typeName], req)
+				crud := cruds[typeName]
+				if crud == nil {
+					log.Errorf("%s is not a defined entity", typeName)
+					continue
+				}
+				errs := ImportDataMapArray(data, crud, req)
 				if len(errs) > 0 {
 					for _, err := range errs {
 						log.Errorf("Error while importing json data: %v", err)
 					}
 				}
 			}
+			//cruds["world"].db.Exec("PRAGMA foreign_keys = ON")
 
 		case "xlsx":
 			xlsxFile, err := xlsx.OpenBinary(fileBytes)
@@ -853,7 +768,6 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 		if err != nil {
 			log.Printf(" [%v] Error while importing insert data row: %v == %v", crud.tableInfo.TableName, err, row)
 			errs = append(errs, err)
-		}
 
 		if len(uniqueColumns) > 0 {
 			for _, uniqueCol := range uniqueColumns {
@@ -870,21 +784,23 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 				if err != nil {
 					continue
 				}
+				log.Infof("Existing [%v] found by unique column: %v = %v", crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
 
-				for key, val := range row {
-					existingRow[key] = val
-				}
+					for key, val := range row {
+						existingRow[key] = val
+					}
 
-				obj := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, 0, nil, existingRow)
-				_, err = crud.Update(obj, req)
-				if err != nil {
-					log.Errorf("Failed to update table [%v] update row by unique column [%v]: %v", crud.tableInfo.TableName, uniqueCol.ColumnName, err)
+					obj := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, 0, nil, existingRow)
+					_, err = crud.Update(obj, req)
+					if err != nil {
+						log.Errorf("Failed to update table [%v] update row by unique column [%v]: %v", crud.tableInfo.TableName, uniqueCol.ColumnName, err)
+					}
+					break
+
 				}
-				break
 
 			}
 		}
-
 	}
 	return errs
 }
@@ -1093,7 +1009,8 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 
 		var cou int
 		s, v, err := statementbuilder.Squirrel.Select("count(*)").From("world").Where(squirrel.Eq{"table_name": table.TableName}).ToSql()
-		tx.QueryRowx(s, v...).Scan(&cou)
+		err = tx.QueryRowx(s, v...).Scan(&cou)
+		CheckErr(err, "Failed to scan row after query [%v]", s)
 
 		stBody.Cells = append(stBody.Cells, []*simpletable.Cell{
 			{
@@ -1165,7 +1082,10 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		return
 	}
 
-	defer res.Close()
+	defer func(){
+		err = res.Close()
+		CheckErr(err, "Failed to close result after reading rows")
+	}()
 
 	tables := make([]TableInfo, 0)
 	for res.Next() {

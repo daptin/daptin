@@ -23,8 +23,6 @@ type CmsConfig struct {
 	SubSites                 map[string]SubSiteInformation
 	Tasks                    []Task
 	Streams                  []StreamContract
-	MarketplaceHandlers      map[string]*MarketplaceService `json:"-"`
-	Marketplaces             []Marketplace
 	ActionPerformers         []ActionPerformerInterface
 }
 

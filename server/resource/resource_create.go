@@ -19,6 +19,8 @@ import (
 	"time"
 )
 
+const DEFAULT_LANGUAGE = "en"
+
 func NewFromDbResourceWithTransaction(resources *DbResource, tx *sqlx.Tx) *DbResource {
 
 	return &DbResource{
@@ -51,7 +53,6 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
-
 	}
 	adminId := dr.GetAdminReferenceId()
 	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
@@ -181,6 +182,11 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 					log.Errorf("Failed to upload attachments: %v", errs)
 				}
 
+				columnAssetCache, ok := dr.AssetFolderCache[dr.tableInfo.TableName][col.ColumnName]
+				if ok {
+					err = columnAssetCache.UploadFiles(val.([]interface{}))
+				}
+
 				files, ok := val.([]interface{})
 				if ok {
 					for i := range files {
@@ -234,7 +240,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			if ok {
 				val, err = dateparse.ParseLocal(valString)
 
-				CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
+				CheckErr(err, fmt.Sprintf("Failed to parse string as date time in create [%v]", val))
 			} else {
 				floatVal, ok := val.(float64)
 				if ok {
@@ -268,6 +274,28 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			} else {
 				val = parsedTime
 			}
+
+		} else if col.ColumnType == "enum" {
+			valString, ok := val.(string)
+			if !ok {
+				valString = fmt.Sprintf("%v", val)
+			}
+
+			isEnumOption := false
+			valString = strings.ToLower(valString)
+			for _, enumVal := range col.Options {
+
+				if valString == enumVal.Value {
+					isEnumOption = true
+					break
+				}
+			}
+
+			if !isEnumOption {
+				log.Printf("Provided value is not a valid enum option, reject request [%v] [%v]", valString, col.Options)
+				return nil, errors.New(fmt.Sprintf("invalid value for %s", col.Name))
+			}
+			val = valString
 
 		} else if col.ColumnType == "time" {
 
@@ -338,6 +366,13 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		colsList = append(colsList, "reference_id")
 		valsList = append(valsList, newUuid)
 	}
+	languagePreferences := make([]string, 0)
+	if dr.tableInfo.TranslationsEnabled {
+		prefs := req.PlainRequest.Context().Value("language_preference")
+		if prefs != nil {
+			languagePreferences = prefs.([]string)
+		}
+	}
 
 	colsList = append(colsList, "permission")
 	valsList = append(valsList, dr.model.GetDefaultPermission())
@@ -352,6 +387,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	}
 
 	query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
+
 	if err != nil {
 		log.Errorf("Failed to create insert query: %v", err)
 		return nil, err
@@ -365,13 +401,38 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		log.Errorf("%v", vals)
 		return nil, err
 	}
-
 	createdResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), newUuid)
+
 	if err != nil {
 		log.Errorf("Failed to select the newly created entry: %v", err)
 		return nil, err
 	}
-	//
+
+	if len(languagePreferences) > 0 {
+
+		for _, languagePreference := range languagePreferences {
+
+			colsList = append(colsList, "language_id")
+			valsList = append(valsList, languagePreference)
+
+			colsList = append(colsList, "translation_reference_id")
+			valsList = append(valsList, createdResource["id"])
+
+			query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n").Columns(colsList...).Values(valsList...).ToSql()
+			if err != nil {
+				log.Errorf("Failed to create insert query: %v", err)
+				return nil, err
+			}
+
+			_, err = dr.db.Exec(query, vals...)
+			if err != nil {
+				log.Infof("Insert query: %v", query)
+				log.Errorf("Failed to execute insert query: %v", err)
+				log.Errorf("%v", vals)
+				return nil, err
+			}
+		}
+	}
 
 	//log.Infof("Created entry: %v", createdResource)
 
