@@ -36,7 +36,7 @@ Datin can work with the following storage services:
 
 ## Creating a new cloud storage instance
 
-### Thing to keep ready
+### Things to keep ready
 
 If the service you wan to integrate with requires authentication, create the following:
 

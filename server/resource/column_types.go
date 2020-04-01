@@ -25,7 +25,7 @@ type ColumnType struct {
 	Conformations []string
 	ReclineType   string
 	DataTypes     []string
-	GraphqlType   *graphql.Scalar
+	GraphqlType   graphql.Type
 }
 
 func randate() time.Time {
@@ -51,6 +51,8 @@ func (ct ColumnType) Fake() interface{} {
 	case "time":
 		return randate().Format("15:04:05")
 	case "day":
+		return fake.Day()
+	case "enum":
 		return fake.Day()
 	case "month":
 		return fake.Month()
@@ -148,6 +150,13 @@ var ColumnTypes = []ColumnType{
 		BlueprintType: "string",
 		ReclineType:   "string",
 		DataTypes:     []string{"varchar(100)", "varchar(20)", "varchar(10)"},
+		GraphqlType:   graphql.String,
+	},
+	{
+		Name:          "enum",
+		BlueprintType: "string",
+		ReclineType:   "string",
+		DataTypes:     []string{"varchar(50)", "varchar(20)", "varchar(10)"},
 		GraphqlType:   graphql.String,
 	},
 	{
@@ -462,7 +471,7 @@ func InitialiseColumnManager() {
 func (ctm *ColumnTypeManager) GetBlueprintType(columnType string) string {
 	return ctm.ColumnMap[columnType].BlueprintType
 }
-func (ctm *ColumnTypeManager) GetGraphqlType(columnType string) *graphql.Scalar {
+func (ctm *ColumnTypeManager) GetGraphqlType(columnType string) graphql.Type {
 	col := strings.Split(columnType, ".")[0]
 	if _, ok := ctm.ColumnMap[col]; !ok {
 		log.Printf("No column definition for type: %v", columnType)
@@ -471,7 +480,7 @@ func (ctm *ColumnTypeManager) GetGraphqlType(columnType string) *graphql.Scalar 
 	return ctm.ColumnMap[col].GraphqlType
 }
 
-func (ctm *ColumnTypeManager) GetFakedata(colTypeName string) string {
+func (ctm *ColumnTypeManager) GetFakeData(colTypeName string) string {
 	return fmt.Sprintf("%v", ctm.ColumnMap[colTypeName].Fake())
 }
 

@@ -3,9 +3,11 @@ package server
 import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
+	yaml2 "github.com/ghodss/yaml"
 	"github.com/gobuffalo/flect"
+	"github.com/naoina/toml"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -27,14 +29,14 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		Actions:                  make([]resource.Action, 0),
 		StateMachineDescriptions: make([]resource.LoopbookFsmDescription, 0),
 		Streams:                  make([]resource.StreamContract, 0),
-		Marketplaces:             make([]resource.Marketplace, 0),
+		//Marketplaces:             make([]resource.Marketplace, 0),
 	}
 
 	globalInitConfig.Tables = append(globalInitConfig.Tables, resource.StandardTables...)
 	globalInitConfig.Tasks = append(globalInitConfig.Tasks, resource.StandardTasks...)
 	globalInitConfig.Actions = append(globalInitConfig.Actions, resource.SystemActions...)
 	globalInitConfig.Streams = append(globalInitConfig.Streams, resource.StandardStreams...)
-	globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, resource.StandardMarketplaces...)
+	//globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, resource.StandardMarketplaces...)
 	globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, resource.SystemSmds...)
 	globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, resource.SystemExchanges...)
 
@@ -47,8 +49,8 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			schemaPath = "."
 		}
 
-		if schemaPath[len(schemaPath)-1] != '/' {
-			schemaPath = schemaPath + "/"
+		if schemaPath[len(schemaPath)-1] != os.PathSeparator {
+			schemaPath = schemaPath + string(os.PathSeparator)
 		}
 		files1, _ = filepath.Glob(schemaPath + "schema_*.*")
 	}
@@ -65,17 +67,38 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 	for _, fileName := range files {
 		log.Infof("Process file: %v", fileName)
 
-		viper.SetConfigFile(fileName)
-
-		err = viper.ReadInConfig()
+		fileBytes, err := ioutil.ReadFile(fileName)
 		if err != nil {
 			errs = append(errs, err)
+			continue
 		}
 
 		initConfig := resource.CmsConfig{}
-		err = viper.Unmarshal(&initConfig)
+		//fmt.Printf("Loaded config: \n%v", string(fileBytes))
+
+		switch {
+		case EndsWithCheck(fileName, "yml"):
+			fallthrough
+		case EndsWithCheck(fileName, "yaml"):
+			jsonBytes, err := yaml2.YAMLToJSON(fileBytes)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			err = json.Unmarshal(jsonBytes, &initConfig)
+			//err = yaml.UnmarshalStrict(fileBytes, &initConfig)
+		case EndsWithCheck(fileName, "json"):
+			err = json.Unmarshal(fileBytes, &initConfig)
+		case EndsWithCheck(fileName, "toml"):
+			err = toml.Unmarshal(fileBytes, &initConfig)
+
+		}
+
+		//js, _ := json.Marshal(initConfig)
+		//log.Printf("Loaded config: %v", string(js))
 
 		if err != nil {
+			log.Errorf("Failed to load config file: %v", err)
 			errs = append(errs, err)
 			continue
 		}
@@ -96,7 +119,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 		globalInitConfig.Imports = append(globalInitConfig.Imports, initConfig.Imports...)
 		globalInitConfig.Streams = append(globalInitConfig.Streams, initConfig.Streams...)
-		globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, initConfig.Marketplaces...)
+		//globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, initConfig.Marketplaces...)
 		globalInitConfig.Tasks = append(globalInitConfig.Tasks, initConfig.Tasks...)
 		globalInitConfig.Actions = append(globalInitConfig.Actions, initConfig.Actions...)
 		globalInitConfig.StateMachineDescriptions = append(globalInitConfig.StateMachineDescriptions, initConfig.StateMachineDescriptions...)
@@ -119,12 +142,12 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			}
 		}
 
-		for _, marketplace := range initConfig.Marketplaces {
-			log.Infof("Marketplace [%v][%v]", fileName, marketplace.Endpoint)
-		}
+		//for _, marketplace := range initConfig.Marketplaces {
+		//	log.Infof("Marketplace [%v][%v]", fileName, marketplace.Endpoint)
+		//}
 
 		for _, smd := range initConfig.StateMachineDescriptions {
-			log.Infof("Marketplace [%v][%v][%v]", fileName, smd.Name, smd.InitialState)
+			log.Infof("SMD  [%v][%v][%v]", fileName, smd.Name, smd.InitialState)
 		}
 
 		if initConfig.EnableGraphQL {

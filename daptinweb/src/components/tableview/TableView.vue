@@ -5,7 +5,7 @@
     <div v-if="viewMode != 'table'" class="col-md-12">
       <vuetable-pagination :css="css.pagination" ref="pagination" @change-page="onChangePage"></vuetable-pagination>
     </div>
-    <div class="col-md-12" style="position: relative; height: 700px; overflow-y: scroll">
+    <div class="col-md-12" style="position: relative; min-height: 70vh; overflow-x: scroll; background: #fffaeb; padding-top: 15px">
       <template v-if="viewMode == 'table'">
         <div id="tableView" ref="tableViewDiv"></div>
       </template>
@@ -117,7 +117,7 @@
             handleIcon: 'fa fa-wrench'
           },
           pagination: {
-            wrapperClass: "pagination pull-right",
+            wrapperClass: "pagination pull-left",
             activeClass: "btn-primary",
             disabledClass: "disabled",
             pageClass: "btn btn-border",
@@ -158,8 +158,8 @@
       },
       titleCase: function (str) {
         return str.replace(/[-_]/g, " ").split(' ')
-          .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
-          .join(' ')
+            .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
+            .join(' ')
       },
       onCellClicked(data, field, event) {
         console.log('cellClicked 1: ', data, this.selectedWorld);
@@ -274,6 +274,9 @@
                 var spreadSheetData = [];
                 var rows = data.data;
                 console.log("loaded data", data, spreadSheetData);
+                var widths = [];
+                var maxLength = [];
+
 
                 for (var column in that.selectedWorldColumns) {
                   if (column.endsWith("_id")) {
@@ -282,15 +285,17 @@
                   if (column.substring(0, 2) == "__") {
                     continue
                   }
-                  headers.push(column)
+                  headers.push({
+                    title: column
+                  })
+                  maxLength.push(column.length)
                 }
-                spreadSheetData.push(headers)
-                var widths = [];
-                var maxLength = [];
+                // spreadSheetData.push(headers)
+
                 for (var i = 0; i < rows.length; i++) {
                   var row = [];
                   for (var j in headers) {
-                    var column = headers[j];
+                    var column = headers[j].title;
                     // console.log("spps s", i, column, column, rows[i])
                     if (rows[i][column] instanceof Array) {
                       row.push(rows[i][column].join(","))
@@ -312,20 +317,20 @@
                     maxLength[i] = 1000;
                   }
                   widths[i] = maxLength[i] * 3 + 100;
+                  if (widths[i] > 400) {
+                    widths[i] = 400
+                  }
                 }
 
-                console.log("immediate load data", widths)
+                console.log("immediate load data", that.$refs.tableViewDiv, widths);
+
+                that.$refs.tableViewDiv.innerHTML = "";
 
                 let spreadsheet = jexcel(that.$refs.tableViewDiv, {
                   data: spreadSheetData,
                   colWidths: widths,
+                  columns: headers,
                 });
-                // Object.assign(this, spreadsheet);
-
-
-                // that.sheet = new Spreadsheet("#tableView").loadData({rows: spreadSheetData}).change(function(d){
-                //   console.log("sheet data change", d)
-                // });
 
 
               })
@@ -345,7 +350,6 @@
         console.error("Failed to find json api model for ", that.jsonApiModelName);
         return
       }
-      that.selectedWorldColumns = Object.keys(jsonModel["attributes"])
       that.reloadData(that.selectedWorld)
     },
     watch: {

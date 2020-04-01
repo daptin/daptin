@@ -16,7 +16,6 @@ before_script:
 - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
 - chmod +x ./cc-test-reporter
 - ./cc-test-reporter before-build
-
 script:
 - ls -lah
 - cat .travis.yml
@@ -53,6 +52,7 @@ after_success:
   fi
 - bash <(curl -s https://codecov.io/bash)
 - cat /home/travis/gopath/src/github.com/daptin/daptin/coverage.txt
+- bash <(curl -s https://copilot.blackducksoftware.com/ci/travis/scripts/upload)
 
 notifications:
   email: false

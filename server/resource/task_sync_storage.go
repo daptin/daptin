@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/artpar/rclone/cmd"
+	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/artpar/rclone/lib/pacer"
@@ -51,8 +52,9 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, cloudPath string
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync cloud store [%v] to path [%v]", cloudStore.Name, tempDirectoryPath),
 	}
+	fs.Config.LogLevel = fs.LogLevelNotice
 
-	go cmd.Run(true, true, cobraCommand, func() error {
+	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Either source or destination is empty")
 			return nil

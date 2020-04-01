@@ -1,4 +1,4 @@
-# Oauth Token
+# OAuth Tokens
 
 Oauth tokens can be used internally to connect to other services which require authentication.
 

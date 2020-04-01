@@ -99,7 +99,7 @@ func GetFakeRow(columns []api2go.ColumnInfo) map[string]interface{} {
 			continue
 		}
 
-		fakeValue := ColumnManager.GetFakedata(col.ColumnType)
+		fakeValue := ColumnManager.GetFakeData(col.ColumnType)
 
 		row[col.ColumnName] = fakeValue
 

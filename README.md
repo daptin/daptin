@@ -6,11 +6,11 @@
   Daptin
   <br>
 </h1>
-<h4>Headless CMS server</h4>
+<h4 align="center">Headless CMS server</h4>
 
 
 <p align="center">
-    <a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLTVlYzBlMmM4YjMyOTk0MDc5MWJmMzFlMTliNzQwYjcxMzc5Mjk0YzEyZDIwYTljZmE5NDU3Yjk3YzQ3MzhkMzI"><img src="https://img.shields.io/badge/join-on%20slack-orange.svg?longCache=true&style=for-the-badge" /> <a/>
+    <a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLWJmZmRlN2M4YzRkOTI4MDhlNWQ1YzBiMDNhMzE0NTVmNzA3NjA5ZDdkMDExZmI0M2UyMmM2NzhlNDc3M2VhZTQ"><img src="https://img.shields.io/badge/join-on%20slack-orange.svg?longCache=true&style=for-the-badge" /> <a/>
     <a href="https://github.com/daptin/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/daptin/daptin.svg?style=flat-square"></a>
 </p>
 <p align="center">
@@ -24,7 +24,6 @@
     <a href="http://godoc.org/github.com/daptin/daptin"><img alt="Go Doc" src="https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square"></a>
 </p>
 <p align="center">
-    <a href='https://coveralls.io/github/daptin/daptin'><img src='https://coveralls.io/repos/github/daptin/daptin/badge.svg' alt='Coverage Status' /></a>
     <a href="https://codecov.io/gh/daptin/daptin"><img alt="Codecov branch" src="https://img.shields.io/codecov/c/github/daptin/daptin/master.svg?style=flat-square"></a>
 </p>
 
@@ -41,6 +40,39 @@
   <a href="#key-features">Features</a> •
   <a href="#getting-started">Getting Started</a>
 </p>
+
+
+## Why use daptin
+
+Easily consume the following features on any device
+
+- [Database backed](https://daptin.github.io/daptin/setting-up/installation/#database-configuration) persistence, 3NF normalized tables
+- [JSON API](https://daptin.github.io/daptin/apis/overview/)/[GraphQL](https://daptin.github.io/daptin/features/enable-graphql/) for CRUD apis
+- [User](https://daptin.github.io/daptin/setting-up/access/) and [group management](https://daptin.github.io/daptin/setting-up/access/) and access control
+- Social login with [OAuth](https://daptin.github.io/daptin/extend/oauth_connection/): tested with google, github, linkedin
+- [Actions](https://daptin.github.io/daptin/actions/overview/) for abstracting out business flows
+- Extensive [state tracking APIs](https://daptin.github.io/daptin/state/machines/)
+- Enable [Data Auditing](https://daptin.github.io/daptin/features/enable-data-auditing/) from a single toggle
+- [Synchronous Data Exchange](https://daptin.github.io/daptin/extend/data_exchange/) with 3rd party APIs
+- [Multilingual tables](https://daptin.github.io/daptin/features/enable-multilingual-table/) support, supports Accept-Language header 
+- [Market place](https://daptin.github.io/daptin/extend/marketplacce/) API to manage and share schemas
+- [Cloud storage sync](https://daptin.github.io/daptin/cloudstore/cloudstore/) like gdrive, dropbox, b2, s3 and more
+- [Asset column](https://daptin.github.io/daptin/cloudstore/assetcolumns/) to hold file and blob data, backed by storage
+- [Multiple websites](https://daptin.github.io/daptin/subsite/subsite/) under separate sub-domain/sub-paths
+- [Connect with external APIs](https://daptin.github.io/daptin/integrations/overview/) by using extension points
+- [Data View Streams](https://daptin.github.io/daptin/streams/streams/)
+- Flexible [data import](https://daptin.github.io/daptin/setting-up/data_import/) (auto create new tables and automated schema generation)
+    - XLSX 
+    - JSON
+    - CSV
+
+Javascript/Typescript Client
+===
+
+https://github.com/daptin/daptin-js-client
+
+Starter kit: https://github.com/daptin/vue_typescript_starter_kit
+
 
 Define Schema
 
@@ -269,3 +301,41 @@ However, JSON APIs for data manipulation by themselves weren't enough. Building 
 ### Documentation
 
 - Checkout the [documentation for daptin](https://daptin.github.io/daptin/)
+
+
+### Golang Dependencies list
+
+
+|                  DEPENDENCY                   |                        REPOURL                        |   LICENSE    |
+|-----------------------------------------------|-------------------------------------------------------|--------------|
+| github.com/GeertJohan/go.rice                 | https://github.com/GeertJohan/go.rice                 | bsd-2-clause |
+| github.com/artpar/go-guerrilla                | https://github.com/artpar/go-guerrilla                | MIT          |
+| github.com/gin-gonic/gin                      | https://github.com/gin-gonic/gin                      | MIT          |
+| github.com/sirupsen/logrus                    | https://github.com/sirupsen/logrus                    | MIT          |
+| github.com/Masterminds/squirrel               | https://github.com/Masterminds/squirrel               | Other        |
+| github.com/PuerkitoBio/goquery                | https://github.com/PuerkitoBio/goquery                | bsd-3-clause |
+| github.com/anthonynsimon/bild                 | https://github.com/anthonynsimon/bild                 | MIT          |
+| github.com/artpar/api2go                      | https://github.com/artpar/api2go                      | MIT          |
+| github.com/artpar/api2go-adapter              | https://github.com/artpar/api2go-adapter              | MIT          |
+| github.com/artpar/go-imap                     | https://github.com/artpar/go-imap                     | MIT          |
+| github.com/artpar/go.uuid                     | https://github.com/artpar/go.uuid                     | MIT          |
+| github.com/artpar/parsemail                   | https://github.com/artpar/parsemail                   | MIT          |
+| github.com/artpar/rclone                      | https://github.com/artpar/rclone                      | MIT          |
+| github.com/artpar/stats                       | https://github.com/artpar/stats                       | MIT          |
+| github.com/bjarneh/latinx                     | https://github.com/bjarneh/latinx                     | bsd-3-clause |
+| github.com/emersion/go-sasl                   | https://github.com/emersion/go-sasl                   | MIT          |
+| github.com/julienschmidt/httprouter           | https://github.com/julienschmidt/httprouter           | bsd-3-clause |
+| golang.org/x/net/context                      | https://go.googlesource.com/net                       |              |
+| github.com/advance512/yaml                    | https://github.com/advance512/yaml                    | Other        |
+| golang.org/x/crypto/bcrypt                    | https://go.googlesource.com/crypto                    |              |
+| github.com/alexeyco/simpletable               | https://github.com/alexeyco/simpletable               | MIT          |
+| github.com/araddon/dateparse                  | https://github.com/araddon/dateparse                  | MIT          |
+| github.com/artpar/conform                     | https://github.com/artpar/conform                     | Other        |
+| github.com/artpar/resty                       | https://github.com/artpar/resty                       | MIT          |
+| github.com/emersion/go-message                | https://github.com/emersion/go-message                | MIT          |
+| github.com/go-playground/locales              | https://github.com/go-playground/locales              | MIT          |
+| github.com/go-playground/universal-translator | https://github.com/go-playground/universal-translator | MIT          |
+| golang.org/x/oauth2                           | https://go.googlesource.com/oauth2                    |              |
+| gopkg.in/go-playground/validator.v9           | https://github.com/go-playground/validator            | MIT          |
+| golang.org/x/net/websocket                    | https://go.googlesource.com/net                       |              |
+

@@ -136,6 +136,7 @@ type SubSite struct {
 	Path         string
 	CloudStoreId *int64 `db:"cloud_store_id"`
 	Permission   PermissionInstance
+	FtpEnabled   bool   `db:"ftp_enabled"`
 	UserId       *int64 `db:"user_account_id"`
 	ReferenceId  string `db:"reference_id"`
 	Enable       bool   `db:"enable"`
@@ -334,37 +335,6 @@ func (resource *DbResource) GetCloudStoreByReferenceId(referenceID string) (Clou
 
 }
 
-func (resource *DbResource) GetAllMarketplaces() ([]Marketplace, error) {
-
-	var marketPlaces []Marketplace
-
-	s, v, err := statementbuilder.Squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s."+USER_ACCOUNT_ID_COLUMN, "s.reference_id").
-		From("marketplace s").
-		ToSql()
-	if err != nil {
-		return marketPlaces, err
-	}
-
-	rows, err := resource.db.Queryx(s, v...)
-	if err != nil {
-		return marketPlaces, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var marketplace Marketplace
-		err = rows.StructScan(&marketplace)
-		if err != nil {
-			log.Errorf("Failed to scan marketplace from db to struct: %v", err)
-			continue
-		}
-		marketPlaces = append(marketPlaces, marketplace)
-	}
-
-	return marketPlaces, nil
-
-}
-
 func (resource *DbResource) GetAllTasks() ([]Task, error) {
 
 	var tasks []Task
@@ -400,27 +370,12 @@ func (resource *DbResource) GetAllTasks() ([]Task, error) {
 
 }
 
-func (resource *DbResource) GetMarketplaceByReferenceId(referenceId string) (Marketplace, error) {
-
-	marketPlace := Marketplace{}
-
-	s, v, err := statementbuilder.Squirrel.Select("s.endpoint", "s.root_path", "s.permission", "s."+USER_ACCOUNT_ID_COLUMN, "s.reference_id").
-		From("marketplace s").Where(squirrel.Eq{"reference_id": referenceId}).
-		ToSql()
-	if err != nil {
-		return marketPlace, err
-	}
-
-	err = resource.db.QueryRowx(s, v...).StructScan(&marketPlace)
-	return marketPlace, err
-
-}
-
 func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	var sites []SubSite
 
-	s, v, err := statementbuilder.Squirrel.Select("s.name", "s.hostname", "s.cloud_store_id", "s."+USER_ACCOUNT_ID_COLUMN, "s.path", "s.reference_id", "s.id", "s.enable").
+	s, v, err := statementbuilder.Squirrel.Select("s.name", "s.hostname", "s.cloud_store_id",
+		"s."+USER_ACCOUNT_ID_COLUMN, "s.path", "s.reference_id", "s.id", "s.enable", "s.ftp_enabled").
 		From("site s").
 		ToSql()
 	if err != nil {
@@ -431,7 +386,10 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 	if err != nil {
 		return sites, err
 	}
-	defer rows.Close()
+	defer func() {
+		err = rows.Close()
+		CheckErr(err, "Failed to close rows after getting all sites")
+	}()
 
 	for rows.Next() {
 		var site SubSite

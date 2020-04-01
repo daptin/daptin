@@ -10,11 +10,11 @@
   <link rel="shortcut icon" href="../../images/favicon.png">
   
   <title>Installation - Daptin</title>
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Muli:400,700|Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet' type='text/css'>
 
   <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
   <link href="../../css/theme_extra.css" rel="stylesheet">
   
   <script>
@@ -25,9 +25,7 @@
   </script>
   
   <script src="../../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
+  <script src="../../js/modernizr-2.8.3.min.js" defer></script> 
   
   <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -57,201 +55,417 @@
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-	<ul class="current">
-	  
+	<ul class="tocbase current">
+    
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Daptin</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../..">Introduction</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1 current">
-		
-    <a class="current" href="./">Installation</a>
-    <ul class="subnav">
-            
-    <li class="toctree-l2"><a href="#installation">Installation</a></li>
-    
-        <ul>
-        
-            <li><a class="toctree-l3" href="#deploy-and-get-started">Deploy and get started</a></li>
-        
-            <li><a class="toctree-l3" href="#native-binary">Native binary</a></li>
-        
-            <li><a class="toctree-l3" href="#heroku-deployment">Heroku deployment</a></li>
-        
-            <li><a class="toctree-l3" href="#docker-compose">Docker-compose</a></li>
-        
-            <li><a class="toctree-l3" href="#kubernetes-deployment">Kubernetes deployment</a></li>
-        
-        </ul>
-    
 
-    <li class="toctree-l2"><a href="#database-configuration">Database configuration</a></li>
-    
-        <ul>
-        
-            <li><a class="toctree-l3" href="#mysql">MySQL</a></li>
-        
-            <li><a class="toctree-l3" href="#postgresql">PostgreSQL</a></li>
-        
-            <li><a class="toctree-l3" href="#sqlite">SQLite</a></li>
-        
-        </ul>
-    
 
-    <li class="toctree-l2"><a href="#port">Port</a></li>
+  
     
-
-    <li class="toctree-l2"><a href="#restart">Restart</a></li>
+    <li class="navtree toctree-l2 page current">
+      <a class="current" href="./">
+        Installation
+          <span class="toctree-expand"></span>
+      </a>
+    </li>
     
+      
 
+
+
+  <li class="toctree-l2 current">
+    <ul class="subnav-l2 current">
+    
+      
+          
+
+  <li class="toctree-l3 current with-children">
+    <a href="#deploying-a-new-instance">
+      Deploying a new instance
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3 current">
+    <ul class="subnav-l3 current">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#native-binary">Native binary</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#cli-options">CLI Options:</a>
+        </li>
+    
+      
+          
+
+  <li class="toctree-l4">
+    <a href="#database-connection-string">
+      Database connection string
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l4">
+    <ul class="subnav-l4 toc-hidden">
+    
+      
+        <li class="toctree-l5">
+          <a class="toctree-l6" href="#sqlite">SQLite</a>
+        </li>
+    
+      
+        <li class="toctree-l5">
+          <a class="toctree-l6" href="#mysql">MySQL</a>
+        </li>
+    
+      
+        <li class="toctree-l5">
+          <a class="toctree-l6" href="#postgresql">POSTGRESql:</a>
+        </li>
+    
     </ul>
-	    </li>
+  </li>
+
+      
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#heroku-deployment">Heroku deployment</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#docker-image">Docker image</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#docker-compose">Docker-compose</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#kubernetes-deployment">Kubernetes deployment</a>
+        </li>
+    
+    </ul>
+  </li>
+
+      
+    
+      
           
-            <li class="toctree-l1">
-		
+
+  <li class="toctree-l3">
+    <a href="#database-configuration">
+      Database configuration
+      <span class="toctree-expand"></span>
+    </a>
+  </li>
+
+
+
+  <li class="toctree-l3">
+    <ul class="subnav-l3 toc-hidden">
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#mysql_1">MySQL</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#postgresql_1">PostgreSQL</a>
+        </li>
+    
+      
+        <li class="toctree-l4">
+          <a class="toctree-l5" href="#sqlite_1">SQLite</a>
+        </li>
+    
+    </ul>
+  </li>
+
+      
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#port">Port</a>
+        </li>
+    
+      
+        <li class="toctree-l3">
+          <a class="toctree-l4" href="#restart">Restart</a>
+        </li>
+    
+    </ul>
+  </li>
+
+
+  
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../settingup/">Getting started</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../access/">User management</a>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../data_modeling/">Data model</a>
-	    </li>
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+
+
+  <li class="navtree toctree-l1 inactive">
+    <a class="" href="../../apis/crud/">API reference</a>
+  </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Actions</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">API reference</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../apis/overview/">Overview</a>
-                </li>
-                <li class="">
-                    
-    <span class="caption-text">CRUD</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/read/">Read, search, filter</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/create/">Create</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/update/">Update</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/delete/">Delete</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/relation/">Relations</a>
-                </li>
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../apis/execute/">Execute</a>
-                </li>
-    </ul>
-                </li>
-                <li class="">
-                    
-    <span class="caption-text">Action APIs</span>
-    <ul class="subnav">
-                <li class="toctree-l3">
-                    
-    <a class="" href="../../actions/actions/">Using actions</a>
-                </li>
-                <li class="toctree-l3">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../actions/actions/">What are actions</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../actions/default_actions/">Actions list</a>
-                </li>
-                <li class="toctree-l3">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../actions/examples/">Examples</a>
-                </li>
-    </ul>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Features</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-graphql/">GraphQL</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-data-auditing/">Data Auditing</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-multilingual-table/">Multilingual Table</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-smtp-imap/">SMTP/IMPS server</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../features/enable-logs/">Logs</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../state/machines/">State tracking</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Asset and file storage</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../cloudstore/cloudstore/">Connecting with cloud store</a>
-                </li>
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/oauth_connection/">OAuth Connections</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/oauth_token/">OAuth Tokens</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../integrations/overview/">Integrations Overview</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../cloudstore/cloudstore/">Cloud store</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../cloudstore/assetcolumns/">Cloud store backed asset columns</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Sub-sites</span>
-    <ul class="subnav">
-                <li class="">
-                    
+  <li class="navtree toctree-l2 label">
+    <p class="caption">Sub-sites</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l2 group">
+      <ul class="navtree subnav-l2 current">
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../subsite/subsite/">Creating a subsite</a>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../subsite/grapes/">Live editing a subsite</a>
-                </li>
-                <li class="">
-                    
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l3 inactive">
     <a class="" href="../../subsite/basic_auth/">Basic Authentication</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
+      </ul>
+    </li>
+        
+      </ul>
+    </li>
+    
+      
+  <li class="navtree toctree-l1 label">
+    <p class="caption">Reference Documents</p>
+  </li>
+
+
+  
+
+  
+    <li class="navtree toctree-l1 group">
+      <ul class="navtree subnav-l1 current">
           
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Sharing</span>
-    <ul class="subnav">
-                <li class="">
-                    
-    <a class="" href="../../extend/marketplace/">Marketplace</a>
-                </li>
-    </ul>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <span class="caption-text">Reference</span>
-    <ul class="subnav">
-                <li class="">
-                    
+
+
+  <li class="navtree toctree-l2 inactive">
     <a class="" href="../../data-modeling/data_storage/">Data store format</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
-                </li>
-                <li class="">
-                    
-    <a class="" href="../../streams/streams/">Data streams</a>
-                </li>
-    </ul>
-	    </li>
+  </li>
+        
           
-        </ul>
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../extend/data_exchange/">Data exchange and sync</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../../streams/streams/">Data streams</a>
+  </li>
+        
+          
+
+
+  <li class="navtree toctree-l2 inactive">
+    <a class="" href="../enabling-features/">Enable/Disabling features</a>
+  </li>
+        
+      </ul>
+    </li>
+    
+  </ul>
       </div>
       &nbsp;
     </nav>
@@ -272,12 +486,13 @@
     <li><a href="../..">Docs</a> &raquo;</li>
     
       
+        
+          <li>Daptin &raquo;</li>
+        
+      
     
     <li>Installation</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="https://github.com/daptin/daptin/edit/master/docs/setting-up/installation.md"
-          class="icon icon-github"> Edit on GitHub</a>
       
     </li>
   </ul>
@@ -287,7 +502,7 @@
             <div class="section">
               
                 <h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">Link</a></h1>
-<h2 id="deploy-and-get-started">Deploy and get started<a class="headerlink" href="#deploy-and-get-started" title="Permanent link">Link</a></h2>
+<h2 id="deploying-a-new-instance">Deploying a new instance<a class="headerlink" href="#deploying-a-new-instance" title="Permanent link">Link</a></h2>
 <table>
 <thead>
 <tr>
@@ -302,7 +517,7 @@
 </tr>
 <tr>
 <td>Docker</td>
-<td>docker run -p 8080:8080 daptin/daptin</td>
+<td>docker run -p 8080:8080 <a href="https://hub.docker.com/r/daptin/daptin">daptin/daptin</a></td>
 </tr>
 <tr>
 <td>Kubernetes</td>
@@ -334,7 +549,7 @@
 </tr>
 </tbody>
 </table>
-<h2 id="native-binary">Native binary<a class="headerlink" href="#native-binary" title="Permanent link">Link</a></h2>
+<h3 id="native-binary">Native binary<a class="headerlink" href="#native-binary" title="Permanent link">Link</a></h3>
 <p>Daptin is available as a native binary. You can download the binary for the following os from <a href="https://github.com/daptin/daptin/releases">github releases</a></p>
 <ul>
 <li>Windows 32/64</li>
@@ -344,7 +559,7 @@
 <p><a href="https://github.com/daptin/daptin/releases">https://github.com/daptin/daptin/releases</a></p>
 <p>Execute <code>./daptin</code> to run daptin.</p>
 <p>It will create a sqlite database on the disk and start listening on port 6336.</p>
-<p>Arguments:</p>
+<h3 id="cli-options">CLI Options:<a class="headerlink" href="#cli-options" title="Permanent link">Link</a></h3>
 <table>
 <thead>
 <tr>
@@ -358,16 +573,35 @@
 <td>set the port to listen</td>
 </tr>
 <tr>
+<td>http_port</td>
+<td>set the https port to listen</td>
+</tr>
+<tr>
+<td>runtime</td>
+<td>runtime test/debug/release for logs</td>
+</tr>
+<tr>
+<td>dashboard</td>
+<td>path to default dashboard static build served at [ <listen_address>/ ]</td>
+</tr>
+<tr>
 <td>db_type</td>
 <td>mysql/postgres/sqlite3</td>
 </tr>
 <tr>
 <td>db_connection_string</td>
-<td>SQLite: <code>test.db</code> <br>MySql: <code>&lt;username&gt;:&lt;password&gt;@tcp(&lt;hostname&gt;:&lt;port&gt;)/&lt;db_name&gt;</code> <br>Postgres: <code>host=&lt;hostname&gt; port=&lt;port&gt; user=&lt;username&gt; password=&lt;password&gt; dbname=&lt;db_name&gt; sslmode=enable/disable</code></td>
+<td>Database Connection String</td>
 </tr>
 </tbody>
 </table>
-<h2 id="heroku-deployment">Heroku deployment<a class="headerlink" href="#heroku-deployment" title="Permanent link">Link</a></h2>
+<h3 id="database-connection-string">Database connection string<a class="headerlink" href="#database-connection-string" title="Permanent link">Link</a></h3>
+<h4 id="sqlite">SQLite<a class="headerlink" href="#sqlite" title="Permanent link">Link</a></h4>
+<p><code>-db_connection_string test.db</code></p>
+<h4 id="mysql">MySQL<a class="headerlink" href="#mysql" title="Permanent link">Link</a></h4>
+<p><code>-db_connection_string "&lt;username&gt;:&lt;password&gt;@tcp(&lt;hostname&gt;:&lt;port&gt;)/&lt;db_name&gt;"</code></p>
+<h4 id="postgresql">POSTGRESql:<a class="headerlink" href="#postgresql" title="Permanent link">Link</a></h4>
+<p><code>-db_connection_string "host=&lt;hostname&gt; port=&lt;port&gt; user=&lt;username&gt; password=&lt;password&gt; dbname=&lt;db_name&gt; sslmode=enable/disable"</code></p>
+<h3 id="heroku-deployment">Heroku deployment<a class="headerlink" href="#heroku-deployment" title="Permanent link">Link</a></h3>
 <p>Heroku is the best way to test out a live instance of daptin. Daptin has a very low memory footprint and can run smoothly even on heroku's smallest instance.</p>
 <p><a href="https://heroku.com/deploy?template=https://github.com/daptin/daptin"><img alt="Deploy" src="https://www.herokucdn.com/deploy/button.svg" /></a></p>
 <p>Note: Heroku puts instances to sleep after 30 minutes of idleness, which will erase all the data. It will behave like a fresh instance when it wakes up. You can subscribe to their minimum paid plan to remove this sleep due to idleness.</p>
@@ -384,94 +618,94 @@
     <img width="200px" class="cloud-provider" src="/images/docker.png">
 </a></p>
 <p><a href="https://hub.docker.com/r/daptin/daptin/">https://hub.docker.com/r/daptin/daptin/</a></p>
-<h2 id="docker-compose">Docker-compose<a class="headerlink" href="#docker-compose" title="Permanent link">Link</a></h2>
+<h3 id="docker-compose">Docker-compose<a class="headerlink" href="#docker-compose" title="Permanent link">Link</a></h3>
 <p>Docker compose is a great tool to bring up a mysql/postgres backed daptin instance</p>
-<div class="codehilite"><pre><span></span><span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3&#39;</span>
-<span class="nt">services</span><span class="p">:</span>
-    <span class="nt">web</span><span class="p">:</span>
-        <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin/daptin</span>
-        <span class="nt">ports</span><span class="p">:</span>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">version</span><span class="p p-Indicator">:</span> <span class="s">&#39;3&#39;</span>
+<span class="l l-Scalar l-Scalar-Plain">services</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">web</span><span class="p p-Indicator">:</span>
+        <span class="l l-Scalar l-Scalar-Plain">image</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin/daptin</span>
+        <span class="l l-Scalar l-Scalar-Plain">ports</span><span class="p p-Indicator">:</span>
             <span class="p p-Indicator">-</span> <span class="s">&quot;8090:8080&quot;</span>
-        <span class="nt">restart</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
-        <span class="nt">environment</span><span class="p">:</span>
-          <span class="nt">DAPTIN_PORT</span><span class="p">:</span> <span class="s">&#39;8080&#39;</span>
-          <span class="nt">DAPTIN_DB_TYPE</span><span class="p">:</span> <span class="s">&#39;mysql&#39;</span>
-          <span class="nt">DAPTIN_DB_CONNECTION_STRING</span><span class="p">:</span> <span class="s">&#39;dev:dev@tcp(mysqldb:3306)/daptin&#39;</span>
-        <span class="nt">depends_on</span><span class="p">:</span>
+        <span class="l l-Scalar l-Scalar-Plain">restart</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
+        <span class="l l-Scalar l-Scalar-Plain">environment</span><span class="p p-Indicator">:</span>
+          <span class="l l-Scalar l-Scalar-Plain">DAPTIN_PORT</span><span class="p p-Indicator">:</span> <span class="s">&#39;8080&#39;</span>
+          <span class="l l-Scalar l-Scalar-Plain">DAPTIN_DB_TYPE</span><span class="p p-Indicator">:</span> <span class="s">&#39;mysql&#39;</span>
+          <span class="l l-Scalar l-Scalar-Plain">DAPTIN_DB_CONNECTION_STRING</span><span class="p p-Indicator">:</span> <span class="s">&#39;dev:dev@tcp(mysqldb:3306)/daptin&#39;</span>
+        <span class="l l-Scalar l-Scalar-Plain">depends_on</span><span class="p p-Indicator">:</span>
             <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">mysqldb</span>
-    <span class="nt">mysqldb</span><span class="p">:</span>
-        <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mysql</span>
-        <span class="nt">container_name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">${MYSQL_HOST}</span>
-        <span class="nt">restart</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
-        <span class="nt">env_file</span><span class="p">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">mysqldb</span><span class="p p-Indicator">:</span>
+        <span class="l l-Scalar l-Scalar-Plain">image</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">mysql</span>
+        <span class="l l-Scalar l-Scalar-Plain">container_name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">${MYSQL_HOST}</span>
+        <span class="l l-Scalar l-Scalar-Plain">restart</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">always</span>
+        <span class="l l-Scalar l-Scalar-Plain">env_file</span><span class="p p-Indicator">:</span>
             <span class="p p-Indicator">-</span> <span class="s">&quot;.env&quot;</span>
-        <span class="nt">environment</span><span class="p">:</span>
+        <span class="l l-Scalar l-Scalar-Plain">environment</span><span class="p p-Indicator">:</span>
             <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">MYSQL_DATABASE=${MYSQL_DATABASE}</span>
             <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}</span>
             <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">MYSQL_USER=${MYSQL_USER}</span>
             <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">MYSQL_PASSWORD=${MYSQL_PASSWORD}</span>
-        <span class="nt">ports</span><span class="p">:</span>
+        <span class="l l-Scalar l-Scalar-Plain">ports</span><span class="p p-Indicator">:</span>
             <span class="p p-Indicator">-</span> <span class="s">&quot;8989:3306&quot;</span>
-        <span class="nt">volumes</span><span class="p">:</span>
+        <span class="l l-Scalar l-Scalar-Plain">volumes</span><span class="p p-Indicator">:</span>
             <span class="p p-Indicator">-</span> <span class="s">&quot;./data/db/mysql:/var/lib/mysql&quot;</span>
 </pre></div>
 
-<h2 id="kubernetes-deployment">Kubernetes deployment<a class="headerlink" href="#kubernetes-deployment" title="Permanent link">Link</a></h2>
+<h3 id="kubernetes-deployment">Kubernetes deployment<a class="headerlink" href="#kubernetes-deployment" title="Permanent link">Link</a></h3>
 <p>Daptin can be infinitely scaled on kubernetes</p>
 <div class="admonition example">
 <p class="admonition-title">Example</p>
-<div class="codehilite"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Service</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-instance</span>
-  <span class="nt">labels</span><span class="p">:</span>
-    <span class="nt">app</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">ports</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="nt">port</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
-  <span class="nt">selector</span><span class="p">:</span>
-    <span class="nt">app</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-    <span class="nt">tier</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">production</span>
+<div class="codehilite"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">apiVersion</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="l l-Scalar l-Scalar-Plain">kind</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Service</span>
+<span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-instance</span>
+  <span class="l l-Scalar l-Scalar-Plain">labels</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">app</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
+<span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">ports</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">port</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
+  <span class="l l-Scalar l-Scalar-Plain">selector</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">app</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
+    <span class="l l-Scalar l-Scalar-Plain">tier</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">production</span>
 <span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">extensions/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Deployment</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-daptin</span>
-  <span class="nt">labels</span><span class="p">:</span>
-    <span class="nt">app</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">strategy</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Recreate</span>
-  <span class="nt">template</span><span class="p">:</span>
-    <span class="nt">metadata</span><span class="p">:</span>
-      <span class="nt">labels</span><span class="p">:</span>
-        <span class="nt">app</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-        <span class="nt">tier</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">testing</span>
-    <span class="nt">spec</span><span class="p">:</span>
-      <span class="nt">containers</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin/daptin:latest</span>
-        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
-        <span class="nt">args</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="s">&#39;-db_type&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;mysql&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;-db_connection_string&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;user:password@tcp(&lt;mysql_service&gt;:3306)/daptin&#39;</span><span class="p p-Indicator">]</span>
-        <span class="nt">ports</span><span class="p">:</span>
-        <span class="p p-Indicator">-</span> <span class="nt">containerPort</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
-          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
+<span class="l l-Scalar l-Scalar-Plain">apiVersion</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">extensions/v1beta1</span>
+<span class="l l-Scalar l-Scalar-Plain">kind</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Deployment</span>
+<span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-daptin</span>
+  <span class="l l-Scalar l-Scalar-Plain">labels</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">app</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
+<span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">strategy</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Recreate</span>
+  <span class="l l-Scalar l-Scalar-Plain">template</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="p p-Indicator">:</span>
+      <span class="l l-Scalar l-Scalar-Plain">labels</span><span class="p p-Indicator">:</span>
+        <span class="l l-Scalar l-Scalar-Plain">app</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
+        <span class="l l-Scalar l-Scalar-Plain">tier</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">testing</span>
+    <span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
+      <span class="l l-Scalar l-Scalar-Plain">containers</span><span class="p p-Indicator">:</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">image</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin/daptin:latest</span>
+        <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
+        <span class="l l-Scalar l-Scalar-Plain">args</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">[</span><span class="s">&#39;-db_type&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;mysql&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;-db_connection_string&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;user:password@tcp(&lt;mysql_service&gt;:3306)/daptin&#39;</span><span class="p p-Indicator">]</span>
+        <span class="l l-Scalar l-Scalar-Plain">ports</span><span class="p p-Indicator">:</span>
+        <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">containerPort</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
+          <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin</span>
 <span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">extensions/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Ingress</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-test</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">rules</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">host</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">hello.website</span>
-    <span class="nt">http</span><span class="p">:</span>
-      <span class="nt">paths</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="nt">backend</span><span class="p">:</span>
-          <span class="nt">serviceName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-testing</span>
-          <span class="nt">servicePort</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
+<span class="l l-Scalar l-Scalar-Plain">apiVersion</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">extensions/v1beta1</span>
+<span class="l l-Scalar l-Scalar-Plain">kind</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Ingress</span>
+<span class="l l-Scalar l-Scalar-Plain">metadata</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-test</span>
+<span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">rules</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">host</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">hello.website</span>
+    <span class="l l-Scalar l-Scalar-Plain">http</span><span class="p p-Indicator">:</span>
+      <span class="l l-Scalar l-Scalar-Plain">paths</span><span class="p p-Indicator">:</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">backend</span><span class="p p-Indicator">:</span>
+          <span class="l l-Scalar l-Scalar-Plain">serviceName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">daptin-testing</span>
+          <span class="l l-Scalar l-Scalar-Plain">servicePort</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
 </pre></div>
 
 </div>
-<h1 id="database-configuration">Database configuration<a class="headerlink" href="#database-configuration" title="Permanent link">Link</a></h1>
+<h2 id="database-configuration">Database configuration<a class="headerlink" href="#database-configuration" title="Permanent link">Link</a></h2>
 <p>Daptin can use one of the following database for data persistence</p>
 <ul>
 <li>Mysql</li>
@@ -480,19 +714,50 @@
 </ul>
 <p>If nothing specified, a <strong>sqlite</strong> database is created on the local file system and is used for all purposes. (uploads/blobs are not stored in database)</p>
 <p>You can customise the database connection properties when starting daptin</p>
-<h2 id="mysql">MySQL<a class="headerlink" href="#mysql" title="Permanent link">Link</a></h2>
+<h3 id="mysql_1">MySQL<a class="headerlink" href="#mysql_1" title="Permanent link">Link</a></h3>
 <p>To use mysql, start daptin as follows</p>
 <p><code>./daptin -db_type=mysql -db_connection_string='&lt;username&gt;:&lt;password&gt;@tcp(&lt;hostname&gt;:&lt;port&gt;)/&lt;db_name&gt;'</code></p>
-<h2 id="postgresql">PostgreSQL<a class="headerlink" href="#postgresql" title="Permanent link">Link</a></h2>
+<h3 id="postgresql_1">PostgreSQL<a class="headerlink" href="#postgresql_1" title="Permanent link">Link</a></h3>
 <p><code>./daptin -db_type=postgres -db_connection_string='host=&lt;hostname&gt; port=&lt;port&gt; user=&lt;username&gt; password=&lt;password&gt; dbname=&lt;db_name&gt; sslmode=enable/disable'</code></p>
-<h2 id="sqlite">SQLite<a class="headerlink" href="#sqlite" title="Permanent link">Link</a></h2>
+<h3 id="sqlite_1">SQLite<a class="headerlink" href="#sqlite_1" title="Permanent link">Link</a></h3>
 <p>By default a "daptin.db" file is created to store data</p>
 <p><code>./daptin -db_type=sqlite -db_connection_string=db_file_name.db</code></p>
-<h1 id="port">Port<a class="headerlink" href="#port" title="Permanent link">Link</a></h1>
-<p>Daptin will listen on port 6336 by default. You can change it by using the following argument</p>
+<h2 id="port">Port<a class="headerlink" href="#port" title="Permanent link">Link</a></h2>
+<p>Daptin will use the following ports for various services (when enabled)</p>
 <p><code>-port :8080</code></p>
-<h1 id="restart">Restart<a class="headerlink" href="#restart" title="Permanent link">Link</a></h1>
-<p>Daptin relies on self re-configuration to configure new entities and APIs and changes to the other parts of the ststem. As soon as you upload a schema file, daptin will write the file to disk, and <code>reconfigure</code> itself. When it starts it will read the schema file, make appropriate changes to the database and expose JSON apis for the entities and actions.</p>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Port</th>
+<th>To change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HTTP (JSON/GraphQL)</td>
+<td>6336</td>
+<td>CLI option <code>-port :80</code></td>
+</tr>
+<tr>
+<td>HTTPS</td>
+<td>6443</td>
+<td>CLI option <code>-https_port :80</code></td>
+</tr>
+<tr>
+<td>IMAP</td>
+<td>6443</td>
+<td><a href="/setting-up/enabling-features">_config entry</a></td>
+</tr>
+<tr>
+<td>SMTP</td>
+<td>2525</td>
+<td><a href="/features/enable-smtp-imap">/mail_server</a> row entry</td>
+</tr>
+</tbody>
+</table>
+<h2 id="restart">Restart<a class="headerlink" href="#restart" title="Permanent link">Link</a></h2>
+<p>Various low level configure changes requires a reset of the server to take place. Restart can be triggered using an action API and takes about 5-10 seconds.</p>
 <p>You can issue a daptin restart from the dashboard. Daptin takes about 15 seconds approx to start up and configure everything.</p>
               
             </div>
@@ -528,8 +793,6 @@
 
   <div class="rst-versions" role="note" style="cursor: pointer">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      
-          <a href="https://github.com/daptin/daptin/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
         <span><a href="../.." style="color: #fcfcfc;">&laquo; Previous</a></span>

@@ -13,8 +13,31 @@
     color: #838383;
 }
 
-.wy-menu-vertical .subnav a {
-    padding: 0.4045em 2.427em;
+.wy-nav-side {
+    background: #fff !important;
+}
+
+.rst-content .note .admonition-title {
+    background: #524da7;
+}
+
+p {
+    text-align: justify;
+}
+
+li {
+    line-height: 26px;
+}
+
+.wy-nav-content {
+    max-width: 1000px;
+}
+
+.codehilite {
+    background: black;
+    color: white;
+    padding: 10px;
+    overflow-y: scroll;
 }
 
 /*
@@ -32,7 +55,7 @@
     min-height: 0;
 }
 
-.rst-versions{
+.rst-versions {
     border-top: 0;
     height: 45px;
 }
@@ -50,7 +73,7 @@
  * https://github.com/mkdocs/mkdocs/issues/#348
  */
 .wy-menu-vertical ul {
-  margin-bottom: 2em;
+    margin-bottom: 2em;
 }
 
 /*
@@ -76,11 +99,11 @@ code {
  * https://github.com/mkdocs/mkdocs/issues/233
  */
 pre code {
-  white-space: pre;
-  word-wrap: normal;
-  display: block;
-  padding: 12px;
-  font-size: 12px;
+    white-space: pre;
+    word-wrap: normal;
+    display: block;
+    padding: 12px;
+    font-size: 12px;
 }
 
 /*
@@ -91,9 +114,11 @@ pre code {
 a code {
     color: #2980B9;
 }
+
 a:hover code {
     color: #3091d1;
 }
+
 a:visited code {
     color: #9B59B6;
 }
@@ -118,21 +143,17 @@ pre .cs, pre .c {
  * https://github.com/mkdocs/mkdocs/issues/319
  */
 .no-highlight {
-  display: block;
-  padding: 0.5em;
-  color: #333;
+    display: block;
+    padding: 0.5em;
+    color: #333;
 }
-
 
 /*
  * Additions specific to the search functionality provided by MkDocs
  */
 
-.search-results {
-    margin-top: 23px;
-}
-
 .search-results article {
+    margin-top: 23px;
     border-top: 1px solid #E1E4E5;
     padding-top: 24px;
 }
@@ -143,8 +164,8 @@ pre .cs, pre .c {
 
 form .search-query {
     width: 100%;
-    border-radius: 50px;
-    padding: 6px 12px;  /* csslint allow: box-model */
+    border-radius: 5px;
+    padding: 6px 12px; /* csslint allow: box-model */
     border-color: #D1D4D5;
 }
 
@@ -152,28 +173,17 @@ form .search-query {
     display: inherit;
 }
 
-.wy-menu-vertical li ul.subnav ul.subnav{
-    padding-left: 1em;
-}
-
-.wy-menu-vertical .subnav li.current > a {
-    padding-left: 2.42em;
-}
-.wy-menu-vertical .subnav li.current > ul li a {
-    padding-left: 3.23em;
-}
-
 /*
  * Improve inline code blocks within admonitions.
  *
  * https://github.com/mkdocs/mkdocs/issues/656
  */
- .admonition code {
-  color: #404040;
-  border: 1px solid #c7c9cb;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  background: #f8fbfd;
-  background: rgba(255, 255, 255, 0.7);
+.admonition code {
+    color: #404040;
+    border: 1px solid #c7c9cb;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    background: #f8fbfd;
+    background: rgba(255, 255, 255, 0.7);
 }
 
 /*
@@ -191,7 +201,142 @@ form .search-query {
 }
 
 td, th {
-   border: 1px solid #e1e4e5 !important; /* csslint allow: important */
-   border-collapse: collapse;
+    border: 1px solid #e1e4e5 !important; /* csslint allow: important */
+    border-collapse: collapse;
 }
 
+/*
+ * readthedocs-nested overrides
+ *
+*/
+
+/* .wy-menu-vertical li ul {
+  display: none
+} */
+
+/* .wy-menu-vertical li.current ul {
+    display: block;
+} */
+
+/*  
+ * Pallet 227 - 201 - 175
+ * e3e3e3 c9c9c9 bdbdbd
+ */
+
+.wy-menu-vertical ul.tocbase ul.current {
+    display: block !important;
+}
+
+.wy-menu-vertical ul.tocbase ul.toc-hidden {
+    display: none !important;
+}
+
+.wy-menu-vertical ul.tocbase li a {
+    position: relative;
+    color: #808080;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.wy-menu-vertical ul.tocbase li.current.with-children > a {
+    color: #333333;
+    font-weight: bold;
+}
+
+.wy-menu-vertical ul.tocbase span.toctree-expand {
+    position: absolute;
+    top: 6px;
+    margin: 0px;
+    padding: 0px;
+    font-size: 12px !important;
+    font-weight: 400;
+    color: #333333;
+}
+
+.wy-menu-vertical ul.tocbase li.toctree-l2 > a > span.toctree-expand {
+    left: 6px;
+}
+
+.wy-menu-vertical ul.tocbase li.toctree-l3 > a > span.toctree-expand {
+    left: 16px;
+}
+
+.wy-menu-vertical ul.tocbase li.toctree-l4 > a > span.toctree-expand {
+    left: 26px;
+}
+
+.wy-menu-vertical ul.tocbase li.toctree-l5 > a > span.toctree-expand {
+    left: 36px;
+}
+
+.wy-menu-vertical ul.tocbase li.navtree.toctree-l1.inactive > a,
+.wy-menu-vertical ul.tocbase li.navtree.toctree-l2.inactive > a {
+    color: #000;
+}
+
+/* Selected top-level heading */
+.wy-menu-vertical .navtree li.toctree-l2.current,
+.wy-menu-vertical .navtree li.toctree-l2.current > a {
+    background: #fcfcfc;
+}
+
+.wy-menu-vertical .navtree li.toctree-l2.current > a,
+.wy-menu-vertical .navtree li.toctree-l2.current > span {
+    color: #404040 !important;
+}
+
+.wy-menu-vertical .navtree li.toctree-l2.current > a {
+    padding: 6px 0 6px 22px;
+    font-weight: bold;
+}
+
+/* Level 2 heading */
+.wy-menu-vertical ul.navtree.subnav-l1 ul.subnav-l2,
+.wy-menu-vertical ul.navtree.subnav-l1 li.toctree-l2.current li.toctree-l3 > a {
+    background: #e3e3e3;
+}
+
+.wy-menu-vertical ul.subnav-l1 ul.subnav-l2,
+.wy-menu-vertical ul.subnav-l1 li.toctree-l2.current li.toctree-l3 > a {
+    background: #c9c9c9;
+}
+
+.wy-menu-vertical ul.tocbase li.toctree-l2.current li.toctree-l3 > a {
+    padding: 6px 0 6px 32px;
+}
+
+/* Level 3 heading */
+.wy-menu-vertical ul.navtree.subnav-l1 li.toctree-l2.current li.toctree-l3.current > a,
+.wy-menu-vertical ul.navtree.subnav-l1 li.toctree-l3.current li.toctree-l4 > a {
+    background: #c9c9c9;
+}
+
+.wy-menu-vertical ul.subnav-l1 li.toctree-l2.current li.toctree-l3.current > a,
+.wy-menu-vertical ul.subnav-l1 li.toctree-l3.current li.toctree-l4 > a {
+    background: #bdbdbd;
+}
+
+.wy-menu-vertical li.toctree-l3.current li.toctree-l4 > a {
+    padding: 6px 0 6px 42px;
+}
+
+/* Level 4 heading */
+.wy-menu-vertical ul.tocbase li.toctree-l3.current li.toctree-l4.current > a,
+.wy-menu-vertical li.toctree-l4.current li.toctree-l5 > a {
+    background: #bdbdbd;
+}
+
+.wy-menu-vertical li.toctree-l4.current li.toctree-l5 > a {
+    padding: 6px 0 6px 52px;
+}
+
+.wy-menu-vertical ul.navtree.subnav-l1 li.toctree-l2.current li.toctree-l3 > a:hover,
+.wy-menu-vertical ul.subnav-l1 li.toctree-l2.current li.toctree-l3 > a:hover,
+.wy-menu-vertical ul.navtree.subnav-l1 li.toctree-l2.current li.toctree-l3.current > a:hover,
+.wy-menu-vertical ul.tocbase li.toctree-l4 > a:hover,
+.wy-menu-vertical ul.tocbase li.toctree-l4 > a:hover,
+.wy-menu-vertical ul.tocbase li.toctree-l5 > a:hover,
+.wy-menu-vertical ul.tocbase li.toctree-l6 > a:hover,
+.wy-menu-vertical ul.tocbase li.toctree-l7 > a:hover {
+    background: #d6d6d6 !important;
+}

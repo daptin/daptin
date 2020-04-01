@@ -11,7 +11,7 @@ import (
 )
 
 func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
-	log.Infof("Create constraints")
+	log.Infof("Create constraints and indexes")
 	for _, table := range initConfig.Tables {
 
 		for _, column := range table.Columns {
@@ -22,10 +22,24 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 				log.Infof("Create unique index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
-					//log.Infof("Table[%v] Column[%v]: Failed to create unique index: %v", table.TableName, column.ColumnName, err)
+					log.Infof("Table[%v] Column[%v]: Failed to create unique index: %v", table.TableName, column.ColumnName, err)
 				}
 			}
 		}
+
+		if len(table.CompositeKeys) > 0 {
+			for _, compositeKeyCols := range table.CompositeKeys {
+				indexName := "i" + GetMD5Hash("index_cl_"+strings.Join(compositeKeyCols, ",")+"_"+"_unique")
+				alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + strings.Join(compositeKeyCols, ",") + ")"
+				log.Infof("Create unique index sql: %v", alterTable)
+				_, err := db.Exec(alterTable)
+				if err != nil {
+					log.Errorf("Table[%v] Column[%v]: Failed to create unique composite key index: %v", table.TableName, compositeKeyCols, err)
+					db.Exec("COMMIT ")
+				}
+			}
+		}
+
 
 		if strings.Index(table.TableName, "_has_") > -1 {
 
@@ -96,7 +110,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 				//log.Infof("Alter table add constraint sql: %v", alterSql)
 				_, err := db.Exec(alterSql)
 				if err != nil {
-					//log.Infof("Failed to create foreign key [%v], probably it exists: %v", err, keyName)
+					log.Infof("Failed to create foreign key [%v], probably it exists: %v", err, keyName)
 				} else {
 					log.Infof("Key created [%v][%v]", keyName, table.TableName)
 				}
@@ -115,6 +129,159 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 		// reset relations
 		initConfig.Tables[i].Relations = relations
 	}
+}
+
+func CheckTranslationTables(config *CmsConfig) {
+
+	newRelations := make([]api2go.TableRelation, 0)
+
+	tableMap := make(map[string]*TableInfo)
+	for i := range config.Tables {
+		t := config.Tables[i]
+		tableMap[t.TableName] = &t
+	}
+
+	createTranslationTableFor := make([]string, 0)
+	updateTranslationTableFor := make([]string, 0)
+
+	for _, table := range config.Tables {
+
+		if api2go.EndsWithCheck(table.TableName, "_audit") {
+			log.Infof("[%v] is an audit table", table.TableName)
+			continue
+		}
+
+		if api2go.EndsWithCheck(table.TableName, "_i18n") {
+			log.Infof("[%v] is an audit table", table.TableName)
+			continue
+		}
+
+		translationTableName := table.TableName + "_i18n"
+		existingTranslationTable, ok := tableMap[translationTableName]
+		if !ok {
+			if table.TranslationsEnabled {
+				createTranslationTableFor = append(createTranslationTableFor, table.TableName)
+			}
+		} else {
+			if len(table.Columns) > len(existingTranslationTable.Columns) {
+				log.Infof("New columns added to the table, translation table need to be updated")
+				updateTranslationTableFor = append(updateTranslationTableFor, table.TableName)
+			}
+		}
+
+	}
+
+	for _, tableName := range createTranslationTableFor {
+
+		table := tableMap[tableName]
+		columnsCopy := make([]api2go.ColumnInfo, 0)
+		translationTableName := tableName + "_i18n"
+		log.Infof("Create translation table [%s] for table [%v]", table.TableName, translationTableName)
+
+		for _, col := range table.Columns {
+
+			var c api2go.ColumnInfo
+			err := copier.Copy(&c, &col)
+			if err != nil {
+				log.Errorf("Failed to copy columns for audit table: %v", err)
+				continue
+			}
+
+			if c.ColumnName == "id" {
+				continue
+			}
+
+			c.IsNullable = true
+
+			if c.IsForeignKey {
+				c.IsForeignKey = false
+				c.ForeignKeyData = api2go.ForeignKeyData{}
+			}
+
+			c.IsUnique = false
+			c.IsPrimaryKey = false
+			c.IsAutoIncrement = false
+
+			//log.Infof("Add column to table [%v] == [%v]", translationTableName, c)
+			columnsCopy = append(columnsCopy, c)
+
+		}
+
+		columnsCopy = append(columnsCopy, api2go.ColumnInfo{
+			Name:       "language_id",
+			ColumnType: "label",
+			DataType:   "varchar(10)",
+			IsNullable: false,
+		})
+
+		newRelation := api2go.TableRelation{
+			Subject:    translationTableName,
+			Relation:   "belongs_to",
+			Object:     tableName,
+			ObjectName: "translation_reference_id",
+		}
+
+		newRelations = append(newRelations, newRelation)
+
+		newTable := TableInfo{
+			TableName:         translationTableName,
+			Columns:           columnsCopy,
+			IsHidden:          true,
+			DefaultPermission: auth.GuestCreate | auth.GuestRead | auth.GroupRead,
+			Permission:        auth.GuestCreate | auth.UserCreate | auth.GroupCreate,
+		}
+
+		config.Tables = append(config.Tables, newTable)
+	}
+
+	log.Infof("%d Audit tables are new", len(createTranslationTableFor))
+	log.Infof("%d Audit tables are updated", len(updateTranslationTableFor))
+
+	for _, tableName := range updateTranslationTableFor {
+
+		table := tableMap[tableName]
+		auditTable := tableMap[tableName+"_audit"]
+		existingColumns := auditTable.Columns
+
+		existingColumnMap := make(map[string]api2go.ColumnInfo)
+		for _, col := range existingColumns {
+			existingColumnMap[col.Name] = col
+		}
+
+		tableColumnMap := make(map[string]api2go.ColumnInfo)
+		for _, col := range table.Columns {
+			tableColumnMap[col.Name] = col
+		}
+
+		newColsToAdd := make([]api2go.ColumnInfo, 0)
+
+		for _, newCols := range table.Columns {
+
+			_, ok := existingColumnMap[newCols.Name]
+			if !ok {
+				var newAuditCol api2go.ColumnInfo
+				err := copier.Copy(&newAuditCol, &newCols)
+				CheckErr(err, "Error while copying value from new audit column")
+				newColsToAdd = append(newColsToAdd, newAuditCol)
+			}
+
+		}
+
+		if len(newColsToAdd) > 0 {
+
+			for i := range config.Tables {
+
+				if config.Tables[i].TableName == auditTable.TableName {
+					config.Tables[i].Columns = append(config.Tables[i].Columns, newColsToAdd...)
+				}
+			}
+
+		}
+
+	}
+
+	convertRelationsToColumns(newRelations, config)
+
 }
 
 func CheckAuditTables(config *CmsConfig) {
@@ -189,6 +356,14 @@ func CheckAuditTables(config *CmsConfig) {
 			columnsCopy = append(columnsCopy, c)
 
 		}
+
+		columnsCopy = append(columnsCopy, api2go.ColumnInfo{
+			Name:       "source_reference_id",
+			ColumnName: "source_reference_id",
+			ColumnType: "label",
+			DataType:   "varchar(30)",
+			IsNullable: false,
+		})
 
 		//newRelation := api2go.TableRelation{
 		//	Subject:    auditTableName,
@@ -458,6 +633,10 @@ func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) {
 	createTableQuery := MakeCreateTableQuery(tableInfo, db.DriverName())
 
 	log.Infof("Create table query: %v", tableInfo.TableName)
+	if len(tableInfo.TableName) < 2 {
+		log.Printf("Table name less than two characters is unacceptable [%v]", tableInfo.TableName)
+		return
+	}
 	log.Println(createTableQuery)
 	_, err := db.Exec(createTableQuery)
 	//db.Exec("COMMIT ")
@@ -494,6 +673,7 @@ func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
 		colsDone[c.ColumnName] = true
 		columnStrings = append(columnStrings, columnLine)
 	}
+
 	columnString := strings.Join(columnStrings, ",\n  ")
 	createTableQuery += columnString + ") "
 

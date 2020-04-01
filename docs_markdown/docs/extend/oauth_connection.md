@@ -6,7 +6,7 @@ Oauth connection are useful in consuming other parts of daptin easily, like clou
 
 To begin using oauth involved flows (eg GoogleDrive as data storage) first daptin needs to be configured about the oauth connection parameters. 
 
-## Creating a new oauth connection
+### Creating a new oauth connection
 
 - Log into the dashboard
 - Click the tile "OAuth connections"
@@ -24,4 +24,4 @@ To begin using oauth involved flows (eg GoogleDrive as data storage) first dapti
     - for gsheet: `https://www.googleapis.com/auth/spreadsheets`
 - **Token Url**: The token info url of the oauth service: eg: `https://accounts.google.com/o/oauth2/token`
 
-Now you can [generate a token](/extend/oauth_token)
+Now you can [generate a token](/daptin/extend/oauth_token/)

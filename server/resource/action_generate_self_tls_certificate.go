@@ -22,7 +22,7 @@ func (d *SelfTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	log.Printf("Generate certificate for: %v", certificateSubject)
 
 	hostname := certificateSubject["hostname"].(string)
-	_, certPem, _, _, err := d.certificateManager.GetTLSConfig(hostname)
+	_, certPem, _, _, _, err := d.certificateManager.GetTLSConfig(hostname, true)
 	if err != nil {
 		return nil, []ActionResponse{}, []error{err}
 	}

@@ -81,6 +81,8 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 				QueryParams:  map[string][]string{},
 			}
 
+			stateAudit.Data["source_reference_id"] = objectStateMachine.GetReferenceId()
+
 			_, err := creator.Create(stateAudit, req)
 			resource.CheckErr(err, "Failed to create audit for [%v]", objectStateMachine.GetTableName())
 		}

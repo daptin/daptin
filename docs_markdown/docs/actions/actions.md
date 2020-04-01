@@ -1,10 +1,10 @@
-# Actions
+# What are actions
 
-Actions are the most useful things in Daptin and we will see that everything you have done in Daptin was as action itself.
+Actions are the most useful concept in Daptin and we will see that everything you have done in Daptin was an action api call.
 
 Actions can be thought of as follows:
 
-- A set of inputs
+- A set of inputs (key value pair)
 - A set of outcomes based on the inputs
 
 ## What are actions and why do I need this

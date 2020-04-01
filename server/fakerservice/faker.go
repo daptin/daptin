@@ -17,7 +17,7 @@ func NewFakeInstance(tableInfo resource.TableInfo) map[string]interface{} {
 			continue
 		}
 
-		fakeData := resource.ColumnManager.GetFakedata(col.ColumnType)
+		fakeData := resource.ColumnManager.GetFakeData(col.ColumnType)
 
 		newObject[col.ColumnName] = fakeData
 

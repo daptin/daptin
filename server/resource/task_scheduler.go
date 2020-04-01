@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -118,7 +118,7 @@ func (dts *DefaultTaskScheduler) AddTask(task Task) error {
 	log.Printf("Register task [%v] at %v", task.ActionName, task.Schedule)
 	at := dts.cruds["task"].NewActiveTaskInstance(task)
 	dts.activeTasks = append(dts.activeTasks, at)
-	err := dts.cronService.AddJob(task.Schedule, at)
+	_, err := dts.cronService.AddJob(task.Schedule, at)
 
 	return err
 }

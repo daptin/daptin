@@ -2,7 +2,9 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	uuid "github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/columntypes"
+	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
 	"strings"
 
@@ -11,7 +13,6 @@ import (
 	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/auth"
-	"github.com/daptin/daptin/server/statementbuilder"
 	"net/http"
 	"time"
 )
@@ -62,9 +63,17 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 	//dataToInsert := make(map[string]interface{})
 
+	languagePreferences := make([]string, 0)
+	if dr.tableInfo.TranslationsEnabled {
+		prefs := req.PlainRequest.Context().Value("language_preference")
+		if prefs != nil {
+			languagePreferences = prefs.([]string)
+		}
+	}
+
+	var colsList []string
+	var valsList []interface{}
 	if len(allChanges) > 0 {
-		var colsList []string
-		var valsList []interface{}
 		for _, col := range allColumns {
 
 			//log.Infof("Add column: %v", col.ColumnName)
@@ -204,7 +213,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 						//val, err = time.Parse("2006-01-02T15:04:05.999Z", valString)
 						val, _, err = fieldtypes.GetDateTime(valString)
-						CheckErr(err, fmt.Sprintf("Failed to parse string as date time [%v]", val))
+						CheckErr(err, fmt.Sprintf("Failed to parse string as date time in update [%v]", val))
 					} else {
 						floatVal, ok := val.(float64)
 						if ok {
@@ -217,22 +226,46 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				}
 				// 2017-07-13T18:30:00.000Z
 
+			} else if col.ColumnType == "enum" {
+				valString, ok := val.(string)
+				if !ok {
+					valString = fmt.Sprintf("%v", val)
+				}
+
+				isEnumOption := false
+				valString = strings.ToLower(valString)
+				for _, enumVal := range col.Options {
+
+					if valString == enumVal.Value {
+						isEnumOption = true
+						break
+
+					}
+
+				}
+
+				if !isEnumOption {
+					log.Printf("Provided value is not a valid enum option, reject request [%v] [%v]", valString, col.Options)
+					return nil, errors.New(fmt.Sprintf("invalid value for %s", col.Name))
+				}
+				val = valString
+
 			} else if col.ColumnType == "encrypted" {
 
 				secret, err := dr.configStore.GetConfigValueFor("encryption.secret", "backend")
 				if err != nil {
 					log.Errorf("Failed to get secret from config: %v", err)
-					val = ""
+					return nil, errors.New("unable to store a secret at this time")
 				} else {
-					if val != nil {
-						val, err = Encrypt([]byte(secret), val.(string))
-						if err != nil {
-							log.Errorf("Failed to convert string to encrypted value, not storing the value: %v", err)
-							val = ""
-						}
-					} else {
+					if val == nil {
 						val = ""
 					}
+					val, err = Encrypt([]byte(secret), val.(string))
+					if err != nil {
+						log.Errorf("Failed to convert string to encrypted value, not storing the value: %v", err)
+						val = ""
+					}
+
 				}
 			} else if col.ColumnType == "date" {
 
@@ -316,26 +349,79 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 		colsList = append(colsList, "version")
 		valsList = append(valsList, data.GetNextVersion())
 
-		builder := statementbuilder.Squirrel.Update(dr.model.GetName())
+		if len(languagePreferences) == 0 {
 
-		for i := range colsList {
-			//log.Infof("cols to set: %v == %v", colsList[i], valsList[i])
-			builder = builder.Set(colsList[i], valsList[i])
+			builder := statementbuilder.Squirrel.Update(dr.model.GetName())
+
+			for i := range colsList {
+				builder = builder.Set(colsList[i], valsList[i])
+			}
+
+			query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).ToSql()
+			//log.Infof("Update query: %v", query)
+			if err != nil {
+				log.Errorf("Failed to create update query: %v", err)
+				return nil, err
+			}
+
+			//log.Infof("Update query: %v == %v", query, vals)
+			_, err = dr.db.Exec(query, vals...)
+			if err != nil {
+				log.Errorf("Failed to execute update query: %v", err)
+				return nil, err
+			}
+
+		} else if len(languagePreferences) > 0 {
+
+			for _, lang := range languagePreferences {
+
+				langTableCols := make([]string, 0)
+				langTableVals := make([]interface{}, 0)
+
+				for _, col := range colsList {
+					langTableCols = append(langTableCols, col)
+				}
+
+				for _, val := range valsList {
+					langTableVals = append(langTableVals, val)
+				}
+
+				builder := statementbuilder.Squirrel.Update(dr.model.GetName() + "_i18n")
+
+				for i := range langTableCols {
+					builder = builder.Set(langTableCols[i], langTableVals[i])
+				}
+
+				query, vals, err := builder.Where(squirrel.Eq{"translation_reference_id": idInt}).Where(squirrel.Eq{"language_id": lang}).ToSql()
+				//log.Infof("Update query: %v", query)
+				if err != nil {
+					log.Errorf("Failed to create update query: %v", err)
+				}
+
+				//log.Infof("Update query: %v == %v", query, vals)
+				res, err := dr.db.Exec(query, vals...)
+				rowsAffected, err := res.RowsAffected()
+				if err != nil || rowsAffected == 0 {
+					log.Errorf("Failed to execute update query: %v", err)
+
+					u, _ := uuid.NewV4()
+					nuuid := u.String()
+
+					langTableCols = append(langTableCols, "language_id", "translation_reference_id", "reference_id")
+					langTableVals = append(langTableVals, lang, idInt, nuuid)
+
+					insert := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n")
+					insert = insert.Columns(langTableCols...)
+					insert = insert.Values(langTableVals...)
+					query, vals, err := insert.ToSql()
+
+					_, err = dr.db.Exec(query, vals...)
+
+					return nil, err
+				}
+			}
 		}
 
-		query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).ToSql()
-		//log.Infof("Update query: %v", query)
-		if err != nil {
-			log.Errorf("Failed to create update query: %v", err)
-			return nil, err
-		}
-
-		//log.Infof("Update query: %v == %v", query, vals)
-		_, err = dr.db.Exec(query, vals...)
-		if err != nil {
-			log.Errorf("Failed to execute update query: %v", err)
-			return nil, err
-		}
 	}
 
 	if data.IsDirty() && dr.tableInfo.IsAuditEnabled {
@@ -367,12 +453,6 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 	} else {
 		log.Infof("[%v][%v] Not creating an audit row", data.GetTableName(), data.GetID())
 	}
-
-	//query, vals, err = statementbuilder.Squirrel.Select("*").From(dr.model.GetName()).Where(squirrel.Eq{"reference_id": id}).ToSql()
-	//if err != nil {
-	//	log.Errorf("Failed to create select query: %v", err)
-	//	return nil, err
-	//}
 
 	updatedResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), id)
 	if err != nil {

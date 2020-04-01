@@ -7,12 +7,11 @@ temp.*daptin.json
 docker_dir/
 npm-debug.log
 rice-box.go
-bin/
 build/
 projectFilesBackup/
 daptinweb/static/samples/devsupport.json
 main
-!/daptinweb/dist/
+!/daptinweb/dist/*
 vendor/
 dist
 /logs.log
@@ -26,3 +25,4 @@ temp/
 daptin.log
 .DS_Store
 *.log
+daptin_test.db

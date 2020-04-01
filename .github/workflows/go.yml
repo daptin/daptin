@@ -1,28 +1,395 @@
-name: Go
-on: [push]
-jobs:
+---
+# Github Actions build for daptin
+# -*- compile-command: "yamllint -f parsable build.yml" -*-
 
+name: build
+
+# Trigger the workflow on push or pull request
+on:
+  push:
+    branches:
+      - '*'
+    tags:
+      - '*'
+  pull_request:
+
+jobs:
   build:
-    name: Build
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        job_name: ['linux', 'mac', 'windows_amd64', 'windows_386', 'other_os', 'modules_race', 'go1.12']
+
+        include:
+          - job_name: linux
+            os: ubuntu-latest
+            go: '1.13.x'
+            modules: 'on'
+            gotags: cmount
+            build_flags: '-include "^linux/"'
+            check: true
+            quicktest: true
+            deploy: true
+
+          - job_name: mac
+            os: macOS-latest
+            go: '1.13.x'
+            modules: 'on'
+            gotags: ''  # cmount doesn't work on osx travis for some reason
+            build_flags: '-include "^darwin/amd64" -cgo'
+            quicktest: true
+            deploy: true
+
+          - job_name: windows_amd64
+            os: windows-latest
+            go: '1.13.x'
+            modules: 'on'
+            gotags: cmount
+            build_flags: '-include "^windows/amd64" -cgo'
+            deploy: true
+
+          - job_name: windows_386
+            os: windows-latest
+            go: '1.13.x'
+            modules: 'on'
+            gotags: cmount
+            goarch: '386'
+            cgo: '1'
+            build_flags: '-include "^windows/386" -cgo'
+            deploy: true
+
+          - job_name: other_os
+            os: ubuntu-latest
+            go: '1.13.x'
+            modules: 'on'
+            build_flags: '-exclude "^(windows/|darwin/amd64|linux/)"'
+            compile_all: true
+            deploy: true
+
+          - job_name: modules_race
+            os: ubuntu-latest
+            go: '1.13.x'
+            modules: 'on'
+            quicktest: true
+
+          - job_name: go1.10
+            os: ubuntu-latest
+            go: '1.11.x'
+            modules: 'on'
+            quicktest: true
+
+          - job_name: go1.11
+            os: ubuntu-latest
+            go: '1.11.x'
+            modules: 'on'
+            quicktest: true
+
+          - job_name: go1.12
+            os: ubuntu-latest
+            go: '1.12.x'
+            modules: 'on'
+            quicktest: true
+
+    name: ${{ matrix.job_name }}
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          # Checkout into a fixed path to avoid import path problems on go < 1.11
+          path: ./src/github.com/daptin/daptin
+
+      - name: Install Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Set environment variables
+        shell: bash
+        run: |
+          echo '::set-env name=GOPATH::${{ runner.workspace }}'
+          echo '::add-path::${{ runner.workspace }}/bin'
+          echo '::set-env name=GO111MODULE::${{ matrix.modules }}'
+          echo '::set-env name=GOTAGS::${{ matrix.gotags }}'
+          echo '::set-env name=BUILD_FLAGS::${{ matrix.build_flags }}'
+          if [[ "${{ matrix.goarch }}" != "" ]]; then echo '::set-env name=GOARCH::${{ matrix.goarch }}' ; fi
+          if [[ "${{ matrix.cgo }}" != "" ]]; then echo '::set-env name=CGO_ENABLED::${{ matrix.cgo }}' ; fi
+      - name: Install Libraries on Linux
+        shell: bash
+        run: |
+          sudo modprobe fuse
+          sudo chmod 666 /dev/fuse
+          sudo chown root:$USER /etc/fuse.conf
+          sudo apt-get install fuse libfuse-dev rpm pkg-config rclone
+        if: matrix.os == 'ubuntu-latest'
+
+      - name: Install Libraries on macOS
+        shell: bash
+        run: |
+          brew update
+          brew install rclone
+          brew cask install osxfuse
+        if: matrix.os == 'macOS-latest'
+
+      - name: Install Libraries on Windows
+        shell: powershell
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          choco install -y winfsp zip rclone
+          Write-Host "::set-env name=CPATH::C:\Program Files\WinFsp\inc\fuse;C:\Program Files (x86)\WinFsp\inc\fuse"
+          if ($env:GOARCH -eq "386") {
+            choco install -y mingw --forcex86 --force
+            Write-Host "::add-path::C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw32\\bin"
+          }
+          # Copy mingw32-make.exe to make.exe so the same command line
+          # can be used on Windows as on macOS and Linux
+          $path = (get-command mingw32-make.exe).Path
+          Copy-Item -Path $path -Destination (Join-Path (Split-Path -Path $path) 'make.exe')
+        if: matrix.os == 'windows-latest'
+
+      - name: Print Go version and environment
+        shell: bash
+        run: |
+          printf "Using go at: $(which go)\n"
+          printf "Go version: $(go version)\n"
+          printf "\n\nGo environment:\n\n"
+          go env
+          printf "\n\nDaptin environment:\n\n"
+          make vars
+          printf "\n\nSystem environment:\n\n"
+          env
+
+      - name: Installl gorice on linux
+        shell: bash
+        run: |
+          go get -v github.com/GeertJohan/go.rice
+          go get -v github.com/GeertJohan/go.rice/rice
+          go install github.com/GeertJohan/go.rice/rice
+          $GOPATH/bin/rice embed-go
+          ls -lah rice-box.go
+        if: matrix.os != 'windows-latest'
+
+      - name: Install gorice on windows
+        shell: bash
+        run: |
+          go get -v github.com/GeertJohan/go.rice
+          go get -v github.com/GeertJohan/go.rice/rice
+          go install github.com/GeertJohan/go.rice/rice
+          dir $GOPATH\\bin
+          dir $GOROOT
+          dir $GOROOT\\bin
+          $GOPATH\\bin\\rice.exe embed-go
+        if: matrix.os == 'windows-latest' && matrix.goarch != '386'
+
+      - name: Run quick tests
+        shell: bash
+        run: |
+          make
+          make quicktest
+        if: matrix.quicktest
+
+      - name: Run Race test
+        shell: bash
+        run: |
+          make racequicktest
+        if: matrix.racequicktest
+
+      - name: Compile all architectures test
+        shell: bash
+        run: |
+          make
+          make compile_all
+        if: matrix.compile_all
+      - name: Build and deploy built binaries
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then make release_dep ; fi
+          make travis_beta
+          ls -lah build/
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        continue-on-error: true
+        with:
+          name: daptin-beta-latest-freebsd-386.zip
+          path: build/daptin-beta-latest-freebsd-386.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        continue-on-error: true
+        with:
+          name: daptin-beta-latest-freebsd-amd64.zip
+          path: build/daptin-beta-latest-freebsd-amd64.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        continue-on-error: true
+        with:
+          name: daptin-beta-latest-freebsd-arm.zip
+          path: build/daptin-beta-latest-freebsd-arm.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        continue-on-error: true
+        with:
+          name: daptin-beta-latest-netbsd-386.zip
+          path: build/daptin-beta-latest-netbsd-386.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        continue-on-error: true
+        with:
+          name: daptin-beta-latest-netbsd-amd64.zip
+          path: build/daptin-beta-latest-netbsd-amd64.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        continue-on-error: true
+        with:
+          name: daptin-beta-latest-netbsd-arm.zip
+          path: build/daptin-beta-latest-netbsd-arm.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        continue-on-error: true
+        with:
+          name: daptin-beta-latest-openbsd-386.zip
+          path: build/daptin-beta-latest-openbsd-386.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        continue-on-error: true
+        with:
+          name: daptin-beta-latest-openbsd-amd64.zip
+          path: build/daptin-beta-latest-openbsd-amd64.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        continue-on-error: true
+        with:
+          name: daptin-beta-latest-osx-386.zip
+          path: build/daptin-beta-latest-osx-386.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        continue-on-error: true
+        with:
+          name: daptin-beta-latest-solaris-amd64.zip
+          path: build/daptin-beta-latest-solaris-amd64.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+
+  xgo:
+    timeout-minutes: 60
+    name: "xgo cross compile"
     runs-on: ubuntu-latest
+
     steps:
 
-    - name: Set up Go 1.13
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.13
-      id: go
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          # Checkout into a fixed path to avoid import path problems on go < 1.11
+          path: ./src/github.com/daptin/daptin
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v1
+      - name: Set environment variables
+        shell: bash
+        run: |
+          echo '::set-env name=GOPATH::${{ runner.workspace }}'
+          echo '::add-path::${{ runner.workspace }}/bin'
+      - name: Cross-compile daptin
+        run: |
+          export GO111MODULE=on
+          docker pull artpar/daptin-xgo
+          go get -v github.com/karalabe/xgo
+          go get -v github.com/GeertJohan/go.rice
+          go get -v github.com/GeertJohan/go.rice/rice
+          go install github.com/GeertJohan/go.rice/rice
+          rice embed-go
+          go get
+          xgo \
+              -image=artpar/daptin-xgo \
+              -targets=linux/386,darwin/amd64,linux/amd64,linux/arm-5,linux/arm-6,linux/arm-7,linux/mips,linux/mips64,linux/mips64le,linux/mipsle,windows/386,windows/amd64 \
+              --tags netgo -ldflags='-linkmode external' -dest build \
+              .
 
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        if [ -f Gopkg.toml ]; then
-            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-            dep ensure
-        fi
+      - name: Set environment variables
+        shell: bash
+        run: |
+          ls build
+          file build/*
 
-    - name: Build
-      run: go build -v .
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-linux-amd64
+          path: build/daptin-linux-amd64
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-darwin-10.6-amd64
+          path: build/daptin-darwin-10.6-amd64
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-linux-386
+          path: build/daptin-linux-386
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-linux-arm-5
+          path: build/daptin-linux-arm-5
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-linux-arm-6
+          path: build/daptin-linux-arm-6
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-linux-arm-7
+          path: build/daptin-linux-arm-7
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-linux-mips
+          path: build/daptin-linux-mips
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-linux-mipsle
+          path: build/daptin-linux-mipsle
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-linux-mips64
+          path: build/daptin-linux-mips64
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-linux-mips64le
+          path: build/daptin-linux-mips64le
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-windows-4.0-386.exe
+          path: build/daptin-windows-4.0-386.exe
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: daptin-windows-4.0-amd64.exe
+          path: build/daptin-windows-4.0-amd64.exe
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
