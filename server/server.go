@@ -12,9 +12,9 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/go-guerrilla"
-	idle "github.com/artpar/go-imap-idle"
+	"github.com/artpar/go-imap-idle"
 	"github.com/artpar/go-imap/server"
-	uuid "github.com/artpar/go.uuid"
+	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/stats"
@@ -27,10 +27,6 @@ import (
 	"github.com/icrowley/fake"
 	rateLimit "github.com/yangxikun/gin-limit-by-key"
 	"golang.org/x/time/rate"
-	"io"
-	"os"
-	"strings"
-	"time"
 	//"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"net/http"
@@ -348,7 +344,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
-	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware)
+	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware, configStore)
 
 	for k := range cruds {
 		cruds[k].SubsiteFolderCache = subsiteCacheFolders
