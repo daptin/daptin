@@ -2,12 +2,6 @@ package server
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strings"
-
-	"github.com/artpar/go.uuid"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
 	"github.com/artpar/stats"
 	"github.com/aviddiviner/gin-limit"
@@ -18,8 +12,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
-	rateLimit "github.com/yangxikun/gin-limit-by-key"
 	"golang.org/x/time/rate"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -98,6 +95,8 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 
 }
 
+
+// CreateSubSites creates a router which can route based on hostname to one of the hosted static subsites
 func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware, configStore *resource.ConfigStore) (HostSwitch, map[string]*resource.AssetFolderCache) {
 
 	router := httprouter.New()
