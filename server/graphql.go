@@ -51,7 +51,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				return responder.Result().(api2go.Api2GoModel).Data, err
 			}
 			return nil, err
-
 		},
 		TypeResolve: func(p graphql.ResolveTypeParams) *graphql.Object {
 			log.Printf("Type resolve query: %v", p)
@@ -203,10 +202,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 		for _, column := range table.Columns {
 
-			if column.IsForeignKey {
-				continue
-			}
-
 			allFields[table.TableName+"."+column.ColumnName] = &graphql.ArgumentConfig{
 				Type:         resource.ColumnManager.GetGraphqlType(column.ColumnType),
 				DefaultValue: column.DefaultValue,
@@ -221,7 +216,20 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				}
 			}
 
-			graphqlType := resource.ColumnManager.GetGraphqlType(column.ColumnType)
+			var graphqlType graphql.Type
+			if column.IsForeignKey {
+				switch column.ForeignKeyData.DataSource {
+				case "self":
+					graphqlType = inputTypesMap[column.ForeignKeyData.Namespace]
+				case "cloud_store":
+					graphqlType = inputTypesMap[column.ForeignKeyData.Namespace]
+				default:
+					log.Errorf("Unknown data source of column [%s] in table [%v] cannot be defined in graphql schema %s", column.ColumnName, table.TableName, column.ForeignKeyData)
+				}
+			} else {
+				graphqlType = resource.ColumnManager.GetGraphqlType(column.ColumnType)
+			}
+
 			fields[column.ColumnName] = &graphql.Field{
 				Type:        graphqlType,
 				Description: column.ColumnDescription,
@@ -582,9 +590,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				var finalGraphqlType1 graphql.Type
 				finalGraphqlType = resource.ColumnManager.GetGraphqlType(col.ColumnType)
 				finalGraphqlType1 = finalGraphqlType
-				if col.IsForeignKey {
-					continue
-				}
 
 				updateFields[col.ColumnName] = &graphql.ArgumentConfig{
 					Type:         finalGraphqlType,
@@ -594,6 +599,12 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 				if !col.IsNullable || col.ColumnType == "encrypted" {
 					finalGraphqlType1 = graphql.NewNonNull(finalGraphqlType)
+				}
+
+				if col.IsForeignKey {
+					if col.ForeignKeyData.DataSource == "self" {
+						finalGraphqlType1 = graphql.String
+					}
 				}
 
 				inputFields[col.ColumnName] = &graphql.ArgumentConfig{
@@ -983,7 +994,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 		Mutation: mutationType,
 	})
 	if err != nil {
-		panic(err)
+		log.Errorf("Failed to generate graphql schema: %v", err)
 	}
 
 	return &Schema
