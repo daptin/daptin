@@ -97,7 +97,6 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 
 }
 
-
 // CreateSubSites creates a router which can route based on hostname to one of the hosted static subsites
 func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware, configStore *resource.ConfigStore) (HostSwitch, map[string]*resource.AssetFolderCache) {
 
