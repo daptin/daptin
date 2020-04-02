@@ -12,18 +12,21 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/go-guerrilla"
-	idle "github.com/artpar/go-imap-idle"
+	"github.com/artpar/go-imap-idle"
 	"github.com/artpar/go-imap/server"
-	uuid "github.com/artpar/go.uuid"
+	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/stats"
+	"github.com/aviddiviner/gin-limit"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
 	"github.com/gin-gonic/gin"
 	"github.com/icrowley/fake"
+	rateLimit "github.com/yangxikun/gin-limit-by-key"
+	"golang.org/x/time/rate"
 	//"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"net/http"
@@ -119,6 +122,28 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	resource.CheckErr(err, "Failed to get config store")
 	defaultRouter.Use(NewLanguageMiddleware(configStore).LanguageMiddlewareFunc)
 
+	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connectioins", "backend")
+	if err != nil {
+		maxConnections = 25
+		err = configStore.SetConfigValueFor("limit.max_connections", "25", "backend")
+		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
+	}
+	defaultRouter.Use(limit.MaxAllowed(maxConnections))
+
+	rate1, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
+	if err != nil {
+		rate1 = 25
+		err = configStore.SetConfigValueFor("limit.rate", "25", "backend")
+		resource.CheckErr(err, "Failed to store limit.rate default value in db")
+	}
+	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
+		return c.ClientIP() // limit rate by client ip
+	}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
+		return rate.NewLimiter(rate.Every(100*time.Millisecond), rate1), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
+	}, func(c *gin.Context) {
+		c.AbortWithStatus(429) // handle exceed rate limit request
+	}))
+
 	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
 	if err != nil {
 		name, e := os.Hostname()
@@ -126,7 +151,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 			name = "localhost"
 		}
 		hostname = name
-		configStore.SetConfigValueFor("hostname", hostname, "backend")
+		err = configStore.SetConfigValueFor("hostname", hostname, "backend")
+		resource.CheckErr(err, "Failed to store hostname in _config")
 	}
 
 	initConfig.Hostname = hostname
@@ -318,7 +344,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
-	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware)
+	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware, configStore)
 
 	for k := range cruds {
 		cruds[k].SubsiteFolderCache = subsiteCacheFolders
