@@ -2,14 +2,10 @@ package server
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strings"
-
 	"github.com/artpar/go.uuid"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
 	"github.com/artpar/stats"
+	"github.com/aviddiviner/gin-limit"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
@@ -17,6 +13,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
+	limit2 "github.com/yangxikun/gin-limit-by-key"
+	"golang.org/x/time/rate"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"strings"
+	"time"
 )
 
 type HostSwitch struct {
@@ -94,7 +97,8 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 
 }
 
-func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware) (HostSwitch, map[string]*resource.AssetFolderCache) {
+// CreateSubSites creates a router which can route based on hostname to one of the hosted static subsites
+func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware, configStore *resource.ConfigStore) (HostSwitch, map[string]*resource.AssetFolderCache) {
 
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
@@ -123,6 +127,9 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		log.Errorf("Failed to load sites from database: %v", err)
 		return hs, subsiteCacheFolders
 	}
+
+	max_connections, err := configStore.GetConfigIntValueFor("limit.max_connectioins", "backend")
+	rate_limit, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 
 	for _, site := range sites {
 
@@ -190,6 +197,15 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 				c.Next()
 			}
 		}())
+
+		hostRouter.Use(limit.MaxAllowed(max_connections))
+		hostRouter.Use(limit2.NewRateLimiter(func(c *gin.Context) string {
+			return c.ClientIP() // limit rate by client ip
+		}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
+			return rate.NewLimiter(rate.Every(100*time.Millisecond), rate_limit), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
+		}, func(c *gin.Context) {
+			c.AbortWithStatus(429) // handle exceed rate limit request
+		}))
 
 		hostRouter.GET("/stats", func(c *gin.Context) {
 			c.JSON(200, subsiteStats.Data())

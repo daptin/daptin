@@ -20,6 +20,7 @@ require (
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
 	github.com/artpar/xlsx/v2 v2.0.5
+	github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/corpix/uarand v0.0.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -86,10 +87,12 @@ require (
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/cobra v0.0.6
 	github.com/ugorji/go v1.1.7 // indirect
+	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/text v0.3.2
+	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 	gonum.org/v1/gonum v0.6.2 // indirect
 	gopkg.in/go-playground/validator.v9 v9.30.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect

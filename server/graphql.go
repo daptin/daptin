@@ -216,19 +216,23 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				}
 			}
 
-			var graphqlType graphql.Type
 			if column.IsForeignKey {
-				switch column.ForeignKeyData.DataSource {
-				case "self":
-					graphqlType = inputTypesMap[column.ForeignKeyData.Namespace]
-				case "cloud_store":
-					graphqlType = inputTypesMap[column.ForeignKeyData.Namespace]
-				default:
-					log.Errorf("Unknown data source of column [%s] in table [%v] cannot be defined in graphql schema %s", column.ColumnName, table.TableName, column.ForeignKeyData)
-				}
-			} else {
-				graphqlType = resource.ColumnManager.GetGraphqlType(column.ColumnType)
+				continue
 			}
+
+			var graphqlType graphql.Type
+			//if column.IsForeignKey {
+			//	switch column.ForeignKeyData.DataSource {
+			//	case "self":
+			//		graphqlType = inputTypesMap[column.ForeignKeyData.Namespace]
+			//	case "cloud_store":
+			//		graphqlType = inputTypesMap[column.ForeignKeyData.Namespace]
+			//	default:
+			//		log.Errorf("Unknown data source of column [%s] in table [%v] cannot be defined in graphql schema %s", column.ColumnName, table.TableName, column.ForeignKeyData)
+			//	}
+			//} else {
+			graphqlType = resource.ColumnManager.GetGraphqlType(column.ColumnType)
+			//}
 
 			fields[column.ColumnName] = &graphql.Field{
 				Type:        graphqlType,
@@ -585,6 +589,9 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				if resource.IsStandardColumn(col.ColumnName) {
 					continue
 				}
+				if col.IsForeignKey {
+					continue
+				}
 
 				var finalGraphqlType graphql.Type
 				var finalGraphqlType1 graphql.Type
@@ -599,13 +606,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 				if !col.IsNullable || col.ColumnType == "encrypted" {
 					finalGraphqlType1 = graphql.NewNonNull(finalGraphqlType)
-				}
-
-				if col.IsForeignKey {
-					//if col.ForeignKeyData.DataSource == "self" {
-					//	finalGraphqlType1 = graphql.String
-					//}
-					continue
 				}
 
 				inputFields[col.ColumnName] = &graphql.ArgumentConfig{
