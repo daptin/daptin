@@ -2,10 +2,12 @@ package main
 
 import (
 	"flag"
+	"github.com/daptin/daptin/server/auth"
 	server2 "github.com/fclairamb/ftpserver/server"
 	"io"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	"github.com/GeertJohan/go.rice"
 	"github.com/artpar/go-guerrilla"
@@ -101,6 +103,8 @@ func main() {
 	err = trigger.On("restart", func() {
 		log.Printf("Trigger restart")
 
+		startTime := time.Now()
+
 		log.Printf("Close down services and db connection")
 		taskScheduler.StopTasks()
 		if ftpServer != nil {
@@ -118,19 +122,22 @@ func main() {
 			}
 		}
 
-		err = db.Close()
-		if err != nil {
-			log.Printf("Failed to close DB connections: %v", err)
-		}
-
 		log.Printf("All connections closed")
 		log.Printf("Create new connections")
-		db, err = server.GetDbConnection(*dbType, *connectionString)
+		db1, err := server.GetDbConnection(*dbType, *connectionString)
+		auth.CheckErr(err, "Failed to create new db connection")
+		if err != nil {
+			return
+		}
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInstance = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInstance = server.Main(boxRoot, db1)
 		rhs.HostSwitch = &hostSwitch
-		log.Printf("Restart complete")
+		err = db.Close()
+		auth.CheckErr(err, "Failed to close old db connection")
+		log.Printf("Restart complete, took %f seconds", float64(time.Now().UnixNano()-startTime.UnixNano())/float64(1000000000))
+
 	})
+
 	resource.CheckErr(err, "Error while adding restart trigger function")
 
 	portValue := *port

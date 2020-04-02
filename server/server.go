@@ -124,7 +124,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connectioins", "backend")
 	if err != nil {
-		maxConnections = 25
+		maxConnections = 50
 		err = configStore.SetConfigValueFor("limit.max_connections", "25", "backend")
 		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
 	}
@@ -132,7 +132,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	rate1, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 	if err != nil {
-		rate1 = 25
+		rate1 = 50
 		err = configStore.SetConfigValueFor("limit.rate", "25", "backend")
 		resource.CheckErr(err, "Failed to store limit.rate default value in db")
 	}
@@ -638,50 +638,64 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 		resource.CheckErr(errc, "Failed to commit transaction after creating tables")
 
 	}
-	tx, errb = db.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
 
-	if tx != nil {
+	go func() {
+		tx, errb = db.Beginx()
+		resource.CheckErr(errb, "Failed to begin transaction")
 
-		resource.CreateRelations(initConfig, tx)
-		errc = tx.Commit()
-		resource.CheckErr(errc, "Failed to commit transaction after creating relations")
-	}
+		if tx != nil {
 
-	tx, errb = db.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
-	if tx != nil {
-		resource.CreateUniqueConstraints(initConfig, tx)
-		errc = tx.Commit()
-		resource.CheckErr(errc, "Failed to commit transaction after creating unique constrains")
-	}
-	tx, errb = db.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
-	if tx != nil {
-		resource.CreateIndexes(initConfig, tx)
-		errc = tx.Commit()
-	}
-	resource.CheckErr(errc, "Failed to commit transaction after creating indexes")
+			resource.CreateRelations(initConfig, tx)
+			errc = tx.Commit()
+			resource.CheckErr(errc, "Failed to commit transaction after creating relations")
+		}
+	}()
 
-	tx, errb = db.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
+	go func() {
+		tx, errb := db.Beginx()
+		resource.CheckErr(errb, "Failed to begin transaction")
+		if tx != nil {
+			resource.CreateUniqueConstraints(initConfig, tx)
+			errc = tx.Commit()
+			resource.CheckErr(errc, "Failed to commit transaction after creating unique constrains")
+		}
+	}()
 
-	if tx != nil {
-		resource.UpdateWorldTable(initConfig, tx)
-		errc = tx.Commit()
-	}
-	resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
+	go func() {
+		tx, errb := db.Beginx()
+		resource.CheckErr(errb, "Failed to begin transaction for creating indexes")
+		if tx != nil {
+			resource.CreateIndexes(initConfig, tx)
+			errc = tx.Commit()
+			resource.CheckErr(errc, "Failed to commit transaction after creating indexes")
+		}
+	}()
 
-	resource.UpdateStateMachineDescriptions(initConfig, db)
-	resource.UpdateExchanges(initConfig, db)
-	resource.UpdateStreams(initConfig, db)
-	//resource.UpdateMarketplaces(initConfig, db)
-	err := resource.UpdateTasksData(initConfig, db)
-	resource.CheckErr(err, "Failed to  update cron jobs")
-	resource.UpdateStandardData(initConfig, db)
+	go func() {
 
-	err = resource.UpdateActionTable(initConfig, db)
-	resource.CheckErr(err, "Failed to update action table")
+		tx, errb := db.Beginx()
+		resource.CheckErr(errb, "Failed to begin transaction")
+
+		if tx != nil {
+			resource.UpdateWorldTable(initConfig, tx)
+			errc = tx.Commit()
+		}
+		resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
+
+	}()
+
+	go func() {
+		resource.UpdateStateMachineDescriptions(initConfig, db)
+		resource.UpdateExchanges(initConfig, db)
+		resource.UpdateStreams(initConfig, db)
+		//resource.UpdateMarketplaces(initConfig, db)
+		err := resource.UpdateTasksData(initConfig, db)
+		resource.CheckErr(err, "Failed to  update cron jobs")
+		resource.UpdateStandardData(initConfig, db)
+
+		err = resource.UpdateActionTable(initConfig, db)
+		resource.CheckErr(err, "Failed to update action table")
+	}()
 
 }
 
