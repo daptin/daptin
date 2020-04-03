@@ -634,7 +634,7 @@ func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix str
 		case "contains":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
 		case "not contains":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
 		case "is":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 		case "in":
