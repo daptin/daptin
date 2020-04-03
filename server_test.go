@@ -202,7 +202,7 @@ func TestServer(t *testing.T) {
 	go func() {
 		srv.ListenAndServe()
 	}()
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	err = RunTests(t, hostSwitch, mailDaemon, db, taskScheduler, configStore)
 	if err != nil {

@@ -639,7 +639,7 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 
 	}
 
-	go func() {
+	if db.DriverName() == "sqlite3" {
 		tx, errb = db.Beginx()
 		resource.CheckErr(errb, "Failed to begin transaction")
 
@@ -649,9 +649,21 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 			errc = tx.Commit()
 			resource.CheckErr(errc, "Failed to commit transaction after creating relations")
 		}
-	}()
+	} else {
+		go func() {
+			tx, errb = db.Beginx()
+			resource.CheckErr(errb, "Failed to begin transaction")
 
-	go func() {
+			if tx != nil {
+
+				resource.CreateRelations(initConfig, tx)
+				errc = tx.Commit()
+				resource.CheckErr(errc, "Failed to commit transaction after creating relations")
+			}
+		}()
+	}
+
+	if db.DriverName() == "sqlite3" {
 		tx, errb := db.Beginx()
 		resource.CheckErr(errb, "Failed to begin transaction")
 		if tx != nil {
@@ -659,9 +671,19 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 			errc = tx.Commit()
 			resource.CheckErr(errc, "Failed to commit transaction after creating unique constrains")
 		}
-	}()
+	} else {
+		go func() {
+			tx, errb := db.Beginx()
+			resource.CheckErr(errb, "Failed to begin transaction")
+			if tx != nil {
+				resource.CreateUniqueConstraints(initConfig, tx)
+				errc = tx.Commit()
+				resource.CheckErr(errc, "Failed to commit transaction after creating unique constrains")
+			}
+		}()
+	}
 
-	go func() {
+	if db.DriverName() == "sqlite3" {
 		tx, errb := db.Beginx()
 		resource.CheckErr(errb, "Failed to begin transaction for creating indexes")
 		if tx != nil {
@@ -669,22 +691,45 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 			errc = tx.Commit()
 			resource.CheckErr(errc, "Failed to commit transaction after creating indexes")
 		}
-	}()
+	} else {
+		go func() {
+			tx, errb := db.Beginx()
+			resource.CheckErr(errb, "Failed to begin transaction for creating indexes")
+			if tx != nil {
+				resource.CreateIndexes(initConfig, tx)
+				errc = tx.Commit()
+				resource.CheckErr(errc, "Failed to commit transaction after creating indexes")
+			}
+		}()
+	}
 
-	go func() {
+	if db.DriverName() == "sqlite3" {
 
-		tx, errb := db.Beginx()
+		tx, errb = db.Beginx()
 		resource.CheckErr(errb, "Failed to begin transaction")
 
 		if tx != nil {
 			resource.UpdateWorldTable(initConfig, tx)
-			errc = tx.Commit()
+			errc := tx.Commit()
+			resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
 		}
-		resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
+	} else {
+		go func() {
 
-	}()
+			tx, errb = db.Beginx()
+			resource.CheckErr(errb, "Failed to begin transaction")
 
-	go func() {
+			if tx != nil {
+				resource.UpdateWorldTable(initConfig, tx)
+				errc := tx.Commit()
+				resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
+			}
+
+		}()
+	}
+
+	if db.DriverName() == "sqlite3" {
+
 		resource.UpdateStateMachineDescriptions(initConfig, db)
 		resource.UpdateExchanges(initConfig, db)
 		resource.UpdateStreams(initConfig, db)
@@ -695,7 +740,21 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 
 		err = resource.UpdateActionTable(initConfig, db)
 		resource.CheckErr(err, "Failed to update action table")
-	}()
+
+	} else {
+		go func() {
+			resource.UpdateStateMachineDescriptions(initConfig, db)
+			resource.UpdateExchanges(initConfig, db)
+			resource.UpdateStreams(initConfig, db)
+			//resource.UpdateMarketplaces(initConfig, db)
+			err := resource.UpdateTasksData(initConfig, db)
+			resource.CheckErr(err, "Failed to  update cron jobs")
+			resource.UpdateStandardData(initConfig, db)
+
+			err = resource.UpdateActionTable(initConfig, db)
+			resource.CheckErr(err, "Failed to update action table")
+		}()
+	}
 
 }
 
