@@ -165,8 +165,8 @@ func TestServer(t *testing.T) {
 	configStore.SetConfigValueFor("imap.enabled", "true", "backend")
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
 	configStore.SetConfigValueFor("logs.enable", "true", "backend")
-	configStore.SetConfigValueFor("limit.max_connectioins", "100", "backend")
-	configStore.SetConfigValueFor("limit.rate", "500", "backend")
+	configStore.SetConfigValueFor("limit.max_connectioins", "5000", "backend")
+	configStore.SetConfigValueFor("limit.rate", "5000", "backend")
 
 	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer = server.Main(boxRoot, db)
 
