@@ -596,8 +596,11 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 		}
 
 		files1, ok := attrs["json_schema"]
+		if !ok {
+			return nil, returnRequest, errors.New("No files uploaded")
+		}
 		log.Infof("Files [%v]: %v", attrs, files1)
-		files := files1.([]interface{})
+		files, ok := files1.([]interface{})
 		if !ok || len(files) < 1 {
 			return nil, returnRequest, errors.New("No files uploaded")
 		}

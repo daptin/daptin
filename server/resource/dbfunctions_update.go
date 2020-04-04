@@ -9,13 +9,13 @@ import (
 	"github.com/alexeyco/simpletable"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
+	"github.com/artpar/xlsx/v2"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/artpar/xlsx/v2"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -203,7 +203,7 @@ func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 		return
 	}
 	existingStreams := make(map[string]StreamContract)
-	defer func(){
+	defer func() {
 		err = res.Close()
 		CheckErr(err, "Failed to close db results after query")
 	}()
@@ -769,22 +769,22 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 			log.Printf(" [%v] Error while importing insert data row: %v == %v", crud.tableInfo.TableName, err, row)
 			errs = append(errs, err)
 
-		if len(uniqueColumns) > 0 {
-			for _, uniqueCol := range uniqueColumns {
-				log.Infof("Try to update data by unique column: %v", uniqueCol.ColumnName)
-				uniqueColumnValue, ok := row[uniqueCol.ColumnName]
-				if !ok || uniqueColumnValue == nil {
-					continue
-				}
-				stringVal, isString := uniqueColumnValue.(string)
-				if isString && len(stringVal) == 0 {
-					continue
-				}
-				existingRow, err := crud.GetObjectByWhereClause(crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
-				if err != nil {
-					continue
-				}
-				log.Infof("Existing [%v] found by unique column: %v = %v", crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
+			if len(uniqueColumns) > 0 {
+				for _, uniqueCol := range uniqueColumns {
+					log.Infof("Try to update data by unique column: %v", uniqueCol.ColumnName)
+					uniqueColumnValue, ok := row[uniqueCol.ColumnName]
+					if !ok || uniqueColumnValue == nil {
+						continue
+					}
+					stringVal, isString := uniqueColumnValue.(string)
+					if isString && len(stringVal) == 0 {
+						continue
+					}
+					existingRow, err := crud.GetObjectByWhereClause(crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
+					if err != nil {
+						continue
+					}
+					log.Infof("Existing [%v] found by unique column: %v = %v", crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
 
 					for key, val := range row {
 						existingRow[key] = val
@@ -870,7 +870,7 @@ func ImportDataStringArray(data [][]string, headers []string, entityName string,
 	return errs
 }
 
-func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
+func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 
 	tx := db
 	var err error
@@ -1045,6 +1045,9 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 
 			_, err := tx.Exec(s, v...)
 			CheckErr(err, fmt.Sprintf("Failed to update json schema for table [%v]: %v", table.TableName, err))
+			if err != nil {
+				return err
+			}
 
 		} else {
 
@@ -1079,10 +1082,10 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 	res, err := tx.Queryx(s, v...)
 	CheckErr(err, "Failed to scan world tables")
 	if err != nil {
-		return
+		return err
 	}
 
-	defer func(){
+	defer func() {
 		err = res.Close()
 		CheckErr(err, "Failed to close result after reading rows")
 	}()
@@ -1105,5 +1108,5 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) {
 		tables = append(tables, tabInfo)
 	}
 	initConfig.Tables = tables
-
+	return nil
 }

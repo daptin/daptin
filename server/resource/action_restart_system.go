@@ -52,7 +52,7 @@ func NewRestarSystemPerformer(initConfig *CmsConfig) (ActionPerformerInterface, 
 
 func restart() {
 	log.Infof("Sleeping for 3 seconds before restart")
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 	log.Infof("Kill")
 	//log.Infof("Sending %v to %v", syscall.SIGUSR2, syscall.Getpid())
 
