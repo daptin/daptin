@@ -714,6 +714,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 			include, err = bf.InterceptAfter(dr, &req, include)
 			if err != nil {
 				log.Errorf("Error from AfterFindAll[includes][%v] middleware: %v", bf.String(), err)
+				continue
 			}
 			includesNew = append(includesNew, include)
 		}

@@ -14,6 +14,11 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create become admin performer")
 	performers = append(performers, becomeAdminPerformer)
 
+
+	cloudStoreFileImportPerformer, err := resource.NewImportCloudStoreFilesPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create cloudStoreFileImportPerformer")
+	performers = append(performers, cloudStoreFileImportPerformer)
+
 	otpGenerateActionPerformer, err := resource.NewOtpGenerateActionPerformer(cruds, configStore)
 	resource.CheckErr(err, "Failed to create otp generator")
 	performers = append(performers, otpGenerateActionPerformer)

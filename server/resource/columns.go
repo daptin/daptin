@@ -90,6 +90,28 @@ var SystemExchanges []ExchangeContract
 
 var SystemActions = []Action{
 	{
+		Name:             "import_files_from_store",
+		Label:            "Import files data to a table",
+		OnType:           "world",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "table_name",
+				ColumnType: "label",
+				ColumnName: "table_name",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "cloud_store.files.import",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"table_name": "$.table_name",
+				},
+			},
+		},
+	},
+	{
 		Name:             "install_integration",
 		Label:            "Install integration",
 		OnType:           "integration",
