@@ -22,7 +22,7 @@ func TestNewFakeInstance(t *testing.T) {
 		})
 	}
 
-	fi := NewFakeInstance(*table)
+	fi := NewFakeInstance(table.Columns)
 	for _, ty := range resource.ColumnTypes {
 		if ty.Name == "id" {
 			continue
