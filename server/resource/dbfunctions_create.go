@@ -19,7 +19,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 			if column.IsUnique {
 				indexName := "i" + GetMD5Hash(table.TableName+"_"+column.ColumnName+"_unique")
 				alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + column.ColumnName + ")"
-				log.Infof("Create unique index sql: %v", alterTable)
+				//log.Infof("Create unique index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
 					log.Infof("Table[%v] Column[%v]: Failed to create unique index: %v", table.TableName, column.ColumnName, err)
@@ -31,7 +31,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 			for _, compositeKeyCols := range table.CompositeKeys {
 				indexName := "i" + GetMD5Hash("index_cl_"+strings.Join(compositeKeyCols, ",")+"_"+"_unique")
 				alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + strings.Join(compositeKeyCols, ",") + ")"
-				log.Infof("Create unique index sql: %v", alterTable)
+				//log.Infof("Create unique index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
 					log.Errorf("Table[%v] Column[%v]: Failed to create unique composite key index: %v", table.TableName, compositeKeyCols, err)
@@ -58,7 +58,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 
 			indexName := "i" + GetMD5Hash("index_join_"+table.TableName+"_"+"_unique")
 			alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + strings.Join(cols, ", ") + ")"
-			log.Infof("Create unique index sql: %v", alterTable)
+			//log.Infof("Create unique index sql: %v", alterTable)
 			_, err := db.Exec(alterTable)
 			if err != nil {
 				log.Errorf("Table[%v] Column[%v]: Failed to create unique join index: %v", table.TableName, cols, err)
@@ -107,7 +107,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 				}
 
 				alterSql := "alter table " + table.TableName + " add constraint " + keyName + " foreign key (" + column.ColumnName + ") references " + column.ForeignKeyData.String()
-				log.Infof("Alter table add constraint sql: %v", alterSql)
+				//log.Infof("Alter table add constraint sql: %v", alterSql)
 				_, err := db.Exec(alterSql)
 				if err != nil {
 					log.Infof("Failed to create foreign key [%v], probably it exists: %v", err, keyName)
@@ -444,10 +444,10 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 	for _, relation := range relations {
 
 		if existingRelationMap[relation.Hash()] {
-			log.Infof("Relation [%v] is already registered", relation.String())
+			//log.Infof("Relation [%v] is already registered", relation.String())
 			continue
 		}
-		log.Infof("Register relation [%v]", relation.String())
+		//log.Infof("Register relation [%v]", relation.String())
 		//config.Relations = append(config.Relations, relation)
 		config.AddRelations(relation)
 		existingRelationMap[relation.Hash()] = true
