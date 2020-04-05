@@ -73,7 +73,7 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 		//	continue
 		//}
 
-		log.Infof("Add Resources To Api2Go: %v", table.TableName)
+		//log.Infof("Add Resources To Api2Go: %v", table.TableName)
 
 		func() {
 			defer func() {

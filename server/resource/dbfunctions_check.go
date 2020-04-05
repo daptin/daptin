@@ -101,7 +101,7 @@ func CheckRelations(config *CmsConfig) {
 		userGroupRelation := api2go.NewTableRelation(table.TableName+"_state", "has_many", "usergroup")
 
 		if len(existingRelations) > 0 {
-			log.Infof("Found existing %d relations from db for [%v]", len(existingRelations), config.Tables[i].TableName)
+			//log.Infof("Found existing %d relations from db for [%v]", len(existingRelations), config.Tables[i].TableName)
 			for _, rel := range existingRelations {
 
 				relhash := rel.Hash()
@@ -272,7 +272,10 @@ func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection, 
 	for _, table := range initConfig.Tables {
 
 		if !tableCreatedMap[table.TableName] {
+			//if strings.Index(table.TableName, "_has_") == -1 {
 			log.Infof("Check table %v", table.TableName)
+			//continue
+			//}
 			CheckTable(&table, db, tx)
 			tableCreatedMap[table.TableName] = true
 		}
@@ -334,7 +337,7 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 	//}
 
 	columnsWeWant, colInfoMap := CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo)
-	PrintTableInfo(tableInfo, fmt.Sprintf("Columns we want in [%v]", tableInfo.TableName))
+	//PrintTableInfo(tableInfo, fmt.Sprintf("Columns we want in [%v]", tableInfo.TableName))
 	//for col := range columnsWeWant {
 	//	log.Infof("Column: [%v]%v @ %v - %v", tableInfo.TableName, col, colInfoMap[col].ColumnType, colInfoMap[col].DataType)
 	//}
@@ -350,17 +353,15 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 	} else {
 		dest := make(map[string]interface{})
 		err = rowx.MapScan(dest)
-		CheckErr(err, "Failed to scan query result to map")
+		//CheckErr(err, "Failed to scan query result to map")
 	}
 
 	for _, col := range columns {
-		present, ok := columnsWeWant[col]
+		_, ok := columnsWeWant[col]
 		if !ok {
 			log.Infof("extra column [%v] found in table [%v]", col, tableInfo.TableName)
 		} else {
-			if present {
-				log.Infof("Column [%v] already present in table [%v]", col, tableInfo.TableName)
-			}
+			//log.Infof("Column [%v] already present in table [%v]", col, tableInfo.TableName)
 			columnsWeWant[col] = true
 		}
 	}

@@ -721,7 +721,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 		}
 
 		if isBeingModified {
-			log.Printf("Table %s is being modified", existableTable.TableName)
+			//log.Printf("Table %s is being modified", existableTable.TableName)
 			tableBeingModified := initConfigTables[indexBeingModified]
 
 			if len(tableBeingModified.Columns) > 0 {
