@@ -39,7 +39,7 @@ func (be *DaptinImapBackend) LoginMd5(conn *imap.ConnInfo, username, challenge s
 	//	}, nil
 	//}
 
-	return nil, errors.New("bad username or password")
+	return nil, errors.New("md5 based login not supported")
 
 }
 

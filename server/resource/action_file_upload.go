@@ -148,8 +148,6 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 		return nil, nil, []error{errors.New("improper file attachment")}
 	}
 
-	//targetInformation := inFields["subject"]
-	//targetInformationMap := targetInformation.(map[string]interface{})
 	rootPath := inFields["root_path"].(string)
 	args := []string{
 		tempDirectoryPath,

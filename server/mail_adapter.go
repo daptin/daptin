@@ -240,19 +240,19 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 						mailAccount, err := dbResource.GetUserMailAccountRowByEmail(rcpt.String())
 
-						//if err != nil {
-						//	log.Errorf("No such user mail account [%v]", rcpt.String())
-						//	continue
-						//}
+						if err != nil {
+							log.Errorf("No such user mail account [%v] %v", rcpt.String(), err)
+							//continue
+						}
 
 						if mailAccount == nil || err != nil {
-							log.Printf("Mail is for someone else [%v] [%v]", rcpt.Host, rcpt.String())
+							log.Printf("Mail is for someone else [%v] [%v] %v", rcpt.Host, rcpt.String(), err)
 
 							e.DeliveryHeader = e.DeliveryHeader + "Return-PATH: admin@" + rcpt.Host + "\n"
 
 							if e.AuthorizedLogin == "" {
-								log.Errorf("Refusing to send mail without login")
-								return nil, errors.New("unauthorized")
+								log.Errorf("Refusing to forward mail without login")
+								return nil, errors.New("no such account")
 							}
 							fmt.Printf("Original Mail: \n%s\n", string(mailBytes))
 

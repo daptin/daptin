@@ -5,6 +5,8 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/pkg/errors"
+	"strings"
+
 	//"strings"
 	log "github.com/sirupsen/logrus"
 )
@@ -122,7 +124,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	for _, inc := range include {
 		incType := inc["__type"].(string)
 
-		if BeginsWith(incType, "image.") || BeginsWith(incType, "file.") {
+		if strings.Index(incType, ".") > -1 {
 			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, nil, 0, nil, inc))
 		} else {
 			p, ok := inc["permission"].(int64)

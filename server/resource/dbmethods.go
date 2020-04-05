@@ -860,10 +860,16 @@ func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{})
 		switch colInfo.ColumnType {
 		case "datetime":
 			if value != nil {
-				value, err = dateparse.ParseLocal(value.(string))
-				if err != nil {
-					log.Errorf("Failed to parse value as time, insert will fail [%v][%v]: %v", columnName, value, err)
-					continue
+				valStr, ok := value.(string)
+				if !ok {
+
+				} else {
+
+					value, err = dateparse.ParseLocal(valStr)
+					if err != nil {
+						log.Errorf("Failed to parse value as time, insert will fail [%v][%v]: %v", columnName, value, err)
+						continue
+					}
 				}
 			}
 		}

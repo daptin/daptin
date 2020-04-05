@@ -222,7 +222,9 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	responseMap := make(map[string]interface{})
 
-	resp, err := r.Get(baseAddress + "/api/world")
+	resp, err := r.Get(baseAddress+"/api/world", req.QueryParam{
+		"page[size]": 100,
+	})
 	if err != nil {
 		log.Printf("Failed to get %s %s", "world", err)
 		return err
@@ -230,7 +232,14 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	resp.ToJSON(&responseMap)
 
+	tableNameToIdMap := map[string]string{}
+
 	data := responseMap["data"].([]interface{})
+	for _, row := range data {
+		rowm := row.(map[string]interface{})
+		attributes := rowm["attributes"].(map[string]interface{})
+		tableNameToIdMap[attributes["table_name"].(string)] = rowm["id"].(string)
+	}
 	firstRow := data[0].(map[string]interface{})
 
 	if firstRow["type"] != "world" {
@@ -530,13 +539,12 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		log.Printf("Failed to get read response %s %s", "become admin", err)
 		return err
 	}
-
-	t.Logf("Sleeping for 5 seconds waiting for restart")
-	time.Sleep(10 * time.Second)
-	t.Logf("Wake up after sleep")
-
 	becomeAdminResponse := resp.String()
 	t.Logf("Become admin response: [%v]", becomeAdminResponse)
+
+	t.Logf("Sleeping for 5 seconds waiting for restart")
+	time.Sleep(5 * time.Second)
+	t.Logf("Wake up after sleep")
 
 	resp, err = r.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
 	if err != nil {
@@ -552,11 +560,11 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		return err
 	}
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 	trigger.Fire("restart")
 
 	t.Logf("Sleeping for 5 seconds waiting for restart")
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 	t.Logf("Wake up after sleep")
 
 	resp, err = r.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
@@ -747,6 +755,20 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	if err := c.Quit(); err != nil {
 		t.Error(err)
 	}
+
+	// do a sign in
+	resp, err = r.Post(baseAddress+"/action/world/import_files_from_store", req.BodyJSON(map[string]interface{}{
+		"attributes": map[string]interface{}{
+			"world_id": tableNameToIdMap["gallery_image"],
+		},
+	}), authTokenHeader)
+
+	if err != nil {
+		log.Printf("Failed to get read response %s %s", "become admin", err)
+		return err
+	}
+	importResponse := resp.String()
+	t.Logf("File import response: [%v]", importResponse)
 
 	return nil
 

@@ -52,7 +52,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 			continue
 		}
 
-		if BeginsWith(result["__type"].(string), "image.") {
+		if strings.Index(result["__type"].(string), ".") > -1 {
 			log.Infof("Included object is an image")
 			returnMap = append(returnMap, result)
 			continue

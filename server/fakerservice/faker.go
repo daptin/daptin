@@ -1,14 +1,15 @@
 package fakerservice
 
 import (
+	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
 )
 
-func NewFakeInstance(tableInfo resource.TableInfo) map[string]interface{} {
+func NewFakeInstance(columns []api2go.ColumnInfo) map[string]interface{} {
 
 	newObject := make(map[string]interface{})
 
-	for _, col := range tableInfo.Columns {
+	for _, col := range columns {
 		if col.IsForeignKey {
 			continue
 		}
