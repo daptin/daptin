@@ -496,7 +496,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		return nil, nil, nil, err
 	}
 	log.Printf("Id query: [%s]", idsListQuery)
-	log.Printf("Id query args: %v", args)
+	//log.Printf("Id query args: %v", args)
 	stmt, err := dr.connection.Preparex(idsListQuery)
 	if err != nil {
 		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
