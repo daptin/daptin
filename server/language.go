@@ -41,7 +41,7 @@ func (lm *LanguageMiddleware) LanguageMiddlewareFunc(c *gin.Context) {
 func GetLanguagePreference(header string, defaultLanguage string) []string {
 	preferredLanguage := header
 
-	if preferredLanguage == "" {
+	if preferredLanguage == "" || preferredLanguage == "undefined" {
 		preferredLanguage = defaultLanguage
 	}
 
