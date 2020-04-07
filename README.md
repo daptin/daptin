@@ -1,7 +1,7 @@
 
 <h1 align="center">
   <br>
-  <a href="https://docs.dapt.in"><img width="100" height="100" src="https://github.com/daptin/daptin/raw/master/images/daptin-22-transparent-background-colored.png" alt="Daptin" title="Daptin" /></a>
+  <a href="https://daptin.github.io/daptin"><img width="100" height="100" src="https://github.com/daptin/daptin/raw/master/images/daptin-22-transparent-background-colored.png" alt="Daptin" title="Daptin" /></a>
   <br>
   Daptin
   <br>
@@ -9,10 +9,7 @@
 <h4 align="center">Headless CMS server</h4>
 
 
-<p align="center">
-    <a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLWJmZmRlN2M4YzRkOTI4MDhlNWQ1YzBiMDNhMzE0NTVmNzA3NjA5ZDdkMDExZmI0M2UyMmM2NzhlNDc3M2VhZTQ"><img src="https://img.shields.io/badge/join-on%20slack-orange.svg?longCache=true&style=for-the-badge" /> <a/>
-    <a href="https://github.com/daptin/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/daptin/daptin.svg?style=flat-square"></a>
-</p>
+
 <p align="center">
     <a href="https://travis-ci.org/daptin/daptin"><img alt="Travis" src="https://img.shields.io/travis/daptin/daptin.svg?style=flat-square"></a>
     <a href='https://semaphoreci.com/artpar/daptin'> <img src='https://semaphoreci.com/api/v1/artpar/daptin/branches/master/badge.svg' alt='Build Status'></a>
@@ -25,8 +22,11 @@
 </p>
 <p align="center">
     <a href="https://codecov.io/gh/daptin/daptin"><img alt="Codecov branch" src="https://img.shields.io/codecov/c/github/daptin/daptin/master.svg?style=flat-square"></a>
+    <a href="https://github.com/daptin/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/daptin/daptin.svg?style=flat-square"></a>
 </p>
-
+<p align="center">
+    <a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLWJmZmRlN2M4YzRkOTI4MDhlNWQ1YzBiMDNhMzE0NTVmNzA3NjA5ZDdkMDExZmI0M2UyMmM2NzhlNDc3M2VhZTQ"><img src="https://img.shields.io/badge/join-on%20slack-orange.svg?longCache=true&style=for-the-badge" /> <a/>
+</p>
 
 
 <p align="center">
@@ -108,10 +108,10 @@ List relations
 Get Started
 ---
 
-* [Native binary](https://docs.dapt.in/setting-up/installation/#native-binary)
-* [Heroku](https://docs.dapt.in/setting-up/installation/#heroku-deployment)
-* [Docker image](https://docs.dapt.in/setting-up/installation/#docker-image)
-* [Kubernetes YAML](https://docs.dapt.in/setting-up/installation/#kubernetes-deployment)
+* [Native binary](https://daptin.github.io/daptin/setting-up/installation/#native-binary)
+* [Heroku](https://daptin.github.io/daptin/setting-up/installation/#heroku-deployment)
+* [Docker image](https://daptin.github.io/daptin/setting-up/installation/#docker-image)
+* [Kubernetes YAML](https://daptin.github.io/daptin/setting-up/installation/#kubernetes-deployment)
 
 ## Features
 
@@ -151,37 +151,37 @@ Get Started
 ### APIs
 
 - CRUD APIs
-    - [Read, search, filter](https://docs.dapt.in/apis/read)
-    - [Create](https://docs.dapt.in/apis/create)
-    - [Update](https://docs.dapt.in/apis/update)
-    - [Delete](https://docs.dapt.in/apis/delete)
-    - [Relations](https://docs.dapt.in/apis/relation)
-    - [Execute](https://docs.dapt.in/apis/execute)
+    - [Read, search, filter](https://daptin.github.io/daptin/apis/read)
+    - [Create](https://daptin.github.io/daptin/apis/create)
+    - [Update](https://daptin.github.io/daptin/apis/update)
+    - [Delete](https://daptin.github.io/daptin/apis/delete)
+    - [Relations](https://daptin.github.io/daptin/apis/relation)
+    - [Execute](https://daptin.github.io/daptin/apis/execute)
 - Action APIs
-    - [Using actions](https://docs.dapt.in/actions/actions)
-    - [Actions list](https://docs.dapt.in/actions/default_actions)
+    - [Using actions](https://daptin.github.io/daptin/actions/actions)
+    - [Actions list](https://daptin.github.io/daptin/actions/default_actions)
 - User APIs
-    - [User registration/signup](https://docs.dapt.in/actions/signup)
-    - [User login/signin](https://docs.dapt.in/actions/signin)
+    - [User registration/signup](https://daptin.github.io/daptin/actions/signup)
+    - [User login/signin](https://daptin.github.io/daptin/actions/signin)
 - State tracking APIs
-    - [State machines](https://docs.dapt.in/state/machines)
+    - [State machines](https://daptin.github.io/daptin/state/machines)
 
 ### Users
 
-- [Guests](https://docs.dapt.in/auth/guests)
-- [Adding users](https://docs.dapt.in/auth/users)
-- [Usergroups](https://docs.dapt.in/auth/usergroups)
-- [Data access permission](https://docs.dapt.in/auth/permissions)
-- [Social login](https://docs.dapt.in/auth/social_login)
+- [Guests](https://daptin.github.io/daptin/setting-up/access/#guests)
+- [Adding users](https://daptin.github.io/daptin/setting-up/access/#signup-api)
+- [Usergroups](https://daptin.github.io/daptin/setting-up/access/#user-groups)
+- [Data access permission](https://daptin.github.io/daptin/setting-up/access/#authorization)
+- [Social login](https://daptin.github.io/daptin/setting-up/access/#social-login)
 
 
 ### Asset and file storage
 
-- [Cloud storage](https://docs.dapt.in/cloudstore/cloudstore)
+- [Cloud storage](https://daptin.github.io/daptin/cloudstore/cloudstore)
 
 ### Sub-sites
 
-- [Creating a subsite](https://docs.dapt.in/subsite/subsite)
+- [Creating a subsite](https://daptin.github.io/daptin/subsite/subsite)
 
 
 
