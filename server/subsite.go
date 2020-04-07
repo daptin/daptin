@@ -139,9 +139,11 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 		subSiteInformation := resource.SubSiteInformation{}
 		hs.siteMap[site.Path] = site
-		hs.siteMap[site.Hostname] = site
-		//log.Infof("Site to subhost: %v", site)
 
+		for _, hostname := range strings.Split(site.Hostname, ",") {
+			hs.siteMap[hostname] = site
+		}
+		
 		subSiteInformation.SubSite = site
 
 		if site.CloudStoreId == nil {
