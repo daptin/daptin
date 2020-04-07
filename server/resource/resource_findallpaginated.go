@@ -475,6 +475,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				orders = append(orders, ord)
 			} else {
 				ord := prefix + so + " asc"
+				if strings.ToLower(so) == "rand()" || strings.ToLower(so) == "random()" {
+					ord = so
+				}
 				// queryBuilder = queryBuilder.OrderBy(ord)
 				// countQueryBuilder = countQueryBuilder.OrderBy(ord)
 				orders = append(orders, ord)
@@ -487,11 +490,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			"((%s.permission & 32768) = 32768) or "+
 			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", tableModel.GetTableName(), joinTableName, tableModel.GetTableName(), tableModel.GetTableName()), sessionUser.UserId)
 		countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
-			//"((%s.permission & 32768) = 32768) or "+
+		//"((%s.permission & 32768) = 32768) or "+
 			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", tableModel.GetTableName(), tableModel.GetTableName(), tableModel.GetTableName()), sessionUser.UserId)
 	}
 
-	idsListQuery, args, err := queryBuilder.ToSql()
+	idsListQuery, args, err := queryBuilder.OrderBy(orders...).ToSql()
 	if err != nil {
 		return nil, nil, nil, err
 	}
