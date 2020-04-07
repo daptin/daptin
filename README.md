@@ -9,10 +9,7 @@
 <h4 align="center">Headless CMS server</h4>
 
 
-<p align="center">
-    <a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLWJmZmRlN2M4YzRkOTI4MDhlNWQ1YzBiMDNhMzE0NTVmNzA3NjA5ZDdkMDExZmI0M2UyMmM2NzhlNDc3M2VhZTQ"><img src="https://img.shields.io/badge/join-on%20slack-orange.svg?longCache=true&style=for-the-badge" /> <a/>
-    <a href="https://github.com/daptin/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/daptin/daptin.svg?style=flat-square"></a>
-</p>
+
 <p align="center">
     <a href="https://travis-ci.org/daptin/daptin"><img alt="Travis" src="https://img.shields.io/travis/daptin/daptin.svg?style=flat-square"></a>
     <a href='https://semaphoreci.com/artpar/daptin'> <img src='https://semaphoreci.com/api/v1/artpar/daptin/branches/master/badge.svg' alt='Build Status'></a>
@@ -25,8 +22,11 @@
 </p>
 <p align="center">
     <a href="https://codecov.io/gh/daptin/daptin"><img alt="Codecov branch" src="https://img.shields.io/codecov/c/github/daptin/daptin/master.svg?style=flat-square"></a>
+    <a href="https://github.com/daptin/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/daptin/daptin.svg?style=flat-square"></a>
 </p>
-
+<p align="center">
+    <a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLWJmZmRlN2M4YzRkOTI4MDhlNWQ1YzBiMDNhMzE0NTVmNzA3NjA5ZDdkMDExZmI0M2UyMmM2NzhlNDc3M2VhZTQ"><img src="https://img.shields.io/badge/join-on%20slack-orange.svg?longCache=true&style=for-the-badge" /> <a/>
+</p>
 
 
 <p align="center">
