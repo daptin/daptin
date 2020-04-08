@@ -72,7 +72,7 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 				}
 
 				colCache[columnName] = assetCacheFolder
-				log.Printf("Sync table columnd [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
+				log.Printf("Sync table column [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
 
 				err = TaskScheduler.AddTask(resource.Task{
 					EntityName: "world",

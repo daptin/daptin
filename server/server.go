@@ -622,11 +622,12 @@ func (c *Crammd5) Next(response []byte) (challenge []byte, done bool, err error)
 }
 
 func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseConnection) {
+
+	//currentDatabaseSchema, err := GetCurrentDbSchema(db)
+
 	resource.CheckRelations(initConfig)
 	resource.CheckAuditTables(initConfig)
 	resource.CheckTranslationTables(initConfig)
-	//lock := new(sync.Mutex)
-	//AddStateMachines(&initConfig, db)
 
 	var errc error
 	tx, errb := db.Beginx()
