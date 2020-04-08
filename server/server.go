@@ -126,7 +126,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connectioins", "backend")
 	if err != nil {
 		maxConnections = 50
-		err = configStore.SetConfigValueFor("limit.max_connections", "25", "backend")
+		err = configStore.SetConfigValueFor("limit.max_connections", "50", "backend")
 		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
 	}
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
@@ -134,7 +134,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	rate1, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 	if err != nil {
 		rate1 = 50
-		err = configStore.SetConfigValueFor("limit.rate", "25", "backend")
+		err = configStore.SetConfigValueFor("limit.rate", "50", "backend")
 		resource.CheckErr(err, "Failed to store limit.rate default value in db")
 	}
 	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {

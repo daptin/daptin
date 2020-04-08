@@ -439,10 +439,10 @@ OutFields:
 			responder, responses1, err1 := handler.DoAction(outcome, model.Data)
 			if err1 != nil {
 				err = err1[0]
+			} else {
+				actionResponses = append(actionResponses, responses1...)
+				responseObjects = responder.Result()
 			}
-			actionResponses = append(actionResponses, responses1...)
-
-			responseObjects = responder.Result()
 
 		}
 
