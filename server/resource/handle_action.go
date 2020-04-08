@@ -178,7 +178,7 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 		subjectInstanceMap = subjectInstance.Data
 
 		if subjectInstanceMap == nil {
-			return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
+			return nil, api2go.NewHTTPError(errors.New("subject not found"), "subject not found", 400)
 		}
 
 		subjectInstanceMap["__type"] = subjectInstance.GetName()

@@ -256,7 +256,20 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	}
 
-	queryBuilder := statementbuilder.Squirrel.Select(distinctIdColumn).From(tableModel.GetTableName())
+	idQueryCols := []string{distinctIdColumn}
+	for _, sort := range sortOrder {
+
+		if sort[0] == '-' || sort[0] == '+' {
+			sort = sort[1:]
+		}
+
+		if strings.Index(sort, "(") == -1 {
+			sort = prefix + sort
+		}
+		idQueryCols = append(idQueryCols, sort)
+	}
+	queryBuilder := statementbuilder.Squirrel.Select(idQueryCols...).From(tableModel.GetTableName())
+	//queryBuilder = queryBuilder.From(tableModel.GetTableName())
 
 	joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", tableModel.GetTableName(), tableModel.GetTableName())
 	if !isRelatedGroupRequest && tableModel.GetTableName() != "usergroup" {
@@ -515,12 +528,12 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	ids := make([]int64, 0)
 
 	for idsRow.Next() {
-		var id int64
-		err = idsRow.Scan(&id)
+		row := make(map[string]interface{})
+		err = idsRow.MapScan(row)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		ids = append(ids, id)
+		ids = append(ids, row["id"].(int64))
 	}
 
 	if len(languagePreferences) == 0 {
