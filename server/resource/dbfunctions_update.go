@@ -572,7 +572,7 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 				log.Errorf("Failed to insert action [%v]: %v", action.Name, err)
 			}
 		} else {
-			log.Infof("Action [%v] is new, adding action: @ %v", action.Name, action.OnType)
+			log.Infof("Action [%v] is new, adding action: @%v", action.Name, action.OnType)
 
 			actionSchema, _ := json.Marshal(action)
 

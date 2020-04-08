@@ -451,7 +451,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 		}
 
 	} else {
-		log.Infof("[%v][%v] Not creating an audit row", data.GetTableName(), data.GetID())
+		//log.Infof("[%v][%v] Not creating an audit row", data.GetTableName(), data.GetID())
 	}
 
 	updatedResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), id)

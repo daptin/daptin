@@ -144,7 +144,6 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 		for _, security := range *secMethods {
 
-			allDone := true
 			for secName := range security {
 				spec := securitySchemaMap[secName]
 
@@ -159,7 +158,6 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 						oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
 
 						if err != nil {
-							allDone = false
 							break
 						}
 						tokenSource := oauthConfig.TokenSource(context.Background(), oauthToken)
@@ -168,7 +166,6 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 							oauthToken, err = tokenSource.Token()
 							if err != nil {
-								allDone = false
 								break
 							}
 							err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix())
@@ -244,16 +241,15 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 					}
 				}
 
-				if !done {
-					allDone = false
+				if done {
+					authDone = true
 					break
 				}
-
-			}
-			if allDone {
-				authDone = true
 			}
 
+			if authDone {
+				break
+			}
 		}
 	}
 
@@ -404,10 +400,17 @@ func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 	}
 	CheckErr(err, "Action execution failed")
+	if err != nil {
+		return nil, nil, []error{err}
+	}
 
 	var res map[string]interface{}
 	err = resp.ToJSON(&res)
 	CheckErr(err, "Failed to read value as json")
+	if err != nil {
+		log.Printf("Action response: %v", resp.String())
+		return nil, nil, []error{err}
+	}
 	responder := NewResponse(nil, res, resp.Response().StatusCode, nil)
 	return responder, []ActionResponse{
 		NewActionResponse(d.integration.Name+"."+request.Method+".response", res),
