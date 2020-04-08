@@ -37,7 +37,7 @@
 
 
 <p align="center">
-  <a href="#key-features">Features</a> •
+  <a href="#why-use-daptin">Features</a> •
   <a href="#getting-started">Getting Started</a>
 </p>
 
@@ -50,7 +50,7 @@ Easily consume the following features on any device
 - [JSON API](https://daptin.github.io/daptin/apis/overview/)/[GraphQL](https://daptin.github.io/daptin/features/enable-graphql/) for CRUD apis
 - [User](https://daptin.github.io/daptin/setting-up/access/) and [group management](https://daptin.github.io/daptin/setting-up/access/) and access control
 - Social login with [OAuth](https://daptin.github.io/daptin/extend/oauth_connection/): tested with google, github, linkedin
-- [Actions](https://daptin.github.io/daptin/actions/overview/) for abstracting out business flows
+- [Actions](https://daptin.github.io/daptin/actions/actions/) for abstracting out business flows
 - Extensive [state tracking APIs](https://daptin.github.io/daptin/state/machines/)
 - Enable [Data Auditing](https://daptin.github.io/daptin/features/enable-data-auditing/) from a single toggle
 - [Synchronous Data Exchange](https://daptin.github.io/daptin/extend/data_exchange/) with 3rd party APIs
