@@ -259,6 +259,10 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	idQueryCols := []string{distinctIdColumn}
 	for _, sort := range sortOrder {
 
+		if len(sort) == 0 {
+			continue
+		}
+
 		if sort[0] == '-' || sort[0] == '+' {
 			sort = sort[1:]
 		}
