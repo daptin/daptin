@@ -67,6 +67,12 @@ const testSchemas = `Tables:
           DataSource: cloud_store
           Namespace: local-store
           KeyName: images
+  - TableName: table2
+    IsStateTrackingEnabled: true
+    Columns:
+      - Name: title
+        DataType: varchar(100)
+        ColumnType: label
 Imports:
   - FilePath: initial_data.json
     Entity: site
@@ -220,10 +226,25 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	r := req.New()
 
+
 	responseMap := make(map[string]interface{})
 
 	resp, err := r.Get(baseAddress+"/api/world", req.QueryParam{
-		"page[size]": 100,
+		"page[size]":   100,
+		"page[number]": 1,
+		"sort":         "",
+	})
+	if err != nil {
+		log.Printf("Failed to get %s %s", "world", err)
+		return err
+	}
+
+	responseMap = make(map[string]interface{})
+
+	resp, err = r.Get(baseAddress+"/api/world", req.QueryParam{
+		"page[size]":   100,
+		"page[number]": 1,
+		"sort":         "-reference_id",
 	})
 	if err != nil {
 		log.Printf("Failed to get %s %s", "world", err)
