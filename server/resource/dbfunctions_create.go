@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/database"
 	"github.com/jinzhu/copier"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -68,7 +69,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 	}
 }
 
-func CreateIndexes(initConfig *CmsConfig, db *sqlx.Tx) {
+func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 	log.Infof("Create indexes")
 	for _, table := range initConfig.Tables {
 		for _, column := range table.Columns {
@@ -79,7 +80,7 @@ func CreateIndexes(initConfig *CmsConfig, db *sqlx.Tx) {
 				//log.Infof("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
-					//log.Infof("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
+					log.Infof("Failed to create index on Table[%v][%v]: %v", table.TableName, column.ColumnName, err)
 				}
 			} else if column.IsIndexed {
 				indexName := "i" + GetMD5Hash("index_"+table.TableName+"_"+column.ColumnName+"_index")
@@ -87,7 +88,7 @@ func CreateIndexes(initConfig *CmsConfig, db *sqlx.Tx) {
 				//log.Infof("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
-					//log.Infof("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
+					log.Infof("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
 				}
 			}
 		}

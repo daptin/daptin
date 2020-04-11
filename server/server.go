@@ -83,7 +83,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	// 6 UID FETCH 1:2 (UID)
 	defaultRouter.Use(NewCorsMiddleware().CorsMiddlewareFunc)
-	defaultRouter.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
+	defaultRouter.StaticFS("/statics", NewSubPathFs(boxRoot, "/statics"))
+	defaultRouter.StaticFS("/js", NewSubPathFs(boxRoot, "/js"))
+	defaultRouter.StaticFS("/css", NewSubPathFs(boxRoot, "/css"))
+	defaultRouter.StaticFS("/fonts", NewSubPathFs(boxRoot, "/fonts"))
 
 	defaultRouter.GET("/favicon.ico", func(c *gin.Context) {
 
@@ -125,16 +128,16 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connectioins", "backend")
 	if err != nil {
-		maxConnections = 50
-		err = configStore.SetConfigValueFor("limit.max_connections", "50", "backend")
+		maxConnections = 100
+		err = configStore.SetConfigValueFor("limit.max_connections", maxConnections, "backend")
 		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
 	}
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
 
 	rate1, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 	if err != nil {
-		rate1 = 50
-		err = configStore.SetConfigValueFor("limit.rate", "50", "backend")
+		rate1 = 100
+		err = configStore.SetConfigValueFor("limit.rate", rate1, "backend")
 		resource.CheckErr(err, "Failed to store limit.rate default value in db")
 	}
 	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
@@ -507,9 +510,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 
 	indexFile, err := boxRoot.Open("index.html")
 
-	var indexFileContents = []byte("")
-	if indexFile != nil {
+	resource.CheckErr(err, "Failed to open index.html file from dashboard directory %v")
 
+	var indexFileContents = []byte("")
+	if indexFile != nil && err == nil {
 		indexFileContents, err = ioutil.ReadAll(indexFile)
 	}
 
@@ -661,7 +665,7 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 	tx, errb = db.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction for creating indexes")
 	if tx != nil {
-		resource.CreateIndexes(initConfig, tx)
+		resource.CreateIndexes(initConfig, db)
 		errc = tx.Commit()
 		resource.CheckErr(errc, "Failed to commit transaction after creating indexes")
 	}

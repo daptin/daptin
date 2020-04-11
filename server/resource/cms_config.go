@@ -245,7 +245,7 @@ func (c *ConfigStore) DeleteConfigValueFor(key string, configtype string) error 
 	return err
 }
 
-func (c *ConfigStore) SetConfigValueFor(key string, val string, configtype string) error {
+func (c *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype string) error {
 	var previousValue string
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
