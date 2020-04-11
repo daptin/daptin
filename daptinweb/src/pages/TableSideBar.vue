@@ -11,14 +11,14 @@
     </div>
     <div class="row q-pa-md">
       <div class="col-6 ">
-        Tables ({{tables.length}})
+        Tables ({{tablesFiltered.length}})
       </div>
       <div class="col-6 ">
         <q-btn style="float: right" @click="$router.push('/data/create')" class="btn btn-sm " size="sm"
                label="Add Table"></q-btn>
       </div>
     </div>
-    <div class="row" style="overflow-y: scroll; max-height: 60%">
+    <div class="row" style="overflow-y: scroll;">
       <div class=" q-pa-md col-12">
         <q-list dense padding class="rounded-borders">
           <q-item v-for="table in tablesFiltered" :key="table.table_name"
@@ -51,8 +51,8 @@
     },
     mounted() {
       const that = this;
-      this.$q.loadingBar.start()
-      that.load().then(function(){
+      this.$q.loadingBar.start();
+      that.load().then(function () {
         that.$q.loadingBar.stop()
       });
     },
@@ -61,10 +61,12 @@
         const that = this;
         if (that.text && that.text.length > 0) {
           return that.tables.filter(function (e) {
-            return e.table_name.indexOf(that.text) > -1;
+            return e.table_name.indexOf(that.text) > -1 && !e.is_hidden;
           })
         } else {
-          return that.tables;
+          return that.tables.filter(function (e) {
+            return !e.is_hidden;
+          });
         }
       },
       ...mapGetters(['tables'])
