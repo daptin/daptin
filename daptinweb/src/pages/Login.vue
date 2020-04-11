@@ -57,7 +57,11 @@
             password: this.password,
           }
         }).then(function (e) {
-          that.$q.notify("Logged in");
+          for (var i=0;i<e.length;i++){
+            if (e[i].ResponseType === "client.notify") {
+              that.$q.notify(e[i].Attributes);
+            }
+          }
           that.setToken();
           that.$router.push("/data");
         }).catch(function (e) {
