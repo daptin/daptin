@@ -71,7 +71,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 
 	tx, errb = wrapper.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction")
-	resource.CreateIndexes(&initConfig, tx)
+	resource.CreateIndexes(&initConfig, wrapper)
 	errc = tx.Commit()
 	resource.CheckErr(errc, "Failed to commit transaction after creating indexes")
 
