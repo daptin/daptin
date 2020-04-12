@@ -9,7 +9,8 @@
   "private": true,
   "scripts": {
     "test": "echo \"No test specified\" && exit 0",
-    "dev": "node $NODE_DEBUG_OPTION /usr/lib/node_modules/@quasar/cli/bin/quasar dev"
+    "dev": "node $NODE_DEBUG_OPTION /usr/lib/node_modules/@quasar/cli/bin/quasar dev",
+    "build": "node $NODE_DEBUG_OPTION /usr/lib/node_modules/@quasar/cli/bin/quasar build -m spa"
   },
   "dependencies": {
     "@quasar/extras": "^1.0.0",
