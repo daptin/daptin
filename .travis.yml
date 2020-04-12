@@ -29,6 +29,7 @@ script:
 - go get
 - cd daptinweb
 - pwd
+- npm install -g @quasar/cli
 - npm install
 - npm run build
 - cd ..
