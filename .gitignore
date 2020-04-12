@@ -19,7 +19,6 @@ vendor/
 dist
 /logs.log
 _*.*
-daptin
 migration.sql
 .vscode/
 daptin.db

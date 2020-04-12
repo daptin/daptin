@@ -36,11 +36,11 @@
              .filter(e => e.ColumnName && StandardColumns.indexOf(e.ColumnName) === -1 && !e.IsForeignKey)">
 
           <div class="col-3" style="padding: 5px">
-            <q-input placeholder="column Name" readonly v-model="column.ColumnName"></q-input>
+            <q-input placeholder="column Name" :readonly="!column.notCreated" v-model="column.ColumnName"></q-input>
           </div>
 
           <div class="col-2" style="padding: 5px">
-            <q-select placeholder="column type" readonly v-model="column.ColumnType"
+            <q-select placeholder="column type" :readonly="!column.notCreate" v-model="column.ColumnType"
                       :options="ColumnTypes.map(e => e.columnType + ' - ' + e.dataType)"
                       label="Column Type"></q-select>
           </div>
@@ -53,9 +53,9 @@
 
 
           <div class="col-4" style="padding: 5px">
-            <q-checkbox :disable="column.IsNullable" size="xs" v-model="column.IsNullable" label="Nullable"></q-checkbox>
-            <q-checkbox :disable="column.IsUnique" size="xs" v-model="column.IsUnique" label="Unique"></q-checkbox>
-            <q-checkbox :disable="column.IsIndexed" size="xs" v-model="column.IsIndexed" label="Indexed"></q-checkbox>
+            <q-checkbox :disable="!column.notCreated && column.IsNullable" size="xs" v-model="column.IsNullable" label="Nullable"></q-checkbox>
+            <q-checkbox :disable="!column.notCreated && column.IsUnique" size="xs" v-model="column.IsUnique" label="Unique"></q-checkbox>
+            <q-checkbox :disable="!column.notCreated && column.IsIndexed" size="xs" v-model="column.IsIndexed" label="Indexed"></q-checkbox>
             <q-btn @click="$emit('deleteColumn', column)" icon="fas fa-trash" flat size="sm"></q-btn>
           </div>
 
@@ -293,6 +293,7 @@
             IsIndexed: false,
             IsUnique: false,
             IsNullable: false,
+            notCreated: true,
           };
         }
       },
@@ -384,6 +385,7 @@
           ColumnName: null,
           ColumnType: null,
           DefaultValue: null,
+          notCreated: true,
           IsIndexed: false,
           IsUnique: false,
           IsNullable: false,
