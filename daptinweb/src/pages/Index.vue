@@ -1,7 +1,7 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <q-page>
     <div class="row">
-      <div class="col-2">
+      <div class="col-4">
         <div class="q-pa-md">
           <h2>Get Started</h2>
           <router-link to="/tables"></router-link>

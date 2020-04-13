@@ -49,6 +49,7 @@ module.exports = function (ctx) {
 
       // Quasar plugins
       plugins: [
+        'QTooltip',
         'Notify',
         'LoadingBar',
         'Loading'

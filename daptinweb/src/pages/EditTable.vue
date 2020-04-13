@@ -7,7 +7,9 @@
     </div>
     <div class="col-10">
       <div v-if="tableSchema" class="col-10 q-pa-md">
-        <table-editor v-bind:table="tableSchema" v-on:save="saveTable"></table-editor>
+        <table-editor v-on:deleteRelation="deleteTableRelation"
+                      v-on:deleteColumn="deleteTableColumn"
+                      v-bind:table="tableSchema" v-on:save="saveTable"></table-editor>
       </div>
     </div>
   </div>
@@ -20,6 +22,39 @@
   export default {
     name: 'CreateTable',
     methods: {
+      deleteTableRelation(relation) {
+        console.log("Delete relation", relation);
+
+      },
+      deleteTableColumn(column) {
+        console.log("Delete column", column);
+
+        this.executeAction({
+          tableName: 'world',
+          actionName: 'remove_column',
+          params: {
+            "world_id": "",
+            "column_level": "",
+          }
+        }).then(function (e) {
+          console.log("Update table", e);
+          setTimeout(function () {
+            that.$q.notify("Updated table structure, refreshing schema");
+            that.refreshTableSchema(table.TableName).then(function () {
+              that.$q.notify("Schema refreshed");
+              that.$q.loading.hide();
+            }).catch(function (e) {
+              that.$q.notify("Failed to refresh schema " + e);
+              that.$q.loading.hide();
+            });
+          }, 2000)
+        }).catch(function (e) {
+          that.$q.notify("Failed to create " + e);
+          that.$q.loading.hide();
+        });
+
+
+      },
       saveTable(table) {
 
         const that = this;
