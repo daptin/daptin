@@ -22,7 +22,7 @@ const routes = [
         path: '', component: () => import('pages/Index.vue')
       },
       {
-        path: 'data', component: () => import('pages/EditData.vue')
+        path: 'data/:tableName', component: () => import('pages/EditData.vue')
       },
     ]
   },

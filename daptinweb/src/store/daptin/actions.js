@@ -44,8 +44,13 @@ export function loadModel({commit}, tableName) {
 }
 
 export function refreshTableSchema({commit}, tableName) {
+  daptinClient.worldManager.loadModels().then(function (worlds) {
+    console.log("All models loaded", arguments);
+    commit('setTables', worlds)
+  }).catch(function (e) {
+    console.log("Failed to connect to backend", e);
+  });
   daptinClient.worldManager.refreshWorld(tableName).then(function (e) {
-    console.log("Refresh table schema", tableName, e);
-    commit('setTables', e)
+
   });
 }
