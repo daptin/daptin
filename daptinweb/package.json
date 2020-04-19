@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "test": "echo \"No test specified\" && exit 0",
-    "dev": "node $NODE_DEBUG_OPTION /usr/local/lib/node_modules/@quasar/cli/bin/quasar dev",
+    "dev": "node $NODE_DEBUG_OPTION /usr/lib/node_modules/@quasar/cli/bin/quasar dev",
     "build": "quasar build -m spa"
   },
   "dependencies": {
@@ -17,10 +17,11 @@
     "axios": "^0.18.1",
     "daptin-client": "^0.3.1",
     "quasar": "^1.0.0",
+    "tabulator-tables": "^4.6.2",
     "vue-i18n": "^8.0.0"
   },
   "devDependencies": {
-    "@quasar/app": "^1.0.0"
+    "@quasar/app": "^1.7.1"
   },
   "engines": {
     "node": ">= 10.18.1",

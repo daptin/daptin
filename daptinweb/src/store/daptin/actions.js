@@ -33,6 +33,12 @@ export function executeAction({commit}, params) {
   return daptinClient.actionManager.doAction(tableName, actionName, params.params);
 }
 
+export function loadData({commit}, params) {
+  var tableName = params.tableName;
+  var params = params.params;
+  return daptinClient.jsonApi.findAll(tableName, params);
+}
+
 export function getTableSchema({commit}, tableName) {
   return new Promise(function (resolve, reject) {
     resolve(daptinClient.worldManager.getColumnKeys(tableName));

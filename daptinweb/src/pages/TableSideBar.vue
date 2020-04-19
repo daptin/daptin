@@ -14,15 +14,17 @@
         Tables ({{tablesFiltered.length}})
       </div>
       <div class="col-6 ">
-        <q-btn style="float: right" @click="$router.push('/tables/create')" class="btn btn-sm " size="sm"
-               label="Add Table"></q-btn>
+        <q-btn style="float: right" @click="$router.push('/tables/create')" class="btn btn-sm bg-primary text-white"
+               size="sm"
+               label="Create new table"></q-btn>
       </div>
       <div class=" col-12">
         <q-list dense padding class="rounded-borders">
           <q-item v-for="table in tablesFiltered" :key="table.table_name">
 
             <q-item-section class="float-right">
-              <q-btn @click="$router.push('/tables/edit/' + table.table_name)" size="xs" style="width: 50px">Table</q-btn>
+              <q-btn @click="$router.push('/tables/edit/' + table.table_name)" size="xs" style="width: 50px">Table
+              </q-btn>
 
             </q-item-section>
 
