@@ -58,7 +58,7 @@
             that.refreshTableSchema(table.TableName).then(function () {
               that.$q.loading.hide();
               that.$q.notify("Schema refreshed");
-              that.$router.push("/data/edit/" + table.TableName)
+              that.$router.push("/tables/edit/" + table.TableName)
             }).catch(function (e) {
               that.$q.notify("Failed to refresh");
               that.$q.loading.hide();

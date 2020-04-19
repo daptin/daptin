@@ -91,7 +91,7 @@
             }
           }).then(function (e) {
             console.log("Sign in successful", arguments);
-            that.$router.push('/data')
+            that.$router.push('/tables')
           }).catch(function (e) {
             console.log("Failed to sign in", arguments);
             that.$q.notify("Error", "Failed to login");

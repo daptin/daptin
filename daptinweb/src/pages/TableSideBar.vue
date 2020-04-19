@@ -14,7 +14,7 @@
         Tables ({{tablesFiltered.length}})
       </div>
       <div class="col-6 ">
-        <q-btn style="float: right" @click="$router.push('/data/create')" class="btn btn-sm " size="sm"
+        <q-btn style="float: right" @click="$router.push('/tables/create')" class="btn btn-sm " size="sm"
                label="Add Table"></q-btn>
       </div>
     </div>
@@ -22,7 +22,7 @@
       <div class=" q-pa-md col-12">
         <q-list dense padding class="rounded-borders">
           <q-item v-for="table in tablesFiltered" :key="table.table_name"
-                  @click="$router.push('/data/edit/' + table.table_name)" clickable v-ripple>
+                  @click="$router.push('/tables/edit/' + table.table_name)" clickable v-ripple>
             <q-item-section>
               {{table.table_name}}
             </q-item-section>

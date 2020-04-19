@@ -10,6 +10,7 @@
       </q-toolbar>
       <q-toolbar class="col-10">
         <q-separator dark vertical inset/>
+        <q-btn flat @click="$router.push('/tables')" label="Tables"/>
         <q-btn flat @click="$router.push('/data')" label="Data"/>
 
         <q-space/>

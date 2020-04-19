@@ -1,6 +1,6 @@
 const routes = [
   {
-    path: '/data',
+    path: '/tables',
     component: () => import('layouts/MainLayout.vue'),
     children: [
       {
@@ -18,7 +18,12 @@ const routes = [
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      {path: '', component: () => import('pages/Index.vue')}
+      {
+        path: '', component: () => import('pages/Index.vue')
+      },
+      {
+        path: 'data', component: () => import('pages/EditData.vue')
+      },
     ]
   },
   {
