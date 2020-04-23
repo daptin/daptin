@@ -20,17 +20,7 @@
       </div>
       <div class=" col-12">
         <q-list dense padding class="rounded-borders">
-          <q-item v-for="table in tablesFiltered" :key="table.table_name">
-
-            <q-item-section class="float-right">
-              <q-btn @click="$router.push('/tables/edit/' + table.table_name)" size="xs" style="width: 50px">Table
-              </q-btn>
-
-            </q-item-section>
-
-            <q-item-section class="float-right">
-              <q-btn @click="$router.push('/data/' + table.table_name)" size="xs" style="width: 50px">Data</q-btn>
-            </q-item-section>
+          <q-item v-for="table in tablesFiltered" :key="table.table_name" clickable @click="setTable(table.table_name)">
             <q-item-section>
               {{table.table_name}}
             </q-item-section>
@@ -47,7 +37,11 @@
   export default {
     name: 'TableSideBar',
     methods: {
-      ...mapActions(['load'])
+      setTable(tableName) {
+        console.log("set table", tableName);
+        this.setSelectedTable(tableName)
+      },
+      ...mapActions(['load', 'setSelectedTable'])
     },
     data() {
       return {
@@ -64,7 +58,7 @@
     computed: {
       tablesFiltered() {
         const that = this;
-        console.log("Get tables filtered", that.tables)
+        console.log("Get tables filtered", that.tables);
         if (that.text && that.text.length > 0) {
           return that.tables.filter(function (e) {
             return e.table_name.indexOf(that.text) > -1 && !e.is_hidden;

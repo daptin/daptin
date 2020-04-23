@@ -15,3 +15,7 @@ export function tables(state) {
     }
   });
 }
+
+export function selectedTable(state) {
+  return state.selectedTable;
+}

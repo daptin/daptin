@@ -2,6 +2,7 @@ export default function () {
   return {
     tables: {},
     token: localStorage.getItem("token"),
-    showHiddenTables: true
+    showHiddenTables: true,
+    selectedTable: null,
   }
 }

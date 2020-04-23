@@ -18,20 +18,6 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer
-      v-model="drawerLeft"
-      show-if-above
-      :width="350"
-      :breakpoint="700"
-      elevated
-      content-class=""
-    >
-      <q-scroll-area class="fit">
-        <table-side-bar></table-side-bar>
-      </q-scroll-area>
-    </q-drawer>
-
-
     <q-page-container v-if="loggedIn()">
       <router-view/>
     </q-page-container>

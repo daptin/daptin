@@ -1,11 +1,27 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-  <div class="row">
+  <div>
 
-    <div class="col-10">
-      <div v-if="tableSchema" class="col-10 q-pa-md">
-        <table-editor v-on:deleteRelation="deleteTableRelation"
-                      v-on:deleteColumn="deleteTableColumn"
-                      v-bind:table="tableSchema" v-on:save="saveTable"></table-editor>
+    <q-drawer
+      v-model="drawerLeft"
+      show-if-above
+      :width="350"
+      :breakpoint="700"
+      elevated
+      content-class=""
+    >
+      <q-scroll-area class="fit">
+        <table-side-bar></table-side-bar>
+      </q-scroll-area>
+    </q-drawer>
+
+    <div class="row">
+
+      <div class="col-10">
+        <div v-if="tableSchema" class="col-10 q-pa-md">
+          <table-editor v-on:deleteRelation="deleteTableRelation"
+                        v-on:deleteColumn="deleteTableColumn"
+                        v-bind:table="tableSchema" v-on:save="saveTable"></table-editor>
+        </div>
       </div>
     </div>
   </div>
@@ -110,17 +126,22 @@
       loadTable() {
         const that = this;
         that.tableSchema = null;
-        console.log("Edit table", this.$route.params.tableName);
-        this.getTableSchema(this.$route.params.tableName).then(function (res) {
+        console.log("Edit table", this.selectedTable);
+        if (!this.selectedTable) {
+          this.setSelectedTable(this.$route.params.tableName);
+          return
+        }
+        this.getTableSchema(this.selectedTable).then(function (res) {
           that.tableSchema = res;
           console.log("Schema", that.tableSchema)
         })
       },
-      ...mapActions(['getTableSchema', 'executeAction', 'refreshTableSchema'])
+      ...mapActions(['getTableSchema', 'executeAction', 'refreshTableSchema', 'setSelectedTable'])
     },
     data() {
       return {
         text: '',
+        drawerLeft: true,
         tableSchema: null,
       }
     },
@@ -128,12 +149,15 @@
       this.loadTable()
     },
     watch: {
-      '$route.params.tableName': function (id) {
-        this.loadTable()
+      'selectedTable': function (id) {
+        console.log("selected table", this.selectedTable);
+        this.$router.push("/tables/edit/" + this.selectedTable);
+        this.loadTable();
       }
     },
     computed: {
-      ...mapGetters([])
+      ...mapGetters(['selectedTable']),
+      ...mapState([])
     }
   }
 </script>

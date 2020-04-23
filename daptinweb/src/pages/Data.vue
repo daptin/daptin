@@ -14,7 +14,7 @@
     </q-drawer>
     <div class="row">
       <div class="col-10">
-        <h4>Select a table to edit</h4>
+        Data editor
       </div>
     </div>
 
@@ -37,16 +37,14 @@
     },
     mounted() {
     },
-    computed: {
-      ...mapGetters(['selectedTable']),
-      ...mapState([])
-    },
-
     watch: {
-      'selectedTable': function () {
+      'selectedTable': function (id) {
         console.log("selected table", this.selectedTable);
-        this.$router.push("/tables/edit/" + this.selectedTable)
+        this.$router.push("/data/" + this.selectedTable);
       }
+    },
+    computed: {
+      ...mapGetters(['selectedTable'])
     }
   }
 </script>
