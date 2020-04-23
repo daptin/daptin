@@ -32,14 +32,14 @@
     data() {
       return {
         text: '',
-        ...mapState([])
+        ...mapState(['drawerLeft'])
       }
     },
     mounted() {
     },
     computed: {
       ...mapGetters(['selectedTable']),
-      ...mapState(['drawerLeft'])
+      ...mapState([])
     },
 
     watch: {
