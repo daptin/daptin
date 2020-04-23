@@ -27,6 +27,14 @@ export function setToken({commit}) {
   commit('setToken', token)
 }
 
+export function hideDrawerLeft({commit}) {
+  commit("setDrawerLeft", false)
+}
+
+export function showDrawerLeft({commit}) {
+  commit("setDrawerLeft", true)
+}
+
 export function setSelectedTable({commit}, tableName) {
   commit("setSelectedTable", tableName)
 }

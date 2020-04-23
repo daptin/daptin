@@ -14,7 +14,7 @@
     </q-drawer>
     <div class="row">
       <div class="col-10">
-        <h4>Select a table to edit</h4>
+        <h4>Select a table to edit</h4> {{drawerLeft}}
       </div>
     </div>
 
@@ -32,14 +32,14 @@
     data() {
       return {
         text: '',
-        drawerLeft: true,
+        ...mapState([])
       }
     },
     mounted() {
     },
     computed: {
       ...mapGetters(['selectedTable']),
-      ...mapState([])
+      ...mapState(['drawerLeft'])
     },
 
     watch: {

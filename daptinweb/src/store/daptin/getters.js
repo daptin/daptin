@@ -19,3 +19,7 @@ export function tables(state) {
 export function selectedTable(state) {
   return state.selectedTable;
 }
+
+export function drawerLeft(state) {
+  return state.drawerLeft;
+}

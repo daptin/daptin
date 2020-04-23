@@ -1,7 +1,7 @@
 <template>
   <div class="row">
     <q-drawer
-      v-model="drawerLeft"
+      v-model="drawerLeft()"
       show-if-above
       :width="350"
       :breakpoint="700"
@@ -14,23 +14,6 @@
     </q-drawer>
     <div class="col-12">
       <div id="spreadsheet"></div>
-    </div>
-    <div class="col-md-12" style="overflow-y:scroll">
-      <table>
-        <thead>
-        <tr>
-          <th v-if="col.Name" v-for="col in tableSchema.ColumnModel">
-            {{col.Name}}
-          </th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr v-for="row in rows">
-          <td v-if="col.Name" v-for="col in tableSchema.ColumnModel">{{row[col.Name]}}</td>
-        </tr>
-        </tbody>
-      </table>
-
     </div>
   </div>
 </template>
@@ -104,11 +87,10 @@
       return {
         tableSchema: {ColumnModel: []},
         rows: [],
-        drawerLeft: false,
       }
     },
     computed: {
-      ...mapGetters(['selectedTable'])
+      ...mapGetters(['selectedTable', 'drawerLeft'])
     },
     mounted() {
       this.refreshData();

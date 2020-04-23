@@ -2,7 +2,7 @@
   <div>
 
     <q-drawer
-      v-model="drawerLeft"
+      v-model="drawerLeft()"
       show-if-above
       :width="350"
       :breakpoint="700"
@@ -141,7 +141,6 @@
     data() {
       return {
         text: '',
-        drawerLeft: true,
         tableSchema: null,
       }
     },
@@ -156,7 +155,7 @@
       }
     },
     computed: {
-      ...mapGetters(['selectedTable']),
+      ...mapGetters(['selectedTable', 'drawerLeft']),
       ...mapState([])
     }
   }

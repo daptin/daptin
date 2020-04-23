@@ -3,7 +3,7 @@
     <q-header class="row" elevated>
 
       <q-toolbar class="col-2">
-        <q-btn flat @click="drawerLeft = !drawerLeft" round dense icon="menu"/>
+        <q-btn flat @click="flipDrawerLeft()" round dense icon="menu"/>
         <q-toolbar-title>
           <q-btn label="DadaDash" flat @click="$router.push('/')"></q-btn>
         </q-toolbar-title>
@@ -34,8 +34,7 @@
 
     data() {
       return {
-        drawerLeft: false,
-        ...mapGetters(['loggedIn']),
+        ...mapGetters(['loggedIn', 'drawerLeft']),
         essentialLinks: [],
       }
     },
@@ -44,7 +43,15 @@
       // this.load();
     },
     methods: {
-      ...mapActions(['load']),
+      flipDrawerLeft() {
+        console.log("Flip drawer left", this.drawerLeft())
+        if (this.drawerLeft()) {
+          this.hideDrawerLeft()
+        } else {
+          this.showDrawerLeft()
+        }
+      },
+      ...mapActions(['load', 'showDrawerLeft', 'hideDrawerLeft']),
       logout() {
         localStorage.removeItem("token");
         localStorage.removeItem("user ");

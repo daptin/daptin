@@ -4,5 +4,6 @@ export default function () {
     token: localStorage.getItem("token"),
     showHiddenTables: true,
     selectedTable: null,
+    drawerLeft: true,
   }
 }
