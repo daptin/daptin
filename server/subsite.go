@@ -143,7 +143,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		for _, hostname := range strings.Split(site.Hostname, ",") {
 			hs.siteMap[hostname] = site
 		}
-		
+
 		subSiteInformation.SubSite = site
 
 		if site.CloudStoreId == nil {
@@ -221,11 +221,9 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 			c.File(tempDirectoryPath + "/favicon.ico")
 		})
 		hostRouter.NoRoute(func(c *gin.Context) {
-			log.Printf("Found no route for %v", c.Request.URL)
-			log.Printf("Found no route for user agent %v", c.Request.Header.Get("User-Agent"))
-			log.Printf("Found no route for ip %v", c.ClientIP())
+			log.Printf("Found no route for [%v] request by [%v] [%v]", c.Request.URL, c.ClientIP(), c.Request.UserAgent())
 			c.File(tempDirectoryPath + "/index.html")
-			c.AbortWithStatus(200)
+			c.AbortWithStatus(404)
 		})
 
 		hostRouter.Handle("GET", "/statistics", func(c *gin.Context) {
