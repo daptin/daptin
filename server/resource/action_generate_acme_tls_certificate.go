@@ -287,7 +287,7 @@ func NewAcmeTlsCertificateGenerateActionPerformer(cruds map[string]*DbResource, 
 
 	challengeResponse := func(c *gin.Context) {
 		token := c.Param("token")
-		log.Printf("Get challenge response: %v", token)
+		log.Printf("Get challenge response: %v requested by %v @ %v", token, c.Request.Host, c.Request.UserAgent())
 		c.String(200, handler.challenge[token])
 	}
 	hostSwitch.GET("/.well-known/acme-challenge/:token", challengeResponse)
