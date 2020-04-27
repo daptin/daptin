@@ -2,7 +2,7 @@
   <div>
 
     <q-drawer
-      v-model="drawerLeft()"
+      v-model="drawerLeft"
       show-if-above
       :width="350"
       :breakpoint="700"
