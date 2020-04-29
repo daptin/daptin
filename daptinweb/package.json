@@ -28,7 +28,7 @@
     "http-server": "^0.11.1",
     "https-proxy-agent": "2.2.3",
     "jexcel": "^3.3.6",
-    "jquery": ">=3.4.0",
+    "jquery": ">=3.5.0",
     "js-cookie": "^2.1.4",
     "json2yaml": "^1.1.0",
     "jsoneditor": "^5.11.0",
