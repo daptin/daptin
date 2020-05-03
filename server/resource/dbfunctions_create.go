@@ -76,7 +76,7 @@ func CreateIndexes(initConfig *CmsConfig, db *sqlx.Tx) {
 			if column.IsUnique {
 				indexName := "u" + GetMD5Hash("index_"+table.TableName+"_"+column.ColumnName+"_unique")
 				alterTable := "create unique index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
-				//log.Infof("Create index sql: %v", alterTable)
+				log.Infof("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
 					//log.Infof("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
@@ -84,7 +84,7 @@ func CreateIndexes(initConfig *CmsConfig, db *sqlx.Tx) {
 			} else if column.IsIndexed {
 				indexName := "i" + GetMD5Hash("index_"+table.TableName+"_"+column.ColumnName+"_index")
 				alterTable := "create index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
-				//log.Infof("Create index sql: %v", alterTable)
+				log.Infof("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
 					//log.Infof("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)

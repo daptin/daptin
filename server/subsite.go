@@ -136,6 +136,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		if !site.Enable {
 			continue
 		}
+		log.Infof("Start site [%v] at [%v]", site.Name, site.Hostname)
 
 		subSiteInformation := resource.SubSiteInformation{}
 		hs.siteMap[site.Path] = site
