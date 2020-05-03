@@ -1,7 +1,7 @@
 <template>
   <div class="row">
     <q-drawer
-      v-model="drawerLeft()"
+      v-model="drawerLeft"
       show-if-above
       :width="350"
       :breakpoint="700"
@@ -48,7 +48,7 @@
           let columns = Object.keys(that.tableSchema.ColumnModel).map(function (columnName) {
             var col = that.tableSchema.ColumnModel[columnName];
             console.log("Make column ", col);
-            if (col.jsonApi || col.ColumnName == "__type") {
+            if (col.jsonApi || col.ColumnName == "__type" || that.defaultColumns.indexOf(col.ColumnName) > -1) {
               return null;
             }
             return {
@@ -87,6 +87,7 @@
       return {
         tableSchema: {ColumnModel: []},
         rows: [],
+        defaultColumns: ['permission', 'reference_id', 'created_at', 'updated_at'],
       }
     },
     computed: {
