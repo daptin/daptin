@@ -43,7 +43,7 @@
     },
     methods: {
       checkCreds() {
-        const {username, password} = this
+        const {username, password} = this;
 
         this.toggleLoading()
         this.resetResponse()

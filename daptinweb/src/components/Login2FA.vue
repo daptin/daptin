@@ -23,8 +23,8 @@
         <div class="col-md-4 col-sm-offset-4">
           <div class="box">
             <div class="box-body">
-              <router-link :class="'btn bg-blue'" :to="{name: 'SignIn2FA'}">Sign In 2FA</router-link>
               <router-link class="btn bg-blue" :to="{name: 'SignUp'}">Sign Up</router-link>
+              <router-link class="btn bg-blue" :to="{name: 'SignIn'}">Login with password</router-link>
             </div>
           </div>
         </div>
@@ -67,7 +67,7 @@
 
         actionManager.getGuestActions().then(function (guestActions) {
           console.log("guest actions", guestActions, guestActions["user:signin"]);
-          that.signInAction = guestActions["user:signin"];
+          that.signInAction = guestActions["user:signin2fa"];
         });
 
         worldManager.loadModel("oauth_connect", {

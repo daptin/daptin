@@ -992,6 +992,43 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "signin_with_2fa",
+		Label:            "Sign in with 2fa",
+		InstanceOptional: true,
+		OnType:           USER_ACCOUNT_TABLE_NAME,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "email",
+				ColumnName: "email",
+				ColumnType: "email",
+				IsNullable: false,
+			},
+			{
+				Name:       "password",
+				ColumnName: "password",
+				ColumnType: "password",
+				IsNullable: false,
+			},
+			{
+				Name:       "otp",
+				ColumnName: "otp",
+				ColumnType: "measurement",
+				IsNullable: false,
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "2fa.jwt.token",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"email":    "~email",
+					"password": "~password",
+					"otp": "~otp",
+				},
+			},
+		},
+	},
+	{
 		Name:     "oauth.login.begin",
 		Label:    "Authenticate via OAuth",
 		OnType:   "oauth_connect",

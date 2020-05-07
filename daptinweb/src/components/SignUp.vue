@@ -19,6 +19,7 @@
           <div class="box">
             <div class="box-body">
               <router-link :class="'btn bg-blue'" :to="{name: 'SignIn'}">Sign In</router-link>
+              <router-link :class="'btn bg-blue'" :to="{name: 'SignIn2FA'}">Sign In 2FA</router-link>
             </div>
           </div>
         </div>

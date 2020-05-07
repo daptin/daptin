@@ -424,7 +424,7 @@
       },
       titleCase: function (str) {
         return str.replace(/[-_]/g, " ").split(' ')
-          .map(w => w[0].toUpperCase() + w.substr(1).toLowerCase())
+          .map(w => w[0] ? (w[0].toUpperCase() + w.substr(1).toLowerCase()) : w)
           .join(' ')
       },
       camelCase(str, delimiter = '_') {
@@ -443,8 +443,6 @@
         this.emit1('loading');
 
         this.httpOptions['params'] = this.getAllQueryParams();
-
-//        console.log("load by jsonapi", this.httpOptions["params"], this.finder);
 
 
         that.jsonApi.builderStack = this.finder;

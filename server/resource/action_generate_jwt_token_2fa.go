@@ -1,21 +1,29 @@
 package resource
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 	"strings"
 	"time"
 )
 
 type Generate2FAJwtTokenActionPerformer struct {
-	cruds          map[string]*DbResource
-	secret         []byte
-	tokenLifeTime  int
-	jwtTokenIssuer string
+	cruds            map[string]*DbResource
+	secret           []byte
+	tokenLifeTime    int
+	jwtTokenIssuer   string
+	encryptionSecret []byte
+	totpLength       int
 }
 
 func (d *Generate2FAJwtTokenActionPerformer) Name() string {
@@ -27,25 +35,24 @@ func (d *Generate2FAJwtTokenActionPerformer) DoAction(request Outcome, inFieldMa
 	responses := make([]ActionResponse, 0)
 
 	email := inFieldMap["email"]
+	stateVar, ok := inFieldMap["otp"]
+	if !ok {
+		return nil, nil, []error{fmt.Errorf("otp is empty")}
+	}
+	state, ok := stateVar.(string)
+	if !ok {
+		state = fmt.Sprintf("%v", stateVar)
+	}
 	var password = ""
 
-	skipPasswordCheck := false
-
-	skipPasswordCheckStr, ok := inFieldMap["skipPasswordCheck"]
-	if ok {
-		skipPasswordCheck, _ = skipPasswordCheckStr.(bool)
-	}
-
-	if !skipPasswordCheck {
-		if inFieldMap["password"] != nil {
-			password = inFieldMap["password"].(string)
-		} else {
-			return nil, nil, []error{fmt.Errorf("email or password is empty")}
-		}
-	}
-
-	if email == nil || (len(password) < 1 && !skipPasswordCheck) {
+	if inFieldMap["password"] != nil {
+		password = inFieldMap["password"].(string)
+	} else {
 		return nil, nil, []error{fmt.Errorf("email or password is empty")}
+	}
+
+	if len(state) == 0 {
+		return nil, nil, []error{fmt.Errorf("otp is empty")}
 	}
 
 	existingUsers, _, err := d.cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", squirrel.Eq{"email": email})
@@ -59,7 +66,49 @@ func (d *Generate2FAJwtTokenActionPerformer) DoAction(request Outcome, inFieldMa
 		responses = append(responses, actionResponse)
 	} else {
 		existingUser := existingUsers[0]
-		if skipPasswordCheck || (existingUser["password"] != nil && BcryptCheckStringHash(password, existingUser["password"].(string))) {
+		if existingUser["password"] != nil && BcryptCheckStringHash(password, existingUser["password"].(string)) {
+
+			userAccountId, _ := existingUser["id"]
+			userOtpProfile, err := d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "otp_of_account", userAccountId)
+			if err != nil {
+				return nil, nil, []error{fmt.Errorf("user otp profile does not exist")}
+			}
+
+			key, _ := Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))
+
+			ok, err := totp.ValidateCustom(state, key, time.Now().UTC(), totp.ValidateOpts{
+				Period:    300,
+				Skew:      1,
+				Digits:    otp.Digits(d.totpLength),
+				Algorithm: otp.AlgorithmSHA1,
+			})
+			if !ok {
+				log.Errorf("Failed to validate otp key")
+				return nil, nil, []error{errors.New("invalid otp")}
+			}
+
+			if userOtpProfile["verified"].(int64) == 0 {
+				model := api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile)
+				model.SetAttributes(map[string]interface{}{
+					"verified": 1,
+				})
+
+				pr := &http.Request{}
+				user := &auth.SessionUser{
+					UserId:          existingUser["id"].(int64),
+					UserReferenceId: existingUser["reference_id"].(string),
+				}
+				pr = pr.WithContext(context.WithValue(context.Background(), "user", user))
+				req := api2go.Request{
+					PlainRequest: pr,
+				}
+
+				_, err := d.cruds["user_otp_account"].UpdateWithoutFilters(model, req)
+				if err != nil {
+					log.Errorf("Failed to mark user otp account as verified: %v", err)
+				}
+
+			}
 
 			// Create a new token object, specifying signing method and the claims
 			// you would like it to contain.
@@ -137,12 +186,20 @@ func NewGenerate2FAJwtTokenPerformer(configStore *ConfigStore, cruds map[string]
 		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
 		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
 	}
+	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend")
+	totpLength, err := configStore.GetConfigIntValueFor("totp.length", "backend")
+	if err != nil {
+		totpLength = 6
+		configStore.SetConfigValueFor("totp.length", "6", "backend")
+	}
 
 	handler := Generate2FAJwtTokenActionPerformer{
-		cruds:          cruds,
-		secret:         []byte(secret),
-		tokenLifeTime:  tokenLifeTimeHours,
-		jwtTokenIssuer: jwtTokenIssuer,
+		cruds:            cruds,
+		secret:           []byte(secret),
+		tokenLifeTime:    tokenLifeTimeHours,
+		encryptionSecret: []byte(encryptionSecret),
+		totpLength:       totpLength,
+		jwtTokenIssuer:   jwtTokenIssuer,
 	}
 
 	return &handler, nil

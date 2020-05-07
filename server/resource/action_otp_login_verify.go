@@ -28,6 +28,7 @@ type OtpLoginVerifyActionPerformer struct {
 	otpKey           string
 	secret           []byte
 	totpSecret       string
+	totpLength       int
 }
 
 func (d *OtpLoginVerifyActionPerformer) Name() string {
@@ -73,7 +74,7 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 	ok, err = totp.ValidateCustom(state, key, time.Now().UTC(), totp.ValidateOpts{
 		Period:    300,
 		Skew:      1,
-		Digits:    4,
+		Digits:    otp.Digits(d.totpLength),
 		Algorithm: otp.AlgorithmSHA1,
 	})
 	if !ok {
@@ -184,12 +185,18 @@ func NewOtpLoginVerifyActionPerformer(cruds map[string]*DbResource, configStore 
 		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
 		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
 	}
+	totpLength, err := configStore.GetConfigIntValueFor("totp.length", "backend")
+	if err != nil {
+		totpLength = 6
+		configStore.SetConfigValueFor("totp.length", "6", "backend")
+	}
 
 	handler := OtpLoginVerifyActionPerformer{
 		cruds:            cruds,
 		tokenLifeTime:    tokenLifeTimeHours,
 		configStore:      configStore,
 		encryptionSecret: []byte(encryptionSecret),
+		totpLength:       totpLength,
 		secret:           []byte(jwtSecret),
 		jwtTokenIssuer:   jwtTokenIssuer,
 	}

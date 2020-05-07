@@ -1,5 +1,6 @@
 import DashView from './components/Dash.vue'
 import LoginView from './components/Login.vue'
+import Login2FAView from './components/Login.vue'
 import NotFoundView from './components/404.vue'
 
 
@@ -10,7 +11,8 @@ import RelationView from './components/RelationView'
 
 import AdminComponent from './components/Admin'
 // import AdminView from './components/AdminApp'
-import  SignInComponent from './components/SignIn'
+import SignInComponent from './components/SignIn'
+import SignIn2FAComponent from './components/Login2FA'
 import SignedInComponent from './components/SignedIn'
 import SignOutComponent from './components/SignOut'
 import OauthResponseComponent from './components/OauthResponse'
@@ -30,6 +32,11 @@ const routes = [
     name: 'SignIn',
     path: '/auth/signin',
     component: SignInComponent
+  },
+  {
+    name: 'SignIn2FA',
+    path: '/auth/signin2fa',
+    component: SignIn2FAComponent
   },
   {
     name: 'SignedIn',
