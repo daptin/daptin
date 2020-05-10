@@ -87,6 +87,7 @@ func (d *Generate2FAJwtTokenActionPerformer) DoAction(request Outcome, inFieldMa
 				return nil, nil, []error{errors.New("invalid otp")}
 			}
 
+
 			if userOtpProfile["verified"].(int64) == 0 {
 				model := api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile)
 				model.SetAttributes(map[string]interface{}{

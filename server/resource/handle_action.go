@@ -38,6 +38,7 @@ func CreateGuestActionListHandler(initConfig *CmsConfig) func(*gin.Context) {
 
 	guestActions["user:signup"] = actionMap["user_account:signup"]
 	guestActions["user:signin"] = actionMap["user_account:signin"]
+	guestActions["user:signin2fa"] = actionMap["user_account:signin_with_2fa"]
 
 	return func(c *gin.Context) {
 

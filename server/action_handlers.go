@@ -71,6 +71,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create generate jwt performer")
 	performers = append(performers, generateJwtPerformer)
 
+	generate2faJwtPerformer, err := resource.NewGenerate2FAJwtTokenPerformer(configStore, cruds)
+	resource.CheckErr(err, "Failed to create generate 2fa jwt performer")
+	performers = append(performers, generate2faJwtPerformer)
+
 	NewNetworkRequestPerformer, err := resource.NewNetworkRequestPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create generate network request performer")
 	performers = append(performers, NewNetworkRequestPerformer)
