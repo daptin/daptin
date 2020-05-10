@@ -17,6 +17,8 @@ type OtpGenerateActionPerformer struct {
 	cruds            map[string]*DbResource
 	configStore      *ConfigStore
 	encryptionSecret []byte
+	totpLength       int
+	issuerName       string
 }
 
 func (d *OtpGenerateActionPerformer) Name() string {
@@ -72,12 +74,11 @@ func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 	if userOtpProfile == nil {
 
-		key, err := totp.Generate(totp.GenerateOpts{
-			Issuer:      "site.daptin.com",
+		totpKey, err := totp.Generate(totp.GenerateOpts{
+			Issuer:      d.issuerName,
 			AccountName: userAccount["email"].(string),
 			Period:      300,
-			Digits:      4,
-			SecretSize:  10,
+			Digits:      otp.Digits(d.totpLength),
 		})
 
 		if err != nil {
@@ -86,7 +87,7 @@ func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		}
 
 		userOtpProfile = map[string]interface{}{
-			"otp_secret":     key.Secret(),
+			"otp_secret":     totpKey.Secret(),
 			"verified":       0,
 			"mobile_number":  mobile,
 			"otp_of_account": userAccount["reference_id"],
@@ -141,11 +142,19 @@ func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 func NewOtpGenerateActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
 
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend")
+	totpLength, err := configStore.GetConfigIntValueFor("totp.length", "backend")
+	if err != nil {
+		totpLength = 6
+		configStore.SetConfigValueFor("totp.length", "6", "backend")
+	}
+	issuerName, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend")
 
 	handler := OtpGenerateActionPerformer{
 		cruds:            cruds,
 		encryptionSecret: []byte(encryptionSecret),
 		configStore:      configStore,
+		totpLength:       totpLength,
+		issuerName:       issuerName,
 	}
 
 	return &handler, nil

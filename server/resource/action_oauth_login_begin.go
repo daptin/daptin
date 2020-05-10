@@ -82,7 +82,6 @@ func NewOauthLoginBeginActionPerformer(initConfig *CmsConfig, cruds map[string]*
 			Issuer:      "site.daptin.com",
 			AccountName: "dummy@site.daptin.com",
 			Period:      300,
-			SecretSize:  10,
 		})
 
 		if err != nil {

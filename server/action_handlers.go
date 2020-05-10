@@ -14,7 +14,6 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create become admin performer")
 	performers = append(performers, becomeAdminPerformer)
 
-
 	cloudStoreFileImportPerformer, err := resource.NewImportCloudStoreFilesPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create cloudStoreFileImportPerformer")
 	performers = append(performers, cloudStoreFileImportPerformer)
@@ -75,6 +74,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create generate 2fa jwt performer")
 	performers = append(performers, generate2faJwtPerformer)
 
+	generateHOTPQRCodeActionPerformer, err := resource.NewGenerateHOTPQRCodeActionPerformer(configStore, cruds)
+	resource.CheckErr(err, "Failed to create generate totp qrcode image generator")
+	performers = append(performers, generateHOTPQRCodeActionPerformer)
+
 	NewNetworkRequestPerformer, err := resource.NewNetworkRequestPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create generate network request performer")
 	performers = append(performers, NewNetworkRequestPerformer)
@@ -94,7 +97,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	mailServerSync, err := resource.NewMailServersSyncActionPerformer(cruds, mailDaemon, certificateManager)
 	resource.CheckErr(err, "Failed to create mail server sync performer")
 	performers = append(performers, mailServerSync)
-	
+
 	restartPerformer, err := resource.NewRestarSystemPerformer(initConfig)
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, restartPerformer)

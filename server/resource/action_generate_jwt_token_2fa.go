@@ -76,17 +76,24 @@ func (d *Generate2FAJwtTokenActionPerformer) DoAction(request Outcome, inFieldMa
 
 			key, _ := Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))
 
-			ok, err := totp.ValidateCustom(state, key, time.Now().UTC(), totp.ValidateOpts{
-				Period:    300,
+			ok, err := totp.ValidateCustom(state, key, time.Now(), totp.ValidateOpts{
+				Period:    30,
 				Skew:      1,
 				Digits:    otp.Digits(d.totpLength),
 				Algorithm: otp.AlgorithmSHA1,
 			})
+
+			currentCode, _ := totp.GenerateCodeCustom(key, time.Now(), totp.ValidateOpts{
+				Period:    30,
+				Skew:      1,
+				Digits:    otp.Digits(d.totpLength),
+				Algorithm: otp.AlgorithmSHA1,
+			})
+			log.Printf("Code %v vs %v", currentCode, state)
 			if !ok {
-				log.Errorf("Failed to validate otp key")
+				log.Errorf("Failed to validate otp key in 2fa login")
 				return nil, nil, []error{errors.New("invalid otp")}
 			}
-
 
 			if userOtpProfile["verified"].(int64) == 0 {
 				model := api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile)

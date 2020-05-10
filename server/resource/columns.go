@@ -223,15 +223,6 @@ var SystemActions = []Action{
 					"mobile": "~mobile_number",
 				},
 			},
-			{
-				Type:      "2factor.in",
-				Method:    "GET_api_key-SMS-phone_number-otp",
-				Condition: "!mobile_number != null && mobile_number != undefined && mobile_number != ''",
-				Attributes: map[string]interface{}{
-					"phone_number": "~mobile_number",
-					"otp":          "$otp.otp",
-				},
-			},
 		},
 	},
 	{
@@ -263,44 +254,6 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"otp":    "~otp",
 					"mobile": "~mobile_number",
-				},
-			},
-		},
-	},
-	{
-		Name:             "send_otp",
-		Label:            "Send OTP to mobile",
-		OnType:           "user_otp_account",
-		InstanceOptional: true,
-		InFields: []api2go.ColumnInfo{
-			{
-				Name:       "mobile_number",
-				ColumnName: "mobile_number",
-				ColumnType: "label",
-			},
-			{
-				Name:       "email",
-				ColumnName: "email",
-				ColumnType: "label",
-			},
-		},
-		OutFields: []Outcome{
-			{
-				Type:      "otp.generate",
-				Method:    "EXECUTE",
-				Reference: "otp",
-				Attributes: map[string]interface{}{
-					"email":  "~email",
-					"mobile": "~mobile_number",
-				},
-			},
-			{
-				Type:      "2factor.in",
-				Method:    "GET_api_key-SMS-phone_number-otp",
-				Condition: "!mobile_number != null && mobile_number != undefined && mobile_number != ''",
-				Attributes: map[string]interface{}{
-					"phone_number": "~mobile_number",
-					"otp":          "$otp.otp",
 				},
 			},
 		},
@@ -932,16 +885,6 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:      "2factor.in",
-				Method:    "GET_api_key-SMS-phone_number-otp",
-				Reference: "otp_account",
-				Condition: "!mobile != null && mobile != undefined && mobile != ''",
-				Attributes: map[string]interface{}{
-					"phone_number": "~mobile",
-					"otp":          "$otp.otp",
-				},
-			},
-			{
 				Type:   "client.notify",
 				Method: "ACTIONRESPONSE",
 				Attributes: map[string]interface{}{
@@ -991,6 +934,24 @@ var SystemActions = []Action{
 			},
 		},
 	},
+
+	{
+		Name:             "download_hotp_qrcode",
+		Label:            "Download HTOP QR code",
+		InstanceOptional: false,
+		OnType:           USER_ACCOUNT_TABLE_NAME,
+		InFields: []api2go.ColumnInfo{
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "2fa.hotp.qrcode",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"reference_id": "$.reference_id",
+				},
+			},
+		},
+	},
 	{
 		Name:             "signin_with_2fa",
 		Label:            "Sign in with 2fa",
@@ -1023,7 +984,7 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"email":    "~email",
 					"password": "~password",
-					"otp": "~otp",
+					"otp":      "~otp",
 				},
 			},
 		},
@@ -1694,7 +1655,6 @@ var StandardTables = []TableInfo{
 			},
 			{
 				ColumnName:     "otp_secret",
-				IsIndexed:      true,
 				ExcludeFromApi: true,
 				DataType:       "varchar(100)",
 				ColumnType:     "encrypted",

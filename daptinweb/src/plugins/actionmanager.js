@@ -39,9 +39,32 @@ const ActionManager = function () {
     };
   });
 
+  const b64toBlob = (b64Data, contentType='', sliceSize=512) => {
+    const byteCharacters = atob(b64Data);
+    const byteArrays = [];
+
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      const slice = byteCharacters.slice(offset, offset + sliceSize);
+
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+
+    const blob = new Blob(byteArrays, {type: contentType});
+    return blob;
+  }
+
   this.saveByteArray = function (downloadData) {
-    var blob = new Blob([atob(downloadData.content)], {type: downloadData.contentType}),
-      url = window.URL.createObjectURL(blob);
+    console.log("Save byte array ", downloadData)
+    console.log("Save byte array atob", atob(downloadData.content))
+    var byteArray = new Uint16Array(atob(downloadData.content));
+    var blob = b64toBlob(downloadData.content, downloadData.contentType); // new Blob([byteArray], {type: downloadData.contentType});
+    var url = window.URL.createObjectURL(blob);
     that.a.href = url;
     that.a.download = downloadData.name;
     that.a.click();

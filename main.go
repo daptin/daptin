@@ -50,9 +50,9 @@ func main() {
 	//eventEmitter := &emitter.Emitter{}
 
 	var dbType = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
-	var connectionString = flag.String("db_connection_string", "daptin.db", "\n\tSQLite: test.db\n"+
-		"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
-		"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
+	var connectionString = flag.String("db_connection_string", "daptin.db", "\n\tSQLite: 'test.db'\n"+
+		"\tMySql: '<username>:<password>@tcp(<hostname>:<port>)/<db_name>'\n"+
+		"\tPostgres: 'host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable'")
 
 	var webDashboardSource = flag.String("dashboard", strings.ReplaceAll("daptinweb/dist/", "/", string(os.PathSeparator)), "path to dist folder for daptin web dashboard")
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")

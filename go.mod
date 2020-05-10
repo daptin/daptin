@@ -57,7 +57,6 @@ require (
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
 	github.com/graphql-go/relay v0.0.0-20171208134043-54350098cfe5
-	github.com/h2non/filetype v1.0.9
 	github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/imroc/req v0.2.4
@@ -76,6 +75,7 @@ require (
 	github.com/lib/pq v1.0.0
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
 	github.com/mattn/go-sqlite3 v1.11.0
+	github.com/mdp/rsc v0.0.0-20160131164516-90f07065088d
 	github.com/naoina/toml v0.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.2.0
