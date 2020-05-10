@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"encoding/base32"
 	"errors"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
@@ -24,6 +25,8 @@ type OtpGenerateActionPerformer struct {
 func (d *OtpGenerateActionPerformer) Name() string {
 	return "otp.generate"
 }
+
+var b32NoPadding = base32.StdEncoding.WithPadding(base32.NoPadding)
 
 func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
@@ -87,9 +90,10 @@ func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		}
 
 		userOtpProfile = map[string]interface{}{
-			"otp_secret":     totpKey.Secret(),
+			"otp_secret":     b32NoPadding.EncodeToString([]byte(totpKey.Secret())),
 			"verified":       0,
 			"mobile_number":  mobile,
+			"user_account_id": userAccount["reference_id"].(string),
 			"otp_of_account": userAccount["reference_id"],
 		}
 

@@ -39,10 +39,11 @@ func (d *GenerateHOTPQRCodeActionPerformer) DoAction(request Outcome, inFieldMap
 
 	key, _ := Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))
 
+	k, _ := b32NoPadding.DecodeString(key)
 	gotp := totp.GenerateOpts{
 		Digits:      otp.Digits(d.totpLength),
 		Issuer:      d.issuerName,
-		Secret:      []byte(key),
+		Secret:      k,
 		AccountName: userAccount["email"].(string),
 		Algorithm:   otp.AlgorithmSHA1,
 	}

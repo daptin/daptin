@@ -60,7 +60,7 @@ const ActionManager = function () {
   }
 
   this.saveByteArray = function (downloadData) {
-    console.log("Save byte array ", downloadData)
+    console.log("Save byte array ", downloadData);
     console.log("Save byte array atob", atob(downloadData.content))
     var byteArray = new Uint16Array(atob(downloadData.content));
     var blob = b64toBlob(downloadData.content, downloadData.contentType); // new Blob([byteArray], {type: downloadData.contentType});
