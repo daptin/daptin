@@ -1,11 +1,11 @@
-language: go
+language: generic
 
 go:
 - "1.12"
 - tip
 
 node_js:
-  - 11
+- 11
   
 sudo: required
 cache:
