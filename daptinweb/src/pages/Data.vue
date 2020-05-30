@@ -36,6 +36,9 @@
       }
     },
     mounted() {
+      if (this.selectedTable) {
+        this.$router.push("/data/" + this.selectedTable);
+      }
     },
     watch: {},
     computed: {

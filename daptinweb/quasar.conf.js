@@ -55,7 +55,9 @@ module.exports = function (ctx) {
         'Loading'
       ],
       config: {
-        notify: {},
+        notify: {
+          position: 'bottom-right',
+        },
       }
     },
 
