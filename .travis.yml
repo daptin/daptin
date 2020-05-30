@@ -33,7 +33,7 @@ script:
 - cd daptinweb
 - pwd
 - npm install -g @quasar/cli
-- npm install
+- npm install && npm rebuild node-sass
 - npm run build
 - cd ..
 - pwd

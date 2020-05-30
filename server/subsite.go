@@ -324,6 +324,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				permission := subSite.Permission
 				userI := r.Context().Value("user")
 				var user *auth.SessionUser
+
 				if userI != nil {
 					user = userI.(*auth.SessionUser)
 				} else {
