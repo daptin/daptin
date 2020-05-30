@@ -1,1 +1,0 @@
-{"Tables":[{"TableName":"table2","Columns":[{"ColumnName":"col1","ColumnType":"label","DefaultValue":null,"notCreated":true,"IsIndexed":false,"IsUnique":false,"IsNullable":false,"DataType":"varchar(50)"},{"ColumnName":"col2","ColumnType":"datetime","DefaultValue":null,"IsIndexed":false,"IsUnique":false,"IsNullable":false,"notCreated":true,"DataType":"datetime"}]}],"Relations":[]}
