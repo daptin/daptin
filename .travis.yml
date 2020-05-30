@@ -19,7 +19,7 @@ before_script:
 - ./cc-test-reporter before-build
 script:
 - ls -lah
-- curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash - && sudo apt-get install -y nodejs
+- nvm install v13.6.0
 - node -v && npm -v
 - cat .travis.yml
 - "echo 'mode: set' > c.out"
