@@ -1,12 +1,10 @@
-language: generic
+language: go
 
 go:
 - "1.12"
 - tip
 
-node_js:
-- 11
-  
+
 sudo: required
 cache:
   directories:
@@ -21,6 +19,8 @@ before_script:
 - ./cc-test-reporter before-build
 script:
 - ls -lah
+- curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+- node -v && npm -v
 - cat .travis.yml
 - "echo 'mode: set' > c.out"
 - go get -t ./...
