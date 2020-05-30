@@ -18,12 +18,13 @@
           placeholder="Table name"
           :readonly="isEdit"
           lazy-rules
-          :rules="[ val => val && val.length > 0 || 'Please type something']"></q-input>
+          :rules="[ val => val && val.length > 0 || 'Table name cannot be empty']"></q-input>
       </div>
 
       <div class="col-md-4 offset-4">
         <div>
-          <q-btn size="20px" @click="$emit('save', localTable)" :label="isEdit ? 'Save' : 'Create'" type="submit" color="green"/>
+          <q-btn :disable="localTable.ColumnModel && localTable.ColumnModel.length>0 ? false: true" size="20px"
+                 @click="$emit('save', localTable)" :label="isEdit ? 'Save' : 'Create'" type="submit" color="green"/>
         </div>
       </div>
 

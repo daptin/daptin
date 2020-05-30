@@ -12,6 +12,27 @@ const routes = [
       {
         path: 'edit/:tableName', component: () => import('pages/EditTable.vue')
       },
+      {
+        path: 'data/:tableName', component: () => import('pages/EditData.vue')
+      },
+    ]
+  },
+  {
+    path: '/user',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      {
+        path: 'accounts', component: () => import('pages/Users.vue'),
+      },
+      {
+        path: 'groups', component: () => import('pages/UserGroups.vue')
+      },
+      {
+        path: 'permissions', component: () => import('pages/Permissions.vue')
+      },
+      {
+        path: 'data/:tableName', component: () => import('pages/EditData.vue')
+      },
     ]
   },
   {
@@ -23,9 +44,6 @@ const routes = [
       },
       {
         path: 'data', component: () => import('pages/Data.vue')
-      },
-      {
-        path: 'data/:tableName', component: () => import('pages/EditData.vue')
       },
     ]
   },

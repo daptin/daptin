@@ -3,7 +3,5 @@ export default function () {
     tables: {},
     token: localStorage.getItem("token"),
     showHiddenTables: true,
-    selectedTable: null,
-    drawerLeft: true,
   }
 }

@@ -1,18 +1,19 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <div>
 
-    <q-drawer
-      v-model="drawerLeft"
-      show-if-above
-      :width="350"
-      :breakpoint="700"
-      elevated
-      content-class=""
-    >
-      <q-scroll-area class="fit">
-        <table-side-bar></table-side-bar>
-      </q-scroll-area>
-    </q-drawer>
+
+    <!--    <q-drawer-->
+    <!--      v-model="drawerLeft"-->
+    <!--      show-if-above-->
+    <!--      :width="350"-->
+    <!--      :breakpoint="700"-->
+    <!--      elevated-->
+    <!--      content-class=""-->
+    <!--    >-->
+    <!--      <q-scroll-area class="fit">-->
+    <!--        <table-side-bar></table-side-bar>-->
+    <!--      </q-scroll-area>-->
+    <!--    </q-drawer>-->
 
     <div class="row">
 
@@ -126,17 +127,18 @@
       loadTable() {
         const that = this;
         that.tableSchema = null;
-        console.log("Edit table", this.selectedTable);
-        if (!this.selectedTable) {
+        let tableName = this.$route.params.tableName;
+        console.log("Edit table", tableName);
+        if (!tableName) {
           this.setSelectedTable(this.$route.params.tableName);
           return
         }
-        this.getTableSchema(this.selectedTable).then(function (res) {
+        this.getTableSchema(tableName).then(function (res) {
           that.tableSchema = res;
           console.log("Schema", that.tableSchema)
         })
       },
-      ...mapActions(['getTableSchema', 'executeAction', 'refreshTableSchema', 'setSelectedTable'])
+      ...mapActions(['getTableSchema', 'executeAction', 'refreshTableSchema'])
     },
     data() {
       return {
@@ -147,15 +149,9 @@
     mounted() {
       this.loadTable()
     },
-    watch: {
-      'selectedTable': function (id) {
-        console.log("selected table", this.selectedTable);
-        this.$router.push("/tables/edit/" + this.selectedTable);
-        this.loadTable();
-      }
-    },
+    watch: {},
     computed: {
-      ...mapGetters(['selectedTable', 'drawerLeft']),
+      ...mapGetters(['drawerLeft']),
       ...mapState([])
     }
   }

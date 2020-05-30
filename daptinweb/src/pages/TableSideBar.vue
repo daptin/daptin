@@ -1,7 +1,7 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <div class="col-12">
     <div class="row">
-      <div class="q-pa-md col-12">
+      <div class="q-pa-md col-4">
         <q-input color="teal" filled v-model="text" label="search table">
           <template v-slot:prepend>
             <q-icon name="search"/>
@@ -11,18 +11,23 @@
     </div>
     <div class="row q-pa-md">
       <div class="col-6 ">
-        Tables ({{tablesFiltered.length}})
+        <h4>Tables ({{tablesFiltered.length}})</h4>
       </div>
-      <div class="col-6 ">
+      <div class="col-3">
         <q-btn style="float: right" @click="$router.push('/tables/create')" class="btn btn-sm bg-primary text-white"
-               size="sm"
                label="Create new table"></q-btn>
       </div>
-      <div class=" col-12">
-        <q-list dense padding class="rounded-borders">
-          <q-item v-for="table in tablesFiltered" :key="table.table_name" clickable @click="setTable(table.table_name)">
+      <div class="col-6">
+        <q-list padding class="rounded-borders">
+          <q-item v-for="table in tablesFiltered" :key="table.table_name">
             <q-item-section>
               {{table.table_name}}
+            </q-item-section>
+            <q-item-section>
+              <q-btn @click="$router.push('/tables/edit/' + table.table_name)">Modify table</q-btn>
+            </q-item-section>
+            <q-item-section>
+              <q-btn @click="$router.push('/tables/data/' + table.table_name)">Edit data</q-btn>
             </q-item-section>
           </q-item>
         </q-list>

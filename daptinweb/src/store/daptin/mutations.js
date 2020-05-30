@@ -9,10 +9,6 @@ export function setSelectedTable(state, tableName) {
   state.selectedTable = tableName;
 }
 
-export function setDrawerLeft(state, val) {
-  state.drawerLeft = val;
-}
-
 export function setTables(state, tables) {
   for (var tableName in tables) {
     Vue.set(state.tables, tableName, tables[tableName])

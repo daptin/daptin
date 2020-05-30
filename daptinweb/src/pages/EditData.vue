@@ -1,17 +1,6 @@
 <template>
   <div class="row">
-    <q-drawer
-      v-model="drawerLeft()"
-      show-if-above
-      :width="350"
-      :breakpoint="700"
-      elevated
-      content-class=""
-    >
-      <q-scroll-area class="fit">
-        <table-side-bar></table-side-bar>
-      </q-scroll-area>
-    </q-drawer>
+
     <div class="col-12">
       <div id="spreadsheet"></div>
     </div>
@@ -25,19 +14,13 @@
   export default {
     name: "EditData",
     methods: {
-      ...mapActions(['loadData', 'getTableSchema', 'setSelectedTable']),
+      ...mapActions(['loadData', 'getTableSchema']),
       refreshData() {
         const that = this;
 
-        if (!this.selectedTable) {
-          this.setSelectedTable(this.$route.params.tableName);
-          return
-        }
-
-
-        var tableName = this.selectedTable;
+        var tableName = this.$route.params.tableName;
         console.log("loaded data editor", tableName);
-        this.getTableSchema(this.selectedTable).then(function (res) {
+        this.getTableSchema(tableName).then(function (res) {
           that.tableSchema = res;
           console.log("Schema", that.tableSchema)
         });
@@ -90,18 +73,12 @@
       }
     },
     computed: {
-      ...mapGetters(['selectedTable', 'drawerLeft'])
+      ...mapGetters(['drawerLeft'])
     },
     mounted() {
       this.refreshData();
     },
-    watch: {
-      'selectedTable': function (id) {
-        console.log("selected table", this.selectedTable);
-        this.$router.push("/data/" + this.selectedTable);
-        this.refreshData();
-      }
-    },
+    watch: {},
   }
 </script>
 

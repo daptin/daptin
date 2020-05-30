@@ -156,7 +156,7 @@ func UpdateTasksData(initConfig *CmsConfig, db database.DatabaseConnection) erro
 
 func GetTasks(connection database.DatabaseConnection) ([]Task, error) {
 
-	s, v, err := statementbuilder.Squirrel.Select("name", "job_type as jobtype", "schedule", "active", "attributes as attributesjson", "as_user_id as AsUserEmail").From("task").Where(squirrel.Eq{"active": true}).ToSql()
+	s, v, err := statementbuilder.Squirrel.Select("name", "job_type as jobtype", "schedule", "active", "attributes as attributesjson", "as_user_id as AsUserEmail").From("task").Where(squirrel.Eq{"active": 1}).ToSql()
 
 	if err != nil {
 		return nil, err
@@ -1072,6 +1072,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 	}
 	st.Body = stBody
 	st.Print()
+	fmt.Println()
 
 	s, v, err = statementbuilder.Squirrel.Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden", "is_join_table").
 		From("world").

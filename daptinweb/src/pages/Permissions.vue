@@ -1,7 +1,7 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <q-page>
     <div class="row">
-      <table-side-bar></table-side-bar>
+      <h1>User permissions</h1>
     </div>
   </q-page>
 </template>
@@ -23,7 +23,7 @@
     mounted() {
     },
     computed: {
-      ...mapGetters([]),
+      ...mapGetters(['selectedTable']),
       ...mapState([])
     },
 

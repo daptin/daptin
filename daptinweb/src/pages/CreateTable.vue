@@ -19,7 +19,7 @@
           this.$q.notify("Please add columns");
           return
         }
-        for (var i=0;i<table.ColumnModel.length;i++) {
+        for (var i = 0; i < table.ColumnModel.length; i++) {
           var col = table.ColumnModel[i];
           if (col.ColumnType.indexOf(" - ") > -1) {
             var parts = col.ColumnType.split(" - ");
@@ -53,7 +53,7 @@
             that.refreshTableSchema(table.TableName).then(function () {
               that.$q.loading.hide();
               that.$q.notify("Schema refreshed");
-              that.$router.push("/tables/edit/" + table.TableName)
+              that.$router.push("/tables")
             }).catch(function (e) {
               that.$q.notify("Failed to refresh");
               that.$q.loading.hide();
