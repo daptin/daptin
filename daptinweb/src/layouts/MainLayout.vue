@@ -7,9 +7,11 @@
       :breakpoint="700"
       elevated
     >
-      <q-scroll-area class="fit">
+      <q-scroll-area class="fit bg-cyan text-white">
+        
+        <q-icon name="fab fa-pied-piper-alt" size="50px" class="q-ma-md"></q-icon>
 
-        <q-list bordered class="rounded-borders">
+        <q-list>
           <q-expansion-item
             expand-separator
             icon="fas fa-database"
