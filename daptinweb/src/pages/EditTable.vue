@@ -1,5 +1,12 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <div>
+    <div class="q-pa-md q-gutter-sm">
+      <q-breadcrumbs separator="---" class="text-orange" active-color="secondary">
+        <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
+        <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
+        <q-breadcrumbs-el :label="tableSchema.TableName"/>
+      </q-breadcrumbs>
+    </div>
 
 
     <!--    <q-drawer-->
