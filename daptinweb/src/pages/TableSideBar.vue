@@ -1,28 +1,21 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-  <div class="col-12">
-    <q-breadcrumbs separator="---" class="text-orange" active-color="secondary">
-      <q-breadcrumbs-el label="database" icon="fas fa-table" />
-      <q-breadcrumbs-el label="tables" icon="widgets" />
-      <q-breadcrumbs-el label="Breadcrumbs" icon="navigation" />
+  <div class="col-12 q-ma-md">
+    <q-breadcrumbs class="text-orange" active-color="secondary">
+      <template v-slot:separator>
+        <q-icon
+          size="1.2em"
+          name="arrow_forward"
+          color="purple"
+        />
+      </template>
+      <q-breadcrumbs-el label="Database" icon="fas fa-database" />
+      <q-breadcrumbs-el label="Tables" icon="fas fa-table" />
     </q-breadcrumbs>
-    <!-- <div class="row">
-      <div class="q-pa-md col-4">
-        <q-input color="teal" filled v-model="text" label="search table">
-          <template v-slot:prepend>
-            <q-icon name="search"/>
-          </template>
-        </q-input>
-      </div>
-    </div> -->
-    <div class="row q-pa-md">
-      <!-- <div class="col-6 ">
-        <h4>Tables ({{tablesFiltered.length}})</h4>
-      </div> -->
-      <!-- <div class="col-3">
-        <q-btn style="float: right" @click="$router.push('/tables/create')" class="btn btn-sm bg-primary text-white"
-               label="Create new table"></q-btn>
-      </div> -->
-      <div class="col-6">
+    
+    <div class="row">
+      
+      <div class="col-6 q-pa-md">
+        <q-label>You can edit your tables, add data or create new tables.</q-label>
         <div class="q-pa-lg">
               <q-option-group
                 v-model="selectedTable"
@@ -30,21 +23,18 @@
                 color="primary"
               >
               </q-option-group>
-            </div>
-        <q-list padding class="rounded-borders">
-          <!-- <q-item v-for="table in tablesFiltered" :key="table.table_name"> -->
-            
-            <!-- <q-item-section>
-              {{table.table_name}}
-            </q-item-section>
-            <q-item-section>
-              <q-btn @click="$router.push('/tables/edit/' + table.table_name)">Modify table</q-btn>
-            </q-item-section>
-            <q-item-section>
-              <q-btn @click="$router.push('/tables/data/' + table.table_name)">Edit data</q-btn>
-            </q-item-section> -->
-          <!-- </q-item> -->
-        </q-list>
+        </div>
+
+        <div class="q-pa-md q-gutter-sm">
+          <q-btn color="primary" icon="edit" label="Edit" @click="$router.push('/tables/edit/' + table.table_name)"/>
+          <q-btn color="secondary" icon="add" label="Add Data" @click="$router.push('/tables/data/' + table.table_name)"/>
+        </div>
+
+  
+        <div class="q-pa-md q-gutter-sm">
+          <q-btn color="primary" icon="far fa-plus-square" label="Create Table"/>
+        </div>
+
       </div>
     </div>
   </div>
