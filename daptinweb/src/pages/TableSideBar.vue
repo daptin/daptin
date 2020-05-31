@@ -12,6 +12,10 @@
       <q-breadcrumbs-el label="Tables" icon="fas fa-table" />
     </q-breadcrumbs>
     
+    <q-page-sticky position="bottom-right" :offset="[50, 50]">
+            <q-btn label = "Create Table" fab icon="add" color="cyan" />
+    </q-page-sticky>
+
     <div class="row">
       
       <div class="col-6 q-pa-md">
@@ -28,11 +32,6 @@
         <div class="q-pa-md q-gutter-sm">
           <q-btn color="primary" icon="edit" label="Edit" @click="$router.push('/tables/edit/' + table.table_name)"/>
           <q-btn color="secondary" icon="add" label="Add Data" @click="$router.push('/tables/data/' + table.table_name)"/>
-        </div>
-
-  
-        <div class="q-pa-md q-gutter-sm">
-          <q-btn color="primary" icon="far fa-plus-square" label="Create Table"/>
         </div>
       </div>
     </div>
