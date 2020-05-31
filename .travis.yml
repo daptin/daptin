@@ -4,6 +4,7 @@ go:
 - "1.12"
 - tip
 
+
 sudo: required
 cache:
   directories:
@@ -18,6 +19,8 @@ before_script:
 - ./cc-test-reporter before-build
 script:
 - ls -lah
+- nvm install v13.6.0
+- node -v && npm -v
 - cat .travis.yml
 - "echo 'mode: set' > c.out"
 - go get -t ./...
@@ -30,7 +33,7 @@ script:
 - cd daptinweb
 - pwd
 - npm install -g @quasar/cli
-- npm install
+- npm install && npm rebuild node-sass
 - npm run build
 - cd ..
 - pwd
