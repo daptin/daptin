@@ -103,8 +103,8 @@ module.exports = function (ctx) {
       workboxPluginMode: 'GenerateSW', // 'GenerateSW' or 'InjectManifest'
       workboxOptions: {}, // only for GenerateSW
       manifest: {
-        name: 'DadaDash',
-        short_name: 'DadaDash',
+        name: 'Dashboard',
+        short_name: 'Dashboard',
         description: 'A Daptin Dashboard',
         display: 'standalone',
         orientation: 'portrait',

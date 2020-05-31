@@ -1,6 +1,11 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <div class="col-12">
-    <div class="row">
+    <q-breadcrumbs separator="---" class="text-orange" active-color="secondary">
+      <q-breadcrumbs-el label="database" icon="fas fa-table" />
+      <q-breadcrumbs-el label="tables" icon="widgets" />
+      <q-breadcrumbs-el label="Breadcrumbs" icon="navigation" />
+    </q-breadcrumbs>
+    <!-- <div class="row">
       <div class="q-pa-md col-4">
         <q-input color="teal" filled v-model="text" label="search table">
           <template v-slot:prepend>
@@ -8,19 +13,28 @@
           </template>
         </q-input>
       </div>
-    </div>
+    </div> -->
     <div class="row q-pa-md">
-      <div class="col-6 ">
+      <!-- <div class="col-6 ">
         <h4>Tables ({{tablesFiltered.length}})</h4>
-      </div>
-      <div class="col-3">
+      </div> -->
+      <!-- <div class="col-3">
         <q-btn style="float: right" @click="$router.push('/tables/create')" class="btn btn-sm bg-primary text-white"
                label="Create new table"></q-btn>
-      </div>
+      </div> -->
       <div class="col-6">
+        <div class="q-pa-lg">
+              <q-option-group
+                v-model="selectedTable"
+                :options="tableOptions"
+                color="primary"
+              >
+              </q-option-group>
+            </div>
         <q-list padding class="rounded-borders">
-          <q-item v-for="table in tablesFiltered" :key="table.table_name">
-            <q-item-section>
+          <!-- <q-item v-for="table in tablesFiltered" :key="table.table_name"> -->
+            
+            <!-- <q-item-section>
               {{table.table_name}}
             </q-item-section>
             <q-item-section>
@@ -28,8 +42,8 @@
             </q-item-section>
             <q-item-section>
               <q-btn @click="$router.push('/tables/data/' + table.table_name)">Edit data</q-btn>
-            </q-item-section>
-          </q-item>
+            </q-item-section> -->
+          <!-- </q-item> -->
         </q-list>
       </div>
     </div>
@@ -51,6 +65,7 @@
     data() {
       return {
         text: '',
+        selectedTable: null
       }
     },
     mounted() {
@@ -61,6 +76,15 @@
       });
     },
     computed: {
+      tableOptions() {
+          console.log(this.tablesFiltered)
+          return this.tablesFiltered.map(function(e){
+            return {
+              label:e.table_name, 
+              value:e.table_name
+            }
+          })
+      },
       tablesFiltered() {
         const that = this;
         console.log("Get tables filtered", that.tables);

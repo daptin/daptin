@@ -1,23 +1,6 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <!--    <q-header class="row" elevated>-->
-
-    <!--      <q-toolbar class="col-2">-->
-    <!--        <q-btn flat @click="flipDrawerLeft()" round dense icon="menu"/>-->
-    <!--        <q-toolbar-title>-->
-    <!--          <q-btn label="DadaDash" flat @click="$router.push('/')"></q-btn>-->
-    <!--        </q-toolbar-title>-->
-
-    <!--      </q-toolbar>-->
-    <!--      <q-toolbar class="col-10">-->
-    <!--        <q-separator dark vertical inset/>-->
-    <!--        <q-btn flat @click="$router.push('/tables')" label="Tables"/>-->
-    <!--        <q-btn flat @click="$router.push('/data')" label="Data"/>-->
-    <!--        <q-space/>-->
-    <!--        <q-btn class="bg-warning" icon="power" @click="logout()"></q-btn>-->
-    <!--      </q-toolbar>-->
-    <!--    </q-header>-->
-
+  
     <q-drawer
       show-if-above
       :width="200"
@@ -36,7 +19,7 @@
               <q-item :inset-level="1" clickable v-ripple @click="$router.push('/tables')">
                 <q-item-section>
                   <q-item-label>
-                    <q-icon name="fas fa-table"></q-icon>
+                    <q-icon name="fas fa-tablet"></q-icon>
                     Tables
                   </q-item-label>
                 </q-item-section>
