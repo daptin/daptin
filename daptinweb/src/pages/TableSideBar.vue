@@ -1,5 +1,5 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-  <div class="col-12 q-ma-md">
+<div class="col-12 q-ma-md">
     <q-breadcrumbs class="text-orange" active-color="secondary">
       <template v-slot:separator>
         <q-icon
@@ -34,7 +34,6 @@
         <div class="q-pa-md q-gutter-sm">
           <q-btn color="primary" icon="far fa-plus-square" label="Create Table"/>
         </div>
-
       </div>
     </div>
   </div>
@@ -67,13 +66,13 @@
     },
     computed: {
       tableOptions() {
-          console.log(this.tablesFiltered)
-          return this.tablesFiltered.map(function(e){
-            return {
-              label:e.table_name, 
-              value:e.table_name
-            }
-          })
+        console.log(this.tablesFiltered)
+        return this.tablesFiltered.map(function (e) {
+          return {
+            label: e.table_name,
+            value: e.table_name
+          }
+        })
       },
       tablesFiltered() {
         const that = this;
