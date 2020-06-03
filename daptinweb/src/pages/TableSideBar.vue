@@ -19,8 +19,8 @@
     <div class="row">
       
       <div class="col-6 q-pa-md">
-        <q-markdown name ="parth" src="::: tip
-You can create or edit tables or view table data. 
+        <q-markdown src="::: tip
+Create and edit tables, or view table data. Daptin creates **user_account** table automatically.
 :::"></q-markdown>
         <div class="q-pa-lg">
               <q-option-group
@@ -29,6 +29,29 @@ You can create or edit tables or view table data.
                 color="primary"
               >
               </q-option-group>
+              
+              <q-pagination
+              v-model="current"
+              color="black"
+              :max="10"
+              :max-pages="6"
+              :boundary-numbers="false"
+              >
+
+              </q-pagination>
+
+              <q-list bordered>
+                <q-item clickable v-ripple>
+                  <q-item-section>User Accounts</q-item-section>
+                  <q-icon name="fas fa-edit"></q-icon>  
+                </q-item>
+                <q-item clickable v-ripple>
+                  <q-item-section>Emupdates</q-item-section>
+                  <q-icon name="fas fa-edit"></q-icon>
+                </q-item>
+              </q-list>
+
+
         </div>
 
         <div class="q-pa-md q-gutter-sm">
