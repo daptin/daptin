@@ -4,6 +4,10 @@
       <div class="col-4">
         <div class="q-pa-md">
           <h2>Get Started</h2>
+          <q-markdown src=":::
+This is a **test** of markdown
+:::"></q-markdown>
+
           <router-link to="/tables"></router-link>
         </div>
       </div>
