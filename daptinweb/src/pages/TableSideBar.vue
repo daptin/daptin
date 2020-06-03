@@ -20,15 +20,15 @@
       
       <div class="col-6 q-pa-md">
         <q-markdown src="::: tip
-Create and edit tables, or view table data. Daptin creates **user_account** table automatically.
+Daptin creates **user_account** table automatically. You can create new tables and edit existing tables, or view table data.
 :::"></q-markdown>
         <div class="q-pa-lg">
-              <q-option-group
+              <!-- <q-option-group
                 v-model="selectedTable"
                 :options="tableOptions"
                 color="primary"
               >
-              </q-option-group>
+              </q-option-group> -->
               
               <q-pagination
               v-model="current"
@@ -37,26 +37,42 @@ Create and edit tables, or view table data. Daptin creates **user_account** tabl
               :max-pages="6"
               :boundary-numbers="false"
               >
-
+                
               </q-pagination>
 
-              <q-list bordered>
-                <q-item clickable v-ripple>
-                  <q-item-section>User Accounts</q-item-section>
-                  <q-icon name="fas fa-edit"></q-icon>  
-                </q-item>
-                <q-item clickable v-ripple>
-                  <q-item-section>Emupdates</q-item-section>
-                  <q-icon name="fas fa-edit"></q-icon>
-                </q-item>
-              </q-list>
+              <div class="col q-pa-sm"> 
+                <q-item tag="label" v-ripple>
+                  <q-item-section side top>
+                    <q-checkbox v-model="check2" color="cyan"/>
+                  </q-item-section>
 
+                  <q-item-section>
+                    <q-item-label>User_account</q-item-label>
+                      <q-item-label caption>
+                        All your users go in this table
+                      </q-item-label>
+                  </q-item-section>
+                </q-item>
+
+                <q-item tag="label" v-ripple>
+                  <q-item-section side top>
+                    <q-checkbox v-model="check2" color="cyan"/>
+                  </q-item-section>
+
+                  <q-item-section>
+                    <q-item-label>Emupdates</q-item-label>
+                      <q-item-label caption>
+                        Engineering Managers share their updates in this table
+                      </q-item-label>
+                  </q-item-section>
+                </q-item>
+
+              </div>
 
         </div>
 
         <div class="q-pa-md q-gutter-sm">
-          <q-btn color="primary" icon="edit" label="Edit" @click="$router.push('/tables/edit/' + table.table_name)"/>
-          <q-btn color="secondary" icon="add" label="Add Data" @click="$router.push('/tables/data/' + table.table_name)"/>
+          <q-btn outline color="primary" label="Edit Table" @click="$router.push('/tables/edit/' + table.table_name)"/>
         </div>
       </div>
     </div>
