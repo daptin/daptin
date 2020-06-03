@@ -21,7 +21,7 @@
     "vue-i18n": "^8.0.0"
   },
   "devDependencies": {
-    "@quasar/app": "^1.7.1",
+    "@quasar/app": "^1.9.5",
     "@quasar/quasar-app-extension-qmarkdown": "^1.0.27"
   },
   "engines": {

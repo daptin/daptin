@@ -19,7 +19,9 @@
     <div class="row">
       
       <div class="col-6 q-pa-md">
-        <q-label>You can edit your tables, add data or create new tables.</q-label>
+        <q-markdown name ="parth" src="::: tip
+You can create or edit tables or view table data. 
+:::"></q-markdown>
         <div class="q-pa-lg">
               <q-option-group
                 v-model="selectedTable"
