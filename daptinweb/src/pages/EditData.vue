@@ -27,31 +27,32 @@
 
         var tableName = this.$route.params.tableName;
         console.log("loaded data editor", tableName);
-        this.getTableSchema(tableName).then(function (res) {
+        that.getTableSchema(tableName).then(function (res) {
           that.tableSchema = res;
-          console.log("Schema", that.tableSchema)
+          console.log("Schema", that.tableSchema);
+          that.loadData({tableName: tableName}).then(function (data) {
+            console.log("Loaded data", data);
+            that.rows = data.data;
+            let columns = Object.keys(that.tableSchema.ColumnModel).map(function (columnName) {
+              var col = that.tableSchema.ColumnModel[columnName];
+              console.log("Make column ", col);
+              if (col.jsonApi || col.ColumnName == "__type" || that.defaultColumns.indexOf(col.ColumnName) > -1) {
+                return null;
+              }
+              return {
+                title: col.Name,
+                field: col.ColumnName,
+              }
+            }).filter(e => !!e);
+            console.log("Table columns", columns);
+            that.spreadsheet = new Tabulator("#spreadsheet", {
+              data: that.rows,
+              columns: columns
+            });
+          })
         });
 
-        this.loadData({tableName: tableName}).then(function (data) {
-          console.log("Loaded data", data);
-          that.rows = data.data;
-          let columns = Object.keys(that.tableSchema.ColumnModel).map(function (columnName) {
-            var col = that.tableSchema.ColumnModel[columnName];
-            console.log("Make column ", col);
-            if (col.jsonApi || col.ColumnName == "__type" || that.defaultColumns.indexOf(col.ColumnName) > -1) {
-              return null;
-            }
-            return {
-              title: col.Name,
-              field: col.ColumnName,
-            }
-          }).filter(e => !!e);
-          console.log("Table columns", columns);
-          that.spreadsheet = new Tabulator("#spreadsheet", {
-            data: that.rows,
-            columns: columns
-          });
-        })
+
       }
     },
     data() {

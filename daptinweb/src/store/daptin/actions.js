@@ -45,7 +45,9 @@ export function loadData({commit}, params) {
 
 export function getTableSchema({commit}, tableName) {
   return new Promise(function (resolve, reject) {
-    resolve(daptinClient.worldManager.getColumnKeys(tableName));
+    daptinClient.worldManager.loadModel(tableName).then(function () {
+      resolve(daptinClient.worldManager.getColumnKeys(tableName));
+    }).catch(reject)
   })
 }
 

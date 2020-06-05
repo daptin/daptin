@@ -4,7 +4,9 @@
 
   </div>
 </template>
-
+<style>
+  @import '~tabulator-tables/dist/css/tabulator_simple.css';
+</style>
 <script>
 
   import {mapGetters, mapActions} from 'vuex';
