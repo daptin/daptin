@@ -1,11 +1,14 @@
 import {DaptinClient} from 'daptin-client';
 
 // const daptinClient = new DaptinClient(window.location.protocol + "//" + window.location.hostname, false, function () {
-var daptinClient = new DaptinClient("http://localhost:6336", false, {
+let endpoint = window.location.hostname === "site.daptin.com" ? "http://localhost:6336" : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : window.location.port);
+
+var daptinClient = new DaptinClient(endpoint, false, {
   getToken: function () {
     return localStorage.getItem("token");
   }
 });
+
 daptinClient.worldManager.init();
 
 

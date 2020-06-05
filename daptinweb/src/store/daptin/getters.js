@@ -2,8 +2,15 @@ export function loggedIn(state) {
   return !!state.token
 }
 
+export function endpoint(state) {
+  return state.endpoint;
+}
+export function authToken(state) {
+  return state.token
+}
+
 export function tables(state) {
-  console.log("Get tables, ", state.tables)
+  console.log("Get tables, ", state.tables);
   return Object.keys(state.tables).filter(function (tableName) {
     return tableName.indexOf("_has_") === -1;
   }).map(e => state.tables[e]).filter(function (e) {

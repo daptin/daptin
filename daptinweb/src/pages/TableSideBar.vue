@@ -23,22 +23,6 @@
 Daptin creates **user_account** table automatically. You can create new tables and edit existing tables, or view table data.
 :::"></q-markdown>
         <div class="q-pa-lg">
-          <!-- <q-option-group
-            v-model="selectedTable"
-            :options="tableOptions"
-            color="primary"
-          >
-          </q-option-group> -->
-
-          <q-pagination
-            v-model="current"
-            color="black"
-            :max="10"
-            :max-pages="6"
-            :boundary-numbers="false"
-          >
-
-          </q-pagination>
 
           <div class="col q-pa-sm">
             <q-markup-table flat>

@@ -7,7 +7,6 @@
         <q-breadcrumbs-el :label="$route.params.tableName"/>
       </q-breadcrumbs>
     </div>
-
     <div class="col-12 q-ma-md">
       <div id="spreadsheet"></div>
     </div>
@@ -30,26 +29,70 @@
         that.getTableSchema(tableName).then(function (res) {
           that.tableSchema = res;
           console.log("Schema", that.tableSchema);
-          that.loadData({tableName: tableName}).then(function (data) {
-            console.log("Loaded data", data);
-            that.rows = data.data;
-            let columns = Object.keys(that.tableSchema.ColumnModel).map(function (columnName) {
-              var col = that.tableSchema.ColumnModel[columnName];
-              console.log("Make column ", col);
-              if (col.jsonApi || col.ColumnName == "__type" || that.defaultColumns.indexOf(col.ColumnName) > -1) {
-                return null;
+          // that.loadData({tableName: tableName}).then(function (data) {
+          //   console.log("Loaded data", data);
+          //   that.rows = data.data;
+          let columns = Object.keys(that.tableSchema.ColumnModel).map(function (columnName) {
+            var col = that.tableSchema.ColumnModel[columnName];
+            // console.log("Make column ", col);
+            if (col.jsonApi || col.ColumnName === "__type" || that.defaultColumns.indexOf(col.ColumnName) > -1) {
+              return null;
+            }
+            return {
+              title: col.Name,
+              field: col.ColumnName,
+              editor: true,
+              formatter: col.ColumnType === "truefalse" ? "tickCross" : null,
+              hozAlign: col.ColumnType === "truefalse" ? "center" : "left",
+              sorter: col.ColumnType === "measurement" ? "number" : null,
+            }
+          }).filter(e => !!e);
+          console.log("Table columns", columns);
+          that.spreadsheet = new Tabulator("#spreadsheet", {
+            data: [],
+            columns: columns,
+            pagination: "remote",
+            ajaxSorting: true,
+            paginationSize: 10,
+            ajaxURL: that.endpoint + "/api/" + tableName, //set url for ajax request
+            ajaxURLGenerator: function (url, config, params) {
+              //url - the url from the ajaxURL property or setData function
+              //config - the request config object from the ajaxConfig property
+              //params - the params object from the ajaxParams property, this will also include any pagination, filter and sorting properties based on table setup
+
+              //return request url
+              console.log("Generate request url ", url, config, params);
+              config.headers = {
+                Authorization: "Bearer " + that.authToken
+              };
+              let requestUrl = that.endpoint + "/api/" + tableName + "?page[number]=" + params.page + "&" + "page[size]=" + params.size + "&";
+              if (params.sorters) {
+                var sorts = "";
+                for (var i = 0; i < params.sorters.length; i++) {
+                  var sortBy = params.sorters[i];
+                  sorts = sorts + (sortBy.dir === "asc" ? "" : "-") + sortBy.field + ","
+                }
+                sorts = sorts.substring(0, sorts.length - 1);
+                requestUrl = requestUrl + "sort=" + sorts + "&"
               }
+              console.log("Request url ", requestUrl);
+              return requestUrl; //encode parameters as a json object
+            },
+            ajaxResponse: function (url, params, response) {
+              console.log("ajax call complete", url, params, response);
+              //url - the URL of the request
+              //params - the parameters passed with the request
+              //response - the JSON object returned in the body of the response.
+
               return {
-                title: col.Name,
-                field: col.ColumnName,
-              }
-            }).filter(e => !!e);
-            console.log("Table columns", columns);
-            that.spreadsheet = new Tabulator("#spreadsheet", {
-              data: that.rows,
-              columns: columns
-            });
-          })
+                last_page: response.links.last_page,
+                data: response.data.map(function (e) {
+                  return e.attributes
+                })
+              }; //return the response data to tabulator
+            },
+          });
+          // })
         });
 
 
@@ -63,7 +106,7 @@
       }
     },
     computed: {
-      ...mapGetters(['drawerLeft'])
+      ...mapGetters(['endpoint', 'authToken'])
     },
     mounted() {
       this.refreshData();
