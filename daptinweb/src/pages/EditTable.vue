@@ -4,23 +4,9 @@
       <q-breadcrumbs separator="---" class="text-orange" active-color="secondary">
         <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
         <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
-        <q-breadcrumbs-el :label="tableSchema.TableName"/>
+        <q-breadcrumbs-el :label="$route.params.tableName"/>
       </q-breadcrumbs>
     </div>
-
-
-    <!--    <q-drawer-->
-    <!--      v-model="drawerLeft"-->
-    <!--      show-if-above-->
-    <!--      :width="350"-->
-    <!--      :breakpoint="700"-->
-    <!--      elevated-->
-    <!--      content-class=""-->
-    <!--    >-->
-    <!--      <q-scroll-area class="fit">-->
-    <!--        <table-side-bar></table-side-bar>-->
-    <!--      </q-scroll-area>-->
-    <!--    </q-drawer>-->
 
     <div class="row">
 

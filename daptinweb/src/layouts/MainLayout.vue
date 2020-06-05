@@ -1,14 +1,14 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-  
+
     <q-drawer
       show-if-above
       :width="200"
       :breakpoint="700"
       elevated
     >
-      <q-scroll-area class="fit bg-cyan text-white">
-        
+      <q-scroll-area class="fit">
+
         <q-icon name="fab fa-pied-piper-alt" size="50px" class="q-ma-md"></q-icon>
 
         <q-list>

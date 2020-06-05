@@ -1,5 +1,5 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-<div class="col-12 q-ma-md">
+  <div class="col-12 q-ma-md">
     <q-breadcrumbs class="text-orange" active-color="secondary">
       <template v-slot:separator>
         <q-icon
@@ -8,71 +8,56 @@
           color="purple"
         />
       </template>
-      <q-breadcrumbs-el label="Database" icon="fas fa-database" />
-      <q-breadcrumbs-el label="Tables" icon="fas fa-table" />
+      <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
+      <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
     </q-breadcrumbs>
-    
+
     <q-page-sticky position="bottom-right" :offset="[50, 50]">
-            <q-btn label = "Create Table" fab icon="add" color="cyan" />
+      <q-btn @click="$router.push('/tables/create')" label="Create Table" fab icon="add"/>
     </q-page-sticky>
 
     <div class="row">
-      
+
       <div class="col-6 q-pa-md">
         <q-markdown src="::: tip
 Daptin creates **user_account** table automatically. You can create new tables and edit existing tables, or view table data.
 :::"></q-markdown>
         <div class="q-pa-lg">
-              <!-- <q-option-group
-                v-model="selectedTable"
-                :options="tableOptions"
-                color="primary"
-              >
-              </q-option-group> -->
-              
-              <q-pagination
-              v-model="current"
-              color="black"
-              :max="10"
-              :max-pages="6"
-              :boundary-numbers="false"
-              >
-                
-              </q-pagination>
+          <!-- <q-option-group
+            v-model="selectedTable"
+            :options="tableOptions"
+            color="primary"
+          >
+          </q-option-group> -->
 
-              <div class="col q-pa-sm"> 
-                <q-item tag="label" v-ripple>
-                  <q-item-section side top>
-                    <q-checkbox v-model="check2" color="cyan"/>
-                  </q-item-section>
+          <q-pagination
+            v-model="current"
+            color="black"
+            :max="10"
+            :max-pages="6"
+            :boundary-numbers="false"
+          >
 
-                  <q-item-section>
-                    <q-item-label>User_account</q-item-label>
-                      <q-item-label caption>
-                        All your users go in this table
-                      </q-item-label>
-                  </q-item-section>
-                </q-item>
+          </q-pagination>
 
-                <q-item tag="label" v-ripple>
-                  <q-item-section side top>
-                    <q-checkbox v-model="check2" color="cyan"/>
-                  </q-item-section>
-
-                  <q-item-section>
-                    <q-item-label>Emupdates</q-item-label>
-                      <q-item-label caption>
-                        Engineering Managers share their updates in this table
-                      </q-item-label>
-                  </q-item-section>
-                </q-item>
-
-              </div>
-
-        </div>
-
-        <div class="q-pa-md q-gutter-sm">
-          <q-btn outline color="primary" label="Edit Table" @click="$router.push('/tables/edit/' + table.table_name)"/>
+          <div class="col q-pa-sm">
+            <q-markup-table flat>
+              <thead>
+              <tr>
+                <th align="left">Table</th>
+                <th></th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr v-for="table in tablesFiltered">
+                <td>{{table.table_name}}</td>
+                <td>
+                  <q-btn @click="$router.push('/tables/edit/' + table.table_name)" flat icon="fas fa-wrench"></q-btn>
+                </td>
+              </tr>
+              </tbody>
+            </q-markup-table>
+          </div>
         </div>
       </div>
     </div>
@@ -106,7 +91,7 @@ Daptin creates **user_account** table automatically. You can create new tables a
     },
     computed: {
       tableOptions() {
-        console.log(this.tablesFiltered)
+        console.log(this.tablesFiltered);
         return this.tablesFiltered.map(function (e) {
           return {
             label: e.table_name,
