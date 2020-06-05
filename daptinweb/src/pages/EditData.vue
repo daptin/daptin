@@ -1,7 +1,14 @@
 <template>
   <div class="row">
+    <div class="q-pa-md q-gutter-sm">
+      <q-breadcrumbs separator="---" class="text-orange" active-color="secondary">
+        <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
+        <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
+        <q-breadcrumbs-el :label="$route.params.tableName"/>
+      </q-breadcrumbs>
+    </div>
 
-    <div class="col-12">
+    <div class="col-12 q-ma-md">
       <div id="spreadsheet"></div>
     </div>
   </div>
@@ -31,7 +38,7 @@
           let columns = Object.keys(that.tableSchema.ColumnModel).map(function (columnName) {
             var col = that.tableSchema.ColumnModel[columnName];
             console.log("Make column ", col);
-            if (col.jsonApi || col.ColumnName == "__type") {
+            if (col.jsonApi || col.ColumnName == "__type" || that.defaultColumns.indexOf(col.ColumnName) > -1) {
               return null;
             }
             return {
@@ -49,6 +56,7 @@
     },
     data() {
       return {
+        defaultColumns: ['updated_at', 'created_at', 'reference_id', 'permission'],
         tableSchema: {ColumnModel: []},
         rows: [],
       }

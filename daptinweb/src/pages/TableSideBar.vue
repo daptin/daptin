@@ -46,6 +46,7 @@ Daptin creates **user_account** table automatically. You can create new tables a
               <tr>
                 <th align="left">Table</th>
                 <th></th>
+                <th></th>
               </tr>
               </thead>
               <tbody>
@@ -53,6 +54,9 @@ Daptin creates **user_account** table automatically. You can create new tables a
                 <td>{{table.table_name}}</td>
                 <td>
                   <q-btn @click="$router.push('/tables/edit/' + table.table_name)" flat icon="fas fa-wrench"></q-btn>
+                </td>
+                <td>
+                  <q-btn @click="$router.push('/tables/data/' + table.table_name)" flat icon="fas fa-list"></q-btn>
                 </td>
               </tr>
               </tbody>
