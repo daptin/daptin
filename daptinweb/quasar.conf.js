@@ -52,6 +52,7 @@ module.exports = function (ctx) {
         'QTooltip',
         'Notify',
         'LoadingBar',
+        'QEditor',
         'Loading'
       ],
       config: {

@@ -32,13 +32,18 @@
             <div v-for="column in newRowData">
               <q-input
                 :label="column.meta.ColumnName"
-                v-if="column.meta.ColumnType !== 'truefalse'"
+                v-if="['label'].indexOf(column.meta.ColumnType) > -1"
                 filled
                 v-model="column.value"
               />
               <q-toggle
                 :label="column.meta.ColumnName"
                 v-if="column.meta.ColumnType === 'truefalse'"
+                v-model="column.value"
+              />
+              <q-editor
+                :label="column.meta.ColumnName"
+                v-if="['content', 'json'].indexOf(column.meta.ColumnType) > -1 "
                 v-model="column.value"
               />
             </div>
