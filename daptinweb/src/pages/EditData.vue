@@ -8,12 +8,57 @@
       </q-breadcrumbs>
     </div>
     <div class="col-12 q-ma-md">
+      <q-btn @click="drawerRight = !drawerRight">New row</q-btn>
+    </div>
+    <div class="col-12 q-ma-md">
       <div id="spreadsheet"></div>
     </div>
+
+    <q-drawer
+      side="right"
+      v-model="drawerRight"
+      bordered
+      :width="500"
+      :breakpoint="500"
+      content-class="bg-grey-3"
+    >
+      <q-scroll-area class="fit">
+        <div class="q-pa-md" style="max-width: 400px">
+
+          <q-form
+            class="q-gutter-md"
+          >
+
+            <div v-for="column in newRowData">
+              <q-input
+                :label="column.meta.ColumnName"
+                v-if="column.meta.ColumnType !== 'truefalse'"
+                filled
+                v-model="column.value"
+              />
+              <q-toggle
+                :label="column.meta.ColumnName"
+                v-if="column.meta.ColumnType === 'truefalse'"
+                v-model="column.value"
+              />
+            </div>
+
+
+            <div>
+              <q-btn label="Submit" @click="onNewRow" color="primary"/>
+              <q-btn label="Reset" @click="onCancelNewRow" color="primary" flat class="q-ml-sm"/>
+            </div>
+          </q-form>
+
+        </div>
+
+      </q-scroll-area>
+    </q-drawer>
+
     <q-page-sticky position="bottom-right" :offset="[50, 50]">
       <q-fab color="primary" icon="keyboard_arrow_up" direction="up">
-        <q-fab-action color="primary" @click="onClick" icon="fas fa-file-excel" />
-        <q-fab-action color="secondary" @click="onClick" icon="fas fa-download" />
+        <q-fab-action color="primary" icon="fas fa-file-excel"/>
+        <q-fab-action color="secondary" icon="fas fa-download"/>
       </q-fab>
     </q-page-sticky>
   </div>
@@ -26,7 +71,32 @@
   export default {
     name: "EditData",
     methods: {
-      ...mapActions(['loadData', 'getTableSchema', 'updateRow']),
+      onNewRow() {
+        const that = this;
+        var obj = {}
+        that.newRowData.map(function (e) {
+          obj[e.meta.ColumnName] = e.value;
+        });
+        obj['tableName'] = that.$route.params.tableName;
+        that.createRow(obj).then(function (res) {
+          that.$q.notify({
+            message: "Row created"
+          });
+          that.spreadsheet.setData();
+          that.newRowData.map(function (e) {
+            e.value = "";
+          });
+          that.drawerRight = false;
+        }).catch(function (e) {
+          that.$q.notify({
+            message: e[0].title
+          })
+        })
+      },
+      onCancelNewRow() {
+        this.drawerRight = false;
+      },
+      ...mapActions(['loadData', 'getTableSchema', 'updateRow', 'createRow']),
       refreshData() {
         const that = this;
 
@@ -44,6 +114,11 @@
             if (col.jsonApi || col.ColumnName === "__type" || that.defaultColumns.indexOf(col.ColumnName) > -1) {
               return null;
             }
+            that.newRowData.push({
+                  meta: col,
+                  value: col.ColumnType === "truefalse" ? false : ""
+                }
+            );
             return {
               title: col.Name,
               field: col.ColumnName,
@@ -53,6 +128,8 @@
               sorter: col.ColumnType === "measurement" ? "number" : null,
             }
           }).filter(e => !!e);
+
+
           console.log("Table columns", columns);
           that.spreadsheet = new Tabulator("#spreadsheet", {
             data: [],
@@ -62,8 +139,11 @@
             ajaxSorting: true,
             ajaxFiltering: true,
             paginationSizeSelector: true,
+            // ajaxProgressiveLoad:"scroll",
+            // ajaxProgressiveLoadDelay:200,
+            // ajaxProgressiveLoadScrollMargin:300,
             index: 'reference_id',
-            history:true,
+            history: true,
             movableColumns: true,
             paginationSize: 10,
             cellEdited: function (cell) {
@@ -142,6 +222,8 @@
         defaultColumns: ['updated_at', 'created_at', 'reference_id', 'permission'],
         tableSchema: {ColumnModel: []},
         rows: [],
+        drawerRight: false,
+        newRowData: []
       }
     },
     computed: {
