@@ -41,7 +41,6 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 			}
 		}
 
-
 		if strings.Index(table.TableName, "_has_") > -1 {
 
 			var cols []string
@@ -629,21 +628,23 @@ func alterTableAddColumn(tableName string, colInfo *api2go.ColumnInfo, sqlDriver
 	return sq
 }
 
-func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) {
+func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) error {
 
 	createTableQuery := MakeCreateTableQuery(tableInfo, db.DriverName())
 
 	log.Infof("Create table query: %v", tableInfo.TableName)
 	if len(tableInfo.TableName) < 2 {
 		log.Printf("Table name less than two characters is unacceptable [%v]", tableInfo.TableName)
-		return
+		return nil
 	}
 	log.Println(createTableQuery)
 	_, err := db.Exec(createTableQuery)
 	//db.Exec("COMMIT ")
 	if err != nil {
 		log.Errorf("Failed to create table: %v", err)
+		return fmt.Errorf("failed to create table: %v", err)
 	}
+	return nil
 }
 
 func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {

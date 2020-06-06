@@ -264,7 +264,7 @@ func PrintRelations(relations []api2go.TableRelation) {
 
 }
 
-func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection, tx *sqlx.Tx) {
+func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	tables := []TableInfo{}
 	tableCreatedMap := map[string]bool{}
@@ -276,10 +276,24 @@ func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection, 
 			log.Infof("Check table %v", table.TableName)
 			//continue
 			//}
-			CheckTable(&table, db, tx)
-			tableCreatedMap[table.TableName] = true
+			tx, err := db.Beginx()
+			if err != nil {
+				CheckErr(err, "Failed to start txn for create table", table.TableName)
+				continue
+			}
+			err = CheckTable(&table, db, tx)
+			if err != nil {
+				err = tx.Rollback()
+				CheckErr(err, "Failed to rollback create table txn after failure")
+				tx, err = db.Beginx()
+				CheckErr(err, "Failed to create new transaction create table txn after failure")
+			} else {
+				tables = append(tables, table)
+				err = tx.Commit()
+				CheckErr(err, "Failed to commit create table txn after failure")
+				tableCreatedMap[table.TableName] = true
+			}
 		}
-		tables = append(tables, table)
 	}
 	initConfig.Tables = tables
 	return
@@ -319,10 +333,8 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
 	return columnsWeWant, colInfoMap
 }
 
-func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.Tx) {
+func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.Tx) error {
 
-	//finalColumns := make(map[string]api2go.ColumnInfo, 0)
-	// if column name is empty, use name as column name
 	for i, c := range tableInfo.Columns {
 		if c.ColumnName == "" && c.Name != "" {
 			tableInfo.Columns[i].ColumnName = SmallSnakeCaseText(c.Name)
@@ -331,16 +343,7 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 		}
 	}
 
-	// make a map finalColumns from array of Columns
-	//for _, col := range tableInfo.Columns {
-	//	finalColumns[col.ColumnName] = col
-	//}
-
 	columnsWeWant, colInfoMap := CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo)
-	//PrintTableInfo(tableInfo, fmt.Sprintf("Columns we want in [%v]", tableInfo.TableName))
-	//for col := range columnsWeWant {
-	//	log.Infof("Column: [%v]%v @ %v - %v", tableInfo.TableName, col, colInfoMap[col].ColumnType, colInfoMap[col].DataType)
-	//}
 
 	s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
 	//log.Infof("Sql: %v", s)
@@ -348,8 +351,8 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 	columns, err := rowx.Columns()
 	if err != nil {
 		log.Infof("Failed to select * from %v: %v", tableInfo.TableName, err)
-		CreateTable(tableInfo, tx)
-		return
+		err = CreateTable(tableInfo, tx)
+		return err
 	} else {
 		dest := make(map[string]interface{})
 		err = rowx.MapScan(dest)
@@ -383,9 +386,11 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 			_, err := tx.Exec(query)
 			if err != nil {
 				log.Errorf("Failed to add column [%s] to table [%v]: %v", col, tableInfo.TableName, err)
+				return fmt.Errorf("failed to add column [%s] to table [%v]: %v", col, tableInfo.TableName, err)
 			}
 		}
 	}
+	return nil
 }
 
 func PrintTableInfo(info *TableInfo, title string) {

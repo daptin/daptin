@@ -633,16 +633,12 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 	//AddStateMachines(&initConfig, db)
 
 	var errc error
+
+	resource.CheckAllTableStatus(initConfig, db)
+	resource.CheckErr(errc, "Failed to commit transaction after creating tables")
+
 	tx, errb := db.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction")
-
-	if tx != nil {
-
-		resource.CheckAllTableStatus(initConfig, db, tx)
-		errc = tx.Commit()
-		resource.CheckErr(errc, "Failed to commit transaction after creating tables")
-
-	}
 
 	tx, errb = db.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction")
