@@ -122,7 +122,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 								CheckErr(err, "Failed to delete join 1")
 							}
 						} else {
-							return fmt.Errorf("the request objected could not be detached from all relations since the user is unauthorized")
+							return fmt.Errorf("the request object could not be detached from all relations since the user is unauthorized")
 						}
 
 					}
@@ -171,7 +171,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 								CheckErr(err, "Failed to delete join 2")
 							}
 						} else {
-							return fmt.Errorf("the request objected could not be detached from all relations since the user is unauthorized")
+							return fmt.Errorf("the request object could not be detached from all relations since the user is unauthorized")
 						}
 
 					}

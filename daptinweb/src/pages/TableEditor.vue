@@ -400,7 +400,7 @@
           },
           {
             columnType: 'datetime',
-            dataType: 'datetime'
+            dataType: 'timestamp'
           },
           {
             columnType: 'value',

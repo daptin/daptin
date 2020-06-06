@@ -92,6 +92,8 @@
 <script>
   import {mapGetters, mapActions} from 'vuex';
 
+  var jwt = require('jsonwebtoken');
+
   export default {
     name: 'MainLayout',
 
@@ -99,13 +101,21 @@
 
     data() {
       return {
-        ...mapGetters(['loggedIn', 'drawerLeft']),
+        ...mapGetters(['loggedIn', 'drawerLeft', 'authToken']),
         essentialLinks: [],
       }
     },
     mounted() {
-      console.log("Mounted main layout")
-      // this.load();
+      console.log("Mounted main layout");
+      var decoded = jwt.decode(this.authToken());
+      console.log("Token decoded", this.authToken(), decoded);
+      if (decoded.exp < new Date().getTime() / 1000) {
+        console.log("Token expired");
+        this.$q.notify({
+          message: "Token expired, please login again"
+        });
+        this.logout();
+      }
     },
     methods: {
       ...mapActions(['load']),

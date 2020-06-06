@@ -8,7 +8,9 @@
       </q-breadcrumbs>
     </div>
     <div class="col-12 q-ma-md">
-      <q-btn @click="drawerRight = !drawerRight">New row</q-btn>
+      <q-btn size="sm" @click="drawerRight = !drawerRight" color="primary">New row</q-btn>
+      <q-btn size="sm" v-if="selectedRows.length > 0" @click="deleteSelectedRows" color="warning">Delete selected rows
+      </q-btn>
     </div>
     <div class="col-12 q-ma-md">
       <div id="spreadsheet"></div>
@@ -54,6 +56,13 @@
                 v-if="['content', 'json'].indexOf(column.meta.ColumnType) > -1 "
                 v-model="column.value"
               />
+
+              <q-date
+                v-if="['datetime'].indexOf(column.meta.ColumnType) > -1 "
+                :subtitle="column.meta.ColumnName"
+                v-model="column.value"
+              />
+
             </div>
 
 
@@ -84,6 +93,28 @@
   export default {
     name: "EditData",
     methods: {
+      deleteSelectedRows() {
+        const that = this;
+        if (this.selectedRows.length === 0) {
+          this.$q.notify({
+            message: "Select rows to delete"
+          });
+        } else {
+          Promise.all(this.selectedRows.map(function (row) {
+            return that.deleteRow({
+              tableName: that.$route.params.tableName,
+              reference_id: row.reference_id
+            })
+          })).then(function () {
+            that.spreadsheet.setData();
+          }).catch(function (e) {
+            that.$q.notify({
+              message: e[0].title
+            });
+            that.spreadsheet.setData();
+          })
+        }
+      },
       onNewRow() {
         const that = this;
         var obj = {}
@@ -109,7 +140,7 @@
       onCancelNewRow() {
         this.drawerRight = false;
       },
-      ...mapActions(['loadData', 'getTableSchema', 'updateRow', 'createRow']),
+      ...mapActions(['loadData', 'getTableSchema', 'updateRow', 'createRow', 'deleteRow']),
       refreshData() {
         const that = this;
 
@@ -144,12 +175,19 @@
 
 
           console.log("Table columns", columns);
+          columns.unshift({
+            formatter: "rowSelection",
+            titleFormatter: "rowSelection",
+            align: "center",
+            headerSort: false
+          },)
           that.spreadsheet = new Tabulator("#spreadsheet", {
             data: [],
             columns: columns,
             pagination: "remote",
             tooltips: true,
             ajaxSorting: true,
+            layout: "fitDataFill",
             ajaxFiltering: true,
             paginationSizeSelector: true,
             // ajaxProgressiveLoad:"scroll",
@@ -158,6 +196,12 @@
             index: 'reference_id',
             history: true,
             movableColumns: true,
+            rowSelectionChanged: function (data, rows) {
+              console.log("row selection changed", data, rows);
+              //rows - array of row components for the selected rows in order of selection
+              //data - array of data objects for the selected rows in order of selection
+              that.selectedRows = data;
+            },
             paginationSize: 10,
             cellEdited: function (cell) {
               const reference_id = cell._cell.row.data.reference_id;
@@ -236,7 +280,8 @@
         tableSchema: {ColumnModel: []},
         rows: [],
         drawerRight: false,
-        newRowData: []
+        newRowData: [],
+        selectedRows: [],
       }
     },
     computed: {

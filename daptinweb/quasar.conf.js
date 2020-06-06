@@ -53,6 +53,7 @@ module.exports = function (ctx) {
         'Notify',
         'LoadingBar',
         'QEditor',
+        'QDate',
         'Loading'
       ],
       config: {

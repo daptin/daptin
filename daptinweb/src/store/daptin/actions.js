@@ -40,6 +40,10 @@ export function executeAction({commit}, params) {
   return daptinClient.actionManager.doAction(tableName, actionName, params.params);
 }
 
+export function deleteRow({commit}, row) {
+  return daptinClient.jsonApi.destroy(row.tableName, row.reference_id)
+}
+
 export function createRow({commit}, row) {
   var tableName = row.tableName;
   delete row.tableName;

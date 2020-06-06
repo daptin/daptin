@@ -932,16 +932,6 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:      "2factor.in",
-				Method:    "GET_api_key-SMS-phone_number-otp",
-				Reference: "otp_account",
-				Condition: "!mobile != null && mobile != undefined && mobile != ''",
-				Attributes: map[string]interface{}{
-					"phone_number": "~mobile",
-					"otp":          "$otp.otp",
-				},
-			},
-			{
 				Type:   "client.notify",
 				Method: "ACTIONRESPONSE",
 				Attributes: map[string]interface{}{
