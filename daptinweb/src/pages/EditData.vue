@@ -24,7 +24,7 @@
     >
       <q-scroll-area class="fit">
         <div class="q-pa-md" style="max-width: 400px">
-
+          <h6>New {{$route.params.tableName}}</h6>
           <q-form
             class="q-gutter-md"
           >
@@ -32,10 +32,18 @@
             <div v-for="column in newRowData">
               <q-input
                 :label="column.meta.ColumnName"
-                v-if="['label'].indexOf(column.meta.ColumnType) > -1"
+                v-if="['label', 'measurement', 'value', 'email'].indexOf(column.meta.ColumnType) > -1"
                 filled
                 v-model="column.value"
               />
+              <q-input
+                :label="column.meta.ColumnName"
+                type="password"
+                v-if="['password'].indexOf(column.meta.ColumnType) > -1"
+                filled
+                v-model="column.value"
+              />
+
               <q-toggle
                 :label="column.meta.ColumnName"
                 v-if="column.meta.ColumnType === 'truefalse'"
