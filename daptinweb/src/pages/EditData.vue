@@ -20,7 +20,7 @@
   export default {
     name: "EditData",
     methods: {
-      ...mapActions(['loadData', 'getTableSchema']),
+      ...mapActions(['loadData', 'getTableSchema', 'updateRow']),
       refreshData() {
         const that = this;
 
@@ -52,8 +52,36 @@
             data: [],
             columns: columns,
             pagination: "remote",
+            tooltips: true,
             ajaxSorting: true,
+            ajaxFiltering: true,
+            paginationSizeSelector: true,
+            index: 'reference_id',
+            history:true,
+            movableColumns: true,
             paginationSize: 10,
+            cellEdited: function (cell) {
+              const reference_id = cell._cell.row.data.reference_id;
+              const field = cell._cell.column.field;
+              const newValue = cell._cell.value;
+              //cell - cell component
+              console.log("cell edited", reference_id, arguments);
+              const obj = {
+                tableName: that.$route.params.tableName,
+                id: reference_id,
+              };
+              obj[field] = newValue;
+              that.updateRow(obj).then(function () {
+                that.$q.notify({
+                  message: "Saved"
+                });
+              }).catch(function (e) {
+                that.$q.notify({
+                  message: "Failed to save"
+                });
+                that.spreadsheet.undo();
+              });
+            },
             ajaxURL: that.endpoint + "/api/" + tableName, //set url for ajax request
             ajaxURLGenerator: function (url, config, params) {
               //url - the url from the ajaxURL property or setData function
@@ -77,6 +105,11 @@
               }
               console.log("Request url ", requestUrl);
               return requestUrl; //encode parameters as a json object
+            },
+
+            rowUpdated: function (row) {
+              console.log("Row edited", row);
+              //row - row component
             },
             ajaxResponse: function (url, params, response) {
               console.log("ajax call complete", url, params, response);
