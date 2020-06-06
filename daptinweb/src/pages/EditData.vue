@@ -10,6 +10,12 @@
     <div class="col-12 q-ma-md">
       <div id="spreadsheet"></div>
     </div>
+    <q-page-sticky position="bottom-right" :offset="[50, 50]">
+      <q-fab color="primary" icon="keyboard_arrow_up" direction="up">
+        <q-fab-action color="primary" @click="onClick" icon="fas fa-file-excel" />
+        <q-fab-action color="secondary" @click="onClick" icon="fas fa-download" />
+      </q-fab>
+    </q-page-sticky>
   </div>
 </template>
 
