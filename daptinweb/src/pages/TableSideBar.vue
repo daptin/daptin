@@ -29,17 +29,17 @@ Daptin creates **user_account** table automatically. You can create new tables a
               <thead>
               <tr>
                 <th align="left">Table</th>
-                <th></th>
+                <th align="right"></th>
                 <th></th>
               </tr>
               </thead>
               <tbody>
               <tr v-for="table in tablesFiltered">
                 <td>{{table.table_name}}</td>
-                <td>
+                <td align="right">
                   <q-btn @click="$router.push('/tables/edit/' + table.table_name)" flat icon="fas fa-wrench"></q-btn>
                 </td>
-                <td>
+                <td align="left">
                   <q-btn @click="$router.push('/tables/data/' + table.table_name)" flat icon="fas fa-list"></q-btn>
                 </td>
               </tr>
