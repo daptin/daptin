@@ -3,7 +3,7 @@
 
     <q-drawer
       show-if-above
-      :width="200"
+      :width="250"
       :breakpoint="700"
       elevated
     >
@@ -21,7 +21,7 @@
               <q-item :inset-level="1" clickable v-ripple @click="$router.push('/tables')">
                 <q-item-section>
                   <q-item-label>
-                    <q-icon name="fas fa-tablet"></q-icon>
+                    <q-icon name="fas fa-table"></q-icon>
                     Tables
                   </q-item-label>
                 </q-item-section>
