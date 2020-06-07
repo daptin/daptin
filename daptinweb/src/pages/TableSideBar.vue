@@ -13,7 +13,7 @@
     </q-breadcrumbs>
 
     <q-page-sticky position="bottom-right" :offset="[50, 50]">
-      <q-btn @click="$router.push('/tables/create')" label="Create Table" fab icon="add"/>
+      <q-btn @click="$router.push('/tables/create')" label="Create Table" fab icon="add" color="primary"/>
     </q-page-sticky>
 
     <div class="row">
