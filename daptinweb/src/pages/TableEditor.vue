@@ -256,7 +256,7 @@
         }).filter(e => !e.jsonApi && e.ColumnName !== "__type" && that.StandardColumns.indexOf(e.ColumnName) === -1);
 
         this.localTable.Relations = Object.keys(this.table.ColumnModel).filter(e => this.table.ColumnModel[e].jsonApi).map(function (colName) {
-          console.log("Relation ", colName)
+          console.log("Relation ", colName);
           const col = that.table.ColumnModel[colName];
           let rel = "has_one";
           switch (col.jsonApi) {
@@ -337,7 +337,7 @@
             DefaultValue: null,
             IsIndexed: false,
             IsUnique: false,
-            IsNullable: false,
+            IsNullable: true,
             notCreated: true,
           };
         }
@@ -434,7 +434,7 @@
           notCreated: true,
           IsIndexed: false,
           IsUnique: false,
-          IsNullable: false,
+          IsNullable: true,
         },
         newRelation: {
           Subject: null,
