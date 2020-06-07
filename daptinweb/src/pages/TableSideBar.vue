@@ -18,7 +18,7 @@
 
     <div class="row">
 
-      <div class="col-6 q-pa-md">
+      <div class="col-8 q-pa-md">
         <q-markdown src="::: tip
 Daptin creates **user_account** table automatically. You can create new tables and edit existing tables, or view table data.
 :::"></q-markdown>
@@ -28,7 +28,7 @@ Daptin creates **user_account** table automatically. You can create new tables a
             <q-markup-table flat>
               <thead>
               <tr>
-                <th align="left">Table</th>
+                <th align="left">Tables</th>
                 <th align="right"></th>
                 <th></th>
               </tr>
@@ -48,6 +48,7 @@ Daptin creates **user_account** table automatically. You can create new tables a
           </div>
         </div>
       </div>
+      
     </div>
   </div>
 </template>
