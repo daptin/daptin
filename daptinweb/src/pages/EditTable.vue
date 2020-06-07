@@ -17,6 +17,11 @@
                         v-bind:table="tableSchema" v-on:save="saveTable"></table-editor>
         </div>
       </div>
+      <div class="col-2">
+        <q-markdown src=":::
+When adding a new column in a table, either a default value need to be specified or the column needs to be marked as nullable
+:::"></q-markdown>
+      </div>
     </div>
   </div>
 </template>
