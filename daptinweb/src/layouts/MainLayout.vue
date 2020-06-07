@@ -5,6 +5,7 @@
       show-if-above
       :width="250"
       :breakpoint="700"
+      content-class="bg-cyan"
       elevated
     >
       <q-scroll-area class="fit">
