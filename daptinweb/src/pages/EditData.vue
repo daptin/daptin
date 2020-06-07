@@ -1,11 +1,19 @@
 <template>
   <div class="row">
     <div class="q-pa-md q-gutter-sm">
-      <q-breadcrumbs separator="---" class="text-orange" active-color="secondary">
-        <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
-        <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
-        <q-breadcrumbs-el :label="$route.params.tableName"/>
-      </q-breadcrumbs>
+      <q-breadcrumbs class="text-orange" active-color="secondary">
+      <template v-slot:separator>
+        <q-icon
+          size="1.2em"
+          name="arrow_forward"
+          color="purple"
+        />
+      </template>
+
+      <q-breadcrumbs-el label="Database" icon="fas fa-database" />
+      <q-breadcrumbs-el label="Tables" icon="fas fa-table" />
+      <q-breadcrumbs-el :label="$route.params.tableName" />
+    </q-breadcrumbs>
     </div>
     <div class="col-12 q-ma-md">
       <q-btn size="sm" @click="drawerRight = !drawerRight" color="primary">New row</q-btn>
