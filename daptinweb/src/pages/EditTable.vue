@@ -34,6 +34,7 @@
       },
       deleteTableColumn(column) {
         console.log("Delete column", column);
+        const that = this;
 
         this.executeAction({
           tableName: 'world',

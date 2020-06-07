@@ -32,7 +32,7 @@ Daptin creates **user_account** table automatically. You can create new tables a
                 <th align="right"></th>
                 <th></th>
               </tr>
-              </thead>
+              </thead>  
               <tbody>
               <tr v-for="table in tablesFiltered">
                 <td>{{table.table_name}}</td>

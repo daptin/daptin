@@ -14,7 +14,7 @@ daptinClient.worldManager.init();
 
 export function load({commit}) {
   console.log("Load tables");
-  daptinClient.worldManager.loadModels().then(function (worlds) {
+  daptinClient.worldManager.loadModels(true).then(function (worlds) {
     console.log("All models loaded", arguments);
     commit('setTables', worlds)
   }).catch(function (e) {
@@ -58,20 +58,20 @@ export function updateRow({commit}, row) {
 
 export function loadData({commit}, params) {
   var tableName = params.tableName;
-  var params = params.params;
+  params = params.params;
   return daptinClient.jsonApi.findAll(tableName, params);
 }
 
 export function getTableSchema({commit}, tableName) {
   return new Promise(function (resolve, reject) {
-    daptinClient.worldManager.loadModel(tableName).then(function () {
-      resolve(daptinClient.worldManager.getColumnKeys(tableName));
+    daptinClient.worldManager.loadModel(tableName, true).then(function () {
+      resolve(daptinClient.worldManager.getColumnKeys(tableName, true));
     }).catch(reject)
   })
 }
 
 export function loadModel({commit}, tableName) {
-  return daptinClient.worldManager.loadModel(tableName);
+  return daptinClient.worldManager.loadModel(tableName, true);
 }
 
 export function refreshTableSchema({commit}, tableName) {
