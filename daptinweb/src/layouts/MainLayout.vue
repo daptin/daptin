@@ -47,7 +47,7 @@
               <q-item :inset-level="1" clickable v-ripple @click="$router.push('/user/accounts')">
                 <q-item-section>
                   <q-item-label>
-                    <q-icon name="fas fa-list"></q-icon>
+                    <q-icon name="fas fa-address-book"></q-icon>
                     Accounts
                   </q-item-label>
                 </q-item-section>
