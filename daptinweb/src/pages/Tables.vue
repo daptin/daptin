@@ -1,8 +1,6 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-  <q-page>
-    <div class="row">
+  <q-page>    
       <table-side-bar></table-side-bar>
-    </div>
   </q-page>
 </template>
 
