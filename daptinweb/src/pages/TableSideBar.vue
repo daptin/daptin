@@ -1,5 +1,5 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-  <q-page>
+  <div>
     <div class="q-pa-md q-gutter-sm">
       <q-breadcrumbs class="text-orange" active-color="secondary">
       <template v-slot:separator>
@@ -50,8 +50,8 @@ Daptin creates **user_account** table automatically. You can create new tables a
               </tbody>
             </q-markup-table>
       </div>
-    </div>     
-  </q-page>   
+    </div>  
+  </div>     
 </template>
 
 <script>
