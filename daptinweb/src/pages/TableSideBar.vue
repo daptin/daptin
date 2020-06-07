@@ -1,31 +1,35 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-  <div class="col-12 q-ma-md">
-    <q-breadcrumbs class="text-orange" active-color="secondary">
+  <q-page>
+    <div class="q-pa-md q-gutter-sm">
+      <q-breadcrumbs class="text-orange" active-color="secondary">
       <template v-slot:separator>
         <q-icon
           size="1.2em"
           name="arrow_forward"
-          color="purple"
+          color="primary"
         />
       </template>
-      <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
-      <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
+
+      <q-breadcrumbs-el label="Database" icon="fas fa-database" />
+      <q-breadcrumbs-el label="Tables" icon="fas fa-table" />
     </q-breadcrumbs>
+    </div>  
+
+    <div class="row">
+      <div class="col-8 q-pa-md q-gutter-sm">
+          <q-markdown src="::: tip
+Daptin creates **user_account** table automatically. You can create new tables and edit existing tables, or view table data.
+:::"></q-markdown>
+      </div>
+    </div>   
 
     <q-page-sticky position="bottom-right" :offset="[50, 50]">
       <q-btn @click="$router.push('/tables/create')" label="Create Table" fab icon="add" color="primary"/>
     </q-page-sticky>
 
     <div class="row">
-
-      <div class="col-8 q-pa-md">
-        <q-markdown src="::: tip
-Daptin creates **user_account** table automatically. You can create new tables and edit existing tables, or view table data.
-:::"></q-markdown>
-        <div class="q-pa-lg">
-
-          <div class="col q-pa-sm">
-            <q-markup-table flat>
+      <div class="col-8 q-pa-md q-gutter-sm">
+          <q-markup-table flat>
               <thead>
               <tr>
                 <th align="left">Tables</th>
@@ -45,12 +49,9 @@ Daptin creates **user_account** table automatically. You can create new tables a
               </tr>
               </tbody>
             </q-markup-table>
-          </div>
-        </div>
       </div>
-      
-    </div>
-  </div>
+    </div>     
+  </q-page>   
 </template>
 
 <script>

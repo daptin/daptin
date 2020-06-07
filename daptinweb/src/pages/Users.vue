@@ -15,11 +15,14 @@
     </q-breadcrumbs>
     </div>
 
-    <q-markdown class= "q-pa-md" src="::: tip
-You can add users to your instance here. You can also send the sign up link where users can signup themselves. You can also bulk upload users from an excel sheet.
-You need following fields as headers: email, name, and password 
+    <div class="row">
+      <div class="col-8 q-pa-md q-gutter-sm">
+          <q-markdown src="::: tip
+You can add users to your instance here. You can also send the sign up link where users can signup themselves. 
 :::"></q-markdown>
-
+      </div>  
+    </div>  
+  
     <q-page-sticky position="bottom-right" :offset="[50, 50]">
       <q-btn @click="$router.push('/users/create')" label="Add User" fab icon="add" color="primary"/>
     </q-page-sticky>
