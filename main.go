@@ -50,6 +50,7 @@ func main() {
 	//eventEmitter := &emitter.Emitter{}
 
 	var dbType = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
+	var localStoragePath = flag.String("local_storage_path", "./storage", "Path where blob column assets will be stored, set to ; to disable")
 	var connectionString = flag.String("db_connection_string", "daptin.db", "\n\tSQLite: test.db\n"+
 		"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
 		"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
@@ -93,7 +94,7 @@ func main() {
 	var ftpServer *server2.FtpServer
 	var imapServerInstance *imapServer.Server
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInstance = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInstance = server.Main(boxRoot, db, *localStoragePath)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -128,7 +129,7 @@ func main() {
 			return
 		}
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInstance = server.Main(boxRoot, db1)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInstance = server.Main(boxRoot, db1, *localStoragePath)
 		rhs.HostSwitch = &hostSwitch
 		err = db.Close()
 		auth.CheckErr(err, "Failed to close old db connection")

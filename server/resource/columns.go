@@ -1986,6 +1986,7 @@ var StandardTables = []TableInfo{
 				ColumnName: "name",
 				ColumnType: "label",
 				DataType:   "varchar(100)",
+				IsUnique:   true,
 			},
 			{
 				Name:       "store_type",

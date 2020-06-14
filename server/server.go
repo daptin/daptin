@@ -39,7 +39,7 @@ import (
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, *guerrilla.Daemon,
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string) (HostSwitch, *guerrilla.Daemon,
 	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server) {
 
 	/// Start system initialise
@@ -369,6 +369,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	}
 
 	resource.ImportDataFiles(initConfig.Imports, db, cruds)
+
+	if localStoragePath != ";" {
+		err = resource.CreateDefaultLocalStorage(db, localStoragePath)
+		resource.CheckErr(err, "Failed to create default local storage at %v", localStoragePath)
+	}
 
 	err = TaskScheduler.AddTask(resource.Task{
 		EntityName:  "mail_server",
