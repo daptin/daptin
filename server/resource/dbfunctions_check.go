@@ -266,10 +266,13 @@ func PrintRelations(relations []api2go.TableRelation) {
 
 func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection) {
 
-	tables := []TableInfo{}
+	var tables []TableInfo
 	tableCreatedMap := map[string]bool{}
 
 	for _, table := range initConfig.Tables {
+		if len(table.TableName) < 2 {
+			continue
+		}
 
 		if !tableCreatedMap[table.TableName] {
 			//if strings.Index(table.TableName, "_has_") == -1 {

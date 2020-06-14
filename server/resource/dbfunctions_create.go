@@ -99,7 +99,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 
 	for i, table := range initConfig.Tables {
 		for _, column := range table.Columns {
-			if column.IsForeignKey {
+			if column.IsForeignKey && column.ForeignKeyData.DataSource == "self" {
 				keyName := "fk" + GetMD5Hash(table.TableName+"_"+column.ColumnName+"_"+column.ForeignKeyData.Namespace+"_"+column.ForeignKeyData.KeyName+"_fk")
 
 				if db.DriverName() == "sqlite3" {
