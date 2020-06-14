@@ -34,6 +34,23 @@ export function setSelectedTable({commit}, tableName) {
   commit("setSelectedTable", tableName)
 }
 
+export function getDefaultCloudStore({commit}) {
+  console.log("Find default cloud store");
+  daptinClient.jsonApi.findAll("cloud_store", {
+    query: JSON.stringify([{
+      "column": "name",
+      "operator": "is",
+      "value": "localstore"
+    }])
+  }).then(function (res) {
+    console.log("Found cloud store", res);
+    const cloudStore = res.data[0];
+    commit("setDefaultCloudStore", cloudStore)
+  }).catch(function (err) {
+    console.log("Failed to find default cloud store", err)
+  })
+}
+
 export function executeAction({commit}, params) {
   var tableName = params.tableName;
   var actionName = params.actionName;
@@ -75,13 +92,11 @@ export function loadModel({commit}, tableName) {
 }
 
 export function refreshTableSchema({commit}, tableName) {
-  daptinClient.worldManager.loadModels().then(function (worlds) {
+  daptinClient.worldManager.loadModels(true).then(function (worlds) {
     console.log("All models loaded", arguments);
     commit('setTables', worlds)
   }).catch(function (e) {
     console.log("Failed to connect to backend", e);
   });
-  daptinClient.worldManager.refreshWorld(tableName).then(function (e) {
-
-  });
+  return daptinClient.worldManager.refreshWorld(tableName, true);
 }

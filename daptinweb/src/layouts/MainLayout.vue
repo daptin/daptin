@@ -107,19 +107,29 @@
       }
     },
     mounted() {
+      const that = this;
       console.log("Mounted main layout");
       var decoded = jwt.decode(this.authToken());
-      console.log("Token decoded", this.authToken(), decoded);
+      // console.log("Token decoded", this.authToken(), decoded);
       if (decoded.exp < new Date().getTime() / 1000) {
-        console.log("Token expired");
+        // console.log("Token expired");
         this.$q.notify({
           message: "Token expired, please login again"
         });
         this.logout();
+        return
       }
+      that.loadModel("cloud_store").then(function () {
+        that.getDefaultCloudStore();
+      }).catch(function (err) {
+        console.log("Failed to load model for cloud store", err)
+        that.$q.notify({
+          message: "Failed to load model for cloud store"
+        })
+      })
     },
     methods: {
-      ...mapActions(['load']),
+      ...mapActions(['load', 'getDefaultCloudStore', 'loadModel']),
       logout() {
         localStorage.removeItem("token");
         localStorage.removeItem("user ");
