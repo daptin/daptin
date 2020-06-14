@@ -15,7 +15,7 @@
       ...mapActions(['executeAction', 'refreshTableSchema', 'loadModel']),
       createTable(table) {
         const that = this;
-        if (table.ColumnModel.length == 0) {
+        if (table.ColumnModel.length === 0) {
           this.$q.notify("Please add columns");
           return
         }
@@ -24,9 +24,18 @@
           if (col.ColumnType.indexOf(" - ") > -1) {
             var parts = col.ColumnType.split(" - ");
             col.ColumnType = parts[0];
-            col.DataType = parts[1]
+            col.DataType = parts[1];
+            if (col.ColumnType.startsWith("file.")) {
+              col.IsForeignKey = true;
+              col.ForeignKeyData = {
+                DataSource: 'cloud_store',
+                Namespace: 'localstore',
+                KeyName: col.ColumnName,
+              }
+            }
             table.ColumnModel[i] = col;
           }
+
         }
         console.log("Table data", table);
         const relations = table.Relations;

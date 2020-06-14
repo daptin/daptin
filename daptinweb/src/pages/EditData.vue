@@ -2,18 +2,18 @@
   <div class="row">
     <div class="q-pa-md q-gutter-sm">
       <q-breadcrumbs class="text-orange" active-color="secondary">
-      <template v-slot:separator>
-        <q-icon
-          size="1.2em"
-          name="arrow_forward"
-          color="purple"
-        />
-      </template>
+        <template v-slot:separator>
+          <q-icon
+            size="1.2em"
+            name="arrow_forward"
+            color="purple"
+          />
+        </template>
 
-      <q-breadcrumbs-el label="Database" icon="fas fa-database" />
-      <q-breadcrumbs-el label="Tables" icon="fas fa-table" />
-      <q-breadcrumbs-el :label="$route.params.tableName" />
-    </q-breadcrumbs>
+        <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
+        <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
+        <q-breadcrumbs-el :label="$route.params.tableName"/>
+      </q-breadcrumbs>
     </div>
     <div class="col-12 q-ma-md">
       <q-btn size="sm" @click="drawerRight = !drawerRight" color="primary">New row</q-btn>
@@ -46,6 +46,20 @@
                 filled
                 v-model="column.value"
               />
+
+              <q-file
+                filled bottom-slots v-model="column.value" :label="column.meta.ColumnName"
+                v-if="column.meta.ColumnType.startsWith('file.')"
+                counter>
+                <template v-slot:prepend>
+                  <q-icon name="cloud_upload" @click.stop/>
+                </template>
+                <template v-slot:append>
+                  <q-icon name="close" @click.stop="column.value = null" class="cursor-pointer"/>
+                </template>
+              </q-file>
+
+
               <q-input
                 :label="column.meta.ColumnName"
                 type="password"
@@ -97,7 +111,18 @@
 <script>
   import {mapActions, mapGetters, mapState} from 'vuex';
 
+  const assetEndpoint = window.location.hostname === "site.daptin.com" ? "http://localhost:6336" : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : window.location.port);
   var Tabulator = require('tabulator-tables');
+
+  Tabulator.prototype.extendModule("format", "formatters", {
+    image: function (cell, formatterParams) {
+      console.log("format image cell", cell);
+      var column = cell._cell.column;
+      var row = cell._cell.row;
+      return "<img style='width: 300px; height: 200px' class='fileicon' src='"+ assetEndpoint +"/asset/" + row.data.__type + "/" + row.data.reference_id + "/" + column.field + ".png'></img>";
+    },
+  });
+
   export default {
     name: "EditData",
     methods: {
@@ -125,25 +150,81 @@
       },
       onNewRow() {
         const that = this;
-        var obj = {}
+        const obj = {};
+        const promises = [];
         that.newRowData.map(function (e) {
-          obj[e.meta.ColumnName] = e.value;
+          if (!e.meta.ColumnType.startsWith('file.')) {
+            obj[e.meta.ColumnName] = e.value;
+          } else {
+
+            obj[e.meta.ColumnName] = [];
+            // for (let i = 0; i < e.value.length; i++) {
+            console.log("Create promise for file", e.value);
+            promises.push((function (file) {
+              console.log("File to read", file);
+              return new Promise(function (resolve, reject) {
+                const name = file.name;
+                const type = file.type;
+                const reader = new FileReader();
+                reader.onload = function (fileResult) {
+                  console.log("File loaded", fileResult);
+                  obj[e.meta.ColumnName].push({
+                    name: name,
+                    file: fileResult.target.result,
+                    type: type
+                  });
+                  resolve();
+                };
+                reader.onerror = function () {
+                  console.log("Failed to load file onerror", e, arguments);
+                  reject(name);
+                };
+                reader.readAsDataURL(file);
+              })
+            })(e.value));
+            // }
+            console.log("Asset column", e)
+          }
         });
+        console.log("Promises list", promises);
         obj['tableName'] = that.$route.params.tableName;
-        that.createRow(obj).then(function (res) {
-          that.$q.notify({
-            message: "Row created"
+
+        Promise.all(promises).then(function () {
+          that.createRow(obj).then(function (res) {
+            that.$q.notify({
+              message: "Row created"
+            });
+            that.spreadsheet.setData();
+            that.newRowData.map(function (e) {
+              e.value = "";
+              if (e.meta.ColumnType.startsWith('file.')) {
+                e.value = []
+              } else if (e.meta.ColumnType === 'truefalse') {
+                e.value = false
+              } else {
+                e.value = ""
+              }
+            });
+            that.drawerRight = false;
+          }).catch(function (e) {
+            if (e instanceof Array) {
+              that.$q.notify({
+                message: e[0].title
+              })
+            } else {
+              that.$q.notify({
+                message: "Failed to save row"
+              })
+            }
           });
-          that.spreadsheet.setData();
-          that.newRowData.map(function (e) {
-            e.value = "";
-          });
-          that.drawerRight = false;
         }).catch(function (e) {
+          console.log("Failed to upload file", e);
           that.$q.notify({
-            message: e[0].title
+            message: "Failed to upload file: " + e[0]
           })
         })
+
+
       },
       onCancelNewRow() {
         this.drawerRight = false;
@@ -166,19 +247,40 @@
             if (col.jsonApi || col.ColumnName === "__type" || that.defaultColumns.indexOf(col.ColumnName) > -1) {
               return null;
             }
-            that.newRowData.push({
-                  meta: col,
-                  value: col.ColumnType === "truefalse" ? false : ""
-                }
-            );
-            return {
+            if (col.ColumnType.startsWith('file.')) {
+              that.newRowData.push({
+                    meta: col,
+                    value: []
+                  }
+              );
+            } else if (col.ColumnType === 'truefalse') {
+              that.newRowData.push({
+                    meta: col,
+                    value: false
+                  }
+              );
+            } else {
+              that.newRowData.push({
+                    meta: col,
+                    value: ""
+                  }
+              );
+            }
+
+            var tableColumn = {
               title: col.Name,
               field: col.ColumnName,
               editor: true,
               formatter: col.ColumnType === "truefalse" ? "tickCross" : null,
               hozAlign: col.ColumnType === "truefalse" ? "center" : "left",
               sorter: col.ColumnType === "measurement" ? "number" : null,
+            };
+
+            if (col.ColumnType.startsWith("file.") && col.ColumnType.split(".")[1].indexOf("jpg") > -1) {
+              tableColumn.formatter = "image";
             }
+
+            return tableColumn;
           }).filter(e => !!e);
 
 
@@ -188,7 +290,7 @@
             titleFormatter: "rowSelection",
             align: "center",
             headerSort: false
-          },)
+          });
           that.spreadsheet = new Tabulator("#spreadsheet", {
             data: [],
             columns: columns,

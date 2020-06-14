@@ -61,14 +61,14 @@
 
             <div class="row"
                  v-for="column in localTable.ColumnModel
-             .filter(e => e.ColumnName && StandardColumns.indexOf(e.ColumnName) === -1 && !e.IsForeignKey)">
+             .filter(e => e.ColumnName && StandardColumns.indexOf(e.ColumnName) === -1 && (!e.IsForeignKey || e.IsForeignKey && e.ForeignKeyData.DataSource === 'cloud_store'))">
 
               <div class="col-3" style="padding: 5px">
                 <q-input placeholder="column Name" :readonly="!column.notCreated" v-model="column.ColumnName"></q-input>
               </div>
 
               <div class="col-2" style="padding: 5px">
-                <q-select placeholder="column type" :readonly="!column.notCreate" v-model="column.ColumnType"
+                <q-select placeholder="column type" :readonly="!column.notCreated" v-model="column.ColumnType"
                           :options="ColumnTypes.map(e => e.columnType + ' - ' + e.dataType)"
                           label="Column Type"></q-select>
               </div>

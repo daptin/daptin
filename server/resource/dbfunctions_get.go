@@ -210,7 +210,10 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 
 		storeParamMap := make(map[string]interface{})
 
-		json.Unmarshal([]byte(storeParameters), &storeParamMap)
+		if len(storeParameters) > 0 {
+			err = json.Unmarshal([]byte(storeParameters), &storeParamMap)
+			CheckErr(err, "Failed to unmarshal store parameters for store %v", storeMap["name"])
+		}
 
 		cloudStore.StoreParameters = storeParamMap
 		cloudStore.StoreProvider = storeMap["store_provider"].(string)

@@ -2,39 +2,39 @@
   <q-page>
     <div class="q-pa-md q-gutter-sm">
       <q-breadcrumbs class="text-orange" active-color="secondary">
-      <template v-slot:separator>
-        <q-icon
-          size="1.2em"
-          name="arrow_forward"
-          color="primary"
-        />
-      </template>
+        <template v-slot:separator>
+          <q-icon
+            size="1.2em"
+            name="arrow_forward"
+            color="primary"
+          />
+        </template>
 
-      <q-breadcrumbs-el label="Database" icon="fas fa-database" />
-      <q-breadcrumbs-el label="Tables" icon="fas fa-table" />
-      <q-breadcrumbs-el :label="$route.params.tableName"/>
-    </q-breadcrumbs>
+        <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
+        <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
+        <q-breadcrumbs-el :label="$route.params.tableName"/>
+      </q-breadcrumbs>
     </div>
 
-     <div class="row">
+    <div class="row">
       <div class="col-8 q-pa-md q-gutter-sm">
         <q-markdown src=":::warning
 When you add a new column to the table, either a set default value or the set the column as nullable
 :::"></q-markdown>
       </div>
-     </div>   
+    </div>
 
-     <div class="row">
-        <div class="col-10 q-pa-md q-gutter-sm">
-          <div v-if="tableSchema" class="col-10 q-pa-sm">
+    <div class="row">
+      <div class="col-10 q-pa-md q-gutter-sm">
+        <div v-if="tableSchema" class="col-10 q-pa-sm">
           <table-editor v-on:deleteRelation="deleteTableRelation"
                         v-on:deleteColumn="deleteTableColumn"
                         v-bind:table="tableSchema" v-on:save="saveTable"></table-editor>
         </div>
-        </div> 
-     </div>  
+      </div>
+    </div>
 
-  </q-page>  
+  </q-page>
 </template>
 
 <script>
@@ -91,8 +91,16 @@ When you add a new column to the table, either a set default value or the set th
           if (col.ColumnType.indexOf(" - ") > -1) {
             var parts = col.ColumnType.split(" - ");
             col.ColumnType = parts[0];
-            col.DataType = parts[1]
+            col.DataType = parts[1];
             table.ColumnModel[i] = col;
+            if (col.ColumnType.startsWith("file.")) {
+              col.IsForeignKey = true;
+              col.ForeignKeyData = {
+                DataSource: 'cloud_store',
+                Namespace: 'localstore',
+                KeyName: col.ColumnName,
+              }
+            }
           }
         }
 
