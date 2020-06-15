@@ -174,7 +174,7 @@ func TestServer(t *testing.T) {
 	configStore.SetConfigValueFor("limit.max_connectioins", "5000", "backend")
 	configStore.SetConfigValueFor("limit.rate", "5000", "backend")
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer = server.Main(boxRoot, db)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer = server.Main(boxRoot, db, "./local")
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -194,7 +194,7 @@ func TestServer(t *testing.T) {
 
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer = server.Main(boxRoot, db)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer = server.Main(boxRoot, db, "./local")
 		rhs.HostSwitch = &hostSwitch
 	})
 
