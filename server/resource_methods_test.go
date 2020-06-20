@@ -53,7 +53,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 
 	tx, errb := wrapper.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction")
-	resource.CheckAllTableStatus(&initConfig, wrapper, tx)
+	resource.CheckAllTableStatus(&initConfig, wrapper)
 	errc := tx.Commit()
 	resource.CheckErr(errc, "Failed to commit transaction after creating tables")
 
