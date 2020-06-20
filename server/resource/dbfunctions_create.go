@@ -515,7 +515,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 					Columns:   []api2go.ColumnInfo{col},
 				}
 				config.Tables = append(config.Tables, newTable)
-				log.Infof("No matching table found: %v", relation)
+				log.Infof("No matching table found for relation: %v", relation)
 				log.Infof("Created new table: %v", newTable.TableName)
 			}
 		} else if relation2 == "has_many" {

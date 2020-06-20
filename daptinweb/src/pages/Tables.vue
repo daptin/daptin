@@ -1,5 +1,5 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-  <q-page>    
+  <q-page>
       <table-side-bar></table-side-bar>
   </q-page>
 </template>
@@ -10,7 +10,7 @@
   export default {
     name: 'TablePage',
     methods: {
-      ...mapActions(['load'])
+      ...mapActions([])
     },
     data() {
       return {

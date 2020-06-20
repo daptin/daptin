@@ -29,6 +29,7 @@ When you add a new column to the table, either a set default value or the set th
         <div v-if="tableSchema" class="col-10 q-pa-sm">
           <table-editor v-on:deleteRelation="deleteTableRelation"
                         v-on:deleteColumn="deleteTableColumn"
+                        v-on:deleteTable="deleteTable"
                         v-bind:table="tableSchema" v-on:save="saveTable"></table-editor>
         </div>
       </div>
@@ -76,6 +77,28 @@ When you add a new column to the table, either a set default value or the set th
           that.$q.loading.hide();
         });
 
+
+      },
+      deleteTable(tableName) {
+        console.log("Delete table", tableName);
+        const that = this;
+        this.executeAction({
+          tableName: 'world',
+          actionName: 'remove_table',
+          params: {
+            world_id: that.tableData.reference_id
+          }
+        }).then(function (e) {
+          console.log("Deleted table", e);
+          that.$q.notify("Deleted table");
+          that.clearTableCache();
+          that.$router.push('/tables');
+        }).catch(function (e) {
+          that.$q.notify("Failed to delete table: " + JSON.stringify(e));
+          that.$q.loading.hide();
+          that.clearTableCache();
+          that.$router.push('/tables');
+        });
 
       },
       saveTable(table) {
@@ -151,16 +174,43 @@ When you add a new column to the table, either a set default value or the set th
           this.setSelectedTable(this.$route.params.tableName);
           return
         }
+        this.loadData({
+          tableName: 'world',
+          params: {
+            query: JSON.stringify([
+              {
+                column: 'table_name',
+                operator: 'is',
+                value: this.$route.params.tableName
+              }
+            ])
+          }
+        }).then(function (res) {
+          console.log("Table row", res);
+          if (!res.data || res.data.length !== 1) {
+            that.$q.notify({
+              message: "Failed to load table metadata"
+            });
+            return;
+          }
+          that.tableData = res.data[0];
+        }).catch(function (err) {
+          that.$q.notify({
+            message: "Failed to load table metadata"
+          });
+        });
+
         this.getTableSchema(tableName).then(function (res) {
           that.tableSchema = res;
           console.log("Schema", that.tableSchema)
         })
       },
-      ...mapActions(['getTableSchema', 'executeAction', 'refreshTableSchema'])
+      ...mapActions(['getTableSchema', 'executeAction', 'refreshTableSchema', 'loadData', 'clearTableCache'])
     },
     data() {
       return {
         text: '',
+        tableData: null,
         tableSchema: null,
       }
     },

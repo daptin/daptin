@@ -24,7 +24,7 @@
       <div class="col-md-4 offset-4">
         <div>
           <q-btn :disable="localTable.ColumnModel && localTable.ColumnModel.length>0 ? false: true" size="20px"
-                 @click="$emit('save', localTable)" :label="isEdit ? 'Save' : 'Create'" type="submit" color="green"/>
+                 @click="createTable" :label="isEdit ? 'Save' : 'Create'" type="submit" color="green"/>
         </div>
       </div>
 
@@ -230,6 +230,15 @@
       </div>
     </div>
 
+    <div style="padding-bottom: 10px" class="row" v-if="isEdit">
+      <div class="col-md-6">
+        <span class="text-h4">Delete table</span>
+      </div>
+    </div>
+    <div class="row">
+      <q-btn @click="deleteTable()" color="red" label="Delete table"></q-btn>
+    </div>
+
 
   </q-form>
 </template>
@@ -281,14 +290,31 @@
       this.newRelation.Subject = this.table.TableName;
     },
     methods: {
+      deleteTable() {
+        const that = this;
+        console.log("Delete table", this.localTable);
+        this.$q.dialog({
+          title: 'Confirm',
+          message: 'Do you want to delete the table "' + this.localTable.TableName + '"',
+          cancel: true,
+          persistent: true
+        }).onOk(() => {
+          that.$emit('deleteTable', this.localTable.TableName);
+        }).onCancel(() => {
+          // console.log('>>>> Cancel')
+        }).onDismiss(() => {
+          // console.log('I am triggered on both OK and Cancel')
+        })
+      },
       createTable() {
         if (!this.localTable.TableName) {
           this.$q.notify("Table name cannot be empty");
-
+          return
         } else if (this.tables.filter(e => e.table_name === this.localTable.TableName).length > 0) {
           this.$q.notify("Table name already used");
-
+          return
         }
+        this.$emit('save', this.localTable);
       },
       checkRelation(relation, updateType) {
 

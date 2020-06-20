@@ -616,7 +616,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 				return nil, returnRequest, err
 			}
 
-			jsonFileName := fmt.Sprintf("schema_%v_daptin.%v", fileName, fileFormat)
+			jsonFileName := fmt.Sprintf("schema_uploaded_%v_daptin.%v", fileName, fileFormat)
 			err = ioutil.WriteFile(jsonFileName, fileBytes, 0644)
 			if err != nil {
 				log.Errorf("Failed to write json file: %v", jsonFileName)

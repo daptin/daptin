@@ -129,7 +129,7 @@
       })
     },
     methods: {
-      ...mapActions(['load', 'getDefaultCloudStore', 'loadModel']),
+      ...mapActions(['getDefaultCloudStore', 'loadModel']),
       logout() {
         localStorage.removeItem("token");
         localStorage.removeItem("user ");

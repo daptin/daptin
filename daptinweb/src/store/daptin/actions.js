@@ -11,8 +11,11 @@ var daptinClient = new DaptinClient(endpoint, false, {
 
 daptinClient.worldManager.init();
 
+export function clearTableCache({commit}) {
+  commit('clearTablesCache');
+}
 
-export function load({commit}) {
+export function loadTables({commit}) {
   console.log("Load tables");
   daptinClient.worldManager.loadModels(true).then(function (worlds) {
     console.log("All models loaded", arguments);

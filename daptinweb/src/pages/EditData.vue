@@ -10,7 +10,7 @@
           />
         </template>
 
-        <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
+        <q-breadcrumbs-el label="Data base" icon="fas fa-database"/>
         <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
         <q-breadcrumbs-el :label="$route.params.tableName"/>
       </q-breadcrumbs>
@@ -119,7 +119,25 @@
       console.log("format image cell", cell);
       var column = cell._cell.column;
       var row = cell._cell.row;
-      return "<img style='width: 300px; height: 200px' class='fileicon' src='"+ assetEndpoint +"/asset/" + row.data.__type + "/" + row.data.reference_id + "/" + column.field + ".png'></img>";
+      return "<img style='width: 300px; height: 200px' class='fileicon' src='" + assetEndpoint + "/asset/" + row.data.__type + "/" + row.data.reference_id + "/" + column.field + ".png'></img>";
+    },
+    audio: function (cell, formatterParams) {
+      console.log("format audio cell", cell);
+      var column = cell._cell.column;
+      var row = cell._cell.row;
+      return "<audio style='width: 300px; height: 200px' class='audio' src='" + assetEndpoint + "/asset/" + row.data.__type + "/" + row.data.reference_id + "/" + column.field + ".png'></audio>";
+    },
+    video: function (cell, formatterParams) {
+      console.log("format video cell", cell);
+      var column = cell._cell.column;
+      var row = cell._cell.row;
+      return "<video style='width: 300px; height: 200px' class='video' src='" + assetEndpoint + "/asset/" + row.data.__type + "/" + row.data.reference_id + "/" + column.field + ".png'></video>";
+    },
+    file: function (cell, formatterParams) {
+      console.log("format video cell", cell);
+      var column = cell._cell.column;
+      var row = cell._cell.row;
+      return "<a href='" + assetEndpoint + "/asset/" + row.data.__type + "/" + row.data.reference_id + "/" + column.field + ".file'></a>";
     },
   });
 
@@ -276,7 +294,7 @@
               sorter: col.ColumnType === "measurement" ? "number" : null,
             };
 
-            if (col.ColumnType.startsWith("file.") && col.ColumnType.split(".")[1].indexOf("jpg") > -1) {
+            if (col.ColumnType.startsWith("file.") && [].indexOf(col.ColumnType.split(".")[1]) > -1) {
               tableColumn.formatter = "image";
             }
 

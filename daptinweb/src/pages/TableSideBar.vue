@@ -2,26 +2,26 @@
   <div>
     <div class="q-pa-md q-gutter-sm">
       <q-breadcrumbs class="text-orange" active-color="secondary">
-      <template v-slot:separator>
-        <q-icon
-          size="1.2em"
-          name="arrow_forward"
-          color="primary"
-        />
-      </template>
+        <template v-slot:separator>
+          <q-icon
+            size="1.2em"
+            name="arrow_forward"
+            color="primary"
+          />
+        </template>
 
-      <q-breadcrumbs-el label="Database" icon="fas fa-database" />
-      <q-breadcrumbs-el label="Tables" icon="fas fa-table" />
-    </q-breadcrumbs>
-    </div>  
+        <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
+        <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
+      </q-breadcrumbs>
+    </div>
 
     <div class="row">
       <div class="col-8 q-pa-md q-gutter-sm">
-          <q-markdown src="::: tip
+        <q-markdown src="::: tip
 Daptin creates **user_account** table automatically. You can create new tables and edit existing tables, or view table data.
 :::"></q-markdown>
       </div>
-    </div>   
+    </div>
 
     <q-page-sticky position="bottom-right" :offset="[50, 50]">
       <q-btn @click="$router.push('/tables/create')" label="Create Table" fab icon="add" color="primary"/>
@@ -29,29 +29,29 @@ Daptin creates **user_account** table automatically. You can create new tables a
 
     <div class="row">
       <div class="col-8 q-pa-md q-gutter-sm">
-          <q-markup-table flat>
-              <thead>
-              <tr>
-                <th align="left">Tables</th>
-                <th align="right"></th>
-                <th></th>
-              </tr>
-              </thead>  
-              <tbody>
-              <tr v-for="table in tablesFiltered">
-                <td>{{table.table_name}}</td>
-                <td align="right">
-                  <q-btn @click="$router.push('/tables/edit/' + table.table_name)" flat icon="fas fa-wrench"></q-btn>
-                </td>
-                <td align="left">
-                  <q-btn @click="$router.push('/tables/data/' + table.table_name)" flat icon="fas fa-list"></q-btn>
-                </td>
-              </tr>
-              </tbody>
-            </q-markup-table>
+        <q-markup-table flat>
+          <thead>
+          <tr>
+            <th align="left">Tables</th>
+            <th align="right"></th>
+            <th></th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="table in tablesFiltered">
+            <td>{{table.table_name}}</td>
+            <td align="right">
+              <q-btn @click="$router.push('/tables/edit/' + table.table_name)" flat icon="fas fa-wrench"></q-btn>
+            </td>
+            <td align="left">
+              <q-btn @click="$router.push('/tables/data/' + table.table_name)" flat icon="fas fa-list"></q-btn>
+            </td>
+          </tr>
+          </tbody>
+        </q-markup-table>
       </div>
-    </div>  
-  </div>     
+    </div>
+  </div>
 </template>
 
 <script>
@@ -64,7 +64,7 @@ Daptin creates **user_account** table automatically. You can create new tables a
         console.log("set table", tableName);
         this.setSelectedTable(tableName)
       },
-      ...mapActions(['load', 'setSelectedTable'])
+      ...mapActions(['loadTables', 'setSelectedTable'])
     },
     data() {
       return {
@@ -75,7 +75,7 @@ Daptin creates **user_account** table automatically. You can create new tables a
     mounted() {
       const that = this;
       this.$q.loadingBar.start();
-      that.load().then(function () {
+      that.loadTables().then(function () {
         that.$q.loadingBar.stop()
       });
     },
@@ -103,6 +103,11 @@ Daptin creates **user_account** table automatically. You can create new tables a
         }
       },
       ...mapGetters(['tables'])
+    },
+    watch: {
+      tables() {
+        console.log("updated tables  in watch ", this.tables, this.tablesFiltered)
+      }
     }
   }
 </script>

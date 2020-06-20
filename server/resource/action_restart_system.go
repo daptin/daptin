@@ -57,7 +57,8 @@ func restart() {
 	//log.Infof("Sending %v to %v", syscall.SIGUSR2, syscall.Getpid())
 
 	//exec.Command("kill", "-12", fmt.Sprint(syscall.Getpid())).Output()
-	trigger.Fire("restart")
+	_, err := trigger.Fire("restart")
+	CheckErr(err, "Failed to trigger restart")
 	//syscall.Kill(syscall.Getpid(), syscall.SIGUSR2)
 
 }

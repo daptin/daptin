@@ -7,7 +7,7 @@ require (
 	github.com/alexeyco/simpletable v0.0.0-20180729223640-1fa9009f1080
 	github.com/anthonynsimon/bild v0.10.0
 	github.com/araddon/dateparse v0.0.0-20181123171228-21df004e09ca
-	github.com/artpar/api2go v2.4.2+incompatible
+	github.com/artpar/api2go v2.4.3+incompatible
 	github.com/artpar/api2go-adapter v1.0.1
 	github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6
 	github.com/artpar/go-guerrilla v1.5.2
@@ -57,7 +57,6 @@ require (
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
 	github.com/graphql-go/relay v0.0.0-20171208134043-54350098cfe5
-	github.com/h2non/filetype v1.0.9
 	github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/imroc/req v0.2.4

@@ -13,12 +13,12 @@
       <q-breadcrumbs-el label="Users" icon="fas fa-user" />
       <q-breadcrumbs-el label="Groups" icon="fas fa-users" />
     </q-breadcrumbs>
-    </div>  
-  
+    </div>
+
     <div class="row">
       <div class="col-8 q-pa-md q-gutter-sm">
           <q-markdown src="::: tip
-You can create different user groups here. Different user groups can have different permissions. 
+You can create different user groups here. Different user groups can have different permissions.
 E.g. Admin Group that has permissions to create, read, write and delete tables.
 :::"></q-markdown>
       </div>
@@ -48,7 +48,7 @@ E.g. Admin Group that has permissions to create, read, write and delete tables.
 
       </div>
     </div>
-    
+
   </q-page>
 </template>
 
@@ -58,7 +58,7 @@ E.g. Admin Group that has permissions to create, read, write and delete tables.
   export default {
     name: 'TablePage',
     methods: {
-      ...mapActions(['load', 'loadData', 'getTableSchema']),
+      ...mapActions(['loadData', 'getTableSchema']),
       refresh() {
         var tableName = "usergroup";
         const that = this;

@@ -357,6 +357,23 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "remove_table",
+		Label:            "Delete table",
+		OnType:           "world",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "world.delete",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"world_id": "$.reference_id",
+				},
+			},
+		},
+	},
+	{
 		Name:             "rename_column",
 		Label:            "Rename column",
 		OnType:           "world",

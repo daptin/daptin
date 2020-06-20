@@ -14,7 +14,6 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create become admin performer")
 	performers = append(performers, becomeAdminPerformer)
 
-
 	cloudStoreFileImportPerformer, err := resource.NewImportCloudStoreFilesPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create cloudStoreFileImportPerformer")
 	performers = append(performers, cloudStoreFileImportPerformer)
@@ -90,7 +89,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	mailServerSync, err := resource.NewMailServersSyncActionPerformer(cruds, mailDaemon, certificateManager)
 	resource.CheckErr(err, "Failed to create mail server sync performer")
 	performers = append(performers, mailServerSync)
-	
+
 	restartPerformer, err := resource.NewRestarSystemPerformer(initConfig)
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, restartPerformer)
@@ -106,6 +105,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	columnDeletePerformer, err := resource.NewDeleteWorldColumnPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create column delete performer")
 	performers = append(performers, columnDeletePerformer)
+
+	tableDeletePerformer, err := resource.NewDeleteWorldPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create table delete performer")
+	performers = append(performers, tableDeletePerformer)
 
 	columnRenamePerformer, err := resource.NewRenameWorldColumnPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create column rename performer")

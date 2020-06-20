@@ -19,7 +19,7 @@
       }
     },
     methods: {
-      ...mapActions(['load'])
+      ...mapActions([])
     },
     name: 'App',
     mounted() {

@@ -55,6 +55,7 @@ module.exports = function (ctx) {
         'QEditor',
         'QDate',
         'QFile',
+        'Dialog',
         'Loading'
       ],
       config: {

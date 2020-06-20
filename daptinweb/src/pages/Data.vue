@@ -27,7 +27,7 @@
   export default {
     name: 'TablePage',
     methods: {
-      ...mapActions(['load'])
+      ...mapActions([])
     },
     data() {
       return {

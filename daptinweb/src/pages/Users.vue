@@ -18,11 +18,11 @@
     <div class="row">
       <div class="col-8 q-pa-md q-gutter-sm">
           <q-markdown src="::: tip
-You can add users to your instance here. You can also send the sign up link where users can signup themselves. 
+You can add users to your instance here. You can also send the sign up link where users can signup themselves.
 :::"></q-markdown>
-      </div>  
-    </div>  
-  
+      </div>
+    </div>
+
     <q-page-sticky position="bottom-right" :offset="[50, 50]">
       <q-btn @click="$router.push('/users/create')" label="Add User" fab icon="add" color="primary"/>
     </q-page-sticky>
@@ -45,9 +45,9 @@ You can add users to your instance here. You can also send the sign up link wher
         </q-input>
       </template>
       </q-table>
-      
+
     </div>
-    </div>  
+    </div>
   </q-page>
 </template>
 
@@ -57,7 +57,7 @@ You can add users to your instance here. You can also send the sign up link wher
   export default {
     name: 'TablePage',
     methods: {
-      ...mapActions(['load', 'loadData', 'getTableSchema']),
+      ...mapActions(['loadData', 'getTableSchema']),
       refresh() {
         var tableName = "user_account";
         const that = this;

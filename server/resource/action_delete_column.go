@@ -48,7 +48,10 @@ func (d *DeleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 	schemaJson := tableData.Data["world_schema_json"]
 
 	var tableSchema TableInfo
-	json.Unmarshal([]byte(schemaJson.(string)), &tableSchema)
+	err = json.Unmarshal([]byte(schemaJson.(string)), &tableSchema)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
 
 	indexToDelete := -1
 	newColumns := make([]api2go.ColumnInfo, 0)
@@ -79,6 +82,8 @@ func (d *DeleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 	if err != nil {
 		return nil, nil, []error{err}
 	}
+
+	restart()
 
 	return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Column deleted", "Success"))}, nil
 }
