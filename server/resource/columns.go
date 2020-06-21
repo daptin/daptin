@@ -922,23 +922,6 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:      "usergroup",
-				Method:    "POST",
-				Reference: "usergroup",
-				Attributes: map[string]interface{}{
-					"name": "!'Home group for ' + user.name",
-				},
-			},
-			{
-				Type:      "user_account_user_account_id_has_usergroup_usergroup_id",
-				Method:    "POST",
-				Reference: "user_usergroup",
-				Attributes: map[string]interface{}{
-					"user_account_id": "$user.reference_id",
-					"usergroup_id":    "$usergroup.reference_id",
-				},
-			},
-			{
 				Type:      "otp.generate",
 				Method:    "EXECUTE",
 				Reference: "otp",

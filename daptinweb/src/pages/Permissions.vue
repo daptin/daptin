@@ -26,7 +26,7 @@
       </div>
     </div>
 
-    <div class="row">
+    <div class="row" v-if="selectedTable">
       <div class="col-12">
         <q-tabs
           v-model="selectedTab"
@@ -39,11 +39,12 @@
         >
           <q-tab name="tablePermissions" label="Table Permissions"/>
           <q-tab name="rowPermissions" label="New Row Permissions"/>
+          <q-tab name="groups" label="Groups"/>
         </q-tabs>
 
       </div>
       <div class="col-md-12">
-      <q-separator/>
+        <q-separator/>
 
         <q-tab-panels v-model="selectedTab" class="shadow-2 rounded-borders">
           <q-tab-panel name="tablePermissions">
@@ -78,27 +79,13 @@
               </div>
             </div>
 
-
-            <div class="col-12 q-pa-md">
-              <span class="text-h5">Group</span>
-              <div class="q-gutter-sm">
-
-                <q-checkbox v-model="parsedGroupPermission.canPeek" label="Peek"/>
-                <q-checkbox v-model="parsedGroupPermission.canCreate" label="Create"/>
-                <q-checkbox v-model="parsedGroupPermission.canRead" label="Read"/>
-                <q-checkbox v-model="parsedGroupPermission.canUpdate" label="Update"/>
-                <q-checkbox v-model="parsedGroupPermission.canDelete" label="Delete"/>
-                <q-checkbox v-model="parsedGroupPermission.canRefer" label="Refer"/>
-                <q-checkbox v-model="parsedGroupPermission.canExecute" label="Execute"/>
-
-              </div>
-            </div>
           </q-tab-panel>
+
           <q-tab-panel name="rowPermissions">
             <span class="text-h5">
               Default row permissions
-
-              <div class="col-12 q-pa-md">
+            </span>
+            <div class="col-12 q-pa-md">
               <span class="text-h6">Guest</span>
               <div class="q-gutter-sm">
 
@@ -128,8 +115,22 @@
               </div>
             </div>
 
+          </q-tab-panel>
+          <q-tab-panel name="groups">
+            <span class="text-h5">Group Permissions</span>
+            <div class="col-12 q-pa-md">
+              <div class="q-gutter-sm">
 
-            </span>
+                <q-checkbox v-model="parsedGroupPermission.canPeek" label="Peek"/>
+                <q-checkbox v-model="parsedGroupPermission.canCreate" label="Create"/>
+                <q-checkbox v-model="parsedGroupPermission.canRead" label="Read"/>
+                <q-checkbox v-model="parsedGroupPermission.canUpdate" label="Update"/>
+                <q-checkbox v-model="parsedGroupPermission.canDelete" label="Delete"/>
+                <q-checkbox v-model="parsedGroupPermission.canRefer" label="Refer"/>
+                <q-checkbox v-model="parsedGroupPermission.canExecute" label="Execute"/>
+
+              </div>
+            </div>
           </q-tab-panel>
         </q-tab-panels>
       </div>
@@ -143,7 +144,7 @@
   export default {
     name: 'TablePage',
     methods: {
-      ...mapActions([])
+      ...mapActions(['loadData'])
     },
     data() {
       return {
@@ -202,9 +203,38 @@
           canRefer: false,
           canExecute: false,
         },
+        userAccounts: [],
+        userGroups: []
       }
     },
     mounted() {
+      const that = this;
+      this.loadData({
+        tableName: "user_account",
+        params: {
+          page: 1,
+          size: 500
+        }
+      }).then(function (res) {
+        that.userAccounts = res.data;
+      }).catch(function (err) {
+        that.$q.notify({
+          message: "Failed to load users list: " + JSON.stringify(err)
+        })
+      });
+      that.loadData({
+        tableName: "usergroup",
+        params: {
+          page: 1,
+          size: 500
+        }
+      }).then(function (res) {
+        that.userGroups = res.data;
+      }).catch(function (err) {
+        that.$q.notify({
+          message: "Failed to load usergroups list: " + JSON.stringify(err)
+        })
+      });
     },
     computed: {
       ...mapGetters(['tables']),
