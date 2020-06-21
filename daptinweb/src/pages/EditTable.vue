@@ -91,12 +91,10 @@ When you add a new column to the table, either a set default value or the set th
         }).then(function (e) {
           console.log("Deleted table", e);
           that.$q.notify("Deleted table");
-          that.clearTableCache();
           that.$router.push('/tables');
         }).catch(function (e) {
           that.$q.notify("Failed to delete table: " + JSON.stringify(e));
           that.$q.loading.hide();
-          that.clearTableCache();
           that.$router.push('/tables');
         });
 
@@ -205,7 +203,7 @@ When you add a new column to the table, either a set default value or the set th
           console.log("Schema", that.tableSchema)
         })
       },
-      ...mapActions(['getTableSchema', 'executeAction', 'refreshTableSchema', 'loadData', 'clearTableCache'])
+      ...mapActions(['getTableSchema', 'executeAction', 'refreshTableSchema', 'loadData'])
     },
     data() {
       return {

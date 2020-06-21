@@ -294,7 +294,7 @@
               sorter: col.ColumnType === "measurement" ? "number" : null,
             };
 
-            if (col.ColumnType.startsWith("file.") && [].indexOf(col.ColumnType.split(".")[1]) > -1) {
+            if (col.ColumnType.startsWith("file.") && col.ColumnType.indexOf('jpg') > -1) {
               tableColumn.formatter = "image";
             }
 

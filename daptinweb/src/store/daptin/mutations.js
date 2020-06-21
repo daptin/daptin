@@ -13,7 +13,12 @@ export function setSelectedTable(state, tableName) {
   state.selectedTable = tableName;
 }
 
+export function clearTablesCache(state) {
+
+}
+
 export function setTables(state, tables) {
+  state.tables = {}
   for (var tableName in tables) {
     Vue.set(state.tables, tableName, tables[tableName])
   }
