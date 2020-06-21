@@ -78,6 +78,13 @@ export function loadData({commit}, params) {
   return daptinClient.jsonApi.findAll(tableName, params);
 }
 
+export function loadDataRelations({commit}, params) {
+  var primaryTable = params.tableName;
+  var relationName = params.relation;
+  var primaryTableId = params.reference_id;
+  return daptinClient.jsonApi.one(primaryTable, primaryTableId).all(relationName).get()
+}
+
 export function getTableSchema({commit}, tableName) {
   return new Promise(function (resolve, reject) {
     daptinClient.worldManager.loadModel(tableName, true).then(function () {
