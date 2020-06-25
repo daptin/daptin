@@ -10,7 +10,7 @@
   export default {
     name: 'TablePage',
     methods: {
-      ...mapActions([])
+      ...mapActions(['loadTables'])
     },
     data() {
       return {
@@ -19,6 +19,12 @@
       }
     },
     mounted() {
+      const that = this;
+      this.$q.loadingBar.start();
+      that.loadTables().then(function () {
+        that.$q.loadingBar.stop()
+      });
+
     },
     computed: {
       ...mapGetters([]),

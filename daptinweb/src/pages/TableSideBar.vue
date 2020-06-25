@@ -14,6 +14,7 @@
         <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
       </q-breadcrumbs>
     </div>
+    <q-separator></q-separator>
 
     <div class="row">
       <div class="col-8 q-pa-md q-gutter-sm">
@@ -64,7 +65,7 @@ Daptin creates **user_account** table automatically. You can create new tables a
         console.log("set table", tableName);
         this.setSelectedTable(tableName)
       },
-      ...mapActions(['loadTables', 'setSelectedTable'])
+      ...mapActions(['setSelectedTable'])
     },
     data() {
       return {
@@ -73,11 +74,6 @@ Daptin creates **user_account** table automatically. You can create new tables a
       }
     },
     mounted() {
-      const that = this;
-      this.$q.loadingBar.start();
-      that.loadTables().then(function () {
-        that.$q.loadingBar.stop()
-      });
     },
     computed: {
       tableOptions() {

@@ -4,19 +4,20 @@
     <q-drawer
       show-if-above
       :width="250"
+      @click.capture="drawerClick"
       :breakpoint="700"
       content-class="bg-primary text-white"
-      elevated
-    >
+      elevated>
       <q-scroll-area class="fit">
 
-        <q-icon name="fab fa-pied-piper-alt" size="50px" class="q-ma-md"></q-icon>
+        <q-icon name="fab fa-pied-piper-alt" size="30px" class="q-ma-md"></q-icon>
 
         <q-list>
           <q-expansion-item
             expand-separator
-            icon="fas fa-database"
-            label="Database">
+            label="Database"
+            expand-icon-class="text-white"
+            icon="fas fa-database">
 
             <q-list>
               <q-item :inset-level="1" clickable v-ripple @click="$router.push('/tables')">
@@ -39,6 +40,7 @@
 
           </q-expansion-item>
           <q-expansion-item
+            expand-icon-class="text-white"
             expand-separator
             icon="fas fa-user"
             label="Users">
@@ -104,6 +106,8 @@
       return {
         ...mapGetters(['loggedIn', 'drawerLeft', 'authToken']),
         essentialLinks: [],
+        drawer: false,
+        miniState: true,
       }
     },
     mounted() {
@@ -122,13 +126,25 @@
       that.loadModel("cloud_store").then(function () {
         that.getDefaultCloudStore();
       }).catch(function (err) {
-        console.log("Failed to load model for cloud store", err)
+        console.log("Failed to load model for cloud store", err);
         that.$q.notify({
           message: "Failed to load model for cloud store"
         })
       })
     },
     methods: {
+      drawerClick(e) {
+        // if in "mini" state and user
+        // click on drawer, we switch it to "normal" mode
+        if (this.miniState) {
+          this.miniState = false;
+
+          // notice we have registered an event with capture flag;
+          // we need to stop further propagation as this click is
+          // intended for switching drawer to "normal" mode only
+          e.stopPropagation()
+        }
+      },
       ...mapActions(['getDefaultCloudStore', 'loadModel']),
       logout() {
         localStorage.removeItem("token");

@@ -10,7 +10,7 @@
           />
         </template>
 
-        <q-breadcrumbs-el label="Data base" icon="fas fa-database"/>
+        <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
         <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
         <q-breadcrumbs-el :label="$route.params.tableName"/>
       </q-breadcrumbs>

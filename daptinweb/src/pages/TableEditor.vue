@@ -5,8 +5,6 @@
         <span class="text-h4">{{!isEdit ? 'Create table' : 'Edit table'}}</span>
       </div>
     </div>
-
-
     <div class="row">
 
       <div class="col-4">

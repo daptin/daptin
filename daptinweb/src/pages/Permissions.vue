@@ -1,6 +1,6 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-  <div class="q-pa-md q-gutter-sm">
-    <div>
+  <div >
+    <div class="q-pa-md q-gutter-sm">
       <q-breadcrumbs class="text-orange" active-color="secondary">
         <template v-slot:separator>
           <q-icon
@@ -14,16 +14,15 @@
         <q-breadcrumbs-el label="Permissions" icon="fas fa-table"/>
       </q-breadcrumbs>
     </div>
+    <q-separator></q-separator>
 
-    <div class="row">
-      <div class="col-md-12">
-        <span class="text-h4">Permissions</span>
-      </div>
-      <div class="col-md-2">
+    <div class="row q-pa-md q-gutter-sm">
+      <div class="col-md-2 ">
         <q-select option-value="table_name"
                   option-label="table_name"
                   v-model="selectedTable" :options="tables" label="Table"/>
       </div>
+
     </div>
 
     <div class="row" v-if="selectedTable">
@@ -83,7 +82,7 @@
               active-color="primary"
               indicator-color="primary"
               align="justify"
-              narrow-indicator  >
+              narrow-indicator>
               <q-tab name="tablePermissions" label="Table Permissions"/>
               <q-tab name="rowPermissions" label="New Row Permissions"/>
               <q-tab name="groups" label="Groups"/>

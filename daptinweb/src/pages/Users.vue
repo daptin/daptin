@@ -14,6 +14,7 @@
       <q-breadcrumbs-el label="Accounts" icon="fas fa-address-book" />
     </q-breadcrumbs>
     </div>
+    <q-separator></q-separator>
 
     <div class="row">
       <div class="col-8 q-pa-md q-gutter-sm">
