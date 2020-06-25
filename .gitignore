@@ -5,7 +5,7 @@ temp.*daptin.json
 
 .quasar
 /dist
-
+storage
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 docker_dir/
 npm-debug.log
