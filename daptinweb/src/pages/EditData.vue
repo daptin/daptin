@@ -1,5 +1,5 @@
 <template>
-  <div class="row">
+  <div>
     <div class="q-pa-md q-gutter-sm">
       <q-breadcrumbs class="text-orange" active-color="secondary">
         <template v-slot:separator>
@@ -9,32 +9,45 @@
             color="purple"
           />
         </template>
-
         <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
         <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
         <q-breadcrumbs-el :label="$route.params.tableName"/>
       </q-breadcrumbs>
     </div>
-    <div class="col-12 q-ma-md">
-      <q-btn size="sm" @click="drawerRight = !drawerRight" color="primary">New row</q-btn>
-      <q-btn size="sm" v-if="selectedRows.length > 0" @click="deleteSelectedRows" color="warning">Delete selected rows
-      </q-btn>
-    </div>
-    <div class="col-12 q-ma-md">
-      <div id="spreadsheet"></div>
-    </div>
+    <q-separator></q-separator>
 
+    <div class="row">
+      <div class="col-12">
+        <q-btn @click="showNewRowDrawer()" color="primary" flat>New row</q-btn>
+        <q-btn @click="showPermissionsDrawer()" color="primary" flat>Table Permissions</q-btn>
+
+        <q-btn v-if="selectedRows.length > 0" @click="deleteSelectedRows" flat color="red">Delete selected rows
+        </q-btn>
+        <q-separator></q-separator>
+      </div>
+
+      <div class="col-12">
+        <div id="spreadsheet"></div>
+      </div>
+
+      <q-page-sticky position="bottom-right" :offset="[50, 50]">
+        <q-fab color="primary" icon="keyboard_arrow_up" direction="up">
+          <q-fab-action color="primary" icon="fas fa-file-excel"/>
+          <q-fab-action color="secondary" icon="fas fa-download"/>
+        </q-fab>
+      </q-page-sticky>
+    </div>
     <q-drawer
       side="right"
-      v-model="drawerRight"
+      v-model="newRowDrawer"
       bordered
       :width="500"
       :breakpoint="500"
       content-class="bg-grey-3"
     >
       <q-scroll-area class="fit">
-        <div class="q-pa-md" style="max-width: 400px">
-          <h6>New {{$route.params.tableName}}</h6>
+        <div class="q-pa-md">
+          <span class="text-h6">New {{$route.params.tableName}}</span>
           <q-form
             class="q-gutter-md"
           >
@@ -98,16 +111,28 @@
 
       </q-scroll-area>
     </q-drawer>
-
-    <q-page-sticky position="bottom-right" :offset="[50, 50]">
-      <q-fab color="primary" icon="keyboard_arrow_up" direction="up">
-        <q-fab-action color="primary" icon="fas fa-file-excel"/>
-        <q-fab-action color="secondary" icon="fas fa-download"/>
-      </q-fab>
-    </q-page-sticky>
+    <q-drawer side="right" v-model="tablePermissionDrawer" bordered :width="500"
+              content-class="bg-grey-3">
+      <q-scroll-area class="fit row">
+        <div class="q-pa-md">
+          <div class="col-12">
+            <span class="text-h6">Table permissions</span>
+          </div>
+        </div>
+        <div class="q-pa-md">
+          <div class="col-12">
+            ok
+          </div>
+        </div>
+      </q-scroll-area>
+    </q-drawer>
   </div>
 </template>
-
+<style>
+  .tabulator-col-title input {
+    margin-left: 9px;
+  }
+</style>
 <script>
   import {mapActions, mapGetters, mapState} from 'vuex';
 
@@ -144,6 +169,14 @@
   export default {
     name: "EditData",
     methods: {
+      showPermissionsDrawer() {
+        this.newRowDrawer = false;
+        this.tablePermissionDrawer = true;
+      },
+      showNewRowDrawer() {
+        this.tablePermissionDrawer = false;
+        this.newRowDrawer = true;
+      },
       deleteSelectedRows() {
         const that = this;
         if (this.selectedRows.length === 0) {
@@ -223,7 +256,7 @@
                 e.value = ""
               }
             });
-            that.drawerRight = false;
+            that.newRowDrawer = false;
           }).catch(function (e) {
             if (e instanceof Array) {
               that.$q.notify({
@@ -245,7 +278,7 @@
 
       },
       onCancelNewRow() {
-        this.drawerRight = false;
+        this.newRowDrawer = false;
       },
       ...mapActions(['loadData', 'getTableSchema', 'updateRow', 'createRow', 'deleteRow']),
       refreshData() {
@@ -312,15 +345,15 @@
           that.spreadsheet = new Tabulator("#spreadsheet", {
             data: [],
             columns: columns,
-            pagination: "remote",
+            // pagination: "remote",
             tooltips: true,
             ajaxSorting: true,
             layout: "fitDataFill",
             ajaxFiltering: true,
             paginationSizeSelector: true,
-            // ajaxProgressiveLoad:"scroll",
-            // ajaxProgressiveLoadDelay:200,
-            // ajaxProgressiveLoadScrollMargin:300,
+            ajaxProgressiveLoad: "scroll",
+            ajaxProgressiveLoadDelay: 200,
+            ajaxProgressiveLoadScrollMargin: 300,
             index: 'reference_id',
             history: true,
             movableColumns: true,
@@ -330,7 +363,7 @@
               //data - array of data objects for the selected rows in order of selection
               that.selectedRows = data;
             },
-            paginationSize: 10,
+            paginationSize: 100,
             cellEdited: function (cell) {
               const reference_id = cell._cell.row.data.reference_id;
               const field = cell._cell.column.field;
@@ -404,10 +437,11 @@
     },
     data() {
       return {
+        tablePermissionDrawer: false,
         defaultColumns: ['updated_at', 'created_at', 'reference_id', 'permission'],
         tableSchema: {ColumnModel: []},
         rows: [],
-        drawerRight: false,
+        newRowDrawer: false,
         newRowData: [],
         selectedRows: [],
       }

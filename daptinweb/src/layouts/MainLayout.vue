@@ -4,7 +4,6 @@
     <q-drawer
       show-if-above
       :width="250"
-      @click.capture="drawerClick"
       :breakpoint="700"
       content-class="bg-primary text-white"
       elevated>
@@ -68,9 +67,10 @@
 
           </q-expansion-item>
 
-          <q-space/>
-          <q-separator/>
 
+
+        </q-list>
+        <q-list>
           <q-item clickable @click="logout()">
             <q-item-section>
               <q-item-label>
@@ -79,7 +79,6 @@
               </q-item-label>
             </q-item-section>
           </q-item>
-
         </q-list>
 
       </q-scroll-area>
@@ -133,18 +132,6 @@
       })
     },
     methods: {
-      drawerClick(e) {
-        // if in "mini" state and user
-        // click on drawer, we switch it to "normal" mode
-        if (this.miniState) {
-          this.miniState = false;
-
-          // notice we have registered an event with capture flag;
-          // we need to stop further propagation as this click is
-          // intended for switching drawer to "normal" mode only
-          e.stopPropagation()
-        }
-      },
       ...mapActions(['getDefaultCloudStore', 'loadModel']),
       logout() {
         localStorage.removeItem("token");
