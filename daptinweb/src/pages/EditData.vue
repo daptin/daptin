@@ -119,9 +119,9 @@
             <span class="text-h6">Table permissions</span>
           </div>
         </div>
-        <div class="q-pa-md">
+        <div>
           <div class="col-12">
-            ok
+            <table-permissions v-bind:selectedTable="tableData"/>
           </div>
         </div>
       </q-scroll-area>
@@ -432,6 +432,31 @@
           // })
         });
 
+        that.loadData({
+          tableName: 'world',
+          params: {
+            query: JSON.stringify([
+              {
+                column: 'table_name',
+                operator: 'is',
+                value: tableName
+              }
+            ])
+          }
+        }).then(function (res) {
+          console.log("Table row", res);
+          if (!res.data || res.data.length !== 1) {
+            that.$q.notify({
+              message: "Failed to load table metadata"
+            });
+            return;
+          }
+          that.tableData = res.data[0];
+        }).catch(function (err) {
+          that.$q.notify({
+            message: "Failed to load table metadata"
+          });
+        });
 
       }
     },
@@ -441,6 +466,7 @@
         defaultColumns: ['updated_at', 'created_at', 'reference_id', 'permission'],
         tableSchema: {ColumnModel: []},
         rows: [],
+        tableData: {},
         newRowDrawer: false,
         newRowData: [],
         selectedRows: [],

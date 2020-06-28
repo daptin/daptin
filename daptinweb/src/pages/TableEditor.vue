@@ -246,7 +246,8 @@
 
   export default {
     props: {
-      table: Object
+      table: Object,
+      tableData: Object
     },
     mounted() {
       console.log("Mounted table editor ", this.table);

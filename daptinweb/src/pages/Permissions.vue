@@ -1,32 +1,7 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-  <div >
-    <div class="q-pa-md q-gutter-sm">
-      <q-breadcrumbs class="text-orange" active-color="secondary">
-        <template v-slot:separator>
-          <q-icon
-            size="1.2em"
-            name="arrow_forward"
-            color="primary"
-          />
-        </template>
-
-        <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
-        <q-breadcrumbs-el label="Permissions" icon="fas fa-table"/>
-      </q-breadcrumbs>
-    </div>
-    <q-separator></q-separator>
-
-    <div class="row q-pa-md q-gutter-sm">
-      <div class="col-md-2 ">
-        <q-select option-value="table_name"
-                  option-label="table_name"
-                  v-model="selectedTable" :options="tables" label="Table"/>
-      </div>
-
-    </div>
-
+  <div>
     <div class="row" v-if="selectedTable">
-      <div class="col-6 q-pa-md items-start q-gutter-md">
+      <div class="col-12 q-pa-md items-start q-gutter-md">
         <q-card>
           <q-card-section>
             <div class="text-h6">Table owner</div>
@@ -72,7 +47,7 @@
         </q-card>
 
       </div>
-      <div class="col-6 q-pa-md items-start q-gutter-md">
+      <div class="col-12 q-pa-md items-start q-gutter-md">
         <q-card>
           <q-card-section>
             <q-tabs
@@ -174,6 +149,8 @@
                 </div>
               </q-tab-panel>
             </q-tab-panels>
+
+
           </q-card-section>
         </q-card>
 
@@ -228,7 +205,10 @@
   import {mapActions, mapGetters, mapState} from 'vuex';
 
   export default {
-    name: 'TablePage',
+    name: 'TablePermissions',
+    props: {
+      selectedTable: Object
+    },
     methods: {
       groupChangeForTableGroups() {
         this.groupChangeFor = 'tableGroups';
@@ -238,7 +218,54 @@
         this.groupChangeFor = 'newRowGroups';
         this.addToGroup = true
       },
-      ...mapActions(['loadData', 'loadDataRelations'])
+      ...mapActions(['loadData', 'loadDataRelations']),
+      refresh() {
+        const that = this;
+        that.tableSchema = JSON.parse(that.selectedTable.world_schema_json);
+        console.log("Table schema json", that.tableSchema);
+
+        var permissionValue = that.selectedTable.permission;
+        that.parsedGuestPermission = {
+          canPeek: (permissionValue & that.permissionStructure.GuestPeek) === that.permissionStructure.GuestPeek,
+          canRead: (permissionValue & that.permissionStructure.GuestRead) === that.permissionStructure.GuestRead,
+          canCreate: (permissionValue & that.permissionStructure.GuestCreate) === that.permissionStructure.GuestCreate,
+          canUpdate: (permissionValue & that.permissionStructure.GuestUpdate) === that.permissionStructure.GuestUpdate,
+          canDelete: (permissionValue & that.permissionStructure.GuestDelete) === that.permissionStructure.GuestDelete,
+          canRefer: (permissionValue & that.permissionStructure.GuestRefer) === that.permissionStructure.GuestRefer,
+          canExecute: (permissionValue & that.permissionStructure.GuestExecute) === that.permissionStructure.GuestExecute,
+        };
+        that.parsedOwnerPermission = {
+          canPeek: (permissionValue & that.permissionStructure.UserPeek) === that.permissionStructure.UserPeek,
+          canRead: (permissionValue & that.permissionStructure.UserRead) === that.permissionStructure.UserRead,
+          canCreate: (permissionValue & that.permissionStructure.UserCreate) === that.permissionStructure.UserCreate,
+          canUpdate: (permissionValue & that.permissionStructure.UserUpdate) === that.permissionStructure.UserUpdate,
+          canDelete: (permissionValue & that.permissionStructure.UserDelete) === that.permissionStructure.UserDelete,
+          canRefer: (permissionValue & that.permissionStructure.UserRefer) === that.permissionStructure.UserRefer,
+          canExecute: (permissionValue & that.permissionStructure.UserExecute) === that.permissionStructure.UserExecute,
+        };
+        that.parsedGroupPermission = {
+          canPeek: (permissionValue & that.permissionStructure.GroupPeek) === that.permissionStructure.GroupPeek,
+          canRead: (permissionValue & that.permissionStructure.GroupRead) === that.permissionStructure.GroupRead,
+          canCreate: (permissionValue & that.permissionStructure.GroupCreate) === that.permissionStructure.GroupCreate,
+          canUpdate: (permissionValue & that.permissionStructure.GroupUpdate) === that.permissionStructure.GroupUpdate,
+          canDelete: (permissionValue & that.permissionStructure.GroupDelete) === that.permissionStructure.GroupDelete,
+          canRefer: (permissionValue & that.permissionStructure.GroupRefer) === that.permissionStructure.GroupRefer,
+          canExecute: (permissionValue & that.permissionStructure.GroupExecute) === that.permissionStructure.GroupExecute,
+        };
+
+        that.loadDataRelations({
+          tableName: 'world',
+          relation: 'usergroup_id',
+          reference_id: that.selectedTable.reference_id,
+        }).then(function (res) {
+          console.log("Loaded groups of table", that.selectedTable.table_name, res);
+          that.tableGroups = res.data;
+        }).catch(function (err) {
+          that.$q.notify({
+            message: "Failed to load usergroups: " + JSON.stringify(err)
+          })
+        })
+      }
     },
     data() {
       return {
@@ -251,7 +278,6 @@
         addToGroupSwitch: 'addExisting',
         tableGroups: [],
         selectedTab: 'tablePermissions',
-        selectedTable: null,
         ...mapState([]),
         permissionStructure: {
           None: 0,
@@ -337,6 +363,7 @@
           message: "Failed to load usergroups list: " + JSON.stringify(err)
         })
       });
+      this.refresh();
     },
     computed: {
       ...mapGetters(['tables']),
@@ -346,51 +373,7 @@
     watch: {
       'selectedTable': function (newTable, oldTable) {
         const that = this;
-        console.log("Selection changed", newTable, oldTable);
-        that.tableSchema = JSON.parse(newTable.world_schema_json);
-        console.log("Table schema json", that.tableSchema)
-
-        var permissionValue = newTable.permission;
-        that.parsedGuestPermission = {
-          canPeek: (permissionValue & that.permissionStructure.GuestPeek) === that.permissionStructure.GuestPeek,
-          canRead: (permissionValue & that.permissionStructure.GuestRead) === that.permissionStructure.GuestRead,
-          canCreate: (permissionValue & that.permissionStructure.GuestCreate) === that.permissionStructure.GuestCreate,
-          canUpdate: (permissionValue & that.permissionStructure.GuestUpdate) === that.permissionStructure.GuestUpdate,
-          canDelete: (permissionValue & that.permissionStructure.GuestDelete) === that.permissionStructure.GuestDelete,
-          canRefer: (permissionValue & that.permissionStructure.GuestRefer) === that.permissionStructure.GuestRefer,
-          canExecute: (permissionValue & that.permissionStructure.GuestExecute) === that.permissionStructure.GuestExecute,
-        };
-        that.parsedOwnerPermission = {
-          canPeek: (permissionValue & that.permissionStructure.UserPeek) === that.permissionStructure.UserPeek,
-          canRead: (permissionValue & that.permissionStructure.UserRead) === that.permissionStructure.UserRead,
-          canCreate: (permissionValue & that.permissionStructure.UserCreate) === that.permissionStructure.UserCreate,
-          canUpdate: (permissionValue & that.permissionStructure.UserUpdate) === that.permissionStructure.UserUpdate,
-          canDelete: (permissionValue & that.permissionStructure.UserDelete) === that.permissionStructure.UserDelete,
-          canRefer: (permissionValue & that.permissionStructure.UserRefer) === that.permissionStructure.UserRefer,
-          canExecute: (permissionValue & that.permissionStructure.UserExecute) === that.permissionStructure.UserExecute,
-        };
-        that.parsedGroupPermission = {
-          canPeek: (permissionValue & that.permissionStructure.GroupPeek) === that.permissionStructure.GroupPeek,
-          canRead: (permissionValue & that.permissionStructure.GroupRead) === that.permissionStructure.GroupRead,
-          canCreate: (permissionValue & that.permissionStructure.GroupCreate) === that.permissionStructure.GroupCreate,
-          canUpdate: (permissionValue & that.permissionStructure.GroupUpdate) === that.permissionStructure.GroupUpdate,
-          canDelete: (permissionValue & that.permissionStructure.GroupDelete) === that.permissionStructure.GroupDelete,
-          canRefer: (permissionValue & that.permissionStructure.GroupRefer) === that.permissionStructure.GroupRefer,
-          canExecute: (permissionValue & that.permissionStructure.GroupExecute) === that.permissionStructure.GroupExecute,
-        };
-
-        that.loadDataRelations({
-          tableName: 'world',
-          relation: 'usergroup_id',
-          reference_id: newTable.reference_id,
-        }).then(function (res) {
-          console.log("Loaded groups of table", newTable.table_name, res);
-          that.tableGroups = res.data;
-        }).catch(function (err) {
-          that.$q.notify({
-            message: "Failed to load usergroups: " + JSON.stringify(err)
-          })
-        })
+        this.refresh()
       }
     }
   }
