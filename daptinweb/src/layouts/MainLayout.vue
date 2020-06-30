@@ -27,14 +27,6 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/user/permissions')">
-                <q-item-section>
-                  <q-item-label>
-                    <q-icon name="fas fa-lock"></q-icon>
-                    Permissions
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
             </q-list>
 
           </q-expansion-item>
@@ -85,7 +77,7 @@
     </q-drawer>
 
 
-    <q-page-container v-if="loggedIn()">
+    <q-page-container v-if="loggedIn() && loaded">
       <router-view/>
     </q-page-container>
   </q-layout>
@@ -106,6 +98,7 @@
         ...mapGetters(['loggedIn', 'drawerLeft', 'authToken']),
         essentialLinks: [],
         drawer: false,
+        loaded: false,
         miniState: true,
       }
     },
@@ -122,8 +115,19 @@
         this.logout();
         return
       }
-      that.loadModel("cloud_store").then(function () {
+      that.loadModel(["cloud_store", "user_account", "usergroup", "world"]).then(function () {
+        that.loaded = true;
         that.getDefaultCloudStore();
+        that.executeAction({
+          tableName: 'world',
+          actionName: "become_an_administrator"
+        }).then(function(res){
+          that.$q.notify({
+            message: "You have become the administrator of this instance"
+          })
+        }).catch(function(err){
+          console.log("Failed to become admin", err);
+        })
       }).catch(function (err) {
         console.log("Failed to load model for cloud store", err);
         that.$q.notify({
@@ -132,7 +136,7 @@
       })
     },
     methods: {
-      ...mapActions(['getDefaultCloudStore', 'loadModel']),
+      ...mapActions(['getDefaultCloudStore', 'loadModel', 'executeAction']),
       logout() {
         localStorage.removeItem("token");
         localStorage.removeItem("user ");

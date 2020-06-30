@@ -28,9 +28,6 @@ const routes = [
         path: 'groups', component: () => import('pages/UserGroups.vue')
       },
       {
-        path: 'permissions', component: () => import('pages/Permissions.vue')
-      },
-      {
         path: 'data/:tableName', component: () => import('pages/EditData.vue')
       },
     ]

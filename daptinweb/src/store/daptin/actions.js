@@ -72,6 +72,20 @@ export function updateRow({commit}, row) {
   return daptinClient.jsonApi.update(tableName, row)
 }
 
+export function removeRelation({commit}, row) {
+  return daptinClient.jsonApi.one(row.tableName, row.id).relationships(row.relationName).destroy([{
+    type: row.relationName,
+    id: row.relationId
+  }])
+}
+
+export function addRelation({commit}, row) {
+  return daptinClient.jsonApi.one(row.tableName, row.id).relationships(row.relationName).patch({
+    type: row.relationName,
+    id: row.relationId
+  })
+}
+
 export function loadData({commit}, params) {
   var tableName = params.tableName;
   params = params.params;

@@ -121,7 +121,7 @@
         </div>
         <div>
           <div class="col-12">
-            <table-permissions v-bind:selectedTable="tableData"/>
+            <table-permissions v-if="tableData" v-bind:selectedTable="tableData"/>
           </div>
         </div>
       </q-scroll-area>
@@ -144,19 +144,23 @@
       console.log("format image cell", cell);
       var column = cell._cell.column;
       var row = cell._cell.row;
-      return "<img style='width: 300px; height: 200px' class='fileicon' src='" + assetEndpoint + "/asset/" + row.data.__type + "/" + row.data.reference_id + "/" + column.field + ".png'></img>";
+      var field = row.data[column.field][0];
+      console.log("Image data", field);
+      return "<img style='width: 300px; height: 200px' class='fileicon' src='data:" + field.type + ";base64," + field.contents + "'/>";
     },
     audio: function (cell, formatterParams) {
       console.log("format audio cell", cell);
       var column = cell._cell.column;
       var row = cell._cell.row;
-      return "<audio style='width: 300px; height: 200px' class='audio' src='" + assetEndpoint + "/asset/" + row.data.__type + "/" + row.data.reference_id + "/" + column.field + ".png'></audio>";
+      var field = row.data[column.field][0];
+      return "<audio controls class='audio' src='data:" + field.type + ";base64," + field.contents + "'/>";
     },
     video: function (cell, formatterParams) {
       console.log("format video cell", cell);
       var column = cell._cell.column;
       var row = cell._cell.row;
-      return "<video style='width: 300px; height: 200px' class='video' src='" + assetEndpoint + "/asset/" + row.data.__type + "/" + row.data.reference_id + "/" + column.field + ".png'></video>";
+      var field = row.data[column.field][0];
+      return "<video controls style='width: 300px; height: 200px' class='video' src='data:" + field.type + ";base64," + field.contents + "'/>";
     },
     file: function (cell, formatterParams) {
       console.log("format video cell", cell);
@@ -283,6 +287,7 @@
       ...mapActions(['loadData', 'getTableSchema', 'updateRow', 'createRow', 'deleteRow']),
       refreshData() {
         const that = this;
+        var assetColumns = [];
 
         var tableName = this.$route.params.tableName;
         console.log("loaded data editor", tableName);
@@ -299,6 +304,7 @@
               return null;
             }
             if (col.ColumnType.startsWith('file.')) {
+              assetColumns.push(col.ColumnName)
               that.newRowData.push({
                     meta: col,
                     value: []
@@ -322,6 +328,7 @@
               title: col.Name,
               field: col.ColumnName,
               editor: true,
+              editable: !col.ColumnType.startsWith('file.'),
               formatter: col.ColumnType === "truefalse" ? "tickCross" : null,
               hozAlign: col.ColumnType === "truefalse" ? "center" : "left",
               sorter: col.ColumnType === "measurement" ? "number" : null,
@@ -329,6 +336,12 @@
 
             if (col.ColumnType.startsWith("file.") && col.ColumnType.indexOf('jpg') > -1) {
               tableColumn.formatter = "image";
+            }
+            if (col.ColumnType.startsWith("file.") && col.ColumnType.indexOf('mp4') > -1) {
+              tableColumn.formatter = "video";
+            }
+            if (col.ColumnType.startsWith("file.") && col.ColumnType.indexOf('mp3') > -1) {
+              tableColumn.formatter = "audio";
             }
 
             return tableColumn;
@@ -407,6 +420,9 @@
                 sorts = sorts.substring(0, sorts.length - 1);
                 requestUrl = requestUrl + "sort=" + sorts + "&"
               }
+              if (assetColumns.length > 0) {
+                requestUrl = requestUrl + "included_relations=" + assetColumns.join(",") + "&"
+              }
               console.log("Request url ", requestUrl);
               return requestUrl; //encode parameters as a json object
             },
@@ -441,10 +457,11 @@
                 operator: 'is',
                 value: tableName
               }
-            ])
+            ]),
+            included_relations: 'user_account_id',
           }
         }).then(function (res) {
-          console.log("Table row", res);
+          console.log("Table row", res, arguments);
           if (!res.data || res.data.length !== 1) {
             that.$q.notify({
               message: "Failed to load table metadata"
@@ -453,6 +470,7 @@
           }
           that.tableData = res.data[0];
         }).catch(function (err) {
+          console.log("Failed to load table metadata", err);
           that.$q.notify({
             message: "Failed to load table metadata"
           });
@@ -466,7 +484,7 @@
         defaultColumns: ['updated_at', 'created_at', 'reference_id', 'permission'],
         tableSchema: {ColumnModel: []},
         rows: [],
-        tableData: {},
+        tableData: null,
         newRowDrawer: false,
         newRowData: [],
         selectedRows: [],
