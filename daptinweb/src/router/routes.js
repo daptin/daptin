@@ -18,17 +18,26 @@ const routes = [
     ]
   },
   {
-    path: '/user',
+    path: '/users',
     component: () => import('layouts/MainLayout.vue'),
     children: [
       {
-        path: 'accounts', component: () => import('pages/Users.vue'),
+        path: '/', component: () => import('pages/Users.vue'),
       },
       {
-        path: 'groups', component: () => import('pages/UserGroups.vue')
+        path: '/:userId', component: () => import('pages/EditUser.vue'),
+      },
+    ]
+  },
+  {
+    path: '/groups',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      {
+        path: '/', component: () => import('pages/UserGroups.vue')
       },
       {
-        path: 'data/:tableName', component: () => import('pages/EditData.vue')
+        path: '/:groupId', component: () => import('pages/EditGroup.vue')
       },
     ]
   },

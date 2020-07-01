@@ -38,7 +38,7 @@
 
             <q-list>
 
-              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/user/accounts')">
+              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/users')">
                 <q-item-section>
                   <q-item-label>
                     <q-icon name="fas fa-address-book"></q-icon>
@@ -46,7 +46,7 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/user/groups')">
+              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/groups')">
                 <q-item-section>
                   <q-item-label>
                     <q-icon name="fas fa-users"></q-icon>
@@ -58,7 +58,6 @@
             </q-list>
 
           </q-expansion-item>
-
 
 
         </q-list>
@@ -121,11 +120,11 @@
         that.executeAction({
           tableName: 'world',
           actionName: "become_an_administrator"
-        }).then(function(res){
+        }).then(function (res) {
           that.$q.notify({
             message: "You have become the administrator of this instance"
           })
-        }).catch(function(err){
+        }).catch(function (err) {
           console.log("Failed to become admin", err);
         })
       }).catch(function (err) {

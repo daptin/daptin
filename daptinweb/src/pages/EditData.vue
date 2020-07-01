@@ -48,9 +48,7 @@
       <q-scroll-area class="fit">
         <div class="q-pa-md">
           <span class="text-h6">New {{$route.params.tableName}}</span>
-          <q-form
-            class="q-gutter-md"
-          >
+          <q-form  class="q-gutter-md">
 
             <div v-for="column in newRowData">
               <q-input
@@ -166,7 +164,8 @@
       console.log("format video cell", cell);
       var column = cell._cell.column;
       var row = cell._cell.row;
-      return "<a href='" + assetEndpoint + "/asset/" + row.data.__type + "/" + row.data.reference_id + "/" + column.field + ".file'></a>";
+      var field = row.data[column.field][0];
+      return "<a href='" + assetEndpoint + "/asset/" + row.data.__type + "/" + row.data.reference_id + "/" + column.field + ".'" + field.type.split("/")[1] + "></a>";
     },
   });
 
