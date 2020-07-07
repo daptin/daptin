@@ -89,7 +89,12 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap m
 
 			actionResponse := NewActionResponse("client.store.set", responseAttrs)
 			responses = append(responses, actionResponse)
-			actionResponse = NewActionResponse("client.cookie.set", responseAttrs)
+
+			cookieResponseAttrs := make(map[string]interface{})
+			cookieResponseAttrs["value"] = string(tokenString) + "; SameSite=Strict"
+			cookieResponseAttrs["key"] = "token"
+
+			actionResponse = NewActionResponse("client.cookie.set", cookieResponseAttrs)
 			responses = append(responses, actionResponse)
 
 			notificationAttrs := make(map[string]string)
