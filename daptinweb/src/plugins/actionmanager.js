@@ -55,13 +55,12 @@ const ActionManager = function () {
       byteArrays.push(byteArray);
     }
 
-    const blob = new Blob(byteArrays, {type: contentType});
-    return blob;
-  }
+    return new Blob(byteArrays, {type: contentType});
+  };
 
   this.saveByteArray = function (downloadData) {
     console.log("Save byte array ", downloadData);
-    console.log("Save byte array atob", atob(downloadData.content))
+    console.log("Save byte array atob", atob(downloadData.content));
     var byteArray = new Uint16Array(atob(downloadData.content));
     var blob = b64toBlob(downloadData.content, downloadData.contentType); // new Blob([byteArray], {type: downloadData.contentType});
     var url = window.URL.createObjectURL(blob);
