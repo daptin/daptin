@@ -51,10 +51,12 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 		var sessionUser *auth.SessionUser
 		if user != nil {
 			sessionUser = user.(*auth.SessionUser)
+		} else {
+			sessionUser = &auth.SessionUser{}
 		}
 
 		perm := cruds[typeName].GetObjectPermissionByWhereClause("world", "table_name", typeName)
-		if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
+		if !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
 			c.AbortWithStatus(403)
 			return
 		}
