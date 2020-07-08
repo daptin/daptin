@@ -104,19 +104,21 @@
     mounted() {
       const that = this;
       console.log("Mounted main layout");
-      var decoded = jwt.decode(this.authToken());
-      // console.log("Token decoded", this.authToken(), decoded);
-      if (decoded.exp < new Date().getTime() / 1000) {
-        // console.log("Token expired");
-        this.$q.notify({
-          message: "Token expired, please login again"
-        });
-        this.logout();
-        return
-      }
+
       that.loadModel(["cloud_store", "user_account", "usergroup", "world"]).then(function () {
         that.loaded = true;
         that.getDefaultCloudStore();
+        var decoded = jwt.decode(that.authToken());
+        console.log("Token decoded", that.authToken(), decoded);
+        if (!decoded || decoded.exp < new Date().getTime() / 1000) {
+          // console.log("Token expired");
+          that.$q.notify({
+            message: "Token expired, please login again"
+          });
+          that.logout();
+          return
+        }
+
         that.executeAction({
           tableName: 'world',
           actionName: "become_an_administrator"
