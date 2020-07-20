@@ -123,7 +123,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 	resource.CheckErr(err, "Failed to get config store")
 	defaultRouter.Use(NewLanguageMiddleware(configStore).LanguageMiddlewareFunc)
 
-	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connectioins", "backend")
+	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend")
 	if err != nil {
 		maxConnections = 50
 		err = configStore.SetConfigValueFor("limit.max_connections", "50", "backend")
@@ -310,7 +310,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection) (HostSwitch, 
 		imapServer.Debug = nil
 		imapServer.AllowInsecureAuth = false
 		imapServer.Enable(idle.NewExtension())
-		imapServer.Debug = os.Stdout
+		//imapServer.Debug = os.Stdout
 		//imapServer.EnableAuth("CRAM-MD5", func(conn server.Conn) sasl.Server {
 		//
 		//	return &Crammd5{

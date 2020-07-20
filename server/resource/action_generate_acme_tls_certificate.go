@@ -209,7 +209,6 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	if err != nil {
 		log.Printf("Failed to create client: %v", err)
 		return nil, []ActionResponse{}, []error{err}
-
 	}
 
 	certificateString := string(certificates.Certificate)
