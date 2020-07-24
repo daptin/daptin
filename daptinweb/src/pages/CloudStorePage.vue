@@ -9,53 +9,51 @@
           />
         </template>
 
-        <q-breadcrumbs-el label="Users" icon="fas fa-user"/>
-        <q-breadcrumbs-el label="Groups" icon="fas fa-users"/>
+        <q-breadcrumbs-el label="Storage" icon="fas fa-archive"/>
+        <q-breadcrumbs-el label="Cloud stores" icon="fas fa-bars"/>
       </q-breadcrumbs>
     </div>
     <q-separator></q-separator>
 
     <q-page-sticky position="bottom-right" :offset="[50, 50]">
-      <q-btn @click="newGroupDrawer = true" label="Add Group" fab icon="add" color="primary"/>
+      <q-btn @click="newcloudDrawer = true" label="Add cloud store" fab icon="add" color="primary"/>
     </q-page-sticky>
 
-    <div class="row">
-      <div class="col-12">
-        <q-markup-table>
-          <tbody>
-          <tr style="cursor: pointer" @click="$router.push('/groups/' + group.reference_id)" v-for="group in groups">
-            <td>{{group.name}}</td>
-          </tr>
-          </tbody>
-        </q-markup-table>
+    <div class="row q-pa-md q-gutter-sm">
+      <div class="col-2 col-sm-3 col-xs-12" v-for="cloud1 in cloudstores">
+        <q-card>
+          <q-card-section>
+            <span class="text-h4">{{cloud1.name}}</span>
+          </q-card-section>
+        </q-card>
 
       </div>
     </div>
 
-    <q-drawer :width="500" content-class="bg-grey-3" side="right" v-model="newGroupDrawer">
+    <q-drawer :width="500" content-class="bg-grey-3" side="right" v-model="newcloudDrawer">
       <q-scroll-area class="fit row">
         <div class="q-pa-md">
-          <span class="text-h6">Create group</span>
+          <span class="text-h6">Create cloud</span>
           <q-form class="q-gutter-md">
-            <q-input label="Name" v-model="group.name"></q-input>
-            <q-btn color="primary" @click="createGroup()">Create</q-btn>
-            <q-btn @click="newGroupDrawer = false">Cancel</q-btn>
+            <q-input label="Name" v-model="cloud.name"></q-input>
+            <q-btn color="primary" @click="createcloud()">Create</q-btn>
+            <q-btn @click="newcloudDrawer = false">Cancel</q-btn>
           </q-form>
         </div>
       </q-scroll-area>
     </q-drawer>
 
-    <q-page-sticky v-if="!showHelp" position="top-right" :offset="[0, 0]">
+    <q-page-sticky v-if="!showHelp && !newcloudDrawer" position="top-right" :offset="[0, 0]">
       <q-btn flat @click="showHelp = true" fab icon="fas fa-question"/>
     </q-page-sticky>
 
-    <q-drawer overlay :width="400" side="right" v-model="showHelp">
+    <q-drawer overlay :width="400" side="right" v-model="showHelp && !newcloudDrawer">
       <q-scroll-area class="fit">
         <help-page @closeHelp="showHelp = false">
           <template v-slot:help-content>
             <q-markdown src="::: tip
-You can create different user groups here. Different user groups can have different permissions.
-E.g. Admin Group that has permissions to create, read, write and delete tables.
+You can create different user clouds here. Different user clouds can have different permissions.
+E.g. Admin cloud that has permissions to create, read, write and delete tables.
 :::"></q-markdown>
           </template>
         </help-page>
@@ -72,20 +70,20 @@ E.g. Admin Group that has permissions to create, read, write and delete tables.
   export default {
     name: 'TablePage',
     methods: {
-      editGroup(evt, group) {
-        console.log("Edit group", group)
+      editcloudStore(evt, cloud) {
+        console.log("Edit cloud store", cloud)
       },
-      createGroup() {
+      createcloud() {
         const that = this;
-        console.log("new group", this.group);
-        this.group.tableName = "usergroup";
-        that.createRow(that.group).then(function (res) {
+        console.log("new cloud", this.cloud);
+        this.cloud.tableName = "cloud_store";
+        that.createRow(that.cloud).then(function (res) {
           that.user = {};
           that.$q.notify({
-            message: "Group created"
+            message: "cloud created"
           });
           that.refresh();
-          that.newGroupDrawer = false;
+          that.newcloudDrawer = false;
         }).catch(function (e) {
           if (e instanceof Array) {
             that.$q.notify({
@@ -93,18 +91,18 @@ E.g. Admin Group that has permissions to create, read, write and delete tables.
             })
           } else {
             that.$q.notify({
-              message: "Failed to create group"
+              message: "Failed to create cloud"
             })
           }
         });
       },
       ...mapActions(['loadData', 'getTableSchema', 'createRow']),
       refresh() {
-        var tableName = "usergroup";
+        var tableName = "cloud_store";
         const that = this;
         this.loadData({tableName: tableName}).then(function (data) {
           console.log("Loaded data", data);
-          that.groups = data.data;
+          that.cloudstores = data.data;
         })
       }
     },
@@ -112,15 +110,15 @@ E.g. Admin Group that has permissions to create, read, write and delete tables.
       return {
         text: '',
         showHelp: false,
-        group: {},
+        cloud: {},
         filter: null,
-        newGroupDrawer: false,
-        groups: [],
+        newcloudDrawer: false,
+        cloudstores: [],
         columns: [
           {
             name: 'name',
             field: 'name',
-            label: 'Group name',
+            label: 'cloud name',
             align: 'left',
             sortable: true,
           }

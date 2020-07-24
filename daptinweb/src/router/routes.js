@@ -1,5 +1,21 @@
 const routes = [
   {
+    path: '/login',
+    component: () => import('layouts/GuestLayout.vue'),
+    children: [
+      {
+        path: '', component: () => import('pages/Login.vue')
+      }
+    ]
+  },
+  {
+    path: '/register',
+    component: () => import('layouts/GuestLayout.vue'),
+    children: [
+      {path: '', component: () => import('pages/Signup.vue')}
+    ]
+  },
+  {
     path: '/tables',
     component: () => import('layouts/MainLayout.vue'),
     children: [
@@ -22,10 +38,20 @@ const routes = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       {
-        path: '/', component: () => import('pages/Users.vue'),
+        path: '', component: () => import('pages/Users.vue'),
       },
+    ]
+  },
+  {
+    path: '/user',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
       {
-        path: '/:userId', component: () => import('pages/EditUser.vue'),
+        path: 'profile', component: () => import('pages/UserProfile.vue'),
+      },
+
+      {
+        path: 'edit/:userId', component: () => import('pages/EditUser.vue'),
       },
     ]
   },
@@ -34,10 +60,34 @@ const routes = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       {
-        path: '/', component: () => import('pages/UserGroups.vue')
+        path: '', component: () => import('pages/UserGroups.vue')
       },
       {
-        path: '/:groupId', component: () => import('pages/EditGroup.vue')
+        path: ':groupId', component: () => import('pages/EditGroup.vue')
+      },
+    ]
+  },
+  {
+    path: '/integrations',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      {
+        path: 'spec', component: () => import('pages/ApiCatalogue.vue')
+      },
+      {
+        path: 'actions', component: () => import('pages/Actions.vue')
+      },
+    ]
+  },
+  {
+    path: '/cloudstore',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      {
+        path: '', component: () => import('pages/CloudStorePage.vue')
+      },
+      {
+        path: '/:cloudStoreId', component: () => import('pages/CloudStorePage.vue')
       },
     ]
   },
@@ -51,20 +101,6 @@ const routes = [
       {
         path: 'data', component: () => import('pages/Data.vue')
       },
-    ]
-  },
-  {
-    path: '/login',
-    component: () => import('layouts/GuestLayout.vue'),
-    children: [
-      {path: '', component: () => import('pages/Login.vue')}
-    ]
-  },
-  {
-    path: '/register',
-    component: () => import('layouts/GuestLayout.vue'),
-    children: [
-      {path: '', component: () => import('pages/Signup.vue')}
     ]
   },
 ];

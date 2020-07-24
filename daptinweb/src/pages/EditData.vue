@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="q-pa-md q-gutter-sm">
-      <q-breadcrumbs class="text-orange" active-color="secondary">
+      <q-breadcrumbs   >
         <template v-slot:separator>
           <q-icon
             size="1.2em"

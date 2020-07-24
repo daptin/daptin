@@ -1,12 +1,11 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <div>
     <div class="q-pa-md q-gutter-sm">
-      <q-breadcrumbs class="text-orange" active-color="secondary">
+      <q-breadcrumbs>
         <template v-slot:separator>
           <q-icon
             size="1.2em"
             name="arrow_forward"
-            color="primary"
           />
         </template>
 
@@ -16,41 +15,28 @@
     </div>
     <q-separator></q-separator>
 
-    <div class="row">
-      <div class="col-8 q-pa-md q-gutter-sm">
-        <q-markdown src="::: tip
-You can add users to your instance here. You can also send the sign up link where users can signup themselves.
-:::"></q-markdown>
-      </div>
-    </div>
-
-    <q-page-sticky position="bottom-right" :offset="[50, 50]">
-      <q-btn @click="newUserDrawer = true" label="Add User" fab icon="add" color="primary"/>
+    <q-page-sticky style="z-index: 3000" position="bottom-right" :offset="[20, 20]">
+      <q-btn @click="newUserDrawer = true" label="Add User" fab icon="add"/>
     </q-page-sticky>
     <div class="row">
-      <div class="col-8 q-pa-md q-gutter-sm">
-        <q-table
-          search
-          title="User Accounts"
-          :data="users"
-          :rows-per-page-options="[50]"
-          :columns="columns"
-          :filter="filter"
-          row-key="index"
-        >
-          <template v-slot:top-right>
-            <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
-              <template v-slot:append>
-                <q-icon name="search"/>
-              </template>
-            </q-input>
-          </template>
-        </q-table>
+      <div class="col-12 q-gutter-sm">
+        <q-markup-table flast>
+          <tbody>
+          <tr style="cursor: pointer" @click="$router.push('/user/edit/' + user.reference_id)" v-for="user in users">
+            <td>{{user.email}}</td>
+            <td>{{user.name}}</td>
+            <td>{{user.created_at.split('.')[0].split('T').join(' ')}}</td>
+            <td>
+              <q-btn flat icon="fas fa-wrench" color="black"></q-btn>
+            </td>
+          </tr>
+          </tbody>
+        </q-markup-table>
 
       </div>
     </div>
 
-    <q-drawer content-class="bg-grey-3" :width="500" side="right" v-model="newUserDrawer">
+    <q-drawer overlay content-class="bg-grey-3" :width="500" side="right" v-model="newUserDrawer">
       <q-scroll-area class="fit row">
         <div class="q-pa-md">
           <span class="text-h6">Create user</span>
@@ -62,6 +48,22 @@ You can add users to your instance here. You can also send the sign up link wher
             <q-btn @click="newUserDrawer = false">Cancel</q-btn>
           </q-form>
         </div>
+      </q-scroll-area>
+    </q-drawer>
+
+    <q-page-sticky v-if="!showHelp" position="top-right" :offset="[0, 0]">
+      <q-btn flat @click="showHelp = true" fab icon="fas fa-question"/>
+    </q-page-sticky>
+
+    <q-drawer overlay :width="400" side="right" v-model="showHelp">
+      <q-scroll-area class="fit">
+        <help-page @closeHelp="showHelp = false">
+          <template v-slot:help-content>
+            <q-markdown src="::: tip
+You can add users to your instance here. You can also send the sign up link where users can signup themselves.
+:::"></q-markdown>
+          </template>
+        </help-page>
       </q-scroll-area>
     </q-drawer>
 
@@ -117,6 +119,7 @@ You can add users to your instance here. You can also send the sign up link wher
       return {
         text: '',
         user: {},
+        showHelp: false,
         newUserDrawer: false,
         users: [],
         filter: null,
@@ -133,6 +136,10 @@ You can add users to your instance here. You can also send the sign up link wher
             label: 'Name',
             align: 'left',
           },
+          {
+            name: '',
+            format: function(){return "<span>hi</span>"}
+          }
         ],
         ...mapState([])
       }

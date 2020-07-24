@@ -952,6 +952,61 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "resetpassword",
+		Label:            "Reset password",
+		InstanceOptional: false,
+		OnType:           USER_ACCOUNT_TABLE_NAME,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "email",
+				ColumnName: "email",
+				ColumnType: "email",
+				IsNullable: false,
+			},
+		},
+		Validations: []ColumnTag{
+			{
+				ColumnName: "email",
+				Tags:       "email",
+			},
+		},
+		Conformations: []ColumnTag{
+			{
+				ColumnName: "email",
+				Tags:       "email",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:      USER_ACCOUNT_TABLE_NAME,
+				Method:    "GET",
+				Reference: "user",
+				Attributes: map[string]interface{}{
+					"query":      "[{'column': 'email', 'operator': 'is', 'value': '$email'}]",
+				},
+			},
+			{
+				Type:      "otp.generate",
+				Method:    "EXECUTE",
+				Reference: "otp",
+				Condition: "!mobile != null && mobile != undefined && mobile != ''",
+				Attributes: map[string]interface{}{
+					"mobile": "~mobile",
+					"email":  "~email",
+				},
+			},
+			{
+				Type:   "client.notify",
+				Method: "ACTIONRESPONSE",
+				Attributes: map[string]interface{}{
+					"type":    "success",
+					"title":   "Success",
+					"message": "Sign-up successful. Redirecting to sign in",
+				},
+			},
+		},
+	},
+	{
 		Name:             "signin",
 		Label:            "Sign in",
 		InstanceOptional: true,
