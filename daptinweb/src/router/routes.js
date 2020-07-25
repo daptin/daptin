@@ -84,7 +84,7 @@ const routes = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       {
-        path: '', component: () => import('pages/CloudStorePage.vue')
+        path: '/', component: () => import('pages/CloudStorePage.vue')
       },
       {
         path: '/sites', component: () => import('pages/SitePage.vue')

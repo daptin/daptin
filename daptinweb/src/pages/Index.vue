@@ -5,9 +5,22 @@
 
       <div class="col-4 col-md-6 col-lg-4 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
         <q-card>
+
+
           <q-card-section>
-            <span class="text-h4">Users</span>
+            <q-item>
+              <q-item-section avatar>
+                <q-avatar>
+                  <q-icon size="lg" name="fas fa-user"></q-icon>
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <span class="text-h4">Users</span>
+              </q-item-section>
+            </q-item>
           </q-card-section>
+
+
           <q-card-section>
             <div class="row q-pa-md">
               <div class="col-4">
@@ -51,9 +64,21 @@
 
       <div class="col-4  col-md-6 col-lg-4 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
         <q-card>
+
           <q-card-section>
-            <span class="text-h4">Data tables</span>
+            <q-item>
+              <q-item-section avatar>
+                <q-avatar>
+                  <q-icon size="lg" name="fas fa-database"></q-icon>
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <span class="text-h4">Data tables</span>
+              </q-item-section>
+            </q-item>
           </q-card-section>
+
+
           <q-card-section>
             <div class="row q-pa-md">
               <div class="col-4">
@@ -79,9 +104,22 @@
 
       <div class="col-4 col-md-6 col-lg-4 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
         <q-card>
+
+
           <q-card-section>
-            <span class="text-h4">Storage</span>
+            <q-item>
+              <q-item-section avatar>
+                <q-avatar>
+                  <q-icon size="lg" name="fas fa-archive"></q-icon>
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <span class="text-h4">Storage</span>
+              </q-item-section>
+            </q-item>
           </q-card-section>
+
+
           <q-card-section>
             <div class="row q-pa-md">
               <div class="col-4">
@@ -106,9 +144,21 @@
 
       <div class="col-4 col-md-6 col-lg-4 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
         <q-card>
+
           <q-card-section>
-            <span class="text-h4">Sites</span>
+            <q-item>
+              <q-item-section avatar>
+                <q-avatar>
+                  <q-icon size="lg" name="fas fa-film"></q-icon>
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <span class="text-h4">Sites</span>
+              </q-item-section>
+            </q-item>
           </q-card-section>
+
+
           <q-card-section>
             <div class="row q-pa-md">
               <div class="col-4">
@@ -127,6 +177,14 @@
               </div>
             </div>
           </q-card-section>
+          <q-card-section>
+            <div class="row ">
+              <div class="col-12 q-pa-md q-gutter-sm">
+                <q-btn class="float-right" round icon="list"></q-btn>
+                <q-btn class="float-right" label="Create a website"></q-btn>
+              </div>
+            </div>
+          </q-card-section>
 
         </q-card>
       </div>
@@ -134,8 +192,19 @@
       <div class="col-4  col-md-6 col-lg-4 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
         <q-card>
           <q-card-section>
-            <span class="text-h4">Integrations</span>
+            <q-item>
+              <q-item-section avatar>
+                <q-avatar>
+                  <q-icon size="lg" name="fas fa-bolt"></q-icon>
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <span class="text-h4">Integrations</span>
+              </q-item-section>
+            </q-item>
           </q-card-section>
+
+
           <q-card-section>
             <div class="row q-pa-md">
               <div class="col-4">
@@ -151,6 +220,15 @@
               </div>
               <div class="col-6 text-right">
                 {{actionAggregate.count}}
+              </div>
+            </div>
+          </q-card-section>
+
+          <q-card-section>
+            <div class="row ">
+              <div class="col-12 q-pa-md q-gutter-sm">
+                <q-btn class="float-right" label="Add API Spec"></q-btn>
+                <q-btn class="float-right" label="Create an action"></q-btn>
               </div>
             </div>
           </q-card-section>

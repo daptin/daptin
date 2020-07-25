@@ -19,7 +19,7 @@
     <q-card flat style="width: 100%">
       <q-card-section>
         <div class="row" v-if="user">
-          <div class="col-1 col-xs-6 col-sm-4 q-pa-md">
+          <div class="col-1 col-xl-2 col-lg-2 col-xs-6 col-sm-4 q-pa-md">
             <q-img :src="decodedAuthToken.picture"></q-img>
           </div>
           <div class="col-11 col-xs-6 col-sm-6 q-pa-md">

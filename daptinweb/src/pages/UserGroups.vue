@@ -1,7 +1,7 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <div>
     <div class="q-pa-md q-gutter-sm">
-      <q-breadcrumbs  >
+      <q-breadcrumbs>
         <template v-slot:separator>
           <q-icon
             size="1.2em"
@@ -102,7 +102,14 @@ E.g. Admin Group that has permissions to create, read, write and delete tables.
       refresh() {
         var tableName = "usergroup";
         const that = this;
-        this.loadData({tableName: tableName}).then(function (data) {
+        this.loadData({
+          tableName: tableName,
+          params: {
+            page: {
+              size: 500
+            }
+          }
+        }).then(function (data) {
           console.log("Loaded data", data);
           that.groups = data.data;
         })

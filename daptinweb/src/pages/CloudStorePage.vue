@@ -15,6 +15,7 @@
         <q-breadcrumbs-el label="Cloud stores" icon="fas fa-list"/>
       </q-breadcrumbs>
     </div>
+    <q-separator></q-separator>
 
     <div class="row q-pa-md q-gutter-sm">
 
@@ -22,7 +23,7 @@
         <q-btn @click="showCreateCloudStoreDrawer = true" fab icon="add" color="primary"/>
       </q-page-sticky>
 
-      <div class="col-4 col-xs-12 col-sm-12 q-pa-md" v-for="store in cloudstores">
+      <div class="col-4 col-xl-2 col-lg-3 col-xs-12 col-sm-6 q-pa-md" v-for="store in cloudstores">
         <q-card>
           <q-card-section>
             <span class="text-h6">{{store.name}}</span>
@@ -36,7 +37,7 @@
           <q-card-section>
             <div class="row">
               <div class="col-12">
-                <q-btn size="sm" label="Browser files" color="primary" class="float-right"></q-btn>
+                <q-btn size="sm" label="Browse files" color="primary" class="float-right"></q-btn>
                 <q-btn size="sm" label="Edit store" class="float-right"></q-btn>
               </div>
             </div>

@@ -1,15 +1,29 @@
 <template>
-  <q-page class="q-pa-md">
-    <span class="text-h4">
-      Usergroup
-    </span>
+  <q-page>
+
+    <div class="q-pa-md q-gutter-sm" v-if="group">
+      <q-breadcrumbs>
+        <template v-slot:separator>
+          <q-icon
+            size="1.2em"
+            name="arrow_forward"
+          />
+        </template>
+
+        <q-breadcrumbs-el label="User" icon="fas fa-user"/>
+        <q-breadcrumbs-el label="Groups" icon="fas fa-users"/>
+        <q-breadcrumbs-el :label="group.name"/>
+      </q-breadcrumbs>
+    </div>
+    <q-separator></q-separator>
+
+
     <div class="row" v-if="group">
       <div class="col-12 q-pa-md q-gutter-sm">
         <span class="text-h6">{{group.name}}</span>
       </div>
       <div class="col-12 q-pa-md q-gutter-sm">
-        <q-btn label="Change name" color="warning"></q-btn>
-        <q-btn label="Delete" color="negative"></q-btn>
+        <q-btn @click="deleteGroup()" label="Delete" color="negative"></q-btn>
       </div>
     </div>
   </q-page>
@@ -50,7 +64,24 @@
       })
     },
     methods: {
-      ...mapActions(['loadData'])
+      deleteGroup(){
+        const that = this;
+        that.deleteRow({
+          tableName: "usergroup",
+          reference_id: that.group.id
+        }).then(function (res) {
+          console.log("Deleted group", res);
+          that.$q.notify({
+            message: "Deleted group"
+          });
+          that.$router.back();
+        }).catch(function (error) {
+          that.$q.notify({
+            message: JSON.stringify(error)
+          })
+        })
+      },
+      ...mapActions(['loadData', 'deleteRow'])
     }
   }
 </script>

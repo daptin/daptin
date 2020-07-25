@@ -19,10 +19,13 @@
       <q-btn @click="newUserDrawer = true" label="Add User" fab icon="add"/>
     </q-page-sticky>
     <div class="row">
+      <div class="col-12 q-pa-md">
+        <q-input v-model="userFilter" label="search"></q-input>
+      </div>
       <div class="col-12 q-gutter-sm">
         <q-markup-table flast>
           <tbody>
-          <tr style="cursor: pointer" @click="$router.push('/user/' + user.email)" v-for="user in users">
+          <tr style="cursor: pointer" @click="$router.push('/user/' + user.email)" v-for="user in usersFiltered">
             <td>{{user.email}}</td>
             <td>{{user.name}}</td>
             <td>{{user.created_at.split('.')[0].split('T').join(' ')}}</td>
@@ -75,6 +78,7 @@ You can add users to your instance here. You can also send the sign up link wher
 
   export default {
     name: 'TablePage',
+
     methods: {
       createUser() {
         const that = this;
@@ -118,6 +122,7 @@ You can add users to your instance here. You can also send the sign up link wher
     data() {
       return {
         text: '',
+        userFilter: null,
         user: {},
         showHelp: false,
         newUserDrawer: false,
@@ -138,7 +143,9 @@ You can add users to your instance here. You can also send the sign up link wher
           },
           {
             name: '',
-            format: function(){return "<span>hi</span>"}
+            format: function () {
+              return "<span>hi</span>"
+            }
           }
         ],
         ...mapState([])
@@ -148,6 +155,12 @@ You can add users to your instance here. You can also send the sign up link wher
       this.refresh();
     },
     computed: {
+      usersFiltered() {
+        const that = this;
+        return this.userFilter == null ? this.users : this.users.filter(function (e) {
+          return e.email.indexOf(that.userFilter) > -1 || e.name.indexOf(that.userFilter) > -1
+        })
+      },
       ...mapGetters(['selectedTable']),
       ...mapState([])
     },

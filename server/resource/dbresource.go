@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
+	"github.com/artpar/go-guerrilla/backends"
+	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend/backendutil"
 	"github.com/daptin/daptin/server/database"
@@ -31,6 +33,7 @@ type DbResource struct {
 	contextLock        sync.RWMutex
 	AssetFolderCache   map[string]map[string]*AssetFolderCache
 	SubsiteFolderCache map[string]*AssetFolderCache
+	MailSender         func(e *mail.Envelope, task backends.SelectTask) (backends.Result, error)
 }
 
 type AssetFolderCache struct {
