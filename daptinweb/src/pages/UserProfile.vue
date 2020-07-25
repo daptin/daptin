@@ -16,23 +16,26 @@
     <q-separator></q-separator>
 
 
-    <div class="row q-pa-md" v-if="user">
-      <div class="col-4 col-lg-2 col-md-3">
-        <q-img :src="decodedAuthToken.picture"></q-img>
-      </div>
-      <div class="col-8 q-pa-md">
-        <div class="row">
-          <div class="col-12">
-            <span class="text-h5">{{user.email}}</span>
+    <q-card flat style="width: 100%">
+      <q-card-section>
+        <div class="row" v-if="user">
+          <div class="col-1 col-xs-6 col-sm-4 q-pa-md">
+            <q-img :src="decodedAuthToken.picture"></q-img>
           </div>
-          <div class="col-12 q-pa-md">
-            <q-btn label="Reset password"></q-btn>
+          <div class="col-11 col-xs-6 col-sm-6 q-pa-md">
+            <span class="text-h5">{{user.name}}</span> <br />
+            <span class="text-h6">{{user.email}}</span>
           </div>
         </div>
-      </div>
-      <div class="col-12">
-      </div>
-    </div>
+      </q-card-section>
+      <q-card-section>
+        <div class="row">
+          <div class="col-12">
+            <q-btn class="float-right" label="Reset password"></q-btn>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
 
   </div>
 </template>

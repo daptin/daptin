@@ -17,14 +17,6 @@
     </div>
 
     <div class="row">
-      <div class="col-8 q-pa-md q-gutter-sm">
-        <q-markdown src=":::warning
-When you add a new column to the table, either a set default value or the set the column as nullable
-:::"></q-markdown>
-      </div>
-    </div>
-
-    <div class="row">
       <div class="col-10 q-pa-md q-gutter-sm">
         <div v-if="tableSchema" class="col-10 q-pa-sm">
           <table-editor v-on:deleteRelation="deleteTableRelation"
@@ -34,6 +26,24 @@ When you add a new column to the table, either a set default value or the set th
         </div>
       </div>
     </div>
+
+
+    <q-page-sticky v-if="!showHelp" position="top-right" :offset="[0, 0]">
+      <q-btn flat @click="showHelp = true" fab icon="fas fa-question"/>
+    </q-page-sticky>
+
+    <q-drawer overlay :width="400" side="right" v-model="showHelp">
+      <q-scroll-area class="fit">
+        <help-page @closeHelp="showHelp = false">
+          <template v-slot:help-content>
+            <q-markdown src=":::warning
+When you add a new column to the table, either a set default value or the set the column as nullable
+:::"></q-markdown>
+          </template>
+        </help-page>
+      </q-scroll-area>
+    </q-drawer>
+
 
   </q-page>
 </template>
@@ -208,6 +218,7 @@ When you add a new column to the table, either a set default value or the set th
     data() {
       return {
         text: '',
+        showHelp: false,
         tableData: null,
         tableSchema: null,
       }

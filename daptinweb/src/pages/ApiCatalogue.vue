@@ -15,9 +15,7 @@
     </div>
     <q-separator></q-separator>
 
-    <q-page-sticky position="bottom-right" :offset="[50, 50]">
-      <q-btn @click="newUserDrawer = true" label="Add User" fab icon="add" color="primary"/>
-    </q-page-sticky>
+
     <div class="row">
       <div class="col-8 q-pa-md q-gutter-sm">
         <span class="text-h4">API Catalogue</span>

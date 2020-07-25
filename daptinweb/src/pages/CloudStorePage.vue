@@ -1,20 +1,50 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-  <div class="row q-pa-md q-gutter-sm">
+  <div>
 
+    <div class="q-pa-md q-gutter-sm">
+      <q-breadcrumbs>
+        <template v-slot:separator>
+          <q-icon
+            size="1.2em"
+            name="arrow_forward"
+            color="black"
+          />
+        </template>
 
-    <div class="col-12">
-      <span class="text-h5">Cloud stores</span>
+        <q-breadcrumbs-el label="Storage" icon="fas fa-archive"/>
+        <q-breadcrumbs-el label="Cloud stores" icon="fas fa-list"/>
+      </q-breadcrumbs>
     </div>
 
-    <div class="col-3 q-pa-md q-gutter-sm">
+    <div class="row q-pa-md q-gutter-sm">
 
-      <q-card v-for="store in cloudstores">
-        <q-card-section>
-          <span class="text-bold">{{store.name}}</span>
-        </q-card-section>
-      </q-card>
+      <q-page-sticky style="z-index: 3000" position="bottom-right" :offset="[20, 20]">
+        <q-btn @click="showCreateCloudStoreDrawer = true" fab icon="add" color="primary"/>
+      </q-page-sticky>
+
+      <div class="col-4 col-xs-12 col-sm-12 q-pa-md" v-for="store in cloudstores">
+        <q-card>
+          <q-card-section>
+            <span class="text-h6">{{store.name}}</span>
+          </q-card-section>
+          <q-card-section>
+            <span>Provider</span> <span class="text-bold float-right">{{store.store_provider}}</span>
+          </q-card-section>
+          <q-card-section>
+            <span>Root path</span> <span class="text-bold float-right">{{store.root_path}}</span>
+          </q-card-section>
+          <q-card-section>
+            <div class="row">
+              <div class="col-12">
+                <q-btn size="sm" label="Browser files" color="primary" class="float-right"></q-btn>
+                <q-btn size="sm" label="Edit store" class="float-right"></q-btn>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+
     </div>
-
   </div>
 </template>
 
@@ -64,6 +94,7 @@
       return {
         text: '',
         showHelp: false,
+        showCreateCloudStoreDrawer: false,
         cloud: {},
         filter: null,
         newcloudDrawer: false,

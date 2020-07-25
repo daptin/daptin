@@ -228,14 +228,12 @@
       </div>
     </div>
 
-    <div style="padding-bottom: 10px" class="row" v-if="isEdit">
-      <div class="col-md-12">
-        <span class="text-h4">Delete table</span>
-      </div>
+    <div style="padding-bottom: 10px" class="row q-pa-md" v-if="isEdit">
       <div class="col-md-12">
         <q-btn @click="deleteTable()" color="red" label="Delete table"></q-btn>
       </div>
     </div>
+
 
 
   </q-form>
