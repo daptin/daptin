@@ -115,7 +115,7 @@ text-align: center;
                 </q-item-section>
               </q-item>
 
-              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/sites')">
+              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/cloudstore/sites')">
                 <q-item-section avatar>
                   <q-icon name="fas fa-desktop"></q-icon>
 
@@ -130,7 +130,6 @@ text-align: center;
             </q-list>
 
           </q-expansion-item>
-
 
 
           <q-expansion-item
@@ -240,7 +239,7 @@ text-align: center;
     data() {
       return {
         showHelp: false,
-        ...mapGetters(['loggedIn', 'drawerLeft', 'authToken']),
+        ...mapGetters(['loggedIn', 'drawerLeft', 'authToken', 'decodedAuthToken']),
         essentialLinks: [],
         drawer: false,
         userDrawer: false,
@@ -253,8 +252,19 @@ text-align: center;
     mounted() {
       const that = this;
       console.log("Mounted main layout");
+      if (that.decodedAuthToken()) {
+        let decodedAuthToken = that.decodedAuthToken();
+        let isLoggedOut = decodedAuthToken.exp * 1000 < new Date().getTime();
+        console.log("Decoded auth token", isLoggedOut,  decodedAuthToken);
+        if (isLoggedOut) {
+          that.$q.notify({
+            message: "Authentication has expired, please login again"
+          });
+          that.logout();
+        }
+      }
 
-      that.loadModel(["cloud_store", "user_account", "usergroup", "world"]).then(async function () {
+      that.loadModel(["cloud_store", "user_account", "usergroup", "world", "action"]).then(async function () {
         that.loaded = true;
         that.getDefaultCloudStore();
 

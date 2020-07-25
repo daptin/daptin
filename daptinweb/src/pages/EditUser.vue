@@ -34,9 +34,9 @@
         params: {
           query: JSON.stringify([
             {
-              column: 'reference_id',
+              column: 'email',
               operator: 'is',
-              value: this.$route.params.userId
+              value: this.$route.params.emailId
             }
           ])
         }

@@ -87,6 +87,13 @@ export function addRelation({commit}, row) {
   })
 }
 
+export function addManyRelation({commit}, row) {
+  return daptinClient.jsonApi.one(row.tableName, row.id).relationships(row.relationName).patch([{
+    type: row.relationName,
+    id: row.relationId
+  }])
+}
+
 export function loadData({commit}, params) {
   var tableName = params.tableName;
   params = params.params;
@@ -103,6 +110,10 @@ export function loadDataRelations({commit}, params) {
   var relationName = params.relation;
   var primaryTableId = params.reference_id;
   return daptinClient.jsonApi.one(primaryTable, primaryTableId).all(relationName).get()
+}
+export function loadAggregates({commit}, params) {
+  var primaryTable = params.tableName;
+  return daptinClient.statsManager.getStats(primaryTable, params)
 }
 
 export function getTableSchema({commit}, tableName) {

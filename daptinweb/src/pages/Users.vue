@@ -22,7 +22,7 @@
       <div class="col-12 q-gutter-sm">
         <q-markup-table flast>
           <tbody>
-          <tr style="cursor: pointer" @click="$router.push('/user/edit/' + user.reference_id)" v-for="user in users">
+          <tr style="cursor: pointer" @click="$router.push('/user/' + user.email)" v-for="user in users">
             <td>{{user.email}}</td>
             <td>{{user.name}}</td>
             <td>{{user.created_at.split('.')[0].split('T').join(' ')}}</td>

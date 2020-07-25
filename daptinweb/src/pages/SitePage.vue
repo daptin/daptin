@@ -3,14 +3,14 @@
 
 
     <div class="col-12">
-      <span class="text-h5">Cloud stores</span>
+      <span class="text-h4">Site</span>
     </div>
 
     <div class="col-3 q-pa-md q-gutter-sm">
 
-      <q-card v-for="store in cloudstores">
+      <q-card v-for="site in sites">
         <q-card-section>
-          <span class="text-bold">{{store.name}}</span>
+          {{site.hostname}}
         </q-card-section>
       </q-card>
     </div>
@@ -24,20 +24,20 @@
   export default {
     name: 'TablePage',
     methods: {
-      editcloudStore(evt, cloud) {
-        console.log("Edit cloud store", cloud)
+      editSite(evt, site) {
+        console.log("Edit site", site)
       },
-      createcloud() {
+      createSloud() {
         const that = this;
-        console.log("new cloud", this.cloud);
-        this.cloud.tableName = "cloud_store";
-        that.createRow(that.cloud).then(function (res) {
+        console.log("new site", this.site);
+        this.site.tableName = "site";
+        that.createRow(that.site).then(function (res) {
           that.user = {};
           that.$q.notify({
-            message: "cloud created"
+            message: "site created"
           });
           that.refresh();
-          that.newcloudDrawer = false;
+          that.newsiteDrawer = false;
         }).catch(function (e) {
           if (e instanceof Array) {
             that.$q.notify({
@@ -45,18 +45,18 @@
             })
           } else {
             that.$q.notify({
-              message: "Failed to create cloud"
+              message: "Failed to create site"
             })
           }
         });
       },
       ...mapActions(['loadData', 'getTableSchema', 'createRow']),
       refresh() {
-        var tableName = "cloud_store";
+        var tableName = "site";
         const that = this;
         this.loadData({tableName: tableName}).then(function (data) {
           console.log("Loaded data", data);
-          that.cloudstores = data.data;
+          that.sites = data.data;
         })
       }
     },
@@ -64,15 +64,15 @@
       return {
         text: '',
         showHelp: false,
-        cloud: {},
+        site: {},
         filter: null,
-        newcloudDrawer: false,
-        cloudstores: [],
+        newsiteDrawer: false,
+        sites: [],
         columns: [
           {
             name: 'name',
             field: 'name',
-            label: 'cloud name',
+            label: 'site name',
             align: 'left',
             sortable: true,
           }

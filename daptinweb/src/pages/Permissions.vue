@@ -4,7 +4,10 @@
 
       <div class="col-12 q-pa-md items-start q-gutter-md">
 
-        <q-card>
+        <q-card flat class="bg-grey-3">
+          <q-card-section>
+            <span class="text-h6">Table Permissions</span>
+          </q-card-section>
           <q-card-section>
             <q-tabs
               v-model="permissionTypeTab"
@@ -38,40 +41,39 @@
                       narrow-indicator>
                       <q-tab name="tablePermissions" label="Table Permissions"/>
                       <q-tab name="rowPermissions" label="New Row Permissions"/>
-                      <q-tab name="groups" label="Groups"/>
+                      <!--                      <q-tab name="groups" label="Groups"/>-->
                     </q-tabs>
                   </q-card-section>
                   <q-card-section>
 
                     <q-tab-panels v-model="selectedTab">
                       <q-tab-panel name="tablePermissions">
-                        <span class="text-h5">Table permissions</span>
-                        <div class="q-pa-md">
-                          <span class="text-h6">Guest</span>
+                        <div class="col-12">
+                          <span class="text-bold">Owner</span>
                           <div class="q-gutter-sm">
 
-                            <q-checkbox v-model="parsedGuestPermission.canPeek" label="Peek"/>
-                            <q-checkbox v-model="parsedGuestPermission.canCreate" label="Create"/>
-                            <q-checkbox v-model="parsedGuestPermission.canRead" label="Read"/>
-                            <q-checkbox v-model="parsedGuestPermission.canUpdate" label="Update"/>
-                            <q-checkbox v-model="parsedGuestPermission.canDelete" label="Delete"/>
-                            <q-checkbox v-model="parsedGuestPermission.canRefer" label="Refer"/>
-                            <q-checkbox v-model="parsedGuestPermission.canExecute" label="Execute"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canPeek" label="Peek"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canCreate" label="Create"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canRead" label="Read"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canUpdate" label="Update"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canDelete" label="Delete"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canRefer" label="Refer"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canExecute" label="Execute"/>
 
                           </div>
                         </div>
-
-                        <div class="col-12 q-pa-md">
-                          <span class="text-h5">Owner</span>
+                        <br/>
+                        <div class="col-12">
+                          <span class="text-bold">Guest</span>
                           <div class="q-gutter-sm">
 
-                            <q-checkbox v-model="parsedOwnerPermission.canPeek" label="Peek"/>
-                            <q-checkbox v-model="parsedOwnerPermission.canCreate" label="Create"/>
-                            <q-checkbox v-model="parsedOwnerPermission.canRead" label="Read"/>
-                            <q-checkbox v-model="parsedOwnerPermission.canUpdate" label="Update"/>
-                            <q-checkbox v-model="parsedOwnerPermission.canDelete" label="Delete"/>
-                            <q-checkbox v-model="parsedOwnerPermission.canRefer" label="Refer"/>
-                            <q-checkbox v-model="parsedOwnerPermission.canExecute" label="Execute"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canPeek" label="Peek"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canCreate" label="Create"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canRead" label="Read"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canUpdate" label="Update"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canDelete" label="Delete"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canRefer" label="Refer"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canExecute" label="Execute"/>
 
                           </div>
                         </div>
@@ -79,54 +81,39 @@
                       </q-tab-panel>
 
                       <q-tab-panel name="rowPermissions">
-            <span class="text-h5">
-              Default row permissions
-            </span>
-                        <div class="col-12 q-pa-md">
-                          <span class="text-h6">Guest</span>
+                        <div class="col-12">
+                          <span class="text-bold">Guest</span>
                           <div class="q-gutter-sm">
 
-                            <q-checkbox v-model="parsedGuestPermission.canPeek" label="Peek"/>
-                            <q-checkbox v-model="parsedGuestPermission.canCreate" label="Create"/>
-                            <q-checkbox v-model="parsedGuestPermission.canRead" label="Read"/>
-                            <q-checkbox v-model="parsedGuestPermission.canUpdate" label="Update"/>
-                            <q-checkbox v-model="parsedGuestPermission.canDelete" label="Delete"/>
-                            <q-checkbox v-model="parsedGuestPermission.canRefer" label="Refer"/>
-                            <q-checkbox v-model="parsedGuestPermission.canExecute" label="Execute"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canPeek" label="Peek"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canCreate" label="Create"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canRead" label="Read"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canUpdate" label="Update"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canDelete" label="Delete"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canRefer" label="Refer"/>
+                            <q-checkbox size="xs" v-model="parsedGuestPermission.canExecute" label="Execute"/>
 
                           </div>
                         </div>
-
-                        <div class="col-12 q-pa-md">
-                          <span class="text-h5">Owner</span>
+                        <br/>
+                        <div class="col-12">
+                          <span class="text-bold">Owner</span>
                           <div class="q-gutter-sm">
 
-                            <q-checkbox v-model="parsedOwnerPermission.canPeek" label="Peek"/>
-                            <q-checkbox v-model="parsedOwnerPermission.canCreate" label="Create"/>
-                            <q-checkbox v-model="parsedOwnerPermission.canRead" label="Read"/>
-                            <q-checkbox v-model="parsedOwnerPermission.canUpdate" label="Update"/>
-                            <q-checkbox v-model="parsedOwnerPermission.canDelete" label="Delete"/>
-                            <q-checkbox v-model="parsedOwnerPermission.canRefer" label="Refer"/>
-                            <q-checkbox v-model="parsedOwnerPermission.canExecute" label="Execute"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canPeek" label="Peek"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canCreate" label="Create"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canRead" label="Read"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canUpdate" label="Update"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canDelete" label="Delete"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canRefer" label="Refer"/>
+                            <q-checkbox size="xs" v-model="parsedOwnerPermission.canExecute" label="Execute"/>
 
                           </div>
                         </div>
 
                       </q-tab-panel>
-                      <q-tab-panel name="groups">
-                        <span class="text-h5">Group Permissions</span>
-                        <div class="col-12 q-pa-md">
-                          <div class="q-gutter-sm">
-                            <q-checkbox v-model="parsedGroupPermission.canPeek" label="Peek"/>
-                            <q-checkbox v-model="parsedGroupPermission.canCreate" label="Create"/>
-                            <q-checkbox v-model="parsedGroupPermission.canRead" label="Read"/>
-                            <q-checkbox v-model="parsedGroupPermission.canUpdate" label="Update"/>
-                            <q-checkbox v-model="parsedGroupPermission.canDelete" label="Delete"/>
-                            <q-checkbox v-model="parsedGroupPermission.canRefer" label="Refer"/>
-                            <q-checkbox v-model="parsedGroupPermission.canExecute" label="Execute"/>
-                          </div>
-                        </div>
-                      </q-tab-panel>
+
+
                     </q-tab-panels>
 
 
@@ -148,7 +135,7 @@
           </q-card-section>
 
           <q-card-section class="q-pt-none">
-            {{selectedTable.user_account_id ? selectedTable.user_account_id : 'n/a'}}
+            {{selectedTable.user_account_id ? selectedTable.user_account_id.email : 'n/a'}}
           </q-card-section>
 
 
@@ -167,13 +154,13 @@
             </ul>
           </q-card-section>
           <q-card-actions>
-            <q-btn label="Add group" @click="groupChangeForTableGroups()"></q-btn>
+            <q-btn flat label="Add group" @click="groupChangeForTableGroups()"></q-btn>
           </q-card-actions>
         </q-card>
 
         <q-card>
           <q-card-section>
-            <div class="text-h6">New row default groups</div>
+            <div class="text-h6">New row to be added to following groups</div>
           </q-card-section>
           <q-card-section class="q-pt-none">
             <ul>
@@ -181,7 +168,7 @@
             </ul>
           </q-card-section>
           <q-card-actions>
-            <q-btn label="Add group" @click="groupChangeForNewRowGroups()"></q-btn>
+            <q-btn flat label="Add group" @click="groupChangeForNewRowGroups()"></q-btn>
           </q-card-actions>
         </q-card>
 
@@ -265,6 +252,24 @@
         console.log("Add groups", this.groupChangeFor, this.addToGroupId);
         switch (this.groupChangeFor) {
           case 'tableGroups':
+
+            that.addManyRelation({
+              tableName: "world",
+              id: that.selectedTable.reference_id,
+              relationId: this.addToGroupId.id,
+              relationName: 'usergroup_id',
+            }).then(function () {
+              that.$q.notify({
+                message: "Added group"
+              });
+            }).catch(function (e) {
+              console.log("Failed to add group", e);
+              that.$q.notify({
+                message: "Failed to save"
+              });
+            });
+
+
             break;
           case 'newRowGroups':
             var currentGroups = that.tableSchema.DefaultGroups;
@@ -288,6 +293,7 @@
             that.$q.notify({
               message: "Saved"
             });
+            that.selectedTable.user_account_id = user;
           }).catch(function (e) {
             console.log("Failed to save new owner", e);
             that.$q.notify({
@@ -306,7 +312,7 @@
               message: "Removed owner"
             });
           }).catch(function (e) {
-            console.log("Failed to save new owner", e);
+            console.log("Failed to remove owner", e);
             that.$q.notify({
               message: "Failed to save"
             });
@@ -326,7 +332,7 @@
         this.groupChangeFor = 'newRowGroups';
         this.addToGroup = true
       },
-      ...mapActions(['loadData', 'loadModel', 'loadDataRelations', 'updateRow', 'removeRelation', 'addRelation']),
+      ...mapActions(['loadData', 'loadModel', 'loadDataRelations', 'updateRow', 'removeRelation', 'addRelation', 'addManyRelation', 'loadDataRelations']),
       refresh() {
         const that = this;
         console.log("Table schema json", that.selectedTable);
@@ -363,7 +369,7 @@
         };
         this.loadTableGroups();
       },
-      loadTableGroups(){
+      loadTableGroups() {
         const that = this;
         that.loadDataRelations({
           tableName: 'world',
@@ -475,6 +481,7 @@
           message: "Failed to load users list: " + JSON.stringify(err)
         })
       });
+
       that.loadData({
         tableName: "usergroup",
         params: {
@@ -488,6 +495,20 @@
           message: "Failed to load usergroups list: " + JSON.stringify(err)
         })
       });
+
+      // that.loadDataRelations({
+      //   tableName: "world",
+      //   relation: "usergroup_id",
+      //   reference_id: "",
+      // }).then(function (res) {
+      //   that.userGroups = res.data;
+      // }).catch(function (err) {
+      //   that.$q.notify({
+      //     message: "Failed to load usergroups list: " + JSON.stringify(err)
+      //   })
+      // });
+
+
       this.refresh();
     },
     computed: {
@@ -499,6 +520,9 @@
       'selectedTable': function (newTable, oldTable) {
         const that = this;
         this.refresh()
+      },
+      'parsedOwnerPermission': function (newPermission, currentPermission) {
+        console.log("Permission changed", newPermission, currentPermission)
       }
     }
   }

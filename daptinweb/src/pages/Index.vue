@@ -1,31 +1,38 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <q-page>
     <div class="row">
-      <div class="col-12">
-        <div class="q-pa-md">
-          <span class="text-h4">Home</span>
-        </div>
-      </div>
-      <div class="col-6">
-        <q-card flat>
+      <div class="col-4 q-pa-md q-gutter-sm">
+        <q-card>
           <q-card-section>
-            <table width="400">
-              <tbody>
-              <tr>
-                <td class="text-h6">User Registration</td>
-                <td class="float-right">
-                  <label :label="signUpPublicAvailable ? 'Enabled': 'Disabled'"></label>
-                </td>
-              </tr>
-              <tr>
-                <td class="text-h6">Password Reset</td>
-                <td class="float-right">
-                  <label :label="resetPublicAvailable ? 'Enabled': 'Disabled'"></label>
-                </td>
-              </tr>
-              </tbody>
-            </table>
+            <span class="text-h4">Users</span>
           </q-card-section>
+          <q-card-section>
+            <div class="row q-pa-md">
+              <div class="col-4">
+                <span class="text-bold">Total</span>
+              </div>
+              <div class="col-6 text-right">
+                {{userAggregate.count}}
+              </div>
+            </div>
+            <div class="row q-pa-md">
+              <div class="col-4">
+                <span class="text-bold">User registrations</span>
+              </div>
+              <div class="col-6 text-right">
+                <q-btn :label="signUpPublicAvailable ? 'Enabled': 'Disabled'"></q-btn>
+              </div>
+            </div>
+            <div class="row q-pa-md">
+              <div class="col-4">
+                <span class="text-bold">Password Reset</span>
+              </div>
+              <div class="col-6 text-right">
+                <q-btn :label="resetPublicAvailable ? 'Enabled': 'Disabled'"></q-btn>
+              </div>
+            </div>
+          </q-card-section>
+
         </q-card>
       </div>
     </div>
@@ -39,12 +46,13 @@
   export default {
     name: 'PageIndex',
     methods: {
-      ...mapActions(['loadData'])
+      ...mapActions(['loadData', 'loadAggregates'])
     },
 
     data() {
       return {
         text: '',
+        userAggregate: {},
         signUpPublicAvailable: false,
         resetPublicAvailable: false,
       }
@@ -78,7 +86,15 @@
 
       }).catch(function (res) {
         console.log("Failed to load actions", res);
+      });
 
+
+      that.loadAggregates({
+        tableName: 'user_account',
+        column: 'count'
+      }).then(function (res) {
+        console.log("User account aggregates", res);
+        that.userAggregate = res.data[0];
       })
     }
   }

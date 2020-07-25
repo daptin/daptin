@@ -51,7 +51,7 @@ const routes = [
       },
 
       {
-        path: 'edit/:userId', component: () => import('pages/EditUser.vue'),
+        path: ':emailId', component: () => import('pages/EditUser.vue'),
       },
     ]
   },
@@ -87,7 +87,10 @@ const routes = [
         path: '', component: () => import('pages/CloudStorePage.vue')
       },
       {
-        path: '/:cloudStoreId', component: () => import('pages/CloudStorePage.vue')
+        path: '/sites', component: () => import('pages/SitePage.vue')
+      },
+      {
+        path: '/edit/:cloudStoreId', component: () => import('pages/CloudStorePage.vue')
       },
     ]
   },

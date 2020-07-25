@@ -114,7 +114,7 @@
       <q-scroll-area class="fit row">
         <div class="q-pa-md">
           <div class="col-12">
-            <span class="text-h6">Table permissions</span>
+            <span class="text-h4">Table authorization</span>
           </div>
         </div>
         <div>
@@ -457,7 +457,7 @@
                 value: tableName
               }
             ]),
-            included_relations: 'user_account_id',
+            included_relations: 'user_account',
           }
         }).then(function (res) {
           console.log("Table row", res, arguments);

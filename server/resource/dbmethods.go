@@ -1238,8 +1238,8 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					referenceIdInt, err = strconv.ParseInt(stringIntId, 10, 64)
 					CheckErr(err, "Failed to convert string id to int id")
 				}
-				cache_key := fmt.Sprintf("%v-%v", namespace, referenceIdInt)
-				objCached, ok := objMap[cache_key]
+				cacheKey := fmt.Sprintf("%v-%v", namespace, referenceIdInt)
+				objCached, ok := objMap[cacheKey]
 				if ok {
 					localInclude = append(localInclude, objCached.(map[string]interface{}))
 					continue
@@ -1253,7 +1253,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				}
 				row[key] = refId
 
-				if includedRelationMap != nil && (includedRelationMap[namespace] || includedRelationMap["*"]) {
+				if includedRelationMap != nil && (includedRelationMap[namespace] || includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"]) {
 					obj, err := dr.GetIdToObject(namespace, referenceIdInt)
 					obj["__type"] = namespace
 

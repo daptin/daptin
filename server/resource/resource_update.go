@@ -471,9 +471,19 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 			}
 
 			val11, ok := attrs[rel.GetObjectName()]
-			if !ok || len(val11.([]map[string]interface{})) < 1 {
+			if !ok {
 				continue
 			}
+			mapList, ok := val11.([]map[string]interface{})
+			if !ok {
+				log.Infof("parameter [%s] is not of type Array Of Map", rel.GetObjectName())
+				continue
+			}
+
+			if len(mapList) < 1 {
+				continue
+			}
+
 			log.Infof("Update object for relation on [%v] : [%v]", rel.GetObjectName(), val11)
 
 			valueList := val11.([]map[string]interface{})

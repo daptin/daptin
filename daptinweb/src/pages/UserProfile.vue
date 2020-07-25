@@ -1,7 +1,7 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <div>
     <div class="q-pa-md q-gutter-sm">
-      <q-breadcrumbs  >
+      <q-breadcrumbs>
         <template v-slot:separator>
           <q-icon
             size="1.2em"
@@ -16,12 +16,21 @@
     <q-separator></q-separator>
 
 
-    <div class="row q-pa-md q-gutter-sm" v-if="user">
-      <div class="col-8">
-        <span class="text-h5">{{user.email}}</span>
+    <div class="row q-pa-md" v-if="user">
+      <div class="col-4 col-lg-2 col-md-3">
+        <q-img :src="decodedAuthToken.picture"></q-img>
+      </div>
+      <div class="col-8 q-pa-md">
+        <div class="row">
+          <div class="col-12">
+            <span class="text-h5">{{user.email}}</span>
+          </div>
+          <div class="col-12 q-pa-md">
+            <q-btn label="Reset password"></q-btn>
+          </div>
+        </div>
       </div>
       <div class="col-12">
-        <q-btn label="Reset password"></q-btn>
       </div>
     </div>
 
@@ -67,7 +76,8 @@
         }).then(function (data) {
           console.log("Loaded data", data);
           that.user = data.data;
-        })
+        });
+        console.log("Token", that.authToken)
       },
     },
     data() {
@@ -98,7 +108,7 @@
       this.refresh();
     },
     computed: {
-      ...mapGetters(['selectedTable']),
+      ...mapGetters(['selectedTable', 'authToken', 'decodedAuthToken']),
       ...mapState([])
     },
 

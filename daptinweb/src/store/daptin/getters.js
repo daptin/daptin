@@ -1,12 +1,22 @@
+
+
+
+
 export function loggedIn(state) {
-  return !!state.token
+  let token = state.token;
+  return !!token
 }
 
 export function endpoint(state) {
   return state.endpoint;
 }
+
 export function authToken(state) {
   return state.token
+}
+
+export function decodedAuthToken(state) {
+  return state.decodedAuthToken
 }
 
 export function tables(state) {
