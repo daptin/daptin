@@ -28,7 +28,7 @@ type FileUploadActionPerformer struct {
 }
 
 func (d *FileUploadActionPerformer) Name() string {
-	return "__external_file_upload"
+	return "cloudstore.file.upload"
 }
 
 func unzip(archive, target string) error {
@@ -138,7 +138,8 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 			CheckErr(err, "Failed to write file bytes to temp file for rclone upload")
 
 			if EndsWithCheck(fileName, ".zip") {
-				unzip(temproryFilePath, tempDirectoryPath)
+				err = unzip(temproryFilePath, tempDirectoryPath)
+				CheckErr(err, "Failed to unzip file")
 				err = os.Remove(temproryFilePath)
 				CheckErr(err, "Failed to remove zip file after extraction")
 			}
@@ -191,8 +192,9 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 		ctx := context.Background()
 
 		err := sync.CopyDir(ctx, fdst, fsrc, true)
-		os.RemoveAll(tempDirectoryPath)
 		InfoErr(err, "Failed to sync files for upload to cloud")
+		err = os.RemoveAll(tempDirectoryPath)
+		InfoErr(err, "Failed to remove temp directory after upload")
 		return err
 	})
 

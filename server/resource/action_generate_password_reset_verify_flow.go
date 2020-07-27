@@ -2,14 +2,10 @@ package resource
 
 import (
 	"encoding/base64"
-	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
 	"github.com/dgrijalva/jwt-go"
-	log "github.com/sirupsen/logrus"
-	"strings"
-	"time"
 )
 
 type GeneratePasswordResetVerifyActionPerformer struct {
@@ -39,7 +35,7 @@ func (d *GeneratePasswordResetVerifyActionPerformer) DoAction(request Outcome, i
 		actionResponse := NewActionResponse("client.notify", responseAttrs)
 		responses = append(responses, actionResponse)
 	} else {
-		existingUser := existingUsers[0]
+		//existingUser := existingUsers[0]
 
 		var token = inFieldMap["token"]
 		tokenString, err := base64.StdEncoding.DecodeString(token.(string))
@@ -71,7 +67,6 @@ func (d *GeneratePasswordResetVerifyActionPerformer) DoAction(request Outcome, i
 				responses = append(responses, NewActionResponse("client.notify", notificationAttrs))
 
 			}
-
 		}
 
 	}

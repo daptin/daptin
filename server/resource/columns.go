@@ -562,42 +562,6 @@ var SystemActions = []Action{
 			},
 		},
 	},
-	//{
-	//
-	//	Name: "update_config",
-	//	Label: "Update configuration",
-	//	OnType: "world",
-	//	InstanceOptional: true,name
-	//	InFields: []api2go.ColumnInfo{
-	//		{
-	//			Name: "default_storage",
-	//		},
-	//	},
-	//},
-	//{
-	//	Name:             "install_marketplace_package",
-	//	Label:            "Install package from market",
-	//	OnType:           "marketplace",
-	//	InstanceOptional: false,
-	//	InFields: []api2go.ColumnInfo{
-	//		{
-	//			Name:       "package_name",
-	//			ColumnName: "package_name",
-	//			ColumnType: "label",
-	//			IsNullable: false,
-	//		},
-	//	},
-	//	OutFields: []Outcome{
-	//		{
-	//			Type:   "marketplace.package.install",
-	//			Method: "EXECUTE",
-	//			Attributes: map[string]interface{}{
-	//				"package_name":   "~package_name",
-	//				"marketplace_id": "$.reference_id",
-	//			},
-	//		},
-	//	},
-	//},
 	{
 		Name:             "export_data",
 		Label:            "Export data for backup",
@@ -679,13 +643,61 @@ var SystemActions = []Action{
 		},
 		OutFields: []Outcome{
 			{
-				Type:   "__external_file_upload",
+				Type:   "cloudstore.file.upload",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"file":           "~file",
 					"oauth_token_id": "$.oauth_token_id",
 					"store_provider": "$.store_provider",
 					"root_path":      "$.root_path",
+				},
+			},
+		},
+	},
+	{
+		Name:             "list_files",
+		Label:            "List files in the site path",
+		OnType:           "site",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "path",
+				ColumnName: "path",
+				ColumnType: "label",
+				IsNullable: false,
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "site.file.list",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"site_id": "$.reference_id",
+					"path":    "~path",
+				},
+			},
+		},
+	},
+	{
+		Name:             "delete_file",
+		Label:            "Delete file in the site",
+		OnType:           "site",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "path",
+				ColumnName: "path",
+				ColumnType: "label",
+				IsNullable: false,
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "site.file.delete",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"site_id": "$.reference_id",
+					"path":    "~path",
 				},
 			},
 		},
@@ -982,7 +994,7 @@ var SystemActions = []Action{
 				Method:    "GET",
 				Reference: "user",
 				Attributes: map[string]interface{}{
-					"query":      "[{'column': 'email', 'operator': 'is', 'value': '$email'}]",
+					"query": "[{'column': 'email', 'operator': 'is', 'value': '$email'}]",
 				},
 			},
 			{
@@ -1054,7 +1066,7 @@ var SystemActions = []Action{
 	},
 	{
 		Name:             "oauth.login.response",
-		Label:            "",
+		Label:            "Handle OAuth login response code and state",
 		InstanceOptional: true,
 		OnType:           "oauth_token",
 		InFields: []api2go.ColumnInfo{

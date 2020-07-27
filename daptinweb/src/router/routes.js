@@ -26,6 +26,9 @@ const routes = [
         path: 'create', component: () => import('pages/CreateTable.vue')
       },
       {
+        path: 'apidocs', component: () => import('pages/ApiDocsPage.vue')
+      },
+      {
         path: 'edit/:tableName', component: () => import('pages/EditTable.vue')
       },
       {
@@ -84,10 +87,10 @@ const routes = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       {
-        path: '/', component: () => import('pages/CloudStorePage.vue')
+        path: '', component: () => import('pages/CloudStorePage.vue')
       },
       {
-        path: '/sites', component: () => import('pages/SitePage.vue')
+        path: 'sites', component: () => import('pages/SitePage.vue')
       },
       {
         path: '/edit/:cloudStoreId', component: () => import('pages/CloudStorePage.vue')

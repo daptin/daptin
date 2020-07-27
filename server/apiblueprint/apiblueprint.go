@@ -69,6 +69,9 @@ func CreateColumnLine(colInfo api2go.ColumnInfo) map[string]interface{} {
 	m := map[string]interface{}{
 		"type": typ,
 	}
+	if !colInfo.IsNullable {
+		m["required"] = true
+	}
 	return m
 }
 
@@ -89,10 +92,10 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 			"name": "MIT",
 		},
 		"contact": map[string]interface{}{
-			"name": "Parth",
+			"name": "Parth <artpar@gmail.com>",
+			"website": "https://dapt.in",
 		},
-		"description":    "Daptin server API spec",
-		"termsOfService": config.Hostname + "/tos",
+		"description": "Daptin server API spec",
 	}
 
 	apiDefinition["servers"] = []map[string]interface{}{
@@ -286,14 +289,19 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 
 			actionProperties[colInfo.ColumnName] = CreateColumnLine(colInfo)
 		}
+		if !action.InstanceOptional {
+			actionProperties["id"] = map[string]interface{}{
+				"type": "string",
+				"description": "reference id of a " + action.OnType,
+				"required": true,
+			}
+		}
+
 		ramlActionType["properties"] = actionProperties
 		typeMap[fmt.Sprintf("%s%sObject", strcase.ToCamel(action.Name), strcase.ToCamel(action.OnType))] = ramlActionType
 
 	}
 
-	apiDefinition["components"] = map[string]interface{}{
-		"schemas": typeMap,
-	}
 
 	resourcesMap := map[string]map[string]interface{}{}
 	tableInfoMap := make(map[string]resource.TableInfo)
@@ -354,8 +362,8 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 			if tableInfo.TableName == rel.Subject {
 				relatedTable := tableInfoMap[rel.Object]
 				getMethod := CreateGetAllMethod(relatedTable, CreateDataInResponse(relatedTable))
-
-				getMethod["operationId"] = "Related" + strcase.ToCamel(rel.ObjectName) + "Of" + strcase.ToCamel(tableInfo.TableName)
+				getAllMethod["description"] = fmt.Sprintf("Returns a list of all %v", ProperCase(relatedTable.TableName)+" related to a "+tableInfo.TableName)
+				getMethod["operationId"] = fmt.Sprintf("Get" + ProperCase(rel.ObjectName) + "Of" + rel.SubjectName)
 				getMethod["summary"] = fmt.Sprintf("Fetch related %s of %v", rel.ObjectName, tableInfo.TableName)
 
 				getMethod["parameters"] = []map[string]interface{}{
@@ -371,6 +379,9 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 				}
 
 				deleteMethod := CreateDeleteRelationMethod(relatedTable)
+				deleteMethod["description"] = fmt.Sprintf("Remove a related %v from the %v", tableInfo.TableName, rel.ObjectName)
+				deleteMethod["tags"] = []string{rel.ObjectName, rel.Subject, rel.SubjectName, rel.Object, rel.Relation, "delete"}
+
 				deleteMethod["summary"] = fmt.Sprintf("Delete related %s of %v", rel.ObjectName, tableInfo.TableName)
 				deleteMethod["operationId"] = "Delete" + strcase.ToCamel(rel.ObjectName) + "Of" + strcase.ToCamel(tableInfo.TableName)
 
@@ -393,11 +404,16 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 			} else {
 				relatedTable := tableInfoMap[rel.Subject]
 				getMethod := CreateGetAllMethod(relatedTable, CreateDataInResponse(relatedTable))
-				getMethod["operationId"] = "Related" + strcase.ToCamel(rel.SubjectName) + "Of" + strcase.ToCamel(tableInfo.TableName)
+				getMethod["summary"] = "Related " + strcase.ToCamel(rel.SubjectName) + " of a " + strcase.ToCamel(tableInfo.TableName)
+				getMethod["operation"] = "Related" + strcase.ToCamel(rel.SubjectName) + "Of" + strcase.ToCamel(tableInfo.TableName)
 				patchMethod["summary"] = fmt.Sprintf("Fetch related %s of %v", rel.SubjectName, tableInfo.TableName)
+				patchMethod["tags"] = []string{rel.ObjectName, rel.Subject, rel.SubjectName, rel.Object, rel.Relation, "get"}
+
 				deleteMethod := CreateDeleteRelationMethod(relatedTable)
+				deleteMethod["description"] = fmt.Sprintf("Remove a related %v from the %v", rel.SubjectName, rel.ObjectName)
 				deleteMethod["operationId"] = "Delete" + strcase.ToCamel(relatedTable.TableName) + "Of" + strcase.ToCamel(tableInfo.TableName)
 				patchMethod["summary"] = fmt.Sprintf("Delete related %s of %v", rel.SubjectName, tableInfo.TableName)
+				patchMethod["tags"] = []string{rel.ObjectName, rel.Subject, rel.SubjectName, rel.Object, rel.Relation, "delete"}
 				relationsById["get"] = getMethod
 
 				getMethod["parameters"] = []map[string]interface{}{
@@ -448,7 +464,7 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 
 		resourcesMap[fmt.Sprintf("/action/%s/%s", action.OnType, action.Name)] = map[string]interface{}{
 			"post": map[string]interface{}{
-				"tags":        []string{action.OnType},
+				"tags":        []string{action.OnType, "action"},
 				"operationId": "Execute" + strcase.ToCamel(action.Name) + "On" + strcase.ToCamel(action.OnType),
 				"summary":     action.Label,
 				"requestBody": map[string]interface{}{
@@ -486,6 +502,22 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 	apiDefinition["paths"] = resourcesMap
 	for n, v := range actionResource {
 		apiDefinition[n] = v
+	}
+
+	apiDefinition["components"] = map[string]interface{}{
+		"schemas": typeMap,
+		"securitySchemes": map[string]map[string]string{
+			"bearerAuth": map[string]string{
+				"type":         "http",
+				"scheme":       "bearer",
+				"bearerFormat": "JWT",
+			},
+		},
+		"security": []map[string][]string{
+			{
+				"bearerAuth": []string{},
+			},
+		},
 	}
 
 	ym, _ := yaml.Marshal(apiDefinition)
@@ -529,7 +561,7 @@ func CreatePostMethod(tableInfo resource.TableInfo, dataInResponse map[string]in
 	postMethod := make(map[string]interface{})
 	postMethod["operationId"] = fmt.Sprintf("Create%s", strcase.ToCamel(tableInfo.TableName))
 	postMethod["summary"] = fmt.Sprintf("Create a new %v", tableInfo.TableName)
-	postMethod["tags"] = []string{tableInfo.TableName}
+	postMethod["tags"] = []string{tableInfo.TableName, "create"}
 	postBody := make(map[string]interface{})
 
 	postBody["description"] = tableInfo.TableName + " to create"
@@ -585,7 +617,7 @@ func CreateGetAllMethod(tableInfo resource.TableInfo, dataInResponse map[string]
 	getAllMethod["description"] = fmt.Sprintf("Returns a list of %v", ProperCase(tableInfo.TableName))
 	getAllMethod["operationId"] = fmt.Sprintf("Get" + tableInfo.TableName)
 	getAllMethod["summary"] = fmt.Sprintf("List all %v", tableInfo.TableName)
-	getAllMethod["tags"] = []string{tableInfo.TableName}
+	getAllMethod["tags"] = []string{tableInfo.TableName, "find", "get"}
 	getAllMethod["parameters"] = []map[string]interface{}{
 		{
 			"name": "sort",
@@ -660,7 +692,7 @@ func CreateDeleteMethod(tableInfo resource.TableInfo) map[string]interface{} {
 	deleteByIdMethod["description"] = fmt.Sprintf("Delete a %v", tableInfo.TableName)
 
 	deleteByIdMethod["summary"] = fmt.Sprintf("Delete %v", tableInfo.TableName)
-	deleteByIdMethod["tags"] = []string{tableInfo.TableName}
+	deleteByIdMethod["tags"] = []string{tableInfo.TableName, "delete"}
 	deleteByIdMethod["parameters"] = []map[string]interface{}{
 		{
 			"name": "referenceId",
@@ -687,7 +719,7 @@ func CreateDeleteRelationMethod(tableInfo resource.TableInfo) map[string]interfa
 	deleteByIdResponseMap := make(map[string]interface{})
 	deleteByIdResponseMap["200"] = deleteByIdMethod200Response
 	deleteByIdMethod["responses"] = deleteByIdResponseMap
-	deleteByIdMethod["description"] = fmt.Sprintf("Remove a related %v from the parent object", tableInfo.TableName)
+	deleteByIdMethod["description"] = fmt.Sprintf("Remove a related %v ", tableInfo.TableName)
 	deleteByIdMethod["tags"] = []string{tableInfo.TableName}
 	deleteByIdMethod["parameters"] = []map[string]interface{}{
 		{

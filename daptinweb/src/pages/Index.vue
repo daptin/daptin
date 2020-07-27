@@ -1,5 +1,21 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <q-page>
+
+    <div class="q-pa-md q-gutter-sm">
+      <q-breadcrumbs>
+        <template v-slot:separator>
+          <q-icon
+            size="1.2em"
+            name="arrow_forward"
+          />
+        </template>
+
+        <q-breadcrumbs-el :label="serverConfig.hostname" icon="fas fa-home"/>
+      </q-breadcrumbs>
+    </div>
+    <q-separator></q-separator>
+
+
     <div class="row">
 
 
@@ -15,7 +31,16 @@
                 </q-avatar>
               </q-item-section>
               <q-item-section>
-                <span class="text-h4">Users</span>
+                <span class="text-h4" v-if="!showHostnameEdit">Users @ {{serverConfig.hostname}}</span>
+                <q-input @keypress.enter="saveHostname()" v-if="showHostnameEdit" :value="serverConfig.hostname"
+                         v-model="serverConfig.hostname"
+                         label="Hostname"></q-input>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-icon v-if="!showHostnameEdit" @click="changeHostname()" style="cursor: pointer" name="fas fa-edit"
+                        size="xs"></q-icon>
+                <q-icon v-if="showHostnameEdit" @click="saveHostname()" style="cursor: pointer" name="fas fa-save"
+                        size="xs"></q-icon>
               </q-item-section>
             </q-item>
           </q-card-section>
@@ -38,8 +63,8 @@
                 <q-btn-toggle size="sm" rounded color="white" toggle-color="primary" toggle-text-color="white"
                               text-color="black"
                               :options="[
-          {label: 'Enabled', value: true},
-          {label: 'Disabled', value: false},
+          {label: signUpPublicAvailable ? 'Enabled' : 'Enable', value: true},
+          {label: !signUpPublicAvailable ? 'Disabled' : 'Disable', value: false},
         ]" v-model="signUpPublicAvailable"></q-btn-toggle>
               </div>
             </div>
@@ -48,12 +73,13 @@
                 <span class="text-bold">Password Reset</span>
               </div>
               <div class="col-6 text-right">
-                <q-btn-toggle size="sm" rounded color="white" toggle-color="primary" toggle-text-color="white"
-                              text-color="black"
-                              :options="[
-          {label: 'Enabled', value: true},
-          {label: 'Disabled', value: false},
-        ]" v-model="resetPublicAvailable"></q-btn-toggle>
+                Disabled
+                <!--                <q-btn-toggle size="sm" rounded color="white" toggle-color="primary" toggle-text-color="white"-->
+                <!--                              text-color="black"-->
+                <!--                              :options="[-->
+                <!--        {label: resetPublicAvailable ? 'Enabled' : 'Enable', value: true},-->
+                <!--          {label: !resetPublicAvailable ? 'Disabled' : 'Disable', value: false},-->
+                <!--        ]" v-model="resetPublicAvailable"></q-btn-toggle>-->
               </div>
             </div>
           </q-card-section>
@@ -236,6 +262,86 @@
         </q-card>
       </div>
 
+      <div class="col-4  col-md-6 col-lg-4 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
+        <q-card>
+          <q-card-section>
+            <q-item>
+              <q-item-section avatar>
+                <q-avatar>
+                  <q-icon size="lg" name="fas fa-plug"></q-icon>
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <span class="text-h4">Services</span>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-btn rounded color="primary" @click="reloadServer()" flat size="md" icon="fas fa-sync"></q-btn>
+              </q-item-section>
+            </q-item>
+          </q-card-section>
+
+
+          <q-card-section>
+            <div class="row q-pa-md">
+              <div class="col-4">
+                <span class="text-bold">JSON API endpoint</span>
+              </div>
+              <div class="col-6 text-right">
+                Yes
+              </div>
+            </div>
+            <div class="row q-pa-md">
+              <div class="col-4">
+                <span class="text-bold">FTP service</span>
+              </div>
+              <div class="col-6 text-right">
+                <!--                <q-checkbox v-model="serverConfig['ftp.enable']"/>-->
+                {{serverConfig['ftp.enable'] === 'true' ? 'Yes' : 'No'}}
+              </div>
+            </div>
+            <div class="row q-pa-md">
+              <div class="col-4">
+                <span class="text-bold">GraphQL endpoint</span>
+              </div>
+              <div class="col-6 text-right">
+                <q-btn-toggle size="sm" rounded color="white" toggle-color="primary" toggle-text-color="white"
+                              text-color="black" @click="updateGraphqlEndpoint()"
+                              :options="[
+          {label: serverConfig['graphql.enable'] ? 'Enabled' : 'Enable', value: true},
+          {label: !serverConfig['graphql.enable'] ? 'Disabled' : 'Disable', value: false},
+        ]" v-model="serverConfig['graphql.enable']"></q-btn-toggle>
+
+              </div>
+            </div>
+            <div class="row q-pa-md">
+              <div class="col-4">
+                <span class="text-bold">IMAP endpoint</span>
+              </div>
+              <div class="col-6 text-right">
+                {{serverConfig['imap.enabled'] === 'true' ? 'Yes' : 'No'}}
+              </div>
+            </div>
+            <div class="row q-pa-md">
+              <div class="col-4">
+                <span class="text-bold">Connection throttle</span>
+              </div>
+              <div class="col-6 text-right">
+                {{serverConfig['limit.max_connections']}}
+              </div>
+            </div>
+            <div class="row q-pa-md">
+              <div class="col-4">
+                <span class="text-bold">Allowed rate limit</span>
+              </div>
+              <div class="col-6 text-right">
+                {{serverConfig['limit.rate']}}
+              </div>
+            </div>
+          </q-card-section>
+
+        </q-card>
+      </div>
+
 
     </div>
 
@@ -248,14 +354,77 @@
   export default {
     name: 'PageIndex',
     methods: {
-      ...mapActions(['loadData', 'loadAggregates'])
+      updateGraphqlEndpoint() {
+        const that = this;
+        console.log("Update graphql endpoint", this.serverConfig['graphql.enable'])
+
+        this.saveConfig({name: "graphql.enable", value: this.serverConfig['graphql.enable']}).then(function (res) {
+          if (that.serverConfig['graphql.enable']) {
+            that.$q.notify({
+              message: "GraphQL endpoint enabled"
+            });
+          } else {
+            that.$q.notify({
+              message: "GraphQL endpoint disabled"
+            });
+            that.reloadServer();
+
+          }
+          that.showHostnameEdit = false;
+        }).catch(function (res) {
+          console.log("Failed to update graphql endpoint", res);
+          that.$q.notify({
+            message: "Failed to update endpoint status"
+          })
+        })
+
+      },
+      saveHostname() {
+        const that = this;
+        this.saveConfig({name: "hostname", value: this.serverConfig.hostname}).then(function (res) {
+          that.$q.notify({
+            message: "Hostname updated"
+          });
+          that.reloadServer();
+          that.showHostnameEdit = false;
+        }).catch(function (res) {
+          console.log("failed to upate hostname", res)
+          that.$q.notify({
+            message: "Failed to update hostname"
+          })
+        })
+      },
+      changeHostname() {
+        this.showHostnameEdit = true;
+      },
+      reloadServer() {
+        console.log("Reload server");
+        const that = this;
+        that.executeAction({
+          tableName: "world",
+          actionName: "restart_daptin"
+        }).then(function (res) {
+          that.$q.notify({
+            message: "Server restarted"
+          })
+        }).catch(function (err) {
+          that.$q.notify({
+            message: "Failed to restart"
+          });
+          console.log("Failed to restart daptin", err)
+        })
+      },
+      ...mapActions(['loadData', 'loadAggregates', 'loadServerConfig', 'executeAction', 'saveConfig'])
     },
 
     data() {
       return {
         text: '',
+        showHostnameEdit: false,
+        actionMap: {},
         userAggregate: {},
         cloudStoreAggregate: {},
+        serverConfig: {},
         siteAggregate: {},
         integrationAggregate: {},
         actionAggregate: {},
@@ -276,20 +445,24 @@
       }).then(function (res) {
         console.log("Actions", res);
         var data = res.data;
+        var actionMap = {};
         var signUpAction = data.filter(function (e) {
+          actionMap[e.action_name] = e
           return e.action_name === 'signup'
         })[0];
-        console.log("Sign up action", signUpAction);
+        // console.log("Sign up action", signUpAction);
         if (signUpAction && signUpAction.permission && 1) {
           that.signUpPublicAvailable = true;
         }
         var resetAction = data.filter(function (e) {
           return e.action_name === 'resetpassword'
         })[0];
-        console.log("Reset action", resetAction);
+        // console.log("Reset action", resetAction);
         if (resetAction && resetAction.permission && 1) {
           that.resetPublicAvailable = true;
         }
+        that.actionMap = actionMap;
+        console.log("Action map" , actionMap)
 
       }).catch(function (res) {
         console.log("Failed to load actions", res);
@@ -338,6 +511,21 @@
       }).then(function (res) {
         console.log("Site aggregates", res);
         that.integrationAggregate = res.data[0];
+      });
+
+      that.loadServerConfig().then(function (res) {
+        for (var key in res) {
+          if (res[key] === "true") {
+            res[key] = true
+          } else if (res[key] === "false") {
+            res[key] = false
+          }
+        }
+        console.log("Server config", res)
+
+        that.serverConfig = res;
+      }).catch(function (err) {
+        console.log("Failed to load server config", err)
       });
 
 

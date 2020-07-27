@@ -111,9 +111,19 @@ export function loadDataRelations({commit}, params) {
   var primaryTableId = params.reference_id;
   return daptinClient.jsonApi.one(primaryTable, primaryTableId).all(relationName).get()
 }
+
 export function loadAggregates({commit}, params) {
   var primaryTable = params.tableName;
   return daptinClient.statsManager.getStats(primaryTable, params)
+}
+
+
+export function loadServerConfig({commit}) {
+  return daptinClient.configManager.getAllConfig()
+}
+
+export function saveConfig({commit}, params) {
+  return daptinClient.configManager.setConfig(params.name, "backend", params.value)
 }
 
 export function getTableSchema({commit}, tableName) {

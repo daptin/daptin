@@ -62,6 +62,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create column storage sync performer")
 	performers = append(performers, columnStoreSyncAction)
 
+	cloudStoreFileListActionPerformer, err := resource.NewCloudStoreFileListActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create cloudStoreFileListActionPerformer")
+	performers = append(performers, cloudStoreFileListActionPerformer)
+
 	oauthProfileExchangePerformer, err := resource.NewOuathProfileExchangePerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create oauth2 profile exchange handler")
 	performers = append(performers, oauthProfileExchangePerformer)

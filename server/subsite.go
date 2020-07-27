@@ -128,7 +128,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		return hs, subsiteCacheFolders
 	}
 
-	max_connections, err := configStore.GetConfigIntValueFor("limit.max_connectioins", "backend")
+	max_connections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend")
 	rate_limit, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 
 	for _, site := range sites {
@@ -143,7 +143,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		for _, hostname := range strings.Split(site.Hostname, ",") {
 			hs.siteMap[hostname] = site
 		}
-		
+
 		subSiteInformation.SubSite = site
 
 		if site.CloudStoreId == nil {

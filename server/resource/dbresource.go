@@ -47,6 +47,36 @@ func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
 	return os.Open(afc.LocalSyncPath + string(os.PathSeparator) + fileName)
 
 }
+func (afc *AssetFolderCache) DeleteFileByName(fileName string) error {
+
+	return os.Remove(afc.LocalSyncPath + string(os.PathSeparator) + fileName)
+
+}
+
+
+func (afc *AssetFolderCache) GetPathContents(path string) ([]map[string]interface{}, error) {
+
+	fileInfo, err := ioutil.ReadDir(afc.LocalSyncPath + string(os.PathSeparator) + path)
+	if err != nil {
+		return nil, err
+	}
+
+	//files, err := filepath.Glob(afc.LocalSyncPath + string(os.PathSeparator) + path + "*")
+	//fmt.Println(files)
+	var files []map[string]interface{}
+	for _, file := range fileInfo {
+		//files[i] = strings.Replace(file, afc.LocalSyncPath, "", 1)
+		files = append(files, map[string]interface{}{
+			"name":     file.Name(),
+			"is_dir":   file.IsDir(),
+			"mod_time": file.ModTime(),
+			"size":     file.Size(),
+		})
+	}
+
+	return files, err
+
+}
 
 func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 

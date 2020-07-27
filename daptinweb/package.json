@@ -16,14 +16,16 @@
     "@apidevtools/swagger-parser": "^10.0.1",
     "@quasar/extras": "^1.0.0",
     "axios": "^0.18.1",
-    "daptin-client": "^0.3.4",
+    "daptin-client": "^0.3.5",
     "install": "^0.13.0",
     "jsonwebtoken": "^8.5.1",
     "jwt-decode": "^2.2.0",
     "npm": "^6.14.7",
     "quasar": "^1.0.0",
+    "rapidoc": "^8.1.2",
     "tabulator-tables": "^4.6.2",
-    "vue-i18n": "^8.0.0"
+    "vue-i18n": "^8.0.0",
+    "vuefinder": "^0.2.0"
   },
   "devDependencies": {
     "@quasar/app": "^1.9.5",

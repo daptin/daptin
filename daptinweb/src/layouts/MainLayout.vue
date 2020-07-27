@@ -31,6 +31,8 @@ text-align: center;
             icon="fas fa-database">
 
             <q-list>
+
+
               <q-item :inset-level="1" clickable v-ripple @click="$router.push('/tables')">
                 <q-item-section avatar>
                   <q-icon name="fas fa-table"></q-icon>
@@ -41,6 +43,8 @@ text-align: center;
                   </q-item-label>
                 </q-item-section>
               </q-item>
+
+
             </q-list>
 
           </q-expansion-item>
@@ -168,7 +172,47 @@ text-align: center;
 
           </q-expansion-item>
 
+<q-expansion-item
+            expand-icon-class="text-white"
+            :value="true"
+            expand-separator
+            icon="fas fa-book"
+            label="Documentation">
+
+            <q-list>
+
+
+              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/tables/apidocs')">
+                <q-item-section avatar>
+                  <q-icon name="fas fa-book"></q-icon>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    JSON API docs
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+
+              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/tables/graphql')">
+                <q-item-section avatar>
+                  <q-icon name="fas fa-book"></q-icon>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    GraphQL docs
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+
+            </q-list>
+
+          </q-expansion-item>
+
         </q-list>
+
+
         <q-list>
           <q-item clickable @click="logout()">
             <q-item-section avatar>
@@ -264,7 +308,7 @@ text-align: center;
         }
       }
 
-      that.loadModel(["cloud_store", "user_account", "usergroup", "world", "action"]).then(async function () {
+      that.loadModel(["cloud_store", "user_account", "usergroup", "world", "action", 'site']).then(async function () {
         that.loaded = true;
         that.getDefaultCloudStore();
 
