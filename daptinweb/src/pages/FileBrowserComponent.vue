@@ -22,7 +22,23 @@
       <div class="row">
         <div class="col-12">
           <q-btn-group flat>
-            <q-btn icon="fas fa-plus"></q-btn>
+            <q-btn-dropdown icon="fas fa-plus">
+              <q-list>
+                <q-item clickable v-close-popup @click="createFile()">
+                  <q-item-section>
+                    <q-item-label>Create file</q-item-label>
+                  </q-item-section>
+                </q-item>
+
+                <q-item clickable v-close-popup @click="createFolder()">
+                  <q-item-section>
+                    <q-item-label>Create folder</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-btn-dropdown>
+
+
             <q-btn icon="fas fa-upload"></q-btn>
             <q-space></q-space>
           </q-btn-group>
@@ -90,7 +106,7 @@
     </div>
 
     <q-dialog :square="true" v-model="filePreview">
-      <div class="row" >
+      <div class="row">
         <div class="col-12" style="height: 80vh; width: 60vw">
           <iframe style="padding: 10px; width: 95%; height: 95%" :src="previewUrl"></iframe>
         </div>

@@ -53,16 +53,16 @@
       <q-btn @click="showCreateSiteDrawer = true" fab icon="add" color="primary"/>
     </q-page-sticky>
 
-    <q-drawer overlay content-class="bg-grey-3" :width="400" side="right" v-model="showCreateSiteDrawer">
+    <q-drawer :breakpoint="1400" overlay content-class="bg-grey-3" side="right" v-model="showCreateSiteDrawer">
       <q-scroll-area class="fit row">
         <div class="q-pa-md">
           <span class="text-h6">Create site</span>
           <q-form class="q-gutter-md">
             <q-input label="Name" v-model="newSite.name"></q-input>
             <q-input label="Hostname" v-model="newSite.hostname"></q-input>
-            <q-input label="Path" v-model="newSite.path"></q-input>
+            <q-input value="/" label="Path" v-model="newSite.path"></q-input>
 
-            <q-select :options="stores" option-label="name" option-value="id"
+            <q-select label="Cloud store" :options="stores" option-label="name" option-value="id"
                       v-model="newSite.cloud_store_id"></q-select>
 
 
@@ -142,7 +142,8 @@
 
       </q-scroll-area>
     </q-drawer>
-    <q-drawer :min-width="600" bordered side="right" overlay v-model="showFileBrowser">
+
+    <q-drawer :breakpoint="400" side="right" overlay v-model="showFileBrowser">
       <q-scroll-area class="fit">
         <file-browser v-if="selectedSite && showFileBrowser" v-on:close="showFileBrowser = false" :site="selectedSite"></file-browser>
       </q-scroll-area>
