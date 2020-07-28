@@ -19,10 +19,11 @@
 
     </div>
     <div class="col-12">
+
       <div class="row">
         <div class="col-12">
           <q-btn-group flat>
-            <q-btn-dropdown icon="fas fa-plus">
+            <q-btn-dropdown size="sm" icon="fas fa-plus">
               <q-list>
                 <q-item clickable v-close-popup @click="createFile()">
                   <q-item-section>
@@ -37,16 +38,33 @@
                 </q-item>
               </q-list>
             </q-btn-dropdown>
+            <q-btn size="sm" @click="showUploadFile = true" icon="fas fa-upload"></q-btn>
+            <q-btn size="sm" @click="getContentOnPath({name: '.', is_dir: false})" icon="fas fa-sync-alt"></q-btn>
 
-
-            <q-btn icon="fas fa-upload"></q-btn>
             <q-space></q-space>
           </q-btn-group>
           <q-btn-group class="float-right" flat>
-            <q-btn @click="viewType = 'table'" v-if="viewType !== 'table'" icon="fas fa-table"></q-btn>
-            <q-btn @click="viewType = 'card'" v-if="viewType !== 'card'" icon="far fa-square"></q-btn>
+            <q-btn size="sm" @click="viewType = 'table'" v-if="viewType !== 'table'" icon="fas fa-table"></q-btn>
+            <q-btn size="sm" @click="viewType = 'card'" v-if="viewType !== 'card'" icon="fas fa-th"></q-btn>
           </q-btn-group>
         </div>
+      </div>
+      <div class="row" v-if="showUploadFile" style="min-height: 300px">
+        <file-upload
+          style="height: 300px; width: 100%"
+          class="bg-grey-3"
+          ref="upload"
+          v-model="uploadedFiles"
+          post-action="/post.method"
+          put-action="/put.method"
+          @input-file="inputFile"
+          @input-filter="inputFilter"
+        >
+          <span style="padding-top: 40%" class="vertical-middle">Drop files or click to select <br/></span>
+
+        </file-upload>
+        <q-btn
+          @click.stop="showUploadFile = false" label="Cancel"></q-btn>
       </div>
       <div class="row" v-if="viewType == 'table'">
         <q-markup-table style="width: 100%">
@@ -106,11 +124,11 @@
     </div>
 
     <q-dialog :square="true" v-model="filePreview">
-      <div class="row">
-        <div class="col-12" style="height: 80vh; width: 60vw">
-          <iframe style="padding: 10px; width: 95%; height: 95%" :src="previewUrl"></iframe>
-        </div>
-      </div>
+      <q-card class="row" flat style="width: 50%; height: 50%">
+        <q-card-section style="width: 100%; height: 100%">
+          <iframe style="padding: 10px; width: 100%; height: 100%;" :src="previewUrl"></iframe>
+        </q-card-section>
+      </q-card>
     </q-dialog>
 
     <q-page-sticky position="bottom-right" :offset="[20, 20]">
@@ -140,6 +158,8 @@
     props: ['site', 'path'],
     data() {
       return {
+        showUploadFile: false,
+        uploadedFiles: [],
         fileList: [],
         bread: [],
         currentPath: "",
@@ -149,6 +169,56 @@
       }
     },
     methods: {
+
+      createFile(){
+
+      },
+      createFolder(){
+
+      },
+      inputFile(uploadedFile) {
+        console.log("input file", arguments)
+        const that = this;
+
+        var uploadFile = function (file) {
+          return new Promise(function (resolve, reject) {
+            const name = file.name;
+            const type = file.type;
+            const reader = new FileReader();
+            reader.onload = function (fileResult) {
+              console.log("File loaded", fileResult);
+              var obj = {params: {"file": []}};
+              obj["params"]["file"].push({
+                name: name,
+                file: fileResult.target.result,
+                type: type
+              });
+              obj.tableName = "cloud_store";
+              obj.actionName = "upload_file";
+              obj.params.cloud_store_id = that.site.cloud_store_id.id;
+              that.executeAction(obj).then(function (res) {
+                console.log("Upload done", arguments);
+                that.showUploadFile = false;
+                that.getContentOnPath({is_dir: false, name: '.'})
+              }).catch(function (err) {
+                console.log("Failed to upload", arguments)
+              });
+              resolve();
+            };
+            reader.onerror = function () {
+              console.log("Failed to load file onerror", e, arguments);
+              reject(name);
+            };
+            reader.readAsDataURL(file);
+          })
+        };
+        uploadFile(uploadedFile.file)
+
+
+      },
+      inputFilter() {
+        console.log("input filter", arguments)
+      },
       makeFile(val) {
         var valName = val.name;
         let icon = "fas fa-file";
@@ -201,6 +271,9 @@
             that.currentPath = parts.join("/")
           }
 
+        }
+        if (path.name === ".") {
+          path.is_dir = true;
         }
         console.log("Final path", that.currentPath);
 

@@ -8,7 +8,9 @@ import TablePermissions from '../pages/Permissions'
 import HelpPage from '../pages/HelpPage'
 import vuefinder from 'vuefinder/src/Finder.vue';
 import FileBrowser from 'pages/FileBrowserComponent';
+const VueUploadComponent = require('vue-upload-component');
 
+Vue.component('file-upload', VueUploadComponent);
 Vue.component('vuefinder', vuefinder);
 Vue.component('file-browser', FileBrowser);
 Vue.component("table-side-bar", TableSideBar);

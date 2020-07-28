@@ -143,7 +143,7 @@
       </q-scroll-area>
     </q-drawer>
 
-    <q-drawer :breakpoint="400" side="right" overlay v-model="showFileBrowser">
+    <q-drawer :breakpoint="400" :width="fileDrawerWidth > 600 ? 600 : fileDrawerWidth" side="right" overlay v-model="showFileBrowser">
       <q-scroll-area class="fit">
         <file-browser v-if="selectedSite && showFileBrowser" v-on:close="showFileBrowser = false" :site="selectedSite"></file-browser>
       </q-scroll-area>
@@ -323,9 +323,13 @@
       }
     },
     mounted() {
+      console.log("Site page scope", this, window.screen.availWidth)
       this.refresh();
     },
     computed: {
+      fileDrawerWidth() {
+        return window.screen.availWidth;
+      },
       ...mapGetters(['selectedTable']),
       ...mapState([])
     },

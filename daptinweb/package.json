@@ -25,6 +25,7 @@
     "rapidoc": "^8.1.2",
     "tabulator-tables": "^4.6.2",
     "vue-i18n": "^8.0.0",
+    "vue-upload-component": "^2.8.20",
     "vuefinder": "^0.2.0"
   },
   "devDependencies": {
