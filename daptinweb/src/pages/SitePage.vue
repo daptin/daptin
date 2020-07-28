@@ -22,8 +22,16 @@
       <div class="col-4 col-xl-2 col-lg-3 col-xs-12 col-sm-6 q-pa-md" v-for="site in sites">
         <q-card>
           <q-card-section>
-            <span class="text-h6">{{site.name}}</span>
+            <q-item>
+              <q-item-section>
+                <span class="text-bold">{{site.name}}</span>
+              </q-item-section>
+<!--              <q-item-section avatar>-->
+<!--                <q-btn @click="syncSite(site)" icon="fas fa-sync-alt" size="sm" round flat></q-btn>-->
+<!--              </q-item-section>-->
+            </q-item>
           </q-card-section>
+
           <q-card-section>
             <span>HTTPS</span>
 
@@ -158,6 +166,17 @@
   export default {
     name: 'SitePage',
     methods: {
+      syncSite(site) {
+        const that = this;
+        that.executeAction({
+          tableName: "site",
+          actionName: "sync_site_storage",
+          params: {
+            site_id: site.id,
+            path: "",
+          }
+        })
+      },
 
       showEditSite(site) {
         this.selectedSite = site;

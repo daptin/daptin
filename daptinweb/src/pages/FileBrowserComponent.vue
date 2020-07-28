@@ -38,38 +38,51 @@
                 </q-item>
               </q-list>
             </q-btn-dropdown>
-            <q-btn size="sm" @click="showUploadFile = true" icon="fas fa-upload"></q-btn>
-            <q-btn size="sm" @click="getContentOnPath({name: '.', is_dir: false})" icon="fas fa-sync-alt"></q-btn>
+            <q-btn size="sm" @click="(showUploadFile = true)  && (uploadedFiles = [])" icon="fas fa-upload"></q-btn>
+            <q-btn size="sm" @click="refreshCache()"
+                   icon="fas fa-sync-alt"></q-btn>
+            <q-btn @click="deleteSelectedFiles" flat size="sm" class="float-right" color="negative" v-if="showDelete"
+                   icon="fas fa-times"></q-btn>
 
             <q-space></q-space>
           </q-btn-group>
           <q-btn-group class="float-right" flat>
-            <q-btn size="sm" @click="viewType = 'table'" v-if="viewType !== 'table'" icon="fas fa-table"></q-btn>
-            <q-btn size="sm" @click="viewType = 'card'" v-if="viewType !== 'card'" icon="fas fa-th"></q-btn>
+            <!--            <q-btn size="sm" @click="viewType = 'table'" v-if="viewType !== 'table'" icon="fas fa-table"></q-btn>-->
+            <!--            <q-btn size="sm" @click="viewType = 'card'" v-if="viewType !== 'card'" icon="fas fa-th"></q-btn>-->
           </q-btn-group>
         </div>
       </div>
       <div class="row" v-if="showUploadFile" style="min-height: 300px">
         <file-upload
+          :multiple="true"
           style="height: 300px; width: 100%"
           class="bg-grey-3"
           ref="upload"
+          :drop="true"
+          :drop-directory="false"
           v-model="uploadedFiles"
           post-action="/post.method"
           put-action="/put.method"
           @input-file="inputFile"
           @input-filter="inputFilter"
         >
-          <span style="padding-top: 40%" class="vertical-middle">Drop files or click to select <br/></span>
-
+          <div class="container">
+            <span v-if="uploadedFiles.length == 0" style="padding-top: 40%" class="vertical-middle">Drop files or click to select <br/></span>
+            <div class="row" v-if="uploadedFiles.length > 0">
+              <div class="col-12" v-for="file in uploadedFiles">{{file.name}} - Error: {{file.error}}, Success:
+                {{file.success}}
+              </div>
+            </div>
+          </div>
         </file-upload>
         <q-btn
-          @click.stop="showUploadFile = false" label="Cancel"></q-btn>
+          @click.stop="(showUploadFile = false) && (uploadedFiles = [])" label="Close"></q-btn>
       </div>
-      <div class="row" v-if="viewType == 'table'">
-        <q-markup-table style="width: 100%">
+      <div class="row" v-if="viewType === 'table'">
+        <q-markup-table style="width: 100%; box-shadow: none;">
           <thead>
           <tr>
+            <th></th>
             <th></th>
             <th class="text-left">Name</th>
             <th class="text-right">Size</th>
@@ -78,6 +91,7 @@
           <tbody>
 
           <tr style="cursor: pointer" @click="getContentOnPath({name: '..'})">
+            <td class="text-right"></td>
             <td><i class="fas fa-level-up-alt"></i></td>
             <td>..</td>
             <td class="text-right"></td>
@@ -85,46 +99,55 @@
 
 
           <tr style="cursor: pointer" @click="getContentOnPath(file)" v-for="file in fileList">
-            <td><i :class="file.icon"></i></td>
-            <td>{{file.name}}</td>
-            <td class="text-right">{{ file.is_dir ? '' : ( parseInt(file.size / (1024 * 1024) ) + ' mb')}}</td>
-          </tr>
+            <td style="width: 50px">
+              <q-checkbox size="xs" @input="selectFile(file)" v-model="file.selected" flat
+                          icon="fas fa-wrench"></q-checkbox>
+            </td>
 
+            <td style="width: 50px"><i :class="file.icon"></i></td>
+            <td>{{file.name}}</td>
+            <td class="text-right">{{ file.is_dir ? '' : file.size > 1024 *1024 ? ( parseInt(file.size / (1024 * 1024) )
+              + ' mb') : ( parseInt(file.size / (1024 ) ) + ' kbs') }}
+            </td>
+
+          </tr>
           </tbody>
         </q-markup-table>
       </div>
-      <div class="row" v-if="viewType == 'card'">
+      <!--      <div class="row" v-if="viewType == 'card'">-->
 
-        <div @click="getContentOnPath({name: '..'})" style="min-width: 150px;"
-             class="q-pa-md q-gutter-sm">
-          <q-card style="cursor: pointer" bordered flat class="flex-center">
-            <q-card-section>
-              <q-icon size="md" name="fas fa-level-up-alt"></q-icon>
-            </q-card-section>
-            <q-card-section class="flex-center">
-              <span class="text-bold">..</span>
-            </q-card-section>
-          </q-card>
-        </div>
+      <!--        <div @click="getContentOnPath({name: '..'})" style="min-width: 150px; width: 180px"-->
+      <!--             class="q-pa-md q-gutter-sm">-->
+      <!--          <q-card style="cursor: pointer" bordered flat class="flex-center">-->
+      <!--            <q-card-section>-->
+      <!--              <q-icon size="md" name="fas fa-level-up-alt"></q-icon>-->
+      <!--            </q-card-section>-->
+      <!--            <q-card-section class="flex-center">-->
+      <!--              <span class="text-bold">..</span>-->
+      <!--            </q-card-section>-->
+      <!--          </q-card>-->
+      <!--        </div>-->
 
-        <div @click="getContentOnPath(file)" style="min-width: 150px;" v-for="file in fileList"
-             class="q-pa-md q-gutter-sm">
-          <q-card style="cursor: pointer" bordered flat class="flex-center">
-            <q-card-section>
-              <q-icon size="md" :name="file.icon"></q-icon>
-            </q-card-section>
-            <q-card-section class="flex-center">
-              <span class="text-bold">{{file.name}}</span>
-            </q-card-section>
-          </q-card>
-        </div>
+      <!--        <div @click="getContentOnPath(file)" style="min-width: 150px; max-width: 180px" v-for="file in fileList"-->
+      <!--             class="q-pa-md q-gutter-sm">-->
+      <!--          <q-card style="cursor: pointer" bordered flat class="flex-center">-->
+
+      <!--            <q-card-section>-->
+      <!--              <q-icon size="md" :name="file.icon"></q-icon>-->
+      <!--            </q-card-section>-->
+      <!--            <q-card-section class="flex-center">-->
+      <!--              <span class="text-bold">{{file.name}}</span>-->
+      <!--            </q-card-section>-->
+
+      <!--          </q-card>-->
+      <!--        </div>-->
 
 
-      </div>
+      <!--      </div>-->
     </div>
 
     <q-dialog :square="true" v-model="filePreview">
-      <q-card class="row" flat style="width: 50%; height: 50%">
+      <q-card class="row" flat style="width: 80%; height: 80%">
         <q-card-section style="width: 100%; height: 100%">
           <iframe style="padding: 10px; width: 100%; height: 100%;" :src="previewUrl"></iframe>
         </q-card-section>
@@ -158,6 +181,7 @@
     props: ['site', 'path'],
     data() {
       return {
+        showDelete: false,
         showUploadFile: false,
         uploadedFiles: [],
         fileList: [],
@@ -165,19 +189,31 @@
         currentPath: "",
         filePreview: false,
         previewUrl: null,
-        viewType: 'card'
+        viewType: 'table'
       }
     },
+    computed: {},
+    watch: {},
     methods: {
+      deleteSelectedFiles() {
+        var selectedFiles = this.fileList.filter(e => e.selected);
+        for (var file in selectedFiles) {
+          console.log("Delete file", this.site, this.currentPath, selectedFiles[file])
+        }
+      },
+      selectFile(file) {
+        console.log("Select file", file, this.fileList);
+        this.showDelete = this.fileList.filter(e => e.selected).length > 0;
+      },
 
-      createFile(){
+      createFile() {
 
       },
-      createFolder(){
+      createFolder() {
 
       },
       inputFile(uploadedFile) {
-        console.log("input file", arguments)
+        console.log("input file", arguments);
         const that = this;
 
         var uploadFile = function (file) {
@@ -193,12 +229,15 @@
                 file: fileResult.target.result,
                 type: type
               });
+              console.log("Upload file current path", that.currentPath);
+              obj.params.path = that.currentPath;
               obj.tableName = "cloud_store";
               obj.actionName = "upload_file";
               obj.params.cloud_store_id = that.site.cloud_store_id.id;
               that.executeAction(obj).then(function (res) {
                 console.log("Upload done", arguments);
-                that.showUploadFile = false;
+                // that.showUploadFile = false;
+                uploadedFile.success = true;
                 that.getContentOnPath({is_dir: false, name: '.'})
               }).catch(function (err) {
                 console.log("Failed to upload", arguments)
@@ -242,6 +281,23 @@
         return val;
       },
 
+      refreshCache() {
+        const that = this;
+        that.executeAction({
+          tableName: "site",
+          actionName: "sync_site_storage",
+          params: {
+            site_id: that.site.id,
+            path: "",
+          }
+        }).then(function () {
+          that.getContentOnPath({name: '.', is_dir: false})
+        }).catch(function (err) {
+          that.$q.notify({
+            message: "Failed to sync site cache"
+          })
+        })
+      },
 
       getContentOnPath(path) {
         console.log("Get content on path", path);
@@ -275,9 +331,9 @@
         if (path.name === ".") {
           path.is_dir = true;
         }
-        console.log("Final path", that.currentPath);
+        console.log("Final path", that.currentPath, path.is_dir);
 
-        if (path.is_dir) {
+        if (path.is_dir || path.name === '..') {
           that.executeAction({
             tableName: "site",
             actionName: "list_files",
@@ -288,7 +344,17 @@
           }).then(function (res) {
             console.log("list files Response", res[0].Attributes["list"]);
             that.showFileBrowser = true;
-            that.fileList = res[0].Attributes["list"].map(that.makeFile);
+            let files = res[0].Attributes["list"].map(that.makeFile);
+
+            files.sort(function (a, b) {
+              return a.is_dir < b.is_dir
+            });
+            files = files.map(function (item) {
+              item.selected = false;
+              return item;
+            })
+
+            that.fileList = files;
           }).catch(function (err) {
             console.log("failed to list files", err)
           })
@@ -324,19 +390,7 @@
       listFiles(site) {
         console.log("list files in site", site);
         const that = this;
-        that.executeAction({
-          tableName: "site",
-          actionName: "list_files",
-          params: {
-            site_id: that.site.id
-          }
-        }).then(function (res) {
-          console.log("list files Response", res[0].Attributes["list"]);
-          that.showFileBrowser = true;
-          that.fileList = res[0].Attributes["list"].map(that.makeFile);
-        }).catch(function (err) {
-          console.log("failed to list files", err)
-        })
+        that.getContentOnPath({name: '', is_dir: true})
       },
       ...mapActions(['executeAction'])
 
