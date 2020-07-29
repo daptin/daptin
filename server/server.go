@@ -456,9 +456,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		graphqlSchema := MakeGraphqlSchema(&initConfig, cruds)
 
 		graphqlHttpHandler := graphqlhandler.New(&graphqlhandler.Config{
-			Schema:   graphqlSchema,
-			Pretty:   true,
-			GraphiQL: true,
+			Schema:     graphqlSchema,
+			Pretty:     true,
+			Playground: true,
+			GraphiQL:   true,
 		})
 
 		// serve HTTP

@@ -109,7 +109,7 @@
 
       </q-scroll-area>
     </q-drawer>
-    <q-drawer side="right" v-model="tablePermissionDrawer" bordered :width="500"
+    <q-drawer side="right" v-model="tablePermissionDrawer" bordered :width="400" :breakpoint="1400"
               content-class="bg-grey-3">
       <q-scroll-area class="fit row">
         <div class="q-pa-md">
@@ -119,7 +119,7 @@
         </div>
         <div>
           <div class="col-12">
-            <table-permissions v-if="tableData" v-bind:selectedTable="tableData"/>
+            <table-permissions @close="tablePermissionDrawer = false" v-if="tableData" v-bind:selectedTable="tableData"/>
           </div>
         </div>
       </q-scroll-area>

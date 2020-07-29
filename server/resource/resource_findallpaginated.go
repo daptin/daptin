@@ -243,7 +243,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			finalCols = append(finalCols, "usergroup.reference_id as relation_reference_id")
 		} else {
 			finalCols = append(finalCols, "usergroup_id.permission")
-			finalCols = append(finalCols, "usergroup_id.reference_id as relation_reference_id")
+			finalCols = append(finalCols, fmt.Sprintf("%s.reference_id as relation_reference_id", relatedTableName))
 			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as reference_id", relatedTableName, relatedTableName))
 			joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", relatedTableName, relatedTableName)
 			distinctIdColumn = fmt.Sprintf("distinct(%s.id)", joinTableName)

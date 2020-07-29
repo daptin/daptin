@@ -11,8 +11,8 @@
           />
         </template>
 
-        <q-breadcrumbs-el label="Storage" icon="fas fa-amazon"/>
-        <q-breadcrumbs-el label="Integrations" icon="fas fa-list"/>
+        <q-breadcrumbs-el label="Integrations" icon="fas fa-bolt"/>
+        <q-breadcrumbs-el label="API Catalogue" icon="fas fa-plug"/>
       </q-breadcrumbs>
     </div>
     <q-separator></q-separator>

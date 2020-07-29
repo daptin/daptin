@@ -213,6 +213,9 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 			}
 
 			res[col.ColumnName] = col
+			if col.ColumnName == "reference_id" {
+				res["relation_reference_id"] = col
+			}
 		}
 
 		for _, rel := range selectedTable.Relations {

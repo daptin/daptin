@@ -3,6 +3,9 @@
     <div class="row">
 
       <div class="col-12 q-pa-md items-start q-gutter-md">
+        <q-page-sticky position="top-right" :offset="[20, 20]">
+          <q-btn @click="$emit('close')" flat icon="fas fa-times"></q-btn>
+        </q-page-sticky>
 
         <q-card flat class="bg-grey-3">
 
@@ -61,9 +64,17 @@
             <div class="text-h6">New row to be added to following groups</div>
           </q-card-section>
           <q-card-section class="q-pt-none">
-            <ul>
-              <li v-for="group in tableSchema.DefaultGroups">{{group}}</li>
-            </ul>
+            <q-markup-table flat>
+              <tbody>
+              <tr v-for="group in tableSchema.DefaultGroups">
+                <td>{{group}}</td>
+                <td class="text-right">
+                  <q-btn icon="fas fa-trash" flat size="xs" @click="removeGroupFromDefaultGroups(group)"></q-btn>
+                </td>
+              </tr>
+              </tbody>
+            </q-markup-table>
+
           </q-card-section>
           <q-card-actions>
             <q-btn flat label="Add group" @click="groupChangeForNewRowGroups()"></q-btn>
@@ -125,6 +136,32 @@
       selectedTable: Object
     },
     methods: {
+      removeGroupFromDefaultGroups(group) {
+        const that = this;
+        var currentGroups = that.tableSchema.DefaultGroups;
+        console.log("Current groups", group);
+        var toRemove = currentGroups.indexOf(group);
+        if (toRemove === -1) {
+          return
+        }
+        currentGroups.splice(toRemove, 1)
+
+
+        that.updateRow({
+          tableName: "world",
+          id: that.selectedTable.reference_id,
+          world_schema_json: JSON.stringify(that.tableSchema),
+        }).then(function () {
+          that.$q.notify({
+            message: "Saved"
+          });
+        }).catch(function (e) {
+          console.log("Failed to remove group from default groups", e);
+          that.$q.notify({
+            message: "Failed to save"
+          });
+        });
+      },
       saveTablePermissionModel() {
         console.log("new table permission", this.selectedPermissionOption)
         const that = this;
