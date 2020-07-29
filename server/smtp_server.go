@@ -7,6 +7,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 )
@@ -23,7 +24,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 	hosts := []string{}
 
 	sourceDirectoryName := "daptin-certs"
-	tempDirectoryPath, err := ioutil.TempDir("", sourceDirectoryName)
+	tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 
 	for _, server := range servers {
 

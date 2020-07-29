@@ -2,51 +2,55 @@ package resource
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"github.com/artpar/api2go"
+	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
-	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/operations"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"io/ioutil"
+
+	"github.com/artpar/api2go"
+	"github.com/artpar/rclone/fs/config"
 	"golang.org/x/oauth2"
+	"os"
 	"strings"
 )
 
-type CloudStoreFileDeleteActionPerformer struct {
+type CloudStoreFolderCreateActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
-func (d *CloudStoreFileDeleteActionPerformer) Name() string {
-	return "cloudstore.file.delete"
+func (d *CloudStoreFolderCreateActionPerformer) Name() string {
+	return "cloudstore.folder.create"
 }
 
-func (d *CloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *CloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
-	var err error
+
+	u, _ := uuid.NewV4()
+	sourceDirectoryName := "upload-" + u.String()
+	tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
+	log.Infof("Temp directory for this upload: %v", tempDirectoryPath)
+
+	//defer os.RemoveAll(tempDirectoryPath) // clean up
 
 	CheckErr(err, "Failed to create temp tempDirectoryPath for rclone upload")
-	atPath, ok := inFields["path"].(string)
-	if !ok {
-		return nil, nil, []error{errors.New("path is missing")}
-	}
-
+	atPath, _ := inFields["path"].(string)
+	folderName, _ := inFields["name"].(string)
 	rootPath := inFields["root_path"].(string)
-	if atPath != "" {
 
-		if !EndsWithCheck(rootPath, "/") && atPath != "" && atPath[0] != '/' {
-			rootPath = rootPath + "/"
-		}
-		rootPath = rootPath
+	if len(atPath) > 0 && atPath[len(atPath)-1] != '/' {
+		atPath = atPath + "/"
 	}
+
+	folderPath := atPath + folderName
 	args := []string{
 		rootPath,
-		"--delete-excluded",
 	}
-	log.Infof("Delete target path: %v", rootPath)
+	log.Infof("Create foler target %v", folderPath)
 
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}
@@ -72,26 +76,28 @@ func (d *CloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 
 	fsrc := cmd.NewFsSrc(args)
 	cobraCommand := &cobra.Command{
-		Use: fmt.Sprintf("Delete file action at [%v]", atPath),
+		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
 	}
 	fs.Config.LogLevel = fs.LogLevelNotice
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil {
-			log.Errorf("path is null for delete operation")
+			log.Errorf("Source or destination is null")
 			return nil
 		}
 
 		ctx := context.Background()
-		err = operations.Purge(ctx, fsrc, atPath)
 
-		InfoErr(err, "Failed to delete path in cloud store")
+		err := operations.Mkdir(ctx, fsrc, folderPath)
+		InfoErr(err, "Failed to sync files for upload to cloud")
+		err = os.RemoveAll(tempDirectoryPath)
+		InfoErr(err, "Failed to remove temp directory after upload")
 		return err
 	})
 
 	restartAttrs := make(map[string]interface{})
 	restartAttrs["type"] = "success"
-	restartAttrs["message"] = "Cloud storage path deleted"
+	restartAttrs["message"] = "Cloud storage file upload queued"
 	restartAttrs["title"] = "Success"
 	actionResponse := NewActionResponse("client.notify", restartAttrs)
 	responses = append(responses, actionResponse)
@@ -99,9 +105,9 @@ func (d *CloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 	return nil, responses, nil
 }
 
-func NewCloudStoreFileDeleteActionPerformer(cruds map[string]*DbResource) (ActionPerformerInterface, error) {
+func NewCloudStoreFolderCreateActionPerformer(cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := CloudStoreFileDeleteActionPerformer{
+	handler := CloudStoreFolderCreateActionPerformer{
 		cruds: cruds,
 	}
 

@@ -103,13 +103,14 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 	responses := make([]ActionResponse, 0)
 
 	u, _ := uuid.NewV4()
-	sourceDirectoryName := u.String()
-	tempDirectoryPath, err := ioutil.TempDir("", sourceDirectoryName)
+	sourceDirectoryName := "upload-" + u.String()
+	tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 	log.Infof("Temp directory for this upload: %v", tempDirectoryPath)
 
 	//defer os.RemoveAll(tempDirectoryPath) // clean up
 
 	CheckErr(err, "Failed to create temp tempDirectoryPath for rclone upload")
+	atPath, ok := inFields["path"].(string)
 	files, ok := inFields["file"].([]interface{})
 	if ok {
 
@@ -145,15 +146,24 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 			}
 
 		}
+		CheckErr(err, "Failed to remove cache folder: %s", tempDirectoryPath)
 	} else {
 		return nil, nil, []error{errors.New("improper file attachment")}
 	}
 
 	rootPath := inFields["root_path"].(string)
+	if atPath != "" {
+
+		if !EndsWithCheck(rootPath, "/") && len(atPath) > 0 && atPath[0] != '/' {
+			rootPath = rootPath + "/"
+		}
+		rootPath = rootPath + atPath
+	}
 	args := []string{
 		tempDirectoryPath,
 		rootPath,
 	}
+	log.Infof("Upload source target %v %v", tempDirectoryPath, rootPath)
 
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}

@@ -538,9 +538,10 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 	}
 	adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
 
+	actionCheckCount := 0
 	for _, action := range initConfig.Actions {
+		actionCheckCount += 1
 
-		log.Infof("Check action: %v@%v", action.OnType, action.Name)
 		world, ok := worldTableMap[action.OnType]
 		if !ok {
 			log.Errorf("Action [%v] defined on unknown type [%v]", action.Name, action.OnType)
@@ -601,6 +602,7 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 			}
 		}
 	}
+	log.Infof("Checked %d actions", actionCheckCount)
 
 	return nil
 }

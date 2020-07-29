@@ -7,6 +7,6 @@ export default function () {
     decodedAuthToken: localStorage.getItem("token") == null ? null : jwtDecode(localStorage.getItem("token")),
     defaultCloudStore: null,
     showHiddenTables: true,
-    endpoint: window.location.hostname === "site.daptin.com" ? "http://localhost:6336" : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : window.location.port),
+    endpoint: window.location.hostname === "site.daptin.com" ? "http://localhost:6336" : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : ':' + window.location.port),
   }
 }

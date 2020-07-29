@@ -105,7 +105,7 @@
     </q-drawer>
 
 
-    <q-drawer overlay content-class="bg-grey-3" :width="400" side="right" v-model="showEditSiteDrawer">
+    <q-drawer overlay content-class="bg-grey-3"  :breakpoint="1400" side="right" v-model="showEditSiteDrawer">
       <q-scroll-area class="fit row">
 
         <div class="q-pa-md">
@@ -151,7 +151,7 @@
       </q-scroll-area>
     </q-drawer>
 
-    <q-drawer :breakpoint="400" :width="fileDrawerWidth > 600 ? 600 : fileDrawerWidth" side="right" overlay v-model="showFileBrowser">
+    <q-drawer :breakpoint="400" :width="fileDrawerWidth > 500 ? 400 : fileDrawerWidth" side="right" overlay v-model="showFileBrowser">
       <q-scroll-area class="fit">
         <file-browser v-if="selectedSite && showFileBrowser" v-on:close="showFileBrowser = false" :site="selectedSite"></file-browser>
       </q-scroll-area>
@@ -181,6 +181,7 @@
       showEditSite(site) {
         this.selectedSite = site;
         this.showEditSiteDrawer = true;
+        this.showFileBrowser = false;
         this.newSite.hostname = site.hostname;
         this.newSite.name = site.hostname;
         this.newSite.path = site.path;

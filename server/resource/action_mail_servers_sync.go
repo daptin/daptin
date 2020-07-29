@@ -7,6 +7,7 @@ import (
 	"github.com/artpar/go-guerrilla/backends"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 )
@@ -34,7 +35,7 @@ func (d *MailServersSyncActionPerformer) DoAction(request Outcome, inFields map[
 
 	serverConfig := make([]guerrilla.ServerConfig, 0)
 	sourceDirectoryName := "daptin-certs"
-	tempDirectoryPath, err := ioutil.TempDir("", sourceDirectoryName)
+	tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 
 	var hosts []string
 	for _, server := range servers {

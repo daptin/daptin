@@ -1,7 +1,7 @@
 import {DaptinClient} from 'daptin-client';
 
 // const daptinClient = new DaptinClient(window.location.protocol + "//" + window.location.hostname, false, function () {
-let endpoint = window.location.hostname === "site.daptin.com" ? "http://localhost:6336" : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : window.location.port);
+let endpoint = window.location.hostname === "site.daptin.com" ? "http://localhost:6336" : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : ':' +window.location.port);
 
 console.log("Daptin endpoint is:", endpoint)
 var daptinClient = new DaptinClient(endpoint, false, {

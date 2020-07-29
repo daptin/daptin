@@ -420,6 +420,7 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"cloud_store_id": "$.cloud_store_id",
+					"site_id":        "$.reference_id",
 					"path":           "~path",
 				},
 			},
@@ -640,6 +641,13 @@ var SystemActions = []Action{
 				ColumnType: "file.*",
 				IsNullable: false,
 			},
+			{
+				Name:         "Path",
+				ColumnName:   "path",
+				ColumnType:   "label",
+				IsNullable:   true,
+				DefaultValue: "",
+			},
 		},
 		OutFields: []Outcome{
 			{
@@ -649,6 +657,71 @@ var SystemActions = []Action{
 					"file":           "~file",
 					"oauth_token_id": "$.oauth_token_id",
 					"store_provider": "$.store_provider",
+					"path":           "~path",
+					"root_path":      "$.root_path",
+				},
+			},
+		},
+	},
+
+	{
+		Name:             "delete_path",
+		Label:            "Delete path on a cloud store",
+		OnType:           "cloud_store",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:         "Path",
+				ColumnName:   "path",
+				ColumnType:   "label",
+				IsNullable:   true,
+				DefaultValue: "",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "cloudstore.file.delete",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"oauth_token_id": "$.oauth_token_id",
+					"store_provider": "$.store_provider",
+					"path":           "~path",
+					"root_path":      "$.root_path",
+				},
+			},
+		},
+	},
+
+
+	{
+		Name:             "create_folder",
+		Label:            "Create folder on a cloud store",
+		OnType:           "cloud_store",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:         "Path",
+				ColumnName:   "path",
+				ColumnType:   "label",
+				IsNullable:   true,
+				DefaultValue: "",
+			},
+			{
+				Name:       "Name",
+				ColumnName: "name",
+				ColumnType: "label",
+				IsNullable: false,
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "cloudstore.folder.create",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"oauth_token_id": "$.oauth_token_id",
+					"store_provider": "$.store_provider",
+					"path":           "~path",
+					"name":           "~name",
 					"root_path":      "$.root_path",
 				},
 			},

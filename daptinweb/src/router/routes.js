@@ -29,6 +29,9 @@ const routes = [
         path: 'apidocs', component: () => import('pages/ApiDocsPage.vue')
       },
       {
+        path: 'graphql', component: () => import('pages/ApiGraphqlPage.vue')
+      },
+      {
         path: 'edit/:tableName', component: () => import('pages/EditTable.vue')
       },
       {

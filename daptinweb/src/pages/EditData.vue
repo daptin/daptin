@@ -30,7 +30,7 @@
         <div id="spreadsheet"></div>
       </div>
 
-      <q-page-sticky position="bottom-right" :offset="[50, 50]">
+      <q-page-sticky position="bottom-right" :offset="[20, 20]">
         <q-fab color="primary" icon="keyboard_arrow_up" direction="up">
           <q-fab-action color="primary" icon="fas fa-file-excel"/>
           <q-fab-action color="secondary" icon="fas fa-download"/>
@@ -114,7 +114,7 @@
       <q-scroll-area class="fit row">
         <div class="q-pa-md">
           <div class="col-12">
-            <span class="text-h4">Table authorization</span>
+            <span class="text-h5">Table permissions</span>
           </div>
         </div>
         <div>
@@ -134,7 +134,7 @@
 <script>
   import {mapActions, mapGetters, mapState} from 'vuex';
 
-  const assetEndpoint = window.location.hostname === "site.daptin.com" ? "http://localhost:6336" : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : window.location.port);
+  const assetEndpoint = window.location.hostname === "site.daptin.com" ? "http://localhost:6336" : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : ':' + window.location.port);
   var Tabulator = require('tabulator-tables');
 
   Tabulator.prototype.extendModule("format", "formatters", {
@@ -237,7 +237,7 @@
               })
             })(e.value));
             // }
-            console.log("Asset column", e)
+            console.log("Asset set set column", e)
           }
         });
         console.log("Promises list", promises);

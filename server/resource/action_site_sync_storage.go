@@ -27,13 +27,18 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	responses := make([]ActionResponse, 0)
 
 	cloudStoreId := inFields["cloud_store_id"].(string)
-	tempDirectoryPath := inFields["path"].(string)
+	siteId := inFields["site_id"].(string)
+	path := inFields["path"].(string)
 	cloudStore, err := d.cruds["cloud_store"].GetCloudStoreByReferenceId(cloudStoreId)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
 
 	oauthTokenId := cloudStore.OAutoTokenId
+	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[siteId]
+	if siteCacheFolder == nil {
+		log.Infof("No subsite cache found on local")
+	}
 
 	token, oauthConf, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
 	CheckErr(err, "Failed to get oauth2 token for storage sync")
@@ -47,6 +52,13 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	config.FileSet(cloudStore.StoreProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
 	config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
 
+
+	tempDirectoryPath := path
+	if tempDirectoryPath == "" && siteCacheFolder != nil {
+		tempDirectoryPath = siteCacheFolder.LocalSyncPath
+	}
+
+
 	args := []string{
 		cloudStore.RootPath,
 		tempDirectoryPath,
@@ -55,7 +67,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	fsrc, fdst := cmd.NewFsSrcDst(args)
 	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
 	cobraCommand := &cobra.Command{
-		Use: fmt.Sprintf("Sync site storage [%v]", cloudStoreId),
+		Use: fmt.Sprintf(	"Sync site storage [%v]", cloudStoreId),
 	}
 	fs.Config.LogLevel = fs.LogLevelNotice
 
@@ -71,7 +83,9 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-		dir := sync.CopyDir(ctx, fdst, fsrc, true)
+		//fs.Config.DeleteMode = fs.DeleteModeBefore
+		dir := sync.Sync(ctx, fdst, fsrc, true)
+
 		return dir
 	})
 

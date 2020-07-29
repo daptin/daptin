@@ -2,10 +2,6 @@ package resource
 
 import (
 	"errors"
-	"github.com/artpar/go.uuid"
-	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-
 	"github.com/artpar/api2go"
 )
 
@@ -20,13 +16,6 @@ func (d *CloudStoreFileListActionPerformer) Name() string {
 func (d *CloudStoreFileListActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
-
-	u, _ := uuid.NewV4()
-	sourceDirectoryName := u.String()
-	tempDirectoryPath, _ := ioutil.TempDir("", sourceDirectoryName)
-	log.Infof("Temp directory for this upload: %v", tempDirectoryPath)
-
-	//defer os.RemoveAll(tempDirectoryPath) // clean up
 
 	path := inFields["path"].(string)
 	siteReferenceId := inFields["site_id"].(string)

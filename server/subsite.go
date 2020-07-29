@@ -58,7 +58,7 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 				columnName := column.ColumnName
 
 				cloudStore := cloudStoreMap[column.ForeignKeyData.Namespace]
-				tempDirectoryPath, err := ioutil.TempDir("", tableName+"_"+columnName)
+				tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), tableName+"_"+columnName)
 
 				err = cruds["task"].SyncStorageToPath(cloudStore, column.ForeignKeyData.KeyName, tempDirectoryPath)
 				if resource.CheckErr(err, "Failed to setup sync to path for table column [%v][%v]", tableName, column.ColumnName) {
@@ -153,7 +153,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 		u, _ := uuid.NewV4()
 		sourceDirectoryName := u.String()
-		tempDirectoryPath, err := ioutil.TempDir("", sourceDirectoryName)
+		tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 		if resource.CheckErr(err, "Failed to create temp directory") {
 			continue
 		}

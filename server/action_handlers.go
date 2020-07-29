@@ -66,6 +66,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create cloudStoreFileListActionPerformer")
 	performers = append(performers, cloudStoreFileListActionPerformer)
 
+	cloudStoreFileDeleteActionPerformer, err := resource.NewCloudStoreFileDeleteActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create cloudStoreFileDeleteActionPerformer")
+	performers = append(performers, cloudStoreFileDeleteActionPerformer)
+
 	oauthProfileExchangePerformer, err := resource.NewOuathProfileExchangePerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create oauth2 profile exchange handler")
 	performers = append(performers, oauthProfileExchangePerformer)
@@ -125,6 +129,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	fileUploadPerformer, err := resource.NewFileUploadActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, fileUploadPerformer)
+
+	cloudStoreFolderCreateActionPerformer, err := resource.NewCloudStoreFolderCreateActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create cloudStoreFolderCreateActionPerformer")
+	performers = append(performers, cloudStoreFolderCreateActionPerformer)
 
 	acmeTlsCertificateGenerateActionPerformer, err := resource.NewAcmeTlsCertificateGenerateActionPerformer(cruds, configStore, hostSwitch.handlerMap["api"])
 	resource.CheckErr(err, "Failed to create acme tls certificate generator")

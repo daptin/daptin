@@ -30,7 +30,7 @@
               <q-btn @click.stop="$router.push('/tables/edit/' + table.table_name)" flat icon="fas fa-wrench"></q-btn>
             </td>
             <td align="left">
-              <q-btn @click="$router.push('/tables/data/' + table.table_name)" flat icon="fas fa-list"></q-btn>
+              <q-btn @click.stop="$router.push('/tables/data/' + table.table_name)" flat icon="fas fa-list"></q-btn>
             </td>
           </tr>
           </tbody>

@@ -12,7 +12,8 @@
             />
           </template>
 
-          <q-breadcrumbs-el :key="i" v-for="(item, i) in bread" :label="item.label" :icon="item.icon"/>
+          <q-breadcrumbs-el :style="{cursor: item.click ? 'pointer' :''}" :key="i" v-for="(item, i) in bread"
+                            @click="item.click ? item.click() : true" :label="item.label" :icon="item.icon"/>
         </q-breadcrumbs>
       </div>
       <q-separator></q-separator>
@@ -25,13 +26,13 @@
           <q-btn-group flat>
             <q-btn-dropdown size="sm" icon="fas fa-plus">
               <q-list>
-                <q-item clickable v-close-popup @click="createFile()">
+                <q-item clickable v-close-popup @click="showNewFileName = true">
                   <q-item-section>
                     <q-item-label>Create file</q-item-label>
                   </q-item-section>
                 </q-item>
 
-                <q-item clickable v-close-popup @click="createFolder()">
+                <q-item clickable v-close-popup @click="showNewFolderName = true">
                   <q-item-section>
                     <q-item-label>Create folder</q-item-label>
                   </q-item-section>
@@ -80,14 +81,7 @@
       </div>
       <div class="row" v-if="viewType === 'table'">
         <q-markup-table style="width: 100%; box-shadow: none;">
-          <thead>
-          <tr>
-            <th></th>
-            <th></th>
-            <th class="text-left">Name</th>
-            <th class="text-right">Size</th>
-          </tr>
-          </thead>
+
           <tbody>
 
           <tr style="cursor: pointer" @click="getContentOnPath({name: '..'})">
@@ -100,7 +94,7 @@
 
           <tr style="cursor: pointer" @click="getContentOnPath(file)" v-for="file in fileList">
             <td style="width: 50px">
-              <q-checkbox size="xs" @input="selectFile(file)" v-model="file.selected" flat
+              <q-checkbox :size="showDelete ? 'xl' : 'md'" @input="selectFile(file)" v-model="file.selected" flat
                           icon="fas fa-wrench"></q-checkbox>
             </td>
 
@@ -146,6 +140,40 @@
       <!--      </div>-->
     </div>
 
+    <q-dialog v-model="showNewFolderName" persistent>
+      <q-card style="min-width: 350px">
+        <q-card-section>
+          <div class="text-h6">Folder name</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-input dense v-model="newFolderName" autofocus/>
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary">
+          <q-btn @click="showNewFolderName = false" flat label="Cancel" v-close-popup/>
+          <q-btn @click="createFolder()" flat label="Create" v-close-popup/>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="showNewFileName" persistent>
+      <q-card style="min-width: 350px">
+        <q-card-section>
+          <div class="text-h6">File name</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-input dense v-model="newFileName" autofocus/>
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary">
+          <q-btn @click="showNewFileName = false" flat label="Cancel" v-close-popup/>
+          <q-btn @click="createFile()" flat label="Create" v-close-popup/>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <q-dialog :square="true" v-model="filePreview">
       <q-card class="row" flat style="width: 80%; height: 80%">
         <q-card-section style="width: 100%; height: 100%">
@@ -182,6 +210,10 @@
     data() {
       return {
         showDelete: false,
+        showNewFileName: false,
+        newFileName: null,
+        newFolderName: null,
+        showNewFolderName: false,
         showUploadFile: false,
         uploadedFiles: [],
         fileList: [],
@@ -196,10 +228,30 @@
     watch: {},
     methods: {
       deleteSelectedFiles() {
+        const that = this;
         var selectedFiles = this.fileList.filter(e => e.selected);
-        for (var file in selectedFiles) {
-          console.log("Delete file", this.site, this.currentPath, selectedFiles[file])
+        for (var fileIndex in selectedFiles) {
+          console.log("Delete fileIndex", this.site, this.currentPath, selectedFiles[fileIndex])
+
+          that.executeAction({
+            tableName: "cloud_store",
+            actionName: "delete_path",
+            params: {
+              cloud_store_id: that.site.cloud_store_id.id,
+              path: this.currentPath + "/" + selectedFiles[fileIndex].name
+            }
+          }).then(function (res) {
+            console.log("deleted", res);
+            selectedFiles.selected = false;
+            selectedFiles.splice(fileIndex, 1)
+          }).catch(function (err) {
+            console.log("failed to delete", err)
+          })
+
+
         }
+
+
       },
       selectFile(file) {
         console.log("Select file", file, this.fileList);
@@ -208,8 +260,53 @@
 
       createFile() {
 
+        const that = this;
+
+        if (that.newFileName === "" || !that.newFileName) {
+          return
+        }
+
+        that.executeAction({
+          tableName: "cloud_store",
+          actionName: "upload_file",
+          params: {
+            "file": [{"name": that.newFileName, "file": "data:text/plain;base64,", "type": "text/plain"}],
+            "path": that.currentPath,
+            "cloud_store_id": that.site.cloud_store_id.id
+          }
+        }).then(function () {
+          that.getContentOnPath({name: '.', is_dir: false});
+          that.$q.notify({
+            message: "File created"
+          })
+        }).catch(function (err) {
+          console.log("Failed to create file", err)
+          that.$q.notify({
+            message: "Failed to create create file"
+          })
+        })
+
+        that.showNewFileName = false;
       },
       createFolder() {
+        const that = this;
+
+        that.executeAction({
+          tableName: "cloud_store",
+          actionName: "create_folder",
+          params: {
+            "cloud_store_id": that.site.cloud_store_id.id,
+            "path": that.currentPath,
+            "name": that.newFolderName
+          }
+        }).then(function () {
+          that.getContentOnPath({name: '.', is_dir: false})
+        }).catch(function (err) {
+          console.log("Failed to create folder", err)
+          that.$q.notify({
+            message: "Failed to create folder"
+          })
+        })
 
       },
       inputFile(uploadedFile) {
@@ -302,14 +399,22 @@
       getContentOnPath(path) {
         console.log("Get content on path", path);
         const that = this;
+        that.showDelete = false;
 
 
         if (path.is_dir) {
-          that.currentPath = that.currentPath + "/" + path.name;
-          that.bread.push({
-            icon: "fas fa-folder",
-            label: path.name,
-          })
+          if (path.name !== '/' && path.name !== '') {
+
+            that.currentPath = that.currentPath + (that.currentPath === "" ? "" : "/") + path.name;
+            that.bread.push({
+              icon: "fas fa-folder",
+              label: path.name,
+            })
+          } else {
+            that.currentPath = "";
+            that.bread = [that.bread[0]]
+          }
+
         } else if (path.name === "..") {
 
           if (that.bread.length === 1) {
@@ -342,9 +447,15 @@
               path: that.currentPath
             }
           }).then(function (res) {
-            console.log("list files Response", res[0].Attributes["list"]);
+            let fileList = res[0].Attributes["list"];
+            console.log("list files Response", fileList);
+
+            if (!fileList) {
+              that.fileList = []
+              return;
+            }
             that.showFileBrowser = true;
-            let files = res[0].Attributes["list"].map(that.makeFile);
+            let files = fileList.map(that.makeFile);
 
             files.sort(function (a, b) {
               return a.is_dir < b.is_dir
@@ -357,6 +468,7 @@
             that.fileList = files;
           }).catch(function (err) {
             console.log("failed to list files", err)
+            that.getContentOnPath({name: '', is_dir: false})
           })
         } else {
 
@@ -367,12 +479,12 @@
           if (window.location.hostname === "site.daptin.com") {
             portString = ":6336"
           }
-          let fetchUrl = "http://" + hostname + portString + that.currentPath + "/" + path.name;
+          let fetchUrl = "http://" + hostname + portString + "/" + that.currentPath + "/" + path.name;
           that.previewUrl = fetchUrl;
           // window.location = fetchUrl;
           that.filePreview = true;
 
-          // console.log("Fetch url: ", fetchUrl)
+          console.log("Fetch url: ", fetchUrl)
           // fetch(fetchUrl).then(function (response) {
           //   response.blob().then(function (blob) {
           //     console.log("Blob is ready", saveData(blob, path.name))
@@ -405,7 +517,10 @@
       this.currentPath = "";
       this.bread.push({
         label: that.site.hostname,
-        icon: "fas fa-home"
+        icon: "fas fa-home",
+        click: function () {
+          that.getContentOnPath({name: '/', is_dir: true})
+        }
       });
       this.listFiles(this.site)
     }
