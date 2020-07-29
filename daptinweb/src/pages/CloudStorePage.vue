@@ -33,8 +33,8 @@
           <q-card-section>
             <div class="row">
               <div class="col-12">
-<!--                <q-btn size="sm" @click="listFiles(store)" label="Browse files" color="primary"-->
-<!--                       class="float-right"></q-btn>-->
+                <!--                <q-btn size="sm" @click="listFiles(store)" label="Browse files" color="primary"-->
+                <!--                       class="float-right"></q-btn>-->
                 <q-btn @click="showEditStore(store)" size="sm"
                        label="Edit store" class="float-right"></q-btn>
               </div>
@@ -57,44 +57,8 @@
           <q-form class="q-gutter-md">
             <q-input label="Name" v-model="newStore.name"></q-input>
 
-            <!--            <q-input readonly label="Store type" v-model="newStore.store_type"></q-input>-->
-
-
-            <!--            <q-input label="Store provider" v-model="newStore.store_provider"></q-input>-->
-
-            <!--            <q-select-->
-            <!--              filled-->
-            <!--              v-model="newStore.store_provider"-->
-            <!--              :options="storeProviderOptions"-->
-            <!--              label="Provider"-->
-            <!--              color="black"-->
-            <!--              options-selected-class="text-deep-orange"-->
-            <!--            >-->
-            <!--              <template v-slot:option="scope">-->
-            <!--                <q-item-->
-            <!--                  v-bind="scope.itemProps"-->
-            <!--                  v-on="scope.itemEvents"-->
-            <!--                >-->
-            <!--                  <q-item-section avatar>-->
-            <!--                    <q-icon :name="scope.opt.icon"/>-->
-            <!--                  </q-item-section>-->
-            <!--                  <q-item-section>-->
-            <!--                    <q-item-label v-html="scope.opt.label"/>-->
-            <!--                    <q-item-label caption>{{ scope.opt.description }}</q-item-label>-->
-            <!--                  </q-item-section>-->
-            <!--                </q-item>-->
-            <!--              </template>-->
-            <!--            </q-select>-->
-
 
             <q-input label="Root path" v-model="newStore.root_path"></q-input>
-
-            <!--            <q-editor-->
-            <!--              :toolbar="[]"-->
-            <!--              style="font-family: 'JetBrains Mono'"-->
-            <!--              label="Store parameters"-->
-            <!--              v-model="newStore.store_parameters"-->
-            <!--            />-->
 
 
             <q-btn color="primary" @click="createStore()">Create</q-btn>

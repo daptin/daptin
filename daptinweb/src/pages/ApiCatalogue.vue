@@ -25,10 +25,10 @@
             <span class="text-h6">{{integration.name}}</span>
           </q-card-section>
           <q-card-section>
-            <span>Provider</span> <span class="text-bold float-right">{{integration.integration_provider}}</span>
+            <span>Format</span> <span class="text-bold float-right">{{integration.specification_format}}</span>
           </q-card-section>
           <q-card-section>
-            <span>Root path</span> <span class="text-bold float-right">{{integration.root_path}}</span>
+            <span>Language</span> <span class="text-bold float-right">{{integration.specification_language}}</span>
           </q-card-section>
           <q-card-section>
             <div class="row">
@@ -56,48 +56,9 @@
           <span class="text-h6">Create integration</span>
           <q-form class="q-gutter-md">
             <q-input label="Name" v-model="newIntegration.name"></q-input>
+            <q-file @input="fileAdded()" label="OpenAPI Spec file" v-model="specFile"></q-file>
 
-            <!--            <q-input readonly label="Integration type" v-model="newIntegration.integration_type"></q-input>-->
-
-
-            <!--            <q-input label="Integration provider" v-model="newIntegration.integration_provider"></q-input>-->
-
-            <!--            <q-select-->
-            <!--              filled-->
-            <!--              v-model="newIntegration.integration_provider"-->
-            <!--              :options="integrationProviderOptions"-->
-            <!--              label="Provider"-->
-            <!--              color="black"-->
-            <!--              options-selected-class="text-deep-orange"-->
-            <!--            >-->
-            <!--              <template v-slot:option="scope">-->
-            <!--                <q-item-->
-            <!--                  v-bind="scope.itemProps"-->
-            <!--                  v-on="scope.itemEvents"-->
-            <!--                >-->
-            <!--                  <q-item-section avatar>-->
-            <!--                    <q-icon :name="scope.opt.icon"/>-->
-            <!--                  </q-item-section>-->
-            <!--                  <q-item-section>-->
-            <!--                    <q-item-label v-html="scope.opt.label"/>-->
-            <!--                    <q-item-label caption>{{ scope.opt.description }}</q-item-label>-->
-            <!--                  </q-item-section>-->
-            <!--                </q-item>-->
-            <!--              </template>-->
-            <!--            </q-select>-->
-
-
-            <q-input label="Root path" v-model="newIntegration.root_path"></q-input>
-
-            <!--            <q-editor-->
-            <!--              :toolbar="[]"-->
-            <!--              style="font-family: 'JetBrains Mono'"-->
-            <!--              label="Integration parameters"-->
-            <!--              v-model="newIntegration.integration_parameters"-->
-            <!--            />-->
-
-
-            <q-btn color="primary" @click="createIntegration()">Create</q-btn>
+            <q-btn color="primary" :loading="fileIsBeingLoaded" @click="createIntegration()">Create</q-btn>
             <q-btn @click="showCreateintegrationDrawer = false">Cancel</q-btn>
           </q-form>
         </div>
@@ -110,13 +71,10 @@
         <div class="q-pa-md">
           <span class="text-h6">Edit integration</span>
           <q-form class="q-gutter-md">
-            <q-input label="Name" v-model="newIntegration.name"></q-input>
+            <q-input disable label="Name" v-model="newIntegration.name"></q-input>
 
-
-            <q-input label="Root path" v-model="newIntegration.root_path"></q-input>
 
             <q-btn color="negative" @click="deleteIntegration()">Delete</q-btn>
-            <q-btn class="float-right" color="primary" @click="editIntegration()">Save</q-btn>
             <q-btn class="float-right" @click="showEditintegrationDrawer = false">Cancel</q-btn>
           </q-form>
         </div>
@@ -131,8 +89,63 @@
   import {mapActions, mapGetters, mapState} from 'vuex';
 
   export default {
-    name: 'TablePage',
+    name: 'ApiCataloguePage',
     methods: {
+      fileAdded() {
+        const that = this;
+        this.fileIsBeingLoaded = true;
+        var file = this.specFile;
+        console.log("File to read", file);
+
+        if (file.name.toLowerCase().endsWith(".yaml") || file.type.toLowerCase().endsWith("yaml")) {
+          this.newIntegration.specification_format = "yaml";
+        } else {
+          this.newIntegration.specification_format = "json";
+        }
+
+        var obj = {};
+        var filePromise = new Promise(function (resolve, reject) {
+          const name = file.name;
+          const type = file.type;
+          const reader = new FileReader();
+          reader.onload = function (fileResult) {
+
+            resolve(fileResult);
+          };
+          reader.onerror = function () {
+            console.log("Failed to load file onerror", e, arguments);
+            reject(name);
+          };
+          reader.readAsDataURL(file);
+        });
+
+        filePromise.then(function (specData) {
+          console.log("Spec file added", that.newIntegration, that.specFile);
+          console.log("File data", specData);
+          var specContentText = atob(specData.target.result.split("base64,")[1]);
+          console.log("Spec content text", specContentText)
+
+          if (specContentText.indexOf("openapi: 3") > -1) {
+            that.newIntegration.specification_language = "openapiv3"
+          }
+
+          if (specContentText.indexOf("openapi: 2") > -1) {
+            that.newIntegration.specification_language = "openapiv2"
+          }
+
+          if (specContentText.indexOf("\"openapi\": \"3") > -1) {
+            that.newIntegration.specification_language = "openapiv3"
+          }
+
+          if (specContentText.indexOf("\"openapi\": \"2") > -1) {
+            that.newIntegration.specification_language = "openapiv2"
+          }
+
+          that.newIntegration.specification = specContentText;
+          that.fileIsBeingLoaded = false;
+        })
+
+      },
       // listFiles(integration) {
       //   console.log("list files in cloud integration", integration)
       //   const that = this;
@@ -197,7 +210,7 @@
       },
       createIntegration() {
         const that = this;
-        console.log("new cloud", this.newIntegration);
+        console.log("new integration", this.newIntegration);
         this.newIntegration.tableName = "integration";
         that.createRow(that.newIntegration).then(function (res) {
           that.user = {};
@@ -213,7 +226,7 @@
             })
           } else {
             that.$q.notify({
-              message: "Failed to create cloud"
+              message: "Failed to create integration"
             })
           }
         });
@@ -222,7 +235,12 @@
       refresh() {
         var tableName = "integration";
         const that = this;
-        this.loadData({tableName: tableName}).then(function (data) {
+        this.loadData({
+          tableName: tableName,
+          params: {
+            fields: "name,specification_language,specification_format"
+          }
+        }).then(function (data) {
           console.log("Loaded data", data);
           that.integrations = data.data;
         })
@@ -231,6 +249,7 @@
     data() {
       return {
         text: '',
+        fileIsBeingLoaded: false,
         selectedIntegration: {},
         integrationProviderOptions: [
           {
@@ -270,12 +289,15 @@
           },
         ],
         showHelp: false,
+        specFile: null,
         newIntegration: {
           name: null,
-          integration_provider: 'local',
-          integration_type: 'local',
-          root_path: null,
-          integration_parameters: '{}',
+          enable: true,
+          specification_format: null,
+          specification: null,
+          authentication_type: 'token',
+          authentication_specification: '{}',
+          specification_language: null,
         },
         showCreateintegrationDrawer: false,
         showEditintegrationDrawer: false,
