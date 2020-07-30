@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "test": "echo \"No test specified\" && exit 0",
-    "dev": "node /usr/lib/node_modules/@quasar/cli/bin/quasar dev",
+    "dev": "node $NODE_DEBUG_OPTION /usr/local/lib/node_modules/@quasar/cli/bin/quasar dev",
     "build": "quasar build -m spa"
   },
   "dependencies": {
@@ -25,8 +25,9 @@
     "rapidoc": "^8.1.2",
     "tabulator-tables": "^4.6.2",
     "vue-i18n": "^8.0.0",
+    "vue-markdown": "^2.2.4",
     "vue-upload-component": "^2.8.20",
-    "vuefinder": "^0.2.0"
+    "xlsx": "^0.16.4"
   },
   "devDependencies": {
     "@quasar/app": "^1.9.5",

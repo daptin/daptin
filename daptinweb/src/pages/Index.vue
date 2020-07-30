@@ -31,7 +31,8 @@
                 </q-avatar>
               </q-item-section>
               <q-item-section>
-                <span class="text-h4" v-if="!showHostnameEdit">Users @ {{serverConfig.hostname}}</span>
+                <span class="text-h4" v-if="!showHostnameEdit">Users</span>
+                <span class="text-bold" v-if="!showHostnameEdit">@ {{serverConfig.hostname}}</span>
                 <q-input @keypress.enter="saveHostname()" v-if="showHostnameEdit" :value="serverConfig.hostname"
                          v-model="serverConfig.hostname"
                          label="Hostname"></q-input>
@@ -345,6 +346,19 @@
 
     </div>
 
+
+    <q-page-sticky v-if="!showHelp" position="top-right" :offset="[0, 0]">
+      <q-btn flat @click="showHelp = true" fab icon="fas fa-question"/>
+    </q-page-sticky>
+
+    <q-drawer overlay :width="400" side="right" v-model="showHelp">
+      <q-scroll-area class="fit" v-if="showHelp">
+        <help-page @closeHelp="showHelp = false">
+        </help-page>
+      </q-scroll-area>
+    </q-drawer>
+
+
   </q-page>
 </template>
 
@@ -420,6 +434,7 @@
     data() {
       return {
         text: '',
+        showHelp: false,
         showHostnameEdit: false,
         actionMap: {},
         userAggregate: {},

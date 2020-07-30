@@ -88,6 +88,8 @@
     </q-drawer>
 
 
+
+
   </div>
 </template>
 
@@ -95,7 +97,7 @@
   import {mapActions, mapGetters, mapState} from 'vuex';
 
   export default {
-    name: 'TablePage',
+    name: 'CloudStorePage',
     methods: {
       // listFiles(store) {
       //   console.log("list files in cloud store", store)
@@ -196,6 +198,7 @@
       return {
         text: '',
         selectedStore: {},
+        showHelp: false,
         storeProviderOptions: [
           {
             icon: 'fas fa-aws',

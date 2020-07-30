@@ -17,8 +17,8 @@
     </div>
 
     <div class="row">
-      <div class="col-10 q-pa-md q-gutter-sm">
-        <div v-if="tableSchema" class="col-10 q-pa-sm">
+      <div class="col-12 q-pa-md q-gutter-sm">
+        <div v-if="tableSchema" >
           <table-editor v-on:deleteRelation="deleteTableRelation"
                         v-on:deleteColumn="deleteTableColumn"
                         v-on:deleteTable="deleteTable"

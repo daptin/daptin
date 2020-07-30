@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="q-pa-md q-gutter-sm">
-      <q-breadcrumbs   >
+      <q-breadcrumbs>
         <template v-slot:separator>
           <q-icon
             size="1.2em"
@@ -27,16 +27,18 @@
       </div>
 
       <div class="col-12">
-        <div id="spreadsheet"></div>
+        <div id="spreadsheet" style="height: 80vh"></div>
       </div>
 
-      <q-page-sticky position="bottom-right" :offset="[20, 20]">
+      <q-page-sticky v-if="!newRowDrawer" position="bottom-right" :offset="[20, 20]">
         <q-fab color="primary" icon="keyboard_arrow_up" direction="up">
-          <q-fab-action color="primary" icon="fas fa-file-excel"/>
-          <q-fab-action color="secondary" icon="fas fa-download"/>
+          <q-fab-action @click="downloadData('xls')" color="primary" icon="fas fa-file-excel"/>
+          <q-fab-action @click="downloadData('csv')" color="primary" icon="fas fa-download"/>
         </q-fab>
       </q-page-sticky>
     </div>
+
+
     <q-drawer
       side="right"
       v-model="newRowDrawer"
@@ -48,7 +50,7 @@
       <q-scroll-area class="fit">
         <div class="q-pa-md">
           <span class="text-h6">New {{$route.params.tableName}}</span>
-          <q-form  class="q-gutter-md">
+          <q-form class="q-gutter-md">
 
             <div v-for="column in newRowData">
               <q-input
@@ -81,6 +83,7 @@
 
               <q-toggle
                 :label="column.meta.ColumnName"
+                class="text-right"
                 v-if="column.meta.ColumnType === 'truefalse'"
                 v-model="column.value"
               />
@@ -109,6 +112,7 @@
 
       </q-scroll-area>
     </q-drawer>
+
     <q-drawer side="right" v-model="tablePermissionDrawer" bordered :width="400" :breakpoint="1400"
               content-class="bg-grey-3">
       <q-scroll-area class="fit row">
@@ -119,7 +123,8 @@
         </div>
         <div>
           <div class="col-12">
-            <table-permissions @close="tablePermissionDrawer = false" v-if="tableData" v-bind:selectedTable="tableData"/>
+            <table-permissions @close="tablePermissionDrawer = false" v-if="tableData"
+                               v-bind:selectedTable="tableData"/>
           </div>
         </div>
       </q-scroll-area>
@@ -131,9 +136,13 @@
     margin-left: 9px;
   }
 </style>
+
 <script>
   import {mapActions, mapGetters, mapState} from 'vuex';
 
+  import XLSX from 'xlsx';
+
+  window.XLSX = XLSX;
   const assetEndpoint = window.location.hostname === "site.daptin.com" ? "http://localhost:6336" : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : ':' + window.location.port);
   var Tabulator = require('tabulator-tables');
 
@@ -172,6 +181,15 @@
   export default {
     name: "EditData",
     methods: {
+      downloadData(format) {
+        if (format === "csv") {
+          this.spreadsheet.download("csv", this.$route.params.tableName + ".csv")
+        } else if (format === "xls") {
+          this.spreadsheet.download("xlsx", this.$route.params.tableName + ".xls", {
+            sheetName: this.$route.params.tableName
+          });
+        }
+      },
       showPermissionsDrawer() {
         this.newRowDrawer = false;
         this.tablePermissionDrawer = true;
@@ -305,21 +323,21 @@
             if (col.ColumnType.startsWith('file.')) {
               assetColumns.push(col.ColumnName)
               that.newRowData.push({
-                    meta: col,
-                    value: []
-                  }
+                  meta: col,
+                  value: []
+                }
               );
             } else if (col.ColumnType === 'truefalse') {
               that.newRowData.push({
-                    meta: col,
-                    value: false
-                  }
+                  meta: col,
+                  value: false
+                }
               );
             } else {
               that.newRowData.push({
-                    meta: col,
-                    value: ""
-                  }
+                  meta: col,
+                  value: ""
+                }
               );
             }
 
@@ -327,6 +345,7 @@
               title: col.Name,
               field: col.ColumnName,
               editor: true,
+              headerFilter: true,
               editable: !col.ColumnType.startsWith('file.'),
               formatter: col.ColumnType === "truefalse" ? "tickCross" : null,
               hozAlign: col.ColumnType === "truefalse" ? "center" : "left",
@@ -360,12 +379,13 @@
             // pagination: "remote",
             tooltips: true,
             ajaxSorting: true,
+
             layout: "fitDataFill",
             ajaxFiltering: true,
             paginationSizeSelector: true,
             ajaxProgressiveLoad: "scroll",
             ajaxProgressiveLoadDelay: 200,
-            ajaxProgressiveLoadScrollMargin: 300,
+            ajaxProgressiveLoadScrollMargin: 600,
             index: 'reference_id',
             history: true,
             movableColumns: true,
@@ -418,6 +438,29 @@
                 }
                 sorts = sorts.substring(0, sorts.length - 1);
                 requestUrl = requestUrl + "sort=" + sorts + "&"
+              }
+              if (params.filters) {
+                var queryFilters = [];
+                for (var i in params.filters) {
+                  var filter = params.filters[i];
+                  switch (filter.type) {
+                    case "like":
+                      queryFilters.push({
+                        "column": filter.field,
+                        "operator": "like",
+                        "value": filter.value,
+                      })
+                      break;
+                    default:
+                      queryFilters.push({
+                        "column": filter.field,
+                        "operator": filter.type,
+                        "value": filter.value,
+                      })
+                  }
+                }
+                requestUrl = requestUrl + "query=" + JSON.stringify(queryFilters) + "&"
+
               }
               if (assetColumns.length > 0) {
                 requestUrl = requestUrl + "included_relations=" + assetColumns.join(",") + "&"
@@ -480,6 +523,8 @@
     data() {
       return {
         tablePermissionDrawer: false,
+        currentPage: 1,
+        currentPagination: {},
         defaultColumns: ['updated_at', 'created_at', 'reference_id', 'permission'],
         tableSchema: {ColumnModel: []},
         rows: [],

@@ -4,6 +4,10 @@ export function setToken(state, token) {
   state.token = token;
 }
 
+export function setDecodedAuthToken(state, token) {
+  state.decodedAuthToken = token;
+}
+
 export function setDefaultCloudStore(state, cloudStore) {
   state.defaultCloudStore = cloudStore;
 }

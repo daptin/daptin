@@ -17,12 +17,18 @@
     </div>
     <q-separator></q-separator>
 
-    <div class="row q-pa-md q-gutter-sm">
+    <div class="row">
+      <div class="col-xl-3 col-lg-4 col-6 col-sm-8 col-xs-12 q-pa-md">
+        <q-input label="Search" v-model="filterWord"></q-input>
+      </div>
+    </div>
+    <div class="row">
 
-      <div class="col-4 col-xl-2 col-lg-3 col-xs-12 col-sm-6 q-pa-md" v-for="integration in integrations">
+      <div class="col-4 col-xl-2 col-lg-3 col-xs-12 col-sm-6 q-pa-md" v-for="integration in filteredIntegrations">
         <q-card>
           <q-card-section>
-            <span class="text-h6">{{integration.name}}</span>
+            <span class="text-h6"
+                  style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;">{{integration.name}}</span>
           </q-card-section>
           <q-card-section>
             <span>Format</span> <span class="text-bold float-right">{{integration.specification_format}}</span>
@@ -47,10 +53,10 @@
 
 
     <q-page-sticky style="z-index: 3000" position="bottom-right" :offset="[20, 20]">
-      <q-btn @click="showCreateintegrationDrawer = true" fab icon="add" color="primary"/>
+      <q-btn @click="showCreateIntegrationDrawer = true" fab icon="add" color="primary"/>
     </q-page-sticky>
 
-    <q-drawer overlay content-class="bg-grey-3" :width="400" side="right" v-model="showCreateintegrationDrawer">
+    <q-drawer overlay content-class="bg-grey-3" :width="400" side="right" v-model="showCreateIntegrationDrawer">
       <q-scroll-area class="fit row">
         <div class="q-pa-md">
           <span class="text-h6">Create integration</span>
@@ -59,14 +65,14 @@
             <q-file @input="fileAdded()" label="OpenAPI Spec file" v-model="specFile"></q-file>
 
             <q-btn color="primary" :loading="fileIsBeingLoaded" @click="createIntegration()">Create</q-btn>
-            <q-btn @click="showCreateintegrationDrawer = false">Cancel</q-btn>
+            <q-btn @click="showCreateIntegrationDrawer = false">Cancel</q-btn>
           </q-form>
         </div>
       </q-scroll-area>
     </q-drawer>
 
 
-    <q-drawer overlay content-class="bg-grey-3" :width="400" side="right" v-model="showEditintegrationDrawer">
+    <q-drawer overlay content-class="bg-grey-3" :width="400" side="right" v-model="showEditIntegrationDrawer">
       <q-scroll-area class="fit row">
         <div class="q-pa-md">
           <span class="text-h6">Edit integration</span>
@@ -75,7 +81,7 @@
 
 
             <q-btn color="negative" @click="deleteIntegration()">Delete</q-btn>
-            <q-btn class="float-right" @click="showEditintegrationDrawer = false">Cancel</q-btn>
+            <q-btn class="float-right" @click="showEditIntegrationDrawer = false">Cancel</q-btn>
           </q-form>
         </div>
       </q-scroll-area>
@@ -163,7 +169,7 @@
       // },
       showEditIntegration(integration) {
         this.selectedIntegration = integration
-        this.showEditintegrationDrawer = true
+        this.showEditIntegrationDrawer = true
         this.newIntegration.name = integration.name;
         this.newIntegration.root_path = integration.root_path;
       },
@@ -174,7 +180,7 @@
           tableName: "integration",
           reference_id: this.selectedIntegration.id
         }).then(function (res) {
-          that.showEditintegrationDrawer = false;
+          that.showEditIntegrationDrawer = false;
           that.selectedIntegration = {};
           that.$q.notify({
             title: "Success",
@@ -194,7 +200,7 @@
         this.newIntegration.tableName = "integration";
         this.newIntegration.id = this.selectedIntegration.id;
         this.updateRow(this.newIntegration).then(function (res) {
-          that.showEditintegrationDrawer = false;
+          that.showEditIntegrationDrawer = false;
           that.selectedIntegration = {};
           that.$q.notify({
             title: "Success",
@@ -218,7 +224,7 @@
             message: "cloud integration created"
           });
           that.refresh();
-          that.showCreateintegrationDrawer = false;
+          that.showCreateIntegrationDrawer = false;
         }).catch(function (e) {
           if (e instanceof Array) {
             that.$q.notify({
@@ -238,7 +244,10 @@
         this.loadData({
           tableName: tableName,
           params: {
-            fields: "name,specification_language,specification_format"
+            fields: "name,specification_language,specification_format",
+            page: {
+              size: 500,
+            }
           }
         }).then(function (data) {
           console.log("Loaded data", data);
@@ -250,44 +259,8 @@
       return {
         text: '',
         fileIsBeingLoaded: false,
+        filterWord: null,
         selectedIntegration: {},
-        integrationProviderOptions: [
-          {
-            icon: 'fas fa-aws',
-            label: 'Amazon Drive',
-            description: 'OAuth token based'
-          },
-          {
-            icon: 'fas fa-aws',
-            label: 'Amazon S3',
-            description: 'OAuth token based'
-          },
-          {
-            icon: 'fas fa-aws',
-            label: 'Backblaze B2',
-            description: 'OAuth token based'
-          },
-          {
-            icon: 'fas fa-aws',
-            label: 'Dropbox',
-            description: 'OAuth token based'
-          },
-          {
-            icon: 'fas fa-aws',
-            label: 'FTP',
-            description: 'OAuth token based'
-          },
-          {
-            icon: 'fas fa-aws',
-            label: 'Google Drive',
-            description: 'OAuth token based'
-          },
-          {
-            icon: 'fas fa-aws',
-            label: 'local',
-            description: 'The local filesystem'
-          },
-        ],
         showHelp: false,
         specFile: null,
         newIntegration: {
@@ -299,8 +272,8 @@
           authentication_specification: '{}',
           specification_language: null,
         },
-        showCreateintegrationDrawer: false,
-        showEditintegrationDrawer: false,
+        showCreateIntegrationDrawer: false,
+        showEditIntegrationDrawer: false,
         filter: null,
         integrations: [],
         columns: [
@@ -319,6 +292,13 @@
       this.refresh();
     },
     computed: {
+      filteredIntegrations() {
+        const that = this;
+        console.log("filtered integragtions", that.filterWord, that.integrations)
+        return !that.filterWord ? this.integrations : this.integrations.filter(function (e) {
+          return e.name.toLowerCase().indexOf(that.filterWord.toLowerCase()) > -1;
+        })
+      },
       ...mapGetters(['selectedTable']),
       ...mapState([])
     },

@@ -357,7 +357,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				builder = builder.Set(colsList[i], valsList[i])
 			}
 
-			query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).ToSql()
+			query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"version": data.GetCurrentVersion()}).ToSql()
 			//log.Infof("Update query: %v", query)
 			if err != nil {
 				log.Errorf("Failed to create update query: %v", err)

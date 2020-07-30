@@ -23,8 +23,8 @@
             <q-img :src="decodedAuthToken.picture"></q-img>
           </div>
           <div class="col-11 col-xs-6 col-sm-6 q-pa-md">
-            <span class="text-h5">{{user.name}}</span> <br />
-            <span class="text-h6">{{user.email}}</span>
+            <span class="text-h6">{{user.name}}</span> <br />
+            <span class="text-bold">{{user.email}}</span>
           </div>
         </div>
       </q-card-section>

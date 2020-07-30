@@ -25,7 +25,7 @@
   import {mapActions, mapGetters, mapState} from 'vuex';
 
   export default {
-    name: 'TablePage',
+    name: 'DataPage',
     methods: {
       ...mapActions([])
     },

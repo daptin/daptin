@@ -77,7 +77,7 @@ You can add users to your instance here. You can also send the sign up link wher
   import {mapActions, mapGetters, mapState} from 'vuex';
 
   export default {
-    name: 'TablePage',
+    name: 'UsersPage',
 
     methods: {
       createUser() {

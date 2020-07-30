@@ -7,7 +7,7 @@
     </div>
     <div class="row">
 
-      <div class="col-4">
+      <div class="col-4 col-xs-11 col-sm-10 q-pa-md">
 
         <q-input
           filled
@@ -19,7 +19,7 @@
           :rules="[ val => val && val.length > 0 || 'Table name cannot be empty']"></q-input>
       </div>
 
-      <div class="col-md-4 offset-4">
+      <div class="col-6 col-xs-1 col-sm-2 q-pa-md">
         <div>
           <q-btn :disable="localTable.ColumnModel && localTable.ColumnModel.length>0 ? false: true" size="20px"
                  @click="createTable" :label="isEdit ? 'Save' : 'Create'" type="submit" color="green"/>
@@ -48,7 +48,7 @@
     <div class="row">
       <div class="col-md-12">
         <q-tab-panels v-model="tab" animated>
-          <q-tab-panel name="columns">
+          <q-tab-panel name="columns" class="q-pa-md">
 
 
             <span class="text-h6">Columns</span>
@@ -57,54 +57,54 @@
               + StandardColumns.length + ' base columns'}})
             </small>
 
-            <div class="row"
+            <div class="row bg-grey-1" style="border-bottom: 1px solid black"
                  v-for="column in localTable.ColumnModel
              .filter(e => e.ColumnName && StandardColumns.indexOf(e.ColumnName) === -1 && (!e.IsForeignKey || e.IsForeignKey && e.ForeignKeyData.DataSource === 'cloud_store'))">
 
-              <div class="col-3" style="padding: 5px">
+              <div class="col-3 col-md-3 col-lg-3 col-xl-3 col-xs-12 col-sm-3" style="padding: 5px">
                 <q-input placeholder="column Name" :readonly="!column.notCreated" v-model="column.ColumnName"></q-input>
               </div>
 
-              <div class="col-2" style="padding: 5px">
+              <div class="col-2 col-md-2 col-lg-2 col-xl-2 col-xs-12 col-sm-2" style="padding: 5px">
                 <q-select placeholder="column type" :readonly="!column.notCreated" v-model="column.ColumnType"
                           :options="ColumnTypes.map(e => e.columnType + ' - ' + e.dataType)"
                           label="Column Type"></q-select>
               </div>
 
 
-              <div class="col-3" style="padding: 5px">
+              <div class="col-3 col-md-3 col-lg-3 col-xl-3 col-xs-12 col-sm-3" style="padding: 5px">
                 <q-input placeholder="default value (string values inside single quote)"
                          v-model="column.DefaultValue"></q-input>
               </div>
 
 
-              <div class="col-4" style="padding: 5px">
+              <div class="col-4 col-md-4 col-lg-4 col-xl-4 col-xs-12 col-sm-4" style="padding: 5px">
                 <q-checkbox :disable="!column.notCreated && column.IsNullable" size="xs" v-model="column.IsNullable"
                             label="Nullable">
-                  <q-tooltip content-style="font-size: 16px">
+                  <q-tooltip content-class="text-bold">
                     Check this if this column can be left empty (<b>no value</b> is different from zero value)
                   </q-tooltip>
                 </q-checkbox>
                 <q-checkbox :disable="!column.notCreated && column.IsUnique" size="xs" v-model="column.IsUnique"
                             label="Unique">
-                  <q-tooltip content-style="font-size: 16px">
+                  <q-tooltip content-class="text-bold">
                     Check this to ensure that this column has no duplicate values
                   </q-tooltip>
                 </q-checkbox>
                 <q-checkbox :disable="!column.notCreated && column.IsIndexed" size="xs" v-model="column.IsIndexed"
                             label="Indexed">
-                  <q-tooltip content-style="font-size: 16px">
+                  <q-tooltip content-class="text-bold">
                     Check this if you are going to search on this column using the API
                   </q-tooltip>
                 </q-checkbox>
-                <q-btn @click="$emit('deleteColumn', column)" icon="fas fa-trash" flat size="sm">
+                <q-btn class="float-right" @click="$emit('deleteColumn', column)" icon="fas fa-trash" flat size="sm">
                   <q-tooltip content-style="font-size: 16px">
                     Delete this column metadata from drop column from database
                   </q-tooltip>
                 </q-btn>
               </div>
 
-
+              <hr />
             </div>
 
             <div class="row">

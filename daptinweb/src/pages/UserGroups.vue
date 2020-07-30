@@ -70,7 +70,7 @@ E.g. Admin Group that has permissions to create, read, write and delete tables.
   import {mapActions, mapGetters, mapState} from 'vuex';
 
   export default {
-    name: 'TablePage',
+    name: 'UserGroupsPage',
     methods: {
       editGroup(evt, group) {
         console.log("Edit group", group)

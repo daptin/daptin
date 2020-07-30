@@ -265,6 +265,18 @@ text-align: center;
 
     <q-page-container>
       <router-view v-if="isAdmin || isUser"/>
+
+      <q-page-sticky v-if="isAdmin || isUser && (!showHelp)" position="top-right" :offset="[0, 0]">
+        <q-btn flat @click="showHelp = true" fab icon="fas fa-question"/>
+      </q-page-sticky>
+
+      <q-drawer overlay :width="400" side="right" v-model="showHelp">
+        <q-scroll-area class="fit" v-if="showHelp">
+          <help-page @closeHelp="showHelp = false">
+          </help-page>
+        </q-scroll-area>
+      </q-drawer>
+
     </q-page-container>
 
   </q-layout>
@@ -319,6 +331,7 @@ text-align: center;
           console.log("Users: ", users);
 
           if (users.length == 2) {
+            that.isAdmin = true;
             that.executeAction({
               tableName: 'world',
               actionName: "become_an_administrator"

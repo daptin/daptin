@@ -18,7 +18,7 @@
   import 'rapidoc';
 
   export default {
-    name: 'TablePage',
+    name: 'ApiDocsPage',
     methods: {
       ...mapActions(['loadTables'])
     },
