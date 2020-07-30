@@ -23,13 +23,21 @@
         <q-input clear-icon="fas fa-times" label="search" v-model="actionFilter"></q-input>
       </div>
       <div class="col-12">
+
         <q-markup-table flat>
+          <thead>
+          <tr class="text-left">
+            <th>Name</th>
+            <th># Input fields</th>
+            <th># Output fields</th>
+            <th></th>
+          </tr>
+          </thead>
           <tbody>
           <tr v-for="action in filteredActions">
-            <td>{{action.action_schema.Label}}</td>
-            <td>{{action.action_schema.OnType}}</td>
+            <td>{{action.action_schema.Label}} on {{action.action_schema.OnType}}</td>
             <td>{{action.action_schema.InFields ? action.action_schema.InFields.length: 0}}</td>
-            <td>{{action.action_schema.OutFields.length}}</td>
+            <td>{{action.action_schema.OutFields ? action.action_schema.OutFields.length : 0}}</td>
             <td class="text-right">
               <q-btn @click="showEditAction(action)" size="sm"
                      label="Edit action" class="float-right"></q-btn>
@@ -38,34 +46,6 @@
           </tr>
           </tbody>
         </q-markup-table>
-      </div>
-      <div class="col-4 col-xl-2 col-lg-3 col-xs-12 col-sm-6 q-pa-md" v-for="action in filteredActions">
-
-        <q-card>
-          <q-card-section>
-            <span class="text-h6">{{action.action_schema.Label}}</span>
-          </q-card-section>
-          <q-card-section>
-            <span>On</span> <span class="text-bold float-right">{{action.action_schema.OnType}}</span>
-          </q-card-section>
-          <q-card-section>
-            <span>Input fields</span> <span class="text-bold float-right">{{action.action_schema.InFields ? action.action_schema.InFields.length: 0}}</span>
-          </q-card-section>
-          <q-card-section>
-            <span>Output actions</span> <span
-            class="text-bold float-right">{{action.action_schema.OutFields.length}}</span>
-          </q-card-section>
-          <q-card-section>
-            <div class="row">
-              <div class="col-12">
-                <!--                <q-btn size="sm" @click="listFiles(action)" label="Browse files" color="primary"-->
-                <!--                       class="float-right"></q-btn>-->
-                <q-btn @click="showEditAction(action)" size="sm"
-                       label="Edit action" class="float-right"></q-btn>
-              </div>
-            </div>
-          </q-card-section>
-        </q-card>
       </div>
 
     </div>
@@ -80,10 +60,10 @@
         <div class="q-pa-md">
           <span class="text-h6">Create action</span>
           <q-form class="q-gutter-md">
-            <q-input label="Name" v-model="newAction.name"></q-input>
-
-
-            <q-input label="Root path" v-model="newAction.root_path"></q-input>
+            <q-input label="Action Name" v-model="newAction.action_name"></q-input>
+            <q-input label="Label" v-model="newAction.label"></q-input>
+            <q-select label="On Type" :options="tables" option-value="reference_id" emit-value map-options
+                      option-label="table_name" v-model="newAction.onType"></q-select>
 
 
             <q-btn color="primary" @click="createAction()">Create</q-btn>
@@ -99,13 +79,9 @@
         <div class="q-pa-md">
           <span class="text-h6">Edit action</span>
           <q-form class="q-gutter-md">
-            <q-input label="Name" v-model="newAction.name"></q-input>
-
-
-            <q-input label="Root path" v-model="newAction.root_path"></q-input>
+            <q-input label="Name" v-model="newAction.action_name"></q-input>
 
             <q-btn color="negative" @click="deleteAction()">Delete</q-btn>
-            <q-btn class="float-right" color="primary" @click="editAction()">Save</q-btn>
             <q-btn class="float-right" @click="showEditActionDrawer = false">Cancel</q-btn>
           </q-form>
         </div>
@@ -123,7 +99,7 @@
     name: 'ActionPage',
     methods: {
       // listFiles(action) {
-      //   console.log("list files in cloud action", action)
+      //   console.log("list files in action action", action)
       //   const that = this;
       //   that.executeAction({
       //     tableName: "action",
@@ -186,12 +162,13 @@
       },
       createAction() {
         const that = this;
-        console.log("new cloud", this.newAction);
+        console.log("new action", this.newAction);
         this.newAction.tableName = "action";
+        this.newAction.world_id = {type: "world", "id": this.newAction.onType};
         that.createRow(that.newAction).then(function (res) {
           that.user = {};
           that.$q.notify({
-            message: "cloud action created"
+            message: "action action created"
           });
           that.refresh();
           that.showCreateActionDrawer = false;
@@ -202,7 +179,7 @@
             })
           } else {
             that.$q.notify({
-              message: "Failed to create cloud"
+              message: "Failed to create action"
             })
           }
         });
@@ -212,23 +189,55 @@
         var tableName = "action";
         const that = this;
         this.loadData({
-          tableName: tableName, params: {
+          tableName: tableName,
+          params: {
             page: {
               size: 500
             }
           }
         }).then(function (data) {
           console.log("Loaded data", data);
-          that.actions = data.data.map(function (e) {
-            e.action_schema = JSON.parse(e.action_schema);
+          let actions = data.data.map(function (e) {
+            try {
+              e.action_schema = JSON.parse(e.action_schema)
+            } catch (e) {
+              e.action_schema = {
+                InFields: [],
+                OutFields: [],
+                Name: e.action_name,
+                Label: e.action_name,
+              }
+            }
             return e;
           });
+          actions.sort(function (a, b) {
+            return a.action_name < b.action_name;
+          })
+          that.actions = actions;
+        })
+        this.loadData({
+          tableName: "world",
+          params: {
+            page: {
+              size: 500
+            }
+          }
+        }).then(function (data) {
+          console.log("Loaded tables data", data);
+          let tables = data.data.filter(function (e) {
+            return e.table_name.indexOf("_has_") === -1;
+          });
+          tables = tables.sort(function (a, b) {
+            return a.table_name > b.table_name;
+          });
+          that.tables = tables;
         })
       }
     },
     data() {
       return {
         text: '',
+        tables: [],
         actionFilter: null,
         selectedAction: {},
         actionProviderOptions: [
@@ -270,11 +279,11 @@
         ],
         showHelp: false,
         newAction: {
-          name: null,
-          action_provider: 'local',
-          action_type: 'local',
-          root_path: null,
-          action_parameters: '{}',
+          action_name: null,
+          label: null,
+          action_schema: '',
+          world_id: null,
+          instance_optional: false,
         },
         showCreateActionDrawer: false,
         showEditActionDrawer: false,
@@ -284,7 +293,7 @@
           {
             name: 'name',
             field: 'name',
-            label: 'cloud name',
+            label: 'action name',
             align: 'left',
             sortable: true,
           }
