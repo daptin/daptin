@@ -52,7 +52,7 @@
 
 
     <q-page-sticky style="z-index: 3000" position="bottom-right" :offset="[20, 20]">
-      <q-btn @click="showCreateActionDrawer = true" fab icon="add" color="primary"/>
+      <q-btn @click="showCreateAction()" fab icon="add" color="primary"/>
     </q-page-sticky>
 
     <q-drawer overlay content-class="bg-grey-3" :width="400" side="right" v-model="showCreateActionDrawer">
@@ -60,13 +60,14 @@
         <div class="q-pa-md">
           <span class="text-h6">Create action</span>
           <q-form class="q-gutter-md">
-            <q-input label="Action Name" v-model="newAction.action_name"></q-input>
-            <q-input label="Label" v-model="newAction.label"></q-input>
-            <q-select label="On Type" :options="tables" option-value="reference_id" emit-value map-options
-                      option-label="table_name" v-model="newAction.onType"></q-select>
+            <textarea id="actionSchemaEditor"></textarea>
+            <!--            <q-input label="Action Name" v-model="newAction.action_name"></q-input>-->
+            <!--            <q-input label="Label" v-model="newAction.label"></q-input>-->
+            <!--            <q-select label="On Type" :options="tables" option-value="reference_id" emit-value map-options-->
+            <!--                      option-label="table_name" v-model="newAction.onType"></q-select>-->
 
 
-            <q-btn color="primary" @click="createAction()">Create</q-btn>
+            <q-btn class="float-right" color="primary" @click="createAction()">Create</q-btn>
             <q-btn @click="showCreateActionDrawer = false">Cancel</q-btn>
           </q-form>
         </div>
@@ -79,8 +80,6 @@
         <div class="q-pa-md">
           <span class="text-h6">Edit action</span>
           <q-form class="q-gutter-md">
-            <q-input label="Name" v-model="newAction.action_name"></q-input>
-
             <q-btn color="negative" @click="deleteAction()">Delete</q-btn>
             <q-btn class="float-right" @click="showEditActionDrawer = false">Cancel</q-btn>
           </q-form>
@@ -94,27 +93,40 @@
 
 <script>
   import {mapActions, mapGetters, mapState} from 'vuex';
+  import "simplemde/dist/simplemde.min.css";
+  import SimpleMDE from 'simplemde';
+
+  const yaml = require('js-yaml');
 
   export default {
     name: 'ActionPage',
     methods: {
-      // listFiles(action) {
-      //   console.log("list files in action action", action)
-      //   const that = this;
-      //   that.executeAction({
-      //     tableName: "action",
-      //     actionName: "list_files",
-      //     params: {
-      //       action_id: action.id
-      //     }
-      //   }).then(function (res) {
-      //     console.log("list files Response", res)
-      //   }).catch(function (err) {
-      //     console.log("failed to list files", err)
-      //   })
-      // },
+      showCreateAction() {
+        const that = this;
+        that.showCreateActionDrawer = true;
+        //  actionSchemaEditor
+        setTimeout(function () {
+          if (that.actionSchemaEditor && that.actionSchemaEditor.toTextArea) {
+            that.actionSchemaEditor.toTextArea();
+          }
+
+          that.actionSchemaEditor = new SimpleMDE({
+            element: document.getElementById("actionSchemaEditor"),
+            toolbar: [],
+          });
+
+          that.actionSchemaEditor.value(`---
+Name: my_new_action
+Label: New Action Button Label
+OnType: user_account
+InstanceOptional: false
+InFields:
+OutFields:`)
+
+        }, 400)
+      },
       showEditAction(action) {
-        this.selectedAction = action
+        this.selectedAction = action;
         this.showEditActionDrawer = true
         this.newAction.name = action.name;
         this.newAction.root_path = action.root_path;
@@ -163,8 +175,35 @@
       createAction() {
         const that = this;
         console.log("new action", this.newAction);
+
+        let actinSchema = that.actionSchemaEditor.value();
+        let spec = {}
+        try {
+          spec = yaml.load(actinSchema);
+          if (!spec) {
+            that.$q.notify({
+              message: "Invalid spec, not valid YAML"
+            });
+            return
+          }
+        } catch (e) {
+          that.$q.notify({
+            message: "Invalid spec, not valid YAML"
+          });
+          return
+        }
+
+        this.newAction.action_name = spec.Name;
+        this.newAction.on_type = that.tables.filter(function (e) {
+          return e.table_name === spec.OnType
+        })[0];
+        this.newAction.label = spec.Name + " on " + this.newAction.on_type.table_name;
+        this.newAction.action_schema = JSON.stringify(spec);
+
+
         this.newAction.tableName = "action";
-        this.newAction.world_id = {type: "world", "id": this.newAction.onType};
+        this.newAction.world_id = {type: "world", "id": this.newAction.on_type.id};
+        console.log("New action", this.newAction)
         that.createRow(that.newAction).then(function (res) {
           that.user = {};
           that.$q.notify({
@@ -238,6 +277,7 @@
       return {
         text: '',
         tables: [],
+        actionSchemaEditor: null,
         actionFilter: null,
         selectedAction: {},
         actionProviderOptions: [
@@ -315,7 +355,7 @@
           )
         })
       },
-      ...mapGetters(['selectedTable']),
+      ...mapGetters([]),
       ...mapState([])
     },
 

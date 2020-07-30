@@ -183,8 +183,8 @@
 
 </style>
 <script>
-  import "simplemde/dist/simplemde.min.css";
   import {mapActions} from "vuex";
+  import "simplemde/dist/simplemde.min.css";
   import SimpleMDE from 'simplemde';
 
   var saveData = (function () {

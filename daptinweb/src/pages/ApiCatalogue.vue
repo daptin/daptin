@@ -24,7 +24,7 @@
     </div>
     <div class="row">
 
-      <div class="col-4 col-xl-2 col-lg-3 col-xs-12 col-sm-6 q-pa-md" v-for="integration in filteredIntegrations">
+      <div class="col-4 col-xl-3 col-lg-4 col-xs-12 col-sm-6 q-pa-md" v-for="integration in filteredIntegrations">
         <q-card>
           <q-card-section>
             <span class="text-h6"
@@ -61,8 +61,30 @@
         <div class="q-pa-md">
           <span class="text-h6">Create integration</span>
           <q-form class="q-gutter-md">
-            <q-input label="Name" v-model="newIntegration.name"></q-input>
-            <q-file @input="fileAdded()" label="OpenAPI Spec file" v-model="specFile"></q-file>
+<!--            <q-file label="OpenAPI Spec file" v-model="specFile"></q-file>-->
+
+            <file-upload
+              :multiple="true"
+              style="height: 300px; width: 100%"
+              class="bg-grey-3"
+              ref="upload"
+              :drop="true"
+              :drop-directory="false"
+              v-model="specFile"
+              post-action="/post.method"
+              put-action="/put.method"
+              @input-file="fileAdded"
+            >
+              <div class="container">
+                <span v-if="specFile.length == 0" style="padding-top: 40%" class="vertical-middle">Drop files or click to select <br/></span>
+                <div class="row" v-if="specFile.length > 0">
+                  <div class="col-12" v-for="file in specFile">{{file.name}} - Error: {{file.error}}, Success:
+                    {{file.success}}
+                  </div>
+                </div>
+              </div>
+            </file-upload>
+
 
             <q-btn color="primary" :loading="fileIsBeingLoaded" @click="createIntegration()">Create</q-btn>
             <q-btn @click="showCreateIntegrationDrawer = false">Cancel</q-btn>
@@ -94,20 +116,24 @@
 <script>
   import {mapActions, mapGetters, mapState} from 'vuex';
 
+  const yaml = require('js-yaml');
+
   export default {
     name: 'ApiCataloguePage',
     methods: {
-      fileAdded() {
+      fileAdded(file1) {
+        var file = file1.file;
         const that = this;
         this.fileIsBeingLoaded = true;
-        var file = this.specFile;
         console.log("File to read", file);
 
+        let newIntegration = Object.assign({}, this.newIntegration);
         if (file.name.toLowerCase().endsWith(".yaml") || file.type.toLowerCase().endsWith("yaml")) {
-          this.newIntegration.specification_format = "yaml";
+          newIntegration.specification_format = "yaml";
         } else {
-          this.newIntegration.specification_format = "json";
+          newIntegration.specification_format = "json";
         }
+
 
         var obj = {};
         var filePromise = new Promise(function (resolve, reject) {
@@ -126,29 +152,70 @@
         });
 
         filePromise.then(function (specData) {
-          console.log("Spec file added", that.newIntegration, that.specFile);
+          console.log("Spec file added", newIntegration, that.specFile);
           console.log("File data", specData);
           var specContentText = atob(specData.target.result.split("base64,")[1]);
-          console.log("Spec content text", specContentText)
+          // console.log("Spec content text", specContentText);
 
           if (specContentText.indexOf("openapi: 3") > -1) {
-            that.newIntegration.specification_language = "openapiv3"
+            newIntegration.specification_language = "openapiv3"
           }
 
           if (specContentText.indexOf("openapi: 2") > -1) {
-            that.newIntegration.specification_language = "openapiv2"
+            newIntegration.specification_language = "openapiv2"
+          }
+
+          if (specContentText.indexOf("swagger: 2") > -1) {
+            newIntegration.specification_language = "openapiv2"
           }
 
           if (specContentText.indexOf("\"openapi\": \"3") > -1) {
-            that.newIntegration.specification_language = "openapiv3"
+            newIntegration.specification_language = "openapiv3"
           }
 
           if (specContentText.indexOf("\"openapi\": \"2") > -1) {
-            that.newIntegration.specification_language = "openapiv2"
+            newIntegration.specification_language = "openapiv2"
           }
 
-          that.newIntegration.specification = specContentText;
+          if (specContentText.indexOf("\"swagger\": \"2.0\"") > -1) {
+            newIntegration.specification_language = "openapiv2"
+          }
+          if (specContentText.indexOf("\"swagger\": \"3.0\"") > -1) {
+            newIntegration.specification_language = "openapiv3"
+          }
+
+          switch (newIntegration.specification_format) {
+            case "json":
+              try {
+                var spec = JSON.parse(specContentText);
+                newIntegration.name = spec.info ? spec.info.name ? spec.info.name : spec.info.title : spec.host;
+
+              } catch (e) {
+                console.log("Failed to parse json content", e)
+              }
+
+              break;
+
+            case "yaml":
+              try {
+                var spec = yaml.load(specContentText);
+                newIntegration.name = spec.info ? spec.info.name : spec.host;
+
+              } catch (e) {
+                console.log("Failed to parse yaml content", e)
+              }
+              break;
+            default:
+              newIntegration.name = "new integration"
+          }
+
+
+          newIntegration.specification = specContentText;
+          that.createIntegration(newIntegration);
           that.fileIsBeingLoaded = false;
+
+
+
         })
 
       },
@@ -214,17 +281,17 @@
           })
         })
       },
-      createIntegration() {
+      createIntegration(newIntegration) {
         const that = this;
-        console.log("new integration", this.newIntegration);
-        this.newIntegration.tableName = "integration";
-        that.createRow(that.newIntegration).then(function (res) {
+        console.log("new integration", newIntegration);
+        newIntegration.tableName = "integration";
+        that.createRow(newIntegration).then(function (res) {
           that.user = {};
           that.$q.notify({
             message: "cloud integration created"
           });
           that.refresh();
-          that.showCreateIntegrationDrawer = false;
+          // that.showCreateIntegrationDrawer = false;
         }).catch(function (e) {
           if (e instanceof Array) {
             that.$q.notify({
@@ -262,7 +329,7 @@
         filterWord: null,
         selectedIntegration: {},
         showHelp: false,
-        specFile: null,
+        specFile: [],
         newIntegration: {
           name: null,
           enable: true,

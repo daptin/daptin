@@ -320,7 +320,7 @@ text-align: center;
         }
       }
 
-      that.loadModel(["cloud_store", "user_account", "usergroup", "world", "action", 'site']).then(async function () {
+      that.loadModel(["cloud_store", "user_account", "usergroup", "world", "action", 'site', 'integration']).then(async function () {
         that.loaded = true;
         that.getDefaultCloudStore();
 
