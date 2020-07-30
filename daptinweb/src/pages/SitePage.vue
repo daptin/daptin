@@ -151,7 +151,7 @@
       </q-scroll-area>
     </q-drawer>
 
-    <q-drawer :breakpoint="400" :width="fileDrawerWidth > 500 ? 400 : fileDrawerWidth" side="right" overlay v-model="showFileBrowser">
+    <q-drawer :breakpoint="1400" :width="fileDrawerWidth > 800 ? 800 : fileDrawerWidth" side="right" overlay v-model="showFileBrowser">
       <q-scroll-area class="fit">
         <file-browser v-if="selectedSite && showFileBrowser" v-on:close="showFileBrowser = false" :site="selectedSite"></file-browser>
       </q-scroll-area>

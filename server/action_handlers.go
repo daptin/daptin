@@ -66,6 +66,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create cloudStoreFileListActionPerformer")
 	performers = append(performers, cloudStoreFileListActionPerformer)
 
+	cloudStoreFileGetActionPerformer, err := resource.NewCloudStoreFileGetActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create cloudStoreFileGetActionPerformer")
+	performers = append(performers, cloudStoreFileGetActionPerformer)
+
 	cloudStoreFileDeleteActionPerformer, err := resource.NewCloudStoreFileDeleteActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create cloudStoreFileDeleteActionPerformer")
 	performers = append(performers, cloudStoreFileDeleteActionPerformer)

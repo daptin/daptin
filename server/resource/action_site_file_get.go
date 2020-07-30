@@ -1,8 +1,10 @@
 package resource
 
 import (
+	"encoding/base64"
 	"errors"
 	"github.com/artpar/api2go"
+	"io/ioutil"
 )
 
 type CloudStoreFileGetActionPerformer struct {
@@ -34,12 +36,13 @@ func (d *CloudStoreFileGetActionPerformer) DoAction(request Outcome, inFields ma
 	}
 
 	contents, _ := siteCacheFolder.GetFileByName(path)
-
+	data, _ := ioutil.ReadAll(contents)
+	dataBase64 := base64.StdEncoding.EncodeToString(data)
 	fileListResponse := NewResponse(nil, api2go.NewApi2GoModelWithData("file", nil, 0, nil, map[string]interface{}{
-		"files": contents,
+		"data": dataBase64,
 	}), 200, nil)
 	responses = append(responses, NewActionResponse("file", map[string]interface{}{
-		"list": contents,
+		"data": dataBase64,
 	}))
 
 	return fileListResponse, responses, nil

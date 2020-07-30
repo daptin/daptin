@@ -753,7 +753,7 @@ var SystemActions = []Action{
 	},
 
 	{
-		Name:             "get_files",
+		Name:             "get_file",
 		Label:            "Get file at the path in site",
 		OnType:           "site",
 		InstanceOptional: false,

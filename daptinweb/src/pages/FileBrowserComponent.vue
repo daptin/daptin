@@ -19,7 +19,7 @@
       <q-separator></q-separator>
 
     </div>
-    <div class="col-12">
+    <div class="col-12" v-if="!showFileEditor && !showFilePreview">
 
       <div class="row">
         <div class="col-12">
@@ -39,7 +39,9 @@
                 </q-item>
               </q-list>
             </q-btn-dropdown>
-            <q-btn size="sm" @click="(showUploadFile = true)  && (uploadedFiles = [])" icon="fas fa-upload"></q-btn>
+            <q-btn size="sm"
+                   @click="(showUploadFile = true)  && (uploadedFiles = []) && (showFileEditor = false)  && (showFilePreview = false) "
+                   icon="fas fa-upload"></q-btn>
             <q-btn size="sm" @click="refreshCache()"
                    icon="fas fa-sync-alt"></q-btn>
             <q-btn @click="deleteSelectedFiles" flat size="sm" class="float-right" color="negative" v-if="showDelete"
@@ -108,36 +110,23 @@
           </tbody>
         </q-markup-table>
       </div>
-      <!--      <div class="row" v-if="viewType == 'card'">-->
 
-      <!--        <div @click="getContentOnPath({name: '..'})" style="min-width: 150px; width: 180px"-->
-      <!--             class="q-pa-md q-gutter-sm">-->
-      <!--          <q-card style="cursor: pointer" bordered flat class="flex-center">-->
-      <!--            <q-card-section>-->
-      <!--              <q-icon size="md" name="fas fa-level-up-alt"></q-icon>-->
-      <!--            </q-card-section>-->
-      <!--            <q-card-section class="flex-center">-->
-      <!--              <span class="text-bold">..</span>-->
-      <!--            </q-card-section>-->
-      <!--          </q-card>-->
-      <!--        </div>-->
-
-      <!--        <div @click="getContentOnPath(file)" style="min-width: 150px; max-width: 180px" v-for="file in fileList"-->
-      <!--             class="q-pa-md q-gutter-sm">-->
-      <!--          <q-card style="cursor: pointer" bordered flat class="flex-center">-->
-
-      <!--            <q-card-section>-->
-      <!--              <q-icon size="md" :name="file.icon"></q-icon>-->
-      <!--            </q-card-section>-->
-      <!--            <q-card-section class="flex-center">-->
-      <!--              <span class="text-bold">{{file.name}}</span>-->
-      <!--            </q-card-section>-->
-
-      <!--          </q-card>-->
-      <!--        </div>-->
-
-
-      <!--      </div>-->
+    </div>
+    <div class="col-12" v-if="showFileEditor">
+      <div style="height: 100%;">
+        <textarea id="fileEditor" style="height: 90vh"></textarea>
+      </div>
+      <q-page-sticky position="bottom-right" :offset="[20, 20]">
+        <q-btn flat @click="(showFileEditor = false ) && (fileType = null)" icon="fas fa-long-arrow-alt-left"></q-btn>
+      </q-page-sticky>
+    </div>
+    <div class="col-12" v-if="showFilePreview">
+      <div style="height: 100%;">
+        <div id="filePreviewDiv"></div>
+      </div>
+      <q-page-sticky position="bottom-right" :offset="[20, 20]">
+        <q-btn flat @click="(showFilePreview = false ) && (fileType = null)" icon="fas fa-long-arrow-alt-left"></q-btn>
+      </q-page-sticky>
     </div>
 
     <q-dialog v-model="showNewFolderName" persistent>
@@ -182,13 +171,21 @@
       </q-card>
     </q-dialog>
 
-    <q-page-sticky position="bottom-right" :offset="[20, 20]">
+    <q-page-sticky position="bottom-right" v-if="!showFileEditor && !showFilePreview" :offset="[20, 20]">
       <q-btn flat @click="$emit('close')" icon="fas fa-times"></q-btn>
     </q-page-sticky>
   </div>
 </template>
+<style>
+  .file-editor-frame {
+    height: 80vh;
+  }
+
+</style>
 <script>
+  import "simplemde/dist/simplemde.min.css";
   import {mapActions} from "vuex";
+  import SimpleMDE from 'simplemde';
 
   var saveData = (function () {
     var a = document.createElement("a");
@@ -210,6 +207,10 @@
     data() {
       return {
         showDelete: false,
+        fileType: null,
+        showFileEditor: false,
+        showFilePreview: false,
+        selectedFile: null,
         showNewFileName: false,
         newFileName: null,
         newFolderName: null,
@@ -227,6 +228,20 @@
     computed: {},
     watch: {},
     methods: {
+      debounce(func, wait, immediate) {
+        var timeout;
+        return function () {
+          var context = this, args = arguments;
+          var later = function () {
+            timeout = null;
+            if (!immediate) func.apply(context, args);
+          };
+          var callNow = immediate && !timeout;
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+          if (callNow) func.apply(context, args);
+        };
+      },
       deleteSelectedFiles() {
         const that = this;
         var selectedFiles = this.fileList.filter(e => e.selected);
@@ -280,11 +295,11 @@
             message: "File created"
           })
         }).catch(function (err) {
-          console.log("Failed to create file", err)
+          console.log("Failed to create file", err);
           that.$q.notify({
             message: "Failed to create create file"
           })
-        })
+        });
 
         that.showNewFileName = false;
       },
@@ -335,6 +350,7 @@
                 console.log("Upload done", arguments);
                 // that.showUploadFile = false;
                 uploadedFile.success = true;
+                that.refreshCache()
                 that.getContentOnPath({is_dir: false, name: '.'})
               }).catch(function (err) {
                 console.log("Failed to upload", arguments)
@@ -348,7 +364,7 @@
             reader.readAsDataURL(file);
           })
         };
-        uploadFile(uploadedFile.file)
+        return uploadFile(uploadedFile.file)
 
 
       },
@@ -479,12 +495,114 @@
           if (window.location.hostname === "site.daptin.com") {
             portString = ":6336"
           }
-          let fetchUrl = "http://" + hostname + portString + "/" + that.currentPath + "/" + path.name;
-          that.previewUrl = fetchUrl;
-          // window.location = fetchUrl;
-          that.filePreview = true;
 
-          console.log("Fetch url: ", fetchUrl)
+          that.selectedFile = {
+            path: that.currentPath + "/" + path.name,
+            type: "text"
+          };
+
+          if (path.name.endsWith(".md")) {
+            that.selectedFile.type = 'markdown';
+          }
+
+
+          let fetchUrl = "http://" + hostname + portString + "/" + that.currentPath + (that.currentPath !== "" ? "/" : "") + +path.name;
+          // that.previewUrl = fetchUrl;
+          // window.location = fetchUrl;
+          // that.filePreview = true;
+
+          console.log("Fetch url: ", fetchUrl);
+
+          that.executeAction({
+            tableName: "site",
+            actionName: "get_file",
+            params: {
+              "site_id": that.site.id,
+              "path": that.currentPath + "/" + path.name
+            }
+          }).then(function (res) {
+            console.log("Get file contents", res)
+            that.selectedFile.content = atob(res[0].Attributes.data);
+            that.showFileEditor = true;
+
+            setTimeout(function () {
+
+              that.fileType = "text";
+              if (path.name.endsWith("jpg") || path.name.endsWith("png") || path.name.endsWith("gif")) {
+                that.fileType = "image"
+              }
+              if (path.name.endsWith("md")) {
+                that.fileType = "markdown"
+              }
+              if (path.name.endsWith("mkv") || path.name.endsWith("mp4")) {
+                that.fileType = "video"
+              }
+              if (path.name.endsWith("mp3") || path.name.endsWith("wav")) {
+                that.fileType = "audio"
+              }
+
+              if (that.fileType === "text" || that.fileType === "markdown") {
+                that.showFileEditor = true;
+                that.editor = new SimpleMDE({
+                  element: document.getElementById("fileEditor"),
+                  autosave: {
+                    enabled: true,
+                    uniqueId: that.site.id
+                  }
+                });
+                that.editor.value(that.selectedFile.content);
+
+                that.editor.codemirror.on("change", that.debounce(function () {
+                  console.log(that.editor.value());
+                  that.executeAction({
+                    tableName: "cloud_store",
+                    actionName: "upload_file",
+                    params: {
+                      "file": [{
+                        "name": path.name,
+                        "file": "data:text/plain;base64," + btoa(that.editor.value()),
+                        "type": "text/plain"
+                      }],
+                      "path": that.currentPath,
+                      "cloud_store_id": that.site.cloud_store_id.id
+                    }
+                  }).then(function () {
+                    that.refreshCache();
+                  }).catch(function (err) {
+                    console.log("Failed to save file", err);
+                    that.$q.notify({
+                      message: "Failed to save file"
+                    })
+                  });
+                }, 700));
+              } else if (that.fileType === "image") {
+                that.showFileEditor = false;
+                that.showFilePreview = true;
+                setTimeout(function () {
+                  document.getElementById("filePreviewDiv").innerHTML = "<img style='width: 100%' src='data:image/jpg;base64," + res[0].Attributes.data + "' > </img>"
+                }, 300)
+              } else if (that.fileType === "audio") {
+                that.showFileEditor = false;
+                that.showFilePreview = true;
+                setTimeout(function () {
+                  document.getElementById("filePreviewDiv").innerHTML = "<audio style='width: 100%' src='data:image/jpg;base64," + res[0].Attributes.data + "' > </audio>"
+                }, 300)
+              } else if (that.fileType === "video") {
+                that.showFileEditor = false;
+                that.showFilePreview = true;
+                setTimeout(function () {
+                  document.getElementById("filePreviewDiv").innerHTML = "<video style='width: 100%' src='data:image/jpg;base64," + res[0].Attributes.data + "' > </video>"
+                }, 300)
+              }
+
+
+            }, 100)
+
+          }).catch(function (err) {
+            console.log("Failed to get file contents", err)
+          });
+
+
           // fetch(fetchUrl).then(function (response) {
           //   response.blob().then(function (blob) {
           //     console.log("Blob is ready", saveData(blob, path.name))
