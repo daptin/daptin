@@ -751,6 +751,31 @@ var SystemActions = []Action{
 			},
 		},
 	},
+
+	{
+		Name:             "get_files",
+		Label:            "Get file at the path in site",
+		OnType:           "site",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "path",
+				ColumnName: "path",
+				ColumnType: "label",
+				IsNullable: false,
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "site.file.get",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"site_id": "$.reference_id",
+					"path":    "~path",
+				},
+			},
+		},
+	},
 	{
 		Name:             "delete_file",
 		Label:            "Delete file in the site",

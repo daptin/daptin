@@ -367,7 +367,7 @@
         } else if (valName.endsWith("jpg") || valName.endsWith("jpeg") || valName.endsWith("png") || valName.endsWith("gif")) {
           icon = "fas fa-image"
         } else if (valName.endsWith("md")) {
-          icon = "fas fa-markdown"
+          icon = "fab fa-markdown"
         }
 
         if (val.is_dir) {
