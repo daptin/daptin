@@ -94,14 +94,14 @@ func (d *GeneratePasswordResetActionPerformer) DoAction(request Outcome, inField
 
 		mailResult, err := d.cruds["mail"].MailSender(&mailEnvelop, backends.TaskSaveMail)
 		if mailResult != nil {
-			log.Infof("Password reset mail result:  {}", mailResult.String())
+			log.Infof("Password reset mail result:  %s", mailResult.String())
 			notificationAttrs := make(map[string]string)
 			notificationAttrs["message"] = "Password reset mail sent"
 			notificationAttrs["title"] = "Success"
 			notificationAttrs["type"] = "success"
 			responses = append(responses, NewActionResponse("client.notify", notificationAttrs))
 		} else {
-			log.Errorf("Failed to sent password reset email {}", err)
+			log.Errorf("Failed to sent password reset email %s", err)
 			notificationAttrs := make(map[string]string)
 			notificationAttrs["message"] = "Failed to send password reset mail"
 			notificationAttrs["title"] = "Failed"
