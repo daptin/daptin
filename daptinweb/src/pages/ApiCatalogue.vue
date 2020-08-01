@@ -190,6 +190,10 @@
                 var spec = JSON.parse(specContentText);
                 newIntegration.name = spec.info ? spec.info.name ? spec.info.name : spec.info.title : spec.host;
 
+                if (!newIntegration.name || newIntegration.name.length === 0){
+                  newIntegration.name = file.name;
+                }
+
               } catch (e) {
                 console.log("Failed to parse json content", e)
               }
@@ -204,6 +208,11 @@
               } catch (e) {
                 console.log("Failed to parse yaml content", e)
               }
+
+              if (!newIntegration.name || newIntegration.name.length === 0){
+                newIntegration.name = file.name;
+              }
+
               break;
             default:
               newIntegration.name = "new integration"
