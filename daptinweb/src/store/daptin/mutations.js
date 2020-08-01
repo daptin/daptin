@@ -1,7 +1,12 @@
 import Vue from "vue";
+var jwtDecode = require('jwt-decode');
 
 export function setToken(state, token) {
   state.token = token;
+  var decodedAuthToken = jwtDecode(token);
+  state.decodedAuthToken = decodedAuthToken;
+
+
 }
 
 export function setDecodedAuthToken(state, token) {

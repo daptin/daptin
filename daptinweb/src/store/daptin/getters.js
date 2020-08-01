@@ -1,5 +1,4 @@
 
-var jwtDecode = require('jwt-decode');
 
 
 
@@ -20,8 +19,6 @@ export function decodedAuthToken(state) {
   if (state.decodedAuthToken) {
     return state.decodedAuthToken
   }
-  var token = jwtDecode(localStorage.getItem("token"));
-  commit("setDecodedAuthToken", token);
   return state.decodedAuthToken
 }
 
