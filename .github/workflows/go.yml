@@ -269,13 +269,6 @@ jobs:
           path: build/daptin-beta-latest-solaris-amd64.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
-      - name: Upload the artifacts
-        uses: skx/github-action-publish-binaries@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: 'build/daptin-*'
-
   xgo:
     timeout-minutes: 60
     name: "xgo cross compile"
