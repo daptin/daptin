@@ -1,0 +1,1 @@
+The user profile page has the name and email of the account with which you are logged in.

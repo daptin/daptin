@@ -50,7 +50,7 @@
       <q-scroll-area class="fit">
         <div class="q-pa-md">
           <span class="text-h6">New {{$route.params.tableName}}</span>
-          <q-form class="q-gutter-md">
+          <q-form class="q-gutter-md q-pa-md">
 
             <div v-for="column in newRowData">
               <q-input
@@ -87,6 +87,8 @@
                 v-if="column.meta.ColumnType === 'truefalse'"
                 v-model="column.value"
               />
+
+              <span v-if="['content', 'json'].indexOf(column.meta.ColumnType) > -1 ">{{column.meta.ColumnName}}</span>
               <q-editor
                 :label="column.meta.ColumnName"
                 v-if="['content', 'json'].indexOf(column.meta.ColumnType) > -1 "
@@ -103,8 +105,8 @@
 
 
             <div>
-              <q-btn label="Submit" @click="onNewRow" color="primary"/>
-              <q-btn label="Reset" @click="onCancelNewRow" color="primary" flat class="q-ml-sm"/>
+              <q-btn label="Save" class="float-right" @click="onNewRow" color="primary"/>
+              <q-btn label="Cancel" @click="onCancelNewRow" color="primary" flat class="q-ml-sm"/>
             </div>
           </q-form>
 
@@ -115,7 +117,7 @@
 
     <q-drawer side="right" v-model="tablePermissionDrawer" bordered :width="400" :breakpoint="1400"
               content-class="bg-grey-3">
-      <q-scroll-area class="fit row">
+      <q-scroll-area class="fit row" v-if="!newRowDrawer">
         <div class="q-pa-md">
           <div class="col-12">
             <span class="text-h5">Table permissions</span>
@@ -341,13 +343,22 @@
               );
             }
 
+            let formatter = col.ColumnType === "truefalse" ? "tickCross" : null;
+
+            let width = 200
+            if (col.ColumnType === "content" || col.ColumnType === "json") {
+              formatter = "textarea"
+              width = 300
+            }
+
             var tableColumn = {
               title: col.Name,
               field: col.ColumnName,
               editor: true,
               headerFilter: true,
               editable: !col.ColumnType.startsWith('file.'),
-              formatter: col.ColumnType === "truefalse" ? "tickCross" : null,
+              formatter: formatter,
+              width: width,
               hozAlign: col.ColumnType === "truefalse" ? "center" : "left",
               sorter: col.ColumnType === "measurement" ? "number" : null,
             };

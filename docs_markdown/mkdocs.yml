@@ -7,7 +7,13 @@ pages:
   - Getting started: setting-up/settingup.md
   - User management: setting-up/access.md
   - Data model: setting-up/data_modeling.md
-- API reference: apis/crud.md
+- JSON API reference:
+    - CRUD API: apis/crud/#crud-api
+    - Action API: apis/crud/#action-api
+    - Relation API: apis/crud/#relation-apis
+    - Aggregation API: apis/crud/#aggregate-api
+    - State machine API: apis/crud/#state-machine-apis
+    - Metadata API: apis/crud/#metadata-api
 - Actions:
   - What are actions: actions/actions.md
   - Actions list: actions/default_actions.md
@@ -34,8 +40,7 @@ pages:
   - Data streams: streams/streams.md
   - Enable/Disabling features: setting-up/enabling-features.md
 theme:
-  name: null
-  custom_dir: 'rtd_dropdown/'
+  name: material
 extra_css:
 - css/theme_extra.css
 google_analytics: ['UA-114227400-1', 'docs.dapt.in']

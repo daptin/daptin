@@ -61,7 +61,7 @@
         <div class="q-pa-md">
           <span class="text-h6">Create integration</span>
           <q-form class="q-gutter-md">
-<!--            <q-file label="OpenAPI Spec file" v-model="specFile"></q-file>-->
+            <!--            <q-file label="OpenAPI Spec file" v-model="specFile"></q-file>-->
 
             <file-upload
               :multiple="true"
@@ -95,16 +95,43 @@
 
 
     <q-drawer overlay content-class="bg-grey-3" :width="400" side="right" v-model="showEditIntegrationDrawer">
-      <q-scroll-area class="fit row">
-        <div class="q-pa-md">
-          <span class="text-h6">Edit integration</span>
-          <q-form class="q-gutter-md">
-            <q-input disable label="Name" v-model="newIntegration.name"></q-input>
+      <q-scroll-area class="fit">
+        <div class="row q-pa-md">
+          <div class="col-12">
+            <span class="text-h6">Edit integration</span>
+          </div>
+          <div class="col-12">
+            <q-list>
+              <q-item>
+                <q-item-section>
 
+                  <q-input disable label="Name" v-model="newIntegration.name"></q-input>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-checkbox label="Enable" v-model="newIntegration.enable">
+                    <q-tooltip>
+                      Operations from schema are imported to be used in actions
+                    </q-tooltip>
+                  </q-checkbox>
 
-            <q-btn color="negative" @click="deleteIntegration()">Delete</q-btn>
-            <q-btn class="float-right" @click="showEditIntegrationDrawer = false">Cancel</q-btn>
-          </q-form>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <div class="row">
+                    <div class="col-12">
+                      <q-btn class="float-left" color="negative" @click="deleteIntegration()">Delete</q-btn>
+                      <q-btn class="float-right" color="primary" @click="updateIntegration()">Save</q-btn>
+                      <q-btn class="float-right" @click="showEditIntegrationDrawer = false">Cancel</q-btn>
+                    </div>
+                  </div>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </div>
+
         </div>
       </q-scroll-area>
     </q-drawer>
@@ -121,6 +148,25 @@
   export default {
     name: 'ApiCataloguePage',
     methods: {
+      updateIntegration() {
+        const that = this;
+        console.log("Update integration", that.newIntegration);
+        that.updateRow({
+          tableName: "integration",
+          id: that.newIntegration.reference_id,
+          enable: that.newIntegration.enable,
+        }).then(function (res) {
+          that.$q.notify({
+            message: "Updated"
+          });
+          that.refresh();
+          that.showEditIntegrationDrawer = false;
+        }).catch(function (error) {
+          that.$q.notify({
+            message: "Failed to update"
+          })
+        })
+      },
       fileAdded(file1) {
         var file = file1.file;
         const that = this;
@@ -190,7 +236,7 @@
                 var spec = JSON.parse(specContentText);
                 newIntegration.name = spec.info ? spec.info.name ? spec.info.name : spec.info.title : spec.host;
 
-                if (!newIntegration.name || newIntegration.name.length === 0){
+                if (!newIntegration.name || newIntegration.name.length === 0) {
                   newIntegration.name = file.name;
                 }
 
@@ -209,7 +255,7 @@
                 console.log("Failed to parse yaml content", e)
               }
 
-              if (!newIntegration.name || newIntegration.name.length === 0){
+              if (!newIntegration.name || newIntegration.name.length === 0) {
                 newIntegration.name = file.name;
               }
 
@@ -222,7 +268,6 @@
           newIntegration.specification = specContentText;
           that.createIntegration(newIntegration);
           that.fileIsBeingLoaded = false;
-
 
 
         })
@@ -244,10 +289,12 @@
       //   })
       // },
       showEditIntegration(integration) {
-        this.selectedIntegration = integration
-        this.showEditIntegrationDrawer = true
+        this.selectedIntegration = integration;
+        this.showEditIntegrationDrawer = true;
         this.newIntegration.name = integration.name;
         this.newIntegration.root_path = integration.root_path;
+        this.newIntegration.enable = integration.enable === "1" || integration.enable === 1 || integration.enable === true;
+        this.newIntegration.reference_id = integration.reference_id;
       },
       deleteIntegration() {
         const that = this;
@@ -320,7 +367,7 @@
         this.loadData({
           tableName: tableName,
           params: {
-            fields: "name,specification_language,specification_format",
+            fields: "name,specification_language,specification_format,enable,reference_id",
             page: {
               size: 500,
             }
@@ -370,7 +417,7 @@
     computed: {
       filteredIntegrations() {
         const that = this;
-        console.log("filtered integragtions", that.filterWord, that.integrations)
+        console.log("filtered integragtions", that.filterWord, that.integrations);
         return !that.filterWord ? this.integrations : this.integrations.filter(function (e) {
           return e.name.toLowerCase().indexOf(that.filterWord.toLowerCase()) > -1;
         })

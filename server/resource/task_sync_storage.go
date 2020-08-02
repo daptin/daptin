@@ -8,12 +8,13 @@ import (
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/artpar/rclone/lib/pacer"
+	hugoCommand "github.com/gohugoio/hugo/commands"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"strings"
 )
 
-func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, cloudPath string, tempDirectoryPath string) error {
+func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, site string, tempDirectoryPath string) error {
 
 	oauthTokenId := cloudStore.OAutoTokenId
 
@@ -40,8 +41,8 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, cloudPath string
 		tempDirectoryPath,
 	}
 
-	if cloudPath != "" {
-		args[0] = args[0] + "/" + cloudPath
+	if site != "" {
+		args[0] = args[0] + "/" + site
 	}
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
@@ -66,6 +67,14 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, cloudPath string
 			return nil
 		}
 		dir := sync.CopyDir(ctx, fdst, fsrc, true)
+
+		if true {
+
+			hugoCommandResponse := hugoCommand.Execute([]string{"--contentDir", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public"})
+			log.Infof("Hugo command response for [%v] [%v]: %v", tempDirectoryPath, tempDirectoryPath+"/"+"public", hugoCommandResponse)
+
+		}
+
 		return dir
 	})
 

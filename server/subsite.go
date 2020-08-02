@@ -165,7 +165,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 			continue
 		}
 
-		err = cruds["task"].SyncStorageToPath(cloudStore, "", tempDirectoryPath)
+		err = cruds["task"].SyncStorageToPath(cloudStore, site.Path, tempDirectoryPath)
 		if resource.CheckErr(err, "Failed to setup sync to path for subsite [%v]", site.Name) {
 			continue
 		}
@@ -202,7 +202,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 		hostRouter.Use(limit.MaxAllowed(max_connections))
 		hostRouter.Use(limit2.NewRateLimiter(func(c *gin.Context) string {
-			return c.ClientIP() // limit rate by client ip
+			return c.ClientIP() + strings.Split(c.Request.RequestURI, "?")[0] // limit rate by client ip
 		}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
 			return rate.NewLimiter(rate.Every(100*time.Millisecond), rate_limit), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
 		}, func(c *gin.Context) {
@@ -215,10 +215,20 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 		//hostRouter.ServeFiles("/*filepath", http.Dir(tempDirectoryPath))
 		hostRouter.Use(authMiddleware.AuthCheckMiddleware)
-		hostRouter.Use(static.Serve("/", static.LocalFile(tempDirectoryPath, true)))
+
+		if site.SiteType == "hugo" {
+			hostRouter.Use(static.Serve("/", static.LocalFile(tempDirectoryPath+"/public", true)))
+		} else {
+			hostRouter.Use(static.Serve("/", static.LocalFile(tempDirectoryPath, true)))
+		}
+
+		faviconPath := tempDirectoryPath + "/favicon.ico"
+		if site.SiteType == "hugo" {
+			faviconPath = tempDirectoryPath + "/public/favicon.ico"
+		}
 
 		hostRouter.GET("/favicon.ico", func(c *gin.Context) {
-			c.File(tempDirectoryPath + "/favicon.ico")
+			c.File(faviconPath)
 		})
 		hostRouter.NoRoute(func(c *gin.Context) {
 			log.Printf("Found no route for %v", c.Request.URL)
@@ -234,7 +244,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 		hs.handlerMap[site.Hostname] = hostRouter
 		siteMap[subSiteInformation.SubSite.Hostname] = subSiteInformation
-		siteMap[subSiteInformation.SubSite.Path] = subSiteInformation
+		//siteMap[subSiteInformation.SubSite.Path] = subSiteInformation
 	}
 
 	cmsConfig.SubSites = siteMap

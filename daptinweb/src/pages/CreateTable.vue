@@ -1,6 +1,6 @@
 <template>
   <div class="row">
-    <div class="col-10 q-pa-md">
+    <div class="col-12 q-pa-md">
       <table-editor :table="{}" v-on:save="createTable"></table-editor>
     </div>
   </div>

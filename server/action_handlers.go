@@ -138,6 +138,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create cloudStoreFolderCreateActionPerformer")
 	performers = append(performers, cloudStoreFolderCreateActionPerformer)
 
+	cloudStoreSiteCreateActionPerformer, err := resource.NewCloudStoreSiteCreateActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create cloudStoreSiteCreateActionPerformer")
+	performers = append(performers, cloudStoreSiteCreateActionPerformer)
+
 	acmeTlsCertificateGenerateActionPerformer, err := resource.NewAcmeTlsCertificateGenerateActionPerformer(cruds, configStore, hostSwitch.handlerMap["api"])
 	resource.CheckErr(err, "Failed to create acme tls certificate generator")
 	performers = append(performers, acmeTlsCertificateGenerateActionPerformer)

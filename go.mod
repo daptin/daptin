@@ -24,15 +24,14 @@ require (
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/corpix/uarand v0.0.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/disintegration/gift v1.2.0
-	github.com/dlclark/regexp2 v0.0.0-20171009020623-7632a260cbaf // indirect
+	github.com/disintegration/gift v1.2.1
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
 	github.com/emersion/go-message v0.11.1
 	github.com/emersion/go-msgauth v0.4.0
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/fclairamb/ftpserver v0.0.0-20200221221851-84e5d668e655
 	github.com/frankban/quicktest v1.7.3 // indirect
-	github.com/getkin/kin-openapi v0.2.0
+	github.com/getkin/kin-openapi v0.14.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gin-contrib/static v0.0.0-20181225054800-cf5e10bbd933
 	github.com/gin-gonic/gin v1.4.0
@@ -42,9 +41,11 @@ require (
 	github.com/go-playground/universal-translator v0.17.0
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/gobuffalo/envy v1.9.0 // indirect
 	github.com/gobuffalo/flect v0.1.5
 	github.com/gocarina/gocsv v0.0.0-20181213162136-af1d9380204a
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
+	github.com/gohugoio/hugo v0.74.3
 	github.com/gonum/blas v0.0.0-20181208220705-f22b278b28ac // indirect
 	github.com/gonum/floats v0.0.0-20181209220543-c233463c7e82 // indirect
 	github.com/gonum/integrate v0.0.0-20181209220457-a422b5c0fdf2 // indirect
@@ -72,7 +73,7 @@ require (
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/gommon v0.2.8 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
-	github.com/lib/pq v1.0.0
+	github.com/lib/pq v1.1.0
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/naoina/toml v0.1.1

@@ -136,6 +136,7 @@ type SubSite struct {
 	Path         string
 	CloudStoreId *int64 `db:"cloud_store_id"`
 	Permission   PermissionInstance
+	SiteType     string `db:"site_type"`
 	FtpEnabled   bool   `db:"ftp_enabled"`
 	UserId       *int64 `db:"user_account_id"`
 	ReferenceId  string `db:"reference_id"`
@@ -378,7 +379,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 	var sites []SubSite
 
 	s, v, err := statementbuilder.Squirrel.Select("s.name", "s.hostname", "s.cloud_store_id",
-		"s."+USER_ACCOUNT_ID_COLUMN, "s.path", "s.reference_id", "s.id", "s.enable", "s.ftp_enabled").
+		"s."+USER_ACCOUNT_ID_COLUMN, "s.path", "s.reference_id", "s.id", "s.enable", "s.site_type", "s.ftp_enabled").
 		From("site s").
 		ToSql()
 	if err != nil {

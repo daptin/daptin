@@ -109,22 +109,22 @@
 
             <div class="row">
 
-              <div class="col-3" style="padding: 5px">
+              <div class="col-3 col-md-3 col-lg-3 col-xl-3 col-xs-12 col-sm-3" style="padding: 5px">
                 <q-input @blur="columnNameUpdated()" placeholder="column name" v-model="newColumn.ColumnName"></q-input>
               </div>
 
-              <div class="col-2" style="padding: 5px">
+              <div class="col-2 col-md-2 col-lg-2 col-xl-2 col-xs-12 col-sm-2" style="padding: 5px">
                 <q-select @input="columnNameUpdated()" placeholder="column Type" v-model="newColumn.ColumnType"
                           :options="ColumnTypes.map(e => e.columnType + ' - ' + e.dataType)"
                           label="column type"></q-select>
               </div>
 
-              <div class="col-3" style="padding: 5px">
+              <div class="col-3 col-md-3 col-lg-3 col-xl-3 col-xs-12 col-sm-3" style="padding: 5px">
                 <q-input placeholder="default value (string values inside single quote)"
                          v-model="newColumn.DefaultValue"></q-input>
               </div>
 
-              <div class="col-4" style="padding: 5px">
+              <div class="col-4 col-md-4 col-lg-4 col-xl-4 col-xs-12 col-sm-4" style="padding: 5px">
                 <q-checkbox size="xs" v-model="newColumn.IsNullable" label="Nullable">
                   <q-tooltip content-style="font-size: 16px">
                     Check this if this column can be left empty (<b>no value</b> is different from zero value)

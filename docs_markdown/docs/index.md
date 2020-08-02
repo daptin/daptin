@@ -1,8 +1,5 @@
-# Introduction
-
+# About
 <img src="images/logo.png" width="200" style="float: right"/>
-<br />
-
 Daptin is a headless CMS server which servers data from MySQL/PostgreSQL/SQLite over JSONAPI.org or GraphQL. With Daptin you can design your data model and have a production ready APIs reliably backed by persistent database online with in hours.
 
 

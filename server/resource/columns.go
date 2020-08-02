@@ -663,6 +663,48 @@ var SystemActions = []Action{
 			},
 		},
 	},
+	{
+		Name:             "create_site",
+		Label:            "Create new site on this store",
+		OnType:           "cloud_store",
+		InstanceOptional: false,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "Site type",
+				ColumnName: "site_type",
+				ColumnType: "label",
+				IsNullable: false,
+			},
+			{
+				Name:         "Path",
+				ColumnName:   "path",
+				ColumnType:   "label",
+				IsNullable:   false,
+				DefaultValue: "",
+			},
+			{
+				Name:       "Hostname",
+				ColumnName: "hostname",
+				ColumnType: "label",
+				IsNullable: false,
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:   "cloudstore.site.create",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"oauth_token_id": "$.oauth_token_id",
+					"store_provider": "$.store_provider",
+					"cloud_store_id": "$.cloud_store_id",
+					"path":           "~path",
+					"hostname":       "~hostname",
+					"site_type":      "~site_type",
+					"root_path":      "$.root_path",
+				},
+			},
+		},
+	},
 
 	{
 		Name:             "delete_path",
@@ -2197,10 +2239,11 @@ var StandardTables = []TableInfo{
 				DataType:   "varchar(100)",
 			},
 			{
-				Name:       "path",
-				ColumnName: "path",
-				ColumnType: "label",
-				DataType:   "varchar(100)",
+				Name:              "path",
+				ColumnName:        "path",
+				ColumnType:        "label",
+				DataType:          "varchar(100)",
+				ColumnDescription: "path on the cloud store to host as base directory",
 			},
 			{
 				Name:         "enable",
@@ -2216,13 +2259,19 @@ var StandardTables = []TableInfo{
 				DataType:     "bool",
 				DefaultValue: "false",
 			},
-
 			{
 				Name:         "ftp_enabled",
 				ColumnName:   "ftp_enabled",
 				ColumnType:   "truefalse",
 				DataType:     "int(1)",
 				DefaultValue: "0",
+			},
+			{
+				Name:         "site_type",
+				ColumnName:   "site_type",
+				ColumnType:   "label",
+				DataType:     "varchar(20)",
+				DefaultValue: "'static'",
 			},
 		},
 	},

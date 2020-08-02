@@ -12,6 +12,7 @@ import (
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"strings"
+	hugoCommand "github.com/gohugoio/hugo/commands"
 )
 
 type SyncSiteStorageActionPerformer struct {
@@ -52,12 +53,16 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	config.FileSet(cloudStore.StoreProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
 	config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
 
-
 	tempDirectoryPath := path
 	if tempDirectoryPath == "" && siteCacheFolder != nil {
 		tempDirectoryPath = siteCacheFolder.LocalSyncPath
 	}
 
+	daptinSite, _, err := d.cruds["site"].GetSingleRowByReferenceId("site", siteId, nil)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	is_hugo_site := daptinSite["site_type"] == "hugo"
 
 	args := []string{
 		cloudStore.RootPath,
@@ -67,7 +72,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	fsrc, fdst := cmd.NewFsSrcDst(args)
 	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
 	cobraCommand := &cobra.Command{
-		Use: fmt.Sprintf(	"Sync site storage [%v]", cloudStoreId),
+		Use: fmt.Sprintf("Sync site storage [%v]", cloudStoreId),
 	}
 	fs.Config.LogLevel = fs.LogLevelNotice
 
@@ -83,8 +88,14 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 			log.Errorf("Source or destination is null")
 			return nil
 		}
+
 		//fs.Config.DeleteMode = fs.DeleteModeBefore
 		dir := sync.Sync(ctx, fdst, fsrc, true)
+
+		if is_hugo_site {
+			hugoCommandResponse := hugoCommand.Execute([]string{"--contentDir", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public"})
+			log.Infof("Hugo command response for [%v] [%v]: %v", tempDirectoryPath, tempDirectoryPath+"/"+"public", hugoCommandResponse)
+		}
 
 		return dir
 	})

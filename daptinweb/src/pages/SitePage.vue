@@ -69,6 +69,7 @@
             <q-input label="Name" v-model="newSite.name"></q-input>
             <q-input label="Hostname" v-model="newSite.hostname"></q-input>
             <q-input value="/" label="Path" v-model="newSite.path"></q-input>
+            <q-input value="/" label="Site type" v-model="newSite.site_type"></q-input>
 
             <q-select label="Cloud store" :options="stores" option-label="name" option-value="id"
                       v-model="newSite.cloud_store_id"></q-select>
@@ -323,6 +324,7 @@
           name: null,
           hostname: null,
           path: null,
+          site_type: null,
           ftp_enabled: false,
           enable_https: false
         },

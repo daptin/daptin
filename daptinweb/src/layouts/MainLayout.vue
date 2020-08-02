@@ -270,7 +270,7 @@ text-align: center;
         <q-btn flat @click="showHelp = true" fab icon="fas fa-question"/>
       </q-page-sticky>
 
-      <q-drawer overlay :width="400" side="right" v-model="showHelp">
+      <q-drawer overlay :breakpoint="400" side="right" v-model="showHelp">
         <q-scroll-area class="fit" v-if="showHelp">
           <help-page @closeHelp="showHelp = false">
           </help-page>

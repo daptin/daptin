@@ -13,7 +13,7 @@ Daptin exposes various endpoints for each entity defined in the schema:
  - State management
 
 
-All endpoints are protected using the JWT token.
+All endpoints allow authentication using the Authorization Header.
 
 ## API Overview
 
@@ -240,7 +240,7 @@ Used to search items in a table that matche the filter's conditions. Filters fol
 
 ## Create
 
- !!! note "Curl Example"
+!!! note "Curl Example"
      ```curl
      curl '/api/<EntityName>'
          -H 'Authorization: Bearer <Token>'
@@ -255,7 +255,7 @@ Used to search items in a table that matche the filter's conditions. Filters fol
      ```
 
 
- !!! note "Nodejs example"
+!!! note "Nodejs example"
      ```nodejs
      var request = require('request');
 
@@ -289,7 +289,7 @@ Used to search items in a table that matche the filter's conditions. Filters fol
      ```
 
 
- !!! note "Python example"
+!!! note "Python example"
      ```python
      import requests
 
@@ -310,7 +310,7 @@ Used to search items in a table that matche the filter's conditions. Filters fol
      ```
 
 
- !!! note "PHP Example"
+!!! note "PHP Example"
      ```php
      <?php
      include('vendor/rmccue/requests/library/Requests.php');
@@ -334,24 +334,21 @@ Used to search items in a table that matche the filter's conditions. Filters fol
 
 !!! note "Curl example"
     ```curl
-    curl '/api/<EntityName>/<ReferenceId>'
-    -X PATCH
-    -H 'Authorization: Bearer <Token>' --data-binary '{
-                                                    "data": {
-                                                        "type": "<EntityName>",
-                                                        "attributes": {
-                                                            "confirmed": false,
-                                                            "email": "update@gmail.com",
-                                                            "name": "new name",
-                                                            "password": "",
-                                                            "permission": 127127127,
-                                                        },
-                                                        "relationships": {
-                                                            "relation_name": [ ... ]
-                                                        },
-                                                        "id": "<ReferenceId>"
-                                                    }
-                                                  }'
+    curl '/api/<EntityName>/<ReferenceId>' \
+    -X PATCH \
+    -H 'Authorization: Bearer <Token>' \
+    --data-binary '{
+                    "data": {
+                        "type": "<EntityName>",
+                        "attributes": {
+                            "confirmed": false,
+                            "email": "update@gmail.com",
+                            "name": "new name",
+                            "password": ""
+                        },
+                        "id": "<ReferenceId>"
+                    }
+                  }'
     ```
 
 !!! note "Nodejs example"
