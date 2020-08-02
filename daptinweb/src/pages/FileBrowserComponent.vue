@@ -116,7 +116,7 @@
       <div style="height: 100%;">
         <textarea id="fileEditor" style="height: 90vh"></textarea>
       </div>
-      <q-page-sticky position="bottom-right" :offset="[20, 20]">
+      <q-page-sticky style="z-index: 3000" position="bottom-right" :offset="[20, 20]">
         <q-btn flat @click="(showFileEditor = false ) && (fileType = null)" icon="fas fa-long-arrow-alt-left"></q-btn>
       </q-page-sticky>
     </div>
@@ -253,7 +253,7 @@
             actionName: "delete_path",
             params: {
               cloud_store_id: that.site.cloud_store_id.id,
-              path: this.currentPath + "/" + selectedFiles[fileIndex].name
+              path: that.site.path + "/" + (this.currentPath.length > 0 ? this.currentPath + "/" : "") + selectedFiles[fileIndex].name
             }
           }).then(function (res) {
             console.log("deleted", res);
@@ -286,7 +286,7 @@
           actionName: "upload_file",
           params: {
             "file": [{"name": that.newFileName, "file": "data:text/plain;base64,", "type": "text/plain"}],
-            "path": that.currentPath,
+            "path": that.site.path + "/" + that.currentPath,
             "cloud_store_id": that.site.cloud_store_id.id
           }
         }).then(function () {
@@ -311,7 +311,7 @@
           actionName: "create_folder",
           params: {
             "cloud_store_id": that.site.cloud_store_id.id,
-            "path": that.currentPath,
+            "path": that.site.path + '/' + that.currentPath,
             "name": that.newFolderName
           }
         }).then(function () {
@@ -342,7 +342,7 @@
                 type: type
               });
               console.log("Upload file current path", that.currentPath);
-              obj.params.path = that.currentPath;
+              obj.params.path = that.site.path + "/" + that.currentPath;
               obj.tableName = "cloud_store";
               obj.actionName = "upload_file";
               obj.params.cloud_store_id = that.site.cloud_store_id.id;
@@ -563,7 +563,7 @@
                         "file": "data:text/plain;base64," + btoa(that.editor.value()),
                         "type": "text/plain"
                       }],
-                      "path": that.currentPath,
+                      "path": that.site.path + "/" + that.currentPath,
                       "cloud_store_id": that.site.cloud_store_id.id
                     }
                   }).then(function () {

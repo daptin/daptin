@@ -183,7 +183,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 		subsiteCacheFolders[site.ReferenceId] = &resource.AssetFolderCache{
 			LocalSyncPath: tempDirectoryPath,
-			Keyname:       "",
+			Keyname:       site.Path,
 			CloudStore:    cloudStore,
 		}
 

@@ -21,6 +21,7 @@ func (d *CloudStoreFileListActionPerformer) DoAction(request Outcome, inFields m
 	siteReferenceId := inFields["site_id"].(string)
 
 	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[siteReferenceId]
+
 	if siteCacheFolder == nil {
 
 		restartAttrs := make(map[string]interface{})

@@ -50,7 +50,7 @@ func (d *CloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFiel
 	args := []string{
 		rootPath,
 	}
-	log.Infof("Create foler target %v", folderPath)
+	log.Infof("Create folder target %v", folderPath)
 
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}

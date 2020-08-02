@@ -698,6 +698,7 @@ var SystemActions = []Action{
 					"store_provider": "$.store_provider",
 					"cloud_store_id": "$.reference_id",
 					"path":           "~path",
+					"user_account_id": "$user.reference_id",
 					"hostname":       "~hostname",
 					"site_type":      "~site_type",
 					"root_path":      "$.root_path",

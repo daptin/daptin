@@ -65,7 +65,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	is_hugo_site := daptinSite["site_type"] == "hugo"
 
 	args := []string{
-		cloudStore.RootPath,
+		cloudStore.RootPath + siteCacheFolder.Keyname,
 		tempDirectoryPath,
 	}
 
@@ -93,7 +93,8 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 		dir := sync.Sync(ctx, fdst, fsrc, true)
 
 		if is_hugo_site {
-			hugoCommandResponse := hugoCommand.Execute([]string{"--contentDir", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public"})
+			log.Infof("Starting hugo build for %v", tempDirectoryPath)
+			hugoCommandResponse := hugoCommand.Execute([]string{"--source", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public", "--verbose", "--verboseLog"})
 			log.Infof("Hugo command response for [%v] [%v]: %v", tempDirectoryPath, tempDirectoryPath+"/"+"public", hugoCommandResponse)
 		}
 

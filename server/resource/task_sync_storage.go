@@ -8,7 +8,7 @@ import (
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/artpar/rclone/lib/pacer"
-	hugoCommand "github.com/gohugoio/hugo/commands"
+	//hugoCommand "github.com/gohugoio/hugo/commands"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"strings"
@@ -41,7 +41,7 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, site string, tem
 		tempDirectoryPath,
 	}
 
-	if site != "" {
+	if site != "" && site != "/" {
 		args[0] = args[0] + "/" + site
 	}
 
@@ -70,8 +70,9 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, site string, tem
 
 		if true {
 
-			hugoCommandResponse := hugoCommand.Execute([]string{"--contentDir", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public"})
-			log.Infof("Hugo command response for [%v] [%v]: %v", tempDirectoryPath, tempDirectoryPath+"/"+"public", hugoCommandResponse)
+			log.Infof("Starting hugo build for in cloud store sync task %v", tempDirectoryPath)
+			//hugoCommandResponse := hugoCommand.Execute([]string{"--contentDir", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public", "--verbose"})
+			//log.Infof("Hugo command response for [%v] [%v]: %v", tempDirectoryPath, tempDirectoryPath+"/"+"public", hugoCommandResponse)
 
 		}
 

@@ -10,6 +10,7 @@ import (
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
+	"github.com/daptin/daptin/server/auth"
 	hugoCommand "github.com/gohugoio/hugo/commands"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -41,10 +42,12 @@ func (d *CloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 
 	CheckErr(err, "Failed to create temp tempDirectoryPath for site create")
 	site_type, _ := inFields["site_type"].(string)
+	user_account_id, _ := inFields["user_account_id"].(string)
 	cloud_store_id, _ := inFields["cloud_store_id"].(string)
 
 	switch site_type {
 	case "hugo":
+		log.Infof("Starting hugo build for in cloud store create %v", tempDirectoryPath)
 		hugoCommandResponse := hugoCommand.Execute([]string{"new", "site", tempDirectoryPath})
 		log.Infof("Hugo command response for site create[%v]: %v", tempDirectoryPath, hugoCommandResponse)
 	default:
@@ -73,7 +76,11 @@ func (d *CloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 	plainRequest := &http.Request{
 
 	}
-	plainRequest = plainRequest.WithContext(context.Background())
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, "user", &auth.SessionUser{
+		UserReferenceId: user_account_id,
+	})
+	plainRequest = plainRequest.WithContext(ctx)
 	createRequest := api2go.Request{
 		PlainRequest: plainRequest,
 	}
