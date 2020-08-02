@@ -2,19 +2,20 @@ package resource
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
+	"github.com/artpar/rclone/fs/config"
+	"github.com/artpar/rclone/fs/sync"
 	hugoCommand "github.com/gohugoio/hugo/commands"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"io/ioutil"
-
-	"github.com/artpar/api2go"
-	"github.com/artpar/rclone/fs/config"
-	"github.com/artpar/rclone/fs/sync"
 	"golang.org/x/oauth2"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 )
@@ -44,17 +45,21 @@ func (d *CloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 
 	switch site_type {
 	case "hugo":
-	default:
 		hugoCommandResponse := hugoCommand.Execute([]string{"new", "site", tempDirectoryPath})
 		log.Infof("Hugo command response for site create[%v]: %v", tempDirectoryPath, hugoCommandResponse)
+	default:
+
 	}
 
 	rootPath := inFields["root_path"].(string)
-	hostname := inFields["hostname"].(string)
+	hostname, ok := inFields["hostname"].(string)
+	if !ok {
+		return nil, nil, []error{errors.New("hostname is missing")}
+	}
 	path := inFields["path"].(string)
 
 	if path != "" {
-		if EndsWithCheck(rootPath, "/") && BeginsWith(path, "") {
+		if !EndsWithCheck(rootPath, "/") && !BeginsWith(path, "/") {
 			path = "/" + path
 		}
 		rootPath = rootPath + path
@@ -65,7 +70,13 @@ func (d *CloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 		rootPath,
 	}
 
-	createRequest := api2go.Request{}
+	plainRequest := &http.Request{
+
+	}
+	plainRequest = plainRequest.WithContext(context.Background())
+	createRequest := api2go.Request{
+		PlainRequest: plainRequest,
+	}
 
 	newSiteData := map[string]interface{}{
 		"hostname":       hostname,

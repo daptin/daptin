@@ -26,9 +26,9 @@
               <q-item-section>
                 <span class="text-bold">{{site.name}}</span>
               </q-item-section>
-<!--              <q-item-section avatar>-->
-<!--                <q-btn @click="syncSite(site)" icon="fas fa-sync-alt" size="sm" round flat></q-btn>-->
-<!--              </q-item-section>-->
+              <!--              <q-item-section avatar>-->
+              <!--                <q-btn @click="syncSite(site)" icon="fas fa-sync-alt" size="sm" round flat></q-btn>-->
+              <!--              </q-item-section>-->
             </q-item>
           </q-card-section>
 
@@ -42,9 +42,14 @@
             <q-checkbox class="float-right" size="sm" v-model="site.ftp_enabled"></q-checkbox>
           </q-card-section>
           <q-card-section>
+            <span>Site type</span>
+            <span class="float-right">{{site.site_type}}</span>
+          </q-card-section>
+          <q-card-section>
             <div class="row">
               <div class="col-12">
-                <q-btn size="sm" @click="(selectedSite = site) && (showFileBrowser = true)" label="Browse files" color="primary"
+                <q-btn size="sm" @click="(selectedSite = site) && (showFileBrowser = true)" label="Browse files"
+                       color="primary"
                        class="float-right"></q-btn>
                 <q-btn @click="showEditSite(site)" size="sm"
                        label="Edit site" class="float-right"></q-btn>
@@ -66,37 +71,13 @@
         <div class="q-pa-md">
           <span class="text-h6">Create site</span>
           <q-form class="q-gutter-md">
-            <q-input label="Name" v-model="newSite.name"></q-input>
             <q-input label="Hostname" v-model="newSite.hostname"></q-input>
-            <q-input value="/" label="Path" v-model="newSite.path"></q-input>
-            <q-input value="/" label="Site type" v-model="newSite.site_type"></q-input>
+            <q-input value="/new-site" label="Path" v-model="newSite.path"></q-input>
+            <q-select :options="[{label: 'Hugo', value: 'hugo'}, {label: 'Static', value: 'static'}]" value="static"
+                      label="Site type" v-model="newSite.site_type" emit-value map-options></q-select>
 
             <q-select label="Cloud store" :options="stores" option-label="name" option-value="id"
                       v-model="newSite.cloud_store_id"></q-select>
-
-
-            <q-item>
-              <q-item-section>
-                <q-item-label>HTTPS</q-item-label>
-              </q-item-section>
-              <q-item-section>
-                <q-btn-toggle size="xs" v-model="newSite.enable_https" :options="[
-          {label: newSite.enable_https ? 'Enabled' : 'Enable', value: true},
-          {label: !newSite.enable_https ? 'Disabled' : 'Disable', value: false}]"></q-btn-toggle>
-              </q-item-section>
-            </q-item>
-
-
-            <q-item>
-              <q-item-section>
-                <q-item-label>FTP</q-item-label>
-              </q-item-section>
-              <q-item-section>
-                <q-btn-toggle size="xs" v-model="newSite.ftp_enabled" :options="[
-          {label: newSite.ftp_enabled ? 'Enabled' : 'Enable', value: true},
-          {label: !newSite.ftp_enabled ? 'Disabled' : 'Disable', value: false}]"></q-btn-toggle>
-              </q-item-section>
-            </q-item>
 
             <q-btn color="primary" @click="createSite()">Create</q-btn>
             <q-btn @click="showCreateSiteDrawer = false">Cancel</q-btn>
@@ -106,7 +87,7 @@
     </q-drawer>
 
 
-    <q-drawer overlay content-class="bg-grey-3"  :breakpoint="1400" side="right" v-model="showEditSiteDrawer">
+    <q-drawer overlay content-class="bg-grey-3" :breakpoint="1400" side="right" v-model="showEditSiteDrawer">
       <q-scroll-area class="fit row">
 
         <div class="q-pa-md">
@@ -115,9 +96,10 @@
             <q-input label="Name" v-model="newSite.name"></q-input>
             <q-input label="Hostname" v-model="newSite.hostname"></q-input>
             <q-input label="Path" v-model="newSite.path"></q-input>
+            <q-input label="Site type" v-model="newSite.site_type"></q-input>
 
             <q-select :options="stores" option-label="name" option-value="id"
-                      v-model="newSite.cloud_store_id"></q-select>
+                      v-model="newSite.cloud_store_id" emit-value map-options></q-select>
 
 
             <q-item>
@@ -143,18 +125,20 @@
               </q-item-section>
             </q-item>
 
-            <q-btn color="negative" @click="deleteSite()">Delete</q-btn>
-            <q-btn class="float-right" color="primary" @click="editSite()">Save</q-btn>
-            <q-btn class="float-right" @click="showEditSiteDrawer = false">Cancel</q-btn>
+            <q-btn size="sm" color="negative" @click="deleteSite()">Delete</q-btn>
+            <q-btn size="sm" class="float-right" color="primary" @click="editSite()">Save</q-btn>
+            <q-btn size="sm" class="float-right" @click="showEditSiteDrawer = false">Cancel</q-btn>
           </q-form>
         </div>
 
       </q-scroll-area>
     </q-drawer>
 
-    <q-drawer :breakpoint="1400" :width="fileDrawerWidth > 800 ? 800 : fileDrawerWidth" side="right" overlay v-model="showFileBrowser">
+    <q-drawer :breakpoint="1400" :width="fileDrawerWidth > 800 ? 800 : fileDrawerWidth" side="right" overlay
+              v-model="showFileBrowser">
       <q-scroll-area class="fit">
-        <file-browser v-if="selectedSite && showFileBrowser" v-on:close="showFileBrowser = false" :site="selectedSite"></file-browser>
+        <file-browser v-if="selectedSite && showFileBrowser" v-on:close="showFileBrowser = false"
+                      :site="selectedSite"></file-browser>
       </q-scroll-area>
     </q-drawer>
 
@@ -186,6 +170,7 @@
         this.newSite.hostname = site.hostname;
         this.newSite.name = site.hostname;
         this.newSite.path = site.path;
+        this.newSite.site_type = site.site_type;
         this.newSite.cloud_store_id = site.cloud_store_id;
       },
       deleteSite() {
@@ -233,7 +218,17 @@
         const that = this;
         console.log("new site", this.newSite);
         this.newSite.tableName = "site";
-        that.createRow(that.newSite).then(function (res) {
+
+        that.executeAction({
+          tableName: "cloud_store",
+          actionName: "create_site",
+          params: {
+            cloud_store_id: this.newSite.cloud_store_id.id,
+            hostname: this.newSite.hostname,
+            path: this.newSite.path,
+            site_type: this.newSite.site_type
+          }
+        }).then(function (res) {
           that.user = {};
           that.$q.notify({
             message: "Site created"
@@ -252,6 +247,10 @@
             })
           }
         });
+
+        // that.createRow(that.newSite)
+
+
       },
       ...mapActions(['loadData', 'getTableSchema', 'createRow', 'deleteRow', 'updateRow', 'executeAction']),
       refresh() {
@@ -325,6 +324,7 @@
           hostname: null,
           path: null,
           site_type: null,
+          cloud_store_id: null,
           ftp_enabled: false,
           enable_https: false
         },

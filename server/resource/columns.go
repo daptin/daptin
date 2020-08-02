@@ -696,7 +696,7 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"oauth_token_id": "$.oauth_token_id",
 					"store_provider": "$.store_provider",
-					"cloud_store_id": "$.cloud_store_id",
+					"cloud_store_id": "$.reference_id",
 					"path":           "~path",
 					"hostname":       "~hostname",
 					"site_type":      "~site_type",
