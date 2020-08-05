@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
@@ -39,6 +40,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[siteId]
 	if siteCacheFolder == nil {
 		log.Infof("No subsite cache found on local")
+		return nil, nil, []error{errors.New("no site found here")}
 	}
 
 	token, oauthConf, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)

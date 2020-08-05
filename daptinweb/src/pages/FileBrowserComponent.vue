@@ -413,7 +413,6 @@
       createFolder() {
         const that = this;
 
-        debugger
         that.executeAction({
           tableName: "cloud_store",
           actionName: "create_folder",
