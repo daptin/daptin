@@ -226,7 +226,6 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	r := req.New()
 
-
 	responseMap := make(map[string]interface{})
 
 	resp, err := r.Get(baseAddress+"/api/world", req.QueryParam{
@@ -766,11 +765,12 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	res, err := c.Retr("image_new.png")
 	if err != nil {
 		t.Errorf("failed to remove dir %v", err)
-	}
-	b := make([]byte, 100)
-	l, err := res.Read(b)
-	if l == 0 || err != nil {
-		t.Errorf("failed to read file %v", err)
+	} else {
+		b := make([]byte, 100)
+		l, err := res.Read(b)
+		if l == 0 || err != nil {
+			t.Errorf("failed to read file %v", err)
+		}
 	}
 
 	if err := c.Quit(); err != nil {
