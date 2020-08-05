@@ -9,8 +9,9 @@ import HelpPage from '../pages/HelpPage'
 import FileBrowser from 'pages/FileBrowserComponent';
 const VueUploadComponent = require('vue-upload-component');
 const AceEditor = require('vue2-ace-editor');
+import VJstree from 'vue-jstree'
 
-
+Vue.component('v-jstree', VJstree);
 Vue.component('ace-editor', AceEditor);
 Vue.component('file-upload', VueUploadComponent);
 Vue.component('file-browser', FileBrowser);

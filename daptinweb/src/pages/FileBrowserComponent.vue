@@ -1,7 +1,7 @@
 <template>
   <div class="row">
 
-    <div class="col-12">
+    <div class="col-12" v-if="!showFileEditor && !showFilePreview">
 
       <div class="q-pa-md q-gutter-sm">
         <q-breadcrumbs>
@@ -116,12 +116,24 @@
 
     </div>
     <div class="col-12" v-if="showFileEditor">
-      <div style="height: 100%;">
-        <!--        <textarea id="fileEditor" style="height: 90vh"></textarea>-->
-        <ace-editor @input="saveFile()" ref="myEditor" style="font-family: 'JetBrains Mono';font-size: 15px;"
-                    @init="loadDependencies"
-                    lang="html" theme="chrome" width="100%" height="85vh" v-model="selectedFile.content"></ace-editor>
+      <div class="row">
+        <q-drawer side="left">
+          <v-jstree :async="loadFilePathDataForTree()" :data="pathFileList['']" whole-row></v-jstree>
+        </q-drawer>
+        <div class="col-12">
+          <q-btn @click="editor.undo()" icon="fas fa-undo" flat></q-btn>
+        </div>
+        <div class="col-12" style="margin-right: 10px">
+          <div style="height: 100%;" v-if="selectedFile.language">
+            <!--        <textarea id="fileEditor" style="height: 90vh"></textarea>-->
+            <ace-editor @input="saveFile()" ref="myEditor" style="font-family: 'JetBrains Mono';font-size: 16px;"
+                        @init="loadDependencies"
+                        :lang="selectedFile.language" theme="chrome" width="100%" height="90vh"
+                        v-model="selectedFile.content"></ace-editor>
+          </div>
+        </div>
       </div>
+
       <q-page-sticky style="z-index: 3000" position="bottom-right" :offset="[20, 20]">
         <q-btn flat @click="(showFileEditor = false ) && (fileType = null)" icon="fas fa-long-arrow-alt-left"></q-btn>
       </q-page-sticky>
@@ -190,8 +202,6 @@
 </style>
 <script>
   import {mapActions} from "vuex";
-  import "simplemde/dist/simplemde.min.css";
-  import SimpleMDE from 'simplemde';
 
   function debounce(func, wait, immediate) {
     var timeout;
@@ -221,12 +231,93 @@
     };
   }());
 
+  function folderNameFromPath(path) {
+    var pathParts = path.split("/");
+    if (pathParts.length < 2) {
+      return pathParts[0];
+    }
+    if (pathParts[pathParts.length - 1].trim().length > 0 || pathParts.length < 3) {
+      return pathParts[pathParts.length - 1].trim()
+    }
+    return pathParts[pathParts.length - 2].trim();
+  }
 
   export default {
     name: "FileBrowserComponent",
     props: ['site', 'path'],
     data() {
       return {
+        pathFileList: {},
+        vjsData: [
+          {
+            "text": "Same but with checkboxes",
+            "children": [
+              {
+                "text": "initially selected",
+                "selected": true
+              },
+              {
+                "text": "custom icon",
+                "icon": "fa fa-warning icon-state-danger"
+              },
+              {
+                "text": "initially open",
+                "icon": "fa fa-folder icon-state-default",
+                "opened": true,
+                "children": [
+                  {
+                    "text": "Another node"
+                  }
+                ]
+              },
+              {
+                "text": "custom icon",
+                "icon": "fa fa-warning icon-state-warning"
+              },
+              {
+                "text": "disabled node",
+                "icon": "fa fa-check icon-state-success",
+                "disabled": true
+              }
+            ]
+          },
+          {
+            "text": "Same but with checkboxes",
+            "opened": true,
+            "children": [
+              {
+                "text": "initially selected",
+                "selected": true
+              },
+              {
+                "text": "custom icon",
+                "icon": "fa fa-warning icon-state-danger"
+              },
+              {
+                "text": "initially open",
+                "icon": "fa fa-folder icon-state-default",
+                "opened": true,
+                "children": [
+                  {
+                    "text": "Another node"
+                  }
+                ]
+              },
+              {
+                "text": "custom icon",
+                "icon": "fa fa-warning icon-state-warning"
+              },
+              {
+                "text": "disabled node",
+                "icon": "fa fa-check icon-state-success",
+                "disabled": true
+              }
+            ]
+          },
+          {
+            "text": "And wholerow selection"
+          }
+        ],
         showDelete: false,
         fileType: null,
         saver: null,
@@ -251,6 +342,9 @@
     computed: {},
     watch: {},
     methods: {
+      loadFilePathDataForTree() {
+        console.log("load file path data for tree", arguments)
+      },
       loadDependencies() {
         // require('brace/mode/html');
         // require('brace/theme/chrome');
@@ -259,7 +353,7 @@
         const that = this;
         var selectedFiles = this.fileList.filter(e => e.selected);
         for (var fileIndex in selectedFiles) {
-          console.log("Delete fileIndex", this.site, this.currentPath, selectedFiles[fileIndex])
+          console.log("Delete fileIndex", this.site, this.currentPath, selectedFiles[fileIndex]);
 
           that.executeAction({
             tableName: "cloud_store",
@@ -331,7 +425,7 @@
         }).then(function () {
           that.getContentOnPath({name: '.', is_dir: false})
         }).catch(function (err) {
-          console.log("Failed to create folder", err)
+          console.log("Failed to create folder", err);
           that.$q.notify({
             message: "Failed to create folder"
           })
@@ -364,7 +458,7 @@
                 console.log("Upload done", arguments);
                 // that.showUploadFile = false;
                 uploadedFile.success = true;
-                that.refreshCache()
+                that.refreshCache();
                 that.getContentOnPath({is_dir: false, name: '.'})
               }).catch(function (err) {
                 console.log("Failed to upload", arguments)
@@ -466,7 +560,15 @@
         if (path.name === ".") {
           path.is_dir = true;
         }
-        console.log("Final path", that.currentPath, path.is_dir);
+        console.log("Final path", that.currentPath, path.is_dir, that.site.name);
+
+        if (!that.pathFileList[that.currentPath]) {
+          let folderName = folderNameFromPath(that.currentPath);
+          that.pathFileList[that.currentPath] = {
+            text: folderName.length > 0 ? folderName : that.site.name,
+            children: []
+          }
+        }
 
         if (path.is_dir || path.name === '..') {
           that.executeAction({
@@ -481,7 +583,7 @@
             console.log("list files Response", fileList);
 
             if (!fileList) {
-              that.fileList = []
+              that.fileList = [];
               return;
             }
             that.showFileBrowser = true;
@@ -492,12 +594,15 @@
             });
             files = files.map(function (item) {
               item.selected = false;
+              item.text = item.name;
+              item.isLeaf = !item.is_dir;
               return item;
-            })
+            });
+            that.pathFileList[that.currentPath] = files;
 
             that.fileList = files;
           }).catch(function (err) {
-            console.log("failed to list files", err)
+            console.log("failed to list files", err);
             that.getContentOnPath({name: '', is_dir: false})
           })
         } else {
@@ -535,11 +640,57 @@
               "path": that.currentPath + "/" + path.name
             }
           }).then(function (res) {
-            console.log("Get file contents", res)
+            console.log("Get file contents", res);
+
+            let split = path.name.split(".");
+            var fileNameExtension = split[split.length - 1];
+            console.log("File name extension is", fileNameExtension)
+            switch (fileNameExtension) {
+              case "md":
+                that.selectedFile.language = "markdown";
+                break;
+              case "xml":
+                that.selectedFile.language = "xml";
+                break;
+              case "html":
+                that.selectedFile.language = "html";
+                break;
+              case "toml":
+                that.selectedFile.language = "toml";
+                break;
+              case "js":
+                that.selectedFile.language = "javascript";
+                break;
+              case "py":
+                that.selectedFile.language = "python";
+                break;
+              case "sql":
+                that.selectedFile.language = "mysql";
+                break;
+              case "css":
+                that.selectedFile.language = "css";
+                break;
+              default:
+                that.selectedFile.language = "text";
+                break
+            }
+
             that.selectedFile.content = atob(res[0].Attributes.data);
             that.showFileEditor = true;
 
+
             setTimeout(function () {
+
+
+              require('brace/ext/language_tools'); //language extension prerequsite...
+              require('brace/mode/html');
+              require('brace/mode/javascript');    //language
+              require('brace/mode/markdown');    //language
+              require('brace/mode/toml');    //language
+              require('brace/mode/xml');    //language
+              require('brace/mode/less');
+              require('brace/theme/chrome');
+
 
               that.fileType = "text";
               if (path.name.endsWith("jpg") || path.name.endsWith("png") || path.name.endsWith("gif")) {
@@ -558,6 +709,7 @@
               if (that.fileType === "text" || that.fileType === "markdown") {
                 that.showFileEditor = true;
                 that.editor = that.$refs.myEditor.editor;
+                that.editor.setOption("wrap", true)
 
               } else if (that.fileType === "image") {
                 that.showFileEditor = false;

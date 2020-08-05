@@ -16,6 +16,7 @@
     "@apidevtools/swagger-parser": "^10.0.1",
     "@quasar/extras": "^1.0.0",
     "axios": "^0.18.1",
+    "brace": "^0.11.1",
     "daptin-client": "^0.3.5",
     "install": "^0.13.0",
     "js-yaml": "^3.14.0",
@@ -27,6 +28,7 @@
     "simplemde": "^1.11.2",
     "tabulator-tables": "^4.6.2",
     "vue-i18n": "^8.0.0",
+    "vue-jstree": "^2.1.6",
     "vue-upload-component": "^2.8.20",
     "xlsx": "^0.16.4"
   },
