@@ -24,7 +24,7 @@
           <q-card-section>
             <q-item>
               <q-item-section>
-                <span class="text-bold">{{site.name}}</span>
+                <span class="text-h6">{{site.name}}</span>
               </q-item-section>
               <!--              <q-item-section avatar>-->
               <!--                <q-btn @click="syncSite(site)" icon="fas fa-sync-alt" size="sm" round flat></q-btn>-->
@@ -33,18 +33,57 @@
           </q-card-section>
 
           <q-card-section>
-            <span>HTTPS</span>
+            <q-list>
+              <q-item>
+                <q-item-section>
+                  <span>HTTPS</span>
+                </q-item-section>
 
-            <q-checkbox size="sm" class="float-right" v-model="site.enable_https"></q-checkbox>
+                <q-item-section avatar v-if="showHttpEdit">
+                  <q-checkbox @input="showHttpEdit = false" size="sm" class="float-right"
+                              v-model="site.enable_https"></q-checkbox>
+                </q-item-section>
+
+                <q-item-section avatar>
+                  <q-item-label>
+                    <q-icon color="primary" size="xs"
+                            :name="!!site.enable_https ? 'fas fa-check':'fas fa-times'"></q-icon>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <span>FTP enabled</span>
+                </q-item-section>
+
+                <q-item-section avatar v-if="showHttpEdit">
+                  <q-checkbox @input="showHttpEdit = false" size="sm" class="float-right"
+                              v-model="site.enable_https"></q-checkbox>
+                </q-item-section>
+
+                <q-item-section avatar>
+                  <q-item-label>
+                    <q-icon color="primary" size="xs"
+                            :name="!!site.ftp_enabled ? 'fas fa-check':'fas fa-times'"></q-icon>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-item>
+                <q-item-section>
+                  <span>Site type</span>
+                </q-item-section>
+
+                <q-item-section avatar>
+                  <q-item-label>
+                    <span class="text-bold">{{site.site_type}}</span>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+            </q-list>
           </q-card-section>
-          <q-card-section>
-            <span>FTP Enabled</span>
-            <q-checkbox class="float-right" size="sm" v-model="site.ftp_enabled"></q-checkbox>
-          </q-card-section>
-          <q-card-section>
-            <span>Site type</span>
-            <span class="float-right">{{site.site_type}}</span>
-          </q-card-section>
+
           <q-card-section>
             <div class="row">
               <div class="col-12">
@@ -170,6 +209,8 @@
         this.newSite.hostname = site.hostname;
         this.newSite.name = site.hostname;
         this.newSite.path = site.path;
+        this.newSite.enable_https = site.enable_https;
+        this.newSite.ftp_enabled = site.ftp_enabled;
         this.newSite.site_type = site.site_type;
         this.newSite.cloud_store_id = site.cloud_store_id;
       },
@@ -276,6 +317,7 @@
     data() {
       return {
         text: '',
+        showHttpEdit: false,
         fileList: [],
         currentSite: null,
         showFileBrowser: false,

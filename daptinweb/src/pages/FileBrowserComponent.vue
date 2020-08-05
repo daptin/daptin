@@ -24,7 +24,7 @@
       <div class="row">
         <div class="col-12">
           <q-btn-group flat>
-            <q-btn-dropdown size="sm" icon="fas fa-plus">
+            <q-btn-dropdown size="md" icon="fas fa-plus">
               <q-list>
                 <q-item clickable v-close-popup @click="showNewFileName = true">
                   <q-item-section>
@@ -39,18 +39,18 @@
                 </q-item>
               </q-list>
             </q-btn-dropdown>
-            <q-btn size="sm"
+            <q-btn size="md"
                    @click="(showUploadFile = true)  && (uploadedFiles = []) && (showFileEditor = false)  && (showFilePreview = false) "
                    icon="fas fa-upload"></q-btn>
-            <q-btn size="sm" @click="refreshCache()"
+            <q-btn size="md" @click="refreshCache()"
                    icon="fas fa-sync-alt"></q-btn>
-            <q-btn @click="deleteSelectedFiles" flat size="sm" class="float-right" color="negative" v-if="showDelete"
+            <q-btn @click="deleteSelectedFiles" flat size="md" class="float-right" color="negative" v-if="showDelete"
                    icon="fas fa-times"></q-btn>
 
             <q-space></q-space>
           </q-btn-group>
           <q-btn-group class="float-right" flat>
-            <!--            <q-btn size="sm" @click="viewType = 'table'" v-if="viewType !== 'table'" icon="fas fa-table"></q-btn>-->
+            <q-btn size="md" @click="fullScreenBrowser()" icon="fas fa-expand"></q-btn>
             <!--            <q-btn size="sm" @click="viewType = 'card'" v-if="viewType !== 'card'" icon="fas fa-th"></q-btn>-->
           </q-btn-group>
         </div>
@@ -114,7 +114,8 @@
     </div>
     <div class="col-12" v-if="showFileEditor">
       <div style="height: 100%;">
-        <textarea id="fileEditor" style="height: 90vh"></textarea>
+        <!--        <textarea id="fileEditor" style="height: 90vh"></textarea>-->
+        <prism-editor :emitEvents="true" :lineNumbers="true" @change="saveFile" :code="selectedFile.content"></prism-editor>
       </div>
       <q-page-sticky style="z-index: 3000" position="bottom-right" :offset="[20, 20]">
         <q-btn flat @click="(showFileEditor = false ) && (fileType = null)" icon="fas fa-long-arrow-alt-left"></q-btn>
@@ -187,6 +188,21 @@
   import "simplemde/dist/simplemde.min.css";
   import SimpleMDE from 'simplemde';
 
+  function debounce(func, wait, immediate) {
+    var timeout;
+    return function () {
+      var context = this, args = arguments;
+      var later = function () {
+        timeout = null;
+        if (!immediate) func.apply(context, args);
+      };
+      var callNow = immediate && !timeout;
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+      if (callNow) func.apply(context, args);
+    };
+  }
+
   var saveData = (function () {
     var a = document.createElement("a");
     document.body.appendChild(a);
@@ -228,20 +244,6 @@
     computed: {},
     watch: {},
     methods: {
-      debounce(func, wait, immediate) {
-        var timeout;
-        return function () {
-          var context = this, args = arguments;
-          var later = function () {
-            timeout = null;
-            if (!immediate) func.apply(context, args);
-          };
-          var callNow = immediate && !timeout;
-          clearTimeout(timeout);
-          timeout = setTimeout(later, wait);
-          if (callNow) func.apply(context, args);
-        };
-      },
       deleteSelectedFiles() {
         const that = this;
         var selectedFiles = this.fileList.filter(e => e.selected);
@@ -306,6 +308,7 @@
       createFolder() {
         const that = this;
 
+        debugger
         that.executeAction({
           tableName: "cloud_store",
           actionName: "create_folder",
@@ -543,38 +546,38 @@
 
               if (that.fileType === "text" || that.fileType === "markdown") {
                 that.showFileEditor = true;
-                that.editor = new SimpleMDE({
-                  element: document.getElementById("fileEditor"),
-                  autosave: {
-                    enabled: true,
-                    uniqueId: that.site.id
-                  }
-                });
-                that.editor.value(that.selectedFile.content);
+                // that.editor = new SimpleMDE({
+                //   element: document.getElementById("fileEditor"),
+                //   autosave: {
+                //     enabled: true,
+                //     uniqueId: that.site.id
+                //   }
+                // });
+                // that.editor.value(that.selectedFile.content);
 
-                that.editor.codemirror.on("change", that.debounce(function () {
-                  console.log(that.editor.value());
-                  that.executeAction({
-                    tableName: "cloud_store",
-                    actionName: "upload_file",
-                    params: {
-                      "file": [{
-                        "name": path.name,
-                        "file": "data:text/plain;base64," + btoa(that.editor.value()),
-                        "type": "text/plain"
-                      }],
-                      "path": that.site.path + "/" + that.currentPath,
-                      "cloud_store_id": that.site.cloud_store_id.id
-                    }
-                  }).then(function () {
-                    that.refreshCache();
-                  }).catch(function (err) {
-                    console.log("Failed to save file", err);
-                    that.$q.notify({
-                      message: "Failed to save file"
-                    })
-                  });
-                }, 700));
+                // that.editor.codemirror.on("change", that.debounce(function () {
+                //   console.log(that.editor.value());
+                //   that.executeAction({
+                //     tableName: "cloud_store",
+                //     actionName: "upload_file",
+                //     params: {
+                //       "file": [{
+                //         "name": path.name,
+                //         "file": "data:text/plain;base64," + btoa(that.editor.value()),
+                //         "type": "text/plain"
+                //       }],
+                //       "path": that.site.path + "/" + that.currentPath,
+                //       "cloud_store_id": that.site.cloud_store_id.id
+                //     }
+                //   }).then(function () {
+                //     that.refreshCache();
+                //   }).catch(function (err) {
+                //     console.log("Failed to save file", err);
+                //     that.$q.notify({
+                //       message: "Failed to save file"
+                //     })
+                //   });
+                // }, 700));
               } else if (that.fileType === "image") {
                 that.showFileEditor = false;
                 that.showFilePreview = true;
@@ -617,6 +620,36 @@
         }
       },
 
+      saveFile: function () {
+        return debounce(function (content) {
+          const that = this;
+          console.log(that.selectedFile, content);
+          that.selectedFile.content = content;
+          let pathParts = that.selectedFile.path.split("/");
+          var fileName = pathParts[pathParts.length - 1];
+          that.executeAction({
+            tableName: "cloud_store",
+            actionName: "upload_file",
+            params: {
+              "file": [{
+                "name": fileName,
+                "file": "data:text/plain;base64," + btoa(content),
+                "type": "text/plain"
+              }],
+              "path": that.site.path + "/" + that.currentPath,
+              "cloud_store_id": that.site.cloud_store_id.id
+            }
+          }).then(function () {
+            that.refreshCache();
+          }).catch(function (err) {
+            console.log("Failed to save file", err);
+            that.$q.notify({
+              message: "Failed to save file"
+            })
+          })
+
+        }, 1300, false)
+      }(),
       listFiles(site) {
         console.log("list files in site", site);
         const that = this;

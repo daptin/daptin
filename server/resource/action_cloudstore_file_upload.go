@@ -201,7 +201,8 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 
 		ctx := context.Background()
 
-		err := sync.CopyDir(ctx, fdst, fsrc, true)
+		fs.Config.DeleteMode = fs.DeleteModeOff
+		err := sync.Sync(ctx, fdst, fsrc, true)
 		InfoErr(err, "Failed to sync files for upload to cloud")
 		err = os.RemoveAll(tempDirectoryPath)
 		InfoErr(err, "Failed to remove temp directory after upload")

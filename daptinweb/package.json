@@ -27,6 +27,7 @@
     "simplemde": "^1.11.2",
     "tabulator-tables": "^4.6.2",
     "vue-i18n": "^8.0.0",
+    "vue-prism-editor": "^0.6.1",
     "vue-upload-component": "^2.8.20",
     "xlsx": "^0.16.4"
   },
