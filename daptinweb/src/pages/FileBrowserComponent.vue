@@ -37,11 +37,14 @@
                     <q-item-label>Create folder</q-item-label>
                   </q-item-section>
                 </q-item>
+                <q-item clickable v-close-popup
+                        @click="(showUploadFile = true)  && (uploadedFiles = []) && (showFileEditor = false)  && (showFilePreview = false) ">
+                  <q-item-section>
+                    <q-item-label>Upload/Drag and drop files</q-item-label>
+                  </q-item-section>
+                </q-item>
               </q-list>
             </q-btn-dropdown>
-            <q-btn size="md"
-                   @click="(showUploadFile = true)  && (uploadedFiles = []) && (showFileEditor = false)  && (showFilePreview = false) "
-                   icon="fas fa-upload"></q-btn>
             <q-btn size="md" @click="refreshCache()"
                    icon="fas fa-sync-alt"></q-btn>
             <q-btn @click="deleteSelectedFiles" flat size="md" class="float-right" color="negative" v-if="showDelete"
@@ -115,7 +118,9 @@
     <div class="col-12" v-if="showFileEditor">
       <div style="height: 100%;">
         <!--        <textarea id="fileEditor" style="height: 90vh"></textarea>-->
-        <prism-editor :emitEvents="true" :lineNumbers="true" @change="saveFile" :code="selectedFile.content"></prism-editor>
+        <ace-editor @input="saveFile()" ref="myEditor" style="font-family: 'JetBrains Mono';font-size: 15px;"
+                    @init="loadDependencies"
+                    lang="html" theme="chrome" width="100%" height="85vh" v-model="selectedFile.content"></ace-editor>
       </div>
       <q-page-sticky style="z-index: 3000" position="bottom-right" :offset="[20, 20]">
         <q-btn flat @click="(showFileEditor = false ) && (fileType = null)" icon="fas fa-long-arrow-alt-left"></q-btn>
@@ -224,6 +229,8 @@
       return {
         showDelete: false,
         fileType: null,
+        saver: null,
+        editor: null,
         showFileEditor: false,
         showFilePreview: false,
         selectedFile: null,
@@ -244,6 +251,10 @@
     computed: {},
     watch: {},
     methods: {
+      loadDependencies() {
+        // require('brace/mode/html');
+        // require('brace/theme/chrome');
+      },
       deleteSelectedFiles() {
         const that = this;
         var selectedFiles = this.fileList.filter(e => e.selected);
@@ -546,38 +557,8 @@
 
               if (that.fileType === "text" || that.fileType === "markdown") {
                 that.showFileEditor = true;
-                // that.editor = new SimpleMDE({
-                //   element: document.getElementById("fileEditor"),
-                //   autosave: {
-                //     enabled: true,
-                //     uniqueId: that.site.id
-                //   }
-                // });
-                // that.editor.value(that.selectedFile.content);
+                that.editor = that.$refs.myEditor.editor;
 
-                // that.editor.codemirror.on("change", that.debounce(function () {
-                //   console.log(that.editor.value());
-                //   that.executeAction({
-                //     tableName: "cloud_store",
-                //     actionName: "upload_file",
-                //     params: {
-                //       "file": [{
-                //         "name": path.name,
-                //         "file": "data:text/plain;base64," + btoa(that.editor.value()),
-                //         "type": "text/plain"
-                //       }],
-                //       "path": that.site.path + "/" + that.currentPath,
-                //       "cloud_store_id": that.site.cloud_store_id.id
-                //     }
-                //   }).then(function () {
-                //     that.refreshCache();
-                //   }).catch(function (err) {
-                //     console.log("Failed to save file", err);
-                //     that.$q.notify({
-                //       message: "Failed to save file"
-                //     })
-                //   });
-                // }, 700));
               } else if (that.fileType === "image") {
                 that.showFileEditor = false;
                 that.showFilePreview = true;
@@ -621,9 +602,10 @@
       },
 
       saveFile: function () {
-        return debounce(function (content) {
+        return debounce(function () {
           const that = this;
-          console.log(that.selectedFile, content);
+          let content = that.editor.getValue();
+          console.log("save", that.selectedFile, that.editor.getValue());
           that.selectedFile.content = content;
           let pathParts = that.selectedFile.path.split("/");
           var fileName = pathParts[pathParts.length - 1];

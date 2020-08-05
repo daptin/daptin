@@ -8,13 +8,10 @@ import TablePermissions from '../pages/Permissions'
 import HelpPage from '../pages/HelpPage'
 import FileBrowser from 'pages/FileBrowserComponent';
 const VueUploadComponent = require('vue-upload-component');
-
-import VuePrismEditor from "vue-prism-editor";
-import "vue-prism-editor/dist/VuePrismEditor.css"; // import the styles
+const AceEditor = require('vue2-ace-editor');
 
 
-Vue.component("prism-editor", VuePrismEditor);
-
+Vue.component('ace-editor', AceEditor);
 Vue.component('file-upload', VueUploadComponent);
 Vue.component('file-browser', FileBrowser);
 Vue.component("table-side-bar", TableSideBar);

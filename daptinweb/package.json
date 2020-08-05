@@ -27,13 +27,13 @@
     "simplemde": "^1.11.2",
     "tabulator-tables": "^4.6.2",
     "vue-i18n": "^8.0.0",
-    "vue-prism-editor": "^0.6.1",
     "vue-upload-component": "^2.8.20",
     "xlsx": "^0.16.4"
   },
   "devDependencies": {
     "@quasar/app": "^1.9.5",
-    "@quasar/quasar-app-extension-qmarkdown": "^1.0.27"
+    "@quasar/quasar-app-extension-qmarkdown": "^1.0.27",
+    "vue2-ace-editor": "0.0.15"
   },
   "engines": {
     "node": ">= 10.18.1",
