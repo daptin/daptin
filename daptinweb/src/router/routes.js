@@ -96,6 +96,9 @@ const routes = [
         path: 'sites', component: () => import('pages/SitePage.vue')
       },
       {
+        path: '/site/:siteId/browse', component: () => import('pages/SiteFileBrowserPage.vue')
+      },
+      {
         path: '/edit/:cloudStoreId', component: () => import('pages/CloudStorePage.vue')
       },
     ]

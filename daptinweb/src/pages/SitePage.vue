@@ -87,7 +87,9 @@
           <q-card-section>
             <div class="row">
               <div class="col-12">
-                <q-btn size="sm" @click="(selectedSite = site) && (showFileBrowser = true)" label="Browse files"
+                <q-btn size="sm"
+                       @click="(selectedSite = site) && (showFileBrowser = true)"
+                       label="Browse files"
                        color="primary"
                        class="float-right"></q-btn>
                 <q-btn @click="showEditSite(site)" size="sm"
