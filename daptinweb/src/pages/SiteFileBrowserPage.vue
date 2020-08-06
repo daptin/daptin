@@ -1,34 +1,9 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <div>
 
-    <div class="q-pa-md q-gutter-sm">
-      <q-breadcrumbs>
-        <template v-slot:separator>
-          <q-icon
-            size="1.2em"
-            name="arrow_forward"
-            color="black"
-          />
-        </template>
+    <file-browser v-if="site" v-on:close="$router.back()"
+                  :site="site"></file-browser>
 
-        <q-breadcrumbs-el label="Storage" icon="fas fa-archive"/>
-        <q-breadcrumbs-el label="Site" icon="fas fa-list"/>
-      </q-breadcrumbs>
-    </div>
-    <q-separator></q-separator>
-
-    <div class="row q-pa-md q-gutter-sm">
-      <file-browser v-if="site" v-on:close="$router.back()"
-                    :site="site"></file-browser>
-    </div>
-
-
-    <q-drawer :breakpoint="1400" :width="fileDrawerWidth > 800 ? 800 : fileDrawerWidth" side="right" overlay
-              v-model="showFileBrowser">
-      <q-scroll-area class="fit">
-
-      </q-scroll-area>
-    </q-drawer>
 
   </div>
 </template>
@@ -43,7 +18,7 @@
       refresh() {
         var tableName = "site";
         const that = this;
-        var siteId = that.$route.params.site_id;
+        var siteId = that.$route.params.siteId;
         this.loadOneData({
           tableName: 'site',
           referenceId: siteId,

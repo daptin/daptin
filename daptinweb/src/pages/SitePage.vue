@@ -88,7 +88,7 @@
             <div class="row">
               <div class="col-12">
                 <q-btn size="sm"
-                       @click="(selectedSite = site) && (showFileBrowser = true)"
+                       @click="$router.push('/site/' + site.reference_id + '/browse')"
                        label="Browse files"
                        color="primary"
                        class="float-right"></q-btn>

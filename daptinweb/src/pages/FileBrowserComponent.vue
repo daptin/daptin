@@ -19,7 +19,13 @@
       <q-separator></q-separator>
 
     </div>
-    <div class="col-12" v-if="!showFileEditor && !showFilePreview">
+
+    <div class="col-2 col-md-3 col-sm-4 col-xs-12">
+      <v-jstree @item-click="fileTreeItemClicked" :async="loadFilePathDataForTree()" :data="pathFileList.root"
+                whole-row></v-jstree>
+    </div>
+
+    <div class="col-10 col-md-9 col-sm-8 col-xs-12" v-if="!showFileEditor && !showFilePreview">
 
       <div class="row">
         <div class="col-12">
@@ -52,12 +58,10 @@
 
             <q-space></q-space>
           </q-btn-group>
-          <q-btn-group class="float-right" flat>
-            <q-btn size="md" @click="fullScreenBrowser()" icon="fas fa-expand"></q-btn>
-            <!--            <q-btn size="sm" @click="viewType = 'card'" v-if="viewType !== 'card'" icon="fas fa-th"></q-btn>-->
-          </q-btn-group>
         </div>
       </div>
+
+
       <div class="row" v-if="showUploadFile" style="min-height: 300px">
         <file-upload
           :multiple="true"
@@ -73,6 +77,12 @@
           @input-filter="inputFilter"
         >
           <div class="container">
+            <div class="row">
+              <div class="col-12" style="height: 100%; ">
+                <span class="vertical-middle" style="padding-top: 10%">
+                  Click here to select files, or drag and drop files here to upload</span>
+              </div>
+            </div>
             <span v-if="uploadedFiles.length == 0" style="padding-top: 40%" class="vertical-middle">Drop files or click to select <br/></span>
             <div class="row" v-if="uploadedFiles.length > 0">
               <div class="col-12" v-for="file in uploadedFiles">{{file.name}} - Error: {{file.error}}, Success:
@@ -84,6 +94,8 @@
         <q-btn
           @click.stop="(showUploadFile = false) && (uploadedFiles = [])" label="Close"></q-btn>
       </div>
+
+
       <div class="row" v-if="viewType === 'table'">
         <q-markup-table style="width: 100%; box-shadow: none;">
 
@@ -115,16 +127,14 @@
       </div>
 
     </div>
-    <div class="col-12" v-if="showFileEditor">
+
+
+    <div class="col-10 col-md-9 col-sm-8 col-xs-12" v-if="showFileEditor">
       <div class="row">
-        <q-drawer side="left">
-          <v-jstree @item-click="fileTreeItemClicked" :async="loadFilePathDataForTree()" :data="pathFileList.root"
-                    whole-row></v-jstree>
-        </q-drawer>
         <div class="col-12">
           <q-btn @click="editor.undo()" icon="fas fa-undo" flat></q-btn>
         </div>
-        <div class="col-12" style="margin-right: 10px">
+        <div class="col-12">
           <div style="height: 100%;">
             <!--        <textarea id="fileEditor" style="height: 90vh"></textarea>-->
             <ace-editor @input="saveFile()" ref="myEditor" style="font-family: 'JetBrains Mono';font-size: 16px;"
@@ -139,7 +149,9 @@
         <q-btn flat @click="(showFileEditor = false ) && (fileType = null)" icon="fas fa-long-arrow-alt-left"></q-btn>
       </q-page-sticky>
     </div>
-    <div class="col-12" v-if="showFilePreview">
+
+
+    <div class="col-10 col-md-9 col-sm-8 col-xs-12" v-if="showFilePreview">
       <div style="height: 100%;">
         <div id="filePreviewDiv"></div>
       </div>
@@ -634,7 +646,7 @@
             //   is_dir: false,
             //   selected: false,
             // });
-            if (that.currentPath === "") {
+            if (that.currentPath === "" && that.pathFileList.root.length === 0) {
               that.pathFileList.root = files;
             } else {
               console.log("Adding children to path", path)
