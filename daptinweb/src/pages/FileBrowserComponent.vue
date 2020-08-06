@@ -118,13 +118,14 @@
     <div class="col-12" v-if="showFileEditor">
       <div class="row">
         <q-drawer side="left">
-          <v-jstree :async="loadFilePathDataForTree()" :data="pathFileList['']" whole-row></v-jstree>
+          <v-jstree @item-click="fileTreeItemClicked" :async="loadFilePathDataForTree()" :data="pathFileList.root"
+                    whole-row></v-jstree>
         </q-drawer>
         <div class="col-12">
           <q-btn @click="editor.undo()" icon="fas fa-undo" flat></q-btn>
         </div>
         <div class="col-12" style="margin-right: 10px">
-          <div style="height: 100%;" v-if="selectedFile.language">
+          <div style="height: 100%;">
             <!--        <textarea id="fileEditor" style="height: 90vh"></textarea>-->
             <ace-editor @input="saveFile()" ref="myEditor" style="font-family: 'JetBrains Mono';font-size: 16px;"
                         @init="loadDependencies"
@@ -203,6 +204,21 @@
 <script>
   import {mapActions} from "vuex";
 
+  var ace = require('brace');
+  window.ace = ace;
+  require('brace/ext/language_tools'); //language extension prerequsite...
+  require('brace/mode/html');
+  require('brace/mode/javascript');    //language
+  require('brace/mode/markdown');    //language
+  require('brace/mode/toml');    //language
+  require('brace/mode/xml');    //language
+  require('brace/mode/text');    //language
+  require('brace/mode/less');
+  require('brace/mode/yaml');
+  require('brace/mode/json');
+  require('brace/mode/css');
+  require('brace/theme/chrome');
+
   function debounce(func, wait, immediate) {
     var timeout;
     return function () {
@@ -247,7 +263,9 @@
     props: ['site', 'path'],
     data() {
       return {
-        pathFileList: {},
+        pathFileList: {
+          root: []
+        },
         vjsData: [
           {
             "text": "Same but with checkboxes",
@@ -342,6 +360,10 @@
     computed: {},
     watch: {},
     methods: {
+      fileTreeItemClicked(fileTree, itemClicked, mouseEvent) {
+        console.log("tree file item clicked", this.currentPath, fileTree, itemClicked, mouseEvent);
+        this.getContentOnPath(itemClicked);
+      },
       loadFilePathDataForTree() {
         console.log("load file path data for tree", arguments)
       },
@@ -524,6 +546,21 @@
         const that = this;
         that.showDelete = false;
 
+        if (path.full_path) {
+          var parts = path.full_path.split("/")
+          console.log("Full path", path.full_path)
+          if (parts[0] === "" && parts.length < 2) {
+            that.currentPath = ""
+            path.name = parts[1];
+          } else {
+            path.name = parts.pop();
+            if (parts[0] == "") {
+              parts.unshift()
+            }
+            that.currentPath = parts.join("/")
+          }
+          console.log("Final full path", that.currentPath, path)
+        }
 
         if (path.is_dir) {
           if (path.name !== '/' && path.name !== '') {
@@ -561,14 +598,6 @@
         }
         console.log("Final path", that.currentPath, path.is_dir, that.site.name);
 
-        if (!that.pathFileList[that.currentPath]) {
-          let folderName = folderNameFromPath(that.currentPath);
-          that.pathFileList[that.currentPath] = {
-            text: folderName.length > 0 ? folderName : that.site.name,
-            children: []
-          }
-        }
-
         if (path.is_dir || path.name === '..') {
           that.executeAction({
             tableName: "site",
@@ -594,10 +623,28 @@
             files = files.map(function (item) {
               item.selected = false;
               item.text = item.name;
+              item.full_path = that.currentPath + "/" + item.name
               item.isLeaf = !item.is_dir;
               return item;
             });
-            that.pathFileList[that.currentPath] = files;
+            console.log("Current path was", that.currentPath);
+            // files.unshift({
+            //   name: '..',
+            //   text: '..',
+            //   is_dir: false,
+            //   selected: false,
+            // });
+            if (that.currentPath === "") {
+              that.pathFileList.root = files;
+            } else {
+              console.log("Adding children to path", path)
+              path.children = files;
+              path.opened = true;
+
+              var newRoot = JSON.parse(JSON.stringify(that.pathFileList.root));
+              that.pathFileList.root = [];
+              that.pathFileList.root = newRoot;
+            }
 
             that.fileList = files;
           }).catch(function (err) {
@@ -624,7 +671,7 @@
           }
 
 
-          let fetchUrl = "http://" + hostname + portString + "/" + that.currentPath + (that.currentPath !== "" ? "/" : "") + +path.name;
+          let fetchUrl = "http://" + hostname + portString + "/" + that.currentPath + (that.currentPath !== "" ? "/" : "") + path.name;
           // that.previewUrl = fetchUrl;
           // window.location = fetchUrl;
           // that.filePreview = true;
@@ -707,8 +754,11 @@
 
               if (that.fileType === "text" || that.fileType === "markdown") {
                 that.showFileEditor = true;
-                that.editor = that.$refs.myEditor.editor;
-                that.editor.setOption("wrap", true)
+                if (!that.editor) {
+                  that.editor = that.$refs.myEditor.editor;
+                  that.editor.setOption("wrap", true);
+                }
+                that.editor.setValue(that.selectedFile.content)
 
               } else if (that.fileType === "image") {
                 that.showFileEditor = false;
@@ -756,7 +806,7 @@
         return debounce(function () {
           const that = this;
           let content = that.editor.getValue();
-          console.log("save", that.selectedFile, that.editor.getValue());
+          // console.log("save", that.selectedFile, that.editor.getValue());
           that.selectedFile.content = content;
           let pathParts = that.selectedFile.path.split("/");
           var fileName = pathParts[pathParts.length - 1];
