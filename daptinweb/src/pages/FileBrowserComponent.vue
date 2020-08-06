@@ -121,7 +121,7 @@
         <div class="col-12">
           <div style="height: 100%;">
             <!--        <textarea id="fileEditor" style="height: 90vh"></textarea>-->
-            <ace-editor @input="saveFile()" ref="myEditor" style="font-family: 'JetBrains Mono';font-size: 16px;"
+            <ace-editor @input="saveFile()" ref="myEditor"
                         @init="loadDependencies"
                         :lang="selectedFile.language" theme="chrome" width="100%" height="90vh"
                         v-model="selectedFile.content"></ace-editor>
@@ -756,6 +756,9 @@
                   that.editor.setOption("wrap", true);
                 }
                 that.editor.setValue(that.selectedFile.content);
+                that.editor.setOptions({
+                  fontSize: "18px"
+                });
                 that.editor.selection.moveCursorToPosition({row: 0, column: 0});
                 that.editor.focus()
               } else if (that.fileType === "image") {

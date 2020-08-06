@@ -18,6 +18,7 @@
     "axios": "^0.18.1",
     "brace": "^0.11.1",
     "daptin-client": "^0.3.5",
+    "fontsource-source-sans-pro": "^3.0.3",
     "install": "^0.13.0",
     "js-yaml": "^3.14.0",
     "jsonwebtoken": "^8.5.1",

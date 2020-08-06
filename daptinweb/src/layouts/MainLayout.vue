@@ -3,6 +3,7 @@
 
     <q-drawer
       v-if="isAdmin"
+      v-model="showAdminDrawer"
       show-if-above
       :width="250"
       :breakpoint="1400"
@@ -295,6 +296,7 @@ text-align: center;
     data() {
       return {
         showHelp: false,
+        showAdminDrawer: false,
         ...mapGetters(['loggedIn', 'drawerLeft', 'authToken', 'decodedAuthToken']),
         essentialLinks: [],
         drawer: false,
@@ -332,6 +334,7 @@ text-align: center;
 
           if (users.length == 2) {
             that.isAdmin = true;
+            that.showAdminDrawer = true;
             that.executeAction({
               tableName: 'world',
               actionName: "become_an_administrator"
@@ -345,6 +348,7 @@ text-align: center;
             })
           } else if (users.length > 2) {
             that.isAdmin = true;
+            that.showAdminDrawer = true;
             that.isUser = false;
           } else {
             that.isUser = true;

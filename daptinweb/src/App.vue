@@ -10,6 +10,7 @@
 <script>
 
   import {mapGetters, mapActions} from 'vuex';
+  import "fontsource-source-sans-pro"
 
   export default {
     data() {

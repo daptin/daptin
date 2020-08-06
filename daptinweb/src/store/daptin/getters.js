@@ -14,6 +14,9 @@ export function endpoint(state) {
 export function authToken(state) {
   return state.token
 }
+export function hideNavigationDrawer(state) {
+  return state.hideNavigationDrawer
+}
 
 export function decodedAuthToken(state) {
   if (state.decodedAuthToken) {
