@@ -19,15 +19,21 @@
         var tableName = "site";
         const that = this;
         var siteId = that.$route.params.siteId;
-        this.loadOneData({
+        this.loadData({
           tableName: 'site',
-          referenceId: siteId,
           params: {
+            query: JSON.stringify([
+              {
+                column: 'reference_id',
+                operator: 'is',
+                value: siteId
+              }
+            ]),
             included_relations: "cloud_store_id"
-          }
+          },
         }).then(function (data) {
           console.log("Site data loaded", data);
-          that.site = data.data;
+          that.site = data.data[0];
         });
       }
     },

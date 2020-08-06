@@ -82,7 +82,7 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 						"column_name": columnName,
 					},
 					AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(),
-					Schedule:    "@every 15m",
+					Schedule:    "@every 30m",
 				})
 
 			}
@@ -98,7 +98,9 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 }
 
 // CreateSubSites creates a router which can route based on hostname to one of the hosted static subsites
-func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection, cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware, configStore *resource.ConfigStore) (HostSwitch, map[string]*resource.AssetFolderCache) {
+func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection,
+	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
+	configStore *resource.ConfigStore) (HostSwitch, map[string]*resource.AssetFolderCache) {
 
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
@@ -170,7 +172,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 			continue
 		}
 
-		err = TaskScheduler.AddTask(resource.Task{
+		syncTask := resource.Task{
 			EntityName: "site",
 			ActionName: "sync_site_storage",
 			Attributes: map[string]interface{}{
@@ -179,7 +181,20 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 			},
 			AsUserEmail: adminEmailId,
 			Schedule:    "@every 1h",
-		})
+		}
+
+		activeTask := cruds["site"].NewActiveTaskInstance(syncTask)
+
+		func(task *resource.ActiveTaskInstance){
+			go func() {
+				log.Info("Sleep 5 sec for running new sync task")
+				time.Sleep(1 * time.Second)
+				activeTask.Run()
+			}()
+		}(activeTask)
+
+
+		err = TaskScheduler.AddTask(syncTask)
 
 		subsiteCacheFolders[site.ReferenceId] = &resource.AssetFolderCache{
 			LocalSyncPath: tempDirectoryPath,

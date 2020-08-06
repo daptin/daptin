@@ -1,26 +1,10 @@
 <template>
-  <div class="row">
+  <div class="row q-pa-xs" style="height: 100vh">
 
-    <div class="col-12" v-if="!showFileEditor && !showFilePreview">
-
-      <div class="q-pa-md q-gutter-sm">
-        <q-breadcrumbs>
-          <template v-slot:separator>
-            <q-icon
-              size="1.2em"
-              name="arrow_forward"
-            />
-          </template>
-
-          <q-breadcrumbs-el :style="{cursor: item.click ? 'pointer' :''}" :key="i" v-for="(item, i) in bread"
-                            @click="item.click ? item.click() : true" :label="item.label" :icon="item.icon"/>
-        </q-breadcrumbs>
-      </div>
-      <q-separator></q-separator>
-
-    </div>
-
-    <div class="col-2 col-md-3 col-sm-4 col-xs-12">
+    <div
+      class="col-2 col-xl-2 col-lg-3 col-md-3 col-sm-4 col-xs-0"
+      style="border-right: 3px solid black">
+      <span class="text-bold"><i class="fas fa-home" style="font-size: 1.2em"></i> {{site.name}}</span>
       <v-jstree @item-click="fileTreeItemClicked" :async="loadFilePathDataForTree()" :data="pathFileList.root"
                 whole-row></v-jstree>
     </div>
@@ -766,12 +750,14 @@
 
               if (that.fileType === "text" || that.fileType === "markdown") {
                 that.showFileEditor = true;
+                that.showFilePreview = false;
                 if (!that.editor) {
                   that.editor = that.$refs.myEditor.editor;
                   that.editor.setOption("wrap", true);
                 }
-                that.editor.setValue(that.selectedFile.content)
-
+                that.editor.setValue(that.selectedFile.content);
+                that.editor.selection.moveCursorToPosition({row: 0, column: 0});
+                that.editor.focus()
               } else if (that.fileType === "image") {
                 that.showFileEditor = false;
                 that.showFilePreview = true;
@@ -817,9 +803,8 @@
       saveFile: function () {
         return debounce(function () {
           const that = this;
-          let content = that.editor.getValue();
-          // console.log("save", that.selectedFile, that.editor.getValue());
-          that.selectedFile.content = content;
+          let content = that.selectedFile.content;
+          console.log("save", JSON.stringify(that.selectedFile), content, that.editor.getValue());
           let pathParts = that.selectedFile.path.split("/");
           var fileName = pathParts[pathParts.length - 1];
           that.executeAction({

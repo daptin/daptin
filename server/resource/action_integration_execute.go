@@ -703,14 +703,16 @@ func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfi
 	commandMap := make(map[string]*openapi3.Operation)
 	pathMap := make(map[string]string)
 	methodMap := make(map[string]string)
+	count := 0
 	for path, pathItem := range router.Paths {
 		for method, command := range pathItem.Operations() {
-			log.Printf("Register action [%v][%v]", integration.Name, command.OperationID)
+			count += 1
 			commandMap[command.OperationID] = command
 			pathMap[command.OperationID] = path
 			methodMap[command.OperationID] = method
 		}
 	}
+	log.Printf("Registered %d actions from [%v]", count, integration.Name)
 
 	encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend")
 	if err != nil {

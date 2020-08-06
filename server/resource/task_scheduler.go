@@ -104,7 +104,6 @@ func (ati *ActiveTaskInstance) Run() {
 		PlainRequest: pr,
 	}
 	res, err := ati.DbResource.Cruds[ati.ActionRequest.Type].HandleActionRequest(&ati.ActionRequest, req)
-	//_, _, err := ati.ActionPerformer.DoAction(ati.ActionRequest, ati.Task.Attributes)
 
 	if err != nil {
 		log.Errorf("Errors while executing action: %v", err)
