@@ -207,8 +207,7 @@
           <q-card-section>
             <div class="row ">
               <div class="col-12 q-pa-md q-gutter-sm">
-                <q-btn class="float-right" round icon="list"></q-btn>
-                <q-btn class="float-right" label="Create a website"></q-btn>
+                <q-btn @click="$router.push('/cloudstore/sites')" class="float-right" round icon="list"></q-btn>
               </div>
             </div>
           </q-card-section>
@@ -508,16 +507,34 @@
         group: 'enable'
       }).then(function (res) {
         console.log("Site aggregates", res);
+        var enableStat = null;
+        var disableStat = null;
+        for (var i in res.data){
+          var stat = res.data[i];
+          if (stat.enable === true ) {
+            enableStat = stat;
+          } else if (stat.enable === false) {
+            disableStat = stat;
+          }
+        }
+
         that.siteAggregate = {
           active: 0,
           total: 0,
         };
+        if (enableStat) {
+          that.siteAggregate.active = enableStat.count;
+          that.siteAggregate.total += enableStat.count;
+        }
+        if (disableStat) {
+          that.siteAggregate.total += disableStat.count;
+        }
       });
       that.loadAggregates({
         tableName: 'action',
         column: 'count',
       }).then(function (res) {
-        console.log("Site aggregates", res);
+        console.log("Action aggregates", res);
         that.actionAggregate = res.data[0];
       });
       that.loadAggregates({

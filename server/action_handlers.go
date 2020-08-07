@@ -138,6 +138,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create cloudStoreFolderCreateActionPerformer")
 	performers = append(performers, cloudStoreFolderCreateActionPerformer)
 
+	cloudStorePathMoveActionPerformer, err := resource.NewCloudStorePathMoveActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create cloudStorePathMoveActionPerformer")
+	performers = append(performers, cloudStorePathMoveActionPerformer)
+
 	cloudStoreSiteCreateActionPerformer, err := resource.NewCloudStoreSiteCreateActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create cloudStoreSiteCreateActionPerformer")
 	performers = append(performers, cloudStoreSiteCreateActionPerformer)

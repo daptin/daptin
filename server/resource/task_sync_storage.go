@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, site string, tempDirectoryPath string) error {
+func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tempDirectoryPath string) error {
 
 	oauthTokenId := cloudStore.OAutoTokenId
 
@@ -41,14 +41,15 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, site string, tem
 		tempDirectoryPath,
 	}
 
-	if site != "" && site != "/" {
-		args[0] = args[0] + "/" + site
+	if path != "" && path[0] != '/' {
+		path = "/" + path
 	}
+	args[0] = args[0] + path
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
 	pacer1 := pacer.Pacer{}
 	pacer1.SetRetries(3)
-	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
+	log.Infof("Temp dir for path [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
 
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync cloud store [%v] to path [%v]", cloudStore.Name, tempDirectoryPath),
@@ -61,13 +62,12 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, site string, tem
 			return nil
 		}
 		ctx := context.Background()
-		log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
+		log.Infof("Starting to copy drive for path base from [%v] to [%v]", fsrc.String(), fdst.String())
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil
 		}
 		dir := sync.CopyDir(ctx, fdst, fsrc, true)
-
 
 		return dir
 	})

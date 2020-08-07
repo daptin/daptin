@@ -37,7 +37,7 @@
             </q-btn-dropdown>
             <q-btn size="md" @click="refreshCache()"
                    icon="fas fa-sync-alt"></q-btn>
-            <q-btn @click="deleteSelectedFiles" flat size="md" class="float-right" color="negative" v-if="showDelete"
+            <q-btn @click="deleteSelectedFiles" flat size="md" class="float-right" color="negative" v-disabled="showDelete"
                    icon="fas fa-times"></q-btn>
 
             <q-space></q-space>

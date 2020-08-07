@@ -67,7 +67,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	is_hugo_site := daptinSite["site_type"] == "hugo"
 
 	args := []string{
-		cloudStore.RootPath + siteCacheFolder.Keyname,
+		cloudStore.RootPath + "/" + siteCacheFolder.Keyname,
 		tempDirectoryPath,
 	}
 

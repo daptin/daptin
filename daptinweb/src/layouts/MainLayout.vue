@@ -49,54 +49,6 @@ text-align: center;
             </q-list>
 
           </q-expansion-item>
-          <q-expansion-item
-            expand-icon-class="text-white"
-            :value="true"
-            expand-separator
-            icon="fas fa-user"
-            label="Users">
-
-            <q-list>
-
-              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/user/profile')">
-                <q-item-section avatar>
-                  <q-icon name="fas fa-id-card"></q-icon>
-
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>
-                    Profile
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
-
-              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/users')">
-                <q-item-section avatar>
-                  <q-icon name="fas fa-address-book"></q-icon>
-
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>
-                    Accounts
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
-
-              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/groups')">
-                <q-item-section avatar>
-                  <q-icon name="fas fa-users"></q-icon>
-
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>
-                    Groups
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
-
-            </q-list>
-
-          </q-expansion-item>
 
 
           <q-expansion-item
@@ -173,7 +125,56 @@ text-align: center;
 
           </q-expansion-item>
 
-<q-expansion-item
+          <q-expansion-item
+            expand-icon-class="text-white"
+            :value="true"
+            expand-separator
+            icon="fas fa-user"
+            label="Users">
+
+            <q-list>
+
+              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/user/profile')">
+                <q-item-section avatar>
+                  <q-icon name="fas fa-id-card"></q-icon>
+
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    Profile
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/users')">
+                <q-item-section avatar>
+                  <q-icon name="fas fa-address-book"></q-icon>
+
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    Accounts
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-item :inset-level="1" clickable v-ripple @click="$router.push('/groups')">
+                <q-item-section avatar>
+                  <q-icon name="fas fa-users"></q-icon>
+
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    Groups
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+            </q-list>
+
+          </q-expansion-item>
+
+          <q-expansion-item
             expand-icon-class="text-white"
             :value="true"
             expand-separator
@@ -271,7 +272,7 @@ text-align: center;
         <q-btn flat @click="showHelp = true" fab icon="fas fa-question"/>
       </q-page-sticky>
 
-      <q-drawer overlay :breakpoint="400" side="right" v-model="showHelp">
+      <q-drawer :width="fileDrawerWidth > 800 ? 800 : fileDrawerWidth" overlay :breakpoint="400" side="right" v-model="showHelp">
         <q-scroll-area class="fit" v-if="showHelp">
           <help-page @closeHelp="showHelp = false">
           </help-page>
@@ -291,6 +292,11 @@ text-align: center;
   export default {
     name: 'MainLayout',
 
+    computed: {
+      fileDrawerWidth() {
+        return window.screen.availWidth;
+      },
+    },
     components: {},
 
     data() {
