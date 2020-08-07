@@ -52,7 +52,7 @@ db_connection_string |   Database Connection String
 
 ```-db_connection_string "<username>:<password>@tcp(<hostname>:<port>)/<db_name>"```
 
-#### POSTGRESql:
+#### PostgreSQL:
 
 ```-db_connection_string "host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable"```
 

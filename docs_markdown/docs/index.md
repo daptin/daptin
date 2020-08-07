@@ -1,14 +1,45 @@
-# About
-<img src="images/logo.png" width="200" style="float: right"/>
-Daptin is a headless CMS server which servers data from MySQL/PostgreSQL/SQLite over JSONAPI.org or GraphQL. With Daptin you can design your data model and have a production ready APIs reliably backed by persistent database online with in hours.
+# Daptin
 
+
+<img src="images/dashboard/index-page.png">
+
+
+The most powerful ready to use data and services API server.
+
+```
+- User management
+  - Sign up and sign in (1fa/2fa with password/TOTP)
+  - Extensive authorization control table level/action level and row level
+  - Rate limiting/connection throttling at IP/API level
+- Data management
+  - Declarative schema definition, relations and column properties
+  - CRUD APIs with Authorization/Pagination/Search/Relations
+  - File asset columns to store images/video/audio/blobs
+- Storage management
+  - localhost/gDrive/S3/B2/DropBox/FTP and many more supported
+- Site management
+  - Create HTTP sites based by storage anywhere
+  - Enable HTTPS using LetsEncrypt
+  - Create and Build HUGO static sites
+  - Expose directories as FTP sites
+- Integration and action management
+  - Create workflows and expose as APIs
+  - Call any 3rd party API by importing OpenAPI Spec
+- Mail management
+  - Enable SMTPS and IMAPS services and use daptin as your regular email provider
+  - Multi hostname mail server
+  - Multiple email accounts
+- With a clean white-branded dashboard
+```
+
+<br />
 
 ## Features
 
 Consume the following features easily on any device
 
 - [Database backed](setting-up/installation/#database-configuration) persistence, 3NF normalized tables
-- [JSON API](/apis/overview/)/[GraphQL](features/enable-graphql/) for CRUD apis
+- [JSON API](apis/overview/)/[GraphQL](features/enable-graphql/) for CRUD apis
 - [User](setting-up/access/) and [group management](setting-up/access/) and access control
 - Social login with [OAuth](extend/oauth_connection/): tested with google, github, linkedin
 - [Actions](actions/overview/) for abstracting out business flows

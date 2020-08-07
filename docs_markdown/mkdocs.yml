@@ -1,8 +1,8 @@
 site_name: Daptin
 site_favicon: images/favicon.png
 pages:
-- Daptin:
-  - About: index.md
+- Getting started:
+  - Daptin: index.md
   - Installation: setting-up/installation.md
   - Getting started: setting-up/settingup.md
   - User management: setting-up/access.md
