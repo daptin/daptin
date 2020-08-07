@@ -44,6 +44,8 @@ theme:
 extra_css:
 - css/theme_extra.css
 google_analytics: ['UA-114227400-1', 'docs.dapt.in']
+extra:
+  disqus: daptin-documentation
 markdown_extensions:
 - toc:
     permalink: Link
