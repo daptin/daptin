@@ -1,7 +1,9 @@
 # Tables
 
-List of all the entities available are listed here. 
+!!! note
+    Click the wrench icon to edit table definition page.
 
-Click the wrench icon to add or remove table columns.
+Tables are the basic building objects in Daptin. Table has a name, list of fields/columns and relaions to other tables.
 
-Clicking on the table row will take you to the data browser page.
+!!! note
+    Clicking on the row will take you to the data browser page.
