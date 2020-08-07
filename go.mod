@@ -11,12 +11,14 @@ require (
 	github.com/artpar/api2go-adapter v1.0.1
 	github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6
 	github.com/artpar/go-guerrilla v1.5.2
+	github.com/artpar/go-httpclient v1.0.0 // indirect
 	github.com/artpar/go-imap v1.0.3
 	github.com/artpar/go-imap-idle v1.0.2
+	github.com/artpar/go-koofrclient v1.0.1 // indirect
 	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
-	github.com/artpar/rclone v1.50.19
+	github.com/artpar/rclone v1.50.20
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
 	github.com/artpar/xlsx/v2 v2.0.5
@@ -63,9 +65,9 @@ require (
 	github.com/imroc/req v0.2.4
 	github.com/jamiealquiza/envy v1.1.0
 	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
-	github.com/jlaffaye/ftp v0.0.0-20191218041957-e1b8fdd0dcc3
+	github.com/jlaffaye/ftp v0.0.0-20200720194710-13949d38913e
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
-	github.com/json-iterator/go v1.1.9
+	github.com/json-iterator/go v1.1.10
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kniren/gota v0.10.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -82,16 +84,16 @@ require (
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
 	github.com/siebenmann/smtpd v0.0.0-20170816215504-b93303610bbe // indirect
 	github.com/simplereach/timeutils v1.2.0 // indirect
-	github.com/sirupsen/logrus v1.4.2
+	github.com/sirupsen/logrus v1.6.0
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
-	github.com/spf13/cobra v0.0.6
+	github.com/spf13/cobra v1.0.0
 	github.com/ugorji/go v1.1.7 // indirect
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
-	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
-	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
+	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
+	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/text v0.3.2
-	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
+	golang.org/x/text v0.3.3
+	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	gonum.org/v1/gonum v0.6.2 // indirect
 	gopkg.in/go-playground/validator.v9 v9.30.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
