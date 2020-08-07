@@ -6,8 +6,40 @@
   Daptin
   <br>
 </h1>
-<h4 align="center">Headless CMS server</h4>
 
+
+<img src="docs_markdown/docs/images/dashboard/index-page.png">
+
+
+The most powerful ready to use data and services API server.
+
+
+- User management
+  - Sign up and sign in (1fa/2fa with password/TOTP)
+  - Extensive authorization control table level/action level and row level
+  - Rate limiting/connection throttling at IP/API level
+- Data management
+  - Declarative schema definition, relations and column properties
+  - CRUD APIs with Authorization/Pagination/Search/Relations
+  - File asset columns to store images/video/audio/blobs
+- Storage management
+  - localhost/gDrive/S3/B2/DropBox/FTP and many more supported
+- Site management
+  - Create HTTP sites based by storage anywhere
+  - Enable HTTPS using LetsEncrypt
+  - Create and Build HUGO static sites
+  - Expose directories as FTP sites
+- Integration and action management
+  - Create workflows and expose as APIs
+  - Call any 3rd party API by importing OpenAPI Spec
+- Mail management
+  - Enable SMTPS and IMAPS services and use daptin as your regular email provider
+  - Multi hostname mail server
+  - Multiple email accounts
+- With a clean white-branded dashboard
+
+
+<br />
 
 
 <p align="center">
