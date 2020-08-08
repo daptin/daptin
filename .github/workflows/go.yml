@@ -291,7 +291,8 @@ jobs:
 
       - name: Print env variable
         shell: bash
-        run: export
+        id: tagInfo
+        run: echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
 
 
       - name: Create Release
@@ -308,7 +309,7 @@ jobs:
             - Second Change
           draft: true
           prerelease: false
-        if: ${{ startsWith(github.ref, 'v') }}
+        if: ${{ startsWith(steps.tagInfo.outputs.SOURCE_TAG, 'v') }}
 
 
       - name: Set environment variables
@@ -422,4 +423,4 @@ jobs:
           asset_path: ./daptin-linux-amd64
           asset_name: daptin-linux-amd64
           asset_content_type: application/zip
-        if: ${{ startsWith(github.ref, 'v') }}
+        if: ${{ startsWith(steps.tagInfo.outputs.SOURCE_TAG, 'v') }}
