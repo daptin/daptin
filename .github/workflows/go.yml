@@ -8,12 +8,11 @@ name: build
 on:
   push:
     paths:
-      - '**.go'
       - 'VERSION'
     branches:
       - '*'
     tags:
-      - '*'
+      - 'v*'
   pull_request:
 
 jobs:
