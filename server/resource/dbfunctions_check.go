@@ -33,7 +33,7 @@ func CheckErr(err error, message ...interface{}) bool {
 			args = message[1:]
 		}
 		args = append(args, err)
-		log.Errorf(fmtString+": %v", args...)
+		log.Warnf(fmtString+": %v", args...)
 		return true
 	}
 	return false

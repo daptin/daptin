@@ -690,7 +690,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 				errs := ImportDataMapArray(data, crud, req)
 				if len(errs) > 0 {
 					for _, err := range errs {
-						log.Errorf("Error while importing json data: %v", err)
+						log.Warnf("Warning while importing json data in update 1: %v", err)
 					}
 				}
 			}
@@ -733,7 +733,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 			errors1 := ImportDataStringArray(data, header, importFile.Entity, cruds[importFile.Entity], req)
 			if len(errors1) > 0 {
 				for _, err := range errors1 {
-					log.Errorf("Error while importing json data: %v", err)
+					log.Warnf("Warning while importing json data: %v", err)
 				}
 			}
 
