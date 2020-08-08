@@ -289,9 +289,9 @@ jobs:
         run: echo '${{  toJson(github) }}'
 
 
-      - name: Print steps variable
+      - name: Print env variable
         shell: bash
-        run: echo '${{  toJson(steps) }}'
+        run: echo '${{  toJson(env) }}'
 
 
       - name: Create Release
