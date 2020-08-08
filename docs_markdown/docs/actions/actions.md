@@ -1,10 +1,12 @@
 # What are actions
 
-Actions are the most useful concept in Daptin and we will see that everything you have done in Daptin was an action api call.
+An action is a set of outcomes (as defined in the action schema) which is executed when action endpoint is invoked.  
+
+An action can have a set of required input fields or none at all. Actions can also be built to handle callbacks/webhooks from other services (like payment gateway server to server notification).
 
 Actions can be thought of as follows:
 
-- A set of inputs (key value pair)
+- A set of inputs (key value pair, extracted from query params and request body)
 - A set of outcomes based on the inputs
 
 ## What are actions and why do I need this
@@ -15,122 +17,80 @@ Create/Read/Update/Delete (CRUD) APIs are only basic APIs exposed on the databas
 - Creating a "row"/"data entry" entry doesn't signify completion of a process or a flow
 - Usually a "set of entities" is to be created and not just a single entity (when you create a user, you also want to create a usergroup also and associate the user to usergroup)
 - You could allow user to update only some fields of an entity and not all fields (eg user can change their name, but not email)
-- Changes based on some entity (when you are going though a project, a new item should automatically belong to that project)
+- Changes based on some entity (when you are going through a project, a new item should automatically belong to that project)
 
 
-Actions provide a powerful abstraction over the CRUD and handle all of these use cases.
+Actions provide a powerful abstraction over the CRUD and to handle a variety of use cases. Actions can also make use of operations imported from OpenAPI Specs of other services.
 
 To quickly understand what actions are, lets see what happened when you "signed up" on Daptin.
 
-Take a look at how "Sign up" action is defined in Daptin. We will go through each part of this definition
+Take a look at how "Sign up" action is defined. We will go through each part of this definition
 An action is performed on an entity. Let's also remember that ```world``` is an entity itself.
 
 ## Action schema
 
-```golang
-	{
-		Name:             "signup",
-		Label:            "Sign up",
-		InstanceOptional: true,
-		OnType:           "user_account",
-		InFields: []api2go.ColumnInfo{
-			{
-				Name:       "name",
-				ColumnName: "name",
-				ColumnType: "label",
-				IsNullable: false,
-			},
-			{
-				Name:       "email",
-				ColumnName: "email",
-				ColumnType: "email",
-				IsNullable: false,
-			},
-			{
-				Name:       "password",
-				ColumnName: "password",
-				ColumnType: "password",
-				IsNullable: false,
-			},
-			{
-				Name:       "Password Confirm",
-				ColumnName: "passwordConfirm",
-				ColumnType: "password",
-				IsNullable: false,
-			},
-		},
-		Validations: []ColumnTag{
-			{
-				ColumnName: "email",
-				Tags:       "email",
-			},
-			{
-				ColumnName: "name",
-				Tags:       "required",
-			},
-			{
-				ColumnName: "password",
-				Tags:       "eqfield=InnerStructField[passwordConfirm],min=8",
-			},
-		},
-		Conformations: []ColumnTag{
-			{
-				ColumnName: "email",
-				Tags:       "email",
-			},
-			{
-				ColumnName: "name",
-				Tags:       "trim",
-			},
-		},
-		OutFields: {
-			{
-				Type:      "user_account",
-				Method:    "POST",
-				Reference: "user",
-				Attributes: {
-					"name":      "~name",
-					"email":     "~email",
-					"password":  "~password",
-					"confirmed": "0",
-				},
-			},
-			{
-				Type:      "usergroup",
-				Method:    "POST",
-				Reference: "usergroup",
-				Attributes: {
-					"name": "!'Home group for ' + user.name",
-				},
-			},
-			{
-				Type:      "user_user_id_has_usergroup_usergroup_id",
-				Method:    "POST",
-				Reference: "user_usergroup",
-				Attributes: {
-					"user_id":      "$user.reference_id",
-					"usergroup_id": "$usergroup.reference_id",
-				},
-			},
-			{
-				Type:   "client.notify",
-				Method: "ACTIONRESPONSE",
-				Attributes: {
-					"type":    "success",
-					"title":   "Success",
-					"message": "Signup Successful",
-				},
-			},
-			{
-				Type:   "client.redirect",
-				Method: "ACTIONRESPONSE",
-				Attributes: {
-					"location": "/auth/signin",
-					"window":   "self",
-				},
-			},
-		},
-	}
+```yaml
+Name: signup
+Label: Sign up
+InstanceOptional: true
+OnType: user_account
+InFields:
+- Name: name
+  ColumnType: label
+  IsNullable: false
+- Name: email
+  ColumnType: email
+  IsNullable: false
+- Name: password
+  ColumnType: password
+  IsNullable: false
+- Name: Password Confirm
+  ColumnName: passwordConfirm
+  ColumnType: password
+  IsNullable: false
+Validations:
+- ColumnName: email
+  Tags: email
+- ColumnName: name
+  Tags: required
+- ColumnName: password
+  Tags: eqfield=InnerStructField[passwordConfirm],min=8
+Conformations:
+- ColumnName: email
+  Tags: email
+- ColumnName: name
+  Tags: trim
+OutFields:
+- Type: user_account
+  Method: POST
+  Reference: user
+  Attributes:
+    name: "~name"
+    email: "~email"
+    password: "~password"
+    confirmed: '0'
+- Type: usergroup
+  Method: POST
+  Reference: usergroup
+  Attributes:
+    name: "!'Home group for ' + user.name"
+- Type: user_user_id_has_usergroup_usergroup_id
+  Method: POST
+  Reference: user_usergroup
+  Attributes:
+    user_id: "$user.reference_id"
+    usergroup_id: "$usergroup.reference_id"
+- Type: client.notify
+  Method: ACTIONRESPONSE
+  Attributes:
+    type: success
+    title: Success
+    message: Signup Successful
+- Type: client.redirect
+  Method: ACTIONRESPONSE
+  Attributes:
+    location: "/auth/signin"
+    window: self
 ```
 
 
@@ -178,16 +138,18 @@ Note that the ColumnInfo structure is the same one we used to [define tables](/s
 
 ## Validations
 
-        Validations: []ColumnTag
+```go
+         Validations: []ColumnTag
+```
 
 Validations validate the user input and rejects if some validation fails
 
-
-      {
-				ColumnName: "email",
-				Tags:       "email",
-			},
-
+```json
+            {
+				"ColumnName": "email",
+				"Tags":       "email"
+			}
+```
 
 This tells that the "email" input should actually be an email.
 

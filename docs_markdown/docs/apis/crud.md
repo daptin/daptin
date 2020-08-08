@@ -23,11 +23,11 @@ Read/Create/Update/Delete
 
 | GET    | /api/{entityName}                                         | Query Params                          | Request Body                                                                                  | Description                                                                                           |
 | ------ | --------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| GET    | /api/{entityName}                                         | page[size]= page[number] query filter |                                                                                                    | Description                                                                                           |
-| POST   | /api/{entityName}                                         |                                       |                                                                                               | Find all rows, paginated with query and filters                                                       |
-| PATCH  | /api/{entityName}/{id}                                    |                                       | {"attributes": { ...{fields} } "type": "{entityType} }                                                   | Update row by reference id                                                                            |
-| PUT    | /api/{entityName}/{id}                                    |                                       | {"attributes": { } "type": "{entityType} }                                                    | Update row by reference id                                                                            |
-| DELETE | /api/{entityName}/{id}                                    |                                       |                                                                                               | Delete a row                                                                                          |
+| GET    | /api/{entityName}                                         | page[size]= page[number] query filter |                                                                                                    | [Detailed documentation](#read)                                                                                           |
+| POST   | /api/{entityName}                                         |                                       |                                                                                               | Find all rows, paginated with query and filters [Example](#create)                                                       |
+| PATCH  | /api/{entityName}/{id}                                    |                                       | {"attributes": { ...{fields} } "type": "{entityType} }                                                   | Update row by reference id [Example](#update)                                                                             |
+| PUT    | /api/{entityName}/{id}                                    |                                       | {"attributes": { } "type": "{entityType} }                                                    | Update row by reference id  [Example](#update)                                                                             |
+| DELETE | /api/{entityName}/{id}                                    |                                       |                                                                                               | Delete a row  [Example](#delete)                                                                                           |
 
 
 ### Action API
@@ -76,19 +76,19 @@ Listed to incoming updates to data over websocket live
 
 ### Metadata API
 
-Use metadata to build and design your appliction in a more intuitive way
+Meatadata APIs expose information about the daptin server itself
 
 | Method | Path | Query params  | Request body | Description |
 | ------ | ---- | ------------- | ------------ | ----------- |
-| GET    | /apispec.raml                                             |                                       |                                                                                               | RAML Spec for all API's                                                                               |
-| GET    | /ping                                                     |                                       |                                                                                               | Replies with PONG, Good for liveness probe                                                            |
-| GET    | /statistics                                                     |                                       |                                                                                               | Replies with PONG, Good for liveness probe                                                            |
+| GET    | /apispec.raml                                             |                                       |                                                                                               | RAML Spec for all API's  exposed by the current instance                                                                             |
+| GET    | /ping                                                     |                                       |                                                                                               | Replies with PONG, Endpoint for liveness probe                                                            |
+| GET    | /statistics                                                     |                                       |                                                                                               | Replies with PONG, Endpoint for healht check probe                                                            |
 
 
 
 ## Read
 
-### Parameters
+### Query Parameters
 
 | Name               |  parameter type          |  default value |  example value                                            |
 |--------------------|--------------------------|----------------|-----------------------------------------------------------|
@@ -104,7 +104,7 @@ Use metadata to build and design your appliction in a more intuitive way
 ### Response
 
 !!! note "Response example"
-    ```
+    ```json
     {
         "links": {
             "current_page": 1,

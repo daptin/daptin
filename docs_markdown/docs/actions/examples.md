@@ -1,4 +1,4 @@
-## Examples
+# Examples
 
 Actions are entity dependent APIs which you want to expose which may have an outcome of events. Most basic example is the login action which generates an oauth2 token as an outcome.
 
