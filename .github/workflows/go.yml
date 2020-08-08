@@ -286,7 +286,12 @@ jobs:
 
       - name: Print github variable
         shell: bash
-        run: echo ${{  toJson(github) }}
+        run: echo '${{  toJson(github) }}'
+
+
+      - name: Print steps variable
+        shell: bash
+        run: echo '${{  toJson(steps) }}'
 
 
       - name: Create Release
