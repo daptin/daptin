@@ -298,7 +298,7 @@ jobs:
             - Second Change
           draft: true
           prerelease: false
-        if: ${{ beginsWith(github.ref, 'v') }}
+        if: ${{ startsWith(github.ref, 'v') }}
 
 
       - name: Set environment variables
@@ -411,4 +411,4 @@ jobs:
           asset_path: ./daptin-linux-amd64
           asset_name: daptin-linux-amd64
           asset_content_type: application/zip
-        if: ${{ beginsWith(github.ref, 'v') }}
+        if: ${{ startsWith(github.ref, 'v') }}
