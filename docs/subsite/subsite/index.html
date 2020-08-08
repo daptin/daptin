@@ -10,8 +10,8 @@
       
       
       
-      <link rel="shortcut icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.1">
+      <link rel="shortcut icon" href="../../images/theme-favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.3">
     
     
       
@@ -19,7 +19,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.5d00201e.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.947af8d5.min.css">
       
       
     
@@ -68,8 +68,7 @@
   <nav class="md-header-nav md-grid" aria-label="Header">
     <a href="../.." title="Daptin" class="md-header-nav__button md-logo" aria-label="Daptin">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <img src="../../images/theme-logo.png" alt="logo">
 
     </a>
     <label class="md-header-nav__button md-icon" for="__drawer">
@@ -142,8 +141,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="Daptin" class="md-nav__button md-logo" aria-label="Daptin">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <img src="../../images/theme-logo.png" alt="logo">
 
     </a>
     Daptin
@@ -813,31 +811,26 @@
 <p>You can host multiple sites using daptin. A sub site is exposing a cloud storage folder statically under a sub-domain, domain or a path. </p>
 <p><img src="/images/subsite.png"></p>
 <p>Expose folders on cloud storage services as websites using your daptin instance.</p>
-<div class="admonition note">
-<p class="admonition-title">New subsite</p>
-<ul>
-<li>Select a cloud storage</li>
-<li>Choose a domain/sub-domain</li>
-<li>Choose a sub-path</li>
-</ul>
-</div>
+<p>!!! example"New subsite"
+    - Select a cloud storage
+    - Choose a domain/sub-domain
+    - Choose a sub-path</p>
 <p>Restart is required to reflect changes.</p>
 <h2 id="creating-a-new-sub-site">Creating a new sub-site<a class="headerlink" href="#creating-a-new-sub-site" title="Permanent link">Link</a></h2>
-<div class="admonition note">
-<p class="admonition-title">Exposing a folder as a subsite</p>
-<ul>
-<li>Goto dashboard <a href="https://dashboard.domain.com/">https://dashboard.domain.com/</a></li>
-<li>Click "Sub sites"</li>
-<li>Click the green "+" icon</li>
-<li>Type in the <strong>hostname</strong> this should be exposed to</li>
-<li>this can be a domain or a sub-domain</li>
-<li>the domain should be pointing to the daptin instance</li>
-<li>Choose a <strong>name</strong></li>
-<li><strong>Path</strong>: select a sub directory name to expose this sub-site. Your sub-site will be accessible at domain.com/<path></li>
-<li><strong>Cloud store Id</strong>: choose an existing <a href="/cloudstore/cloudstore">cloud store</a>.</li>
-</ul>
-<p>Restart to enable serving the site.</p>
-</div>
+<p>!!! example"Exposing a folder as a subsite"
+    - Goto dashboard <a href="https://dashboard.domain.com/">https://dashboard.domain.com/</a>
+    - Click "Sub sites"
+    - Click the green "+" icon
+    - Type in the <strong>hostname</strong> this should be exposed to
+      - this can be a domain or a sub-domain
+      - the domain should be pointing to the daptin instance
+    - Choose a <strong>name</strong>
+    - <strong>Path</strong>: select a sub directory name to expose this sub-site. Your sub-site will be accessible at domain.com/<path>
+    - <strong>Cloud store Id</strong>: choose an existing <a href="/cloudstore/cloudstore">cloud store</a>.</p>
+<div class="codehilite"><pre><span></span><code><span class="err">Restart to enable serving the site.</span>
+</code></pre></div>
+
+
 <p>Daptin will sync the cloud store locally and start serving it under the domain/path.</p>
                 
               
@@ -909,15 +902,15 @@
       
     </div>
     
-      <script src="../../assets/javascripts/vendor.592d4e23.min.js"></script>
-      <script src="../../assets/javascripts/bundle.073197b2.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      <script src="../../assets/javascripts/vendor.c3dc8c49.min.js"></script>
+      <script src="../../assets/javascripts/bundle.f9edbbd5.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
       
       <script>
         app = initialize({
           base: "../..",
           features: [],
           search: Object.assign({
-            worker: "../../assets/javascripts/worker/search.01088dc6.min.js"
+            worker: "../../assets/javascripts/worker/search.8e2cddea.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>

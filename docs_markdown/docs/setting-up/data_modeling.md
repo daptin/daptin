@@ -20,7 +20,7 @@ Lets imagine we were creating a todo application and wanted to keep a track of t
     - the todo text field - title
 
 
-!!! note "YAML example"
+!!! example"YAML example"
     ```yaml
     Tables:
     - TableName: todo
@@ -32,7 +32,7 @@ Lets imagine we were creating a todo application and wanted to keep a track of t
     ```
 
 
-!!! note "JSON example"
+!!! example"JSON example"
     ```json
     {
       "Tables": [
@@ -244,7 +244,7 @@ Relations are constraints among tables and help you keep clean and consistent da
 
 Checkout the [relation apis](/apis/relation) exposed by daptin.
 
-!!! note "YAML example"
+!!! example"YAML example"
     ```yaml
     Relations:
     - Subject: todo
@@ -252,7 +252,7 @@ Checkout the [relation apis](/apis/relation) exposed by daptin.
       Object: project
     ```
 
-!!! note "JSON example"
+!!! example"JSON example"
     ```json
     {
       "Relations": [

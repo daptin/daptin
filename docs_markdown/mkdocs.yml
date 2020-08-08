@@ -41,6 +41,8 @@ pages:
   - Enable/Disabling features: setting-up/enabling-features.md
 theme:
   name: material
+  logo: images/theme-logo.png
+  favicon: images/theme-favicon.png
 extra_css:
 - css/theme_extra.css
 google_analytics: ['UA-114227400-1', 'docs.dapt.in']

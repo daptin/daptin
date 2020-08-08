@@ -239,9 +239,13 @@
       },
       editSite() {
         const that = this;
-        console.log("Delete site", this.selectedSite);
+        console.log("Edit site", this.selectedSite, this.newSite);
         this.newSite.tableName = "site";
         this.newSite.id = this.selectedSite.id;
+        this.newSite.cloud_store_id = {
+          id: this.newSite.cloud_store_id,
+          type: "cloud_store"
+        };
         this.updateRow(this.newSite).then(function (res) {
           that.showEditSiteDrawer = false;
           that.selectedSite = {};

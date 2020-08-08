@@ -9,7 +9,7 @@ Tracking the status of things is one of the most common operation in most busine
 
 Define a state machine in YAML or JSON as follows:
 
-!!! note "State machine description YAML"
+!!! example"State machine description YAML"
     ```yaml
     StateMachineDescriptions:
     - Name: task_status

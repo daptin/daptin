@@ -1,6 +1,17 @@
 # Graphql
 
-By default the GraphQL endpoint is not enabled. If you want to use GraphQL endpoint, here is how you can enable it.
+GraphQL endpoint provides access to all the data methods and actions in GraphQL format.
+
+<img src="/images/dashboard/graphql-web-interface.png" />
+
+
+## Enable 
+
+The GraphQL endpoint is disabled by default. If you want to use GraphQL endpoint, enable it first:
+
+
+!!! note
+    Only an administrator user can set this config from the API.
 
 Set ```graphql.enable``` to ```true``` in config:
 

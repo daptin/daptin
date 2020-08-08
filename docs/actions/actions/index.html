@@ -10,8 +10,8 @@
       
       
       
-      <link rel="shortcut icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.1">
+      <link rel="shortcut icon" href="../../images/theme-favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.3">
     
     
       
@@ -19,7 +19,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.5d00201e.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.947af8d5.min.css">
       
       
     
@@ -68,8 +68,7 @@
   <nav class="md-header-nav md-grid" aria-label="Header">
     <a href="../.." title="Daptin" class="md-header-nav__button md-logo" aria-label="Daptin">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <img src="../../images/theme-logo.png" alt="logo">
 
     </a>
     <label class="md-header-nav__button md-icon" for="__drawer">
@@ -142,8 +141,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="Daptin" class="md-nav__button md-logo" aria-label="Daptin">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <img src="../../images/theme-logo.png" alt="logo">
 
     </a>
     Daptin
@@ -481,8 +479,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#scripted-fields-" class="md-nav__link">
-    Scripted fields - "!..."
+  <a href="#javascript-in-fields-" class="md-nav__link">
+    JavaScript in fields - "!..."
   </a>
   
 </li>
@@ -932,8 +930,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#scripted-fields-" class="md-nav__link">
-    Scripted fields - "!..."
+  <a href="#javascript-in-fields-" class="md-nav__link">
+    JavaScript in fields - "!..."
   </a>
   
 </li>
@@ -962,10 +960,11 @@
                 
                 
                 <h1 id="what-are-actions">What are actions<a class="headerlink" href="#what-are-actions" title="Permanent link">Link</a></h1>
-<p>Actions are the most useful concept in Daptin and we will see that everything you have done in Daptin was an action api call.</p>
+<p>An action is a set of outcomes (as defined in the action schema) which is executed when action endpoint is invoked.  </p>
+<p>An action can have a set of required input fields or none at all. Actions can also be built to handle callbacks/webhooks from other services (like payment gateway server to server notification).</p>
 <p>Actions can be thought of as follows:</p>
 <ul>
-<li>A set of inputs (key value pair)</li>
+<li>A set of inputs (key value pair, extracted from query params and request body)</li>
 <li>A set of outcomes based on the inputs</li>
 </ul>
 <h2 id="what-are-actions-and-why-do-i-need-this">What are actions and why do I need this<a class="headerlink" href="#what-are-actions-and-why-do-i-need-this" title="Permanent link">Link</a></h2>
@@ -975,116 +974,74 @@
 <li>Creating a "row"/"data entry" entry doesn't signify completion of a process or a flow</li>
 <li>Usually a "set of entities" is to be created and not just a single entity (when you create a user, you also want to create a usergroup also and associate the user to usergroup)</li>
 <li>You could allow user to update only some fields of an entity and not all fields (eg user can change their name, but not email)</li>
-<li>Changes based on some entity (when you are going though a project, a new item should automatically belong to that project)</li>
+<li>Changes based on some entity (when you are going through a project, a new item should automatically belong to that project)</li>
 </ul>
-<p>Actions provide a powerful abstraction over the CRUD and handle all of these use cases.</p>
+<p>Actions provide a powerful abstraction over the CRUD and to handle a variety of use cases. Actions can also make use of operations imported from OpenAPI Specs of other services.</p>
 <p>To quickly understand what actions are, lets see what happened when you "signed up" on Daptin.</p>
-<p>Take a look at how "Sign up" action is defined in Daptin. We will go through each part of this definition
+<p>Take a look at how "Sign up" action is defined. We will go through each part of this definition
 An action is performed on an entity. Let's also remember that <code>world</code> is an entity itself.</p>
 <h2 id="action-schema">Action schema<a class="headerlink" href="#action-schema" title="Permanent link">Link</a></h2>
-<div class="highlight"><pre><span></span><code>    {
-        Name:             &quot;signup&quot;,
-        Label:            &quot;Sign up&quot;,
-        InstanceOptional: true,
-        OnType:           &quot;user_account&quot;,
-        InFields: []api2go.ColumnInfo{
-            {
-                Name:       &quot;name&quot;,
-                ColumnName: &quot;name&quot;,
-                ColumnType: &quot;label&quot;,
-                IsNullable: false,
-            },
-            {
-                Name:       &quot;email&quot;,
-                ColumnName: &quot;email&quot;,
-                ColumnType: &quot;email&quot;,
-                IsNullable: false,
-            },
-            {
-                Name:       &quot;password&quot;,
-                ColumnName: &quot;password&quot;,
-                ColumnType: &quot;password&quot;,
-                IsNullable: false,
-            },
-            {
-                Name:       &quot;Password Confirm&quot;,
-                ColumnName: &quot;passwordConfirm&quot;,
-                ColumnType: &quot;password&quot;,
-                IsNullable: false,
-            },
-        },
-        Validations: []ColumnTag{
-            {
-                ColumnName: &quot;email&quot;,
-                Tags:       &quot;email&quot;,
-            },
-            {
-                ColumnName: &quot;name&quot;,
-                Tags:       &quot;required&quot;,
-            },
-            {
-                ColumnName: &quot;password&quot;,
-                Tags:       &quot;eqfield=InnerStructField[passwordConfirm],min=8&quot;,
-            },
-        },
-        Conformations: []ColumnTag{
-            {
-                ColumnName: &quot;email&quot;,
-                Tags:       &quot;email&quot;,
-            },
-            {
-                ColumnName: &quot;name&quot;,
-                Tags:       &quot;trim&quot;,
-            },
-        },
-        OutFields: {
-            {
-                Type:      &quot;user_account&quot;,
-                Method:    &quot;POST&quot;,
-                Reference: &quot;user&quot;,
-                Attributes: {
-                    &quot;name&quot;:      &quot;~name&quot;,
-                    &quot;email&quot;:     &quot;~email&quot;,
-                    &quot;password&quot;:  &quot;~password&quot;,
-                    &quot;confirmed&quot;: &quot;0&quot;,
-                },
-            },
-            {
-                Type:      &quot;usergroup&quot;,
-                Method:    &quot;POST&quot;,
-                Reference: &quot;usergroup&quot;,
-                Attributes: {
-                    &quot;name&quot;: &quot;!&#39;Home group for &#39; + user.name&quot;,
-                },
-            },
-            {
-                Type:      &quot;user_user_id_has_usergroup_usergroup_id&quot;,
-                Method:    &quot;POST&quot;,
-                Reference: &quot;user_usergroup&quot;,
-                Attributes: {
-                    &quot;user_id&quot;:      &quot;$user.reference_id&quot;,
-                    &quot;usergroup_id&quot;: &quot;$usergroup.reference_id&quot;,
-                },
-            },
-            {
-                Type:   &quot;client.notify&quot;,
-                Method: &quot;ACTIONRESPONSE&quot;,
-                Attributes: {
-                    &quot;type&quot;:    &quot;success&quot;,
-                    &quot;title&quot;:   &quot;Success&quot;,
-                    &quot;message&quot;: &quot;Signup Successful&quot;,
-                },
-            },
-            {
-                Type:   &quot;client.redirect&quot;,
-                Method: &quot;ACTIONRESPONSE&quot;,
-                Attributes: {
-                    &quot;location&quot;: &quot;/auth/signin&quot;,
-                    &quot;window&quot;:   &quot;self&quot;,
-                },
-            },
-        },
-    }
+<div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">signup</span>
+<span class="nt">Label</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Sign up</span>
+<span class="nt">InstanceOptional</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="nt">OnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">user_account</span>
+<span class="nt">InFields</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
+  <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+  <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">email</span>
+  <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">email</span>
+  <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span>
+  <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span>
+  <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Password Confirm</span>
+  <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">passwordConfirm</span>
+  <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span>
+  <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="nt">Validations</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">email</span>
+  <span class="nt">Tags</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">email</span>
+<span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
+  <span class="nt">Tags</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">required</span>
+<span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span>
+  <span class="nt">Tags</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">eqfield=InnerStructField[passwordConfirm],min=8</span>
+<span class="nt">Conformations</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">email</span>
+  <span class="nt">Tags</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">email</span>
+<span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
+  <span class="nt">Tags</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">trim</span>
+<span class="nt">OutFields</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">Type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">user_account</span>
+  <span class="nt">Method</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">POST</span>
+  <span class="nt">Reference</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">user</span>
+  <span class="nt">Attributes</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;~name&quot;</span>
+    <span class="nt">email</span><span class="p">:</span> <span class="s">&quot;~email&quot;</span>
+    <span class="nt">password</span><span class="p">:</span> <span class="s">&quot;~password&quot;</span>
+    <span class="nt">confirmed</span><span class="p">:</span> <span class="s">&#39;0&#39;</span>
+<span class="p p-Indicator">-</span> <span class="nt">Type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">usergroup</span>
+  <span class="nt">Method</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">POST</span>
+  <span class="nt">Reference</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">usergroup</span>
+  <span class="nt">Attributes</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;!&#39;Home</span><span class="nv"> </span><span class="s">group</span><span class="nv"> </span><span class="s">for</span><span class="nv"> </span><span class="s">&#39;</span><span class="nv"> </span><span class="s">+</span><span class="nv"> </span><span class="s">user.name&quot;</span>
+<span class="p p-Indicator">-</span> <span class="nt">Type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">user_user_id_has_usergroup_usergroup_id</span>
+  <span class="nt">Method</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">POST</span>
+  <span class="nt">Reference</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">user_usergroup</span>
+  <span class="nt">Attributes</span><span class="p">:</span>
+    <span class="nt">user_id</span><span class="p">:</span> <span class="s">&quot;$user.reference_id&quot;</span>
+    <span class="nt">usergroup_id</span><span class="p">:</span> <span class="s">&quot;$usergroup.reference_id&quot;</span>
+<span class="p p-Indicator">-</span> <span class="nt">Type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">client.notify</span>
+  <span class="nt">Method</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ACTIONRESPONSE</span>
+  <span class="nt">Attributes</span><span class="p">:</span>
+    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">success</span>
+    <span class="nt">title</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Success</span>
+    <span class="nt">message</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Signup Successful</span>
+<span class="p p-Indicator">-</span> <span class="nt">Type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">client.redirect</span>
+  <span class="nt">Method</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ACTIONRESPONSE</span>
+  <span class="nt">Attributes</span><span class="p">:</span>
+    <span class="nt">location</span><span class="p">:</span> <span class="s">&quot;/auth/signin&quot;</span>
+    <span class="nt">window</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">self</span>
 </code></pre></div>
 
 <h2 id="action-name">Action Name<a class="headerlink" href="#action-name" title="Permanent link">Link</a></h2>
@@ -1125,17 +1082,15 @@ An action is performed on an entity. Let's also remember that <code>world</code>
 </ul>
 <p>Note that the ColumnInfo structure is the same one we used to <a href="/setting-up/entities">define tables</a>.</p>
 <h2 id="validations">Validations<a class="headerlink" href="#validations" title="Permanent link">Link</a></h2>
-<div class="codehilite"><pre><span></span><code><span class="err">    Validations: []ColumnTag</span>
+<div class="highlight"><pre><span></span><code>         <span class="nx">Validations</span><span class="p">:</span> <span class="p">[]</span><span class="nx">ColumnTag</span>
 </code></pre></div>
-
 
 <p>Validations validate the user input and rejects if some validation fails</p>
-<div class="codehilite"><pre><span></span><code><span class="err">  {</span>
-<span class="err">            ColumnName: &quot;email&quot;,</span>
-<span class="err">            Tags:       &quot;email&quot;,</span>
-<span class="err">        },</span>
+<div class="highlight"><pre><span></span><code>            <span class="p">{</span>
+                <span class="nt">&quot;ColumnName&quot;</span><span class="p">:</span> <span class="s2">&quot;email&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Tags&quot;</span><span class="p">:</span>       <span class="s2">&quot;email&quot;</span>
+            <span class="p">}</span>
 </code></pre></div>
-
 
 <p>This tells that the "email" input should actually be an email.</p>
 <p>One of the more interesting validations is cross field check</p>
@@ -1189,7 +1144,7 @@ An action is performed on an entity. Let's also remember that <code>world</code>
 </ul>
 <p>If we skip the <code>~</code>, like <code>"confirmed": "0"</code> Then the literal value is used.</p>
 <p><code>Reference: "user",</code> We have this to allow the "outcome" to be referenced when evaluating the next outcome. Let us see the other outcomes</p>
-<h2 id="scripted-fields-">Scripted fields - "!..."<a class="headerlink" href="#scripted-fields-" title="Permanent link">Link</a></h2>
+<h2 id="javascript-in-fields-">JavaScript in fields - "!..."<a class="headerlink" href="#javascript-in-fields-" title="Permanent link">Link</a></h2>
 <div class="codehilite"><pre><span></span><code><span class="w">        </span><span class="err">{</span><span class="w"></span>
 <span class="w">            </span><span class="nl">Type</span><span class="p">:</span><span class="w">      </span><span class="ss">&quot;usergroup&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">            </span><span class="k">Method</span><span class="err">:</span><span class="w">    </span><span class="ss">&quot;POST&quot;</span><span class="p">,</span><span class="w"></span>
@@ -1287,15 +1242,15 @@ An action is performed on an entity. Let's also remember that <code>world</code>
       
     </div>
     
-      <script src="../../assets/javascripts/vendor.592d4e23.min.js"></script>
-      <script src="../../assets/javascripts/bundle.073197b2.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      <script src="../../assets/javascripts/vendor.c3dc8c49.min.js"></script>
+      <script src="../../assets/javascripts/bundle.f9edbbd5.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
       
       <script>
         app = initialize({
           base: "../..",
           features: [],
           search: Object.assign({
-            worker: "../../assets/javascripts/worker/search.01088dc6.min.js"
+            worker: "../../assets/javascripts/worker/search.8e2cddea.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>

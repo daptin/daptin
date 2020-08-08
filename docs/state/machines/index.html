@@ -10,8 +10,8 @@
       
       
       
-      <link rel="shortcut icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.1">
+      <link rel="shortcut icon" href="../../images/theme-favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.3">
     
     
       
@@ -19,7 +19,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.5d00201e.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.947af8d5.min.css">
       
       
     
@@ -68,8 +68,7 @@
   <nav class="md-header-nav md-grid" aria-label="Header">
     <a href="../.." title="Daptin" class="md-header-nav__button md-logo" aria-label="Daptin">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <img src="../../images/theme-logo.png" alt="logo">
 
     </a>
     <label class="md-header-nav__button md-icon" for="__drawer">
@@ -142,8 +141,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="Daptin" class="md-nav__button md-logo" aria-label="Daptin">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <img src="../../images/theme-logo.png" alt="logo">
 
     </a>
     Daptin
@@ -894,9 +892,8 @@
 <p>Tracking the status of things is one of the most common operation in most business flows. Daptin has a native support for state tracking and allows a lot of convienent features.</p>
 <h2 id="defining-a-state-machine">Defining a state machine<a class="headerlink" href="#defining-a-state-machine" title="Permanent link">Link</a></h2>
 <p>Define a state machine in YAML or JSON as follows:</p>
-<div class="admonition note">
-<p class="admonition-title">State machine description YAML</p>
-<div class="highlight"><pre><span></span><code><span class="nt">StateMachineDescriptions</span><span class="p">:</span>
+<p>!!! example"State machine description YAML"
+    <div class="highlight"><pre><span></span><code><span class="nt">StateMachineDescriptions</span><span class="p">:</span>
 <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">task_status</span>
   <span class="nt">Label</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Task Status</span>
   <span class="nt">InitialState</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">to_be_done</span>
@@ -935,9 +932,7 @@
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">ongoing</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">started</span>
     <span class="nt">Dst</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">completed</span>
-</code></pre></div>
-
-</div>
+</code></pre></div></p>
 <p>Using state machine descriptions with daptin expose couple of super useful apis to manage state based data.</p>
 <p>Enabling <code>task_status</code> state machine on <code>todo</code> entity will expose the following APIs</p>
 <div class="highlight"><pre><span></span><code>POST /track/start/:stateMachineId <span class="o">{</span><span class="s2">&quot;typeName&quot;</span>: <span class="s2">&quot;todo&quot;</span>, <span class="s2">&quot;referenceId&quot;</span>: <span class="s2">&quot;objectId&quot;</span><span class="o">}</span> <span class="c1"># Start tracking a particular object by id</span>
@@ -1120,15 +1115,15 @@ Response
       
     </div>
     
-      <script src="../../assets/javascripts/vendor.592d4e23.min.js"></script>
-      <script src="../../assets/javascripts/bundle.073197b2.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      <script src="../../assets/javascripts/vendor.c3dc8c49.min.js"></script>
+      <script src="../../assets/javascripts/bundle.f9edbbd5.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
       
       <script>
         app = initialize({
           base: "../..",
           features: [],
           search: Object.assign({
-            worker: "../../assets/javascripts/worker/search.01088dc6.min.js"
+            worker: "../../assets/javascripts/worker/search.8e2cddea.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>

@@ -10,8 +10,8 @@
       
       
       
-      <link rel="shortcut icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.1">
+      <link rel="shortcut icon" href="../../images/theme-favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.3">
     
     
       
@@ -19,7 +19,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.5d00201e.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.947af8d5.min.css">
       
       
     
@@ -68,8 +68,7 @@
   <nav class="md-header-nav md-grid" aria-label="Header">
     <a href="../.." title="Daptin" class="md-header-nav__button md-logo" aria-label="Daptin">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <img src="../../images/theme-logo.png" alt="logo">
 
     </a>
     <label class="md-header-nav__button md-icon" for="__drawer">
@@ -142,8 +141,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="Daptin" class="md-nav__button md-logo" aria-label="Daptin">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <img src="../../images/theme-logo.png" alt="logo">
 
     </a>
     Daptin
@@ -1361,16 +1359,13 @@
 <h4 id="signup-api">Signup API<a class="headerlink" href="#signup-api" title="Permanent link">Link</a></h4>
 <p>Sign up action can be allowed to guests to allow open registration by anyone. Users with enough permission over the <code>user_account</code> table can create users manually.</p>
 <p>Users registered using signup action are their own owners. Hence they can update and delete themselves. These permission can be changed based on the use case.</p>
-<div class="admonition note">
-<p class="admonition-title">POST call for user registration</p>
-<div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;http://localhost:6336/action/user_account/signup&#39;</span> <span class="se">\</span>
+<p>!!! example"POST call for user registration"
+    <div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;http://localhost:6336/action/user_account/signup&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Authorization: Bearer null&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Content-Type: application/json;charset=UTF-8&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Accept: application/json, text/plain, */*&#39;</span> <span class="se">\</span>
 --data-binary <span class="s1">&#39;{&quot;attributes&quot;:{&quot;name&quot;:&quot;username&quot;,&quot;email&quot;:&quot;&lt;UserEmail&gt;&quot;,&quot;password&quot;:&quot;&lt;Password&gt;&quot;,&quot;passwordConfirm&quot;:&quot;&lt;Password&gt;&quot;}}&#39;</span>
-</code></pre></div>
-
-</div>
+</code></pre></div></p>
 <p>You can either allow guests to be able to invoke <code>sign up</code> action or allow only a particular user to be able to create new users or a usergroup.</p>
 <div class="highlight"><pre><span></span><code><span class="p">[</span>
   <span class="p">{</span>
@@ -1416,15 +1411,12 @@
 </ul>
 <p>The main outcome of the Sign In action is the jwt token, which is to be used in the <code>Authorization</code> header of following calls.</p>
 <h4 id="sign-in-curl-example">Sign in CURL example<a class="headerlink" href="#sign-in-curl-example" title="Permanent link">Link</a></h4>
-<div class="admonition note">
-<p class="admonition-title">POST call for sign in</p>
-<div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;http://localhost:6336/action/user_account/signin&#39;</span> <span class="se">\</span>
+<p>!!! example"POST call for sign in"
+    <div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;http://localhost:6336/action/user_account/signin&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Content-Type: application/json;charset=UTF-8&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Accept: application/json, text/plain, */*&#39;</span> <span class="se">\</span>
 --data-binary <span class="s1">&#39;{&quot;attributes&quot;:{&quot;email&quot;:&quot;&lt;Email&gt;&quot;,&quot;password&quot;:&quot;&lt;Password&gt;&quot;}}&#39;</span>
-</code></pre></div>
-
-</div>
+</code></pre></div></p>
 <div class="highlight"><pre><span></span><code><span class="p">[</span>
   <span class="p">{</span>
     <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.store.set&quot;</span><span class="p">,</span>
@@ -1560,26 +1552,16 @@ response = requests.post(&#39;http://localhost:6336/api/user&#39;, headers=heade
 <p>Daptin can work with any oauth flow aware identity provider to allow new users to be registered (if you have disabled normal signup).</p>
 <p>Create a <a href="/extend/oauth_connection">OAuth Connection</a> and mark "Allow login" to enable APIs for OAuth flow.</p>
 <p>Examples</p>
-<div class="admonition note">
-<p class="admonition-title">Google login configuration</p>
-<p><img alt="Google oauth" src="/images/oauth/google.png" /></p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Dropbox login configuration</p>
-<p><img alt="Google oauth" src="/images/oauth/dropbox.png" /></p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Github login configuration</p>
-<p><img alt="Google oauth" src="/images/oauth/github.png" /></p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Linkedin login configuration</p>
-<p><img alt="Google oauth" src="/images/oauth/linkedin.png" /></p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Encrypted values</p>
-<p>The secrets are stored after encryption so the value you see in above screenshots are encrypted values.</p>
-</div>
+<p>!!! example"Google login configuration"
+    <img alt="Google oauth" src="/images/oauth/google.png" /></p>
+<p>!!! example"Dropbox login configuration"
+    <img alt="Google oauth" src="/images/oauth/dropbox.png" /></p>
+<p>!!! example"Github login configuration"
+    <img alt="Google oauth" src="/images/oauth/github.png" /></p>
+<p>!!! example"Linkedin login configuration"
+    <img alt="Google oauth" src="/images/oauth/linkedin.png" /></p>
+<p>!!! example"Encrypted values"
+    The secrets are stored after encryption so the value you see in above screenshots are encrypted values.</p>
 <h2 id="configuring-default-user-group">Configuring default user group<a class="headerlink" href="#configuring-default-user-group" title="Permanent link">Link</a></h2>
 <p>You can configure which User groups should newly registered users be added to after their signup.</p>
 <p>This can be configured in the table properties from the dashboard or by updating the entity configuration from the API</p>
@@ -1665,15 +1647,15 @@ response = requests.post(&#39;http://localhost:6336/api/user&#39;, headers=heade
       
     </div>
     
-      <script src="../../assets/javascripts/vendor.592d4e23.min.js"></script>
-      <script src="../../assets/javascripts/bundle.073197b2.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      <script src="../../assets/javascripts/vendor.c3dc8c49.min.js"></script>
+      <script src="../../assets/javascripts/bundle.f9edbbd5.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
       
       <script>
         app = initialize({
           base: "../..",
           features: [],
           search: Object.assign({
-            worker: "../../assets/javascripts/worker/search.01088dc6.min.js"
+            worker: "../../assets/javascripts/worker/search.8e2cddea.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>

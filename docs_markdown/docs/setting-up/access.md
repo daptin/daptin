@@ -37,7 +37,7 @@ Sign up action can be allowed to guests to allow open registration by anyone. Us
 
 Users registered using signup action are their own owners. Hence they can update and delete themselves. These permission can be changed based on the use case.
 
-!!! note "POST call for user registration"
+!!! example"POST call for user registration"
     ```bash
     curl 'http://localhost:6336/action/user_account/signup' \
     -H 'Authorization: Bearer null' \
@@ -103,7 +103,7 @@ The main outcome of the Sign In action is the jwt token, which is to be used in 
 
 #### Sign in CURL example
 
-!!! note "POST call for sign in"
+!!! example"POST call for sign in"
     ```bash
     curl 'http://localhost:6336/action/user_account/signin' \
     -H 'Content-Type: application/json;charset=UTF-8' \
@@ -312,20 +312,20 @@ Create a [OAuth Connection](/extend/oauth_connection) and mark "Allow login" to 
 
 Examples
 
-!!! note "Google login configuration"
+!!! example"Google login configuration"
     ![Google oauth](/images/oauth/google.png)
 
-!!! note "Dropbox login configuration"
+!!! example"Dropbox login configuration"
     ![Google oauth](/images/oauth/dropbox.png)
 
-!!! note "Github login configuration"
+!!! example"Github login configuration"
     ![Google oauth](/images/oauth/github.png)
 
-!!! note "Linkedin login configuration"
+!!! example"Linkedin login configuration"
     ![Google oauth](/images/oauth/linkedin.png)
 
 
-!!! note "Encrypted values"
+!!! example"Encrypted values"
     The secrets are stored after encryption so the value you see in above screenshots are encrypted values.
 
 

@@ -76,12 +76,12 @@ request(options, callback);
 
 ### Export data
 
-!!! note ""
+!!! example""
     Export data as JSON dump. This will export for a single table if ```table_name``` param is specific, else it will export all data.
 
 ### Import data
 
-!!! note ""
+!!! example""
     Import data from dump exported by Daptin. Takes in the following parameters:
 
     - dump_file - json|yaml|toml|hcl
@@ -90,7 +90,7 @@ request(options, callback);
 
 ### Upload file to a cloud store
 
-!!! note ""
+!!! example""
     Upload file to external store [**cloud_store**](/cloudstore/cloudstore), may require [oauth token and connection](/extend/oauth_connection.nd).
 
     - file: any
@@ -98,7 +98,7 @@ request(options, callback);
 ### Upload XLS
 
 
-!!! note ""
+!!! example""
     Upload xls to entity, takes in the following parameters:
 
     - data_xls_file: xls, xlsx
@@ -109,7 +109,7 @@ request(options, callback);
 
 ### Upload CSV
 
-!!! note ""
+!!! example""
     Upload CSV to entity
 
     - data_xls_file: xls, xlsx
@@ -118,7 +118,7 @@ request(options, callback);
     - add_missing_columns: set ```true``` if the file has extra columns which you want to be created
 
 
-!!! note "Curl"
+!!! example"Curl"
 ```
 curl 'http://localhost:6336/action/world/upload_csv_to_system_schema' \
 -H 'Authorization: Bearer <Token>' \
@@ -137,7 +137,7 @@ curl 'http://localhost:6336/action/world/upload_csv_to_system_schema' \
 ```
 
 
-!!! note "NodeJS Example"
+!!! example"NodeJS Example"
     ```
     import requests
 
@@ -164,7 +164,7 @@ curl 'http://localhost:6336/action/world/upload_csv_to_system_schema' \
 
 ### Upload schema
 
-!!! note ""
+!!! example""
     Upload entity types or actions or any other config to daptin
 
     - schema_file: json|yaml|toml|hcl
@@ -174,18 +174,18 @@ curl 'http://localhost:6336/action/world/upload_csv_to_system_schema' \
 
 ### Download Schema
 
-!!! note ""
+!!! example""
     Download a JSON config of the current daptin instance. This can be imported at a later stage to recreate a similar instance. Note, this contains only the structure and not the actual data. You can take a **data dump** separately. Or of a particular entity type
 
 
 ### Become administrator
 
-!!! note ""
+!!! example""
     Become an admin user of the instance. Only the first user can do this, as long as there is no second user.
 
 ### Sign up
 
-!!! note ""
+!!! example""
     Sign up a new user, takes in the following parameters
 
     - name
@@ -202,7 +202,7 @@ curl 'http://localhost:6336/action/world/upload_csv_to_system_schema' \
 
 ### Sign in
 
-!!! note ""
+!!! example""
     Sign in essentially generates a [JWT token] issued by Daptin which can be used in requests to authenticate as a user.
 
     - email
@@ -210,14 +210,14 @@ curl 'http://localhost:6336/action/world/upload_csv_to_system_schema' \
 
 ### Oauth login
 
-!!! note ""
+!!! example""
     Authenticate via OAuth, this will redirect you to the oauth sign in page of the oauth connection. The response will be handeled by **oauth login response**
 
 
 ### Oauth login response
 
 
-!!! note ""
+!!! example""
     This action is supposed to handle the oauth login response flow and not supposed to be invoked manually.
 
     Takes in the following parameters (standard oauth2 params)
@@ -232,7 +232,7 @@ curl 'http://localhost:6336/action/world/upload_csv_to_system_schema' \
 
 ### Add data exchange
 
-!!! note ""
+!!! example""
     Add new data sync with google-sheets
 
     - name

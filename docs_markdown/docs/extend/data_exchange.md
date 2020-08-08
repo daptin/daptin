@@ -4,7 +4,7 @@ Exchanges are internal hooks to external apis, to either push data and update an
 
 Example, use exchange to sync data creation call to Google Sheets. So on every row created using the POST API also creates a corresponding row in your google sheet.
 
-!!! note "Google drive exchange YAML"
+!!! example"Google drive exchange YAML"
     ```yaml
     Exchanges:
     - Name: Task to excel sheet

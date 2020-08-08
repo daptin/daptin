@@ -10,8 +10,8 @@
       
       
       
-      <link rel="shortcut icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.1">
+      <link rel="shortcut icon" href="../../images/theme-favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.3">
     
     
       
@@ -19,7 +19,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.5d00201e.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.947af8d5.min.css">
       
       
     
@@ -68,8 +68,7 @@
   <nav class="md-header-nav md-grid" aria-label="Header">
     <a href="../.." title="Daptin" class="md-header-nav__button md-logo" aria-label="Daptin">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <img src="../../images/theme-logo.png" alt="logo">
 
     </a>
     <label class="md-header-nav__button md-icon" for="__drawer">
@@ -142,8 +141,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="Daptin" class="md-nav__button md-logo" aria-label="Daptin">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <img src="../../images/theme-logo.png" alt="logo">
 
     </a>
     Daptin
@@ -1246,21 +1244,17 @@
 <li>the todo text field - title</li>
 </ul>
 </div>
-<div class="admonition note">
-<p class="admonition-title">YAML example</p>
-<div class="highlight"><pre><span></span><code><span class="nt">Tables</span><span class="p">:</span>
+<p>!!! example"YAML example"
+    <div class="highlight"><pre><span></span><code><span class="nt">Tables</span><span class="p">:</span>
 <span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
   <span class="nt">Columns</span><span class="p">:</span>
   <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
     <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
     <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
     <span class="nt">IsIndexed</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-</code></pre></div>
-
-</div>
-<div class="admonition note">
-<p class="admonition-title">JSON example</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
+</code></pre></div></p>
+<p>!!! example"JSON example"
+    <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="nt">&quot;Tables&quot;</span><span class="p">:</span> <span class="p">[</span>
     <span class="p">{</span>
       <span class="nt">&quot;TableName&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span class="p">,</span>
@@ -1275,9 +1269,7 @@
     <span class="p">}</span>
   <span class="p">]</span>
 <span class="p">}</span>
-</code></pre></div>
-
-</div>
+</code></pre></div></p>
 <h2 id="data-validations">Data validations<a class="headerlink" href="#data-validations" title="Permanent link">Link</a></h2>
 <p>Along with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo</p>
 <div class="admonition example">
@@ -1617,18 +1609,14 @@
 <p>A data oriented system with no relational knowledge of the data is next to an Excel sheet. Specifying relations in your data is the most important thing after creating your entities.</p>
 <p>Relations are constraints among tables and help you keep clean and consistent data. Relational data is easily accessible over APIs using a path structure like <code>/api/&lt;entityName&gt;/&lt;id&gt;/&lt;relationName&gt;</code> and the response is consistent with <a href="https://JSONAPI.org">JSONAPI.org</a>.</p>
 <p>Checkout the <a href="/apis/relation">relation apis</a> exposed by daptin.</p>
-<div class="admonition note">
-<p class="admonition-title">YAML example</p>
-<div class="highlight"><pre><span></span><code><span class="nt">Relations</span><span class="p">:</span>
+<p>!!! example"YAML example"
+    <div class="highlight"><pre><span></span><code><span class="nt">Relations</span><span class="p">:</span>
 <span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
   <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
   <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
-</code></pre></div>
-
-</div>
-<div class="admonition note">
-<p class="admonition-title">JSON example</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
+</code></pre></div></p>
+<p>!!! example"JSON example"
+    <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="nt">&quot;Relations&quot;</span><span class="p">:</span> <span class="p">[</span>
     <span class="p">{</span>
       <span class="nt">&quot;Subject&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span class="p">,</span>
@@ -1637,9 +1625,7 @@
     <span class="p">}</span>
   <span class="p">]</span>
 <span class="p">}</span>
-</code></pre></div>
-
-</div>
+</code></pre></div></p>
 <h3 id="relations-in-jsonyaml-schema">Relations in JSON/YAML schema<a class="headerlink" href="#relations-in-jsonyaml-schema" title="Permanent link">Link</a></h3>
 <p>When uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.</p>
 <p>Continuing with our example of todos, lets say we want to group todo's in "projects" and each todo can belong to only a single project.</p>
@@ -1917,15 +1903,15 @@
       
     </div>
     
-      <script src="../../assets/javascripts/vendor.592d4e23.min.js"></script>
-      <script src="../../assets/javascripts/bundle.073197b2.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      <script src="../../assets/javascripts/vendor.c3dc8c49.min.js"></script>
+      <script src="../../assets/javascripts/bundle.f9edbbd5.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
       
       <script>
         app = initialize({
           base: "../..",
           features: [],
           search: Object.assign({
-            worker: "../../assets/javascripts/worker/search.01088dc6.min.js"
+            worker: "../../assets/javascripts/worker/search.8e2cddea.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>

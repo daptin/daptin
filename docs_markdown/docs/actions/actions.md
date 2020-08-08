@@ -212,7 +212,7 @@ If we skip the ```~```, like ```"confirmed": "0"``` Then the literal value is us
 ```Reference: "user",``` We have this to allow the "outcome" to be referenced when evaluating the next outcome. Let us see the other outcomes
 
 
-## Scripted fields - "!..."
+## JavaScript in fields - "!..."
 
 			{
 				Type:      "usergroup",
