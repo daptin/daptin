@@ -284,6 +284,11 @@ jobs:
           path: ./src/github.com/daptin/daptin
 
 
+      - name: Print github variable
+        shell: bash
+        run: echo ${{  toJson(github) }}
+
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -306,6 +311,7 @@ jobs:
         run: |
           echo '::set-env name=GOPATH::${{ runner.workspace }}'
           echo '::add-path::${{ runner.workspace }}/bin'
+
       - name: Cross-compile daptin
         run: |
           export GO111MODULE=on
