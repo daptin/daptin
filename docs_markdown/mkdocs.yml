@@ -34,8 +34,9 @@ pages:
   - Data streams: streams/streams.md
   - Enable/Disabling features: setting-up/enabling-features.md
 theme:
-  name: null
-  custom_dir: 'rtd_dropdown/'
+  name: material
+extra:
+  disqus: daptin-documentation
 extra_css:
 - css/theme_extra.css
 google_analytics: ['UA-114227400-1', 'docs.dapt.in']
