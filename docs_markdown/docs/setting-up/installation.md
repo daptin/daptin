@@ -30,7 +30,7 @@ Execute ```./daptin``` to run daptin.
 
 It will create a sqlite database on the disk and start listening on port 6336.
 
-### CLI Options:
+### CLI Options
 
 Argument | Definition
 --- | ---
