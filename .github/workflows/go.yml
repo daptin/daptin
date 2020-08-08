@@ -9,6 +9,7 @@ on:
   push:
     paths:
       - '**.go'
+      - 'VERSION'
     branches:
       - '*'
     tags:
