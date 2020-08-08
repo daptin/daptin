@@ -41,7 +41,7 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tem
 		tempDirectoryPath,
 	}
 
-	if path != "" && path[0] != '/' {
+	if path != "" && path[0] != '/' && len(args[0]) > 0 && args[0][len(args[0]) - 1] != '/' {
 		path = "/" + path
 	}
 	args[0] = args[0] + path
@@ -49,7 +49,7 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tem
 	fsrc, fdst := cmd.NewFsSrcDst(args)
 	pacer1 := pacer.Pacer{}
 	pacer1.SetRetries(3)
-	log.Infof("Temp dir for path [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
+	log.Infof("Temp dir for path [%v]%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
 
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync cloud store [%v] to path [%v]", cloudStore.Name, tempDirectoryPath),
