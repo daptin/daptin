@@ -36,7 +36,7 @@ const testData = `{
       "name": "local-store",
       "store_type": "local",
       "store_provider": "local",
-      "root_path": "${rootPath}gallery",
+      "root_path": "${rootPath}",
       "store_parameters": "{}",
       "reference_id": "ca122915-4dbb-42cf-aa19-c89a14e6fa9a"
     }
