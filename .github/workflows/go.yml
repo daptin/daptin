@@ -291,7 +291,7 @@ jobs:
 
       - name: Print env variable
         shell: bash
-        run: echo '${{  toJson(env) }}'
+        run: export
 
 
       - name: Create Release
