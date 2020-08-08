@@ -125,7 +125,7 @@ func TestServer(t *testing.T) {
 		"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
 		"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
-	var webDashboardSource = flag.String("dashboard", "daptinweb/dist", "path to dist folder for daptin web dashboard")
+	var webDashboardSource = flag.String("dashboard", "daptinweb/dist/spa", "path to dist folder for daptin web dashboard")
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
 	var port = flag.String("port", ":6337", "Daptin port")
 	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: debug, test, release")
@@ -138,7 +138,7 @@ func TestServer(t *testing.T) {
 	stream.AddSink(&health.WriterSink{
 		Writer: os.Stdout,
 	})
-	boxRoot1, err := rice.FindBox("daptinweb/dist/")
+	boxRoot1, err := rice.FindBox("daptinweb/dist/spa/")
 
 	var boxRoot http.FileSystem
 	if err != nil {
