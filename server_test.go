@@ -211,6 +211,7 @@ func TestServer(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	err = RunTests(t, hostSwitch, mailDaemon, db, taskScheduler, configStore)
+	log.Printf("Test ended")
 	if err != nil {
 		t.Errorf("test failed %v", err)
 	}
@@ -449,7 +450,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	resp, err = r.Post(baseAddress+"/api/gallery_image", req.BodyJSON(OneImage))
 	if err != nil {
-		log.Printf("Failed to get %s %s", "gallery image post", err)
+		log.Printf("Failed to create %s %s", "gallery image post", err)
 		return err
 	}
 
@@ -680,6 +681,14 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("Expected string not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
 	}
 
+
+	resp, err = r.Post(baseAddress+"/api/gallery_image", req.BodyJSON(OneImage))
+	if err != nil {
+		log.Printf("Failed to create %s %s", "gallery image post", err)
+		return err
+	}
+
+
 	c, err := ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second), ftp.DialWithDebugOutput(os.Stdout))
 
 	if err != nil {
@@ -733,6 +742,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	if curDir != "/site.daptin.com/images" || err != nil {
 		t.Errorf("%v %v", curDir, err)
 	}
+	log.Printf("Current dir is: %v", curDir)
 
 	size, err := c.FileSize("image.png")
 	if size == 0 || err != nil {

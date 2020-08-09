@@ -213,7 +213,7 @@ func (driver *ClientDriver) ChangeDirectory(cc server.ClientContext, directory s
 		subsiteName := dirParts[1]
 		_, ok := driver.FtpDriver.Sites[subsiteName]
 		if !ok {
-			return errors.New("invalid path " + subsiteName)
+			return errors.New("invalid site " + subsiteName)
 		}
 		driver.CurrentDir = subsiteName
 	} else {
