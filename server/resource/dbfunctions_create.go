@@ -61,7 +61,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 			//log.Infof("Create unique index sql: %v", alterTable)
 			_, err := db.Exec(alterTable)
 			if err != nil {
-				log.Errorf("Table[%v] Column[%v]: Failed to create unique join index: %v", table.TableName, cols, err)
+				log.Warnf("Table[%v] Column[%v]: Failed to create unique join index: %v", table.TableName, cols, err)
 				db.Exec("COMMIT ")
 			}
 		}

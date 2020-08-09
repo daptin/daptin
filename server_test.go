@@ -98,7 +98,7 @@ func TestServer(t *testing.T) {
 
 	m := make(map[string]interface{})
 	err := json.Unmarshal([]byte(data), &m)
-	log.Printf("Err: %v", err)
+	log.Printf("Failed to unmarshal JSON data as map: %v, **%v**", err, data)
 	t.Logf("Test directory: %v", tempDir)
 
 	if err != nil {

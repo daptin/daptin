@@ -646,7 +646,7 @@ func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 
 	err = dr.db.QueryRowx(s, q...).Scan(&refId)
 	if err != nil {
-		log.Errorf("Failed to scan user group id from the result 1: %v", err)
+		log.Warnf("Failed to scan user group id from the result 1: %v", err)
 	}
 
 	return refId
@@ -686,8 +686,8 @@ func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 
 	err = dr.db.QueryRowx(s, q...).Scan(&email)
 	if err != nil {
-		log.Errorf("Failed to execute query: %v == %v", s, q)
-		log.Errorf("Failed to scan user group id from the result 3: %v", err)
+		log.Warnf("Failed to execute query: %v == %v", s, q)
+		log.Warnf("Failed to scan user group id from the result 3: %v", err)
 	}
 
 	return email
