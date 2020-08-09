@@ -295,23 +295,6 @@ jobs:
         run: echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
 
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-        with:
-          tag_name: ${{ steps.tagInfo.outputs.SOURCE_TAG }}
-          release_name: Release ${{ steps.tagInfo.outputs.SOURCE_TAG }}
-          body: |
-            Changes in this Release
-            - First Change
-            - Second Change
-          draft: true
-          prerelease: false
-        if: ${{ startsWith(steps.tagInfo.outputs.SOURCE_TAG, 'v') }}
-
-
       - name: Set environment variables
         shell: bash
         run: |
@@ -413,14 +396,22 @@ jobs:
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
 
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ./build/daptin-linux-amd64
+            ./build/daptin-darwin-10.6-amd64
+            ./build/daptin-linux-386
+            ./build/daptin-linux-arm-5
+            ./build/daptin-linux-arm-6
+            ./build/daptin-linux-arm-7
+            ./build/daptin-linux-mips
+            ./build/daptin-linux-mipsle
+            ./build/daptin-linux-mips64
+            ./build/daptin-linux-mips64le
+            ./build/daptin-windows-4.0-386.exe
+            ./build/daptin-windows-4.0-amd64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./build/daptin-linux-amd64
-          asset_name: daptin-linux-amd64
-          asset_content_type: application/zip
-        if: ${{ startsWith(steps.tagInfo.outputs.SOURCE_TAG, 'v') }}
