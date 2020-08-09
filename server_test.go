@@ -551,6 +551,10 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	}
 
+	FtpTest(t)
+
+
+
 	// do a sign in
 	resp, err = r.Post(baseAddress+"/action/world/become_an_administrator", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{},
@@ -560,6 +564,8 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		log.Printf("Failed to get read response %s %s", "become admin", err)
 		return err
 	}
+
+
 	becomeAdminResponse := resp.String()
 	t.Logf("Become admin response: [%v]", becomeAdminResponse)
 
@@ -680,14 +686,25 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	if strings.Index(graphqlResponse.String(), `"hostname": null`) == -1 {
 		t.Errorf("Expected string not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
 	}
+	// do a sign in
+	resp, err = r.Post(baseAddress+"/action/world/import_files_from_store", req.BodyJSON(map[string]interface{}{
+		"attributes": map[string]interface{}{
+			"world_id": tableNameToIdMap["gallery_image"],
+		},
+	}), authTokenHeader)
 
-
-	resp, err = r.Post(baseAddress+"/api/gallery_image", req.BodyJSON(OneImage))
 	if err != nil {
-		log.Printf("Failed to create %s %s", "gallery image post", err)
+		log.Printf("Failed to get read response %s %s", "become admin", err)
 		return err
 	}
+	importResponse := resp.String()
+	t.Logf("File import response: [%v]", importResponse)
 
+	return nil
+
+}
+
+func FtpTest(t *testing.T)  {
 
 	c, err := ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second), ftp.DialWithDebugOutput(os.Stdout))
 
@@ -786,22 +803,6 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	if err := c.Quit(); err != nil {
 		t.Error(err)
 	}
-
-	// do a sign in
-	resp, err = r.Post(baseAddress+"/action/world/import_files_from_store", req.BodyJSON(map[string]interface{}{
-		"attributes": map[string]interface{}{
-			"world_id": tableNameToIdMap["gallery_image"],
-		},
-	}), authTokenHeader)
-
-	if err != nil {
-		log.Printf("Failed to get read response %s %s", "become admin", err)
-		return err
-	}
-	importResponse := resp.String()
-	t.Logf("File import response: [%v]", importResponse)
-
-	return nil
 
 }
 
