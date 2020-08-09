@@ -45,7 +45,7 @@ const testData = `{
     {
       "name": "gallery",
       "hostname": "site.daptin.com",
-      "path": "gallery",
+      "path": "",
       "cloud_store_id": "ca122915-4dbb-42cf-aa19-c89a14e6fa9a",
       "ftp_enabled": "true"
     }
