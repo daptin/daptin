@@ -100,5 +100,3 @@ require (
 	gopkg.in/go-playground/validator.v9 v9.30.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 )
-
-go 1.13
