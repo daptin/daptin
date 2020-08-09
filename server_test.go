@@ -553,7 +553,6 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	}
 
-	FtpTest(t)
 
 
 
@@ -688,6 +687,11 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	if strings.Index(graphqlResponse.String(), `"hostname": null`) == -1 {
 		t.Errorf("Expected string not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
 	}
+
+
+	FtpTest(t)
+
+
 	// do a sign in
 	resp, err = r.Post(baseAddress+"/action/world/import_files_from_store", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{
