@@ -27,3 +27,5 @@ daptin.log
 .DS_Store
 *.log
 daptin_test.db
+bin/
+github.com

@@ -103,7 +103,7 @@ Meatadata APIs expose information about the daptin server itself
 
 ### Response
 
-!!! example"Response example"
+!!! example "Response example"
     ```json
     {
         "links": {
@@ -240,7 +240,7 @@ Used to search items in a table that matche the filter's conditions. Filters fol
 
 ## Create
 
-!!! example"Curl Example"
+!!! example "Curl Example"
      ```curl
      curl '/api/<EntityName>'
          -H 'Authorization: Bearer <Token>'
@@ -255,7 +255,7 @@ Used to search items in a table that matche the filter's conditions. Filters fol
      ```
 
 
-!!! example"Nodejs example"
+!!! example "Nodejs example"
      ```nodejs
      var request = require('request');
 
@@ -289,7 +289,7 @@ Used to search items in a table that matche the filter's conditions. Filters fol
      ```
 
 
-!!! example"Python example"
+!!! example "Python example"
      ```python
      import requests
 
@@ -310,7 +310,7 @@ Used to search items in a table that matche the filter's conditions. Filters fol
      ```
 
 
-!!! example"PHP Example"
+!!! example "PHP Example"
      ```php
      <?php
      include('vendor/rmccue/requests/library/Requests.php');
@@ -332,7 +332,7 @@ Used to search items in a table that matche the filter's conditions. Filters fol
 
 ## Update
 
-!!! example"Curl example"
+!!! example "Curl example"
     ```curl
     curl '/api/<EntityName>/<ReferenceId>' \
     -X PATCH \
@@ -351,7 +351,7 @@ Used to search items in a table that matche the filter's conditions. Filters fol
                   }'
     ```
 
-!!! example"Nodejs example"
+!!! example "Nodejs example"
     ```nodejs
     var request = require('request');
 
@@ -389,12 +389,13 @@ Used to search items in a table that matche the filter's conditions. Filters fol
         }
     }
 
+
     request(options, callback);
     ```
 
 
 
-!!! example"Python example"
+!!! example "Python example"
     ```python
     import requests
 
@@ -423,7 +424,7 @@ Used to search items in a table that matche the filter's conditions. Filters fol
     ```
 
 
-!!! example"PHP example"
+!!! example "PHP example"
     ```php
     <?php
     include('vendor/rmccue/requests/library/Requests.php');
@@ -454,12 +455,12 @@ Used to search items in a table that matche the filter's conditions. Filters fol
 
 Delete a row from a table
 
-!!! example"Curl example"
+!!! example "Curl example"
     ```bash
     curl '/api/user_account/a5b9add2-ea56-4717-a785-7dee71a2ae46' -X DELETE  -H 'Authorization: Bearer <Token>'
     ```
 
-!!! example"Nodejs example"
+!!! example "Nodejs example"
     ```nodejs
     var request = require('request');
 
@@ -483,7 +484,7 @@ Delete a row from a table
     ```
 
 
-!!! example"Python example"
+!!! example "Python example"
     ```python
     import requests
 
@@ -494,7 +495,7 @@ Delete a row from a table
     response = requests.delete('/api/user_account/a5b9add2-ea56-4717-a785-7dee71a2ae46', headers=headers)
     ```
 
-!!! example"PHP example"
+!!! example "PHP example"
     ```php
     <?php
     include('vendor/rmccue/requests/library/Requests.php');
@@ -509,13 +510,13 @@ Delete a row from a table
 
 Execute an action on an entity type or instance
 
-!!! example"Curl example"
+!!! example "Curl example"
     ```curl
     curl '/action/<EntityName>/<ActionName>'  -H 'Authorization: Bearer <Token>'  --data-binary '{"attributes":{}}'
     ```
 
 
-!!! example"PHP Example"
+!!! example "PHP Example"
     ```php
     <?php
     include('vendor/rmccue/requests/library/Requests.php');
@@ -527,7 +528,7 @@ Execute an action on an entity type or instance
     $response = Requests::post('/action/<EntityName>/<ActionName>', $headers, $data);
     ```
 
-!!! example"Nodejs example"
+!!! example "Nodejs example"
     ```nodejs
     var request = require('request');
 
@@ -553,7 +554,7 @@ Execute an action on an entity type or instance
     request(options, callback);
     ```
 
-!!! example"Python example"
+!!! example "Python example"
     ```python
     import requests
 
@@ -568,12 +569,12 @@ Execute an action on an entity type or instance
 
 ## Relations
 
-!!! example"curl example"
+!!! example "curl example"
     ```bash
     curl '/api/<EntityName>/<ReferenceId>/<RelationName>?sort=&page[number]=1&page[size]=10'  -H 'Authorization: Bearer <Token>'
     ```
 
-!!! example"php example"
+!!! example "php example"
     ```php
     <?php
     include('vendor/rmccue/requests/library/Requests.php');
@@ -585,7 +586,7 @@ Execute an action on an entity type or instance
 
 
 
-!!! example"python example"
+!!! example "python example"
     ```python
     import requests
 
@@ -608,7 +609,7 @@ Execute an action on an entity type or instance
 
     ```
 
-!!! example"nodejs example"
+!!! example "nodejs example"
     ```nodejs
     var request = require('request');
 
@@ -630,7 +631,7 @@ Execute an action on an entity type or instance
     request(options, callback);
     ```
 
-!!! example"python example"
+!!! example "python example"
     ```python
     import requests
 
