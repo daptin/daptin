@@ -6,7 +6,7 @@ RELEASE_TAG := $(shell git tag -l --points-at HEAD)
 # Version of last release (may not be on this branch)
 VERSION := $(shell cat VERSION)
 # Last tag on this branch
-LAST_TAG := $(shell git describe --tags --abbrev=0)
+LAST_TAG := $(shell git describe --always --tags --abbrev=0)
 # If we are working on a release, override branch to master
 ifdef RELEASE_TAG
 	BRANCH := master

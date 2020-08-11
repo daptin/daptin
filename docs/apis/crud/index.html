@@ -1241,8 +1241,9 @@
 </tbody>
 </table>
 <h3 id="response">Response<a class="headerlink" href="#response" title="Permanent link">Link</a></h3>
-<p>!!! example"Response example"
-    <div class="highlight"><pre><span></span><code><span class="p">{</span>
+<div class="admonition example">
+<p class="admonition-title">Response example</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
     <span class="nt">&quot;links&quot;</span><span class="p">:</span> <span class="p">{</span>
         <span class="nt">&quot;current_page&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
         <span class="nt">&quot;from&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
@@ -1276,7 +1277,9 @@
         <span class="p">}</span>
     <span class="p">}]</span>
 <span class="p">}</span>
-</code></pre></div></p>
+</code></pre></div>
+
+</div>
 <h3 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">Link</a></h3>
 <h4 id="curl-example">Curl example<a class="headerlink" href="#curl-example" title="Permanent link">Link</a></h4>
 <div class="codehilite"><pre><span></span><code><span class="n">curl</span><span class="w"> </span><span class="s1">&#39;/api/&lt;entityName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
@@ -1412,8 +1415,9 @@
 
 
 <h2 id="create">Create<a class="headerlink" href="#create" title="Permanent link">Link</a></h2>
-<p>!!! example"Curl Example"
-     <div class="highlight"><pre><span></span><code>curl &#39;/api/&lt;EntityName&gt;&#39;
+<div class="admonition example">
+<p class="admonition-title">Curl Example</p>
+<div class="highlight"><pre><span></span><code>curl &#39;/api/&lt;EntityName&gt;&#39;
     -H &#39;Authorization: Bearer &lt;Token&gt;&#39;
     --data-binary &#39;{
                 &quot;data&quot;: {
@@ -1423,9 +1427,12 @@
                     }
                 }
            }&#39;
-</code></pre></div></p>
-<p>!!! example"Nodejs example"
-     <div class="highlight"><pre><span></span><code>var request = require(&#39;request&#39;);
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">Nodejs example</p>
+<div class="highlight"><pre><span></span><code>var request = require(&#39;request&#39;);
 
 var headers = {
     &#39;Authorization&#39;: &#39;Bearer &lt;Token&gt;&#39;,
@@ -1454,9 +1461,12 @@ function callback(error, response, body) {
 }
 
 request(options, callback);
-</code></pre></div></p>
-<p>!!! example"Python example"
-     <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">Python example</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
 
 <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
@@ -1472,9 +1482,12 @@ request(options, callback);
         <span class="p">}</span><span class="s1">&#39;</span>
 
 <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;/api/&lt;EntityName&gt;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
-</code></pre></div></p>
-<p>!!! example"PHP Example"
-     <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">PHP Example</p>
+<div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
 <span class="k">include</span><span class="p">(</span><span class="s1">&#39;vendor/rmccue/requests/library/Requests.php&#39;</span><span class="p">);</span>
 <span class="nx">Requests</span><span class="o">::</span><span class="na">register_autoloader</span><span class="p">();</span>
 <span class="nv">$headers</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
@@ -1489,10 +1502,13 @@ request(options, callback);
 <span class="s1">            }</span>
 <span class="s1">         }&#39;</span><span class="p">;</span>
 <span class="nv">$response</span> <span class="o">=</span> <span class="nx">Requests</span><span class="o">::</span><span class="na">post</span><span class="p">(</span><span class="s1">&#39;/api/&lt;EntityName&gt;&#39;</span><span class="p">,</span> <span class="nv">$headers</span><span class="p">,</span> <span class="nv">$data</span><span class="p">);</span>
-</code></pre></div></p>
+</code></pre></div>
+
+</div>
 <h2 id="update">Update<a class="headerlink" href="#update" title="Permanent link">Link</a></h2>
-<p>!!! example"Curl example"
-    <div class="highlight"><pre><span></span><code>curl &#39;/api/&lt;EntityName&gt;/&lt;ReferenceId&gt;&#39; \
+<div class="admonition example">
+<p class="admonition-title">Curl example</p>
+<div class="highlight"><pre><span></span><code>curl &#39;/api/&lt;EntityName&gt;/&lt;ReferenceId&gt;&#39; \
 -X PATCH \
 -H &#39;Authorization: Bearer &lt;Token&gt;&#39; \
 --data-binary &#39;{
@@ -1507,9 +1523,12 @@ request(options, callback);
                     &quot;id&quot;: &quot;&lt;ReferenceId&gt;&quot;
                 }
               }&#39;
-</code></pre></div></p>
-<p>!!! example"Nodejs example"
-    <div class="highlight"><pre><span></span><code>var request = require(&#39;request&#39;);
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">Nodejs example</p>
+<div class="highlight"><pre><span></span><code>var request = require(&#39;request&#39;);
 
 var headers = {
     &#39;Authorization&#39;: &#39;Bearer &lt;Token&gt;&#39;
@@ -1545,10 +1564,14 @@ function callback(error, response, body) {
     }
 }
 
+
 request(options, callback);
-</code></pre></div></p>
-<p>!!! example"Python example"
-    <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">Python example</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
 
 <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
@@ -1572,9 +1595,12 @@ request(options, callback);
         <span class="p">}</span><span class="s1">&#39;</span>
 
 <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="s1">&#39;/api/&lt;EntityName&gt;/&lt;ReferenceId&gt;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
-</code></pre></div></p>
-<p>!!! example"PHP example"
-    <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">PHP example</p>
+<div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
 <span class="k">include</span><span class="p">(</span><span class="s1">&#39;vendor/rmccue/requests/library/Requests.php&#39;</span><span class="p">);</span>
 <span class="nx">Requests</span><span class="o">::</span><span class="na">register_autoloader</span><span class="p">();</span>
 <span class="nv">$headers</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
@@ -1597,14 +1623,20 @@ request(options, callback);
 <span class="s1">           }</span>
 <span class="s1">         }&#39;</span><span class="p">;</span>
 <span class="nv">$response</span> <span class="o">=</span> <span class="nx">Requests</span><span class="o">::</span><span class="na">patch</span><span class="p">(</span><span class="s1">&#39;/api/&lt;EntityName&gt;/&lt;ReferenceId&gt;&#39;</span><span class="p">,</span> <span class="nv">$headers</span><span class="p">,</span> <span class="nv">$data</span><span class="p">);</span>
-</code></pre></div></p>
+</code></pre></div>
+
+</div>
 <h2 id="delete">Delete<a class="headerlink" href="#delete" title="Permanent link">Link</a></h2>
 <p>Delete a row from a table</p>
-<p>!!! example"Curl example"
-    <div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;/api/user_account/a5b9add2-ea56-4717-a785-7dee71a2ae46&#39;</span> -X DELETE  -H <span class="s1">&#39;Authorization: Bearer &lt;Token&gt;&#39;</span>
-</code></pre></div></p>
-<p>!!! example"Nodejs example"
-    <div class="highlight"><pre><span></span><code>var request = require(&#39;request&#39;);
+<div class="admonition example">
+<p class="admonition-title">Curl example</p>
+<div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;/api/user_account/a5b9add2-ea56-4717-a785-7dee71a2ae46&#39;</span> -X DELETE  -H <span class="s1">&#39;Authorization: Bearer &lt;Token&gt;&#39;</span>
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">Nodejs example</p>
+<div class="highlight"><pre><span></span><code>var request = require(&#39;request&#39;);
 
 var headers = {
     &#39;Authorization&#39;: &#39;Bearer &lt;Token&gt;&#39;
@@ -1623,32 +1655,44 @@ function callback(error, response, body) {
 }
 
 request(options, callback);
-</code></pre></div></p>
-<p>!!! example"Python example"
-    <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">Python example</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
 
 <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s1">&#39;/api/user_account/a5b9add2-ea56-4717-a785-7dee71a2ae46&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
-</code></pre></div></p>
-<p>!!! example"PHP example"
-    <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">PHP example</p>
+<div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
 <span class="k">include</span><span class="p">(</span><span class="s1">&#39;vendor/rmccue/requests/library/Requests.php&#39;</span><span class="p">);</span>
 <span class="nx">Requests</span><span class="o">::</span><span class="na">register_autoloader</span><span class="p">();</span>
 <span class="nv">$headers</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
     <span class="s1">&#39;Authorization&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span>
 <span class="p">);</span>
 <span class="nv">$response</span> <span class="o">=</span> <span class="nx">Requests</span><span class="o">::</span><span class="na">delete</span><span class="p">(</span><span class="s1">&#39;/api/user_account/a5b9add2-ea56-4717-a785-7dee71a2ae46&#39;</span><span class="p">,</span> <span class="nv">$headers</span><span class="p">);</span>
-</code></pre></div></p>
+</code></pre></div>
+
+</div>
 <h2 id="execute">Execute<a class="headerlink" href="#execute" title="Permanent link">Link</a></h2>
 <p>Execute an action on an entity type or instance</p>
-<p>!!! example"Curl example"
-    <div class="highlight"><pre><span></span><code>curl &#39;/action/&lt;EntityName&gt;/&lt;ActionName&gt;&#39;  -H &#39;Authorization: Bearer &lt;Token&gt;&#39;  --data-binary &#39;{&quot;attributes&quot;:{}}&#39;
-</code></pre></div></p>
-<p>!!! example"PHP Example"
-    <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+<div class="admonition example">
+<p class="admonition-title">Curl example</p>
+<div class="highlight"><pre><span></span><code>curl &#39;/action/&lt;EntityName&gt;/&lt;ActionName&gt;&#39;  -H &#39;Authorization: Bearer &lt;Token&gt;&#39;  --data-binary &#39;{&quot;attributes&quot;:{}}&#39;
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">PHP Example</p>
+<div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
 <span class="k">include</span><span class="p">(</span><span class="s1">&#39;vendor/rmccue/requests/library/Requests.php&#39;</span><span class="p">);</span>
 <span class="nx">Requests</span><span class="o">::</span><span class="na">register_autoloader</span><span class="p">();</span>
 <span class="nv">$headers</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
@@ -1656,9 +1700,12 @@ request(options, callback);
 <span class="p">);</span>
 <span class="nv">$data</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:{}}&#39;</span><span class="p">;</span>
 <span class="nv">$response</span> <span class="o">=</span> <span class="nx">Requests</span><span class="o">::</span><span class="na">post</span><span class="p">(</span><span class="s1">&#39;/action/&lt;EntityName&gt;/&lt;ActionName&gt;&#39;</span><span class="p">,</span> <span class="nv">$headers</span><span class="p">,</span> <span class="nv">$data</span><span class="p">);</span>
-</code></pre></div></p>
-<p>!!! example"Nodejs example"
-    <div class="highlight"><pre><span></span><code>var request = require(&#39;request&#39;);
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">Nodejs example</p>
+<div class="highlight"><pre><span></span><code>var request = require(&#39;request&#39;);
 
 var headers = {
     &#39;Authorization&#39;: &#39;Bearer &lt;Token&gt;&#39;
@@ -1680,9 +1727,12 @@ function callback(error, response, body) {
 }
 
 request(options, callback);
-</code></pre></div></p>
-<p>!!! example"Python example"
-    <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">Python example</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
 
 <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
@@ -1691,21 +1741,30 @@ request(options, callback);
 <span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;{&quot;attributes&quot;:</span><span class="si">{}</span><span class="s1">}&#39;</span>
 
 <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;/action/&lt;EntityName&gt;/&lt;ActionName&gt;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
-</code></pre></div></p>
+</code></pre></div>
+
+</div>
 <h2 id="relations">Relations<a class="headerlink" href="#relations" title="Permanent link">Link</a></h2>
-<p>!!! example"curl example"
-    <div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;/api/&lt;EntityName&gt;/&lt;ReferenceId&gt;/&lt;RelationName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span>  -H <span class="s1">&#39;Authorization: Bearer &lt;Token&gt;&#39;</span>
-</code></pre></div></p>
-<p>!!! example"php example"
-    <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+<div class="admonition example">
+<p class="admonition-title">curl example</p>
+<div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;/api/&lt;EntityName&gt;/&lt;ReferenceId&gt;/&lt;RelationName&gt;?sort=&amp;page[number]=1&amp;page[size]=10&#39;</span>  -H <span class="s1">&#39;Authorization: Bearer &lt;Token&gt;&#39;</span>
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">php example</p>
+<div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
 <span class="k">include</span><span class="p">(</span><span class="s1">&#39;vendor/rmccue/requests/library/Requests.php&#39;</span><span class="p">);</span>
 <span class="nx">Requests</span><span class="o">::</span><span class="na">register_autoloader</span><span class="p">();</span>
 <span class="nv">$headers</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
     <span class="s1">&#39;Authorization&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span>
 <span class="p">);</span>
-</code></pre></div></p>
-<p>!!! example"python example"
-    <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">python example</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
 
 <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
@@ -1723,9 +1782,12 @@ request(options, callback);
 <span class="c1">#reproduce query strings 100% accurately so the one below is given</span>
 <span class="c1">#in case the reproduced version is not &quot;correct&quot;.</span>
 <span class="c1"># response = requests.get(&#39;http://localhost:6336/api/user_account/696c98d3-3b8b-41da-a510-08e6948cf661/marketplace_id?sort=&amp;page\[number\]=1&amp;page\[size\]=10&#39;, headers=headers)</span>
-</code></pre></div></p>
-<p>!!! example"nodejs example"
-    <div class="highlight"><pre><span></span><code>var request = require(&#39;request&#39;);
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">nodejs example</p>
+<div class="highlight"><pre><span></span><code>var request = require(&#39;request&#39;);
 
 var headers = {
     &#39;Authorization&#39;: &#39;Bearer &lt;Token&gt;&#39;
@@ -1743,9 +1805,12 @@ function callback(error, response, body) {
 }
 
 request(options, callback);
-</code></pre></div></p>
-<p>!!! example"python example"
-    <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">python example</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
 
 <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;Bearer &lt;Token&gt;&#39;</span><span class="p">,</span>
@@ -1758,7 +1823,9 @@ request(options, callback);
 <span class="p">)</span>
 
 <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;/api/&lt;EntityName&gt;/&lt;ReferenceId&gt;/&lt;RelationName&gt;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
-</code></pre></div></p>
+</code></pre></div>
+
+</div>
                 
               
               
