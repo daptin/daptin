@@ -4,7 +4,7 @@
     <div
       class="col-2 col-xl-2 col-lg-3 col-md-3 col-sm-4 col-xs-0"
       style="border-right: 3px solid black">
-      <span class="text-bold"><i class="fas fa-home" style="font-size: 1.2em"></i> {{site.name}}</span>
+      <span @click="window.open(site.hostname)"  class="text-bold"><i class="fas fa-home" style="font-size: 1.2em; cursor: pointer"></i> {{site.name}}</span>
       <v-jstree @item-click="fileTreeItemClicked" :async="loadFilePathDataForTree()" :data="pathFileList.root"
                 whole-row></v-jstree>
     </div>
@@ -37,7 +37,7 @@
             </q-btn-dropdown>
             <q-btn size="md" @click="refreshCache()"
                    icon="fas fa-sync-alt"></q-btn>
-            <q-btn @click="deleteSelectedFiles" flat size="md" class="float-right" color="negative" v-disabled="showDelete"
+            <q-btn @click="deleteSelectedFiles" flat size="md" class="float-right" color="negative"
                    icon="fas fa-times"></q-btn>
 
             <q-space></q-space>
@@ -82,7 +82,13 @@
 
       <div class="row" v-if="viewType === 'table'">
         <q-markup-table style="width: 100%; box-shadow: none;">
-
+          <thead>
+          <tr>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th></tr>
+          </thead>
           <tbody>
 
           <tr style="cursor: pointer" @click="getContentOnPath({name: '..'})">
@@ -160,6 +166,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
 
     <q-dialog v-model="showNewFileName" persistent>
       <q-card style="min-width: 350px">
@@ -608,6 +615,8 @@
 
             if (!fileList) {
               that.fileList = [];
+              path.children = [];
+              path.opened = true;
               return;
             }
             that.showFileBrowser = true;

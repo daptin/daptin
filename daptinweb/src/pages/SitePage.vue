@@ -90,7 +90,7 @@
                 <q-btn size="sm"
                        @click="$router.push('/site/' + site.reference_id + '/browse')"
                        label="Browse files"
-                       color="primary"
+                       text-color="primary"
                        class="float-right"></q-btn>
                 <q-btn @click="showEditSite(site)" size="sm"
                        label="Edit site" class="float-right"></q-btn>
