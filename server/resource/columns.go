@@ -1223,7 +1223,7 @@ var SystemActions = []Action{
 		},
 	},
 	{
-		Name:     "oauth.login.begin",
+		Name:     "oauth_login_begin",
 		Label:    "Authenticate via OAuth",
 		OnType:   "oauth_connect",
 		InFields: []api2go.ColumnInfo{},
