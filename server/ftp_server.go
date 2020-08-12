@@ -62,10 +62,10 @@ func NewDaptinFtpDriver(cruds map[string]*resource.DbResource, certManager *reso
 		DaptinFtpServerSettings: DaptinFtpServerSettings{
 			MaxConnections: 100,
 			Server: server.Settings{
-				Listener:                 nil,
-				ListenAddr:               ftp_interface,
-				PublicHost:               "",
-				PublicIPResolver:         func(ctx server.ClientContext) (string, error) {
+				Listener:   nil,
+				ListenAddr: ftp_interface,
+				PublicHost: "",
+				PublicIPResolver: func(ctx server.ClientContext) (string, error) {
 					return "", nil
 				},
 				PassiveTransferPortRange: nil,
@@ -182,7 +182,7 @@ func (driver *DaptinFtpDriver) UserLeft(cc server.ClientContext) {
 
 func (driver *ClientDriver) SetFileMtime(cc server.ClientContext, path string, mtime time.Time) error {
 
-	dirParts := strings.Split(path, string(os.PathSeparator))
+	dirParts := strings.Split(path, "/")
 
 	if len(dirParts) == 2 {
 		subsiteName := dirParts[1]
@@ -208,7 +208,7 @@ func (driver *ClientDriver) ChangeDirectory(cc server.ClientContext, directory s
 		return nil
 	}
 
-	dirParts := strings.Split(directory, string(os.PathSeparator))
+	dirParts := strings.Split(directory, "/")
 	if len(dirParts) == 2 {
 		subsiteName := dirParts[1]
 		_, ok := driver.FtpDriver.Sites[subsiteName]
@@ -236,9 +236,9 @@ func (driver *ClientDriver) ChangeDirectory(cc server.ClientContext, directory s
 func (driver *ClientDriver) MakeDirectory(cc server.ClientContext, path string) error {
 
 	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(path, string(os.PathSeparator))[2:], string(os.PathSeparator))
+		strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator))
 
-	if len(strings.Split(path, string(os.PathSeparator))) == 2 {
+	if len(strings.Split(path, "/")) == 2 {
 		return errors.New("cannot create new directory in /")
 	}
 
@@ -269,7 +269,7 @@ func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string)
 
 	} else {
 		path := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-			strings.Join(strings.Split(directory, string(os.PathSeparator))[2:], string(os.PathSeparator))
+			strings.Join(strings.Split(directory, "/")[2:], string(os.PathSeparator))
 		files, err = ioutil.ReadDir(path)
 	}
 	log.Printf("list Path: %v", files)
@@ -281,7 +281,7 @@ func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string)
 func (driver *ClientDriver) OpenFile(cc server.ClientContext, path string, flag int) (server.FileStream, error) {
 
 	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(path, string(os.PathSeparator))[2:], string(os.PathSeparator))
+		strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator))
 
 	// If we are writing and we are not in append mode, we should remove the file
 	if (flag & os.O_WRONLY) != 0 {
@@ -300,7 +300,7 @@ func (driver *ClientDriver) OpenFile(cc server.ClientContext, path string, flag 
 func (driver *ClientDriver) GetFileInfo(cc server.ClientContext, path string) (os.FileInfo, error) {
 
 	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(path, string(os.PathSeparator))[2:], string(os.PathSeparator))
+		strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator))
 
 	log.Printf("Get file info [%v]", path)
 
@@ -315,7 +315,7 @@ func (driver *ClientDriver) CanAllocate(cc server.ClientContext, size int) (bool
 // ChmodFile changes the attributes of the file
 func (driver *ClientDriver) ChmodFile(cc server.ClientContext, path string, mode os.FileMode) error {
 	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(path, string(os.PathSeparator))[2:], string(os.PathSeparator))
+		strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator))
 
 	return os.Chmod(path, mode)
 }
@@ -323,7 +323,7 @@ func (driver *ClientDriver) ChmodFile(cc server.ClientContext, path string, mode
 // DeleteFile deletes a file or a directory
 func (driver *ClientDriver) DeleteFile(cc server.ClientContext, path string) error {
 	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(path, string(os.PathSeparator))[2:], string(os.PathSeparator))
+		strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator))
 
 	return os.Remove(path)
 }
@@ -331,9 +331,9 @@ func (driver *ClientDriver) DeleteFile(cc server.ClientContext, path string) err
 // RenameFile renames a file or a directory
 func (driver *ClientDriver) RenameFile(cc server.ClientContext, from, to string) error {
 	from = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(from, string(os.PathSeparator))[2:], string(os.PathSeparator))
+		strings.Join(strings.Split(from, "/")[2:], string(os.PathSeparator))
 	to = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(to, string(os.PathSeparator))[2:], string(os.PathSeparator))
+		strings.Join(strings.Split(to, "/")[2:], string(os.PathSeparator))
 
 	return os.Rename(from, to)
 }
