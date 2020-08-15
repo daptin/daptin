@@ -105,7 +105,7 @@
               <q-item>
                 <q-item-section>
 
-                  <q-input disable label="Name" v-model="newIntegration.name"></q-input>
+                  <q-input label="Name" v-model="newIntegration.name"></q-input>
                 </q-item-section>
               </q-item>
               <q-item>
@@ -155,6 +155,7 @@
           tableName: "integration",
           id: that.newIntegration.reference_id,
           enable: that.newIntegration.enable,
+          name: that.newIntegration.name,
         }).then(function (res) {
           that.$q.notify({
             message: "Updated"

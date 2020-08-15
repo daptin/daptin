@@ -171,7 +171,7 @@
           permission: that.selectedPermissionOption,
           default_permission: that.selectedPermissionOption
         }).then(function (usersOfGroup) {
-          console.log("Updated table permisson", usersOfGroup);
+          console.log("Updated table permission", usersOfGroup);
           that.loadTableGroups();
         }).catch(function (err) {
           that.$q.notify({
