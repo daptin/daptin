@@ -204,6 +204,8 @@ github.com/artpar/rclone v1.50.19 h1:BI1nMmU5nKB9lWcLYKwb5L9ptXrvRLXjbVTH9dR5OhE
 github.com/artpar/rclone v1.50.19/go.mod h1:TosXfrtI0T33UiNY9ZAvJe1Ih+vZ0QUFgKBRAge7D8A=
 github.com/artpar/rclone v1.50.20 h1:YOjY+5RsPwn0rz+erdazGkXqzWrfetFFJLjgNeUdHO4=
 github.com/artpar/rclone v1.50.20/go.mod h1:+FrpQPIhALj7eYJQDJmgZuStZWN0fDHslpPpIukHbBM=
+github.com/artpar/rclone v1.50.21 h1:K4a7QmISBenp+8cGzbzlp7wgdBKDK229LkygONpfO04=
+github.com/artpar/rclone v1.50.21/go.mod h1:+FrpQPIhALj7eYJQDJmgZuStZWN0fDHslpPpIukHbBM=
 github.com/artpar/resty v1.0.3 h1:MNkSMhs4YU3tW+n93oewHrDRbXcFWcSPkPAtdsIBCmY=
 github.com/artpar/resty v1.0.3/go.mod h1:cHCPVVE3r81VxEHneVewv3RsfaWlm1ILT/Ks0HnYIrk=
 github.com/artpar/stats v1.0.2 h1:Ine3DijNIWpjIu2+yvkluJcqLuqmx0Xe8egoHu/3tRk=

@@ -12,8 +12,8 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
-	"strings"
 	hugoCommand "github.com/gohugoio/hugo/commands"
+	"strings"
 )
 
 type SyncSiteStorageActionPerformer struct {
@@ -95,7 +95,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 			return nil
 		}
 
-		//fs.Config.DeleteMode = fs.DeleteModeBefore
+		fs.Config.DeleteMode = fs.DeleteModeBefore
 		dir := sync.Sync(ctx, fdst, fsrc, true)
 
 		if is_hugo_site {

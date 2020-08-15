@@ -346,6 +346,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 			configStore.SetConfigValueFor("imap.enabled", "false", "backend")
 		}
 	}
+
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
 	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware, configStore)

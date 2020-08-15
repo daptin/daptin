@@ -149,7 +149,7 @@
               </q-item-section>
               <q-item-section>
                 <q-btn-toggle size="xs" v-model="newSite.enable_https" :options="[
-          {label: newSite.enable_https ? 'Enabled' : 'Enable', value: true},
+          {label: !!newSite.enable_https ? 'Enabled' : 'Enable', value: true},
           {label: !newSite.enable_https ? 'Disabled' : 'Disable', value: false}]"></q-btn-toggle>
               </q-item-section>
             </q-item>
@@ -211,7 +211,7 @@
         this.newSite.hostname = site.hostname;
         this.newSite.name = site.hostname;
         this.newSite.path = site.path;
-        this.newSite.enable_https = site.enable_https;
+        this.newSite.enable_https = site.enable_https === 1 || !!site.enable_https;
         this.newSite.ftp_enabled = site.ftp_enabled;
         this.newSite.site_type = site.site_type;
         this.newSite.cloud_store_id = site.cloud_store_id;

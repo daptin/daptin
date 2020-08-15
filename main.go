@@ -70,7 +70,6 @@ func main() {
 	})
 	boxRoot1, err := rice.FindBox("daptinweb/dist/spa/")
 
-
 	var boxRoot http.FileSystem
 	if err != nil {
 		log.Printf("Try loading web dashboard from: %v", *webDashboardSource)
@@ -84,7 +83,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("Connection acquired from database")
+	log.Printf("Connection acquired from database [%s]", *dbType)
 
 	var hostSwitch server.HostSwitch
 	var mailDaemon *guerrilla.Daemon

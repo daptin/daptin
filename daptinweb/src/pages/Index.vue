@@ -16,7 +16,7 @@
     <q-separator></q-separator>
 
 
-    <div class="row" style="overflow: scroll; height: 95vh">
+    <div class="row" style="overflow: scroll; height: 90vh">
 
       <div class="col-8" >
         <div class="row">
@@ -525,9 +525,9 @@ export default {
       var disableStat = null;
       for (var i in res.data) {
         var stat = res.data[i];
-        if (stat.enable === true) {
+        if (stat.enable === true || stat.enable === 1) {
           enableStat = stat;
-        } else if (stat.enable === false) {
+        } else {
           disableStat = stat;
         }
       }
@@ -555,7 +555,7 @@ export default {
       tableName: 'integration',
       column: 'count',
     }).then(function (res) {
-      console.log("Site aggregates", res);
+      console.log("Integration aggregates", res);
       that.integrationAggregate = res.data[0];
     });
 

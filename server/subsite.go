@@ -140,7 +140,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		}
 
 		subSiteInformation := resource.SubSiteInformation{}
-		hs.siteMap[site.Path] = site
+		//hs.siteMap[site.Path] = site
 
 		for _, hostname := range strings.Split(site.Hostname, ",") {
 			hs.siteMap[hostname] = site
@@ -185,14 +185,13 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 		activeTask := cruds["site"].NewActiveTaskInstance(syncTask)
 
-		func(task *resource.ActiveTaskInstance){
+		func(task *resource.ActiveTaskInstance) {
 			go func() {
 				log.Info("Sleep 5 sec for running new sync task")
 				time.Sleep(1 * time.Second)
 				activeTask.Run()
 			}()
 		}(activeTask)
-
 
 		err = TaskScheduler.AddTask(syncTask)
 
@@ -321,6 +320,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else if ok {
 			userI := r.Context().Value("user")
 			var user *auth.SessionUser
+
 			if userI != nil {
 				user = userI.(*auth.SessionUser)
 			} else {

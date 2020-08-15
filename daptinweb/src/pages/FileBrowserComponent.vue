@@ -14,6 +14,7 @@
       <div class="row">
         <div class="col-12">
           <q-btn-group flat>
+            <q-btn icon="fas fa-tasks" @click="fileList.map(e => e.selected = !e.selected)"></q-btn>
             <q-btn-dropdown size="md" icon="fas fa-plus">
               <q-list>
                 <q-item clickable v-close-popup @click="showNewFileName = true">
@@ -82,13 +83,6 @@
 
       <div class="row" v-if="viewType === 'table'">
         <q-markup-table style="width: 100%; box-shadow: none;">
-          <thead>
-          <tr>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th></tr>
-          </thead>
           <tbody>
 
           <tr style="cursor: pointer" @click="getContentOnPath({name: '..'})">
@@ -394,9 +388,11 @@
           }).catch(function (err) {
             console.log("failed to delete", err)
           })
-
-
         }
+
+        setTimeout(function (){
+          that.getContentOnPath({path: '.', is_dir: false})
+        }, 1000)
 
 
       },

@@ -44,7 +44,7 @@ func (d *CloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 	}
 	args := []string{
 		rootPath,
-		"--delete-excluded",
+		"--delete-included",
 	}
 	log.Infof("Delete target path: %v", rootPath)
 
