@@ -39,29 +39,35 @@
 The most powerful ready to use data and services API server.
 
 
-- User management
-  - Sign up and sign in (1fa/2fa with password/TOTP)
-  - Extensive authorization control table level/action level and row level
-  - Rate limiting/connection throttling at IP/API level
-- Data management
-  - Declarative schema definition, relations and column properties
-  - CRUD APIs with Authorization/Pagination/Search/Relations
-  - File asset columns to store images/video/audio/blobs
-- Storage management
-  - localhost/gDrive/S3/B2/DropBox/FTP and many more supported
-- Site management
-  - Create HTTP sites based by storage anywhere
-  - Enable HTTPS using LetsEncrypt
-  - Create and Build HUGO static sites
-  - Expose directories as FTP sites
-- Integration and action management
-  - Create workflows and expose as APIs
+- **Define data tables and relations from YAML or Web dashboard UI**
+  - Middleware for handling data normalizations and conformations 
+  - Create indexes, constraints on columns
+  - Column can be have images/video/audio/blobs attachments, stored appropriately in #cloudstore
+- **Authentication and Authorization on APIs**
+  - Add users and user groups
+  - RWX based permission system for rows and tables
+  - JWT token with configurable expiry time
+  - User sign in/sign up/password reset flows
+- **JSON API and GraphQL API**
+  - [JSONAPI.org](https://jsonapi.org) complaint endpoints
+  - GraphQL endpoint with Data/Query and Mutations available
+  - Pagination and filtering using page number or cursor based
+  - Fetch relationships in a single call
+- **Cloud storage**
+  - Connect to [over 30 storage providers](https://rclone.org/overview/) (localhost/HTTP/FTP/GDrive/Dropbox/S3 and many more)
+  - Manage files using daptin actions
+  - Automated 1 hour sync scheduled
+- **Static and HUGO sites**
+  - Host site on multiple domains
+  - Inbuilt HTTPS certificate generation with lets-encrypt
+  - Web file browser and FTP access (disabled by default)
+- **Action workflows & 3rd party API integration**
+  - Supports v2/v3 openapi in yaml or json format
   - Call any 3rd party API by importing OpenAPI Spec
-- Email server
+- **Email server**
   - Enable SMTPS and IMAPS services and use daptin as your daily email provider
   - Multi hostname mail server
-  - Multiple email accounts, database backed email storage
-- With a clean white-branded dashboard
+  - Multiple email accounts, database backed email storage     
 
 
 <br />
