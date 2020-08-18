@@ -91,7 +91,7 @@ func (d *CloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFiel
 		err := operations.Mkdir(ctx, fsrc, folderPath)
 		InfoErr(err, "Failed to sync files for upload to cloud")
 		err = os.RemoveAll(tempDirectoryPath)
-		InfoErr(err, "Failed to remove temp directory after upload")
+		InfoErr(err, "Failed to remove temp directory after folder create")
 		return err
 	})
 

@@ -11,6 +11,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io/ioutil"
+	"time"
+
 	//"os"
 	"archive/zip"
 	"github.com/artpar/api2go"
@@ -141,8 +143,12 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 			if EndsWithCheck(fileName, ".zip") {
 				err = unzip(temproryFilePath, tempDirectoryPath)
 				CheckErr(err, "Failed to unzip file")
-				err = os.Remove(temproryFilePath)
-				CheckErr(err, "Failed to remove zip file after extraction")
+				go func() {
+					time.Sleep(5 * time.Minute)
+					err = os.Remove(temproryFilePath)
+					CheckErr(err, "Failed to remove zip file after extraction")
+				}()
+
 			}
 
 		}
@@ -204,8 +210,13 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 		fs.Config.DeleteMode = fs.DeleteModeOff
 		err := sync.Sync(ctx, fdst, fsrc, true)
 		InfoErr(err, "Failed to sync files for upload to cloud")
-		err = os.RemoveAll(tempDirectoryPath)
-		InfoErr(err, "Failed to remove temp directory after upload")
+
+		go func() {
+			time.Sleep(10 * time.Minute)
+			err = os.RemoveAll(tempDirectoryPath)
+			InfoErr(err, "Failed to remove temp directory after upload")
+		}()
+
 		return err
 	})
 

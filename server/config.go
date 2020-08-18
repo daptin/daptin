@@ -81,6 +81,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			fallthrough
 		case EndsWithCheck(fileName, "yaml"):
 			jsonBytes, err := yaml2.YAMLToJSON(fileBytes)
+			log.Printf("JSON: %v", string(jsonBytes))
 			if err != nil {
 				errs = append(errs, err)
 				continue

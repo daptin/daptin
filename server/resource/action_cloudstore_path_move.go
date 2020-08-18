@@ -101,7 +101,7 @@ func (d *CloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields m
 
 		InfoErr(err, "Failed to sync files for upload to cloud")
 		err = os.RemoveAll(tempDirectoryPath)
-		InfoErr(err, "Failed to remove temp directory after upload")
+		InfoErr(err, "Failed to remove temp directory after path move")
 		return err
 	})
 
