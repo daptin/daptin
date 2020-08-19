@@ -4,14 +4,29 @@
     <div
       class="col-2 col-xl-2 col-lg-3 col-md-3 col-sm-4 col-xs-0"
       style="border-right: 3px solid black">
-      <span @click="window.open(site.hostname)"  class="text-bold"><i class="fas fa-home" style="font-size: 1.2em; cursor: pointer"></i> {{site.name}}</span>
-      <v-jstree @item-click="fileTreeItemClicked" :async="loadFilePathDataForTree()" :data="pathFileList.root"
-                whole-row></v-jstree>
+      <span @click="window.open(site.hostname)" class="text-bold"><i class="fas fa-home"
+                                                                     style="font-size: 1.2em; cursor: pointer"></i> {{
+          site.name
+        }}</span>
+      <v-jstree
+        show-checkbox
+        multiple
+        allow-batch
+        ref="tree"
+        draggable
+        @item-click="fileTreeItemClicked"
+        @item-drag-start="fileTreeItemDragStart"
+        @item-drag-end="fileTreeItemDragEnd"
+        @item-drop-before="fileTreeItemDropBefore"
+        @item-drop="fileTreeItemDrop"
+
+        :async="loadFilePathDataForTree" :data="asyncFileData"
+        whole-row></v-jstree>
     </div>
 
     <div class="col-10 col-md-9 col-sm-8 col-xs-12" v-if="!showFileEditor && !showFilePreview">
 
-      <div class="row">
+      <div class="row" style="height: 5vh; min-height: 40px">
         <div class="col-12">
           <q-btn-group flat>
             <q-btn icon="fas fa-tasks" @click="fileList.map(e => e.selected = !e.selected)"></q-btn>
@@ -70,8 +85,8 @@
             </div>
             <span v-if="uploadedFiles.length == 0" style="padding-top: 40%" class="vertical-middle">Drop files or click to select <br/></span>
             <div class="row" v-if="uploadedFiles.length > 0">
-              <div class="col-12" v-for="file in uploadedFiles">{{file.name}} - Error: {{file.error}}, Success:
-                {{file.success}}
+              <div class="col-12" v-for="file in uploadedFiles">{{ file.name }} - Error: {{ file.error }}, Success:
+                {{ file.success }}
               </div>
             </div>
           </div>
@@ -81,7 +96,7 @@
       </div>
 
 
-      <div class="row" v-if="viewType === 'table'">
+      <div class="row" style="height: 90vh; overflow-y: scroll" v-if="viewType === 'table'">
         <q-markup-table style="width: 100%; box-shadow: none;">
           <tbody>
 
@@ -100,9 +115,11 @@
             </td>
 
             <td style="width: 50px"><i :class="file.icon"></i></td>
-            <td>{{file.name}}</td>
-            <td class="text-right">{{ file.is_dir ? '' : file.size > 1024 *1024 ? ( parseInt(file.size / (1024 * 1024) )
-              + ' mb') : ( parseInt(file.size / (1024 ) ) + ' kbs') }}
+            <td>{{ file.name }}</td>
+            <td class="text-right">{{
+                file.is_dir ? '' : file.size > 1024 * 1024 ? (parseInt(file.size / (1024 * 1024))
+                  + ' mb') : (parseInt(file.size / (1024)) + ' kbs')
+              }}
             </td>
 
           </tr>
@@ -193,356 +210,451 @@
   </div>
 </template>
 <style>
-  .file-editor-frame {
-    height: 80vh;
-  }
+.file-editor-frame {
+  height: 80vh;
+}
 
 </style>
 <script>
-  import {mapActions} from "vuex";
+import {mapActions} from "vuex";
 
-  var ace = require('brace');
-  window.ace = ace;
-  require('brace/ext/language_tools'); //language extension prerequsite...
-  require('brace/mode/html');
-  require('brace/mode/javascript');    //language
-  require('brace/mode/markdown');    //language
-  require('brace/mode/toml');    //language
-  require('brace/mode/xml');    //language
-  require('brace/mode/text');    //language
-  require('brace/mode/less');
-  require('brace/mode/yaml');
-  require('brace/mode/json');
-  require('brace/mode/css');
-  require('brace/theme/chrome');
+var ace = require('brace');
+window.ace = ace;
+require('brace/ext/language_tools'); //language extension prerequsite...
+require('brace/mode/html');
+require('brace/mode/javascript');    //language
+require('brace/mode/markdown');    //language
+require('brace/mode/toml');    //language
+require('brace/mode/xml');    //language
+require('brace/mode/text');    //language
+require('brace/mode/less');
+require('brace/mode/yaml');
+require('brace/mode/json');
+require('brace/mode/css');
+require('brace/theme/chrome');
 
-  function debounce(func, wait, immediate) {
-    var timeout;
-    return function () {
-      var context = this, args = arguments;
-      var later = function () {
-        timeout = null;
-        if (!immediate) func.apply(context, args);
-      };
-      var callNow = immediate && !timeout;
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-      if (callNow) func.apply(context, args);
+function debounce(func, wait, immediate) {
+  var timeout;
+  return function () {
+    var context = this, args = arguments;
+    var later = function () {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
     };
+    var callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func.apply(context, args);
+  };
+}
+
+var saveData = (function () {
+  var a = document.createElement("a");
+  document.body.appendChild(a);
+  a.style = "display: none";
+  return function (blob, fileName) {
+    var url = window.URL.createObjectURL(blob);
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+}());
+
+function folderNameFromPath(path) {
+  var pathParts = path.split("/");
+  if (pathParts.length < 2) {
+    return pathParts[0];
   }
-
-  var saveData = (function () {
-    var a = document.createElement("a");
-    document.body.appendChild(a);
-    a.style = "display: none";
-    return function (blob, fileName) {
-      var url = window.URL.createObjectURL(blob);
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    };
-  }());
-
-  function folderNameFromPath(path) {
-    var pathParts = path.split("/");
-    if (pathParts.length < 2) {
-      return pathParts[0];
-    }
-    if (pathParts[pathParts.length - 1].trim().length > 0 || pathParts.length < 3) {
-      return pathParts[pathParts.length - 1].trim()
-    }
-    return pathParts[pathParts.length - 2].trim();
+  if (pathParts[pathParts.length - 1].trim().length > 0 || pathParts.length < 3) {
+    return pathParts[pathParts.length - 1].trim()
   }
+  return pathParts[pathParts.length - 2].trim();
+}
 
-  export default {
-    name: "FileBrowserComponent",
-    props: ['site', 'path'],
-    data() {
-      return {
-        pathFileList: {
-          root: []
-        },
-        vjsData: [
-          {
-            "text": "Same but with checkboxes",
-            "children": [
-              {
-                "text": "initially selected",
-                "selected": true
-              },
-              {
-                "text": "custom icon",
-                "icon": "fa fa-warning icon-state-danger"
-              },
-              {
-                "text": "initially open",
-                "icon": "fa fa-folder icon-state-default",
-                "opened": true,
-                "children": [
-                  {
-                    "text": "Another node"
-                  }
-                ]
-              },
-              {
-                "text": "custom icon",
-                "icon": "fa fa-warning icon-state-warning"
-              },
-              {
-                "text": "disabled node",
-                "icon": "fa fa-check icon-state-success",
-                "disabled": true
-              }
-            ]
-          },
-          {
-            "text": "Same but with checkboxes",
-            "opened": true,
-            "children": [
-              {
-                "text": "initially selected",
-                "selected": true
-              },
-              {
-                "text": "custom icon",
-                "icon": "fa fa-warning icon-state-danger"
-              },
-              {
-                "text": "initially open",
-                "icon": "fa fa-folder icon-state-default",
-                "opened": true,
-                "children": [
-                  {
-                    "text": "Another node"
-                  }
-                ]
-              },
-              {
-                "text": "custom icon",
-                "icon": "fa fa-warning icon-state-warning"
-              },
-              {
-                "text": "disabled node",
-                "icon": "fa fa-check icon-state-success",
-                "disabled": true
-              }
-            ]
-          },
-          {
-            "text": "And wholerow selection"
-          }
-        ],
-        showDelete: false,
-        fileType: null,
-        saver: null,
-        editor: null,
-        showFileEditor: false,
-        showFilePreview: false,
-        selectedFile: null,
-        showNewFileName: false,
-        newFileName: null,
-        newFolderName: null,
-        showNewFolderName: false,
-        showUploadFile: false,
-        uploadedFiles: [],
-        fileList: [],
-        bread: [],
-        currentPath: "",
-        filePreview: false,
-        previewUrl: null,
-        viewType: 'table'
-      }
-    },
-    computed: {},
-    watch: {},
-    methods: {
-      fileTreeItemClicked(fileTree, itemClicked, mouseEvent) {
-        console.log("tree file item clicked", this.currentPath, fileTree, itemClicked, mouseEvent);
-        this.getContentOnPath(itemClicked);
+export default {
+  name: "FileBrowserComponent",
+  props: ['site', 'path'],
+  data() {
+    return {
+      asyncFileData: [],
+      pathFileList: {
+        root: []
       },
-      loadFilePathDataForTree() {
-        console.log("load file path data for tree", arguments)
-      },
-      loadDependencies() {
-        // require('brace/mode/html');
-        // require('brace/theme/chrome');
-      },
-      deleteSelectedFiles() {
-        const that = this;
-        var selectedFiles = this.fileList.filter(e => e.selected);
-        for (var fileIndex in selectedFiles) {
-          console.log("Delete fileIndex", this.site, this.currentPath, selectedFiles[fileIndex]);
-
-          that.executeAction({
-            tableName: "cloud_store",
-            actionName: "delete_path",
-            params: {
-              cloud_store_id: that.site.cloud_store_id.id,
-              path: that.site.path + "/" + (this.currentPath.length > 0 ? this.currentPath + "/" : "") + selectedFiles[fileIndex].name
+      vjsData: [
+        {
+          "text": "Same but with checkboxes",
+          "children": [
+            {
+              "text": "initially selected",
+              "selected": true
+            },
+            {
+              "text": "custom icon",
+              "icon": "fa fa-warning icon-state-danger"
+            },
+            {
+              "text": "initially open",
+              "icon": "fa fa-folder icon-state-default",
+              "opened": true,
+              "children": [
+                {
+                  "text": "Another node"
+                }
+              ]
+            },
+            {
+              "text": "custom icon",
+              "icon": "fa fa-warning icon-state-warning"
+            },
+            {
+              "text": "disabled node",
+              "icon": "fa fa-check icon-state-success",
+              "disabled": true
             }
-          }).then(function (res) {
-            console.log("deleted", res);
-            selectedFiles.selected = false;
-            selectedFiles.splice(fileIndex, 1)
-          }).catch(function (err) {
-            console.log("failed to delete", err)
-          })
+          ]
+        },
+        {
+          "text": "Same but with checkboxes",
+          "opened": true,
+          "children": [
+            {
+              "text": "initially selected",
+              "selected": true
+            },
+            {
+              "text": "custom icon",
+              "icon": "fa fa-warning icon-state-danger"
+            },
+            {
+              "text": "initially open",
+              "icon": "fa fa-folder icon-state-default",
+              "opened": true,
+              "children": [
+                {
+                  "text": "Another node"
+                }
+              ]
+            },
+            {
+              "text": "custom icon",
+              "icon": "fa fa-warning icon-state-warning"
+            },
+            {
+              "text": "disabled node",
+              "icon": "fa fa-check icon-state-success",
+              "disabled": true
+            }
+          ]
+        },
+        {
+          "text": "And wholerow selection"
         }
+      ],
+      showDelete: false,
+      fileType: null,
+      saver: null,
+      editor: null,
+      showFileEditor: false,
+      showFilePreview: false,
+      selectedFile: null,
+      showNewFileName: false,
+      newFileName: null,
+      newFolderName: null,
+      showNewFolderName: false,
+      showUploadFile: false,
+      uploadedFiles: [],
+      fileList: [],
+      bread: [],
+      currentPath: "",
+      filePreview: false,
+      previewUrl: null,
+      viewType: 'table'
+    }
+  },
+  computed: {},
+  watch: {},
+  methods: {
+    fileTreeItemClicked(fileTree, itemClicked, mouseEvent) {
+      console.log("tree file item clicked", fileTree.model, itemClicked, mouseEvent);
+      const that = this;
+      if (!fileTree.model.is_dir) {
+        this.getContentOnPath(itemClicked);
+      } else {
 
-        setTimeout(function (){
-          that.getContentOnPath({path: '.', is_dir: false})
-        }, 1000)
-
-
-      },
-      selectFile(file) {
-        console.log("Select file", file, this.fileList);
-        this.showDelete = this.fileList.filter(e => e.selected).length > 0;
-      },
-
-      createFile() {
-
-        const that = this;
-
-        if (that.newFileName === "" || !that.newFileName) {
-          return
-        }
-
-        that.executeAction({
-          tableName: "cloud_store",
-          actionName: "upload_file",
-          params: {
-            "file": [{"name": that.newFileName, "file": "data:text/plain;base64,", "type": "text/plain"}],
-            "path": that.site.path + "/" + that.currentPath,
-            "cloud_store_id": that.site.cloud_store_id.id
-          }
-        }).then(function () {
-          that.getContentOnPath({name: '.', is_dir: false});
-          that.$q.notify({
-            message: "File created"
-          })
-        }).catch(function (err) {
-          console.log("Failed to create file", err);
-          that.$q.notify({
-            message: "Failed to create create file"
-          })
+        this.getContentOnPath(itemClicked).then(function(files){
+          that.$refs.tree.handleAsyncLoad(files, that.$refs.tree)
         });
 
-        that.showNewFileName = false;
-      },
-      createFolder() {
-        const that = this;
+        this.showFileEditor = false;
+      }
+    },
+    fileTreeItemDragStart(fileTree, itemClicked, mouseEvent) {
+      console.log("tree file item fileTreeItemDragStart", fileTree.model.text, itemClicked, mouseEvent);
+      // this.getContentOnPath(itemClicked);
+    },
+    fileTreeItemDragEnd(fileTree, destination, source) {
+      // console.log("tree file item fileTreeItemDragEnd", fileTree.model.text, itemClicked, mouseEvent);
+      // this.getContentOnPath(itemClicked);
+    },
+    fileTreeItemDrop(fileTree, destination, source) {
+      console.log("tree file item fileTreeItemDrop", fileTree.model.text, destination, source);
+      if (!destination.is_dir) {
+        return false
+      }
+      const that = this;
 
-        that.executeAction({
+      var promise = that.executeAction({
+        tableName: "cloud_store",
+        actionName: "move_path",
+        params: {
+          cloud_store_id: that.site.cloud_store_id.id,
+          source: that.site.path + source.full_path,
+          destination: that.site.path + destination.full_path
+        }
+      }).then(function (res) {
+        console.log("moved", res);
+      }).catch(function (err) {
+        console.log("failed to delete", err)
+      });
+
+      // this.getContentOnPath(itemClicked);
+    },
+    fileTreeItemDropBefore(fileTree, destination, source) {
+      if (!destination.is_dir) {
+        this.$q.notify({
+          message: "Cannot move to a non-folder"
+        });
+        return false;
+      }
+      console.log("tree file item fileTreeItemDropBefore", this.currentPath, fileTree, destination, source);
+      // this.getContentOnPath(itemClicked);
+    },
+    loadFilePathDataForTree(node, handleAsyncLoad) {
+      console.log("load file path data for tree", node.data.value, handleAsyncLoad);
+      const that = this;
+      var path = null;
+
+
+      if (node.data.value) {
+        path = {
+          full_path: node.data.value,
+          is_dir: node.data.is_dir
+        }
+      }
+      return new Promise(function (resolve, reject) {
+        that.getContentOnPath(path).then(function (files) {
+          if (!files) {
+            files.map(e => e.text = e.name);
+            files.map(e => e.value = e.full_path);
+          }
+          console.log("Got file list", files);
+
+          that.showFileEditor = false;
+          that.showFileBrowser = true;
+          that.showFilePreview = false;
+          that.fileType = null;
+
+          that.asyncFileData = [
+            this.$refs.tree.initializeLoading()
+          ]
+
+
+          this.$refs.tree.handleAsyncLoad(this.asyncFileData, this.$refs.tree)
+        }).catch(reject)
+      })
+    },
+    loadDependencies() {
+      // require('brace/mode/html');
+      // require('brace/theme/chrome');
+    },
+    deleteSelectedFiles() {
+      const that = this;
+      var selectedFiles = this.fileList.filter(e => e.selected);
+      var promises = [];
+      for (var fileIndex in selectedFiles) {
+        console.log("Delete fileIndex", this.site, this.currentPath, selectedFiles[fileIndex]);
+
+        var promise = that.executeAction({
           tableName: "cloud_store",
-          actionName: "create_folder",
+          actionName: "delete_path",
           params: {
-            "cloud_store_id": that.site.cloud_store_id.id,
-            "path": that.site.path + '/' + that.currentPath,
-            "name": that.newFolderName
+            cloud_store_id: that.site.cloud_store_id.id,
+            path: that.site.path + "/" + (this.currentPath.length > 0 ? this.currentPath + "/" : "") + selectedFiles[fileIndex].name
           }
-        }).then(function () {
-          that.getContentOnPath({name: '.', is_dir: false})
+        }).then(function (res) {
+          console.log("deleted", res);
+          selectedFiles.selected = false;
+          selectedFiles.splice(fileIndex, 1)
         }).catch(function (err) {
-          console.log("Failed to create folder", err);
-          that.$q.notify({
-            message: "Failed to create folder"
-          })
-        })
+          console.log("failed to delete", err)
+        });
+        promises.push(promise)
 
-      },
-      inputFile(uploadedFile) {
-        console.log("input file", arguments);
-        const that = this;
+      }
+      Promise.all(promises).then(function () {
 
-        var uploadFile = function (file) {
-          return new Promise(function (resolve, reject) {
-            const name = file.name;
-            const type = file.type;
-            const reader = new FileReader();
-            reader.onload = function (fileResult) {
-              console.log("File loaded", fileResult);
-              var obj = {params: {"file": []}};
-              obj["params"]["file"].push({
-                name: name,
-                file: fileResult.target.result,
-                type: type
-              });
-              console.log("Upload file current path", that.currentPath);
-              obj.params.path = that.site.path + "/" + that.currentPath;
-              obj.tableName = "cloud_store";
-              obj.actionName = "upload_file";
-              obj.params.cloud_store_id = that.site.cloud_store_id.id;
-              that.executeAction(obj).then(function (res) {
-                console.log("Upload done", arguments);
-                // that.showUploadFile = false;
-                uploadedFile.success = true;
-                that.refreshCache();
-                that.getContentOnPath({is_dir: false, name: '.'})
-              }).catch(function (err) {
-                console.log("Failed to upload", arguments)
-              });
-              resolve();
-            };
-            reader.onerror = function () {
-              console.log("Failed to load file onerror", e, arguments);
-              reject(name);
-            };
-            reader.readAsDataURL(file);
-          })
-        };
-        return uploadFile(uploadedFile.file)
+        console.log("File delete complete", arguments)
+        setTimeout(function () {
+          that.getContentOnPath()
+        }, 2000)
+
+      })
 
 
-      },
-      inputFilter() {
-        console.log("input filter", arguments)
-      },
-      makeFile(val) {
-        var valName = val.name;
-        let icon = "fas fa-file";
-        if (valName.endsWith("html")) {
-          icon = "fas fa-code"
-        } else if (valName.endsWith("mp3") || valName.endsWith("wav")) {
-          icon = "fas fa-file-audio"
-        } else if (valName.endsWith("mp4") || valName.endsWith("mkv")) {
-          icon = "fas fa-file-video"
-        } else if (valName.endsWith("jpg") || valName.endsWith("jpeg") || valName.endsWith("png") || valName.endsWith("gif")) {
-          icon = "fas fa-image"
-        } else if (valName.endsWith("md")) {
-          icon = "fab fa-markdown"
+    },
+    selectFile(file) {
+      console.log("Select file", file, this.fileList);
+      this.showDelete = this.fileList.filter(e => e.selected).length > 0;
+    },
+
+    createFile() {
+
+      const that = this;
+
+      if (that.newFileName === "" || !that.newFileName) {
+        return
+      }
+
+      that.executeAction({
+        tableName: "cloud_store",
+        actionName: "upload_file",
+        params: {
+          "file": [{"name": that.newFileName, "file": "data:text/plain;base64,", "type": "text/plain"}],
+          "path": that.site.path + "/" + that.currentPath,
+          "cloud_store_id": that.site.cloud_store_id.id
         }
-
-        if (val.is_dir) {
-          icon = "fas fa-folder";
-        }
-
-        val.icon = icon;
-        return val;
-      },
-
-      refreshCache() {
-        const that = this;
-        that.executeAction({
-          tableName: "site",
-          actionName: "sync_site_storage",
-          params: {
-            site_id: that.site.id,
-            path: "",
-          }
-        }).then(function () {
-          that.getContentOnPath({name: '.', is_dir: false})
-        }).catch(function (err) {
-          that.$q.notify({
-            message: "Failed to sync site cache"
-          })
+      }).then(function () {
+        that.getContentOnPath({name: '.', is_dir: false});
+        that.$q.notify({
+          message: "File created"
+        });
+        setTimeout(function () {
+          that.getContentOnPath();
+        }, 1500);
+      }).catch(function (err) {
+        console.log("Failed to create file", err);
+        that.$q.notify({
+          message: "Failed to create create file"
         })
-      },
+      });
 
-      getContentOnPath(path) {
+      that.showNewFileName = false;
+    },
+    createFolder() {
+      const that = this;
+
+      that.executeAction({
+        tableName: "cloud_store",
+        actionName: "create_folder",
+        params: {
+          "cloud_store_id": that.site.cloud_store_id.id,
+          "path": that.site.path + '/' + that.currentPath,
+          "name": that.newFolderName
+        }
+      }).then(function () {
+        that.getContentOnPath({name: '.', is_dir: false})
+      }).catch(function (err) {
+        console.log("Failed to create folder", err);
+        that.$q.notify({
+          message: "Failed to create folder"
+        })
+      })
+
+    },
+    inputFile(uploadedFile) {
+      console.log("input file", arguments);
+      const that = this;
+
+      var uploadFile = function (file) {
+        return new Promise(function (resolve, reject) {
+          const name = file.name;
+          const type = file.type;
+          const reader = new FileReader();
+          reader.onload = function (fileResult) {
+            console.log("File loaded", fileResult);
+            var obj = {params: {"file": []}};
+            obj["params"]["file"].push({
+              name: name,
+              file: fileResult.target.result,
+              type: type
+            });
+            console.log("Upload file current path", that.currentPath);
+            obj.params.path = that.site.path + "/" + that.currentPath;
+            obj.tableName = "cloud_store";
+            obj.actionName = "upload_file";
+            obj.params.cloud_store_id = that.site.cloud_store_id.id;
+            that.executeAction(obj).then(function (res) {
+              console.log("Upload done", arguments);
+              // that.showUploadFile = false;
+              uploadedFile.success = true;
+              that.refreshCache();
+              that.getContentOnPath({is_dir: false, name: '.'})
+            }).catch(function (err) {
+              console.log("Failed to upload", arguments)
+            });
+            resolve();
+          };
+          reader.onerror = function () {
+            console.log("Failed to load file onerror", e, arguments);
+            reject(name);
+          };
+          reader.readAsDataURL(file);
+        })
+      };
+      return uploadFile(uploadedFile.file)
+
+
+    },
+    inputFilter() {
+      console.log("input filter", arguments)
+    },
+    makeFile(val) {
+      var valName = val.name;
+      let icon = "fas fa-file";
+      if (valName.endsWith("html")) {
+        icon = "fas fa-code"
+      } else if (valName.endsWith("mp3") || valName.endsWith("wav")) {
+        icon = "fas fa-file-audio"
+      } else if (valName.endsWith("mp4") || valName.endsWith("mkv")) {
+        icon = "fas fa-file-video"
+      } else if (valName.endsWith("jpg") || valName.endsWith("jpeg") || valName.endsWith("png") || valName.endsWith("gif")) {
+        icon = "fas fa-image"
+      } else if (valName.endsWith("md")) {
+        icon = "fab fa-markdown"
+      }
+
+      if (val.is_dir) {
+        icon = "fas fa-folder";
+      }
+
+      val.icon = icon;
+      return val;
+    },
+
+    refreshCache() {
+      const that = this;
+      that.executeAction({
+        tableName: "site",
+        actionName: "sync_site_storage",
+        params: {
+          site_id: that.site.id,
+          path: "",
+        }
+      }).then(function () {
+        that.getContentOnPath({name: '.', is_dir: false})
+      }).catch(function (err) {
+        that.$q.notify({
+          message: "Failed to sync site cache"
+        })
+      })
+    },
+
+    getContentOnPath(path) {
+      const that = this;
+      return new Promise(function (resolve, reject) {
+        path = path || {name: '.', is_dir: false};
         console.log("Get content on path", path);
-        const that = this;
         that.showDelete = false;
 
         if (path.full_path) {
@@ -553,7 +665,7 @@
             path.name = parts[1];
           } else {
             path.name = parts.pop();
-            if (parts[0] == "") {
+            if (parts[0] === "") {
               parts.unshift()
             }
             that.currentPath = parts.join("/")
@@ -561,7 +673,7 @@
           console.log("Final full path", that.currentPath, path)
         }
 
-        if (path.is_dir) {
+        if (path.is_dir && path.name !== '.') {
           if (path.name !== '/' && path.name !== '') {
 
             that.currentPath = that.currentPath + (that.currentPath === "" ? "" : "/") + path.name;
@@ -613,6 +725,7 @@
               that.fileList = [];
               path.children = [];
               path.opened = true;
+              resolve([]);
               return;
             }
             that.showFileBrowser = true;
@@ -637,6 +750,9 @@
             // });
             if (that.currentPath === "" && that.pathFileList.root.length === 0) {
               that.pathFileList.root = files;
+              console.log("Resolve file list promise 1", files)
+              // that.asyncFileData = files;
+              resolve(files)
             } else {
               console.log("Adding children to path", path)
               path.children = files;
@@ -645,14 +761,18 @@
               var newRoot = JSON.parse(JSON.stringify(that.pathFileList.root));
               that.pathFileList.root = [];
               that.pathFileList.root = newRoot;
+              console.log("Resolve file list promise 2", files)
+              resolve(files)
             }
 
             that.fileList = files;
           }).catch(function (err) {
             console.log("failed to list files", err);
-            that.getContentOnPath({name: '', is_dir: false})
+            that.getContentOnPath({name: '', is_dir: false});
+            reject(err)
           })
         } else {
+
 
           let hostname = that.site.hostname;
 
@@ -790,78 +910,70 @@
             }, 100)
 
           }).catch(function (err) {
-            console.log("Failed to get file contents", err)
+            console.log("Failed to get file contents", err);
+            reject(err)
           });
 
 
-          // fetch(fetchUrl).then(function (response) {
-          //   response.blob().then(function (blob) {
-          //     console.log("Blob is ready", saveData(blob, path.name))
-          //   }).catch(function (err) {
-          //     console.log("Failed to blob", arguments)
-          //   });
-          //   console.log("Fetch response", response.body)
-          // }).catch(function (err) {
-          //
-          //   console.log("Failed to fetch", arguments)
-          // });
-        }
-      },
-
-      saveFile: function () {
-        return debounce(function () {
-          const that = this;
-          let content = that.selectedFile.content;
-          console.log("save", JSON.stringify(that.selectedFile), content, that.editor.getValue());
-          let pathParts = that.selectedFile.path.split("/");
-          var fileName = pathParts[pathParts.length - 1];
-          that.executeAction({
-            tableName: "cloud_store",
-            actionName: "upload_file",
-            params: {
-              "file": [{
-                "name": fileName,
-                "file": "data:text/plain;base64," + btoa(content),
-                "type": "text/plain"
-              }],
-              "path": that.site.path + "/" + that.currentPath,
-              "cloud_store_id": that.site.cloud_store_id.id
-            }
-          }).then(function () {
-            that.refreshCache();
-          }).catch(function (err) {
-            console.log("Failed to save file", err);
-            that.$q.notify({
-              message: "Failed to save file"
-            })
-          })
-
-        }, 1300, false)
-      }(),
-      listFiles(site) {
-        console.log("list files in site", site);
-        const that = this;
-        that.getContentOnPath({name: '', is_dir: true})
-      },
-      ...mapActions(['executeAction'])
-
-    },
-    mounted() {
-      const that = this;
-      console.log("Mounted file browser", this.site);
-      // if (!this.site) {
-      //   this.$emit("close");
-      //   return
-      // }
-      this.currentPath = "";
-      this.bread.push({
-        label: that.site.hostname,
-        icon: "fas fa-home",
-        click: function () {
-          that.getContentOnPath({name: '/', is_dir: true})
         }
       });
-      this.listFiles(this.site)
-    }
+
+    },
+
+    saveFile: function () {
+      return debounce(function () {
+        const that = this;
+        let content = that.selectedFile.content;
+        console.log("save", JSON.stringify(that.selectedFile), content, that.editor.getValue());
+        let pathParts = that.selectedFile.path.split("/");
+        var fileName = pathParts[pathParts.length - 1];
+        that.executeAction({
+          tableName: "cloud_store",
+          actionName: "upload_file",
+          params: {
+            "file": [{
+              "name": fileName,
+              "file": "data:text/plain;base64," + btoa(content),
+              "type": "text/plain"
+            }],
+            "path": that.site.path + "/" + that.currentPath,
+            "cloud_store_id": that.site.cloud_store_id.id
+          }
+        }).then(function () {
+          that.refreshCache();
+        }).catch(function (err) {
+          console.log("Failed to save file", err);
+          that.$q.notify({
+            message: "Failed to save file"
+          })
+        })
+
+      }, 1300, false)
+    }(),
+    listFiles(site) {
+      console.log("list files in site", site);
+      const that = this;
+      // that.getContentOnPath({name: '', is_dir: true})
+    },
+    ...mapActions(['executeAction'])
+
+  },
+  mounted() {
+    const that = this;
+    console.log("Mounted file browser", this.site);
+    // if (!this.site) {
+    //   this.$emit("close");
+    //   return
+    // }
+    this.currentPath = "";
+    this.bread.push({
+      label: that.site.hostname,
+      icon: "fas fa-home",
+      click: function () {
+        that.getContentOnPath({name: '/', is_dir: true})
+      }
+    });
+    this.listFiles(this.site)
   }
+}
 </script>
