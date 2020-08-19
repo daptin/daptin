@@ -57,6 +57,7 @@ func main() {
 
 	var webDashboardSource = flag.String("dashboard", strings.ReplaceAll("daptinweb/dist/spa/", "/", string(os.PathSeparator)), "path to dist folder for daptin web dashboard")
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
+	var port_variable = flag.String("port_variable", "port", "ENV port variable name to look for port")
 	var port = flag.String("port", ":6336", "daptin port")
 	var httpsPort = flag.String("https_port", ":6443", "daptin https port")
 	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: debug, test, release")
@@ -93,7 +94,8 @@ func main() {
 	var ftpServer *server2.FtpServer
 	var imapServerInstance *imapServer.Server
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInstance = server.Main(boxRoot, db, *localStoragePath)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
+		ftpServer, imapServerInstance = server.Main(boxRoot, db, *localStoragePath)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -128,7 +130,8 @@ func main() {
 			return
 		}
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServerInstance = server.Main(boxRoot, db1, *localStoragePath)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
+			ftpServer, imapServerInstance = server.Main(boxRoot, db1, *localStoragePath)
 		rhs.HostSwitch = &hostSwitch
 		err = db.Close()
 		auth.CheckErr(err, "Failed to close old db connection")
@@ -145,6 +148,21 @@ func main() {
 		// port is missing :
 		portValue = ":" + portValue
 	}
+
+	if port_variable != nil && *port_variable != "port" {
+		portVarString := *port_variable
+
+		portVarStringValue, ok := os.LookupEnv(portVarString)
+		if ok && len(portVarStringValue) > 0 {
+			if portVarStringValue[0] != ':' {
+				log.Infof("Port value picked from  env is missing colon: %v", portVarStringValue)
+				portVarStringValue = ":" + portVarStringValue
+			}
+			portValue = portVarStringValue
+		}
+
+	}
+
 	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), portValue)
 
 	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
