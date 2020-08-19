@@ -44,7 +44,6 @@ func (d *CloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 	}
 	args := []string{
 		rootPath,
-		"--delete-included",
 	}
 	log.Infof("Delete target path: %v", rootPath)
 
@@ -84,6 +83,7 @@ func (d *CloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 
 		ctx := context.Background()
 		err = operations.Delete(ctx, fsrc)
+		//err = operations.Purge(ctx, fsrc)
 
 		InfoErr(err, "Failed to delete path in cloud store")
 		return err

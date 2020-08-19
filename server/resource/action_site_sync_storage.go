@@ -95,12 +95,12 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 			return nil
 		}
 
-		fs.Config.DeleteMode = fs.DeleteModeBefore
+		fs.Config.DeleteMode = fs.DeleteModeAfter
 		dir := sync.Sync(ctx, fdst, fsrc, true)
 
 		if is_hugo_site {
 			log.Infof("Starting hugo build for %v", tempDirectoryPath)
-			hugoCommandResponse := hugoCommand.Execute([]string{"--source", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public", "--verbose", "--verboseLog"})
+				hugoCommandResponse := hugoCommand.Execute([]string{"--source", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public", "--verbose", "--verboseLog"})
 			log.Infof("Hugo command response for [%v] [%v]: %v", tempDirectoryPath, tempDirectoryPath+"/"+"public", hugoCommandResponse)
 		}
 
