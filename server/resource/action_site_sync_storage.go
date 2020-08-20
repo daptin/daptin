@@ -56,7 +56,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
 
 	tempDirectoryPath := path
-	if tempDirectoryPath == "" && siteCacheFolder != nil {
+	if tempDirectoryPath == "" {
 		tempDirectoryPath = siteCacheFolder.LocalSyncPath
 	}
 

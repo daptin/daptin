@@ -42,14 +42,14 @@ func (d *CloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields m
 	sourcePath, _ := inFields["source"].(string)
 	destinationPath, _ := inFields["destination"].(string)
 	rootPath := inFields["root_path"].(string)
-
-	if len(sourcePath) > 0 && sourcePath[len(sourcePath)-1] != '/' {
-		sourcePath = sourcePath + "/"
-	}
-
-	if len(destinationPath) > 0 && destinationPath[len(destinationPath)-1] != '/' {
-		destinationPath = destinationPath + "/"
-	}
+	//
+	//if len(sourcePath) > 0 && sourcePath[len(sourcePath)-1] != '/' {
+	//	sourcePath = sourcePath
+	//}
+	//
+	//if len(destinationPath) > 0 && destinationPath[len(destinationPath)-1] != '/' {
+	//	destinationPath = destinationPath
+	//}
 
 	args := []string{
 		rootPath + sourcePath,
