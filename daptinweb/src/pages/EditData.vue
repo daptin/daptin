@@ -151,6 +151,9 @@
   Tabulator.prototype.extendModule("format", "formatters", {
     image: function (cell, formatterParams) {
       console.log("format image cell", cell);
+      if (row.data[column.field].length < 1) {
+        return "null"
+      }
       var column = cell._cell.column;
       var row = cell._cell.row;
       var field = row.data[column.field][0];
@@ -159,6 +162,9 @@
     },
     audio: function (cell, formatterParams) {
       console.log("format audio cell", cell);
+      if (row.data[column.field].length < 1) {
+        return "null"
+      }
       var column = cell._cell.column;
       var row = cell._cell.row;
       var field = row.data[column.field][0];
@@ -166,6 +172,9 @@
     },
     video: function (cell, formatterParams) {
       console.log("format video cell", cell);
+      if (row.data[column.field].length < 1) {
+        return "null"
+      }
       var column = cell._cell.column;
       var row = cell._cell.row;
       var field = row.data[column.field][0];
@@ -173,6 +182,9 @@
     },
     file: function (cell, formatterParams) {
       console.log("format video cell", cell);
+      if (row.data[column.field].length < 1) {
+        return "null"
+      }
       var column = cell._cell.column;
       var row = cell._cell.row;
       var field = row.data[column.field][0];
