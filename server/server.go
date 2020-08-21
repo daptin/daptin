@@ -126,7 +126,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	resource.CheckErr(err, "Failed to get config store")
 	defaultRouter.Use(NewLanguageMiddleware(configStore).LanguageMiddlewareFunc)
 
-	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connectioins", "backend")
+	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend")
 	if err != nil {
 		maxConnections = 100
 		err = configStore.SetConfigValueFor("limit.max_connections", maxConnections, "backend")
