@@ -67,8 +67,8 @@
                                   toggle-color="primary" toggle-text-color="primary"
                                   text-color="black"
                                   :options="[
-          {label: signUpPublicAvailable ? 'Enabled' : 'Enable', value: true, disable: signUpPublicAvailable},
-          {label: !signUpPublicAvailable ? 'Disabled' : 'Disable', value: false, disable: !signUpPublicAvailable},
+          {label: signUpPublicAvailable == '2097057' ? 'Enabled' : 'Enable', value: '2097057', disable: signUpPublicAvailable == '2097057'},
+          {label: signUpPublicAvailable != '2097057' ? 'Disabled' : 'Disable', value: '2097024', disable: !(signUpPublicAvailable == '2097057')},
         ]" v-model="signUpPublicAvailable"></q-btn-toggle>
                   </div>
                 </div>
@@ -404,11 +404,23 @@
       },
       updateSignupActionPermission() {
         const that = this;
-        console.log("updateSignupActionPermission", signUpPublicAvailable);
-        var newPermission = "";
-        if (!signUpPublicAvailable) {
-          newPermission = "";
-        }
+        console.log("updateSignupActionPermission", this.signUpPublicAvailable);
+
+
+        that.updateRow({
+          tableName: "world",
+          id: that.selectedTable.reference_id,
+          world_schema_json: JSON.stringify(that.tableSchema),
+        }).then(function () {
+          that.$q.notify({
+            message: "Saved"
+          });
+        }).catch(function (e) {
+          console.log("Failed to remove group from default groups", e);
+          that.$q.notify({
+            message: "Failed to save"
+          });
+        });
 
       },
       updateGraphqlEndpoint() {
@@ -514,7 +526,7 @@
         siteAggregate: {},
         integrationAggregate: {},
         actionAggregate: {},
-        signUpPublicAvailable: false,
+        signUpPublicAvailable: '',
         resetPublicAvailable: false,
         ...mapGetters(['tables'])
       }
@@ -533,13 +545,11 @@
         var data = res.data;
         var actionMap = {};
         var signUpAction = data.filter(function (e) {
-          actionMap[e.action_name] = e
+          actionMap[e.action_name] = e;
           return e.action_name === 'signup'
         })[0];
-        // console.log("Sign up action", signUpAction);
-        if (signUpAction && signUpAction.permission && 1) {
-          that.signUpPublicAvailable = true;
-        }
+
+        that.signUpPublicAvailable = signUpAction.permission;
         var resetAction = data.filter(function (e) {
           return e.action_name === 'resetpassword'
         })[0];

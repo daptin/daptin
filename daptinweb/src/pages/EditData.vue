@@ -9,8 +9,8 @@
             color="purple"
           />
         </template>
-        <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
-        <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
+        <q-breadcrumbs-el  @click="$router.push('/')" style="cursor: pointer" label="Database" icon="fas fa-database"/>
+        <q-breadcrumbs-el @click="$router.push('/tables')" style="cursor: pointer" label="Tables" icon="fas fa-table"/>
         <q-breadcrumbs-el :label="$route.params.tableName"/>
       </q-breadcrumbs>
     </div>
