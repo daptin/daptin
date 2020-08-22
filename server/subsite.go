@@ -245,11 +245,9 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 			c.File(faviconPath)
 		})
 		hostRouter.NoRoute(func(c *gin.Context) {
-			log.Printf("Found no route for %v", c.Request.URL)
-			log.Printf("Found no route for user agent %v", c.Request.Header.Get("User-Agent"))
-			log.Printf("Found no route for ip %v", c.ClientIP())
+			log.Printf("Found no route for [%v] [%v] [%v]", c.ClientIP(), c.Request.Header.Get("User-Agent"), c.Request.URL)
 			c.File(tempDirectoryPath + "/index.html")
-			c.AbortWithStatus(200)
+			c.AbortWithStatus(404)
 		})
 
 		hostRouter.Handle("GET", "/statistics", func(c *gin.Context) {

@@ -272,7 +272,8 @@ text-align: center;
         <q-btn flat @click="showHelp = true" fab icon="fas fa-question"/>
       </q-page-sticky>
 
-      <q-drawer :width="fileDrawerWidth > 800 ? 800 : fileDrawerWidth" overlay :breakpoint="400" side="right" v-model="showHelp">
+      <q-drawer :width="fileDrawerWidth > 800 ? 800 : fileDrawerWidth" overlay :breakpoint="400" side="right"
+                v-model="showHelp">
         <q-scroll-area class="fit" v-if="showHelp">
           <help-page @closeHelp="showHelp = false">
           </help-page>
@@ -319,7 +320,7 @@ text-align: center;
       if (that.decodedAuthToken()) {
         let decodedAuthToken = that.decodedAuthToken();
         let isLoggedOut = decodedAuthToken.exp * 1000 < new Date().getTime();
-        console.log("Decoded auth token", isLoggedOut,  decodedAuthToken);
+        console.log("Decoded auth token", isLoggedOut, decodedAuthToken);
         if (isLoggedOut) {
           that.$q.notify({
             message: "Authentication has expired, please login again"
@@ -376,7 +377,7 @@ text-align: center;
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         this.$router.push("/login");
-        // window.location = window.location;
+        window.location = window.location;
       }
     }
   }

@@ -145,7 +145,7 @@
   import XLSX from 'xlsx';
 
   window.XLSX = XLSX;
-  const assetEndpoint = window.location.hostname === "site.daptin.com" ? "http://localhost:6336" : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : ':' + window.location.port);
+  const assetEndpoint = window.location.hostname === "site.daptin.com" && window.location.port == "8080" ? "http://localhost:" + window.location.port : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : ':' + window.location.port);
   var Tabulator = require('tabulator-tables');
 
   Tabulator.prototype.extendModule("format", "formatters", {

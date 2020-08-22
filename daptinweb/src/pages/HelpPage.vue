@@ -27,7 +27,7 @@
     },
     computed: {
       iframeSrcPath() {
-        let s = window.location.hostname === 'site.daptin.com' ? 'http://localhost:8000' : 'https://daptin.github.com/daptin/'+ this.helpPath;
+        let s = window.location.hostname === 'site.daptin.com' && window.location.port == "8080" ? 'http://localhost:8000' : 'https://daptin.github.com/daptin/'+ this.helpPath;
         console.log("iframe path", s)
         return s;
       }
