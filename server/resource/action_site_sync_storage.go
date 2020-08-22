@@ -40,7 +40,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	oauthTokenId := cloudStore.OAutoTokenId
 	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[siteId]
 	if siteCacheFolder == nil {
-		log.Infof("No subsite cache found on local")
+		log.Infof("No sub-site cache found on local")
 		return nil, nil, []error{errors.New("no site found here")}
 	}
 

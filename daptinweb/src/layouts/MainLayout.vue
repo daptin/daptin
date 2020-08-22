@@ -20,6 +20,9 @@ text-align: center;
 " class="text-white">
               DASHBOARD
             </q-item-section>
+            <q-item-section>
+              <q-btn flat size="xs" @click="showAdminDrawer = !showAdminDrawer" color="white" icon="menu" />
+            </q-item-section>
           </q-item>
         </q-list>
 
