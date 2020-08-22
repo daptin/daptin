@@ -54,12 +54,14 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to convert token to json")
-	config.FileSet(cloudStore.StoreProvider, "client_id", oauthConf.ClientID)
-	config.FileSet(cloudStore.StoreProvider, "type", cloudStore.StoreProvider)
-	config.FileSet(cloudStore.StoreProvider, "client_secret", oauthConf.ClientSecret)
-	config.FileSet(cloudStore.StoreProvider, "token", string(jsonToken))
-	config.FileSet(cloudStore.StoreProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-	config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
+	if oauthConf != nil {
+		config.FileSet(cloudStore.StoreProvider, "client_id", oauthConf.ClientID)
+		config.FileSet(cloudStore.StoreProvider, "type", cloudStore.StoreProvider)
+		config.FileSet(cloudStore.StoreProvider, "client_secret", oauthConf.ClientSecret)
+		config.FileSet(cloudStore.StoreProvider, "token", string(jsonToken))
+		config.FileSet(cloudStore.StoreProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
+		config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
+	}
 
 	tempDirectoryPath := path
 	if tempDirectoryPath == "" {

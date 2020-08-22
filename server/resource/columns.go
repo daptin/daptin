@@ -971,13 +971,15 @@ var SystemActions = []Action{
 				Name:       "Create entity if not exists",
 				ColumnName: "create_if_not_exists",
 				ColumnType: "truefalse",
-				IsNullable: false,
+				DefaultValue: "false",
+				IsNullable: true,
 			},
 			{
 				Name:       "Add missing columns",
 				ColumnName: "add_missing_columns",
 				ColumnType: "truefalse",
-				IsNullable: false,
+				DefaultValue: "false",
+				IsNullable: true,
 			},
 		},
 		Validations: []ColumnTag{
