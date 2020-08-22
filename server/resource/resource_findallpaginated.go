@@ -515,7 +515,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	log.Printf("Id query: [%s]", idsListQuery)
+	//log.Printf("Id query: [%s]", idsListQuery)
 	//log.Printf("Id query args: %v", args)
 	stmt, err := dr.connection.Preparex(idsListQuery)
 	if err != nil {
@@ -726,7 +726,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		results, err = bf.InterceptAfter(dr, &req, results)
 		if err != nil {
 			//log.Errorf("Error from findall paginated create middleware: %v", err)
-			log.Errorf("Error from AfterFindAll[%v] middleware: %v", bf.String(), err)
+			//log.Errorf("Error from AfterFindAll[%v] middleware: %v", bf.String(), err)
 		}
 	}
 
@@ -737,7 +737,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		for _, include := range includes {
 			include, err = bf.InterceptAfter(dr, &req, include)
 			if err != nil {
-				log.Errorf("Error from AfterFindAll[includes][%v] middleware: %v", bf.String(), err)
+				//log.Errorf("Error from AfterFindAll[includes][%v] middleware: %v", bf.String(), err)
 				continue
 			}
 			includesNew = append(includesNew, include)
