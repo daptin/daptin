@@ -18,9 +18,9 @@
 
     <div class="row" style="overflow: scroll; height: 90vh">
 
-      <div class="col-8 col-xs-12 col-sm-12">
+      <div class="col-8 col-md-8 col-xs-12 col-lg-9 col-sm-6">
         <div class="row">
-          <div class="col-6 col-md-6 col-lg-6 col-xl-4 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
+          <div class="col-6 col-md-6 col-lg-4 col-xl-4 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
             <q-card>
 
 
@@ -92,7 +92,7 @@
           </div>
 
 
-          <div class="col-6  col-md-6 col-lg-6 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
+          <div class="col-6  col-md-6 col-lg-4 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
             <q-card>
 
               <q-card-section>
@@ -132,7 +132,7 @@
             </q-card>
           </div>
 
-          <div class="col-6 col-md-6 col-lg-6 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
+          <div class="col-6 col-md-6 col-lg-4 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
             <q-card>
 
               <q-card-section>
@@ -190,7 +190,7 @@
             </q-card>
           </div>
 
-          <div class="col-6  col-md-6 col-lg-6 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
+          <div class="col-6  col-md-6 col-lg-4 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
             <q-card>
               <q-card-section>
                 <q-item>
@@ -239,10 +239,9 @@
 
         </div>
       </div>
-      <div class="col-4  col-md-6 col-lg-4 col-xl-3 col-xs-12 col-sm-12 q-pa-md q-gutter-sm">
+      <div class="col-4  col-md-4 col-lg-3 col-xl-3 col-xs-12 col-sm-6 q-pa-md q-gutter-sm">
         <div class="row">
-
-          <div>
+          <div class="col-12">
             <q-card>
               <q-card-section>
                 <q-item>
@@ -263,18 +262,18 @@
 
               <q-card-section>
                 <div class="row q-pa-md">
-                  <div class="col-4">
+                  <div class="col-6">
                     <span class="text-bold">JSON API endpoint</span>
                   </div>
-                  <div class="col-6 text-right">
+                  <div class="col-4 text-right">
                     <q-icon name="fas fa-check" color="green"></q-icon>
                   </div>
                 </div>
                 <div class="row q-pa-md">
-                  <div class="col-4">
+                  <div class="col-6">
                     <span class="text-bold">FTP service</span>
                   </div>
-                  <div class="col-6 text-right">
+                  <div class="col-4 text-right">
 
                     <!--       {{serverConfig['ftp.enable']}}         <q-checkbox v-model="serverConfig['ftp.enable']"/>-->
                     <q-btn-toggle size="sm" flat color="white" toggle-color="black" toggle-text-color="black"
@@ -286,10 +285,10 @@
                   </div>
                 </div>
                 <div class="row q-pa-md">
-                  <div class="col-4">
+                  <div class="col-6">
                     <span class="text-bold">GraphQL endpoint</span>
                   </div>
-                  <div class="col-6 text-right">
+                  <div class="col-4 text-right">
                     <q-btn-toggle size="sm" flat color="white" toggle-color="black" toggle-text-color="black"
                                   text-color="primary" @click="updateGraphqlEndpoint()"
                                   :options="[
@@ -300,24 +299,24 @@
                   </div>
                 </div>
                 <div class="row q-pa-md">
-                  <div class="col-4">
+                  <div class="col-6">
                     <span class="text-bold">IMAP endpoint</span>
                   </div>
-                  <div class="col-6 text-right">
+                  <div class="col-4 text-right">
                     <q-icon v-if="serverConfig['imap.enabled']" name="fas fa-check" color="green"></q-icon>
                     <q-icon v-if="!serverConfig['imap.enabled']" name="fas fa-times" color="red"></q-icon>
 
                   </div>
                 </div>
                 <div class="row q-pa-md">
-                  <div class="col-4">
+                  <div class="col-6">
                     <span class="text-bold">Connection limit / IP</span>
                   </div>
-                  <div @click="editMaxConnections = true" class="col-6 text-right" v-if="!editMaxConnections"
+                  <div @click="editMaxConnections = true" class="col-4 text-right" v-if="!editMaxConnections"
                        style="text-decoration-line: underline; text-decoration-style: dashed">
                     {{ serverConfig['limit.max_connections'] }}
                   </div>
-                  <div class="col-6 text-right" v-if="editMaxConnections">
+                  <div class="col-4 text-right" v-if="editMaxConnections">
                     <input type="number" @keypress.enter="saveMaxConnections()" style="width: 100px" size="sm"
                            v-model="serverConfig['limit.max_connections']">
                     <q-tooltip>Press enter to save</q-tooltip>
@@ -325,14 +324,14 @@
                   </div>
                 </div>
                 <div class="row q-pa-md">
-                  <div class="col-4">
+                  <div class="col-6">
                     <span class="text-bold">Allowed rate limit</span>
                   </div>
-                  <div class="col-6 text-right" v-if="!editRateLimit" @click="editRateLimit = true"
+                  <div class="col-4 text-right" v-if="!editRateLimit" @click="editRateLimit = true"
                        style="text-decoration-line: underline; text-decoration-style: dashed">
                     {{ serverConfig['limit.rate'] }}
                   </div>
-                  <div class="col-6 text-right" v-if="editRateLimit">
+                  <div class="col-4 text-right" v-if="editRateLimit">
                     <input @keypress.enter="saveRateLimit()" type="number" style="width: 100px" size="sm"
                            v-model="serverConfig['limit.rate']">
                     <q-tooltip>Press enter to save</q-tooltip> <i class="fas fa-times" style="color: grey; cursor: pointer; padding-left: 5px" @click="editRateLimit = false"></i>
