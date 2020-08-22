@@ -26,7 +26,7 @@
     <a href="https://github.com/daptin/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/daptin/daptin.svg?style=flat-square"></a>
 </p>
 <p align="center">
-    <a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLWJmZmRlN2M4YzRkOTI4MDhlNWQ1YzBiMDNhMzE0NTVmNzA3NjA5ZDdkMDExZmI0M2UyMmM2NzhlNDc3M2VhZTQ"><img src="https://img.shields.io/badge/join-on%20slack-orange.svg?longCache=true&style=for-the-badge" /> <a/>
+    <a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLWJmZmRlN2M4YzRkOTI4MDhlNWQ1YzBiMDNhMzE0NTVmNzA3NjA5ZDdkMDExZmI0M2UyMmM2NzhlNDc3M2VhZTQ"><img src="https://img.shields.io/badge/join-on%20slack-orange.svg?longCache=true&style=for-the-badge" /> <a/> 
 </p>
 
 
