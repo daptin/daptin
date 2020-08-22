@@ -19,8 +19,8 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tem
 	oauthTokenId := cloudStore.OAutoTokenId
 
 	token, oauthConf, err := res.GetTokenByTokenReferenceId(oauthTokenId)
-	CheckErr(err, "Failed to get oauth2 token for scheduled storage sync")
-	if err != nil {
+	if err != nil && cloudStore.StoreProvider != "local" {
+		CheckErr(err, "Failed to get oauth2 token for scheduled storage sync")
 		log.Printf("Storage syncing will fail without valid token: OAuthTokenID [%v]", oauthTokenId)
 		// return err
 	}
@@ -41,7 +41,7 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tem
 		tempDirectoryPath,
 	}
 
-	if path != "" && path[0] != '/' && len(args[0]) > 0 && args[0][len(args[0]) - 1] != '/' {
+	if path != "" && path[0] != '/' && len(args[0]) > 0 && args[0][len(args[0])-1] != '/' {
 		path = "/" + path
 	}
 	args[0] = args[0] + path

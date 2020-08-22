@@ -188,7 +188,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		func(task *resource.ActiveTaskInstance) {
 			go func() {
 				log.Info("Sleep 5 sec for running new sync task")
-				time.Sleep(1 * time.Second)
+				time.Sleep(5 * time.Second)
 				activeTask.Run()
 			}()
 		}(activeTask)

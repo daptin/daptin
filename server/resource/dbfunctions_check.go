@@ -357,9 +357,12 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 		err = CreateTable(tableInfo, tx)
 		return err
 	} else {
+		// this is required
+		// dont remove this
+		// else p
 		dest := make(map[string]interface{})
 		err = rowx.MapScan(dest)
-		CheckErr(err, "Failed to scan query result to map")
+		//CheckErr(err, "Failed to scan query result to map")
 	}
 
 	for _, col := range columns {
@@ -367,7 +370,7 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 		if !ok {
 			log.Infof("extra column [%v] found in table [%v]", col, tableInfo.TableName)
 		} else {
-			log.Infof("Column [%v] already present in table [%v]", col, tableInfo.TableName)
+			//log.Infof("Column [%v] already present in table [%v]", col, tableInfo.TableName)
 			columnsWeWant[col] = true
 		}
 	}

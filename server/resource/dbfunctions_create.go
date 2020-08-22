@@ -13,6 +13,10 @@ import (
 
 func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 	log.Infof("Create constraints and indexes")
+
+	existingIndexes := GetExistingIndexes(db)
+
+
 	for _, table := range initConfig.Tables {
 
 		//for _, column := range table.Columns {
@@ -30,7 +34,11 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 
 		if len(table.CompositeKeys) > 0 {
 			for _, compositeKeyCols := range table.CompositeKeys {
-				indexName := "i" + GetMD5Hash("index_cl_"+strings.Join(compositeKeyCols, ",")+"_"+"_unique")
+				indexName := "i" + GetMD5Hash("index_cl_"+strings.Join(compositeKeyCols, ",")+"_unique")
+
+				if existingIndexes[indexName] {
+					continue
+				}
 				alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + strings.Join(compositeKeyCols, ",") + ")"
 				//log.Infof("Create unique index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
@@ -57,6 +65,10 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 			}
 
 			indexName := "i" + GetMD5Hash("index_join_"+table.TableName+"_"+"_unique")
+			if existingIndexes[indexName] {
+				continue
+			}
+
 			alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + strings.Join(cols, ", ") + ")"
 			//log.Infof("Create unique index sql: %v", alterTable)
 			_, err := db.Exec(alterTable)
@@ -70,11 +82,19 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 
 func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 	log.Infof("Create indexes")
+
+	tx := db.MustBegin()
+	existingIndexes := GetExistingIndexes(tx)
+
+
 	for _, table := range initConfig.Tables {
 		for _, column := range table.Columns {
 
 			if column.IsUnique {
 				indexName := "u" + GetMD5Hash("index_"+table.TableName+"_"+column.ColumnName+"_unique")
+				if existingIndexes[indexName] {
+					continue
+				}
 				alterTable := "create unique index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
 				//log.Infof("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
@@ -83,6 +103,10 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 				}
 			} else if column.IsIndexed {
 				indexName := "i" + GetMD5Hash("index_"+table.TableName+"_"+column.ColumnName+"_index")
+				if existingIndexes[indexName] {
+					continue
+				}
+
 				alterTable := "create index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
 				//log.Infof("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
@@ -94,13 +118,50 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 	}
 }
 
+func GetExistingIndexes(db *sqlx.Tx) map[string]bool {
+
+	existingIndexes := make(map[string]bool)
+
+	indexQuery := ""
+	if db.DriverName() == "mysql" {
+		indexQuery = `SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS union SELECT   CONSTRAINT_NAME FROM   INFORMATION_SCHEMA.KEY_COLUMN_USAGE`
+	} else if db.DriverName() == "postgres" {
+		indexQuery = `SELECT
+    indexname
+FROM
+    pg_indexes
+WHERE
+    schemaname = 'public' union SELECT conname  FROM pg_catalog.pg_constraint con`
+	} else if db.DriverName() == "sqlite3" {
+		indexQuery = ".indexes"
+	}
+
+	rows, err := db.Queryx(indexQuery)
+	CheckErr(err, "Failed to check existing indexes")
+	if err == nil {
+		for rows.Next() {
+			var indexName string
+			rows.Scan(&indexName)
+			existingIndexes[indexName] = true
+		}
+	}
+	return existingIndexes
+
+}
+
 func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 	log.Infof("Create relations")
+
+	existingIndexes := GetExistingIndexes(db)
 
 	for i, table := range initConfig.Tables {
 		for _, column := range table.Columns {
 			if column.IsForeignKey && column.ForeignKeyData.DataSource == "self" {
 				keyName := "fk" + GetMD5Hash(table.TableName+"_"+column.ColumnName+"_"+column.ForeignKeyData.Namespace+"_"+column.ForeignKeyData.KeyName+"_fk")
+
+				if existingIndexes[keyName] {
+					continue
+				}
 
 				if db.DriverName() == "sqlite3" {
 					continue
@@ -110,7 +171,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 				//log.Infof("Alter table add constraint sql: %v", alterSql)
 				_, err := db.Exec(alterSql)
 				if err != nil {
-					log.Infof("Failed to create foreign key [%v], probably it exists: %v", err, keyName)
+					log.Infof("Failed to create foreign key [%v],  %v", err, keyName)
 				} else {
 					log.Infof("Key created [%v][%v]", keyName, table.TableName)
 				}

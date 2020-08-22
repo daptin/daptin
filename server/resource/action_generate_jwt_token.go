@@ -77,7 +77,7 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap m
 
 			// Sign and get the complete encoded token as a string using the secret
 			tokenString, err := token.SignedString(d.secret)
-			fmt.Printf("%v %v", tokenString, err)
+			//fmt.Printf("%v %v", tokenString, err)
 			if err != nil {
 				log.Errorf("Failed to sign string: %v", err)
 				return nil, nil, []error{err}
