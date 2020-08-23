@@ -43,7 +43,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	ms := BuildMiddlewareSet(&initConfig, &cruds)
 	for _, table := range initConfig.Tables {
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
-		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, table)
+		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, nil, table)
 		cruds[table.TableName] = res
 	}
 
@@ -92,11 +92,11 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 
 	for _, table := range initConfig.Tables {
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
-		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, table)
+		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, nil, table)
 		cruds[table.TableName] = res
 	}
 
-	dbResource := resource.NewDbResource(nil, wrapper, &ms, cruds, configStore, resource.TableInfo{})
+	dbResource := resource.NewDbResource(nil, wrapper, &ms, cruds, configStore, nil, resource.TableInfo{})
 	return wrapper, dbResource
 }
 
@@ -110,7 +110,7 @@ func GetResourceWithName(name string) (*InMemoryTestDatabase, *resource.DbResour
 	}
 
 	cruds := make(map[string]*resource.DbResource)
-	dbResource := resource.NewDbResource(model, wrapper, nil, cruds, nil, tableInfo)
+	dbResource := resource.NewDbResource(model, wrapper, nil, cruds, nil, nil, tableInfo)
 	cruds[name] = dbResource
 	return wrapper, dbResource
 }

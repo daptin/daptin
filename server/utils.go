@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
@@ -52,7 +53,7 @@ func InArrayIndex(val interface{}, array interface{}) (index int) {
 	return
 }
 
-func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource) map[string]*resource.DbResource {
+func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, olricDb *olric.Olric, cruds map[string]*resource.DbResource) map[string]*resource.DbResource {
 	for _, table := range tables {
 
 		if table.TableName == "" {
@@ -62,7 +63,7 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
 
-		res := resource.NewDbResource(model, db, ms, cruds, configStore, table)
+		res := resource.NewDbResource(model, db, ms, cruds, configStore, olricDb, table)
 
 		cruds[table.TableName] = res
 

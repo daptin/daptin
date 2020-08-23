@@ -8,6 +8,7 @@ import (
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend/backendutil"
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
@@ -31,6 +32,7 @@ type DbResource struct {
 	contextCache       map[string]interface{}
 	defaultGroups      []int64
 	contextLock        sync.RWMutex
+	olricDb            *olric.Olric
 	AssetFolderCache   map[string]map[string]*AssetFolderCache
 	SubsiteFolderCache map[string]*AssetFolderCache
 	MailSender         func(e *mail.Envelope, task backends.SelectTask) (backends.Result, error)
@@ -52,7 +54,6 @@ func (afc *AssetFolderCache) DeleteFileByName(fileName string) error {
 	return os.Remove(afc.LocalSyncPath + string(os.PathSeparator) + fileName)
 
 }
-
 
 func (afc *AssetFolderCache) GetPathContents(path string) ([]map[string]interface{}, error) {
 
@@ -110,9 +111,7 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 
 }
 
-func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
-	ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore,
-	tableInfo TableInfo) *DbResource {
+func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, olricDb *olric.Olric, tableInfo TableInfo) *DbResource {
 	//log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
 	return &DbResource{
 		model:              model,
@@ -122,6 +121,7 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
 		configStore:        configStore,
 		Cruds:              cruds,
 		tableInfo:          &tableInfo,
+		olricDb:            olricDb,
 		defaultGroups:      GroupNamesToIds(db, tableInfo.DefaultGroups),
 		contextCache:       make(map[string]interface{}),
 		contextLock:        sync.RWMutex{},

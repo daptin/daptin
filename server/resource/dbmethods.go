@@ -8,6 +8,7 @@ import (
 	"github.com/araddon/dateparse"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -250,12 +251,27 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 	return perm
 }
 
+var cache *olric.DMap
+
 // Get permission of an GetObjectPermissionByReferenceId by typeName and string referenceId with a simple where clause colName = colValue
 // Use carefully
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
 func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colName string, colValue string) PermissionInstance {
+	if cache == nil {
+		cache, _ = dr.olricDb.NewDMap("default-cache")
+	}
+
+	cacheKey := ""
+	if cache != nil {
+		cacheKey = fmt.Sprintf("%s_%s_%s", objectType, colName, colValue)
+		cachedPermission, _ := cache.Get(cacheKey)
+		if cachedPermission != nil {
+			return cachedPermission.(PermissionInstance)
+		}
+	}
+
 	var perm PermissionInstance
 	s, q, err := statementbuilder.Squirrel.Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Where(squirrel.Eq{colName: colValue}).ToSql()
 	if err != nil {
@@ -287,6 +303,10 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	perm.Permission = auth.AuthPermission(m["permission"].(int64))
 
 	//log.Infof("PermissionInstance for [%v]: %v", typeName, perm)
+
+	if cache != nil {
+		_ = cache.Put(cacheKey, perm)
+	}
 	return perm
 }
 
