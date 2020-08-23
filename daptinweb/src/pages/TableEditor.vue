@@ -2,7 +2,7 @@
   <q-form class="q-gutter-md">
     <div style="padding-bottom: 10px" class="row">
       <div class="col-md-6">
-        <span class="text-h4">{{!isEdit ? 'Create table' : 'Edit table'}}</span>
+        <span class="text-h4">{{ !isEdit ? 'Create table' : 'Edit table' }}</span>
       </div>
     </div>
     <div class="row">
@@ -50,14 +50,38 @@
         <q-tab-panels v-model="tab" animated>
           <q-tab-panel name="columns" class="q-pa-md">
 
+            <div class="row">
+              <div class="col-6">
+                <div class="row">
+                  <div class="col-12 q-pa-md">
+                    <q-card flat>
+                      <q-card-section>
+                        <q-btn style="width: 100%" class="absolute-center" label="Add New">
 
-            <span class="text-h6">Columns</span>
-            <small> ({{ (table.TableName ? (localTable.ColumnModel.length - StandardColumns.length) :
-              (Object.keys(localTable.ColumnModel).length)) + ' plus '
-              + StandardColumns.length + ' base columns'}})
-            </small>
+                        </q-btn>
+                      </q-card-section>
+                    </q-card>
+                  </div>
 
-            <div class="row bg-grey-1" style="border-bottom: 1px solid black"
+                  <div class="col-12 q-pa-md" v-for="column in localTable.ColumnModel
+             .filter(e => e.ColumnName && StandardColumns.indexOf(e.ColumnName) === -1 && (!e.IsForeignKey || e.IsForeignKey && e.ForeignKeyData.DataSource === 'cloud_store'))">
+                    <q-card>
+                      <q-card-section>
+                        <span class="text-bold">{{ column.ColumnName }}</span>
+                      </q-card-section>
+                      <q-card-section>
+                        <div class="row">
+                          <div class="col-6">{{column.ColumnType}}</div>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="row" style="border-bottom: 1px solid black"
                  v-for="column in localTable.ColumnModel
              .filter(e => e.ColumnName && StandardColumns.indexOf(e.ColumnName) === -1 && (!e.IsForeignKey || e.IsForeignKey && e.ForeignKeyData.DataSource === 'cloud_store'))">
 
@@ -104,7 +128,7 @@
                 </q-btn>
               </div>
 
-              <hr />
+              <hr/>
             </div>
 
             <div class="row">
@@ -148,8 +172,11 @@
 
           <q-tab-panel name="relations">
 
-            <span class="text-h6">Relations {{isEdit}}</span>
-            <small>({{(isEdit ? localTable.Relations.length - StandardRelations.length:localTable.Relations.length)}} +
+            <span class="text-h6">Relations {{ isEdit }}</span>
+            <small>({{
+                (isEdit ? localTable.Relations.length - StandardRelations.length : localTable.Relations.length)
+              }}
+              +
               2
               default)
             </small>
@@ -235,259 +262,258 @@
     </div>
 
 
-
   </q-form>
 </template>
 
 <script>
-  import {mapActions, mapGetters, mapState} from 'vuex';
+import {mapActions, mapGetters, mapState} from 'vuex';
 
-  export default {
-    props: {
-      table: Object,
-      tableData: Object
-    },
-    mounted() {
-      console.log("Mounted table editor ", this.table);
+export default {
+  props: {
+    table: Object,
+    tableData: Object
+  },
+  mounted() {
+    console.log("Mounted table editor ", this.table);
+    const that = this;
+    if (this.table.ColumnModel) {
+      this.table.Relations = [];
+      this.localTable = {
+        TableName: this.$route.params.tableName,
+        ColumnModel: [],
+        Relations: [],
+      };
+      this.localTable.ColumnModel = Object.keys(this.table.ColumnModel).map(function (colName) {
+        return that.table.ColumnModel[colName]
+      }).filter(e => !e.jsonApi && e.ColumnName !== "__type" && that.StandardColumns.indexOf(e.ColumnName) === -1);
+
+      this.localTable.Relations = Object.keys(this.table.ColumnModel).filter(e => this.table.ColumnModel[e].jsonApi).map(function (colName) {
+        console.log("Relation ", colName);
+        const col = that.table.ColumnModel[colName];
+        let rel = "has_one";
+        switch (col.jsonApi) {
+          case "hasOne":
+            rel = "has_one";
+            break;
+          case "belongsTo":
+            rel = "belongs_to";
+            break;
+          case "hasMany":
+            rel = "has_many";
+            break;
+        }
+        return {
+          Subject: that.tableName,
+          Relation: rel,
+          Object: col.type
+        }
+      });
+      this.isEdit = true;
+    }
+    this.newRelation.Subject = this.table.TableName;
+  },
+  methods: {
+    deleteTable() {
       const that = this;
-      if (this.table.ColumnModel) {
-        this.table.Relations = [];
-        this.localTable = {
-          TableName: this.$route.params.tableName,
-          ColumnModel: [],
-          Relations: [],
-        };
-        this.localTable.ColumnModel = Object.keys(this.table.ColumnModel).map(function (colName) {
-          return that.table.ColumnModel[colName]
-        }).filter(e => !e.jsonApi && e.ColumnName !== "__type" && that.StandardColumns.indexOf(e.ColumnName) === -1);
-
-        this.localTable.Relations = Object.keys(this.table.ColumnModel).filter(e => this.table.ColumnModel[e].jsonApi).map(function (colName) {
-          console.log("Relation ", colName);
-          const col = that.table.ColumnModel[colName];
-          let rel = "has_one";
-          switch (col.jsonApi) {
-            case "hasOne":
-              rel = "has_one";
-              break;
-            case "belongsTo":
-              rel = "belongs_to";
-              break;
-            case "hasMany":
-              rel = "has_many";
-              break;
-          }
-          return {
-            Subject: that.tableName,
-            Relation: rel,
-            Object: col.type
-          }
-        });
-        this.isEdit = true;
+      console.log("Delete table", this.localTable);
+      this.$q.dialog({
+        title: 'Confirm',
+        message: 'Do you want to delete the table "' + this.localTable.TableName + '"',
+        cancel: true,
+        persistent: true
+      }).onOk(() => {
+        that.$emit('deleteTable', this.localTable.TableName);
+      }).onCancel(() => {
+        // console.log('>>>> Cancel')
+      }).onDismiss(() => {
+        // console.log('I am triggered on both OK and Cancel')
+      })
+    },
+    createTable() {
+      if (!this.localTable.TableName) {
+        this.$q.notify("Table name cannot be empty");
+        return
+      } else if (this.tables.filter(e => e.table_name === this.localTable.TableName).length > 0) {
+        this.$q.notify("Table name already used");
+        return
       }
-      this.newRelation.Subject = this.table.TableName;
+      this.$emit('save', this.localTable);
     },
-    methods: {
-      deleteTable() {
-        const that = this;
-        console.log("Delete table", this.localTable);
-        this.$q.dialog({
-          title: 'Confirm',
-          message: 'Do you want to delete the table "' + this.localTable.TableName + '"',
-          cancel: true,
-          persistent: true
-        }).onOk(() => {
-          that.$emit('deleteTable', this.localTable.TableName);
-        }).onCancel(() => {
-          // console.log('>>>> Cancel')
-        }).onDismiss(() => {
-          // console.log('I am triggered on both OK and Cancel')
-        })
-      },
-      createTable() {
-        if (!this.localTable.TableName) {
-          this.$q.notify("Table name cannot be empty");
-          return
-        } else if (this.tables.filter(e => e.table_name === this.localTable.TableName).length > 0) {
-          this.$q.notify("Table name already used");
-          return
-        }
-        this.$emit('save', this.localTable);
-      },
-      checkRelation(relation, updateType) {
+    checkRelation(relation, updateType) {
 
-        if (relation.Subject !== this.table.TableName) {
-          if (relation.Object !== this.table.TableName) {
-            if (updateType === "subject") {
-              relation.Object = this.table.TableName;
-            } else if (updateType === "object") {
-              relation.Subject = this.table.TableName;
-            }
+      if (relation.Subject !== this.table.TableName) {
+        if (relation.Object !== this.table.TableName) {
+          if (updateType === "subject") {
+            relation.Object = this.table.TableName;
+          } else if (updateType === "object") {
+            relation.Subject = this.table.TableName;
           }
         }
-      },
-
-      updatedRelation(col) {
-
-        if (this.newRelation.Subject !== this.localTable.TableName) {
-          if (this.newRelation.Object !== this.localTable.TableName) {
-            if (col === "subject") {
-              this.newRelation.Object = this.localTable.TableName;
-              return
-            } else if (col === "object") {
-              this.newRelation.Subject = this.localTable.TableName;
-              return;
-            }
-          }
-        }
-
-
-        if (this.newRelation.Object && this.newRelation.Relation) {
-          this.localTable.Relations.push(this.newRelation);
-          this.newRelation = {
-            Subject: this.localTable.TableName,
-            Relation: null,
-            Object: null,
-          }
-        }
-      },
-      columnNameUpdated() {
-        console.log("new column updated", arguments);
-        if (this.newColumn.ColumnName && this.newColumn.ColumnType) {
-          this.localTable.ColumnModel.push(this.newColumn);
-          this.newColumn = {
-            ColumnName: null,
-            ColumnType: null,
-            DefaultValue: null,
-            IsIndexed: false,
-            IsUnique: false,
-            IsNullable: true,
-            notCreated: true,
-          };
-        }
-      },
+      }
     },
-    name: "TableEditor",
-    data() {
-      return {
-        tab: 'columns',
-        StandardColumns: ["id", "created_at", "updated_at", "reference_id", "permission", "version"],
-        StandardRelations: ["user_account_id", "usergroup_id"],
-        ColumnTypes: [
-          {
-            columnType: 'label',
-            dataType: 'varchar(50)'
-          },
-          {
-            columnType: 'label',
-            dataType: 'varchar(100)'
-          },
-          {
-            columnType: 'content',
-            dataType: 'varchar(500)'
-          },
-          {
-            columnType: 'content',
-            dataType: 'varchar(1000)'
-          },
-          {
-            columnType: 'content',
-            dataType: 'text'
-          },
-          {
-            columnType: 'measurement',
-            dataType: 'int(4)'
-          },
-          {
-            columnType: 'measurement',
-            dataType: 'int(11)'
-          },
-          {
-            columnType: 'measurement',
-            dataType: 'float(11)'
-          },
-          {
-            columnType: 'file.mp3|wav',
-            dataType: 'blob'
-          },
-          {
-            columnType: 'file.mp4|mkv',
-            dataType: 'blob'
-          },
-          {
-            columnType: 'file.jpg|png|gif',
-            dataType: 'blob'
-          },
-          {
-            columnType: 'json',
-            dataType: 'json'
-          },
-          {
-            columnType: 'datetime',
-            dataType: 'timestamp'
-          },
-          {
-            columnType: 'value',
-            dataType: 'int(11)'
-          },
-          {
-            columnType: 'alias',
-            dataType: 'varchar(30)'
-          },
-          {
-            columnType: 'truefalse',
-            dataType: 'int(1)'
-          },
-          {
-            columnType: 'gzip',
-            dataType: 'blob'
-          },
-        ],
-        RelationTypes: ['has_one', 'belongs_to', 'has_many'],
-        tableName: null,
-        isEdit: false,
-        localTable: {
-          TableName: null,
-          ColumnModel: [],
-          Relations: [],
-        },
-        newColumn: {
-          ColumnName: null,
-          ColumnType: null,
-          DefaultValue: null,
-          notCreated: true,
-          IsIndexed: false,
-          IsUnique: false,
-          IsNullable: true,
-        },
-        newRelation: {
-          Subject: null,
+
+    updatedRelation(col) {
+
+      if (this.newRelation.Subject !== this.localTable.TableName) {
+        if (this.newRelation.Object !== this.localTable.TableName) {
+          if (col === "subject") {
+            this.newRelation.Object = this.localTable.TableName;
+            return
+          } else if (col === "object") {
+            this.newRelation.Subject = this.localTable.TableName;
+            return;
+          }
+        }
+      }
+
+
+      if (this.newRelation.Object && this.newRelation.Relation) {
+        this.localTable.Relations.push(this.newRelation);
+        this.newRelation = {
+          Subject: this.localTable.TableName,
           Relation: null,
           Object: null,
         }
       }
     },
-
-    computed: {
-      ...mapGetters(['tables'])
+    columnNameUpdated() {
+      console.log("new column updated", arguments);
+      if (this.newColumn.ColumnName && this.newColumn.ColumnType) {
+        this.localTable.ColumnModel.push(this.newColumn);
+        this.newColumn = {
+          ColumnName: null,
+          ColumnType: null,
+          DefaultValue: null,
+          IsIndexed: false,
+          IsUnique: false,
+          IsNullable: true,
+          notCreated: true,
+        };
+      }
     },
-    watch: {
-      'localTable.TableName': function (newName, oldName) {
-        console.log("Name changed", newName, oldName, this.localTable.Relations);
-        this.tableName = newName;
-        if (this.localTable && this.localTable.Relations) {
-          this.localTable.TableName = newName;
-          for (var i = 0; i < this.localTable.Relations.length; i++) {
-            if (this.localTable.Relations[i].Subject === oldName) {
-              this.localTable.Relations[i].Subject = newName
-            } else if (this.localTable.Relations[i].Object === oldName) {
-              this.localTable.Relations[i].Object = newName
-            }
+  },
+  name: "TableEditor",
+  data() {
+    return {
+      tab: 'columns',
+      StandardColumns: ["id", "created_at", "updated_at", "reference_id", "permission", "version"],
+      StandardRelations: ["user_account_id", "usergroup_id"],
+      ColumnTypes: [
+        {
+          columnType: 'label',
+          dataType: 'varchar(50)'
+        },
+        {
+          columnType: 'label',
+          dataType: 'varchar(100)'
+        },
+        {
+          columnType: 'content',
+          dataType: 'varchar(500)'
+        },
+        {
+          columnType: 'content',
+          dataType: 'varchar(1000)'
+        },
+        {
+          columnType: 'content',
+          dataType: 'text'
+        },
+        {
+          columnType: 'measurement',
+          dataType: 'int(4)'
+        },
+        {
+          columnType: 'measurement',
+          dataType: 'int(11)'
+        },
+        {
+          columnType: 'measurement',
+          dataType: 'float(11)'
+        },
+        {
+          columnType: 'file.mp3|wav',
+          dataType: 'blob'
+        },
+        {
+          columnType: 'file.mp4|mkv',
+          dataType: 'blob'
+        },
+        {
+          columnType: 'file.jpg|png|gif',
+          dataType: 'blob'
+        },
+        {
+          columnType: 'json',
+          dataType: 'json'
+        },
+        {
+          columnType: 'datetime',
+          dataType: 'timestamp'
+        },
+        {
+          columnType: 'value',
+          dataType: 'int(11)'
+        },
+        {
+          columnType: 'alias',
+          dataType: 'varchar(30)'
+        },
+        {
+          columnType: 'truefalse',
+          dataType: 'int(1)'
+        },
+        {
+          columnType: 'gzip',
+          dataType: 'blob'
+        },
+      ],
+      RelationTypes: ['has_one', 'belongs_to', 'has_many'],
+      tableName: null,
+      isEdit: false,
+      localTable: {
+        TableName: null,
+        ColumnModel: [],
+        Relations: [],
+      },
+      newColumn: {
+        ColumnName: null,
+        ColumnType: null,
+        DefaultValue: null,
+        notCreated: true,
+        IsIndexed: false,
+        IsUnique: false,
+        IsNullable: true,
+      },
+      newRelation: {
+        Subject: null,
+        Relation: null,
+        Object: null,
+      }
+    }
+  },
+
+  computed: {
+    ...mapGetters(['tables'])
+  },
+  watch: {
+    'localTable.TableName': function (newName, oldName) {
+      console.log("Name changed", newName, oldName, this.localTable.Relations);
+      this.tableName = newName;
+      if (this.localTable && this.localTable.Relations) {
+        this.localTable.TableName = newName;
+        for (var i = 0; i < this.localTable.Relations.length; i++) {
+          if (this.localTable.Relations[i].Subject === oldName) {
+            this.localTable.Relations[i].Subject = newName
+          } else if (this.localTable.Relations[i].Object === oldName) {
+            this.localTable.Relations[i].Object = newName
           }
-          this.newRelation.Subject = newName;
         }
+        this.newRelation.Subject = newName;
       }
     }
   }
+}
 </script>
 
 <style scoped>
