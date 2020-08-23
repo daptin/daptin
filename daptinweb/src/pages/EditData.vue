@@ -46,11 +46,11 @@
 
       <q-page-sticky v-if="!newRowDrawer" position="bottom-right" :offset="[20, 20]">
         <q-fab vertical-actions-align="right" color="primary" icon="keyboard_arrow_up" direction="up">
-          <q-fab-action @click="downloadData('xls')" label="Download XLS" icon="fas fa-file-excel">
+          <q-fab-action color="orange" @click="downloadData('xls')" label="Download XLS" icon="fas fa-file-excel">
           </q-fab-action>
-          <q-fab-action @click="downloadData('csv')" label="Download CSV" icon="fas fa-download">
+          <q-fab-action color="orange" @click="downloadData('csv')" label="Download CSV" icon="fas fa-download">
           </q-fab-action>
-          <q-fab-action @click="$refs.fileUpload.pickFiles()" label="Upload CSV/XLS" icon="fas fa-upload">
+          <q-fab-action color="orange" @click="$refs.fileUpload.pickFiles()" label="Upload CSV/XLS" icon="fas fa-upload">
             <q-file v-model="dataUploadFile" ref="fileUpload" @input="uploadFileSelected"
                     style="display: none"></q-file>
           </q-fab-action>
