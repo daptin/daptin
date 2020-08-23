@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	server2 "github.com/fclairamb/ftpserver/server"
 	"io/ioutil"
@@ -97,7 +99,6 @@ func main() {
 	}
 	statementbuilder.InitialiseStatementBuilder(*dbType)
 
-
 	db, err := server.GetDbConnection(*dbType, *connectionString)
 	if err != nil {
 		panic(err)
@@ -111,9 +112,10 @@ func main() {
 	var configStore *resource.ConfigStore
 	var ftpServer *server2.FtpServer
 	var imapServerInstance *imapServer.Server
+	var olricDb *olric.Olric
 
 	hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-		ftpServer, imapServerInstance = server.Main(boxRoot, db, *localStoragePath)
+		ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -138,6 +140,7 @@ func main() {
 
 		startTime := time.Now()
 
+		olricDb.Shutdown(context.Background())
 		log.Printf("Close down services and db connection")
 		taskScheduler.StopTasks()
 		if ftpServer != nil {
@@ -164,7 +167,7 @@ func main() {
 		}
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-			ftpServer, imapServerInstance = server.Main(boxRoot, db1, *localStoragePath)
+			ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db1, *localStoragePath)
 		rhs.HostSwitch = &hostSwitch
 		err = db.Close()
 		auth.CheckErr(err, "Failed to close old db connection")

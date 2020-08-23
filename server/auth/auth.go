@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/jwt"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -68,12 +69,14 @@ type AuthMiddleware struct {
 	userGroupCrud     ResourceAdapter
 	userUserGroupCrud ResourceAdapter
 	issuer            string
+	olricDb           *olric.Olric
 }
 
-func NewAuthMiddlewareBuilder(db database.DatabaseConnection, issuer string) *AuthMiddleware {
+func NewAuthMiddlewareBuilder(db database.DatabaseConnection, issuer string, olricDb *olric.Olric) *AuthMiddleware {
 	return &AuthMiddleware{
-		db:     db,
-		issuer: issuer,
+		db:      db,
+		issuer:  issuer,
+		olricDb: olricDb,
 	}
 }
 
@@ -186,6 +189,10 @@ func CheckErr(err error, message ...interface{}) {
 	}
 }
 
+var UserSelectQuery, _, _ = statementbuilder.Squirrel.Select("ug.reference_id as \"groupreferenceid\"",
+	"uug.reference_id as \"relationreferenceid\"", "uug.permission").From("usergroup ug").
+	Join("user_account_user_account_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id").Where("uug.user_account_id = ?", 1).ToSql()
+
 func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer http.ResponseWriter, doBasicAuthCheck bool) (okToContinue, abortRequest bool, returnRequest *http.Request) {
 	okToContinue = true
 	abortRequest = false
@@ -217,6 +224,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 	if hasUser {
 
+		cache, _ := a.olricDb.NewDMap("default-cache")
 		//log.Infof("Set user: %v", user)
 		if user == nil {
 
@@ -231,102 +239,115 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			name := userToken.Claims.(jwt.MapClaims)["name"].(string)
 			//log.Infof("User is not nil: %v", email  )
 
+			var cachedUser interface{}
+			if cache != nil {
+				cachedUser, err = cache.Get(email)
+			}
+			var user *SessionUser
 			var referenceId string
 			var userId int64
 			var userGroups []GroupPermission
+			if err != nil || cachedUser == nil {
 
-			sql, args, err := statementbuilder.Squirrel.Select("u.id", "u.reference_id").From("user_account u").Where("email = ?", email).ToSql()
-			if err != nil {
-				log.Errorf("Failed to create select query for user table")
-				return false, true, req
-			}
-
-			rowx := a.db.QueryRowx(sql, args...)
-			err = rowx.Scan(&userId, &referenceId)
-
-			if err != nil {
-				// if a user logged in from third party oauth login
-				log.Errorf("Failed to scan user from db: %v", err)
-
-				mapData := make(map[string]interface{})
-				mapData["name"] = name
-				mapData["email"] = email
-
-				newUser := api2go.NewApi2GoModelWithData("user_account", nil, int64(DEFAULT_PERMISSION), nil, mapData)
-
-				req1 := api2go.Request{
-					PlainRequest: &http.Request{
-						Method: "POST",
-					},
+				sql, args, err := statementbuilder.Squirrel.Select("u.id", "u.reference_id").From("user_account u").Where("email = ?", email).ToSql()
+				if err != nil {
+					log.Errorf("Failed to create select query for user table")
+					return false, true, req
 				}
 
-				resp, err := a.userCrud.Create(newUser, req1)
-				if err != nil {
-					log.Errorf("Failed to create new user: %v", err)
-					abortRequest = true
-					return okToContinue, abortRequest, req
-				}
-				referenceId = resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
-
-				mapData = make(map[string]interface{})
-				mapData["name"] = "Home group of " + name
-
-				newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, int64(DEFAULT_PERMISSION), nil, mapData)
-
-				resp, err = a.userGroupCrud.Create(newUserGroup, req1)
-				if err != nil {
-					log.Errorf("Failed to create new user group: %v", err)
-				}
-				userGroupId := resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
-
-				userGroups = make([]GroupPermission, 0)
-				mapData = make(map[string]interface{})
-				mapData["user_account_id"] = referenceId
-				mapData["usergroup_id"] = userGroupId
-
-				newUserUserGroup := api2go.NewApi2GoModelWithData("user_account_user_account_id_has_usergroup_usergroup_id", nil, int64(DEFAULT_PERMISSION), nil, mapData)
-
-				uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req1)
-				if err != nil {
-					log.Errorf("Failed to create user-usergroup relation: %v", err)
-				}
-				log.Infof("User ug: %v", uug)
-
-			} else {
-
-				sql, args, err := statementbuilder.Squirrel.Select("ug.reference_id as \"groupreferenceid\"",
-					"uug.reference_id as \"relationreferenceid\"", "uug.permission").From("usergroup ug").
-					Join("user_account_user_account_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id").Where("uug.user_account_id = ?", userId).ToSql()
-
-				rows, err := a.db.Queryx(sql, args...)
+				rowx := a.db.QueryRowx(sql, args...)
+				err = rowx.Scan(&userId, &referenceId)
 
 				if err != nil {
-					log.Errorf("Failed to get user group permissions: %v", err)
-				} else {
-					defer rows.Close()
-					//cols, _ := rows.Columns()
-					//log.Infof("Columns: %v", cols)
-					for rows.Next() {
-						var p GroupPermission
-						err = rows.StructScan(&p)
-						p.ObjectReferenceId = referenceId
-						if err != nil {
-							log.Errorf("failed to scan group permission struct: %v", err)
-							continue
-						}
-						userGroups = append(userGroups, p)
+					// if a user logged in from third party oauth login
+					log.Errorf("Failed to scan user from db: %v", err)
+
+					mapData := make(map[string]interface{})
+					mapData["name"] = name
+					mapData["email"] = email
+
+					newUser := api2go.NewApi2GoModelWithData("user_account", nil, int64(DEFAULT_PERMISSION), nil, mapData)
+
+					req1 := api2go.Request{
+						PlainRequest: &http.Request{
+							Method: "POST",
+						},
 					}
 
+					resp, err := a.userCrud.Create(newUser, req1)
+					if err != nil {
+						log.Errorf("Failed to create new user: %v", err)
+						abortRequest = true
+						return okToContinue, abortRequest, req
+					}
+					referenceId = resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
+
+					mapData = make(map[string]interface{})
+					mapData["name"] = "Home group of " + name
+
+					newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, int64(DEFAULT_PERMISSION), nil, mapData)
+
+					resp, err = a.userGroupCrud.Create(newUserGroup, req1)
+					if err != nil {
+						log.Errorf("Failed to create new user group: %v", err)
+					}
+					userGroupId := resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
+
+					userGroups = make([]GroupPermission, 0)
+					mapData = make(map[string]interface{})
+					mapData["user_account_id"] = referenceId
+					mapData["usergroup_id"] = userGroupId
+
+					newUserUserGroup := api2go.NewApi2GoModelWithData("user_account_user_account_id_has_usergroup_usergroup_id", nil, int64(DEFAULT_PERMISSION), nil, mapData)
+
+					uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req1)
+					if err != nil {
+						log.Errorf("Failed to create user-usergroup relation: %v", err)
+					}
+					log.Infof("User ug: %v", uug)
+
+				} else {
+
+					args = []interface{}{userId}
+
+					rows, err := a.db.Queryx(UserSelectQuery, args...)
+
+					if err != nil {
+						log.Errorf("Failed to get user group permissions: %v", err)
+					} else {
+						defer rows.Close()
+						//cols, _ := rows.Columns()
+						//log.Infof("Columns: %v", cols)
+						for rows.Next() {
+							var p GroupPermission
+							err = rows.StructScan(&p)
+							p.ObjectReferenceId = referenceId
+							if err != nil {
+								log.Errorf("failed to scan group permission struct: %v", err)
+								continue
+							}
+							userGroups = append(userGroups, p)
+						}
+
+					}
 				}
+
+				//log.Infof("Group permissions :%v", userGroups)
+
+				user = &SessionUser{
+					UserId:          userId,
+					UserReferenceId: referenceId,
+					Groups:          userGroups,
+				}
+
+				if cache != nil {
+					err = cache.Put(email, user)
+					CheckErr(err, "Failed to put user in cache")
+				}
+			} else {
+				user = cachedUser.(*SessionUser)
 			}
 
-			//log.Infof("Group permissions :%v", userGroups)
-
-			user := &SessionUser{
-				UserId:          userId,
-				UserReferenceId: referenceId,
-				Groups:          userGroups,
-			}
 			ct := req.Context()
 			ct = context.WithValue(ct, "user", user)
 			newRequest := req.WithContext(ct)

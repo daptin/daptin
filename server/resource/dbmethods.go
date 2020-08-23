@@ -1188,7 +1188,8 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 		return responseArray, nil, err
 	}
 
-	objMap := make(map[string]interface{})
+	objectCache := make(map[string]interface{})
+	referenceIdCache := make(map[int64]string)
 	includes := make([][]map[string]interface{}, 0)
 
 	for _, row := range responseArray {
@@ -1238,13 +1239,17 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					CheckErr(err, "Failed to convert string id to int id")
 				}
 				cacheKey := fmt.Sprintf("%v-%v", namespace, referenceIdInt)
-				objCached, ok := objMap[cacheKey]
+				objCached, ok := objectCache[cacheKey]
 				if ok {
 					localInclude = append(localInclude, objCached.(map[string]interface{}))
 					continue
 				}
 
-				refId, err := dr.GetIdToReferenceId(namespace, referenceIdInt)
+				refId, ok := referenceIdCache[referenceIdInt]
+				if !ok {
+					refId, err = dr.GetIdToReferenceId(namespace, referenceIdInt)
+					referenceIdCache[referenceIdInt] = refId
+				}
 
 				if err != nil {
 					log.Errorf("Failed to get ref id for [%v][%v]: %v", namespace, val, err)

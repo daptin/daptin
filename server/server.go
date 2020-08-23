@@ -2,6 +2,8 @@ package server
 
 import (
 	"fmt"
+	"github.com/buraksezer/olric"
+	olricConfig "github.com/buraksezer/olric/config"
 	"github.com/sadlil/go-trigger"
 	"io"
 	"os"
@@ -41,7 +43,7 @@ var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string) (HostSwitch, *guerrilla.Daemon,
-	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server) {
+	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server, *olric.Olric) {
 
 	fmt.Print(`                                                                           
                               
@@ -83,7 +85,30 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	initialiseResources(&initConfig, db)
 
-	/// end system initialise
+	olricDb, err := olric.New(olricConfig.New("local"))
+	if err != nil {
+		log.Errorf("Failed to create olric cache: %v", err)
+	}
+
+	go func() {
+		err = olricDb.Start()
+		auth.CheckErr(err, "failed to start cache server")
+	}()
+
+	var defaultCache *olric.DMap
+
+	go func() {
+		for {
+			defaultCache, err = olricDb.NewDMap("default-cache")
+			if err == nil {
+				log.Printf("Olric default-cache created")
+				return
+			} else {
+				auth.CheckErr(err, "failed to start create default-cache")
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
 
 	defaultRouter := gin.Default()
 	defaultRouter.Use(gzip.Gzip(gzip.DefaultCompression,
@@ -277,7 +302,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
 		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
 	}
-	authMiddleware := auth.NewAuthMiddlewareBuilder(db, jwtTokenIssuer)
+	authMiddleware := auth.NewAuthMiddlewareBuilder(db, jwtTokenIssuer, olricDb)
 	auth.InitJwtMiddleware([]byte(jwtSecret), jwtTokenIssuer)
 	defaultRouter.Use(authMiddleware.AuthCheckMiddleware)
 
@@ -578,7 +603,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 	log.Printf("Our admin is [%v]", adminEmail)
 
-	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer, imapServer
+	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer, imapServer, olricDb
 
 }
 

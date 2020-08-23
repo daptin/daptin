@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	ImapServer "github.com/artpar/go-imap/server"
+	"github.com/buraksezer/olric"
 	server2 "github.com/fclairamb/ftpserver/server"
 
 	"github.com/jlaffaye/ftp"
@@ -165,6 +166,7 @@ func TestServer(t *testing.T) {
 	//var imapServer *server2.Server
 	var ftpServer *server2.FtpServer
 	var imapServer *ImapServer.Server
+	var olricDb *olric.Olric
 
 	configStore, _ = resource.NewConfigStore(db)
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
@@ -176,7 +178,7 @@ func TestServer(t *testing.T) {
 	configStore.SetConfigValueFor("limit.max_connectioins", "5000", "backend")
 	configStore.SetConfigValueFor("limit.rate", "5000", "backend")
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer = server.Main(boxRoot, db, "./local")
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, "./local")
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -196,7 +198,7 @@ func TestServer(t *testing.T) {
 
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer = server.Main(boxRoot, db, "./local")
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, "./local")
 		rhs.HostSwitch = &hostSwitch
 	})
 
