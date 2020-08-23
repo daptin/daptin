@@ -95,20 +95,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		auth.CheckErr(err, "failed to start cache server")
 	}()
 
-	var defaultCache *olric.DMap
-
-	go func() {
-		for {
-			defaultCache, err = olricDb.NewDMap("default-cache")
-			if err == nil {
-				log.Printf("Olric default-cache created")
-				return
-			} else {
-				auth.CheckErr(err, "failed to start create default-cache")
-			}
-			time.Sleep(1 * time.Second)
-		}
-	}()
 
 	defaultRouter := gin.Default()
 	defaultRouter.Use(gzip.Gzip(gzip.DefaultCompression,

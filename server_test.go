@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -188,6 +189,7 @@ func TestServer(t *testing.T) {
 		log.Printf("Trigger restart")
 
 		taskScheduler.StopTasks()
+		olricDb.Shutdown(context.Background())
 		mailDaemon.Shutdown()
 		ftpServer.Stop()
 		imapServer.Close()
