@@ -1203,7 +1203,6 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 			}
 
 			if val != nil && columnInfo.ColumnType == "datetime" {
-
 				stringVal, ok := val.(string)
 				if ok {
 					parsedValue, _, err := fieldtypes.GetTime(stringVal)

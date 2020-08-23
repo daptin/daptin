@@ -16,7 +16,7 @@
     <q-separator></q-separator>
 
 
-    <div class="row" style="overflow: scroll; height: 90vh">
+    <div class="row" style="overflow-y: scroll; height: 90vh">
 
       <div class="col-8" >
         <div class="row">

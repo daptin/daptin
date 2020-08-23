@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/daptin/daptin/server/auth"
 	server2 "github.com/fclairamb/ftpserver/server"
-	"io"
 	"io/ioutil"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -32,18 +33,18 @@ var stream = health.NewStream()
 
 func init() {
 
-	logFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
-	if !ok || logFileLocation == "" {
-		logFileLocation = "daptin.log"
-	}
-	f, e := os.OpenFile(logFileLocation, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if e != nil {
-		log.Errorf("Failed to open logfile %v", e)
-	}
-
-	mwriter := io.MultiWriter(f, os.Stdout)
-
-	log.SetOutput(mwriter)
+	//logFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
+	//if !ok || logFileLocation == "" {
+	//	logFileLocation = "daptin.log"
+	//}
+	//f, e := os.OpenFile(logFileLocation, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	//if e != nil {
+	//	log.Errorf("Failed to open logfile %v", e)
+	//}
+	//
+	//mwriter := io.MultiWriter(f, os.Stdout)
+	//
+	//log.SetOutput(mwriter)
 }
 
 func main() {
@@ -60,12 +61,28 @@ func main() {
 	var port_variable = flag.String("port_variable", "port", "ENV port variable name to look for port")
 	var port = flag.String("port", ":6336", "daptin port")
 	var httpsPort = flag.String("https_port", ":6443", "daptin https port")
-	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: debug, test, release")
+	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: profile, debug, test, release")
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
 
-	gin.SetMode(*runtimeMode)
+	restart_count := 0
+	if *runtimeMode == "profile" {
+		gin.SetMode("release")
+
+		cpuprofile := fmt.Sprintf("daptin_cpu_profile_%v.prof", restart_count)
+		f, err := os.Create(cpuprofile)
+		if err != nil {
+			log.Errorf("Failed to create file for profile dump: %v", err)
+		} else {
+			err = pprof.StartCPUProfile(f)
+			auth.CheckErr(err, "Failed to start CPU profile: %v", err)
+		}
+
+	} else {
+		gin.SetMode(*runtimeMode)
+	}
+
 	stream.AddSink(&health.WriterSink{
 		Writer: os.Stdout,
 	})
@@ -102,6 +119,21 @@ func main() {
 
 	err = trigger.On("restart", func() {
 		log.Printf("Trigger restart")
+		restart_count += 1
+
+		if *runtimeMode == "profile" {
+			pprof.StopCPUProfile()
+
+			cpuprofile := fmt.Sprintf("daptin_cpu_profile_%v.prof", restart_count)
+			f, err := os.Create(cpuprofile)
+			if err != nil {
+				log.Errorf("Failed to create file [%v] for profile dump: %v", cpuprofile, err)
+			} else {
+				err = pprof.StartCPUProfile(f)
+				auth.CheckErr(err, "Failed to start CPU profile: %v", err)
+			}
+
+		}
 
 		startTime := time.Now()
 
