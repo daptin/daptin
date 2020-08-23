@@ -6,6 +6,8 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
+	"strconv"
+
 	//"reflect"
 	"github.com/artpar/go.uuid"
 	//"strconv"
@@ -321,6 +323,11 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 				if val == "" || val == "-" || strings.ToLower(valString) == "na" {
 					val = 0
+				}
+				if BeginsWith(strings.ToLower(col.DataType), "int") {
+					floatVal, _:= strconv.ParseFloat(valString, 64)
+					intVal := int(floatVal)
+					val = fmt.Sprintf("%d", intVal)
 				}
 			}
 		} else if col.ColumnType == "encrypted" {
