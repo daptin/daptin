@@ -253,14 +253,32 @@
                   <q-item-section>
                     <span class="text-h4">Services</span>
                   </q-item-section>
-                  <q-item-section avatar>
-                    <q-btn rounded color="primary" @click="reloadServer()" flat size="md" icon="fas fa-sync"></q-btn>
-                  </q-item-section>
                 </q-item>
               </q-card-section>
 
 
               <q-card-section>
+                <div class="row q-pa-md">
+                  <q-tooltip>
+                    Resync configuration is required when you make a change to any of the following <br />
+                    <ul>
+                      <li>Table structure</li>
+                      <li>Service config change (service enabled/disabled)</li>
+                      <li>Backend config change (rate limit/hostname)</li>
+                      <li>Cloud storage and site source changes</li>
+                      <li>Mail server changes (added or removed hosts)</li>
+                      <li>Permission changes to tables and actions (row level permission change doesn't require this)</li>
+                    </ul>
+                  </q-tooltip>
+                  <div class="col-6">
+                    <span class="text-bold">Resync Configuration
+                    </span>
+                  </div>
+                  <div class="col-4 text-right">
+                    <q-btn rounded color="primary" @click="reloadServer()" flat size="md" icon="fas fa-sync"></q-btn>
+                  </div>
+                </div>
+
                 <div class="row q-pa-md">
                   <div class="col-6">
                     <span class="text-bold">JSON API endpoint</span>
@@ -269,6 +287,8 @@
                     <q-icon name="fas fa-check" color="green"></q-icon>
                   </div>
                 </div>
+
+
                 <div class="row q-pa-md">
                   <div class="col-6">
                     <span class="text-bold">FTP service</span>
@@ -509,7 +529,7 @@
           console.log("Failed to restart daptin", err)
         })
       },
-      ...mapActions(['loadData', 'loadAggregates', 'loadServerConfig', 'executeAction', 'saveConfig'])
+      ...mapActions(['loadData', 'loadAggregates', 'loadServerConfig', 'executeAction', 'saveConfig', 'loadTables'])
     },
 
     data() {
@@ -533,6 +553,10 @@
     },
     mounted() {
       const that = this;
+      this.$q.loadingBar.start();
+      that.loadTables().then(function () {
+        that.$q.loadingBar.stop()
+      });
       that.loadData({
         tableName: 'action',
         params: {

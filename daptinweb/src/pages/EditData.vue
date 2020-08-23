@@ -9,7 +9,7 @@
             color="purple"
           />
         </template>
-        <q-breadcrumbs-el  @click="$router.push('/')" style="cursor: pointer" label="Database" icon="fas fa-database"/>
+        <q-breadcrumbs-el @click="$router.push('/')" style="cursor: pointer" label="Database" icon="fas fa-database"/>
         <q-breadcrumbs-el @click="$router.push('/tables')" style="cursor: pointer" label="Tables" icon="fas fa-table"/>
         <q-breadcrumbs-el :label="$route.params.tableName"/>
       </q-breadcrumbs>
@@ -18,8 +18,21 @@
 
     <div class="row">
       <div class="col-12">
-        <q-btn @click="showNewRowDrawer()" color="primary" flat>New row</q-btn>
-        <q-btn @click="showPermissionsDrawer()" color="primary" flat>Table Permissions</q-btn>
+        <q-btn size="sm" @click="showNewRowDrawer()" color="primary" flat label="New row"></q-btn>
+        <q-btn size="sm" @click="showPermissionsDrawer()" color="primary" flat label="Table Permissions"></q-btn>
+        <q-btn size="sm" flat label="Table Options">
+          <q-menu anchor="bottom left" self="top left">
+            <q-item clickable>
+              <q-item-section>
+                <q-checkbox  size="sm" @input="refreshData()" label="Show column filters"
+                            v-model="tabulatorOptions.headerFilter"></q-checkbox>
+              </q-item-section>
+            </q-item>
+            <q-item clickable @click="refreshData()">
+              <q-item-section >Refresh data</q-item-section>
+            </q-item>
+          </q-menu>
+        </q-btn>
 
         <q-btn v-if="selectedRows.length > 0" @click="deleteSelectedRows" flat color="red">Delete selected rows
         </q-btn>
@@ -36,8 +49,8 @@
           </q-fab-action>
           <q-fab-action @click="downloadData('csv')" label="Download CSV" icon="fas fa-download">
           </q-fab-action>
-          <q-fab-action  @click="$refs.fileUpload.click()" label="Upload CSV/XLS" icon="fas fa-upload">
-            <input ref="fileUpload" style="display: none" type="file">
+          <q-fab-action @click="$refs.fileUpload.click()" label="Upload CSV/XLS" icon="fas fa-upload">
+            <input ref="fileUpload" @change="uploadFileSelected" style="display: none" type="file">
           </q-fab-action>
         </q-fab>
       </q-page-sticky>
@@ -120,20 +133,13 @@
       </q-scroll-area>
     </q-drawer>
 
-    <q-drawer side="right" v-model="tablePermissionDrawer" bordered :width="400" :breakpoint="1400"
+    <q-drawer overlay side="right" v-model="tablePermissionDrawer" bordered :width="400" :breakpoint="1400"
               content-class="bg-grey-3">
       <q-scroll-area class="fit row" v-if="!newRowDrawer">
-        <div class="q-pa-md">
-          <div class="col-12">
-            <span class="text-h5">Table permissions</span>
-          </div>
-        </div>
-        <div>
-          <div class="col-12">
-            <table-permissions @close="tablePermissionDrawer = false" v-if="tableData"
-                               v-bind:selectedTable="tableData"/>
-          </div>
-        </div>
+
+        <table-permissions @close="tablePermissionDrawer = false" v-if="tableData"
+                           v-bind:selectedTable="tableData"/>
+
       </q-scroll-area>
     </q-drawer>
   </div>
@@ -149,9 +155,9 @@ import {mapActions, mapGetters, mapState} from 'vuex';
 
 import XLSX from 'xlsx';
 
-  window.XLSX = XLSX;
-  const assetEndpoint = window.location.hostname === "site.daptin.com" && window.location.port === "8080" ? "http://localhost:" + window.location.port : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : ':' + window.location.port);
-  var Tabulator = require('tabulator-tables');
+window.XLSX = XLSX;
+const assetEndpoint = window.location.hostname === "site.daptin.com" && window.location.port === "8080" ? "http://localhost:" + window.location.port : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : ':' + window.location.port);
+var Tabulator = require('tabulator-tables');
 
 Tabulator.prototype.extendModule("format", "formatters", {
   image: function (cell, formatterParams) {
@@ -200,7 +206,10 @@ Tabulator.prototype.extendModule("format", "formatters", {
 export default {
   name: "EditData",
   methods: {
-    showUploadData(){
+    uploadFileSelected() {
+      console.log("file selected", arguments)
+    },
+    showUploadData() {
 
     },
     downloadData(format) {
@@ -375,7 +384,7 @@ export default {
             title: col.Name,
             field: col.ColumnName,
             editor: true,
-            headerFilter: true,
+            headerFilter: that.tabulatorOptions.headerFilter,
             editable: !col.ColumnType.startsWith('file.'),
             formatter: formatter,
             width: width,
@@ -555,6 +564,9 @@ export default {
     return {
       tablePermissionDrawer: false,
       currentPage: 1,
+      tabulatorOptions: {
+        headerFilter: false,
+      },
       currentPagination: {},
       defaultColumns: ['updated_at', 'created_at', 'reference_id', 'permission'],
       tableSchema: {ColumnModel: []},
