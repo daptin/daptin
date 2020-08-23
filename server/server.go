@@ -42,6 +42,25 @@ var Stats = stats.New()
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string) (HostSwitch, *guerrilla.Daemon,
 	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server) {
 
+
+
+	fmt.Print(`                                                                           
+                              
+===================================
+===================================
+
+ ____    _    ____ _____ ___ _   _ 
+|  _ \  / \  |  _ |_   _|_ _| \ | |
+| | | |/ _ \ | |_) || |  | ||  \| |
+| |_| / ___ \|  __/ | |  | || |\  |
+|____/_/   \_|_|    |_| |___|_| \_|
+
+===================================                                   
+===================================
+
+
+`)
+
 	/// Start system initialise
 	log.Infof("Load config files")
 	initConfig, errs := LoadConfigFiles()

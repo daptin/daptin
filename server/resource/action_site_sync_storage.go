@@ -8,6 +8,7 @@ import (
 	"github.com/artpar/rclone/fs"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"golang.org/x/oauth2"
 
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
@@ -39,21 +40,28 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	oauthTokenId := cloudStore.OAutoTokenId
 	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[siteId]
 	if siteCacheFolder == nil {
-		log.Infof("No subsite cache found on local")
+		log.Infof("No sub-site cache found on local")
 		return nil, nil, []error{errors.New("no site found here")}
 	}
 
-	token, oauthConf, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
-	CheckErr(err, "Failed to get oauth2 token for storage sync")
+	var token *oauth2.Token
+	var oauthConf *oauth2.Config
+
+	if cloudStore.StoreProvider != "local" {
+		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+		CheckErr(err, "Failed to get oauth2 token for storage sync")
+	}
 
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to convert token to json")
-	config.FileSet(cloudStore.StoreProvider, "client_id", oauthConf.ClientID)
-	config.FileSet(cloudStore.StoreProvider, "type", cloudStore.StoreProvider)
-	config.FileSet(cloudStore.StoreProvider, "client_secret", oauthConf.ClientSecret)
-	config.FileSet(cloudStore.StoreProvider, "token", string(jsonToken))
-	config.FileSet(cloudStore.StoreProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-	config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
+	if oauthConf != nil {
+		config.FileSet(cloudStore.StoreProvider, "client_id", oauthConf.ClientID)
+		config.FileSet(cloudStore.StoreProvider, "type", cloudStore.StoreProvider)
+		config.FileSet(cloudStore.StoreProvider, "client_secret", oauthConf.ClientSecret)
+		config.FileSet(cloudStore.StoreProvider, "token", string(jsonToken))
+		config.FileSet(cloudStore.StoreProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
+		config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
+	}
 
 	tempDirectoryPath := path
 	if tempDirectoryPath == "" {
@@ -100,7 +108,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 
 		if is_hugo_site {
 			log.Infof("Starting hugo build for %v", tempDirectoryPath)
-				hugoCommandResponse := hugoCommand.Execute([]string{"--source", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public", "--verbose", "--verboseLog"})
+			hugoCommandResponse := hugoCommand.Execute([]string{"--source", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public", "--verbose", "--verboseLog"})
 			log.Infof("Hugo command response for [%v] [%v]: %v", tempDirectoryPath, tempDirectoryPath+"/"+"public", hugoCommandResponse)
 		}
 

@@ -4,7 +4,11 @@
     <q-drawer
       v-if="isAdmin"
       v-model="showAdminDrawer"
+      :mini="!showAdminDrawerStick && showAdminDrawerMini"
       show-if-above
+      @mouseover="showAdminDrawerMini = false"
+      @mouseout="showAdminDrawerMini = true"
+
       :width="250"
       :breakpoint="1400"
       content-class=""
@@ -12,13 +16,16 @@
       <q-scroll-area class="fit">
 
         <q-list class="bg-black">
-          <q-item clickable @click="$router.push('/')">
-            <q-item-section style="text-transform: capitalize;
+          <q-item clickable >
+            <q-item-section @click="$router.push('/')" style="text-transform: capitalize;
 font-weight: bold;
 font-size: 22px;
 text-align: center;
 " class="text-white">
               DASHBOARD
+            </q-item-section>
+            <q-item-section avatar>
+              <q-btn flat size="xs" @click="showAdminDrawerStick = !showAdminDrawerStick" color="white" icon="menu" />
             </q-item-section>
           </q-item>
         </q-list>
@@ -272,7 +279,8 @@ text-align: center;
         <q-btn flat @click="showHelp = true" fab icon="fas fa-question"/>
       </q-page-sticky>
 
-      <q-drawer :width="fileDrawerWidth > 800 ? 800 : fileDrawerWidth" overlay :breakpoint="400" side="right" v-model="showHelp">
+      <q-drawer :width="fileDrawerWidth > 800 ? 800 : fileDrawerWidth" overlay :breakpoint="400" side="right"
+                v-model="showHelp">
         <q-scroll-area class="fit" v-if="showHelp">
           <help-page @closeHelp="showHelp = false">
           </help-page>
@@ -303,6 +311,8 @@ text-align: center;
       return {
         showHelp: false,
         showAdminDrawer: false,
+        showAdminDrawerMini: false,
+        showAdminDrawerStick: false,
         ...mapGetters(['loggedIn', 'drawerLeft', 'authToken', 'decodedAuthToken']),
         essentialLinks: [],
         drawer: false,
@@ -319,7 +329,7 @@ text-align: center;
       if (that.decodedAuthToken()) {
         let decodedAuthToken = that.decodedAuthToken();
         let isLoggedOut = decodedAuthToken.exp * 1000 < new Date().getTime();
-        console.log("Decoded auth token", isLoggedOut,  decodedAuthToken);
+        console.log("Decoded auth token", isLoggedOut, decodedAuthToken);
         if (isLoggedOut) {
           that.$q.notify({
             message: "Authentication has expired, please login again"
@@ -376,7 +386,7 @@ text-align: center;
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         this.$router.push("/login");
-        // window.location = window.location;
+        window.location = window.location;
       }
     }
   }

@@ -5,7 +5,6 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"regexp"
 	"sort"
 	"strings"
@@ -116,7 +115,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 		return AggregateData{}, err
 	}
 
-	log.Infof("Stats query: %v == %v", sql, args)
+	//log.Infof("Stats query: %v == %v", sql, args)
 	res, err := dr.db.Queryx(sql, args...)
 	CheckErr(err, "Failed to query stats: %v", err)
 	if err != nil {

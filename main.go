@@ -97,6 +97,7 @@ func main() {
 	}
 	statementbuilder.InitialiseStatementBuilder(*dbType)
 
+
 	db, err := server.GetDbConnection(*dbType, *connectionString)
 	if err != nil {
 		panic(err)

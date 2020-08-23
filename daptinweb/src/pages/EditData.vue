@@ -9,8 +9,8 @@
             color="purple"
           />
         </template>
-        <q-breadcrumbs-el label="Database" icon="fas fa-database"/>
-        <q-breadcrumbs-el label="Tables" icon="fas fa-table"/>
+        <q-breadcrumbs-el  @click="$router.push('/')" style="cursor: pointer" label="Database" icon="fas fa-database"/>
+        <q-breadcrumbs-el @click="$router.push('/tables')" style="cursor: pointer" label="Tables" icon="fas fa-table"/>
         <q-breadcrumbs-el :label="$route.params.tableName"/>
       </q-breadcrumbs>
     </div>
@@ -149,9 +149,9 @@ import {mapActions, mapGetters, mapState} from 'vuex';
 
 import XLSX from 'xlsx';
 
-window.XLSX = XLSX;
-const assetEndpoint = window.location.hostname === "site.daptin.com" ? "http://localhost:6336" : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : ':' + window.location.port);
-var Tabulator = require('tabulator-tables');
+  window.XLSX = XLSX;
+  const assetEndpoint = window.location.hostname === "site.daptin.com" && window.location.port === "8080" ? "http://localhost:" + window.location.port : window.location.protocol + "//" + window.location.hostname + (window.location.port === "80" ? "" : ':' + window.location.port);
+  var Tabulator = require('tabulator-tables');
 
 Tabulator.prototype.extendModule("format", "formatters", {
   image: function (cell, formatterParams) {
