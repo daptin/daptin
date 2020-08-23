@@ -11,7 +11,7 @@
           />
         </template>
 
-        <q-breadcrumbs-el label="Storage" icon="fas fa-amazon"/>
+        <q-breadcrumbs-el label="Storage" icon="fas fa-archive"/>
         <q-breadcrumbs-el label="Cloud stores" icon="fas fa-list"/>
       </q-breadcrumbs>
     </div>

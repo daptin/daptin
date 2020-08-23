@@ -5,10 +5,10 @@
       v-if="isAdmin"
       v-model="showAdminDrawer"
       :mini="!showAdminDrawerStick && showAdminDrawerMini"
-      show-if-above
       @mouseover="showAdminDrawerMini = false"
       @mouseout="showAdminDrawerMini = true"
 
+      :mini-width="50"
       :width="250"
       :breakpoint="1400"
       content-class=""
@@ -225,7 +225,7 @@ text-align: center;
         <q-list>
           <q-item clickable @click="logout()">
             <q-item-section avatar>
-              <q-icon name="fas fa-power-off"></q-icon>
+              <q-icon color="negative" name="fas fa-power-off"></q-icon>
 
             </q-item-section>
             <q-item-section>

@@ -295,8 +295,8 @@ func CheckTranslationTables(config *CmsConfig) {
 		config.Tables = append(config.Tables, newTable)
 	}
 
-	log.Infof("%d Audit tables are new", len(createTranslationTableFor))
-	log.Infof("%d Audit tables are updated", len(updateTranslationTableFor))
+	log.Infof("%d Translation tables are new", len(createTranslationTableFor))
+	log.Infof("%d Translation tables are updated", len(updateTranslationTableFor))
 
 	for _, tableName := range updateTranslationTableFor {
 

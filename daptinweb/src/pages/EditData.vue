@@ -24,17 +24,18 @@
           <q-menu anchor="bottom left" self="top left">
             <q-item clickable>
               <q-item-section>
-                <q-checkbox  size="sm" @input="refreshData()" label="Show column filters"
+                <q-checkbox size="xs" @input="refreshData()" label="Show column filters"
                             v-model="tabulatorOptions.headerFilter"></q-checkbox>
               </q-item-section>
             </q-item>
             <q-item clickable @click="refreshData()">
-              <q-item-section >Refresh data</q-item-section>
+              <q-item-section>Refresh data</q-item-section>
             </q-item>
           </q-menu>
         </q-btn>
 
-        <q-btn v-if="selectedRows.length > 0" @click="deleteSelectedRows" flat color="red">Delete selected rows
+        <q-btn v-if="selectedRows.length > 0" @click="deleteSelectedRows" flat color="red" size="sm">Delete selected
+          rows
         </q-btn>
         <q-separator></q-separator>
       </div>
@@ -49,8 +50,9 @@
           </q-fab-action>
           <q-fab-action @click="downloadData('csv')" label="Download CSV" icon="fas fa-download">
           </q-fab-action>
-          <q-fab-action @click="$refs.fileUpload.click()" label="Upload CSV/XLS" icon="fas fa-upload">
-            <input ref="fileUpload" @change="uploadFileSelected" style="display: none" type="file">
+          <q-fab-action @click="$refs.fileUpload.pickFiles()" label="Upload CSV/XLS" icon="fas fa-upload">
+            <q-file v-model="dataUploadFile" ref="fileUpload" @input="uploadFileSelected"
+                    style="display: none"></q-file>
           </q-fab-action>
         </q-fab>
       </q-page-sticky>
@@ -206,8 +208,79 @@ Tabulator.prototype.extendModule("format", "formatters", {
 export default {
   name: "EditData",
   methods: {
-    uploadFileSelected() {
-      console.log("file selected", arguments)
+    uploadFileSelected(file) {
+      const that = this;
+      console.log("file selected", file, file.name)
+      that.$q.loading.show();
+      if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".csv") && !file.name.endsWith(".xls")) {
+        that.$q.notify({
+          message: "Only XLSX/XLS or CSV files can be uploaded"
+        });
+        return
+
+      }
+
+      var promise = (function (file) {
+        console.log("File to read", file);
+        return new Promise(function (resolve, reject) {
+          const name = file.name;
+          const type = file.type;
+          const reader = new FileReader();
+          reader.onload = function (fileResult) {
+            console.log("File loaded", fileResult);
+            resolve({
+              name: name,
+              file: fileResult.target.result,
+              type: type
+            });
+          };
+          reader.onerror = function () {
+            console.log("Failed to load file onerror", e, arguments);
+            reject(name);
+          };
+          reader.readAsDataURL(file);
+        })
+      })(file)
+
+      promise.then(function (res) {
+        console.log("File read complete", res);
+        var uploadObject = {
+          "entity_name": that.$route.params.tableName,
+        }
+        var actionName = "upload_csv_to_system_schema"
+        var onTable = "world";
+        if (res.name.endsWith("xlsx") || res.name.endsWith("xls")) {
+          actionName = "upload_xls_to_system_schema"
+          uploadObject["data_xls_file"] = [res]
+        } else if (res.name.endsWith("csv")) {
+          uploadObject["data_csv_file"] = [res]
+        }
+
+        that.executeAction({
+          tableName: "world",
+          actionName: actionName,
+          params: uploadObject
+        }).then(function (e) {
+          that.$q.loading.hide();
+          console.log("File uploaded", e);
+          that.$q.notify("Created table, updating schema");
+          setTimeout(function () {
+            that.refreshData();
+          }, 1000)
+        }).catch(function (e) {
+          that.$q.loading.hide();
+          that.$q.notify("Failed to upload file " + JSON.stringify(e));
+        });
+
+
+      }).catch(function (err) {
+        that.$q.notify({
+          title: "Failed to upload file",
+          message: JSON.stringify(err)
+        })
+      })
+
+
     },
     showUploadData() {
 
@@ -332,7 +405,7 @@ export default {
     onCancelNewRow() {
       this.newRowDrawer = false;
     },
-    ...mapActions(['loadData', 'getTableSchema', 'updateRow', 'createRow', 'deleteRow']),
+    ...mapActions(['loadData', 'getTableSchema', 'updateRow', 'createRow', 'deleteRow', 'executeAction']),
     refreshData() {
       const that = this;
       var assetColumns = [];
@@ -562,6 +635,7 @@ export default {
   },
   data() {
     return {
+      dataUploadFile: null,
       tablePermissionDrawer: false,
       currentPage: 1,
       tabulatorOptions: {

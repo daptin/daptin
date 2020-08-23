@@ -300,7 +300,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			Resolve: func(table resource.TableInfo) func(params graphql.ResolveParams) (interface{}, error) {
 				return func(params graphql.ResolveParams) (interface{}, error) {
 
-					log.Printf("Arguments: %v", params.Args)
+					//log.Printf("Arguments: %v", params.Args)
 
 					filters := make([]resource.Query, 0)
 
@@ -374,7 +374,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						return results, nil
 
 					}
-
 
 					columnMap := tableColumnMap[table.TableName]
 
@@ -498,70 +497,83 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 		//	}(table),
 		//}
 		//
-		//rootFields["meta"+Capitalize(inflector.Pluralize(table.TableName))] = &graphql.Field{
-		//	Type:        graphql.NewList(graphql.NewObject(graphql.ObjectConfig{
-		//		//Name
-		//	})),
-		//	Description: "Aggregates for " + inflector.Pluralize(table.TableName),
-		//	Args: graphql.FieldConfigArgument{
-		//		"group": &graphql.ArgumentConfig{
-		//			Type: graphql.NewList(graphql.String),
-		//		},
-		//		"join": &graphql.ArgumentConfig{
-		//			Type: graphql.NewList(graphql.String),
-		//		},
-		//		"column": &graphql.ArgumentConfig{
-		//			Type: graphql.NewList(graphql.String),
-		//		},
-		//		"order": &graphql.ArgumentConfig{
-		//			Type: graphql.NewList(graphql.String),
-		//		},
-		//	},
-		//	Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
-		//
-		//		return func(params graphql.ResolveParams) (interface{}, error) {
-		//			log.Printf("Arguments: %v", params.Args)
-		//			aggReq := resource.AggregationRequest{}
-		//
-		//			aggReq.RootEntity = table.TableName
-		//
-		//			if params.Args["group"] != nil {
-		//				groupBys := params.Args["group"].([]interface{})
-		//				aggReq.GroupBy = make([]string, 0)
-		//				for _, grp := range groupBys {
-		//					aggReq.GroupBy = append(aggReq.GroupBy, grp.(string))
-		//				}
-		//			}
-		//			if params.Args["join"] != nil {
-		//				groupBys := params.Args["join"].([]interface{})
-		//				aggReq.Join = make([]string, 0)
-		//				for _, grp := range groupBys {
-		//					aggReq.Join = append(aggReq.Join, grp.(string))
-		//				}
-		//			}
-		//			if params.Args["column"] != nil {
-		//				groupBys := params.Args["column"].([]interface{})
-		//				aggReq.ProjectColumn = make([]string, 0)
-		//				for _, grp := range groupBys {
-		//					aggReq.ProjectColumn = append(aggReq.ProjectColumn, grp.(string))
-		//				}
-		//			}
-		//			if params.Args["order"] != nil {
-		//				groupBys := params.Args["order"].([]interface{})
-		//				aggReq.Order = make([]string, 0)
-		//				for _, grp := range groupBys {
-		//					aggReq.Order = append(aggReq.Order, grp.(string))
-		//				}
-		//			}
-		//
-		//			//params.Args["query"].(string)
-		//			//aggReq.Query =
-		//
-		//			aggResponse, err := resources[table.TableName].DataStats(aggReq)
-		//			return aggResponse, err
-		//		}
-		//	}(table),
-		//}
+
+		rootFields["aggregate"+strcase.ToCamel(table.TableName)] = &graphql.Field{
+			Type: graphql.NewList(graphql.NewObject(graphql.ObjectConfig{
+				//Name
+			})),
+			Description: "Aggregates for " + strings.ReplaceAll(table.TableName, "_", " "),
+			Args: graphql.FieldConfigArgument{
+				"group": &graphql.ArgumentConfig{
+					Type: graphql.NewList(graphql.String),
+				},
+				"join": &graphql.ArgumentConfig{
+					Type: graphql.NewList(graphql.String),
+				},
+				"column": &graphql.ArgumentConfig{
+					Type: graphql.NewList(graphql.String),
+				},
+				"order": &graphql.ArgumentConfig{
+					Type: graphql.NewList(graphql.String),
+				},
+			},
+			Resolve: func(table resource.TableInfo) func(params graphql.ResolveParams) (interface{}, error) {
+
+				return func(params graphql.ResolveParams) (interface{}, error) {
+					log.Printf("GraphQL Aggregate Query Arguments: %v", params.Args)
+
+					user := params.Context.Value("user")
+					var sessionUser *auth.SessionUser
+					if user != nil {
+						sessionUser = user.(*auth.SessionUser)
+					}
+
+					perm := resources[table.TableName].GetObjectPermissionByWhereClause("world", "table_name", table.TableName)
+					if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
+						return nil, errors.New("unauthorized")
+					}
+
+					aggReq := resource.AggregationRequest{}
+
+					aggReq.RootEntity = table.TableName
+
+					if params.Args["group"] != nil {
+						groupBys := params.Args["group"].([]interface{})
+						aggReq.GroupBy = make([]string, 0)
+						for _, grp := range groupBys {
+							aggReq.GroupBy = append(aggReq.GroupBy, grp.(string))
+						}
+					}
+					if params.Args["join"] != nil {
+						groupBys := params.Args["join"].([]interface{})
+						aggReq.Join = make([]string, 0)
+						for _, grp := range groupBys {
+							aggReq.Join = append(aggReq.Join, grp.(string))
+						}
+					}
+					if params.Args["column"] != nil {
+						groupBys := params.Args["column"].([]interface{})
+						aggReq.ProjectColumn = make([]string, 0)
+						for _, grp := range groupBys {
+							aggReq.ProjectColumn = append(aggReq.ProjectColumn, grp.(string))
+						}
+					}
+					if params.Args["order"] != nil {
+						groupBys := params.Args["order"].([]interface{})
+						aggReq.Order = make([]string, 0)
+						for _, grp := range groupBys {
+							aggReq.Order = append(aggReq.Order, grp.(string))
+						}
+					}
+
+					//params.Args["query"].(string)
+					//aggReq.Query =
+
+					aggResponse, err := resources[table.TableName].DataStats(aggReq)
+					return aggResponse, err
+				}
+			}(table),
+		}
 	}
 	rootFields["node"] = nodeDefinitions.NodeField
 

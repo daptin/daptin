@@ -8,8 +8,10 @@ import (
 	"github.com/artpar/xlsx/v2"
 	"github.com/daptin/daptin/server/columntypes"
 	"github.com/pkg/errors"
+	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -92,15 +94,16 @@ func (d *UploadXlsFileToEntityPerformer) DoAction(request Outcome, inFields map[
 
 	//actions := make([]ActionResponse, 0)
 	log.Infof("Do action: %v", d.Name())
+	schemaFolderDefinedByEnv, _ := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
 
 	files := inFields["data_xls_file"].([]interface{})
 
 	entityName := inFields["entity_name"].(string)
-	create_if_not_exists := inFields["create_if_not_exists"].(bool)
-	add_missing_columns := inFields["add_missing_columns"].(bool)
+	create_if_not_exists, _ := inFields["create_if_not_exists"].(bool)
+	add_missing_columns, _ := inFields["add_missing_columns"].(bool)
 
 	table := TableInfo{}
-	table.TableName = SmallSnakeCaseText(entityName)
+	table.TableName = entityName
 
 	columns := make([]api2go.ColumnInfo, 0)
 
@@ -123,7 +126,7 @@ func (d *UploadXlsFileToEntityPerformer) DoAction(request Outcome, inFields map[
 nextFile:
 	for _, fileInterface := range files {
 		file := fileInterface.(map[string]interface{})
-		fileName := file["name"].(string)
+		fileName := "_uploaded_" + file["name"].(string)
 		fileContentsBase64 := file["file"].(string)
 		fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
 		log.Infof("Processing file: %v", fileName)
@@ -134,7 +137,7 @@ nextFile:
 			return nil, nil, []error{fmt.Errorf("Failed to read file: %v", err)}
 		}
 		log.Infof("File has %d sheets", len(xlsFile.Sheets))
-		err = ioutil.WriteFile(fileName, fileBytes, 0644)
+		err = ioutil.WriteFile(schemaFolderDefinedByEnv+string(os.PathSeparator)+fileName, fileBytes, 0644)
 		if err != nil {
 			log.Errorf("Failed to write xls file to disk: %v", err)
 		}
@@ -250,8 +253,8 @@ nextFile:
 			return nil, nil, []error{err}
 		}
 
-		jsonFileName := fmt.Sprintf("schema_%v_daptin.json", entityName)
-		err = ioutil.WriteFile(jsonFileName, jsonStr, 0644)
+		jsonFileName := fmt.Sprintf("schema_uploaded_%v_daptin.json", entityName)
+		err = ioutil.WriteFile(schemaFolderDefinedByEnv+string(os.PathSeparator)+jsonFileName, jsonStr, 0644)
 		CheckErr(err, "Failed to write json to schema file [%v]", jsonFileName)
 		log.Printf("File %v written to disk for upload", jsonFileName)
 
@@ -260,6 +263,8 @@ nextFile:
 		} else {
 			ImportDataFiles(sources, d.cruds[entityName].db, d.cruds)
 		}
+
+		trigger.Fire("clean_up_uploaded_files")
 
 		return nil, successResponses, nil
 	} else {

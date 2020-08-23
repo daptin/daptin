@@ -275,10 +275,7 @@ func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection) 
 		}
 
 		if !tableCreatedMap[table.TableName] {
-			//if strings.Index(table.TableName, "_has_") == -1 {
-			log.Infof("Check table %v", table.TableName)
-			//continue
-			//}
+			//log.Infof("Check table %v", table.TableName)
 			tx, err := db.Beginx()
 			if err != nil {
 				CheckErr(err, "Failed to start txn for create table", table.TableName)

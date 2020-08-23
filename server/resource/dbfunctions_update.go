@@ -646,8 +646,8 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 	if !ok {
 		schemaFolderDefinedByEnv = ""
 	} else {
-		if schemaFolderDefinedByEnv[len(schemaFolderDefinedByEnv)-1] != '/' {
-			schemaFolderDefinedByEnv = schemaFolderDefinedByEnv + "/"
+		if schemaFolderDefinedByEnv[len(schemaFolderDefinedByEnv)-1] != os.PathSeparator {
+			schemaFolderDefinedByEnv = schemaFolderDefinedByEnv + string(os.PathSeparator)
 		}
 	}
 
@@ -669,6 +669,13 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 
 		//importSuccess := false
 		log.Printf("Uploaded file is type: %v", importFile.FileType)
+		dbResource := cruds[importFile.Entity]
+
+		if dbResource == nil {
+			log.Errorf("No db resource found for file upload of type [%v]: %v", importFile.Entity, importFile.FilePath)
+			continue
+		}
+
 		switch importFile.FileType {
 
 		case "json":
@@ -709,7 +716,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 			}
 
 			//importSuccess = true
-			errors1 := ImportDataMapArray(data, cruds[importFile.Entity], req)
+			errors1 := ImportDataMapArray(data, dbResource, req)
 			if len(errors1) > 0 {
 				for _, err := range errors1 {
 					log.Errorf("Error while importing json data: %v", err)
@@ -730,7 +737,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 			for i, h := range header {
 				header[i] = SmallSnakeCaseText(h)
 			}
-			errors1 := ImportDataStringArray(data, header, importFile.Entity, cruds[importFile.Entity], req)
+			errors1 := ImportDataStringArray(data, header, importFile.Entity, dbResource, req)
 			if len(errors1) > 0 {
 				for _, err := range errors1 {
 					log.Warnf("Warning while importing json data: %v", err)

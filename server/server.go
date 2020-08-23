@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/sadlil/go-trigger"
 	"io"
 	"os"
 	"strings"
@@ -9,7 +10,7 @@ import (
 	"time"
 
 	server2 "github.com/fclairamb/ftpserver/server"
-
+	"github.com/gin-contrib/gzip"
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/go-guerrilla"
@@ -41,8 +42,6 @@ var Stats = stats.New()
 
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string) (HostSwitch, *guerrilla.Daemon,
 	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server) {
-
-
 
 	fmt.Print(`                                                                           
                               
@@ -87,6 +86,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	/// end system initialise
 
 	defaultRouter := gin.Default()
+	defaultRouter.Use(gzip.Gzip(gzip.DefaultCompression,
+		gzip.WithExcludedExtensions([]string{".pdf", ".mp4", ".jpg", ".png", "wav", "gif", "mp3"}),
+		gzip.WithExcludedPaths([]string{"/assets/"})),
+	)
 
 	defaultRouter.Use(func() gin.HandlerFunc {
 		return func(c *gin.Context) {
@@ -152,6 +155,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
 	}
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
+	log.Infof("Limiting max connections per IP: %v", maxConnections)
 
 	rate1, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 	if err != nil {
@@ -161,7 +165,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	microSecondRateGap := int(1000000 / rate1)
-	log.Infof("Limiting request per second by IP/URL: %v", microSecondRateGap)
+	log.Infof("Limiting request per second by IP/URL: %v RPS", rate1)
 
 	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
 		return c.ClientIP() + strings.Split(c.Request.RequestURI, "?")[0] // limit rate by client ip
@@ -564,6 +568,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
+
+	trigger.On("clean_up_uploaded_files", func() {
+		CleanUpConfigFiles()
+	})
 	adminEmail := cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId()
 	if adminEmail == "" {
 		adminEmail = "No one"

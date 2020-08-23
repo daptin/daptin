@@ -7,8 +7,10 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/csvmap"
+	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -30,11 +32,17 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[
 	files := inFields["data_csv_file"].([]interface{})
 
 	entityName := inFields["entity_name"].(string)
-	create_if_not_exists := inFields["create_if_not_exists"].(bool)
-	add_missing_columns := inFields["add_missing_columns"].(bool)
+	create_if_not_exists, ok := inFields["create_if_not_exists"].(bool)
+	if !ok {
+		create_if_not_exists = false
+	}
+	add_missing_columns, ok := inFields["add_missing_columns"].(bool)
+	if !ok {
+		add_missing_columns = false
+	}
 
 	table := TableInfo{}
-	table.TableName = SmallSnakeCaseText(entityName)
+	table.TableName = entityName
 
 	columns := make([]api2go.ColumnInfo, 0)
 
@@ -54,9 +62,14 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[
 		existingEntity = dbr.tableInfo
 	}
 
+	schemaFolderDefinedByEnv, _ := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
+
 	for _, fileInterface := range files {
-		file := fileInterface.(map[string]interface{})
-		fileName := file["name"].(string)
+		file, ok := fileInterface.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		fileName := "_uploaded_" + file["name"].(string)
 		fileContentsBase64 := file["file"].(string)
 		fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
 		log.Infof("Processing file: %v", fileName)
@@ -66,7 +79,7 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[
 			return nil, nil, []error{err}
 		}
 
-		err = ioutil.WriteFile(fileName, fileBytes, 0644)
+		err = ioutil.WriteFile(schemaFolderDefinedByEnv+string(os.PathSeparator)+fileName, fileBytes, 0644)
 		if err != nil {
 			log.Errorf("Failed to write xls file to disk: %v", err)
 		}
@@ -156,7 +169,11 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[
 		}
 		table.Columns = columns
 		completed = true
-		sources = append(sources, DataFileImport{FilePath: fileName, Entity: table.TableName, FileType: "csv"})
+		sources = append(sources, DataFileImport{
+			FilePath: fileName,
+			Entity:   table.TableName,
+			FileType: "csv"},
+		)
 
 	}
 
@@ -174,8 +191,11 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[
 			return nil, nil, []error{err}
 		}
 
-		jsonFileName := fmt.Sprintf("schema_%v_daptin.json", entityName)
-		ioutil.WriteFile(jsonFileName, jsonStr, 0644)
+		jsonFileName := fmt.Sprintf(schemaFolderDefinedByEnv+string(os.PathSeparator)+"schema_uploaded_%v_daptin.json", entityName)
+		err = ioutil.WriteFile(jsonFileName, jsonStr, 0644)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
 		log.Printf("File %v written to disk for upload", jsonFileName)
 
 		if create_if_not_exists || add_missing_columns {
@@ -183,6 +203,9 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[
 		} else {
 			ImportDataFiles(sources, d.cruds[entityName].db, d.cruds)
 		}
+		trigger.Fire("clean_up_uploaded_files")
+
+
 
 		return nil, successResponses, nil
 	} else {

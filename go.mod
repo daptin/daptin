@@ -37,8 +37,9 @@ require (
 	github.com/frankban/quicktest v1.7.3 // indirect
 	github.com/getkin/kin-openapi v0.14.0
 	github.com/ghodss/yaml v1.0.0
+	github.com/gin-contrib/gzip v0.0.2
 	github.com/gin-contrib/static v0.0.0-20181225054800-cf5e10bbd933
-	github.com/gin-gonic/gin v1.4.0
+	github.com/gin-gonic/gin v1.6.3
 	github.com/go-acme/lego/v3 v3.2.0
 	github.com/go-gota/gota v0.0.0-20190402185630-1058f871be31
 	github.com/go-playground/locales v0.13.0
@@ -75,7 +76,6 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/gommon v0.2.8 // indirect
-	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/lib/pq v1.1.0
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
 	github.com/mattn/go-sqlite3 v1.11.0
@@ -89,7 +89,6 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/cobra v1.0.0
-	github.com/ugorji/go v1.1.7 // indirect
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381

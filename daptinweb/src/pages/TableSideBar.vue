@@ -16,8 +16,8 @@
     <q-separator></q-separator>
 
 
-    <q-page-sticky style="z-index: 3000" position="bottom-right" :offset="[50, 50]">
-      <q-btn @click="$router.push('/tables/create')" fab icon="add" color="primary"/>
+    <q-page-sticky style="z-index: 3000" position="bottom-right" :offset="[20, 20]">
+      <q-btn size="md" @click="$router.push('/tables/create')" fab icon="add" color="primary"/>
     </q-page-sticky>
 
     <div class="row">
