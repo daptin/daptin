@@ -164,43 +164,43 @@ var Tabulator = require('tabulator-tables');
 Tabulator.prototype.extendModule("format", "formatters", {
   image: function (cell, formatterParams) {
     console.log("format image cell", cell);
-    if (row.data[column.field].length < 1) {
-      return "null"
-    }
     var column = cell._cell.column;
     var row = cell._cell.row;
     var field = row.data[column.field][0];
+    if (row.data[column.field].length < 1) {
+      return "null"
+    }
     console.log("Image data", field);
     return "<img style='width: 300px; height: 200px' class='fileicon' src='data:" + field.type + ";base64," + field.contents + "'/>";
   },
   audio: function (cell, formatterParams) {
     console.log("format audio cell", cell);
-    if (row.data[column.field].length < 1) {
-      return "null"
-    }
     var column = cell._cell.column;
     var row = cell._cell.row;
     var field = row.data[column.field][0];
+    if (row.data[column.field].length < 1) {
+      return "null"
+    }
     return "<audio controls class='audio' src='data:" + field.type + ";base64," + field.contents + "'/>";
   },
   video: function (cell, formatterParams) {
     console.log("format video cell", cell);
-    if (row.data[column.field].length < 1) {
-      return "null"
-    }
     var column = cell._cell.column;
     var row = cell._cell.row;
     var field = row.data[column.field][0];
+    if (row.data[column.field].length < 1) {
+      return "null"
+    }
     return "<video controls style='width: 300px; height: 200px' class='video' src='data:" + field.type + ";base64," + field.contents + "'/>";
   },
   file: function (cell, formatterParams) {
     console.log("format video cell", cell);
-    if (row.data[column.field].length < 1) {
-      return "null"
-    }
     var column = cell._cell.column;
     var row = cell._cell.row;
     var field = row.data[column.field][0];
+    if (row.data[column.field].length < 1) {
+      return "null"
+    }
     return "<a href='" + assetEndpoint + "/asset/" + row.data.__type + "/" + row.data.reference_id + "/" + column.field + ".'" + field.type.split("/")[1] + "></a>";
   },
 });
