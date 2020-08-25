@@ -185,13 +185,16 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 					log.Errorf("Failed to upload attachments: %v", errs)
 				}
 
-				columnAssetCache, ok := dr.AssetFolderCache[dr.tableInfo.TableName][col.ColumnName]
-				if ok {
-					err = columnAssetCache.UploadFiles(val.([]interface{}))
-				}
 
 				files, ok := val.([]interface{})
 				if ok {
+
+					columnAssetCache, ok := dr.AssetFolderCache[dr.tableInfo.TableName][col.ColumnName]
+					if ok {
+						err = columnAssetCache.UploadFiles(files)
+					}
+
+
 					for i := range files {
 						file := files[i].(map[string]interface{})
 						delete(file, "file")

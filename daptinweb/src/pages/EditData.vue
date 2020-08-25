@@ -169,7 +169,7 @@ Tabulator.prototype.extendModule("format", "formatters", {
     console.log("format image cell", cell);
     var column = cell._cell.column;
     var row = cell._cell.row;
-    if (row.data[column.field].length < 1) {
+    if (!row.data[column.field] || row.data[column.field].length < 1) {
       return "null"
     }
     var field = row.data[column.field][0];
@@ -181,7 +181,7 @@ Tabulator.prototype.extendModule("format", "formatters", {
     console.log("format audio cell", cell);
     var column = cell._cell.column;
     var row = cell._cell.row;
-    if (row.data[column.field].length < 1) {
+    if (!row.data[column.field] || row.data[column.field].length < 1) {
       return "null"
     }
     var field = row.data[column.field][0];
@@ -191,7 +191,7 @@ Tabulator.prototype.extendModule("format", "formatters", {
     console.log("format video cell", cell);
     var column = cell._cell.column;
     var row = cell._cell.row;
-    if (row.data[column.field].length < 1) {
+    if (!row.data[column.field] || row.data[column.field].length < 1) {
       return "null"
     }
     var field = row.data[column.field][0];
@@ -201,7 +201,7 @@ Tabulator.prototype.extendModule("format", "formatters", {
     console.log("format video cell", cell);
     var column = cell._cell.column;
     var row = cell._cell.row;
-    if (row.data[column.field].length < 1) {
+    if (!row.data[column.field] || row.data[column.field].length < 1) {
       return "null"
     }
     var field = row.data[column.field][0];
