@@ -103,6 +103,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	tx := db.MustBegin()
+	tx.Rollback()
 	log.Printf("Connection acquired from database [%s]", *dbType)
 
 	var hostSwitch server.HostSwitch
