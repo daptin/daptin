@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
+	"github.com/artpar/rclone/fs/operations"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
@@ -83,7 +84,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 		tempDirectoryPath,
 	}
 
-	fsrc, fdst := cmd.NewFsSrcDst(args)
+	fsrc, srcFileName, fdst := cmd.NewFsSrcFileDst(args)
 	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync site storage [%v]", cloudStoreId),
@@ -103,16 +104,23 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 			return nil
 		}
 
-		fs.Config.DeleteMode = fs.DeleteModeDuring
-		error := sync.Sync(ctx, fdst, fsrc, true)
+		fs.Config.DeleteMode = fs.DeleteModeBefore
+		fs.Config.AutoConfirm = true
+		fs.Config.LogLevel = fs.LogLevelDebug
 
-		if is_hugo_site {
+		if srcFileName == "" {
+			err = sync.Sync(ctx, fdst, fsrc, true)
+		} else {
+			err = operations.CopyFile(ctx, fdst, fsrc, srcFileName, srcFileName)
+		}
+
+		if is_hugo_site && err == nil  {
 			log.Infof("Starting hugo build for %v", tempDirectoryPath)
 			hugoCommandResponse := hugoCommand.Execute([]string{"--source", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public", "--verbose", "--verboseLog"})
 			log.Infof("Hugo command response for [%v] [%v]: %v", tempDirectoryPath, tempDirectoryPath+"/"+"public", hugoCommandResponse)
 		}
 
-		return error
+		return err
 	})
 
 	restartAttrs := make(map[string]interface{})

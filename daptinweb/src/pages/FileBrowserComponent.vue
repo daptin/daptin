@@ -139,7 +139,7 @@
             <!--        <textarea id="fileEditor" style="height: 90vh"></textarea>-->
             <ace-editor @input="saveFile()" ref="myEditor"
                         @init="loadDependencies"
-                        :lang="selectedFile.language" theme="chrome" width="100%" height="90vh"
+                        :lang="selectedFile.language" theme="chrome" width="95%" height="90vh"
                         v-model="selectedFile.content"></ace-editor>
           </div>
         </div>
@@ -374,16 +374,11 @@ export default {
   computed: {},
   watch: {},
   methods: {
-    fileTreeItemClicked(fileTree, itemClicked, mouseEvent) {
-      console.log("tree file item clicked", fileTree.model, itemClicked, mouseEvent);
-      const that = this;
-      if (!fileTree.model.is_dir) {
+    fileTreeItemClicked(node, itemClicked, mouseEvent) {
+      if (!node.model.is_dir) {
         this.getContentOnPath(itemClicked);
       } else {
-        // this.getContentOnPath(itemClicked).then(function (files) {
-        //   that.$refs.tree.handleAsyncLoad(files, that.$refs.tree)
-        // });
-        this.showFileEditor = false;
+        node.model.opened = !node.model.opened;
       }
     },
     fileTreeItemDragStart(fileTree, itemClicked, mouseEvent) {
@@ -452,6 +447,7 @@ export default {
           that.showFilePreview = false;
           that.fileType = null;
 
+          // node.openChildren()
           resolve(files)
         }).catch(reject)
       })
@@ -730,7 +726,11 @@ export default {
               item.selected = false;
               item.text = item.name;
               item.full_path = that.currentPath + "/" + item.name
+              item.value = that.currentPath + "/" + item.name
               item.isLeaf = !item.is_dir;
+              if (item.is_dir) {
+                item.children = [that.$refs.tree.initializeLoading()];
+              }
               return item;
             });
             console.log("Current path was", that.currentPath);
