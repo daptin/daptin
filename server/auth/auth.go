@@ -15,6 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type AuthPermission int64
@@ -341,7 +342,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				}
 
 				if cache != nil {
-					err = cache.Put(email, user)
+					err = cache.PutEx(email, user, 5*time.Minute)
 					CheckErr(err, "Failed to put user in cache")
 				}
 			} else {

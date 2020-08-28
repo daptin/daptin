@@ -103,8 +103,8 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 			return nil
 		}
 
-		fs.Config.DeleteMode = fs.DeleteModeAfter
-		dir := sync.Sync(ctx, fdst, fsrc, true)
+		fs.Config.DeleteMode = fs.DeleteModeDuring
+		error := sync.Sync(ctx, fdst, fsrc, true)
 
 		if is_hugo_site {
 			log.Infof("Starting hugo build for %v", tempDirectoryPath)
@@ -112,7 +112,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 			log.Infof("Hugo command response for [%v] [%v]: %v", tempDirectoryPath, tempDirectoryPath+"/"+"public", hugoCommandResponse)
 		}
 
-		return dir
+		return error
 	})
 
 	restartAttrs := make(map[string]interface{})

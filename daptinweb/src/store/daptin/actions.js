@@ -30,6 +30,10 @@ export function setToken({commit}) {
   commit('setToken', token)
 }
 
+export function setDecodedAuthToken({commit}, token) {
+  commit('setDecodedAuthToken', token)
+}
+
 export function setSelectedTable({commit}, tableName) {
   commit("setSelectedTable", tableName)
 }

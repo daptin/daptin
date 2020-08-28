@@ -17,6 +17,7 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const DATE_LAYOUT = "2006-01-02 15:04:05"
@@ -305,7 +306,7 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	//log.Infof("PermissionInstance for [%v]: %v", typeName, perm)
 
 	if cache != nil {
-		_ = cache.Put(cacheKey, perm)
+		_ = cache.PutEx(cacheKey, perm, 5*time.Minute)
 	}
 	return perm
 }
@@ -1209,7 +1210,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 	}
 
 	objectCache := make(map[string]interface{})
-	referenceIdCache := make(map[int64]string)
+	referenceIdCache := make(map[string]string)
 	includes := make([][]map[string]interface{}, 0)
 
 	for _, row := range responseArray {
@@ -1265,10 +1266,21 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					continue
 				}
 
-				refId, ok := referenceIdCache[referenceIdInt]
+				idCacheKey := fmt.Sprintf("%s_%d", namespace, referenceIdInt)
+				refId, ok := referenceIdCache[idCacheKey]
+				if !ok && cache != nil {
+					cachedId, err := cache.Get(idCacheKey)
+					if err != nil {
+						refId = cachedId.(string)
+						referenceIdCache[idCacheKey] = refId
+						ok = true
+					}
+				}
+
 				if !ok {
 					refId, err = dr.GetIdToReferenceId(namespace, referenceIdInt)
-					referenceIdCache[referenceIdInt] = refId
+					referenceIdCache[idCacheKey] = refId
+					_ = cache.PutEx(cacheKey, refId, 5*time.Minute)
 				}
 
 				if err != nil {

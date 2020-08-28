@@ -334,6 +334,7 @@ text-align: center;
           that.$q.notify({
             message: "Authentication has expired, please login again"
           });
+          that.setDecodedAuthToken(null);
           that.logout();
         }
       }
@@ -381,7 +382,7 @@ text-align: center;
 
     },
     methods: {
-      ...mapActions(['getDefaultCloudStore', 'loadModel', 'executeAction', 'loadData']),
+      ...mapActions(['getDefaultCloudStore', 'loadModel', 'executeAction', 'loadData', 'setDecodedAuthToken']),
       logout() {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
