@@ -1,1 +1,1 @@
-web: daptin -port :$PORT -runtime release -dashboard daptinweb/dist/spa
+web: daptin -port_variable PORT -runtime release -dashboard daptinweb/dist/spa

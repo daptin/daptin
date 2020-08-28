@@ -187,7 +187,7 @@ func main() {
 		portValue = ":" + portValue
 	}
 
-	if port_variable != nil && *port_variable != "port" {
+	if port_variable != nil && *port_variable != "DAPTIN_PORT" {
 		portVarString := *port_variable
 
 		portVarStringValue, ok := os.LookupEnv(portVarString)
