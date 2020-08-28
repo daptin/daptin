@@ -12,7 +12,6 @@ require (
 	github.com/advance512/yaml v0.0.0-20141213031416-e401b2b02685
 	github.com/alecthomas/chroma v0.8.0 // indirect
 	github.com/alexeyco/simpletable v0.0.0-20200730140406-5bb24159ccfb
-	github.com/aliyun/aliyun-oss-go-sdk v0.0.0-20190307165228-86c17b95fcd5 // indirect
 	github.com/anthonynsimon/bild v0.13.0
 	github.com/araddon/dateparse v0.0.0-20200409225146-d820a6159ab1
 	github.com/armon/go-metrics v0.3.4 // indirect
@@ -34,15 +33,12 @@ require (
 	github.com/asaskevich/EventBus v0.0.0-20200428142821-4fc0642a29f3 // indirect
 	github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1
 	github.com/aws/aws-sdk-go v1.34.13 // indirect
-	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/bep/golibsass v0.7.0 // indirect
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/buraksezer/olric v0.2.0
-	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.0.2 // indirect
 	github.com/corpix/uarand v0.1.1 // indirect
 	github.com/daaku/go.zipexe v1.0.1 // indirect
-	github.com/decker502/dnspod-go v0.2.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/gift v1.2.1
 	github.com/dlclark/regexp2 v1.2.1 // indirect
@@ -52,8 +48,7 @@ require (
 	github.com/emersion/go-smtp v0.13.0 // indirect
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/evanw/esbuild v0.6.28 // indirect
-	github.com/fclairamb/ftpserver v0.7.0
-	github.com/fclairamb/ftpserverlib v0.8.0 // indirect
+	github.com/fclairamb/ftpserver v0.6.0
 	github.com/frankban/quicktest v1.10.2 // indirect
 	github.com/getkin/kin-openapi v0.20.0
 	github.com/ghodss/yaml v1.0.0
@@ -62,7 +57,6 @@ require (
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-acme/lego/v3 v3.8.0
 	github.com/go-gota/gota v0.10.1
-	github.com/go-ini/ini v1.44.0 // indirect
 	github.com/go-playground/locales v0.13.0
 	github.com/go-playground/universal-translator v0.17.0
 	github.com/go-playground/validator/v10 v10.3.0 // indirect
@@ -73,13 +67,6 @@ require (
 	github.com/gocarina/gocsv v0.0.0-20200827134620-49f5c3fa2b3e
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
 	github.com/gohugoio/hugo v0.74.3
-	github.com/gonum/blas v0.0.0-20181208220705-f22b278b28ac // indirect
-	github.com/gonum/floats v0.0.0-20181209220543-c233463c7e82 // indirect
-	github.com/gonum/integrate v0.0.0-20181209220457-a422b5c0fdf2 // indirect
-	github.com/gonum/internal v0.0.0-20181124074243-f884aa714029 // indirect
-	github.com/gonum/lapack v0.0.0-20181123203213-e4cdc5a0bff9 // indirect
-	github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9 // indirect
-	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f // indirect
 	github.com/gorilla/feeds v1.1.1
 	github.com/gorilla/mux v1.8.0 // indirect
@@ -102,7 +89,6 @@ require (
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
 	github.com/json-iterator/go v1.1.10
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/kniren/gota v0.10.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/kyokomi/emoji v2.2.4+incompatible // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
@@ -117,7 +103,7 @@ require (
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1
-	github.com/nicksnyder/go-i18n v2.0.3+incompatible // indirect
+	github.com/nicksnyder/go-i18n v1.10.1 // indirect
 	github.com/niklasfasching/go-org v1.3.2 // indirect
 	github.com/pelletier/go-toml v1.8.0 // indirect
 	github.com/pkg/errors v0.9.1
@@ -126,19 +112,15 @@ require (
 	github.com/prometheus/common v0.13.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rogpeppe/go-internal v1.6.1 // indirect
-	github.com/russross/blackfriday v2.0.0+incompatible // indirect
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
 	github.com/sanity-io/litter v1.3.0 // indirect
-	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/siebenmann/smtpd v0.0.0-20170816215504-b93303610bbe // indirect
-	github.com/simplereach/timeutils v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/afero v1.3.4 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.1 // indirect
 	github.com/tdewolff/minify/v2 v2.9.0 // indirect
-	github.com/transip/gotransip v0.0.0-20190812104329-6d8d9179b66f // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
 	github.com/yuin/goldmark v1.2.1 // indirect
@@ -154,12 +136,11 @@ require (
 	gonum.org/v1/gonum v0.8.1 // indirect
 	google.golang.org/genproto v0.0.0-20200828030656-73b5761be4c5 // indirect
 	google.golang.org/grpc v1.31.1 // indirect
-	gopkg.in/go-playground/validator.v8 v8.18.2 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0
-	gopkg.in/inconshreveable/log15.v2 v2.0.0-20180818164646-67afb5ed74ec // indirect
 	gopkg.in/ini.v1 v1.60.2 // indirect
-	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
+	github.com/Azure/go-autorest v12.2.0+incompatible
 	storj.io/common v0.0.0-20200818131620-f9cddf66b4be // indirect
 	storj.io/uplink v1.2.0 // indirect
+
 )
