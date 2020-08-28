@@ -82,7 +82,11 @@ func (d *CloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 		}
 
 		ctx := context.Background()
-		err = operations.Purge(ctx, fsrc, "")
+
+		err = operations.Delete(ctx, fsrc)
+		if err != nil {
+			err = operations.Purge(ctx, fsrc, "")
+		}
 
 		InfoErr(err, "Failed to delete purge path [%v] in cloud store", rootPath)
 		return err
