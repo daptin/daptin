@@ -1270,7 +1270,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				refId, ok := referenceIdCache[idCacheKey]
 				if !ok && cache != nil {
 					cachedId, err := cache.Get(idCacheKey)
-					if err != nil {
+					if err != nil && cachedId != nil {
 						refId = cachedId.(string)
 						referenceIdCache[idCacheKey] = refId
 						ok = true
