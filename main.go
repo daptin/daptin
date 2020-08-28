@@ -8,6 +8,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	server2 "github.com/fclairamb/ftpserver/server"
 	"io/ioutil"
+	"net/url"
 	"runtime/pprof"
 	"strings"
 	"time"
@@ -60,7 +61,8 @@ func main() {
 
 	var webDashboardSource = flag.String("dashboard", strings.ReplaceAll("daptinweb/dist/spa/", "/", string(os.PathSeparator)), "path to dist folder for daptin web dashboard")
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
-	var port_variable = flag.String("port_variable", "port", "ENV port variable name to look for port")
+	var port_variable = flag.String("port_variable", "DAPTIN_PORT", "ENV port variable name to look for port")
+	var database_url_variable = flag.String("database_url_variable", "DAPTIN_DB_CONNECTION_STRING", "ENV port variable name to look for port")
 	var port = flag.String("port", ":6336", "daptin port")
 	var httpsPort = flag.String("https_port", ":6443", "daptin https port")
 	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: profile, debug, test, release")
@@ -97,6 +99,29 @@ func main() {
 	} else {
 		boxRoot = boxRoot1.HTTPBox()
 	}
+
+	if database_url_variable != nil && *database_url_variable != "DAPTIN_DB_CONNECTION_STRING" {
+
+		databaseUrlValue, ok := os.LookupEnv(*database_url_variable)
+		if ok && len(databaseUrlValue) > 0 {
+			if strings.Index(databaseUrlValue, "://") > -1 {
+				log.Printf("Connection URL found for database in env variable [%v]", *database_url_variable)
+				url.Parse(databaseUrlValue)
+			} else {
+
+			}
+			connectionString = &databaseUrlValue
+			if *dbType == "" {
+				if strings.Index(*connectionString, "dbname=") > -1 {
+					*dbType = "postgres"
+				} else if strings.Index(*connectionString, "@tcp") > -1 {
+					*dbType = "mysql"
+				}
+			}
+		}
+
+	}
+
 	statementbuilder.InitialiseStatementBuilder(*dbType)
 
 	db, err := server.GetDbConnection(*dbType, *connectionString)
@@ -104,7 +129,7 @@ func main() {
 		panic(err)
 	}
 	tx := db.MustBegin()
-	tx.Rollback()
+	_ = tx.Rollback()
 	log.Printf("Connection acquired from database [%s]", *dbType)
 
 	var hostSwitch server.HostSwitch

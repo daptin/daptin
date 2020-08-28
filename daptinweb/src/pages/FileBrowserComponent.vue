@@ -13,14 +13,13 @@
         multiple
         allow-batch
         ref="tree"
+        :async="loadFilePathDataForTree" :data="asyncFileData"
         draggable
         @item-click="fileTreeItemClicked"
         @item-drag-start="fileTreeItemDragStart"
         @item-drag-end="fileTreeItemDragEnd"
         @item-drop-before="fileTreeItemDropBefore"
         @item-drop="fileTreeItemDrop"
-
-        :async="loadFilePathDataForTree" :data="asyncFileData"
         whole-row></v-jstree>
     </div>
 
@@ -381,11 +380,9 @@ export default {
       if (!fileTree.model.is_dir) {
         this.getContentOnPath(itemClicked);
       } else {
-
-        this.getContentOnPath(itemClicked).then(function(files){
-          that.$refs.tree.handleAsyncLoad(files, that.$refs.tree)
-        });
-
+        // this.getContentOnPath(itemClicked).then(function (files) {
+        //   that.$refs.tree.handleAsyncLoad(files, that.$refs.tree)
+        // });
         this.showFileEditor = false;
       }
     },
@@ -430,8 +427,8 @@ export default {
       console.log("tree file item fileTreeItemDropBefore", this.currentPath, fileTree, destination, source);
       // this.getContentOnPath(itemClicked);
     },
-    loadFilePathDataForTree(node, handleAsyncLoad) {
-      console.log("load file path data for tree", node.data.value, handleAsyncLoad);
+    loadFilePathDataForTree(node, resolve) {
+      console.log("load file path data for tree", node.data.value, resolve);
       const that = this;
       var path = null;
 
@@ -442,9 +439,9 @@ export default {
           is_dir: node.data.is_dir
         }
       }
-      return new Promise(function (resolve, reject) {
+      return new Promise(function (resolve1, reject) {
         that.getContentOnPath(path).then(function (files) {
-          if (!files) {
+          if (files) {
             files.map(e => e.text = e.name);
             files.map(e => e.value = e.full_path);
           }
@@ -455,12 +452,7 @@ export default {
           that.showFilePreview = false;
           that.fileType = null;
 
-          that.asyncFileData = [
-            that.$refs.tree.initializeLoading()
-          ]
-
-
-          that.$refs.tree.handleAsyncLoad(that.asyncFileData, that.$refs.tree)
+          resolve(files)
         }).catch(reject)
       })
     },
