@@ -456,11 +456,11 @@ export default {
           that.fileType = null;
 
           that.asyncFileData = [
-            this.$refs.tree.initializeLoading()
+            that.$refs.tree.initializeLoading()
           ]
 
 
-          this.$refs.tree.handleAsyncLoad(this.asyncFileData, this.$refs.tree)
+          that.$refs.tree.handleAsyncLoad(that.asyncFileData, that.$refs.tree)
         }).catch(reject)
       })
     },
