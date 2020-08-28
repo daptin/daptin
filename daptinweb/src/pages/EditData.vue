@@ -50,7 +50,8 @@
           </q-fab-action>
           <q-fab-action color="orange" @click="downloadData('csv')" label="Download CSV" icon="fas fa-download">
           </q-fab-action>
-          <q-fab-action color="orange" @click="$refs.fileUpload.pickFiles()" label="Upload CSV/XLS" icon="fas fa-upload">
+          <q-fab-action color="orange" @click="$refs.fileUpload.pickFiles()" label="Upload CSV/XLS"
+                        icon="fas fa-upload">
             <q-file v-model="dataUploadFile" ref="fileUpload" @input="uploadFileSelected"
                     style="display: none"></q-file>
           </q-fab-action>
@@ -340,28 +341,60 @@ export default {
           obj[e.meta.ColumnName] = [];
           // for (let i = 0; i < e.value.length; i++) {
           console.log("Create promise for file", e.value);
-          promises.push((function (file) {
-            console.log("File to read", file);
-            return new Promise(function (resolve, reject) {
-              const name = file.name;
-              const type = file.type;
-              const reader = new FileReader();
-              reader.onload = function (fileResult) {
-                console.log("File loaded", fileResult);
-                obj[e.meta.ColumnName].push({
-                  name: name,
-                  file: fileResult.target.result,
-                  type: type
-                });
-                resolve();
-              };
-              reader.onerror = function () {
-                console.log("Failed to load file onerror", e, arguments);
-                reject(name);
-              };
-              reader.readAsDataURL(file);
-            })
-          })(e.value));
+
+
+          if (e.value instanceof Array) {
+            for (var i in e.value) {
+              var selectedFile = e.value[i];
+              promises.push((function (file) {
+                console.log("File to read", file);
+                return new Promise(function (resolve, reject) {
+                  const name = file.name;
+                  const type = file.type;
+                  const reader = new FileReader();
+                  reader.onload = function (fileResult) {
+                    console.log("File loaded", fileResult);
+                    obj[e.meta.ColumnName].push({
+                      name: name,
+                      file: fileResult.target.result,
+                      type: type
+                    });
+                    resolve();
+                  };
+                  reader.onerror = function () {
+                    console.log("Failed to load file onerror", e, arguments);
+                    reject(name);
+                  };
+                  reader.readAsDataURL(file);
+                })
+              })(selectedFile))
+            }
+          } else {
+            promises.push((function (file) {
+              console.log("File to read", file);
+              return new Promise(function (resolve, reject) {
+                const name = file.name;
+                const type = file.type;
+                const reader = new FileReader();
+                reader.onload = function (fileResult) {
+                  console.log("File loaded", fileResult);
+                  obj[e.meta.ColumnName].push({
+                    name: name,
+                    file: fileResult.target.result,
+                    type: type
+                  });
+                  resolve();
+                };
+                reader.onerror = function () {
+                  console.log("Failed to load file onerror", e, arguments);
+                  reject(name);
+                };
+                reader.readAsDataURL(file);
+              })
+            })(e.value))
+          }
+
+
           // }
           console.log("Asset set set column", e)
         }
