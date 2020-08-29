@@ -18,6 +18,7 @@ blocks:
             - checkout
             - cd daptinweb
             - npm install -g @quasar/cli
+            - npm install
             - npm run build
             - go get ./...
             - go test ./...
