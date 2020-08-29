@@ -24,4 +24,8 @@ blocks:
             - go get github.com/GeertJohan/go.rice/rice
             - go get -d -v ./...
             - rice embed-go
-            - go build -v .
+            - go build -o main
+            - rm -rf docker_dir && mkdir docker_dir
+            - cd docker_dir && cp ../main ./main && cp ../Dockerfile ./Dockerfile
+            - docker build -t daptin/daptin:semaphoreci
+            - docker push daptin/daptin:semaphoreci
