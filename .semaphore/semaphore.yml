@@ -20,6 +20,7 @@ blocks:
             - npm install -g @quasar/cli
             - npm install
             - npm run build
+            - cd ..
             - go get github.com/GeertJohan/go.rice/rice
             - go get -d -v ./...
             - rice embed-go
