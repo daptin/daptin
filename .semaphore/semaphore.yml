@@ -28,4 +28,5 @@ blocks:
             - rm -rf docker_dir && mkdir docker_dir
             - cd docker_dir && cp ../main ./main && cp ../Dockerfile ./Dockerfile
             - docker build -t daptin/daptin:semaphoreci .
+            - echo $DOCKER_PASSWORD | docker login --username "$DOCKER_USERNAME" --password-stdin
             - docker push daptin/daptin:semaphoreci
