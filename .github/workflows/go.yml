@@ -298,7 +298,7 @@ jobs:
       - name: Cross-compile daptin
         run: |
           export GO111MODULE=on
-          docker pull artpar/daptin-xgo
+          docker pull artpar/daptin-xgo:1.14
           go get -v github.com/karalabe/xgo
           go get -v github.com/GeertJohan/go.rice
           go get -v github.com/GeertJohan/go.rice/rice
@@ -306,7 +306,7 @@ jobs:
           rice embed-go
           go get
           xgo \
-              -image=artpar/daptin-xgo \
+              -image=artpar/daptin-xgo:1.14 \
               -targets=linux/386,darwin/amd64,linux/amd64,linux/arm-5,linux/arm-6,linux/arm-7,linux/mips,linux/mips64,linux/mips64le,linux/mipsle,windows/386,windows/amd64 \
               --tags netgo -ldflags='-linkmode external' -dest build \
               .

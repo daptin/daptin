@@ -395,14 +395,20 @@ export default {
         return false
       }
       const that = this;
+      if (source.full_path[0] !== '/') {
+        source.full_path = "/" + source.full_path
+      }
+      if (destination.full_path[0] !== '/') {
+        destination.full_path = "/" + destination.full_path
+      }
 
       var promise = that.executeAction({
         tableName: "cloud_store",
         actionName: "move_path",
         params: {
           cloud_store_id: that.site.cloud_store_id.id,
-          source: that.site.path + source.full_path,
-          destination: that.site.path + destination.full_path
+          source: that.site.path  + source.full_path,
+          destination: that.site.path  + destination.full_path
         }
       }).then(function (res) {
         console.log("moved", res);

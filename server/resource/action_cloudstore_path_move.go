@@ -42,14 +42,14 @@ func (d *CloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields m
 	sourcePath, _ := inFields["source"].(string)
 	destinationPath, _ := inFields["destination"].(string)
 	rootPath := inFields["root_path"].(string)
-	//
-	//if len(sourcePath) > 0 && sourcePath[len(sourcePath)-1] != '/' {
-	//	sourcePath = sourcePath
-	//}
-	//
-	//if len(destinationPath) > 0 && destinationPath[len(destinationPath)-1] != '/' {
-	//	destinationPath = destinationPath
-	//}
+
+	if len(sourcePath) > 0 && sourcePath[0] != '/' {
+		sourcePath = "/" + sourcePath
+	}
+
+	if len(destinationPath) > 0 && destinationPath[0] != '/' {
+		destinationPath = "/" + destinationPath
+	}
 
 	args := []string{
 		rootPath + sourcePath,
@@ -85,23 +85,21 @@ func (d *CloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields m
 	}
 	fs.Config.LogLevel = fs.LogLevelNotice
 
-	go cmd.Run(true, false, cobraCommand, func() error {
-		if fsrc == nil {
-			log.Errorf("Source or destination is null")
-			return nil
+	fsrc, srcFileName, fdst := cmd.NewFsSrcFileDst(args)
+	cmd.Run(true, true, cobraCommand, func() error {
+		var err error
+		if srcFileName == "" {
+			err = sync.MoveDir(context.Background(), fdst, fsrc, false, true)
+		} else {
+			err = operations.MoveFile(context.Background(), fdst, fsrc, srcFileName, srcFileName)
 		}
 
-		fsrc, srcFileName, fdst := cmd.NewFsSrcFileDst(args)
-		cmd.Run(true, true, cobraCommand, func() error {
-			if srcFileName == "" {
-				return sync.MoveDir(context.Background(), fdst, fsrc, false, true)
-			}
-			return operations.MoveFile(context.Background(), fdst, fsrc, srcFileName, srcFileName)
-		})
-
-		InfoErr(err, "Failed to sync files for upload to cloud")
-		err = os.RemoveAll(tempDirectoryPath)
-		InfoErr(err, "Failed to remove temp directory after path move")
+		if err != nil {
+			InfoErr(err, "Failed to sync files for upload to cloud")
+			err = os.RemoveAll(tempDirectoryPath)
+			InfoErr(err, "Failed to remove temp directory after path move")
+			return nil
+		}
 		return err
 	})
 
