@@ -11,9 +11,21 @@ dev:
         go build ./...
         ./source
       reload: true
-
 build:
   steps:
+  - script:
+      name: dashboard build
+      code: |
+        cd daptinweb
+        npm install -g @quasar/cli
+        npm install
+        npm run build
+        cd ..
+  - script:
+      name: go get rice
+      code: |
+        go get github.com/GeertJohan/go.rice/rice
+        rice embed-go
   - script:
       name: go build
       code: |
