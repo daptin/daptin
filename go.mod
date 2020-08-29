@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.65.0 // indirect
 	cloud.google.com/go/storage v1.11.0 // indirect
 	github.com/Azure/azure-pipeline-go v0.2.3 // indirect
+	github.com/Azure/go-autorest v12.2.0+incompatible
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/Masterminds/squirrel v1.4.0
 	github.com/Unknwon/goconfig v0.0.0-20200817131228-2444c9802e76 // indirect
@@ -101,7 +102,6 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/miekg/dns v1.1.31 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
-	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1
 	github.com/nicksnyder/go-i18n v1.10.1 // indirect
 	github.com/niklasfasching/go-org v1.3.2 // indirect
@@ -139,7 +139,6 @@ require (
 	gopkg.in/go-playground/validator.v9 v9.31.0
 	gopkg.in/ini.v1 v1.60.2 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
-	github.com/Azure/go-autorest v12.2.0+incompatible
 	storj.io/common v0.0.0-20200818131620-f9cddf66b4be // indirect
 	storj.io/uplink v1.2.0 // indirect
 
