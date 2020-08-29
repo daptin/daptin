@@ -189,7 +189,10 @@ func TestServer(t *testing.T) {
 		log.Printf("Trigger restart")
 
 		taskScheduler.StopTasks()
-		olricDb.Shutdown(context.Background())
+		if olricDb != nil {
+			olricDb.Shutdown(context.Background())
+		}
+
 		mailDaemon.Shutdown()
 		ftpServer.Stop()
 		imapServer.Close()
