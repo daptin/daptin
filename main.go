@@ -106,11 +106,31 @@ func main() {
 		if ok && len(databaseUrlValue) > 0 {
 			if strings.Index(databaseUrlValue, "://") > -1 {
 				log.Printf("Connection URL found for database in env variable [%v]", *database_url_variable)
-				url.Parse(databaseUrlValue)
-			} else {
+				databaseUrlParsed, err := url.Parse(databaseUrlValue)
 
+				if err != nil {
+					log.Printf("Unable to parse database variable value as url, passing it as it is")
+					connectionString = &databaseUrlValue
+				} else {
+					password, _ := databaseUrlParsed.User.Password()
+					databaseName := strings.Split(databaseUrlParsed.Path, "/")[0]
+					switch databaseUrlParsed.Scheme {
+					case "postgres":
+						x := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+							databaseUrlParsed.Host, databaseUrlParsed.Port(), databaseUrlParsed.User.Username(), password, databaseName)
+						connectionString = &x
+					case "mysql":
+						x := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
+							databaseUrlParsed.User.Username(), password, databaseUrlParsed.Host, databaseUrlParsed.Port(), databaseName)
+						connectionString = &x
+					default:
+						connectionString = &databaseUrlValue
+					}
+				}
+			} else {
+				connectionString = &databaseUrlValue
 			}
-			connectionString = &databaseUrlValue
+
 			if *dbType == "" {
 				if strings.Index(*connectionString, "dbname=") > -1 {
 					*dbType = "postgres"
