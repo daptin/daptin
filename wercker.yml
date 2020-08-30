@@ -14,7 +14,7 @@ dev:
 build:
   steps:
   - install-packages:
-      packages: node
+      packages: nodejs npm
   - script:
       name: dashboard build
       code: |
