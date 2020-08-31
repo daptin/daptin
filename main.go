@@ -143,6 +143,7 @@ func main() {
 	}
 
 	statementbuilder.InitialiseStatementBuilder(*dbType)
+	log.Printf("Database connection using: [%v] [%v]", *dbType, *connectionString)
 
 	db, err := server.GetDbConnection(*dbType, *connectionString)
 	if err != nil {
@@ -236,6 +237,7 @@ func main() {
 		portVarString := *port_variable
 
 		portVarStringValue, ok := os.LookupEnv(portVarString)
+		log.Infof("Looking up variable [%s] for port: %v", portVarString, portVarStringValue)
 		if ok && len(portVarStringValue) > 0 {
 			if portVarStringValue[0] != ':' {
 				log.Infof("Port value picked from  env is missing colon: %v", portVarStringValue)
