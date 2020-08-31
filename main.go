@@ -117,11 +117,11 @@ func main() {
 					switch databaseUrlParsed.Scheme {
 					case "postgres":
 						x := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-							databaseUrlParsed.Host, databaseUrlParsed.Port(), databaseUrlParsed.User.Username(), password, databaseName)
+							databaseUrlParsed.Hostname(), databaseUrlParsed.Port(), databaseUrlParsed.User.Username(), password, databaseName)
 						connectionString = &x
 					case "mysql":
 						x := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
-							databaseUrlParsed.User.Username(), password, databaseUrlParsed.Host, databaseUrlParsed.Port(), databaseName)
+							databaseUrlParsed.User.Username(), password, databaseUrlParsed.Hostname(), databaseUrlParsed.Port(), databaseName)
 						connectionString = &x
 					default:
 						connectionString = &databaseUrlValue
