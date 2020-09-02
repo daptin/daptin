@@ -41,7 +41,7 @@
       </div>
 
       <div class="col-12">
-        <div id="spreadsheet" style="height: 80vh"></div>
+        <div id="spreadsheet" style="height: 80vh; overflow: scroll;"></div>
       </div>
 
       <q-page-sticky v-if="!newRowDrawer" position="bottom-right" :offset="[20, 20]">
