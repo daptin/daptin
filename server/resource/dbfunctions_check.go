@@ -53,6 +53,16 @@ func CheckInfo(err error, message ...interface{}) bool {
 	return false
 }
 
+func relationHash(rel api2go.TableRelation) string {
+	relation := rel.GetRelation()
+	if relation == "has_one" {
+		relation = "belongs_to"
+	} else if relation == "has_many_and_belongs_to_many" {
+		relation = "has_many"
+	}
+	return fmt.Sprintf("%s-%s-%s", rel.GetObjectName(), relation, rel.GetSubjectName())
+}
+
 func CheckRelations(config *CmsConfig) {
 	relations := config.Relations
 	config.Relations = make([]api2go.TableRelation, 0)
@@ -61,11 +71,11 @@ func CheckRelations(config *CmsConfig) {
 
 	for _, relation := range relations {
 
-		_, ok := relationsDone[relation.Hash()]
+		_, ok := relationsDone[relationHash(relation)]
 		if ok {
 			continue
 		} else {
-			relationsDone[relation.Hash()] = true
+			relationsDone[relationHash(relation)] = true
 			finalRelations = append(finalRelations, relation)
 		}
 	}
@@ -83,14 +93,14 @@ func CheckRelations(config *CmsConfig) {
 			relation := api2go.NewTableRelation(table.TableName, "belongs_to", USER_ACCOUNT_TABLE_NAME)
 			relationGroup := api2go.NewTableRelation(table.TableName, "has_many", "usergroup")
 
-			if !relationsDone[relation.Hash()] {
-				relationsDone[relation.Hash()] = true
+			if !relationsDone[relationHash(relation)] {
+				relationsDone[relationHash(relation)] = true
 				config.Tables[i].Relations = append(config.Tables[i].Relations, relation)
 				finalRelations = append(finalRelations, relation)
 			}
 
-			if !relationsDone[relationGroup.Hash()] {
-				relationsDone[relationGroup.Hash()] = true
+			if !relationsDone[relationHash(relationGroup)] {
+				relationsDone[relationHash(relationGroup)] = true
 				config.Tables[i].Relations = append(config.Tables[i].Relations, relationGroup)
 				finalRelations = append(finalRelations, relationGroup)
 			}
@@ -104,7 +114,7 @@ func CheckRelations(config *CmsConfig) {
 			//log.Infof("Found existing %d relations from db for [%v]", len(existingRelations), config.Tables[i].TableName)
 			for _, rel := range existingRelations {
 
-				relhash := rel.Hash()
+				relhash := relationHash(rel)
 				_, ok := relationsDone[relhash]
 				if ok {
 					continue
@@ -125,17 +135,17 @@ func CheckRelations(config *CmsConfig) {
 					Relation:    "belongs_to",
 				}
 
-				if !relationsDone[userRelation.Hash()] {
-					relationsDone[userRelation.Hash()] = true
+				if !relationsDone[relationHash(userRelation)] {
+					relationsDone[relationHash(userRelation)] = true
 					finalRelations = append(finalRelations, userRelation)
 				}
 
-				if !relationsDone[userGroupRelation.Hash()] {
-					relationsDone[userGroupRelation.Hash()] = true
+				if !relationsDone[relationHash(userGroupRelation)] {
+					relationsDone[relationHash(userGroupRelation)] = true
 					finalRelations = append(finalRelations, userGroupRelation)
 				}
 
-				if !relationsDone[stateRelation.Hash()] {
+				if !relationsDone[relationHash(stateRelation)] {
 
 					stateTable := TableInfo{
 						TableName: table.TableName + "_state",
@@ -154,8 +164,8 @@ func CheckRelations(config *CmsConfig) {
 					stateTableHasOneDescription.SubjectName = table.TableName + "_status"
 					stateTableHasOneDescription.ObjectName = table.TableName + "_smd"
 					finalRelations = append(finalRelations, stateTableHasOneDescription)
-					relationsDone[stateTableHasOneDescription.Hash()] = true
-					relationsDone[stateRelation.Hash()] = true
+					relationsDone[relationHash(stateTableHasOneDescription)] = true
+					relationsDone[relationHash(stateRelation)] = true
 					finalRelations = append(finalRelations, stateRelation)
 
 					stateTable.Relations = []api2go.TableRelation{stateRelation, stateTableHasOneDescription, userRelation, userGroupRelation}
@@ -184,7 +194,7 @@ func CheckRelations(config *CmsConfig) {
 				stateTableHasOneDescription.SubjectName = table.TableName + "_status"
 				stateTableHasOneDescription.ObjectName = table.TableName + "_smd"
 				finalRelations = append(finalRelations, stateTableHasOneDescription)
-				relationsDone[stateTableHasOneDescription.Hash()] = true
+				relationsDone[relationHash(stateTableHasOneDescription)] = true
 
 				stateRelation := api2go.TableRelation{
 					Subject:     stateTable.TableName,
@@ -193,9 +203,9 @@ func CheckRelations(config *CmsConfig) {
 					ObjectName:  "is_state_of_" + table.TableName,
 					Relation:    "belongs_to",
 				}
-				relationsDone[stateRelation.Hash()] = true
-				relationsDone[userRelation.Hash()] = true
-				relationsDone[userGroupRelation.Hash()] = true
+				relationsDone[relationHash(stateRelation)] = true
+				relationsDone[relationHash(userRelation)] = true
+				relationsDone[relationHash(userGroupRelation)] = true
 				finalRelations = append(finalRelations, stateRelation)
 				finalRelations = append(finalRelations, userRelation)
 				finalRelations = append(finalRelations, userGroupRelation)

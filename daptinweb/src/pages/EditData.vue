@@ -341,8 +341,6 @@ export default {
           obj[e.meta.ColumnName] = [];
           // for (let i = 0; i < e.value.length; i++) {
           console.log("Create promise for file", e.value);
-
-
           if (e.value instanceof Array) {
             for (var i in e.value) {
               var selectedFile = e.value[i];
@@ -393,9 +391,6 @@ export default {
               })
             })(e.value))
           }
-
-
-          // }
           console.log("Asset set set column", e)
         }
       });
