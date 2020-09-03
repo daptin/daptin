@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/resty"
@@ -92,6 +93,9 @@ func (d *NetworkRequestActionPerformer) DoAction(request Outcome, inFieldMap map
 
 	response, err = client.Execute(methodString, urlString)
 	responseMap := make(map[string]interface{})
+	if response == nil || err != nil {
+		return nil, nil, []error{err}
+	}
 
 	responseHeaders := response.Header()
 	responseContentType := responseHeaders.Get("Content-Type")
@@ -101,14 +105,17 @@ func (d *NetworkRequestActionPerformer) DoAction(request Outcome, inFieldMap map
 		responseMap["body"] = m
 	} else {
 		responseMap["body"] = string(response.Body())
+		responseMap["base32EncodedBody"] = base64.StdEncoding.EncodeToString(response.Body())
 	}
 	log.Printf("Response body [%v][%v]: %v", methodString, urlString, responseMap["body"])
 	responseMap["headers"] = responseHeaders
 
-	return nil, []ActionResponse{{
-		ResponseType: request.Type,
-		Attributes:   responseMap,
-	}}, []error{err}
+	return api2go.Response{
+			Res: responseMap["body"],
+		}, []ActionResponse{{
+			ResponseType: request.Type,
+			Attributes:   responseMap,
+		}}, []error{err}
 }
 
 func NewNetworkRequestPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
