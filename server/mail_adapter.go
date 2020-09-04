@@ -363,7 +363,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 						mailboxName := "INBOX"
 
-						if spamScore > 50 {
+						if spamScore > 299 {
 							mailboxName = "Spam"
 						}
 
