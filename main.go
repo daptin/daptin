@@ -115,6 +115,8 @@ func main() {
 					password, _ := databaseUrlParsed.User.Password()
 					databaseName := strings.Split(databaseUrlParsed.Path, "/")[1]
 					switch databaseUrlParsed.Scheme {
+					case "postgresql":
+						fallthrough
 					case "postgres":
 						x := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 							databaseUrlParsed.Hostname(), databaseUrlParsed.Port(), databaseUrlParsed.User.Username(), password, databaseName)
