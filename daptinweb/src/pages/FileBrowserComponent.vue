@@ -272,7 +272,7 @@ function folderNameFromPath(path) {
 }
 
 export default {
-  name: "FileBrowserComponent",
+  name: "FileBrowser",
   props: ['site', 'path'],
   data() {
     return {

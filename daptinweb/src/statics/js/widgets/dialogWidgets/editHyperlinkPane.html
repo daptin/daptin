@@ -1,0 +1,30 @@
+<html>
+    <head></head>
+    <body>
+        <div data-dojo-type="dijit/form/Form" id="editHyperlinkPaneForm" data-dojo-id="editHyperlinkPaneForm">
+            <div>
+                <label text-i18n="Display Text" for="linkDisplayText"></label><br/>
+                <input data-dojo-type="dijit/form/TextBox" id="linkDisplayText"
+                       value=""
+                       data-dojo-props="trim:true"
+                       name="linkDisplayText" />
+                <input data-dojo-type="dijit/form/TextBox" id="isReadOnlyText"
+                       type ="hidden"
+                       value=""
+                       data-dojo-props="trim:true"
+                       name="isReadOnlyText" />
+            </div>
+            <div>
+                <label text-i18n="URL" for="linkUrl"></label><br/>
+                <input data-dojo-type="dijit/form/TextBox" id="linkUrl"
+                value="http://"
+                data-dojo-props="trim:true, intermediateChanges:true"
+                name="linkUrl" />
+            </div>
+            <div>
+                <button data-dojo-type="dijit/form/Button" id="saveHyperlinkChangeButton" type="submit">Ok</button>
+                <button data-dojo-type="dijit/form/Button" id="cancelHyperlinkChangeButton" data-dojo-id="cancelHyperlinkChangeButton">Cancel</button>
+            </div>
+        </div>
+    </body>
+</html> 

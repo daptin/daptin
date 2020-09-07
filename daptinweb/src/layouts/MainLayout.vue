@@ -4,6 +4,7 @@
     <q-drawer
       v-if="isAdmin"
       v-model="showAdminDrawer"
+      :mini-to-overlay="!showAdminDrawerStick"
       :mini="!showAdminDrawerStick && showAdminDrawerMini"
       @mouseover="showAdminDrawerMini = false"
       @mouseout="showAdminDrawerMini = true"
@@ -16,7 +17,7 @@
       <q-scroll-area class="fit">
 
         <q-list class="bg-black">
-          <q-item clickable >
+          <q-item clickable>
             <q-item-section @click="$router.push('/')" style="text-transform: capitalize;
 font-weight: bold;
 font-size: 22px;
@@ -25,7 +26,7 @@ text-align: center;
               DASHBOARD
             </q-item-section>
             <q-item-section avatar>
-              <q-btn flat size="xs" @click="showAdminDrawerStick = !showAdminDrawerStick" color="white" icon="menu" />
+              <q-btn flat size="xs" @click="showAdminDrawerStick = !showAdminDrawerStick" color="white" icon="menu"/>
             </q-item-section>
           </q-item>
         </q-list>
@@ -56,6 +57,18 @@ text-align: center;
             </q-list>
 
           </q-expansion-item>
+
+          <q-item clickable
+            @click="$router.push('/apps/files')"
+          >
+            <q-item-section avatar>
+              <q-icon name="fas fa-briefcase"></q-icon>
+            </q-item-section>
+            <q-item-section>
+              Apps
+            </q-item-section>
+
+          </q-item>
 
 
           <q-expansion-item
@@ -293,102 +306,102 @@ text-align: center;
 </template>
 
 <script>
-  import {mapGetters, mapActions} from 'vuex';
+import {mapGetters, mapActions} from 'vuex';
 
-  var jwt = require('jsonwebtoken');
+var jwt = require('jsonwebtoken');
 
-  export default {
-    name: 'MainLayout',
+export default {
+  name: 'MainLayout',
 
-    computed: {
-      fileDrawerWidth() {
-        return window.screen.availWidth;
-      },
+  computed: {
+    fileDrawerWidth() {
+      return window.screen.availWidth;
     },
-    components: {},
+  },
+  components: {},
 
-    data() {
-      return {
-        showHelp: false,
-        showAdminDrawer: false,
-        showAdminDrawerMini: false,
-        showAdminDrawerStick: false,
-        ...mapGetters(['loggedIn', 'drawerLeft', 'authToken', 'decodedAuthToken']),
-        essentialLinks: [],
-        drawer: false,
-        userDrawer: false,
-        loaded: false,
-        miniState: true,
-        isAdmin: false,
-        isUser: false,
-      }
-    },
-    mounted() {
-      const that = this;
-      console.log("Mounted main layout");
-      if (that.decodedAuthToken()) {
-        let decodedAuthToken = that.decodedAuthToken();
-        let isLoggedOut = decodedAuthToken.exp * 1000 < new Date().getTime();
-        console.log("Decoded auth token", isLoggedOut, decodedAuthToken);
-        if (isLoggedOut) {
-          that.$q.notify({
-            message: "Authentication has expired, please login again"
-          });
-          that.setDecodedAuthToken(null);
-          that.logout();
-        }
-      }
-
-      that.loadModel(["cloud_store", "user_account", "usergroup", "world", "action", 'site', 'integration']).then(async function () {
-        that.loaded = true;
-        that.getDefaultCloudStore();
-
-        that.loadData({
-          tableName: "user_account",
-        }).then(function (res) {
-          const users = res.data;
-          console.log("Users: ", users);
-
-          if (users.length == 2) {
-            that.isAdmin = true;
-            that.showAdminDrawer = true;
-            that.executeAction({
-              tableName: 'world',
-              actionName: "become_an_administrator"
-            }).then(function (res) {
-
-              that.$q.notify({
-                message: "You have become the administrator of this instance"
-              })
-            }).catch(function (err) {
-              console.log("Failed to become admin", err);
-            })
-          } else if (users.length > 2) {
-            that.isAdmin = true;
-            that.showAdminDrawer = true;
-            that.isUser = false;
-          } else {
-            that.isUser = true;
-            that.$router.push('/user/profile')
-          }
-        });
-
-      }).catch(function (err) {
-        console.log("Failed to load model for cloud store", err);
+  data() {
+    return {
+      showHelp: false,
+      showAdminDrawer: false,
+      showAdminDrawerMini: true,
+      showAdminDrawerStick: false,
+      ...mapGetters(['loggedIn', 'drawerLeft', 'authToken', 'decodedAuthToken']),
+      essentialLinks: [],
+      drawer: false,
+      userDrawer: false,
+      loaded: false,
+      miniState: true,
+      isAdmin: false,
+      isUser: false,
+    }
+  },
+  mounted() {
+    const that = this;
+    console.log("Mounted main layout");
+    if (that.decodedAuthToken()) {
+      let decodedAuthToken = that.decodedAuthToken();
+      let isLoggedOut = decodedAuthToken.exp * 1000 < new Date().getTime();
+      console.log("Decoded auth token", isLoggedOut, decodedAuthToken);
+      if (isLoggedOut) {
         that.$q.notify({
-          message: "Failed to load model for cloud store"
-        })
-      })
-
-    },
-    methods: {
-      ...mapActions(['getDefaultCloudStore', 'loadModel', 'executeAction', 'loadData', 'setDecodedAuthToken']),
-      logout() {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        this.$router.push("/login");
-        window.location = window.location;
+          message: "Authentication has expired, please login again"
+        });
+        that.setDecodedAuthToken(null);
+        that.logout();
       }
     }
+
+    that.loadModel(["cloud_store", "user_account", "usergroup", "world", "action", 'site', 'integration']).then(async function () {
+      that.loaded = true;
+      that.getDefaultCloudStore();
+
+      that.loadData({
+        tableName: "user_account",
+      }).then(function (res) {
+        const users = res.data;
+        console.log("Users: ", users);
+
+        if (users.length == 2) {
+          that.isAdmin = true;
+          that.showAdminDrawer = true;
+          that.executeAction({
+            tableName: 'world',
+            actionName: "become_an_administrator"
+          }).then(function (res) {
+
+            that.$q.notify({
+              message: "You have become the administrator of this instance"
+            })
+          }).catch(function (err) {
+            console.log("Failed to become admin", err);
+          })
+        } else if (users.length > 2) {
+          that.isAdmin = true;
+          that.showAdminDrawer = true;
+          that.isUser = false;
+        } else {
+          that.isUser = true;
+          that.$router.push('/user/profile')
+        }
+      });
+
+    }).catch(function (err) {
+      console.log("Failed to load model for cloud store", err);
+      that.$q.notify({
+        message: "Failed to load model for cloud store"
+      })
+    })
+
+  },
+  methods: {
+    ...mapActions(['getDefaultCloudStore', 'loadModel', 'executeAction', 'loadData', 'setDecodedAuthToken']),
+    logout() {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      this.$router.push("/login");
+      window.location = window.location;
+    }
   }
+}
 </script>

@@ -86,6 +86,24 @@ const routes = [
     ]
   },
   {
+    path: '/apps',
+    component: () => import('layouts/UserLayout.vue'),
+    children: [
+      {
+        path: '', component: () => import('pages/UserApps/UserAppsList.vue')
+      },
+      {
+        path: 'files', component: () => import('pages/UserApps/FileBrowser.vue')
+      },
+      {
+        path: 'document', component: () => import('pages/UserApps/OdfFilesEditor.vue')
+      },
+      {
+        path: 'calendar', component: () => import('pages/UserApps/Calendar.vue')
+      },
+    ]
+  },
+  {
     path: '/cloudstore',
     component: () => import('layouts/MainLayout.vue'),
     children: [

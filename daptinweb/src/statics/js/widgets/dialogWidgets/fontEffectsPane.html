@@ -1,0 +1,58 @@
+<html> 
+	<head>
+	</head> 
+		<body>
+            <div data-dojo-type="dijit/form/Form" id="fontEffectsPaneForm" data-dojo-id="fontEffectsPaneForm">
+
+				<h3 text-i18n="Style"></h3>
+
+			    <input data-dojo-type="dijit/form/CheckBox" name="textStyle" id="radioBold" value="bold"/>
+			    <label text-i18n="Bold" for="radioBold"></label> <br/>
+			    <input data-dojo-type="dijit/form/CheckBox" name="textStyle" id="radioItalic" value="italic"/>
+			    <label text-i18n="Italic" for="radioItalic"></label> <br/>
+			    <input data-dojo-type="dijit/form/CheckBox" name="textStyle" id="radioUnderline" value="underline"/>
+			    <label text-i18n="Underline" for="radioUnderline"></label> <br/>
+
+			    <h3 text-i18n="Font"></h3>
+                <br>
+			    <div id = 'fontPicker' class="labeledSelect" style = "float: left;">
+                    <label text-i18n="Family" for="fontName"></label>
+                </div>
+
+            	<div style = "float: left; margin-left: 30px;">
+					<label for="fontSize"><span text-i18n="Size"></span> (pt) </label>
+					<input data-dojo-type="dijit/form/NumberSpinner" id="fontSize"
+				    value="12"
+				    data-dojo-props="smallDelta:1, constraints:{min:6,max:96}"
+				    name="fontSize"
+				    />
+				</div>
+				<br /><br />
+
+				<h3 text-i18n="Color"></h3>
+                <br>
+                <input data-dojo-type="dijit/form/TextBox" name = "color" id = "textColorTB" style="display: none;"/>
+                <div data-dojo-type="dijit/form/DropDownButton">
+				    <span><span text-i18n="Text" id = "textColor"></span></span>
+				    <div data-dojo-type="dijit/TooltipDialog">
+                        <div data-dojo-type="dojox.widget.ColorPicker" id="textColorPicker"></div>
+				    </div>
+				</div>
+
+                <input data-dojo-type="dijit/form/TextBox" name = "backgroundColor" id = "backgroundColorTB" style="display: none;"/>
+				<div data-dojo-type="dijit/form/DropDownButton">
+				    <span><span text-i18n="Background" id = "backgroundColor"></span></span>
+				    <div data-dojo-type="dijit/TooltipDialog">
+                        <div data-dojo-type="dojox.widget.ColorPicker" id="backgroundColorPicker"></div>
+					</div>
+				</div>
+
+				<br /> <br />
+
+				<div class="dialogPreviewBox" style="overflow: hidden;">
+					<p id="previewText" style="margin: 0;">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce laoreet diam vestibulum massa malesuada quis dignissim libero blandit. Duis sit amet volutpat nisl.</p>
+				</div>
+
+			</div>
+		</body> 
+</html> 

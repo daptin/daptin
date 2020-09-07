@@ -1,0 +1,53 @@
+Tables:
+  - TableName: document
+    Columns:
+      - ColumnName: document_name
+        Name: document_name
+        ColumnType: label
+        DataType: varchar(100)
+        IsNullable: false
+      - ColumnName: document_path
+        Name: document_path
+        ColumnType: label
+        DataType: varchar(1000)
+        IsUnique: true
+        IsNullable: false
+      - ColumnName: document_extension
+        Name: document_extension
+        ColumnType: label
+        DataType: varchar(10)
+        IsIndexed: true
+        IsNullable: true
+      - ColumnName: mime_type
+        Name: mime_type
+        ColumnType: label
+        DataType: varchar(50)
+        IsIndexed: true
+      - ColumnName: document_content
+        Name: document_content
+        ColumnType: file.*
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: localstore
+          KeyName: documents
+        DataType: blob
+        IsNullable: false
+  - TableName: event
+    Columns:
+      - ColumnName: event_title
+        Name: event_title
+        ColumnType: label
+        DataType: varchar(100)
+        IsNullable: false
+      - ColumnName: event_date
+        Name: event_date
+        ColumnType: datetime
+        DataType: timestamp
+        IsNullable: false
+      - ColumnName: event_description
+        Name: event_description
+        ColumnType: label
+        DataType: varchar(10)
+        IsIndexed: true
+        IsNullable: false
+

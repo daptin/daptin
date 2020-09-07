@@ -1,0 +1,170 @@
+/**
+ * Copyright (C) 2012-2014 KO GmbH <copyright@kogmbh.com>
+ *
+ * @licstart
+ * This file is part of WebODF.
+ *
+ * WebODF is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License (GNU AGPL)
+ * as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * WebODF is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with WebODF.  If not, see <http://www.gnu.org/licenses/>.
+ * @licend
+ *
+ * @source: http://www.webodf.org/
+ * @source: https://github.com/kogmbh/WebODF/
+ */
+
+.webodfeditor-editor *:focus {
+    outline: none;
+}
+
+.webodfeditor-editor {
+    border: none;
+    box-shadow: 0px 0px 14px #555;
+    overflow: hidden;
+    padding: 0px !important;
+    z-index: 4;
+}
+
+.webodfeditor-canvascontainer {
+    text-align: center;
+    background-color: #ddd;
+    overflow: auto;
+    position: absolute;
+    top: 30px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+.webodfeditor-canvas {
+    margin-top: 30px;
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-bottom: 30px;
+
+    transform-origin: top center;
+    -webkit-transform-origin: top center;
+    -moz-transform-origin: top center;
+    -o-transform-origin: top center;
+
+    box-shadow: 0px 0px 20px #aaa;
+    border: 1px solid #ccc;
+
+    /*
+     * Hide the canvas overflow because otherwise the CSS-scaled 'sizer' child
+     * of the canvas will still advertise the original size in Firefox, causing
+     * strange scrollbar behavior.
+     */
+    overflow: hidden;
+}
+
+.webodfeditor-dijitWebODFIcon {
+   background-image: url("images/webodf.png");
+   background-repeat: no-repeat;
+   width: 16px;
+   height: 16px;
+   text-align: center;
+}
+
+.webodfeditor-dijitSaveAsIcon {
+   background-image: url("images/saveas.png");
+   background-repeat: no-repeat;
+   width: 18px;
+   height: 18px;
+   text-align: center;
+}
+
+/* Fix toolbar not adapting size to floating toolbar elements */
+.dijitToolbar:after {
+   content: ".";
+   visibility: hidden;
+   display: block;
+   height: 0;
+   clear: both;
+}
+
+.dijitDialog {
+    border: none !important;
+    box-shadow: 0 1px 50px rgba(0, 0, 0, 0.25) !important;
+    -moz-box-shadow: 0 1px 50px rgba(0, 0, 0, 0.25) !important;
+    -o-box-shadow: 0 1px 50px rgba(0, 0, 0, 0.25) !important;
+    -webkit-box-shadow: 0 1px 50px rgba(0, 0, 0, 0.25) !important;
+    -ms-box-shadow: 0 1px 50px rgba(0, 0, 0, 0.25) !important;
+}
+
+.dijitDialogTitle {
+    color: #333 !important;
+    font-size: 14pt !important;
+}
+
+.dijitDialogPaneContent {
+    border: none !important;
+}
+
+.dijitDialogPaneContent h3 {
+    font-weight: normal;
+    color: #333;
+    font-size: 12pt;
+    padding: 0px;
+    width: 80%;
+    border-bottom: 1px solid #eee;
+}
+
+.dijitTabPaneWrapper {
+    border: none !important;
+}
+.dijitDialogTitleBar {
+    border: none !important;
+    background-color: #fff !important;
+}
+
+.dijitDialogPaneActionBar {
+    margin: 0 !important;
+}
+
+.dijitDialogUnderlay {
+    background: radial-gradient(center, transparent, #333) !important;
+    background: -webkit-radial-gradient(center, transparent , #333) !important;
+    background: -moz-radial-gradient(center, transparent , #333) !important;
+    background: -o-radial-gradient(center, transparent , #333) !important;
+    background: -ms-radial-gradient(center, transparent , #333) !important;
+}
+
+.labeledSelect > table {
+    margin-left: 10px;
+}
+
+.dijitSpinner {
+    width: 50px !important;
+}
+
+.dijitRadio {
+    margin-top: 3px !important;
+    margin-bottom: 3px !important;
+}
+
+.dijitCheckBox {
+    margin-top: 3px !important;
+    margin-bottom: 7px !important;
+}
+.dojoxColorPicker {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+.dialogPreviewBox {
+    height: 100px;
+    width: 100%;
+    border: 1px solid gray;
+    background-color: white;
+    text-align: center;
+}

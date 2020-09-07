@@ -1,0 +1,59 @@
+<html> 
+	<head>
+	</head> 
+		<body>
+            <div data-dojo-type="dijit/form/Form" id="alignmentPaneForm" data-dojo-id="alignmentPaneForm">
+
+				<h3 text-i18n="Options">Options</h3>
+
+			    <input type="radio" data-dojo-type="dijit/form/RadioButton" name="textAlign" id="radioLeft" checked value="left"/>
+			    <label text-i18n="Left" for="radioLeft"></label> <br/>
+			    <input type="radio" data-dojo-type="dijit/form/RadioButton" name="textAlign" id="radioCenter" value="center"/>
+			    <label text-i18n="Center" for="radioCenter"></label> <br/>
+			    <input type="radio" data-dojo-type="dijit/form/RadioButton" name="textAlign" id="radioRight" value="right"/>
+			    <label text-i18n="Right" for="radioRight"></label> <br/>
+			    <input type="radio" data-dojo-type="dijit/form/RadioButton" name="textAlign" id="radioJustified" value="justify"/>
+			    <label text-i18n="Justified" for="radioJustified"></label> <br/>
+				
+				<h3><span text-i18n="Spacing"></span> <small>(mm)</small></h3>
+
+				<div style = "margin-top: 10px;">
+					<div style = "float: right; margin-right: 200px;">
+						<label text-i18n="Top" for="topMargin"></label>
+						<input data-dojo-type="dijit/form/NumberSpinner" id="topMargin"
+					    value="0"
+					    data-dojo-props="smallDelta:1, constraints:{min:0,max:100}"
+					    name="topMargin"
+					    />
+					</div>
+                    <br><br>
+					<div style = "float: left;">
+						<label text-i18n="Left" for="leftMargin"></label>
+						<input data-dojo-type="dijit/form/NumberSpinner" id="leftMargin"
+					    value="0"
+					    data-dojo-props="smallDelta:1, constraints:{min:0,max:100}"
+					    name="leftMargin"
+					    />
+					</div>
+					<div style = "float: right; margin-right: 50px;">
+					    <label text-i18n="Right" for="rightMargin"></label>
+						<input data-dojo-type="dijit/form/NumberSpinner" id="rightMargin"
+					    value="0"
+					    data-dojo-props="smallDelta:1, constraints:{min:0,max:100}"
+					    name="rightMargin"
+					    />
+					</div>
+					<br/><br>
+					<div style = "float: right; margin-right: 200px;">
+						<label text-i18n="Bottom" for="bottomMargin"></label>
+						<input data-dojo-type="dijit/form/NumberSpinner" id="bottomMargin"
+					    value="0"
+					    data-dojo-props="smallDelta:1, constraints:{min:0,max:100}"
+					    name="bottomMargin"
+					    />
+					</div>
+				</div>
+
+			</div>
+		</body> 
+</html> 
