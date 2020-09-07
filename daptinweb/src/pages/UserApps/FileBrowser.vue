@@ -1,8 +1,24 @@
 <template>
 
-  <q-page-container>
+  <q-page-container style="height: 100vh">
 
-
+    <q-menu context-menu>
+      <q-list dense style="min-width: 100px">
+        <q-item @click="$emit('newFile')" clickable v-close-popup>
+          <q-item-section>New file</q-item-section>
+        </q-item>
+        <q-item @click="$emit('uploadFile')" clickable v-close-popup>
+          <q-item-section>Upload file</q-item-section>
+        </q-item>
+        <q-item @click="$emit('newFolder')" clickable v-close-popup>
+          <q-item-section>New folder</q-item-section>
+        </q-item>
+        <q-item @click="$emit('uploadFolder')" clickable v-close-popup>
+          <q-item-section>Upload folder</q-item-section>
+        </q-item>
+        <q-separator/>
+      </q-list>
+    </q-menu>
     <q-header>
       <q-toolbar class="user-area-pattern text-black">
         <q-btn flat icon="fas fa-plus" @click="showUploader()" color="white"></q-btn>
@@ -21,6 +37,7 @@
 
     <q-page>
 
+
       <div class="row q-pa-md text-white">
 
 
@@ -28,11 +45,11 @@
           <paginated-table-view :items="files"></paginated-table-view>
         </div>
 
-
         <q-page-sticky :offset="[10, 10]" v-if="showUploadComponent">
           <q-card style="width: 300px; height: 200px">
             <daptin-document-uploader
               multiple
+              @uploadComplete="refreshData()"
               ref="uploader"
               :uploadFile="uploadFile"
               :auto-upload="true"
@@ -97,6 +114,29 @@ export default {
           e.icon = "fas fa-file"
           e.name = e.document_name
           e.path = e.document_path
+
+          if (e.name.endsWith("xlsx") || e.name.endsWith("xls")) {
+            e.icon = "fas fa-file-excel"
+          } else if (e.name.endsWith("doc") || e.name.endsWith("docx")) {
+            e.icon = "fas fa-file-word"
+          } else if (e.name.endsWith("ppt") || e.name.endsWith("pptx")) {
+            e.icon = "fas fa-file-powerpoint"
+          } else if (e.name.endsWith("pdf")) {
+            e.icon = "fas fa-file-pdf"
+          }  else if (e.name.endsWith("txt") || e.name.endsWith("yaml") || e.name.endsWith("json")) {
+            e.icon = "fas fa-file-alt"
+          } else if (e.name.endsWith("html") || e.name.endsWith("xml") || e.name.endsWith("css")) {
+            e.icon = "fas fa-file-code"
+          } else if (e.name.endsWith("csv")) {
+            e.icon = "fas fa-file-csv"
+          } else if (e.name.endsWith("jpg") || e.name.endsWith("tiff") || e.name.endsWith("gif") || e.name.endsWith("png")) {
+            e.icon = "fas fa-image"
+          } else if (e.name.endsWith("mp3") || e.name.endsWith("wav") || e.name.endsWith("riff") || e.name.endsWith("ogg")) {
+            e.icon = "fas fa-audio"
+          } else if (e.name.endsWith("mp4") || e.name.endsWith("mkv") || e.name.endsWith("riff") || e.name.endsWith("m4a")) {
+            e.icon = "fas fa-audio"
+          }
+
           return e;
         });
         that.files.unshift({
@@ -104,14 +144,14 @@ export default {
           path: '..',
           icon: 'fas fa-folder',
           is_dir: true,
-          color: "#9c7664"
+          color: "rgb(224, 135, 94)"
         })
         that.files.unshift({
           name: '.',
           path: '.',
           icon: 'fas fa-folder',
           is_dir: true,
-          color: "#9c7664"
+          color: "rgb(224, 135, 94)"
         });
 
       })
@@ -131,7 +171,7 @@ export default {
       return new Promise(function (resolve, reject) {
         that.createRow(obj).then(function (res) {
           resolve(res.data);
-          that.refreshData();
+          // that.refreshData();
         }).catch(function (e) {
           reject(e)
         });
@@ -144,15 +184,6 @@ export default {
         that.$refs.uploader.pickFiles()
       }, 100);
     },
-    filesSelected(files) {
-      // returning a Promise
-      console.log("Files selected", files)
-
-      return new Promise((resolve) => {
-        // simulating a delay of 2 seconds
-
-      })
-    }
   },
   data() {
     return {
@@ -171,14 +202,14 @@ export default {
     const that = this;
     this.containerId = "id-" + new Date().getMilliseconds();
     console.log("Mounted FilesBrowser", this.containerId);
-    this.loadModel("document").then(function () {
+    that.refreshData();
 
-      that.refreshData();
-    }).catch(function (err) {
-      that.$q.notify({
-        message: "Failed to load documents"
-      })
-    })
+    // this.loadModel("document").then(function () {
+    // }).catch(function (err) {
+    //   that.$q.notify({
+    //     message: "Failed to load documents"
+    //   })
+    // })
 
   }
 }

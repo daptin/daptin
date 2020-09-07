@@ -66,17 +66,20 @@ export default {
 
       Promise.all(that.files.map(uploadFile)).then(function (res) {
         console.log("files loaded", res);
-        Promise.all(res.map(that.uploadFile)).then(function () {
+        res.map(function (e) {
+          e["__progressLabel"] = "25%"
+        })
+        Promise.all(res.map(that.uploadFile)).then(function (res) {
           console.log("Upload complete");
           that.isUploadingOnGoing = false;
+          that.$emit("uploadComplete")
         })
       }).catch(function (err) {
         that.isUploadingOnGoing = false;
-        console.log("Failed to upload file ", arguments)
+        console.log("Failed to upload file ", err, arguments)
       })
 
 
-      // ...
     }
   }
 }
