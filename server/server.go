@@ -568,13 +568,16 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 			c.AbortWithStatus(500)
 			return
 		}
-		_, err = c.Writer.Write(indexFileContents)
-		resource.CheckErr(err, "Failed to write index html")
+		//c.Header("Content-Type", "text/html")
+		c.Data(200, "text/html; charset=UTF-8", indexFileContents)
+		//_, err = c.Writer.Write(indexFileContents)
+		//resource.CheckErr(err, "Failed to write index html")
 	})
 
 	defaultRouter.GET("", func(c *gin.Context) {
-		_, err = c.Writer.Write(indexFileContents)
-		resource.CheckErr(err, "Failed to write index html")
+		c.Data(200, "text/html; charset=UTF-8", indexFileContents)
+		//_, err = c.Writer.Write(indexFileContents)
+		//resource.CheckErr(err, "Failed to write index html")
 	})
 
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
