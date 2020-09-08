@@ -92,9 +92,9 @@ func (d *MailServersSyncActionPerformer) DoAction(request Outcome, inFields map[
 			RootCAs:                  rootCaFile,
 			ClientAuthType:           "NoClientCert",
 			PreferServerCipherSuites: true,
-			Curves:                   []string{"P521", "P384"},
-			Ciphers:                  []string{"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_3DES_EDE_CBC_SHA"},
-			Protocols:                []string{"tls1.0", "tls1.3"},
+			//Curves:                   []string{"P521", "P384"},
+			//Ciphers:                  []string{"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_3DES_EDE_CBC_SHA"},
+			//Protocols:                []string{"tls1.0", "tls1.3"},
 		}
 
 		config := guerrilla.ServerConfig{
