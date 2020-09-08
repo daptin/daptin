@@ -507,7 +507,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			"((%s.permission & 32768) = 32768) or "+
 			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", tableModel.GetTableName(), joinTableName, tableModel.GetTableName(), tableModel.GetTableName()), sessionUser.UserId)
 		countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
-		//"((%s.permission & 32768) = 32768) or "+
+			//"((%s.permission & 32768) = 32768) or "+
 			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", tableModel.GetTableName(), tableModel.GetTableName(), tableModel.GetTableName()), sessionUser.UserId)
 	}
 
@@ -652,9 +652,13 @@ func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix str
 	for _, filterQuery := range queries {
 		switch filterQuery.Operator {
 		case "contains":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v%%", filterQuery.Value))
 		case "like":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v", filterQuery.Value))
+		case "begins with":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v%%", filterQuery.Value))
+		case "ends with":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v", filterQuery.Value))
 		case "not contains":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
 		case "not like":

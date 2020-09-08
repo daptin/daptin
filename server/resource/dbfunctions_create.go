@@ -171,7 +171,7 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 				//log.Infof("Alter table add constraint sql: %v", alterSql)
 				_, err := db.Exec(alterSql)
 				if err != nil {
-					log.Infof("Failed to create foreign key [%v],  %v", err, keyName)
+					log.Infof("Failed to create foreign key [%v],  %v on column [%v][%v]", err, keyName, table.TableName, column.ColumnName)
 				} else {
 					log.Infof("Key created [%v][%v]", keyName, table.TableName)
 				}

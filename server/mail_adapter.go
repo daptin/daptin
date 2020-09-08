@@ -281,7 +281,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							resource.CheckErr(err, "Failed to parse private key")
 
 							options := &dkim.SignOptions{
-								Selector:               "daptin",
+								Selector:               "d1",
 								HeaderCanonicalization: dkim.CanonicalizationRelaxed,
 								BodyCanonicalization:   dkim.CanonicalizationRelaxed,
 								Domain:                 e.MailFrom.Host,
