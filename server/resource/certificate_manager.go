@@ -236,6 +236,8 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 	}
 	return nil, nil, nil, nil, nil, errors.New("certificate not found")
 }
+
+
 func AsStringOrEmpty(i interface{}) string {
 	if i == nil {
 		return ""
