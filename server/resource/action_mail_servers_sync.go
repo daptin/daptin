@@ -68,7 +68,7 @@ func (d *MailServersSyncActionPerformer) DoAction(request Outcome, inFields map[
 		//	log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
 		//}
 
-		err = ioutil.WriteFile(publicKeyFilePath, []byte(string(publicKeyBytes)+"\n"+string(certBytes)), 0666)
+		err = ioutil.WriteFile(publicKeyFilePath, []byte(string(publicKeyBytes)+"\n"+string(certBytes) + "\n" + string(rootCertBytes)), 0666)
 		if err != nil {
 			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
 		}

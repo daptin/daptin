@@ -253,7 +253,7 @@ func main() {
 	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), portValue)
 
 	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
-	_, certBytes, privateBytes, _, _, err := certManager.GetTLSConfig(hostname, true)
+	_, certBytes, privateBytes, _, rootCertBytes, err := certManager.GetTLSConfig(hostname, true)
 
 	if err == nil {
 		go func() {
@@ -262,7 +262,7 @@ func main() {
 			certFile := certTempDir + "/" + hostname + ".crt"
 			keyFile := certTempDir + "/" + hostname + ".key"
 			log.Printf("Temp dir for certificates: %v", certTempDir)
-			err = ioutil.WriteFile(certFile, certBytes, 0600)
+			err = ioutil.WriteFile(certFile, []byte(string(certBytes)+"\n"+string(rootCertBytes)), 0600)
 			resource.CheckErr(err, "Failed to write cert file")
 			err = ioutil.WriteFile(keyFile, privateBytes, 0600)
 			resource.CheckErr(err, "Failed to write private key file")
