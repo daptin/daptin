@@ -80,18 +80,18 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 			RootCAs:                  rootCaFile,
 			ClientAuthType:           "NoClientCert",
 			PreferServerCipherSuites: true,
-			Curves:                   []string{"P521", "P384"},
-			Ciphers: []string{
-				"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-				"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-				"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
-				"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-				"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-				"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-				"TLS_RSA_WITH_AES_256_GCM_SHA384",
-				"TLS_RSA_WITH_AES_128_GCM_SHA256",
-			},
-			Protocols: []string{"tls1.0", "tls1.1", "tls1.2", "tls1.3"},
+			//Curves:                   []string{"P521", "P384"},
+			//Ciphers: []string{
+			//	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+			//	"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+			//	"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+			//	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+			//	"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+			//	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+			//	"TLS_RSA_WITH_AES_256_GCM_SHA384",
+			//	"TLS_RSA_WITH_AES_128_GCM_SHA256",
+			//},
+			//Protocols: []string{"tls1.0", "tls1.1", "tls1.2", "tls1.3"},
 		}
 
 		config := guerrilla.ServerConfig{
