@@ -311,11 +311,16 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 
 	queries := make([]Query, 0)
 
-	if criteria.Uid != nil {
+	if criteria.Uid != nil && len(criteria.Uid.Set) > 0 {
+		setRange := criteria.Uid.Set[0]
 		queries = append(queries, Query{
 			ColumnName: "id",
-			Operator:   "contains",
-			Value:      criteria.Uid.Set,
+			Operator:   "after",
+			Value:      setRange.Start - 1,
+		}, Query{
+			ColumnName: "id",
+			Operator:   "before",
+			Value:      setRange.Stop + 1,
 		})
 	}
 
