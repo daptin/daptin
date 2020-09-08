@@ -1,6 +1,7 @@
 <script>
 // MyUploader.js
 import {QUploaderBase} from 'quasar'
+import Vue from 'vue'
 
 export default {
   name: 'DaptinDocumentUploader',
@@ -46,15 +47,13 @@ export default {
       const uploadFile = function (file) {
         return new Promise(function (resolve, reject) {
           const name = file.name;
-          const type = file.type;
           const reader = new FileReader();
-          console.log("Loading file", file.name);
+          file.__status = "Reading file"
+          // Vue.set(file, "__status", "Reading file")
+          console.log("Loading file", file);
           reader.onload = function (fileResult) {
-            resolve({
-              name: name,
-              file: fileResult.target.result,
-              type: type
-            });
+            file.file = fileResult.target.result
+            resolve(file);
           };
           reader.onerror = function (e) {
             console.log("Failed to load file onerror", e, arguments);
@@ -67,16 +66,29 @@ export default {
       Promise.all(that.files.map(uploadFile)).then(function (res) {
         console.log("files loaded", res);
         res.map(function (e) {
-          e["__progressLabel"] = "25%"
+          e.__status = "Uploading file"
         })
         Promise.all(res.map(that.uploadFile)).then(function (res) {
-          console.log("Upload complete");
+          console.log("Upload complete", res);
+          res.map(function (e) {
+            e.__status = "File uploaded"
+          })
           that.isUploadingOnGoing = false;
           that.$emit("uploadComplete")
+        }).catch(function (err) {
+          console.log("Upload failed", err)
+          that.$q.notify({
+            title: "Upload failed",
+            message: err[0].title
+          })
         })
       }).catch(function (err) {
         that.isUploadingOnGoing = false;
         console.log("Failed to upload file ", err, arguments)
+        that.$q.notify({
+          title: "Upload failed",
+          message: err
+        })
       })
 
 

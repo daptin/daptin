@@ -25,6 +25,7 @@ Tables:
         IsIndexed: true
       - ColumnName: document_content
         Name: document_content
+        IsForeignKey: true
         ColumnType: file.*
         ForeignKeyData:
           DataSource: cloud_store
@@ -39,11 +40,46 @@ Tables:
         ColumnType: label
         DataType: varchar(100)
         IsNullable: false
-      - ColumnName: event_date
-        Name: event_date
+      - ColumnName: event_url
+        Name: event_url
+        ColumnType: label
+        DataType: varchar(500)
+        IsNullable: true
+      - ColumnName: all_day
+        Name: all_day
+        ColumnType: truefalse
+        DataType: int(1)
+        IsNullable: false
+        DefaultValue: 0
+      - ColumnName: event_end_date
+        Name: event_end_date
         ColumnType: datetime
         DataType: timestamp
         IsNullable: false
+      - ColumnName: event_start_date
+        Name: event_start_date
+        ColumnType: datetime
+        DataType: timestamp
+        IsNullable: false
+      - ColumnName: start_time
+        Name: start_time
+        ColumnType: label
+        DataType: varchar(50)
+        IsNullable: false
+      - ColumnName: end_time
+        Name: end_time
+        ColumnType: label
+        DataType: varchar(50)
+        IsNullable: false
+      - ColumnName: start_recur
+        Name: start_recur
+        ColumnType: label
+        DataType: varchar(50)
+        IsNullable: false
+      - ColumnName: days_of_week
+        Name: days_of_week
+        ColumnType: label
+        DataType: varchar(100)
       - ColumnName: event_description
         Name: event_description
         ColumnType: label

@@ -3,7 +3,7 @@
     <div class="col-1" style="padding: 8px" v-for="item in items">
       <q-card class="table-item" flat :style="{cursor: 'pointer', color: item.color}">
         <q-tooltip :delay="1000">{{ item.name }}</q-tooltip>
-        <q-card-section class="text-center" avatar>
+        <q-card-section @click="itemClicked(item)" class="text-center" avatar>
           <q-menu
             touch-position
             context-menu
@@ -16,11 +16,11 @@
               <q-item clickable v-close-popup>
                 <q-item-section>New</q-item-section>
               </q-item>
-              <q-separator />
+              <q-separator/>
               <q-item clickable>
                 <q-item-section>Preferences</q-item-section>
                 <q-item-section side>
-                  <q-icon name="keyboard_arrow_right" />
+                  <q-icon name="keyboard_arrow_right"/>
                 </q-item-section>
 
                 <q-menu anchor="top right" self="top left">
@@ -33,7 +33,7 @@
                     >
                       <q-item-section>Submenu Label</q-item-section>
                       <q-item-section side>
-                        <q-icon name="keyboard_arrow_right" />
+                        <q-icon name="keyboard_arrow_right"/>
                       </q-item-section>
                       <q-menu auto-close anchor="top right" self="top left">
                         <q-list>
@@ -52,7 +52,7 @@
                 </q-menu>
 
               </q-item>
-              <q-separator />
+              <q-separator/>
               <q-item clickable v-close-popup>
                 <q-item-section>Quit</q-item-section>
               </q-item>
@@ -61,8 +61,8 @@
           </q-menu>
           <q-icon size="3em" :name="item.icon"/>
         </q-card-section>
-        <q-card-section class="text-center text-white" style="padding: 4px">
-          {{ item.name.substring(0, item.name.length > 20 ? 20 : item.name.length) }}
+        <q-card-section class="text-center text-white" style="padding: 2px; overflow-wrap: anywhere; overflow: hidden">
+          {{ item.name }}
         </q-card-section>
 
 
@@ -87,6 +87,10 @@ export default {
   name: "PaginatedTableView",
   props: ["items"],
   methods: {
+    itemClicked(item) {
+      console.log("Item clicked", item)
+      this.$emit('item-clicked', item)
+    },
     ...mapActions([]),
     traverseFileTree(item, path) {
       const that = this;

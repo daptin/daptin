@@ -59,9 +59,9 @@
             </q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple @click="logout">
-            <q-item-section avatar>
-              <q-icon name="fas fa-lock"></q-icon>
+          <q-item  clickable v-ripple @click="logout">
+            <q-item-section class="text-negative" avatar>
+              <q-icon name="fas fa-power-off"></q-icon>
             </q-item-section>
             <q-item-section>
               <q-item-label>
@@ -77,7 +77,7 @@
       </q-scroll-area>
     </q-drawer>
 
-    <router-view/>
+    <router-view v-if="loaded"/>
 
   </q-layout>
 </template>
