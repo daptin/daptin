@@ -185,7 +185,6 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 					log.Errorf("Failed to upload attachments: %v", errs)
 				}
 
-
 				files, ok := val.([]interface{})
 				if ok {
 
@@ -194,10 +193,10 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 						err = columnAssetCache.UploadFiles(files)
 					}
 
-
 					for i := range files {
 						file := files[i].(map[string]interface{})
 						delete(file, "file")
+						delete(file, "contents")
 						files[i] = file
 					}
 					val, err = json.Marshal(files)
@@ -328,7 +327,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 					val = 0
 				}
 				if BeginsWith(strings.ToLower(col.DataType), "int") {
-					floatVal, _:= strconv.ParseFloat(valString, 64)
+					floatVal, _ := strconv.ParseFloat(valString, 64)
 					intVal := int(floatVal)
 					val = fmt.Sprintf("%d", intVal)
 				}
@@ -407,7 +406,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		log.Infof("Insert query: %v", query)
 		//log.Infof("Insert values: %v", vals)
 		log.Errorf("Failed to execute insert query: %v", err)
-		log.Errorf("%v", vals)
+		//log.Errorf("%v", vals)
 		return nil, err
 	}
 	createdResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), newUuid)
@@ -453,7 +452,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
-			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 
@@ -472,7 +471,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
-			Insert(dr.model.GetName() + "_" + dr.model.GetName() + "_id" + "_has_usergroup_usergroup_id").
+			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
 			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
 

@@ -10,7 +10,7 @@
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          <q-input dense v-model="newName" autofocus @keyup.enter="newNamePrompt = false"/>
+          <q-input dense v-model="newName" autofocus @keyup.enter="createNew()"/>
         </q-card-section>
 
         <q-card-actions align="right" class="text-primary">
@@ -181,8 +181,21 @@ export default {
     fileClicked(file) {
       const that = this;
       console.log("File clicked", file);
-      if (file.document_extension === "directory") {
-        that.currentPath = file.document_path
+      if (file.is_dir) {
+        if (file.name === ".") {
+          that.refreshData();
+        } else if (file.name === "..") {
+          let pathParts = this.currentPath.split("/");
+          if (pathParts.length > 1) {
+            pathParts.pop();
+          }
+          let newPath = pathParts.join("/");
+          console.log("one level up %s", newPath)
+          this.currentPath = newPath
+        } else {
+          that.currentPath = file.document_path + file.name
+        }
+        that.refreshData();
       } else {
         that.$q.loading = true;
         that.loadData({
@@ -215,7 +228,7 @@ export default {
         tableName: "document",
         document_extension: this.newName.indexOf(".") > -1 ? this.newName.split(".")[1] : "",
         mime_type: '',
-        document_path: this.currentPath + this.newName,
+        document_path: this.currentPath + "/",
         document_content: [{
           name: this.newName,
           type: "text/plain",
@@ -230,11 +243,12 @@ export default {
       this.createRow(newRow).then(function (res) {
         // resolve(file);
         that.refreshData();
+        that.newNamePrompt = false;
       }).catch(function (e) {
         console.log("Failed to create", e)
         that.$q.notify({
           message: JSON.stringify(e)
-        })
+        });
       });
 
 
@@ -247,11 +261,11 @@ export default {
         params: {
           query: JSON.stringify([{
             column: "document_path",
-            operator: "like",
-            value: that.currentPath + "%"
+            operator: "is",
+            value: that.currentPath + "/"
           }]),
           page: {
-            size: 1000,
+            size: 100,
           }
         }
       }).then(function (res) {
@@ -279,11 +293,17 @@ export default {
           } else if (e.name.endsWith("jpg") || e.name.endsWith("tiff") || e.name.endsWith("gif") || e.name.endsWith("png")) {
             e.icon = "fas fa-image"
           } else if (e.name.endsWith("mp3") || e.name.endsWith("wav") || e.name.endsWith("riff") || e.name.endsWith("ogg")) {
-            e.icon = "fas fa-audio"
+            e.icon = "fas fa-file-audio"
           } else if (e.name.endsWith("mp4") || e.name.endsWith("mkv") || e.name.endsWith("riff") || e.name.endsWith("m4a")) {
-            e.icon = "fas fa-audio"
+            e.icon = "fas fa-file-video"
           } else if (e.name.endsWith("zip") || e.name.endsWith("rar") || e.name.endsWith("gz") || e.name.endsWith("tar")) {
             e.icon = "fas fa-file-archive"
+          }
+          if (e.document_extension === "folder") {
+            e.icon = "fas fa-folder"
+            e.is_dir = true
+            e.color = "rgb(224, 135, 94)"
+
           }
 
           return e;
@@ -316,7 +336,7 @@ export default {
           type: file.type
         }],
         document_name: file.name,
-        document_path: this.currentPath + file.name,
+        document_path: this.currentPath + "/",
         mime_type: file.type,
         document_extension: file.name.indexOf(".") > -1 ? file.name.split(".")[1] : "",
       }
@@ -344,7 +364,7 @@ export default {
       newNamePrompt: false,
       newName: '',
       newNameType: '',
-      currentPath: '/',
+      currentPath: '',
       showSearchInput: false,
       files: [],
       showUploadComponent: false,

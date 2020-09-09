@@ -760,6 +760,9 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 		for _, include := range includes {
 			delete(include, "id")
+			if BeginsWith(include["__type"].(string), "file.") {
+				continue
+			}
 			perm, ok := include["permission"].(int64)
 			if !ok {
 				log.Errorf("Failed to parse permission, skipping record: %v", err)

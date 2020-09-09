@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 
 	"fmt"
@@ -141,13 +142,16 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 					res, err := dr.db.Queryx(joinIdQuery, vals...)
 					CheckErr(err, "Failed to query for join ids")
-					defer res.Close()
+					defer func(r *sqlx.Rows){
+						r.Close()
+					}(res)
 					if err == nil {
 
 						var ids []string
 						for res.Next() {
 							var s string
-							res.Scan(&s)
+							err = res.Scan(&s)
+							CheckErr(err, "Failed to scan value in delete")
 							ids = append(ids, s)
 						}
 

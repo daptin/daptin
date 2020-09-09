@@ -90,7 +90,7 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 		if contents != nil {
 
 			contentString, ok := contents.(string)
-			if ok {
+			if ok && len(contentString) > 4 {
 
 				if contentString[0:4] == "data" {
 					contentString = contentString[strings.Index(contentString, "base64,")+7:]

@@ -118,7 +118,11 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 
 		for _, fileInterface := range files {
 			file := fileInterface.(map[string]interface{})
-			fileName := file["name"].(string)
+			fileName, ok := file["name"].(string)
+			if !ok {
+				log.Errorf("Name is missing for file")
+				continue
+			}
 			temproryFilePath := filepath.Join(tempDirectoryPath, fileName)
 
 			fileContentsBase64, ok := file["file"].(string)

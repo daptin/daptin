@@ -1305,7 +1305,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 			case "cloud_store":
 				referenceStorageInformation := val.(string)
-				log.Infof("Resolve files from cloud store: %v", referenceStorageInformation)
+				//log.Infof("Resolve files from cloud store: %v", referenceStorageInformation)
 				foreignFilesList := make([]map[string]interface{}, 0)
 				err := json.Unmarshal([]byte(referenceStorageInformation), &foreignFilesList)
 				CheckErr(err, "Failed to obtain list of file information")
@@ -1318,7 +1318,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				}
 
 				row[key] = foreignFilesList
-				log.Infof("set row[%v]  == %v", key, foreignFilesList)
+				//log.Infof("set row[%v]  == %v", key, foreignFilesList)
 				if includedRelationMap != nil && (includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"]) {
 
 					resolvedFilesList, err := dr.GetFileFromLocalCloudStore(dr.TableInfo().TableName, columnInfo.ColumnName, foreignFilesList)

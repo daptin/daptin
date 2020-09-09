@@ -4,13 +4,12 @@ Tables:
       - ColumnName: document_name
         Name: document_name
         ColumnType: label
-        DataType: varchar(100)
+        DataType: varchar(500)
         IsNullable: false
       - ColumnName: document_path
         Name: document_path
         ColumnType: label
-        DataType: varchar(1000)
-        IsUnique: true
+        DataType: varchar(2000)
         IsNullable: false
       - ColumnName: document_extension
         Name: document_extension
