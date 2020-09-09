@@ -44,6 +44,12 @@ Tables:
         ColumnType: label
         DataType: varchar(500)
         IsNullable: true
+      - ColumnName: event_type
+        Name: event_type
+        ColumnType: label
+        DataType: varchar(50)
+        IsNullable: false
+        DefaultValue: "'event'"
       - ColumnName: all_day
         Name: all_day
         ColumnType: truefalse

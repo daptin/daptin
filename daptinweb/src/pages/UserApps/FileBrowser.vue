@@ -1,6 +1,6 @@
 <template>
 
-  <q-page-container style="height: 100vh">
+  <q-page-container style="height: 100vh; overflow: hidden;">
 
 
     <q-dialog v-model="newNamePrompt" persistent>
@@ -39,28 +39,19 @@
 
       </q-list>
     </q-menu>
-    <q-header>
-      <q-toolbar class="user-area-pattern text-black">
-        <q-btn flat icon="fas fa-plus" @click="showUploader()" color="white"></q-btn>
-        <q-btn flat icon="fas fa-search" v-if="!showSearchInput"
-               @click="(showSearchInput = true) && ($refs.search.focus())" color="white"></q-btn>
-        <q-input ref="search" v-if="showSearchInput" dense standout v-model="searchInput"
-                 input-class="text-right text-white" class="q-ml-md text-white">
-          <template v-slot:append>
-            <q-icon v-if="searchInput === ''" name="fas fa-search" color="white"/>
-            <q-icon v-else name="clear" class="cursor-pointer text-white"
-                    @click="(showSearchInput = false) && (searchInput = '')"/>
-          </template>
-        </q-input>
-        <q-btn flat icon="fas fa-sync-alt"
-               @click="refreshData()" color="white"></q-btn>
-      </q-toolbar>
-    </q-header>
 
     <q-page>
+      <user-header-bar :buttons="{
+        before: [
+            {icon: 'fas fa-plus', click: showUploader},
+            {icon: 'fas fa-search', click: () => {}},
+          ],
+        after: [
+            {icon: 'fas fa-sync-alt', click: refreshData},
+          ],
+        }" title="Files"></user-header-bar>
 
-
-      <div class="row q-pa-md text-white">
+      <div style="height: 100vh; overflow-y: scroll" class="row q-pa-md text-white">
 
 
         <div class="col-12">
@@ -69,63 +60,49 @@
         </div>
 
         <q-page-sticky :offset="[10, 10]" v-if="showUploadComponent">
-          <q-card style="width: 300px; height: 200px">
-            <daptin-document-uploader
-              multiple
-              @uploadComplete="refreshData()"
-              ref="uploader"
-              :uploadFile="uploadFile"
-              :auto-upload="true"
-              style="max-width: 300px; color: black"
+          <q-card style="width: 300px; height: 200px; background: black; font-size: 10px;">
+            <file-upload
+              :multiple="true"
+              style="height: 300px; width: 100%; text-align: left"
+              ref="upload"
+              :drop="true"
+              :drop-directory="true"
+              v-model="uploadedFiles"
+              post-action="/post.method"
+              put-action="/put.method"
+              @input-file="uploadFile"
             >
-              <template v-slot:header="scope">
-                <div class="bg-black row no-wrap items-center q-pa-sm q-gutter-xs">
-                  <q-btn v-if="scope.uploadedFiles.length > 0" icon="done_all" @click="scope.removeUploadedFiles" round
-                         dense flat>
-                    <q-tooltip>Remove Uploaded Files</q-tooltip>
-                  </q-btn>
-                  <q-spinner v-if="scope.isUploading" class="q-uploader__spinner"/>
-                  <div class="col">
-                    <div class="q-uploader__title">Upload your files</div>
+              <div class="container">
+                <div class="row">
+                  <div class="col-12" style="height: 100%; ">
+                <span class="vertical-middle" v-if="uploadedFiles.length === 0">
+                  Click here to select files, or drag and drop files here to upload</span>
                   </div>
-                  <q-btn v-if="scope.canAddFiles" type="a" icon="add_box" round dense flat>
-                    <q-uploader-add-trigger/>
-                    <q-tooltip>Pick Files</q-tooltip>
-                  </q-btn>
-                  <q-btn icon="fas fa-times" @click="showUploadComponent = false" round dense flat>
-                    <q-tooltip>Close</q-tooltip>
-                  </q-btn>
                 </div>
-              </template>
-              <template v-slot:list="scope">
-                <q-list separator>
-
-                  <q-item v-for="file in scope.files" :key="file.name">
-                    <q-item-section>
-                      <q-item-label class="full-width ellipsis">
-                        {{ file.name }}
-                      </q-item-label>
-
-                      <q-item-label caption>
-                        Status: {{ file.__status }}
-                      </q-item-label>
-
-                    </q-item-section>
-
-                    <q-item-section
-                      v-if="file.__img"
-                      thumbnail
-                      class="gt-xs"
-                    >
-                      <img :src="file.__img.src">
-                    </q-item-section>
-
-                  </q-item>
-
-                </q-list>
-              </template>
-
-            </daptin-document-uploader>
+                <span v-if="uploadedFiles.length === 0"
+                      class="vertical-middle">Drop files or click to select <br/></span>
+                <div class="row q-pa-md">
+                  <div class="col-12 ">
+                    <table style="width: 100%">
+                      <thead>
+                      <tr>
+                        <th style="text-align: left">File</th>
+                        <th style="text-align: right">Size</th>
+                        <th style="text-align: right">Status</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      <tr v-for="file in uploadedFiles">
+                        <td style="text-align: left"> {{ file.name }}</td>
+                        <td style="text-align: right">{{ parseInt(file.size/1024) }} Kb</td>
+                        <td style="text-align: right">{{ file.status }}</td>
+                      </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </file-upload>
 
           </q-card>
         </q-page-sticky>
@@ -159,6 +136,22 @@ function saveByteArray(reportName, fileType, byte) {
   link.download = fileName;
   link.click();
 };
+
+function debounce(func, wait, immediate) {
+  var timeout;
+  return function () {
+    var context = this, args = arguments;
+    var later = function () {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    };
+    var callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func.apply(context, args);
+  };
+}
+
 
 export default {
 
@@ -322,46 +315,78 @@ export default {
           is_dir: true,
           color: "rgb(224, 135, 94)"
         });
+      });
 
-      })
+
     },
     uploadFile(file) {
       console.log("Upload file", file);
       const that = this;
-      var obj = {
-        tableName: "document",
-        document_content: [{
-          name: file.name,
-          contents: file.file,
-          type: file.type
-        }],
-        document_name: file.name,
-        document_path: this.currentPath + "/",
-        mime_type: file.type,
-        document_extension: file.name.indexOf(".") > -1 ? file.name.split(".")[1] : "",
-      }
+      file.status = "Queued"
 
-      return new Promise(function (resolve, reject) {
-        that.createRow(obj).then(function (res) {
-          resolve(file);
-          // that.refreshData();
-        }).catch(function (e) {
-          reject(e)
-        });
-      });
+      var uploadFile1 = function (fileToUpload) {
+        return new Promise(function (resolve, reject) {
+          const name = fileToUpload.name;
+          const type = fileToUpload.type;
+          const reader = new FileReader();
+          file.status = "Reading"
+          reader.onload = function (fileResult) {
+            console.log("File loaded", fileToUpload, fileResult);
+            file.status = "Uploading"
+            let documentPath = that.currentPath + "/";
+            if (fileToUpload.webkitRelativePath && fileToUpload.webkitRelativePath.length > 0) {
+              var relPath = fileToUpload.webkitRelativePath.split("/");
+              relPath.pop(); //remove name
+              documentPath = that.currentPath + "/" + relPath.join("/")
+            }
+            var obj = {
+              tableName: "document",
+              document_content: [{
+                name: fileToUpload.name,
+                contents: fileResult.target.result,
+                type: fileToUpload.type
+              }],
+              document_name: fileToUpload.name,
+              document_path: documentPath,
+              mime_type: fileToUpload.type,
+              document_extension: fileToUpload.name.indexOf(".") > -1 ? fileToUpload.name.split(".")[1] : "",
+            }
+            that.createRow(obj).then(function () {
+              file.status = "Uploaded";
+              that.refreshData();
+              resolve()
+            }).catch(reject);
+          };
+          reader.onerror = function () {
+            console.log("Failed to load file onerror", e, arguments);
+            reject(name);
+          };
+          reader.readAsDataURL(fileToUpload);
+        })
+      };
+      return uploadFile1(file.file)
+
+
     },
     showUploader() {
       const that = this;
+      if (this.showUploadComponent) {
+        this.showUploadComponent = false;
+        return;
+      }
+      this.uploadedFiles = [];
+
       this.showUploadComponent = true
       setTimeout(function () {
-        that.$refs.uploader.pickFiles()
-      }, 100);
+        that.$refs.upload.$el.click()
+      }, 200);
     },
   },
   data() {
     return {
       searchInput: '',
       newNamePrompt: false,
+      uploadedFiles: [],
       newName: '',
       newNameType: '',
       currentPath: '',

@@ -1,6 +1,6 @@
 <template>
   <div id="dropArea" class="row">
-    <div @click="itemClicked(item)" class="col-1" @touchstart.stop @contextmenu.stop style="padding: 8px"
+    <div  class="col-1" @touchstart.stop @contextmenu.stop style="padding: 8px"
          v-for="item in items">
       <q-menu context-menu>
         <q-list dense style="min-width: 100px">
@@ -18,7 +18,7 @@
           <q-separator/>
         </q-list>
       </q-menu>
-      <q-card class="table-item" flat :style="{cursor: 'pointer', color: item.color}">
+      <q-card @click="itemClicked(item)" class="table-item" flat :style="{cursor: 'pointer', color: item.color}">
         <q-tooltip :delay="1000">{{ item.name }}</q-tooltip>
         <q-card-section class="text-center" avatar>
           <q-icon size="2.5em" :name="item.icon"/>
@@ -83,18 +83,18 @@ export default {
     const that = this;
     that.refreshData();
 
-    document.body.addEventListener("drop", function (event) {
-      event.preventDefault();
-
-      var items = event.dataTransfer.items;
-      for (var i = 0; i < items.length; i++) {
-        // webkitGetAsEntry is where the magic happens
-        var item = items[i].webkitGetAsEntry();
-        if (item) {
-          that.traverseFileTree(item);
-        }
-      }
-    }, false);
+    // document.body.addEventListener("drop", function (event) {
+    //   event.preventDefault();
+    //
+    //   var items = event.dataTransfer.items;
+    //   for (var i = 0; i < items.length; i++) {
+    //     // webkitGetAsEntry is where the magic happens
+    //     var item = items[i].webkitGetAsEntry();
+    //     if (item) {
+    //       that.traverseFileTree(item);
+    //     }
+    //   }
+    // }, false);
 
   }
 }

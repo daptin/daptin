@@ -8,6 +8,7 @@ import TablePermissions from '../pages/Permissions'
 import HelpPage from '../pages/HelpPage'
 import FileBrowser from 'pages/FileBrowserComponent';
 import DaptinDocumentUploader from 'pages/UserApps/Components/DaptinDocumentUploader.vue';
+import UserHeaderBar from "pages/UserApps/UserHeaderBar";
 
 const VueUploadComponent = require('vue-upload-component');
 const AceEditor = require('vue2-ace-editor');
@@ -16,6 +17,7 @@ import PaginatedTableView from "pages/UserApps/PaginatedListViewTemplate/Paginat
 
 Vue.component('v-jstree', VJstree);
 Vue.component('ace-editor', AceEditor);
+Vue.component('user-header-bar', UserHeaderBar);
 Vue.component('file-upload', VueUploadComponent);
 Vue.component('daptin-document-uploader', DaptinDocumentUploader);
 Vue.component('file-browser', FileBrowser);

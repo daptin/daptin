@@ -155,6 +155,9 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 	existingIndexes := GetExistingIndexes(db)
 
 	for i, table := range initConfig.Tables {
+		if len(table.TableName) <1 {
+			continue
+		}
 		for _, column := range table.Columns {
 			if column.IsForeignKey && column.ForeignKeyData.DataSource == "self" {
 				keyName := "fk" + GetMD5Hash(table.TableName+"_"+column.ColumnName+"_"+column.ForeignKeyData.Namespace+"_"+column.ForeignKeyData.KeyName+"_fk")

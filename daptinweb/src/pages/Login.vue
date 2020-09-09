@@ -63,7 +63,7 @@
             }
           }
           that.setToken();
-          that.$router.push("/tables");
+          that.$router.push("/");
         }).catch(function (e) {
           that.$q.notify("Failed to sign in");
           console.log("error ", arguments)
