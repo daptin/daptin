@@ -4,30 +4,22 @@
     <q-toolbar v-if="decodedAuthToken() !== null">
       <q-btn v-for="btn in buttons.before" flat @click="btn.click" :icon="btn.icon"></q-btn>
       <q-toolbar-title shrink>{{ title }}</q-toolbar-title>
-      <q-btn style="border: 1px solid black" v-for="btn in buttons.after" flat @click="btn.click" :label="btn.label" :icon="btn.icon"></q-btn>
+      <q-btn style="border: 1px solid black" v-for="btn in buttons.after" flat @click="btn.click" :label="btn.label"
+             :icon="btn.icon"></q-btn>
       <q-space/>
       <q-btn flat icon="fas fa-th">
         <q-menu>
           <div class="row no-wrap q-pa-md">
             <q-list>
-              <q-item @click="$router.push('/apps/files')" clickable>
+
+              <q-item :disable="!item.enable" v-for="item in menuItems" @click="$router.push(item.path)" clickable>
                 <q-item-section avatar>
                   <q-icon
-                    name="fas fa-archive"
-                    />
+                    :name="item.icon"
+                  />
                 </q-item-section>
                 <q-item-section>
-                  Files
-                </q-item-section>
-              </q-item>
-              <q-item @click="$router.push('/apps/calendar')" clickable>
-                <q-item-section avatar>
-                  <q-icon
-                    name="fas fa-calendar"
-                    />
-                </q-item-section>
-                <q-item-section>
-                  Calendar
+                  {{ item.name }}
                 </q-item-section>
               </q-item>
             </q-list>
@@ -38,11 +30,6 @@
       <q-btn size="1.2em" class="profile-image" flat :icon="'img:' + decodedAuthToken().picture">
         <q-menu>
           <div class="row no-wrap q-pa-md">
-            <!--            <div class="column">-->
-            <!--              <div class="text-h6 q-mb-md">Settings</div>-->
-            <!--            </div>-->
-
-            <!--            <q-separator vertical inset class="q-mx-lg"/>-->
 
             <div class="column items-center">
               <q-avatar size="72px">
@@ -90,7 +77,33 @@ export default {
   },
   data() {
     return {
-      ...mapGetters(['decodedAuthToken'])
+      ...mapGetters(['decodedAuthToken']),
+      menuItems: [
+        {
+          name: "Email",
+          enable: false,
+          path: '/apps/email',
+          icon: 'fas fa-envelope'
+        },
+        {
+          name: "Files",
+          path: '/apps/files',
+          enable: true,
+          icon: 'fas fa-archive'
+        },
+        {
+          name: "Contacts",
+          enable: false,
+          path: '/apps/contacts',
+          icon: 'fas fa-users'
+        },
+        {
+          name: "Calendar",
+          enable: true,
+          path: '/apps/calendar',
+          icon: 'fas fa-calendar'
+        },
+      ]
     }
   },
   props: ['title', 'buttons']

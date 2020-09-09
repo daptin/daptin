@@ -32,25 +32,52 @@
             <div class="col-12">
               <q-toolbar>
                 <q-btn flat label="Today" @click="calendar.gotoDate(new Date())"></q-btn>
-                <q-btn icon="fas fa-plus" label="New Event" flat></q-btn>
+                <q-btn icon="fas fa-plus" label="New Event" flat>
+                  <q-menu>
+                    <q-card dark style="width: 500px">
+                      <q-card-section>
+                        <q-input dark v-model="newEvent.title"></q-input>
+                      </q-card-section>
+                      <q-card-section>
+                        @ <q-btn :label="newEvent.date.toDateString()" flat>
+                          <q-popup-proxy>
+                            <q-date v-model="pdate">
+                              <div class="row items-center justify-end q-gutter-sm">
+                                <q-btn label="Cancel" color="primary" flat v-close-popup/>
+                                <q-btn label="OK" color="primary" flat @click="newEvent.date = pdate" v-close-popup/>
+                              </div>
+                            </q-date>
+                          </q-popup-proxy>
+                        </q-btn>
+
+                      </q-card-section>
+                      <q-card-actions align="right">
+                        <q-btn class="float-right" label="Save">
+
+                        </q-btn>
+                      </q-card-actions>
+                    </q-card>
+                  </q-menu>
+                </q-btn>
+
                 <q-btn icon="fas fa-angle-left" @click="calendar.prev()" flat></q-btn>
                 <q-btn icon="fas fa-angle-right" @click="calendar.next()" flat></q-btn>
                 <q-space/>
                 <q-btn-dropdown :label="calendarView" content-style="background: black" flat>
                   <q-list dark>
-                    <q-item v-close-popup  @click="setCalenderView('day')" clickable>
+                    <q-item v-close-popup @click="setCalenderView('day')" clickable>
                       <q-item-section>Day</q-item-section>
                     </q-item>
-                    <q-item v-close-popup  @click="setCalenderView('week')" clickable>
+                    <q-item v-close-popup @click="setCalenderView('week')" clickable>
                       <q-item-section>Week</q-item-section>
                     </q-item>
-                    <q-item v-close-popup  @click="setCalenderView('month')" clickable>
+                    <q-item v-close-popup @click="setCalenderView('month')" clickable>
                       <q-item-section>Month</q-item-section>
                     </q-item>
-                    <q-item v-close-popup  @click="setCalenderView('schedule')" clickable>
+                    <q-item v-close-popup @click="setCalenderView('schedule')" clickable>
                       <q-item-section>Day Schedule</q-item-section>
                     </q-item>
-                    <q-item v-close-popup  @click="setCalenderView('week schedule')" clickable>
+                    <q-item v-close-popup @click="setCalenderView('week schedule')" clickable>
                       <q-item-section>Week Schedule</q-item-section>
                     </q-item>
                   </q-list>
@@ -73,6 +100,7 @@
 .fc .fc-list-sticky .fc-list-day > * {
   background: transparent;
 }
+
 .fc .fc-list-event:hover td {
   background: black;
 }
@@ -90,6 +118,11 @@ export default {
   data() {
     return {
       searchInput: '',
+      pdate: null,
+      newEvent: {
+        title: 'New event',
+        date: new Date()
+      },
       calendarView: 'month',
       date: new Date(),
       showSearchInput: false,
@@ -104,19 +137,24 @@ export default {
     }
   },
   methods: {
-    setCalenderView(view){
+    setCalenderView(view) {
       this.calendarView = view;
       switch (view) {
         case "week":
-          this.calendar.changeView('timeGridWeek');return;
+          this.calendar.changeView('timeGridWeek');
+          return;
         case "day":
-          this.calendar.changeView('timeGridDay');return;
+          this.calendar.changeView('timeGridDay');
+          return;
         case "month":
-          this.calendar.changeView('dayGridMonth');return;
+          this.calendar.changeView('dayGridMonth');
+          return;
         case "schedule":
-          this.calendar.changeView('listDay');return;
+          this.calendar.changeView('listDay');
+          return;
         case "week schedule":
-          this.calendar.changeView('listWeek');return;
+          this.calendar.changeView('listWeek');
+          return;
       }
     },
     addNewEvent() {
