@@ -41,24 +41,24 @@
     </q-menu>
 
     <q-page>
-      <user-header-bar :buttons="{
+      <user-header-bar style="border-bottom: 1px solid black" :buttons="{
         before: [
             {icon: 'fas fa-plus', click: showUploader},
             {icon: 'fas fa-search', click: () => {}},
           ],
         after: [
+            {icon: viewMode === 'card' ? 'fas fa-th-list' : 'fas fa-th-large', click: () => {viewMode = viewMode === 'card' ? 'table' : 'card'}},
             {icon: 'fas fa-sync-alt', click: refreshData},
           ],
         }" title="Files"></user-header-bar>
 
-      <div style="height: 100vh; overflow-y: scroll" class="row q-pa-md text-white">
-
-
+      <div style="height: 100vh; overflow-y: scroll" class="row text-white">
         <div class="col-12">
-          <paginated-table-view @item-deleted="itemDelete" @item-clicked="fileClicked"
+          <paginated-table-view v-if="viewMode === 'table'" @item-deleted="itemDelete" @item-clicked="fileClicked"
                                 :items="files"></paginated-table-view>
+          <paginated-card-view v-if="viewMode === 'card'" @item-deleted="itemDelete" @item-clicked="fileClicked"
+                                :items="files"></paginated-card-view>
         </div>
-
         <q-page-sticky :offset="[10, 10]" v-if="showUploadComponent">
           <q-card style="width: 300px; height: 200px; background: black; font-size: 10px;">
             <file-upload
@@ -94,7 +94,7 @@
                       <tbody>
                       <tr v-for="file in uploadedFiles">
                         <td style="text-align: left"> {{ file.name }}</td>
-                        <td style="text-align: right">{{ parseInt(file.size/1024) }} Kb</td>
+                        <td style="text-align: right">{{ parseInt(file.size / 1024) }} Kb</td>
                         <td style="text-align: right">{{ file.status }}</td>
                       </tr>
                       </tbody>
@@ -386,6 +386,7 @@ export default {
     return {
       searchInput: '',
       newNamePrompt: false,
+      viewMode: 'table',
       uploadedFiles: [],
       newName: '',
       newNameType: '',

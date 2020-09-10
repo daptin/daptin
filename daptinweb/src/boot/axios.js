@@ -14,6 +14,7 @@ const VueUploadComponent = require('vue-upload-component');
 const AceEditor = require('vue2-ace-editor');
 import VJstree from 'vue-jstree'
 import PaginatedTableView from "pages/UserApps/PaginatedListViewTemplate/PaginatedTableView.vue";
+import PaginatedCardView from "pages/UserApps/PaginatedListViewTemplate/PaginatedCardView";
 
 Vue.component('v-jstree', VJstree);
 Vue.component('ace-editor', AceEditor);
@@ -25,6 +26,7 @@ Vue.component("table-side-bar", TableSideBar);
 Vue.component("table-permissions", TablePermissions);
 Vue.component("table-editor", TableEditor);
 Vue.component("paginated-table-view", PaginatedTableView);
+Vue.component("paginated-card-view", PaginatedCardView);
 Vue.component("help-page", HelpPage);
 // Vue.component("tiny-mce", Editor);
 
