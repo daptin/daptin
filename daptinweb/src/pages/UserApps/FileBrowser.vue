@@ -53,11 +53,25 @@
         }" title="Files"></user-header-bar>
 
       <div style="height: 100vh; overflow-y: scroll" class="row text-white">
-        <div class="col-12">
+        <div class="col-2" v-if="selectedFile">
+          <q-card flat style="background: transparent">
+            <q-card-section>
+              <span class="text-h6">{{ selectedFile.name }}</span>
+            </q-card-section>
+            <q-card-section>
+              <span class="text-bold">Size {{ selectedFile.document_content[0].name }}</span>
+            </q-card-section>
+            <q-card-section>
+              <q-btn style="border: 1px solid black; background: black" flat label="Download" @click="fileDownload(selectedFile)" ></q-btn>
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <div :class="{'col-12': !selectedFile, 'col-10': selectedFile}">
           <paginated-table-view v-if="viewMode === 'table'" @item-deleted="itemDelete" @item-clicked="fileClicked"
                                 :items="files"></paginated-table-view>
           <paginated-card-view v-if="viewMode === 'card'" @item-deleted="itemDelete" @item-clicked="fileClicked"
-                                :items="files"></paginated-card-view>
+                               :items="files"></paginated-card-view>
         </div>
         <q-page-sticky :offset="[10, 10]" v-if="showUploadComponent">
           <q-card style="width: 300px; height: 200px; background: black; font-size: 10px;">
@@ -172,6 +186,9 @@ export default {
       })
     },
     fileClicked(file) {
+      this.selectedFile = file;
+    },
+    fileDownload(file) {
       const that = this;
       console.log("File clicked", file);
       if (file.is_dir) {
@@ -249,6 +266,7 @@ export default {
     ...mapActions(['loadData', 'createRow', 'loadModel', 'deleteRow']),
     refreshData() {
       const that = this;
+      that.selectedFile = null;
       that.loadData({
         tableName: "document",
         params: {
@@ -391,6 +409,7 @@ export default {
       newName: '',
       newNameType: '',
       currentPath: '',
+      selectedFile: null,
       showSearchInput: false,
       files: [],
       showUploadComponent: false,
