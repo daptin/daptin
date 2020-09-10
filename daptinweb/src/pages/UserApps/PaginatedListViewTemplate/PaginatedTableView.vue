@@ -56,7 +56,7 @@
             <q-icon size="2.5em" :name="item.icon"/>
           </td>
           <td>{{ item.name }}</td>
-          <td>{{ item.size }}</td>
+          <td>{{ parseInt(item.document_content[0].size/1024) }} Kb</td>
           <td>{{ item.updated_at }}</td>
         </tr>
         </tbody>
