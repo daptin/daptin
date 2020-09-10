@@ -11,7 +11,31 @@
         </tr>
         </thead>
         <tbody @touchstart.stop @contextmenu.stop>
-        <tr @click="itemClicked(item)" style="cursor: pointer" v-for="item in items">
+        <tr @click="itemClicked(item)" style="cursor: pointer" v-for="item in items" v-if="item.is_dir">
+          <q-menu context-menu>
+            <q-list dense style="min-width: 100px">
+              <q-item clickable v-close-popup>
+                <q-item-section>Open</q-item-section>
+              </q-item>
+              <q-item cl ickable v-close-popup>
+                <q-item-section>Rename</q-item-section>
+              </q-item>
+              <q-separator/>
+              <q-item @click="deleteItem(item)" clickable v-close-popup>
+                <q-item-section>Delete</q-item-section>
+              </q-item>
+              <q-separator/>
+              <q-separator/>
+            </q-list>
+          </q-menu>
+          <td>
+            <q-icon size="2.5em" :name="item.icon"/>
+          </td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.size }}</td>
+          <td>{{ item.updated_at }}</td>
+        </tr>
+        <tr @click="itemClicked(item)" style="cursor: pointer" v-for="item in items" v-if="!item.is_dir">
           <q-menu context-menu>
             <q-list dense style="min-width: 100px">
               <q-item clickable v-close-popup>

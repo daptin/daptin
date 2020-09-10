@@ -125,7 +125,7 @@ func (d *OtpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 			"nbf":     time.Now().Unix(),
 			"exp":     time.Now().Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),
 			"iss":     d.jwtTokenIssuer,
-			"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5Hash(strings.ToLower(userAccount["email"].(string)))),
+			"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5HashString(strings.ToLower(userAccount["email"].(string)))),
 			"iat":     time.Now(),
 			"jti":     u.String(),
 		})

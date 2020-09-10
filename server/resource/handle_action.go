@@ -556,9 +556,13 @@ func NewClientNotification(notificationType string, message string, title string
 
 }
 
-func GetMD5Hash(text string) string {
+func GetMD5HashString(text string) string {
+	return GetMD5Hash([]byte(text))
+}
+
+func GetMD5Hash(text []byte) string {
 	hasher := md5.New()
-	hasher.Write([]byte(text))
+	hasher.Write(text)
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 

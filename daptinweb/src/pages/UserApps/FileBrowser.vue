@@ -59,10 +59,11 @@
               <span class="text-h6">{{ selectedFile.name }}</span>
             </q-card-section>
             <q-card-section>
-              <span class="text-bold">Size {{ selectedFile.document_content[0].name }}</span>
+              Size <span class="text-bold">{{ parseInt(selectedFile.document_content[0].size / 1024) }} Kb</span>
             </q-card-section>
             <q-card-section>
-              <q-btn style="border: 1px solid black; background: black" flat label="Download" @click="fileDownload(selectedFile)" ></q-btn>
+              <q-btn style="border: 1px solid black; background: black" flat label="Download"
+                     @click="fileDownload(selectedFile)"></q-btn>
             </q-card-section>
           </q-card>
         </div>
@@ -187,6 +188,9 @@ export default {
     },
     fileClicked(file) {
       this.selectedFile = file;
+      if (file.is_dir) {
+        this.fileDownload(file);
+      }
     },
     fileDownload(file) {
       const that = this;
@@ -319,26 +323,91 @@ export default {
 
           return e;
         });
-        that.files.unshift({
-          name: '..',
-          path: '..',
-          icon: 'fas fa-folder',
-          is_dir: true,
-          color: "rgb(224, 135, 94)"
-        })
-        that.files.unshift({
-          name: '.',
-          path: '.',
-          icon: 'fas fa-folder',
-          is_dir: true,
-          color: "rgb(224, 135, 94)"
-        });
+        if (that.currentPath !== "") {
+          that.files.unshift({
+            name: '..',
+            path: '..',
+            icon: 'fas fa-folder',
+            is_dir: true,
+            color: "rgb(224, 135, 94)"
+          })
+          that.files.unshift({
+            name: '.',
+            path: '.',
+            icon: 'fas fa-folder',
+            is_dir: true,
+            color: "rgb(224, 135, 94)"
+          });
+
+        }
       });
 
 
     },
+    ensureDirectory(path) {
+      const that = this;
+      if (path === "/") {
+        return
+      }
+      if (that.directoryEnsureCache[path]) {
+        return
+      }
+      that.directoryEnsureCache[path] = true
+
+      var pathParts = path.split("/");
+      var dirName = pathParts[pathParts.length - 1];
+      pathParts.pop()
+      var parentDir = pathParts.join("/") + "/";
+
+      console.log("Ensure directory", path)
+      let query = [{
+        "column": "document_name",
+        "operator": "is",
+        "value": dirName
+      }, {
+        "column": "document_path",
+        "operator": "is",
+        "value": parentDir
+      }, {
+        "column": "document_extension",
+        "operator": "is",
+        "value": "folder"
+      }];
+      console.log("Document search query", query)
+      that.loadData({
+        tableName: "document",
+        params: {
+          query: JSON.stringify(query)
+        }
+      }).then(function (res) {
+        console.log("Ensure directory result", res)
+        if (res.data.length === 0) {
+          console.log("Directory does not exist", path);
+          var newRow = {
+            document_name: dirName,
+            tableName: "document",
+            document_extension: "folder",
+            mime_type: '',
+            document_path: parentDir,
+            document_content: [],
+          }
+          console.log("Create folder request", newRow)
+
+          that.createRow(newRow).then(function (res) {
+            that.refreshData();
+          }).catch(function (e) {
+            console.log("Failed to create folder", e)
+            that.$q.notify({
+              message: "Failed to create folder: " + JSON.stringify(e)
+            });
+          });
+
+
+        }
+      })
+    },
     uploadFile(file) {
-      console.log("Upload file", file);
+      // console.log("Upload file", file);
       const that = this;
       file.status = "Queued"
 
@@ -349,20 +418,26 @@ export default {
           const reader = new FileReader();
           file.status = "Reading"
           reader.onload = function (fileResult) {
-            console.log("File loaded", fileToUpload, fileResult);
+            // console.log("File loaded", fileToUpload, fileResult);
             file.status = "Uploading"
             let documentPath = that.currentPath + "/";
             if (fileToUpload.webkitRelativePath && fileToUpload.webkitRelativePath.length > 0) {
               var relPath = fileToUpload.webkitRelativePath.split("/");
               relPath.pop(); //remove name
-              documentPath = that.currentPath + "/" + relPath.join("/")
+              documentPath = that.currentPath + "/" + relPath.join("/") + "/"
+            }
+            var pathParts = documentPath.split("/")
+            if (pathParts.length > 2) {
+              pathParts.pop();
+              that.ensureDirectory(pathParts.join("/"))
             }
             var obj = {
               tableName: "document",
               document_content: [{
                 name: fileToUpload.name,
                 contents: fileResult.target.result,
-                type: fileToUpload.type
+                type: fileToUpload.type,
+                path: documentPath
               }],
               document_name: fileToUpload.name,
               document_path: documentPath,
@@ -403,6 +478,7 @@ export default {
   data() {
     return {
       searchInput: '',
+      directoryEnsureCache: {},
       newNamePrompt: false,
       viewMode: 'table',
       uploadedFiles: [],

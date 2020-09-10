@@ -70,7 +70,7 @@ func (d *GenerateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap m
 				"nbf":     time.Now().Unix(),
 				"exp":     time.Now().Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),
 				"iss":     d.jwtTokenIssuer,
-				"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5Hash(strings.ToLower(existingUser["email"].(string)))),
+				"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5Hash([]byte(strings.ToLower(existingUser["email"].(string))))),
 				"iat":     time.Now(),
 				"jti":     u.String(),
 			})

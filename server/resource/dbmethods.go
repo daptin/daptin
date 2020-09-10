@@ -15,6 +15,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -1314,7 +1315,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				}
 
 				for _, file := range foreignFilesList {
-					file["src"] = file["name"].(string)
+					file["src"] = file["path"].(string) + string(os.PathSeparator) + file["name"].(string)
 				}
 
 				row[key] = foreignFilesList
@@ -1407,7 +1408,11 @@ func (resource *DbResource) GetFileFromLocalCloudStore(tableName string, columnN
 		}
 
 		filePath := fileItem["src"].(string)
-		bytes, err := ioutil.ReadFile(assetFolder.LocalSyncPath + "/" + filePath)
+		filePath = strings.ReplaceAll(filePath, "/", string(os.PathSeparator))
+		if filePath[0] != os.PathSeparator	{
+			filePath = string(os.PathSeparator) + filePath
+		}
+		bytes, err := ioutil.ReadFile(assetFolder.LocalSyncPath + filePath)
 		CheckErr(err, "Failed to read file on storage [%v]: %v", assetFolder.LocalSyncPath, filePath)
 		if err != nil {
 			continue

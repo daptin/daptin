@@ -2,6 +2,7 @@ package resource
 
 import (
 	"crypto/md5"
+	"encoding/base64"
 	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
@@ -156,37 +157,10 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 			case "cloud_store":
 
-				uploadActionPerformer, err := NewFileUploadActionPerformer(dr.Cruds)
-				CheckErr(err, "Failed to create upload action performer")
-				log.Infof("created upload action performer")
-				if err != nil {
-					continue
-				}
-
-				actionRequestParameters := make(map[string]interface{})
-				actionRequestParameters["file"] = val
-
-				log.Infof("Get cloud store details: %v", col.ForeignKeyData.Namespace)
-				cloudStore, err := dr.GetCloudStoreByName(col.ForeignKeyData.Namespace)
-				CheckErr(err, "Failed to get cloud storage details")
-				if err != nil {
-					continue
-				}
-
-				log.Infof("Cloud storage: %v", cloudStore)
-
-				actionRequestParameters["oauth_token_id"] = cloudStore.OAutoTokenId
-				actionRequestParameters["store_provider"] = cloudStore.StoreProvider
-				actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
-
-				log.Infof("Initiate file upload action")
-				_, _, errs := uploadActionPerformer.DoAction(Outcome{}, actionRequestParameters)
-				if errs != nil && len(errs) > 0 {
-					log.Errorf("Failed to upload attachments: %v", errs)
-				}
-
 				files, ok := val.([]interface{})
+				uploadPath := ""
 				if ok {
+					var err error
 
 					columnAssetCache, ok := dr.AssetFolderCache[dr.tableInfo.TableName][col.ColumnName]
 					if ok {
@@ -195,15 +169,70 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 					for i := range files {
 						file := files[i].(map[string]interface{})
+
+						fileContentsBase64, ok := file["file"].(string)
+						if !ok {
+							fileContentsBase64, ok = file["contents"].(string)
+							if !ok {
+								continue
+							}
+						}
+						splitParts := strings.Split(fileContentsBase64, ",")
+						encodedPart := splitParts[0]
+						if len(splitParts) > 1 {
+							encodedPart = splitParts[1]
+						}
+						fileBytes, _ := base64.StdEncoding.DecodeString(encodedPart)
+						filemd5 := GetMD5Hash(fileBytes)
+						file["md5"] = filemd5
+						file["size"] = len(fileBytes)
+						path, ok := file["path"]
+						if ok {
+							uploadPath = path.(string)
+						}
+						files[i] = file
+					}
+
+					uploadActionPerformer, err := NewFileUploadActionPerformer(dr.Cruds)
+					CheckErr(err, "Failed to create upload action performer")
+					log.Infof("created upload action performer")
+					if err != nil {
+						continue
+					}
+
+					actionRequestParameters := make(map[string]interface{})
+					actionRequestParameters["file"] = val
+					actionRequestParameters["path"] = uploadPath
+
+					log.Infof("Get cloud store details: %v", col.ForeignKeyData.Namespace)
+					cloudStore, err := dr.GetCloudStoreByName(col.ForeignKeyData.Namespace)
+					CheckErr(err, "Failed to get cloud storage details")
+					if err != nil {
+						continue
+					}
+
+					log.Infof("Cloud storage: %v", cloudStore)
+
+					actionRequestParameters["oauth_token_id"] = cloudStore.OAutoTokenId
+					actionRequestParameters["store_provider"] = cloudStore.StoreProvider
+					actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
+
+					log.Infof("Initiate file upload action")
+					_, _, errs := uploadActionPerformer.DoAction(Outcome{}, actionRequestParameters)
+					if errs != nil && len(errs) > 0 {
+						log.Errorf("Failed to upload attachments: %v", errs)
+					}
+					for i, _ := range files {
+						file := files[i].(map[string]interface{})
 						delete(file, "file")
-						delete(file, "contents")
+						delete(file, "content")
 						files[i] = file
 					}
 					val, err = json.Marshal(files)
+					CheckErr(err, "Failed to marshal file data to column")
 				} else {
 					val = nil
 				}
-				CheckErr(err, "Failed to marshal file data to column")
 
 			default:
 				CheckErr(errors.New("undefined foreign key"), "Data source: %v", col.ForeignKeyData.DataSource)

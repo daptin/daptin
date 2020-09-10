@@ -469,7 +469,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		msgIdNew, _ := uuid.NewV4()
 		msgId = msgIdNew.String()
 	}
-	hash := GetMD5Hash(string(mailBody))
+	hash := GetMD5Hash(mailBody)
 
 	toAddress := ""
 	if len(parsedmail.To) > 0 {

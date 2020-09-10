@@ -16,7 +16,6 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 
 	existingIndexes := GetExistingIndexes(db)
 
-
 	for _, table := range initConfig.Tables {
 
 		//for _, column := range table.Columns {
@@ -34,7 +33,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 
 		if len(table.CompositeKeys) > 0 {
 			for _, compositeKeyCols := range table.CompositeKeys {
-				indexName := "i" + GetMD5Hash("index_cl_"+strings.Join(compositeKeyCols, ",")+"_unique")
+				indexName := "i" + GetMD5HashString("index_cl_"+strings.Join(compositeKeyCols, ",")+"_unique")
 
 				if existingIndexes[indexName] {
 					continue
@@ -64,7 +63,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 				continue
 			}
 
-			indexName := "i" + GetMD5Hash("index_join_"+table.TableName+"_"+"_unique")
+			indexName := "i" + GetMD5HashString("index_join_"+table.TableName+"_"+"_unique")
 			if existingIndexes[indexName] {
 				continue
 			}
@@ -86,12 +85,11 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 	tx := db.MustBegin()
 	existingIndexes := GetExistingIndexes(tx)
 
-
 	for _, table := range initConfig.Tables {
 		for _, column := range table.Columns {
 
 			if column.IsUnique {
-				indexName := "u" + GetMD5Hash("index_"+table.TableName+"_"+column.ColumnName+"_unique")
+				indexName := "u" + GetMD5HashString("index_"+table.TableName+"_"+column.ColumnName+"_unique")
 				if existingIndexes[indexName] {
 					continue
 				}
@@ -102,7 +100,7 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 					log.Infof("Failed to create index on Table[%v][%v]: %v", table.TableName, column.ColumnName, err)
 				}
 			} else if column.IsIndexed {
-				indexName := "i" + GetMD5Hash("index_"+table.TableName+"_"+column.ColumnName+"_index")
+				indexName := "i" + GetMD5HashString("index_"+table.TableName+"_"+column.ColumnName+"_index")
 				if existingIndexes[indexName] {
 					continue
 				}
@@ -133,7 +131,7 @@ FROM
 WHERE
     schemaname = 'public' union SELECT conname  FROM pg_catalog.pg_constraint con`
 	} else if db.DriverName() == "sqlite3" {
-		indexQuery = ".indexes"
+		return existingIndexes
 	}
 
 	rows, err := db.Queryx(indexQuery)
@@ -141,8 +139,12 @@ WHERE
 	if err == nil {
 		for rows.Next() {
 			var indexName string
-			rows.Scan(&indexName)
-			existingIndexes[indexName] = true
+			err = rows.Scan(&indexName)
+			if err == nil {
+				existingIndexes[indexName] = true
+			} else {
+				CheckErr(err, "Failed to scan existing index name")
+			}
 		}
 	}
 	return existingIndexes
@@ -155,12 +157,12 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 	existingIndexes := GetExistingIndexes(db)
 
 	for i, table := range initConfig.Tables {
-		if len(table.TableName) <1 {
+		if len(table.TableName) < 1 {
 			continue
 		}
 		for _, column := range table.Columns {
 			if column.IsForeignKey && column.ForeignKeyData.DataSource == "self" {
-				keyName := "fk" + GetMD5Hash(table.TableName+"_"+column.ColumnName+"_"+column.ForeignKeyData.Namespace+"_"+column.ForeignKeyData.KeyName+"_fk")
+				keyName := "fk" + GetMD5HashString(table.TableName+"_"+column.ColumnName+"_"+column.ForeignKeyData.Namespace+"_"+column.ForeignKeyData.KeyName+"_fk")
 
 				if existingIndexes[keyName] {
 					continue
