@@ -207,7 +207,7 @@
               </q-toolbar>
             </div>
             <div class="col-12 q-pa-md">
-              <div :id="containerId"></div>
+              <div :id="containerId" style="height: calc(100vh - 30%)"></div>
             </div>
           </div>
         </div>
@@ -371,18 +371,36 @@ export default {
         initialView: 'dayGridMonth',
         selectable: true,
         editable: true,
+        eventResize: function (dropInfo) {
+          console.log("drop info", dropInfo)
+          var referenceId = dropInfo.oldEvent._def.extendedProps.reference_id;
+          that.updateRow({
+            tableName: "event",
+            id: referenceId,
+            event_end_date: dropInfo.event.end
+          }).then(function (res) {
+            console.log("Event saved");
+          }).catch(function (err) {
+            console.log("Failed to save event", err);
+            that.calendar.refetchEvents();
+            that.$q.notify({
+              message: "Failed to save event: " + JSON.stringify(err)
+            })
+          })
+        },
         eventDrop: function (dropInfo) {
           console.log("drop info", dropInfo)
           var referenceId = dropInfo.oldEvent._def.extendedProps.reference_id;
           that.updateRow({
             tableName: "event",
             id: referenceId,
-            event_start_date: dropInfo.event.start
+            event_start_date: dropInfo.event.start,
+            event_end_date: dropInfo.event.end
           }).then(function (res) {
             console.log("Event saved");
           }).catch(function (err) {
             console.log("Failed to save event", err);
-            that.calendar.refetchEvents();
+            dropInfo.revert()
             that.$q.notify({
               message: "Failed to save event: " + JSON.stringify(err)
             })

@@ -53,7 +53,7 @@
         }" title="Files"></user-header-bar>
 
       <div style="height: 100vh; overflow-y: scroll" class="row text-white">
-        <div class="col-2" v-if="selectedFile">
+        <div class="col-2 col-xs-12" v-if="selectedFile">
           <q-card flat style="background: transparent">
             <q-card-section>
               <span class="text-h6">{{ selectedFile.name }}</span>

@@ -1,6 +1,6 @@
 <template>
   <div id="dropArea" class="row">
-    <div class="col-1" @touchstart.stop @contextmenu.stop style="padding: 8px"
+    <div class="col-1 col-xs-3 col-sm-2 col-md-1 col-xl-1" @touchstart.stop @contextmenu.stop style="padding: 8px"
          v-for="item in items" v-if="item.is_dir">
       <q-menu context-menu>
         <q-list dense style="min-width: 100px">
@@ -28,7 +28,7 @@
         </q-card-section>
       </q-card>
     </div>
-    <div class="col-1" @touchstart.stop @contextmenu.stop style="padding: 8px"
+    <div class="col-1 col-xs-3 col-sm-2 col-md-1 col-xl-1" @touchstart.stop @contextmenu.stop style="padding: 8px"
          v-for="item in items" v-if="!item.is_dir">
       <q-menu context-menu>
         <q-list dense style="min-width: 100px">
