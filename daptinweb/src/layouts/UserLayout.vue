@@ -152,7 +152,7 @@ export default {
       }
     }
 
-    that.loadModel(["cloud_store", "user_account", "usergroup", "world", "action", 'site', 'integration', 'document']).then(async function () {
+    that.loadModel(["cloud_store", "user_account", "usergroup", "world", "action", 'site', 'integration', 'event', 'document']).then(async function () {
       that.loaded = true;
       that.getDefaultCloudStore();
       that.loadData({

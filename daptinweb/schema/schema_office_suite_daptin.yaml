@@ -66,7 +66,7 @@ Tables:
         Name: event_end_date
         ColumnType: datetime
         DataType: timestamp
-        IsNullable: false
+        IsNullable: true
       - ColumnName: event_timezone
         Name: event_timezone
         ColumnType: label
@@ -82,20 +82,21 @@ Tables:
         Name: start_time
         ColumnType: label
         DataType: varchar(50)
-        IsNullable: false
+        IsNullable: true
       - ColumnName: end_time
         Name: end_time
         ColumnType: label
         DataType: varchar(50)
-        IsNullable: false
+        IsNullable: true
       - ColumnName: start_recur
         Name: start_recur
         ColumnType: label
         DataType: varchar(50)
-        IsNullable: false
+        IsNullable: true
       - ColumnName: days_of_week
         Name: days_of_week
         ColumnType: label
+        IsNullable: true
         DataType: varchar(100)
       - ColumnName: event_description
         Name: event_description

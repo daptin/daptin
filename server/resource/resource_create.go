@@ -225,7 +225,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 					for i, _ := range files {
 						file := files[i].(map[string]interface{})
 						delete(file, "file")
-						delete(file, "content")
+						delete(file, "contents")
 						files[i] = file
 					}
 					val, err = json.Marshal(files)

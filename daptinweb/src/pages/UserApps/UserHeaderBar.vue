@@ -2,7 +2,7 @@
 
   <q-header style="background: transparent">
     <q-toolbar v-if="decodedAuthToken() !== null">
-      <q-btn v-for="btn in buttons.before" flat @click="btn.click" :icon="btn.icon"></q-btn>
+      <q-btn :key="btn.icon" v-for="btn in buttons.before" flat @click="btn.click" :icon="btn.icon"></q-btn>
       <q-toolbar-title shrink>{{ title }}</q-toolbar-title>
       <q-btn style="border: 1px solid black" :key="btn.icon" v-for="btn in buttons.after" flat @click="btn.click" :label="btn.label"
              :icon="btn.icon"></q-btn>
@@ -12,7 +12,7 @@
           <div class="row no-wrap q-pa-md">
             <q-list>
 
-              <q-item :disable="!item.enable" v-for="item in menuItems" @click="$router.push(item.path)" clickable>
+              <q-item :disable="!item.enable" :key="item.name" v-for="item in menuItems" @click="$router.push(item.path)" clickable>
                 <q-item-section avatar>
                   <q-icon
                     :name="item.icon"

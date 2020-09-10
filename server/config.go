@@ -1,6 +1,7 @@
 package server
 
 import (
+	json1 "encoding/json"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
 	yaml2 "github.com/ghodss/yaml"
@@ -86,10 +87,10 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 				errs = append(errs, err)
 				continue
 			}
-			err = json.Unmarshal(jsonBytes, &initConfig)
+			err = json1.Unmarshal(jsonBytes, &initConfig)
 			//err = yaml.UnmarshalStrict(fileBytes, &initConfig)
 		case EndsWithCheck(fileName, "json"):
-			err = json.Unmarshal(fileBytes, &initConfig)
+			err = json1.Unmarshal(fileBytes, &initConfig)
 		case EndsWithCheck(fileName, "toml"):
 			err = toml.Unmarshal(fileBytes, &initConfig)
 
@@ -104,14 +105,19 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			continue
 		}
 
-		for i, table := range initConfig.Tables {
+		tables := make([]resource.TableInfo, 0)
+		for _, table := range initConfig.Tables {
 			table.TableName = flect.Underscore(table.TableName)
+			if len(table.TableName) < 1 {
+				continue
+			}
 
 			for j, col := range table.Columns {
 				table.Columns[j].ColumnName = flect.Underscore(col.ColumnName)
 			}
-			initConfig.Tables[i] = table
+			tables = append(tables, table)
 		}
+		initConfig.Tables = tables
 
 		globalInitConfig.Tables = append(globalInitConfig.Tables, initConfig.Tables...)
 

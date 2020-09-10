@@ -32,6 +32,7 @@
           <div class="row">
             <div class="col-12">
               <q-toolbar>
+                <q-btn flat @click="calendar.refetchEvents()" icon="fas fa-sync-alt"></q-btn>
                 <span class="text-h6">{{ monthNames[date.getMonth()] }} {{ date.getFullYear() }}</span>
                 <q-btn @click="(showEventDialogTarget = true) && (showEventDialog = true)" icon="fas fa-plus" flat>
                   <q-menu :target="showEventDialogTarget" ref="newEventDialog" dark style="overflow: hidden">
@@ -43,7 +44,7 @@
                     <q-card dark style="min-width: 450px; overflow: hidden;" class="q-pa-md">
 
                       <q-card-section>
-                        <q-input label="Title" dark v-model="newEvent.title"></q-input>
+                        <q-input label="Title" dark v-model="newEvent.event_title"></q-input>
                       </q-card-section>
                       <q-card-section style="padding-left: 10px">
                         <div class="row">
@@ -241,10 +242,11 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
+import {mapActions} from "vuex";
 
 export default {
 
-  name: "FileBrowser",
+  name: "Calendar",
   data() {
     return {
       searchInput: '',
@@ -259,12 +261,14 @@ export default {
         showAddLocation: false,
       },
       newEvent: {
-        title: 'New event',
+        event_title: 'New event',
         event_type: 'event',
         event_description: null,
         event_location: null,
         all_day: false,
-        date: new Date()
+        date: new Date(),
+        event_start_date: new Date(),
+        event_end_date: null,
       },
       calendarView: 'month',
       date: new Date(),
@@ -280,6 +284,34 @@ export default {
     }
   },
   methods: {
+    ...mapActions(['createRow', "loadData", "updateRow"]),
+    createEvent() {
+      const that = this;
+      console.log("Create new event", this.newEvent);
+      this.newEvent.tableName = "event";
+      this.newEvent.event_start_date = this.newEvent.date;
+      this.createRow(this.newEvent).then(function (res) {
+        console.log("created event", res)
+        that.calendar.refetchEvents();
+        that.$refs.newEventDialog.hide();
+        that.newEvent = {
+          event_title: 'New event',
+          event_type: 'event',
+          event_description: null,
+          event_location: null,
+          all_day: false,
+          date: new Date(),
+          event_start_date: new Date(),
+          event_end_date: null,
+        }
+      }).catch(function (err) {
+        console.log("Failed to create event", err);
+        that.$q.notify({
+          message: "Failed to create event " + JSON.stringify(err)
+        })
+
+      })
+    },
     setDate(date) {
       if (!date) {
         date = new Date();
@@ -338,9 +370,62 @@ export default {
         plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
         initialView: 'dayGridMonth',
         selectable: true,
+        editable: true,
+        eventDrop: function (dropInfo) {
+          console.log("drop info", dropInfo)
+          var referenceId = dropInfo.oldEvent._def.extendedProps.reference_id;
+          that.updateRow({
+            tableName: "event",
+            id: referenceId,
+            event_start_date: dropInfo.event.start
+          }).then(function (res) {
+            console.log("Event saved");
+          }).catch(function (err) {
+            console.log("Failed to save event", err);
+            that.calendar.refetchEvents();
+            that.$q.notify({
+              message: "Failed to save event: " + JSON.stringify(err)
+            })
+          })
+        },
+        eventClick: function (info) {
+          console.log("Event clicked", info)
+        },
 
         events: function (info, successCallback, failureCallback) {
           console.log("get events for date: ", info);
+          that.loadData({
+            tableName: 'event',
+            params: {
+              query: JSON.stringify([
+                {
+                  column: "event_start_date",
+                  operator: "after",
+                  value: info.start
+                },
+                {
+                  column: "event_start_date",
+                  operator: "before",
+                  value: info.end
+                }
+              ])
+            }
+          }).then(function (res) {
+            console.log("Events", res.data)
+            successCallback(res.data.map(function (e) {
+              e.title = e.event_title;
+              e.start = e.event_start_date;
+              e.end = e.event_end_date;
+              e.id = e.reference_id
+              return e;
+            }));
+          }).catch(function (err) {
+            console.log("Failed to load events", err)
+            that.$q.notify({
+              message: "Failed to load events: " + JSON.stringify(err)
+            });
+            failureCallback(err)
+          })
         },
         dateClick: function (info) {
           if (that.showEventDialog) {
