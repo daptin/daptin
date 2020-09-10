@@ -4,7 +4,7 @@
     <q-toolbar v-if="decodedAuthToken() !== null">
       <q-btn v-for="btn in buttons.before" flat @click="btn.click" :icon="btn.icon"></q-btn>
       <q-toolbar-title shrink>{{ title }}</q-toolbar-title>
-      <q-btn style="border: 1px solid black" v-for="btn in buttons.after" flat @click="btn.click" :label="btn.label"
+      <q-btn style="border: 1px solid black" :key="btn.icon" v-for="btn in buttons.after" flat @click="btn.click" :label="btn.label"
              :icon="btn.icon"></q-btn>
       <q-space/>
       <q-btn flat icon="fas fa-th">

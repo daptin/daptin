@@ -48,6 +48,7 @@ Tables:
         Name: event_type
         ColumnType: label
         DataType: varchar(50)
+        IsIndexed: true
         IsNullable: false
         DefaultValue: "'event'"
       - ColumnName: all_day
@@ -56,11 +57,22 @@ Tables:
         DataType: int(1)
         IsNullable: false
         DefaultValue: 0
+      - ColumnName: event_location
+        Name: event_location
+        ColumnType: label
+        DataType: varchar(500)
+        IsNullable: true
       - ColumnName: event_end_date
         Name: event_end_date
         ColumnType: datetime
         DataType: timestamp
         IsNullable: false
+      - ColumnName: event_timezone
+        Name: event_timezone
+        ColumnType: label
+        DataType: varchar(50)
+        IsNullable: false
+        DefaultValue: "'local'"
       - ColumnName: event_start_date
         Name: event_start_date
         ColumnType: datetime
@@ -87,8 +99,8 @@ Tables:
         DataType: varchar(100)
       - ColumnName: event_description
         Name: event_description
-        ColumnType: label
-        DataType: varchar(10)
-        IsIndexed: true
-        IsNullable: false
+        ColumnType: content
+        DataType: text
+        IsIndexed: false
+        IsNullable: true
 
