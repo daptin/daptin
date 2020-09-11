@@ -96,7 +96,7 @@ const routes = [
         path: 'files', component: () => import('pages/UserApps/FileBrowser.vue')
       },
       {
-        path: 'document', component: () => import('pages/UserApps/OdfFilesEditor.vue')
+        path: 'document', component: () => import('pages/UserApps/DocumentEditor.vue')
       },
       {
         path: 'calendar', component: () => import('pages/UserApps/Calendar.vue')

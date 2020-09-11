@@ -189,6 +189,8 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 						path, ok := file["path"]
 						if ok {
 							uploadPath = path.(string)
+						} else {
+							file["path"] = ""
 						}
 						files[i] = file
 					}

@@ -98,11 +98,18 @@ export default {
           icon: 'fas fa-users'
         },
         {
+          name: "Documents",
+          enable: true,
+          path: '/apps/document',
+          icon: 'fas fa-document'
+        },
+        {
           name: "Calendar",
           enable: true,
           path: '/apps/calendar',
           icon: 'fas fa-calendar'
         },
+
       ]
     }
   },
