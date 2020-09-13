@@ -2,6 +2,8 @@ module github.com/daptin/daptin
 
 go 1.14
 
+// +heroku goVersion go1.14
+
 require (
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/Masterminds/squirrel v1.1.0

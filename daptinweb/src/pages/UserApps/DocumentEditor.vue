@@ -1,8 +1,13 @@
 <template>
   <div id="app" style="height: 100vh">
-    <ejs-documenteditorcontainer class="fullscreen" style="height: 100vh" :serviceUrl='serviceUrl' :enableToolbar='true'></ejs-documenteditorcontainer>
+    <ejs-documenteditorcontainer class="fullscreen document-editor" style="height: 100vh" :serviceUrl='serviceUrl' :enableToolbar='true'></ejs-documenteditorcontainer>
   </div>
 </template>
+<style>
+.document-editor{
+  height: 100vh !important;
+}
+</style>
 
 <script>
 import Vue from 'vue';
