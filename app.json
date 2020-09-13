@@ -6,12 +6,11 @@
     "go",
     "process management"
   ],
-  "image": "heroku/go:1.8",
+  "image": "heroku/go:1.14",
   "engines": {
     "node": "6.9.4"
   },
   "scripts": {
-    "heroku-prebuild": "go get golang.org/x/sys/unix && cd daptin && npm install && npm run build && cd ..",
     "heroku-postbuild": "echo This runs afterwards."
   },
   "mount_dir": "src/github.com/daptin/daptin",
