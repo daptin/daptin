@@ -6,6 +6,15 @@
     </div>
   </div>
 </template>
+<style>
+#eventTrap {
+  opacity: 0 !important;
+}
+
+.user-area-pattern  {
+  background: transparent;
+}
+</style>
 <script>
 
 export default {

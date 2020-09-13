@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"github.com/buraksezer/olric"
@@ -252,22 +253,45 @@ func main() {
 
 	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), portValue)
 
+	enableHttps, err := configStore.GetConfigValueFor("enable_https", "backend")
+	if err != nil {
+		enableHttps = "false"
+		_ = configStore.SetConfigValueFor("enable_https", enableHttps, "backend")
+	}
+
 	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
+
 	_, certBytes, privateBytes, _, rootCertBytes, err := certManager.GetTLSConfig(hostname, true)
 
-	if err == nil {
+	if err == nil && enableHttps == "true" {
 		go func() {
 
 			certTempDir := os.TempDir()
 			certFile := certTempDir + "/" + hostname + ".crt"
 			keyFile := certTempDir + "/" + hostname + ".key"
 			log.Printf("Temp dir for certificates: %v", certTempDir)
-			err = ioutil.WriteFile(certFile, []byte(string(certBytes)+"\n"+string(rootCertBytes)), 0600)
+			certPem := []byte(string(certBytes) + "\n" + string(rootCertBytes))
+			err = ioutil.WriteFile(certFile, certPem, 0600)
 			resource.CheckErr(err, "Failed to write cert file")
-			err = ioutil.WriteFile(keyFile, privateBytes, 0600)
+			keyPem := privateBytes
+			err = ioutil.WriteFile(keyFile, keyPem, 0600)
 			resource.CheckErr(err, "Failed to write private key file")
 
-			err1 := http.ListenAndServeTLS(*httpsPort, certFile, keyFile, &rhs)
+			cert, err := tls.X509KeyPair(certPem, keyPem)
+			if err != nil {
+				log.Errorf("Failed to load cert for TLS [%v]", hostname)
+				return
+			}
+
+			tlsServer := &http.Server{Addr: *httpsPort, Handler: &rhs}
+			tlsServer.TLSConfig.Certificates = []tls.Certificate{
+				{
+					Certificate: [][]byte{certBytes},
+					PrivateKey:  cert,
+				},
+			}
+
+			err1 := tlsServer.ListenAndServeTLS("", "")
 			if err1 != nil {
 				log.Errorf("Failed to start TLS server: %v", err1)
 			}

@@ -85,7 +85,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	initialiseResources(&initConfig, db)
 
-	olricDb, err := olric.New(olricConfig.New("local"))
+	olricConfig := olricConfig.New("local")
+	olricConfig.LogLevel = "ERROR"
+	olricConfig.LogVerbosity = 1
+	olricConfig.LogOutput = nil
+	olricConfig.Logger = nil
+	olricDb, err := olric.New(olricConfig)
 	if err != nil {
 		log.Errorf("Failed to create olric cache: %v", err)
 	}
@@ -94,7 +99,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		err = olricDb.Start()
 		auth.CheckErr(err, "failed to start cache server")
 	}()
-
 
 	defaultRouter := gin.Default()
 	defaultRouter.Use(gzip.Gzip(gzip.DefaultCompression,
