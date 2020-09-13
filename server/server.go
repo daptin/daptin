@@ -96,8 +96,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	go func() {
-		err = olricDb.Start()
-		resource.CheckErr(err, "failed to start cache server")
+		//err = olricDb.Start()
+		//resource.CheckErr(err, "failed to start cache server")
 	}()
 
 	defaultRouter := gin.Default()

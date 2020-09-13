@@ -7,9 +7,6 @@
     "process management"
   ],
   "image": "heroku/go:1.14",
-  "engines": {
-    "node": "6.9.4"
-  },
   "scripts": {
     "heroku-postbuild": "echo This runs afterwards."
   },
