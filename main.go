@@ -300,6 +300,7 @@ func main() {
 		log.Errorf("No Certificate available for: %v: %v", hostname, err)
 	}
 
+	log.Printf("Listening at: [%v]", *port)
 	err = http.ListenAndServe(*port, &rhs)
 	if err != nil {
 		panic(err)
