@@ -297,11 +297,11 @@ func main() {
 			}
 		}()
 	} else {
-		log.Errorf("No Certificate available for: %v: %v", hostname, err)
+		log.Errorf("Not starting HTTPS server: %v: %v", hostname, err)
 	}
 
 	log.Printf("Listening at: [%v]", *port)
-	err = http.ListenAndServe(*port, &rhs)
+	err = http.ListenAndServe(portValue, &rhs)
 	if err != nil {
 		panic(err)
 	}
