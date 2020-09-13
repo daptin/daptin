@@ -248,7 +248,6 @@ func main() {
 			}
 			portValue = portVarStringValue
 		}
-
 	}
 
 	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), portValue)
