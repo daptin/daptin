@@ -300,7 +300,7 @@ func main() {
 		log.Errorf("Not starting HTTPS server: %v: %v", hostname, err)
 	}
 
-	log.Printf("Listening at: [%v]", *port)
+	log.Printf("Listening at: [%v]", portValue)
 	err = http.ListenAndServe(portValue, &rhs)
 	if err != nil {
 		panic(err)
