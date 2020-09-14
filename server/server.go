@@ -221,7 +221,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	go func() {
-
 		for {
 
 			fileInfo, err := os.Stat(LogFileLocation)
