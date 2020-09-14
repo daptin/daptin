@@ -271,9 +271,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
 
-      - name: Copy Code
-        shell: bash
-        run: cp -Rf . ./src/github/daptin/daptin/
 
       - name: Print env variable
         shell: bash
@@ -286,6 +283,11 @@ jobs:
         run: |
           echo '::set-env name=GOPATH::${{ runner.workspace }}'
           echo '::add-path::${{ runner.workspace }}/bin'
+
+      - name: Copy Code
+        shell: bash
+        run: mkdir -p ./src/github/daptin/daptin/ && cp -Rf . ./src/github/daptin/daptin/
+
 
       - name: Cross-compile daptin
         run: |
