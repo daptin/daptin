@@ -86,8 +86,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	initialiseResources(&initConfig, db)
 
 	olricConfig1 := olricConfig.New("local")
-	olricConfig1.LogLevel = "DEBUG"
-	olricConfig1.LogVerbosity = 6
+	olricConfig1.LogLevel = "ERROR"
+	olricConfig1.LogVerbosity = 1
 	olricConfig1.LogOutput = os.Stderr
 	//olricConfig1.Logger = nil
 	olricDb, err := olric.New(olricConfig1)

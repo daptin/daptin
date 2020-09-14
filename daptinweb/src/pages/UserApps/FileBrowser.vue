@@ -53,8 +53,8 @@
         }" title="Files"></user-header-bar>
 
       <div style="height: 100vh; overflow-y: scroll" class="row text-white">
-        <div class="col-2 col-xs-12" v-if="selectedFile">
-          <q-card flat style="background: transparent">
+        <div class="col-2 col-sm-12 col-md-2 col-lg-2 col-xl-2 col-xs-12">
+          <q-card flat style="background: transparent" v-if="selectedFile">
             <q-card-section>
               <span class="text-h6">{{ selectedFile.name }}</span>
             </q-card-section>
@@ -62,66 +62,70 @@
               Size <span class="text-bold">{{ parseInt(selectedFile.document_content[0].size / 1024) }} Kb</span>
             </q-card-section>
             <q-card-section>
-              <q-btn style="border: 1px solid black; background: black" flat label="Download"
-                     @click="fileDownload(selectedFile)"></q-btn>
+              <q-btn-group>
+                <q-btn style="border: 1px solid black; background: black" flat label="Download"
+                       @click="fileDownload(selectedFile)"></q-btn>
+                <q-btn :href="'/apps/document/' + selectedFile.reference_id" v-if="selectedFile.name.indexOf('.od') > -1" style="border: 1px solid black; background: black" flat label="Open"
+                       @click="openEditor(selectedFile, 'odf')"></q-btn>
+
+              </q-btn-group>
             </q-card-section>
           </q-card>
         </div>
-
-        <div :class="{'col-12': !selectedFile, 'col-10': selectedFile}">
+        <div class="col-10 col-sm-12 col-md-10 col-lg-10 col-xl-10 col-xs-12">
           <paginated-table-view v-if="viewMode === 'table'" @item-deleted="itemDelete" @item-clicked="fileClicked"
                                 :items="files"></paginated-table-view>
           <paginated-card-view v-if="viewMode === 'card'" @item-deleted="itemDelete" @item-clicked="fileClicked"
                                :items="files"></paginated-card-view>
         </div>
-        <q-page-sticky :offset="[10, 10]" v-if="showUploadComponent">
-          <q-card style="width: 300px; height: 200px; background: black; font-size: 10px;">
-            <file-upload
-              :multiple="true"
-              style="height: 300px; width: 100%; text-align: left"
-              ref="upload"
-              :drop="true"
-              :drop-directory="true"
-              v-model="uploadedFiles"
-              post-action="/post.method"
-              put-action="/put.method"
-              @input-file="uploadFile"
-            >
-              <div class="container">
-                <div class="row">
-                  <div class="col-12" style="height: 100%; ">
+      </div>
+      <q-page-sticky :offset="[10, 10]" v-if="showUploadComponent">
+        <q-card style="width: 300px; height: 200px; background: black; font-size: 10px;">
+          <file-upload
+            :multiple="true"
+            style="height: 300px; width: 100%; text-align: left"
+            ref="upload"
+            :drop="true"
+            :drop-directory="true"
+            v-model="uploadedFiles"
+            post-action="/post.method"
+            put-action="/put.method"
+            @input-file="uploadFile"
+          >
+            <div class="container">
+              <div class="row">
+                <div class="col-12" style="height: 100%; ">
                 <span class="vertical-middle" v-if="uploadedFiles.length === 0">
                   Click here to select files, or drag and drop files here to upload</span>
-                  </div>
-                </div>
-                <span v-if="uploadedFiles.length === 0"
-                      class="vertical-middle">Drop files or click to select <br/></span>
-                <div class="row q-pa-md">
-                  <div class="col-12 ">
-                    <table style="width: 100%">
-                      <thead>
-                      <tr>
-                        <th style="text-align: left">File</th>
-                        <th style="text-align: right">Size</th>
-                        <th style="text-align: right">Status</th>
-                      </tr>
-                      </thead>
-                      <tbody>
-                      <tr v-for="file in uploadedFiles">
-                        <td style="text-align: left"> {{ file.name }}</td>
-                        <td style="text-align: right">{{ parseInt(file.size / 1024) }} Kb</td>
-                        <td style="text-align: right">{{ file.status }}</td>
-                      </tr>
-                      </tbody>
-                    </table>
-                  </div>
                 </div>
               </div>
-            </file-upload>
+              <span v-if="uploadedFiles.length === 0"
+                    class="vertical-middle">Drop files or click to select <br/></span>
+              <div class="row q-pa-md">
+                <div class="col-12 ">
+                  <table style="width: 100%">
+                    <thead>
+                    <tr>
+                      <th style="text-align: left">File</th>
+                      <th style="text-align: right">Size</th>
+                      <th style="text-align: right">Status</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="file in uploadedFiles">
+                      <td style="text-align: left"> {{ file.name }}</td>
+                      <td style="text-align: right">{{ parseInt(file.size / 1024) }} Kb</td>
+                      <td style="text-align: right">{{ file.status }}</td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </file-upload>
 
-          </q-card>
-        </q-page-sticky>
-      </div>
+        </q-card>
+      </q-page-sticky>
     </q-page>
 
 
@@ -172,6 +176,13 @@ export default {
 
   name: "FileBrowser",
   methods: {
+    openEditor(file, app) {
+      switch (app) {
+        case "odf":
+          this.$router.push('/apps/document/' + file.reference_id)
+          // window.open('#/apps/document/' + file.reference_id, "_blank")
+      }
+    },
     itemDelete(file) {
       console.log("Delete file", file);
       const that = this;

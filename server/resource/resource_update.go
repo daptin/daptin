@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"encoding/base64"
 	"github.com/artpar/api2go"
 	uuid "github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/columntypes"
@@ -146,14 +147,40 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						continue
 					}
 
+					files, ok := val.([]interface{})
+					uploadPath := ""
+
+					for i := range files {
+						file := files[i].(map[string]interface{})
+
+						fileContentsBase64, ok := file["file"].(string)
+						if !ok {
+							fileContentsBase64, ok = file["contents"].(string)
+							if !ok {
+								continue
+							}
+						}
+						splitParts := strings.Split(fileContentsBase64, ",")
+						encodedPart := splitParts[0]
+						if len(splitParts) > 1 {
+							encodedPart = splitParts[1]
+						}
+						fileBytes, _ := base64.StdEncoding.DecodeString(encodedPart)
+						filemd5 := GetMD5Hash(fileBytes)
+						file["md5"] = filemd5
+						file["size"] = len(fileBytes)
+						path, ok := file["path"]
+						if ok {
+							uploadPath = path.(string)
+						} else {
+							file["path"] = ""
+						}
+						files[i] = file
+					}
+
 					actionRequestParameters := make(map[string]interface{})
 					actionRequestParameters["file"] = val
-
-					/**
-					"oauth_token_id": "$.oauth_token_id",
-					"store_provider": "$.store_provider",
-					"root_path":      "$.root_path",
-					*/
+					actionRequestParameters["path"] = uploadPath
 
 					log.Infof("Get cloud store details: %v", col.ForeignKeyData.Namespace)
 					cloudStore, err := dr.GetCloudStoreByName(col.ForeignKeyData.Namespace)
@@ -176,10 +203,11 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 					columnAssetCache, ok := dr.AssetFolderCache[dr.tableInfo.TableName][col.ColumnName]
 					if ok {
-						columnAssetCache.UploadFiles(val.([]interface{}))
+						err  = columnAssetCache.UploadFiles(val.([]interface{}))
+						CheckErr(err, "Failed to store uploaded file in column [%v]", col.ColumnName)
 					}
 
-					files, ok := val.([]interface{})
+					files, ok = val.([]interface{})
 					if ok {
 
 						for i := range files {
