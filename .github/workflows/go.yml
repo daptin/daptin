@@ -303,7 +303,7 @@ jobs:
               -image=artpar/daptin-xgo:1.14 \
               -targets=linux/386,darwin/amd64,linux/amd64,linux/arm-5,linux/arm-6,linux/arm-7,linux/mips,linux/mips64,linux/mips64le,linux/mipsle,windows/386,windows/amd64 \
               --tags netgo -ldflags='-linkmode external' -dest build \
-              .
+              github.com/daptin/daptin
 
       - name: Set environment variables
         shell: bash
