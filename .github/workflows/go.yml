@@ -286,7 +286,7 @@ jobs:
 
       - name: Copy Code
         shell: bash
-        run: mkdir -p ./src/github/daptin/daptin/ && cp -Rf . ./src/github/daptin/daptin/
+        run: go get github.com/daptin/daptin
 
 
       - name: Cross-compile daptin
