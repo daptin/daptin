@@ -17,12 +17,6 @@ import PaginatedTableView from "pages/UserApps/PaginatedListViewTemplate/Paginat
 import PaginatedCardView from "pages/UserApps/PaginatedListViewTemplate/PaginatedCardView";
 
 
-import { DocumentEditorPlugin } from '@syncfusion/ej2-vue-documenteditor';
-import { DocumentEditorContainerPlugin } from '@syncfusion/ej2-vue-documenteditor';
-
-Vue.use(DocumentEditorContainerPlugin);
-
-Vue.use(DocumentEditorPlugin);
 Vue.component('v-jstree', VJstree);
 Vue.component('ace-editor', AceEditor);
 Vue.component('user-header-bar', UserHeaderBar);
