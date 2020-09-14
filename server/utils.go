@@ -242,10 +242,8 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds *map[string]*resour
 
 func CleanUpConfigFiles() {
 
-
-
 	files, _ := filepath.Glob("*_uploaded_*")
-	log.Infof("Clean up config files: %v", files)
+	log.Infof("Clean up uploaded config files: %v", files)
 
 	for _, fileName := range files {
 		err := os.Remove(fileName)
@@ -254,10 +252,10 @@ func CleanUpConfigFiles() {
 
 	schemaFolderDefinedByEnv, _ := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
 	files, _ = filepath.Glob(schemaFolderDefinedByEnv + string(os.PathSeparator) + "*_uploaded_*")
-	log.Infof("Clean up config files: %v", files)
 
 	for _, fileName := range files {
 		err := os.Remove(fileName)
+		log.Infof("Deleted config files: %v", fileName)
 		resource.CheckErr(err, "Failed to delete uploaded schema file: %s", fileName)
 	}
 
