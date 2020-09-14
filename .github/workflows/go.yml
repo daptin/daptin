@@ -270,15 +270,6 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v1
-        with:
-          # Checkout into a fixed path to avoid import path problems on go < 1.11
-          path: ./src/github.com/daptin/daptin
-
-
-      - name: Print github variable
-        shell: bash
-        run: echo '${{  toJson(github) }}'
-
 
       - name: Print env variable
         shell: bash
