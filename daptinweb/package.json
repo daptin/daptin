@@ -26,6 +26,7 @@
     "drawflow": "0.0.21",
     "fontsource-source-sans-pro": "^3.0.3",
     "install": "^0.13.0",
+    "interactjs": "^1.9.22",
     "js-yaml": "^3.14.0",
     "jsonwebtoken": "^8.5.1",
     "jwt-decode": "^2.2.0",

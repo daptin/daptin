@@ -1,7 +1,7 @@
 <template>
   <div id="dropArea"  class="row">
     <div class="col-12">
-      <q-markup-table dark style="background: transparent; ">
+      <q-markup-table  style="background: transparent; ">
         <thead style="text-align: left">
         <tr>
           <th style="width: 50px"></th>

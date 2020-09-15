@@ -52,20 +52,22 @@
           ],
         }" title="Files"></user-header-bar>
 
-      <div style="height: 100vh; overflow-y: scroll" class="row text-white">
+      <div style="height: 100vh; overflow-y: scroll" class="row">
         <div class="col-2 col-sm-12 col-md-2 col-lg-2 col-xl-2 col-xs-12">
           <q-card flat style="background: transparent" v-if="selectedFile">
             <q-card-section>
-              <span class="text-h6">{{ selectedFile.name }}</span>
+              <span class="text-h6">{{ selectedFile.name }}</span><br />
             </q-card-section>
             <q-card-section>
-              Size <span class="text-bold">{{ parseInt(selectedFile.document_content[0].size / 1024) }} Kb</span>
+              Size <span class="text-bold">{{ parseInt(selectedFile.document_content[0].size / 1024) }} Kb</span> <br />
+              Type <span class="text-bold">{{selectedFile.mime_type}}</span>
             </q-card-section>
             <q-card-section>
               <q-btn-group>
-                <q-btn style="border: 1px solid black; background: black" flat label="Download"
+                <q-btn class="bg-white text-black" label="Download"
                        @click="fileDownload(selectedFile)"></q-btn>
-                <q-btn :href="'/apps/document/' + selectedFile.reference_id" v-if="selectedFile.name.indexOf('.od') > -1" style="border: 1px solid black; background: black" flat label="Open"
+                <q-btn :href="'/apps/document/' + selectedFile.reference_id"
+                       v-if="selectedFile.name.indexOf('.od') > -1" label="Open"
                        @click="openEditor(selectedFile, 'odf')"></q-btn>
 
               </q-btn-group>
@@ -134,7 +136,7 @@
 </template>
 <script>
 
-import {mapActions} from "vuex";
+import {mapActions, mapGetters} from "vuex";
 
 function base64ToArrayBuffer(base64) {
   var binaryString = window.atob(base64);
@@ -180,7 +182,7 @@ export default {
       switch (app) {
         case "odf":
           this.$router.push('/apps/document/' + file.reference_id)
-          // window.open('#/apps/document/' + file.reference_id, "_blank")
+        // window.open('#/apps/document/' + file.reference_id, "_blank")
       }
     },
     itemDelete(file) {
@@ -297,7 +299,7 @@ export default {
       }).then(function (res) {
         console.log("Documents ", res);
         that.files = res.data.map(function (e) {
-          e.color = "white"
+          // e.color = "white"
           e.icon = "fas fa-file"
           e.name = e.document_name
           e.path = e.document_path
@@ -489,6 +491,7 @@ export default {
   data() {
     return {
       searchInput: '',
+      ...mapGetters(['endpoint']),
       directoryEnsureCache: {},
       newNamePrompt: false,
       viewMode: 'table',

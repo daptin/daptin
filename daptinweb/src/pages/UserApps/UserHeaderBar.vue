@@ -1,10 +1,10 @@
 <template>
 
-  <q-header style="background: transparent">
+  <q-header>
     <q-toolbar v-if="decodedAuthToken() !== null">
       <q-btn :key="btn.icon" v-for="btn in buttons.before" flat @click="btn.click" :icon="btn.icon"></q-btn>
       <q-toolbar-title shrink>{{ title }}</q-toolbar-title>
-      <q-btn style="border: 1px solid black" :key="btn.icon" v-for="btn in buttons.after" flat @click="btn.click" :label="btn.label"
+      <q-btn :key="btn.icon" v-for="btn in buttons.after" flat @click="btn.click" :label="btn.label"
              :icon="btn.icon"></q-btn>
       <q-space/>
       <q-btn flat icon="fas fa-th">
@@ -108,6 +108,12 @@ export default {
           enable: true,
           path: '/apps/calendar',
           icon: 'fas fa-calendar'
+        },
+        {
+          name: "Drag",
+          enable: true,
+          path: '/apps/drageditor',
+          icon: 'fas fa-hand-rock'
         },
 
       ]

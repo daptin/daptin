@@ -99,6 +99,9 @@ const routes = [
         path: 'document/:documentId', component: () => import('pages/UserApps/OdfFilesEditor')
       },
       {
+        path: 'drageditor', component: () => import('pages/UserApps/DragEditor')
+      },
+      {
         path: 'calendar', component: () => import('pages/UserApps/Calendar.vue')
       },
     ]
