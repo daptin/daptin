@@ -96,7 +96,7 @@ const routes = [
         path: 'files', component: () => import('pages/UserApps/FileBrowser.vue')
       },
       {
-        path: 'document/:documentId', component: () => import('pages/UserApps/OdfFilesEditor')
+        path: 'document/:documentId', component: () => import('pages/UserApps/DocumentEditor')
       },
       {
         path: 'drageditor', component: () => import('pages/UserApps/DragEditor')

@@ -4,8 +4,60 @@
       <div v-for="item in items" :style="item.style" :id="item.id" class="item drag-drop">{{ item }}</div>
     </div>
     <q-page-sticky position="right" :offset="[0, 0]">
-      <q-btn @click="addNew()" size="xs" icon="fas fa-arrow-left"/>
+      <q-btn @click="addNew" size="xs" icon="fas fa-arrow-left"/>
     </q-page-sticky>
+    <q-menu
+      touch-position
+      context-menu @show="itemSelected"
+    >
+
+      <q-list dense style="min-width: 100px">
+        <q-item clickable v-close-popup>
+          <q-item-section @click="addNew">Add</q-item-section>
+        </q-item>
+        <q-separator />
+        <q-item clickable>
+          <q-item-section>Preferences</q-item-section>
+          <q-item-section side>
+            <q-icon name="keyboard_arrow_right" />
+          </q-item-section>
+
+          <q-menu anchor="top right" self="top left">
+            <q-list>
+              <q-item
+                v-for="n in 3"
+                :key="n"
+                dense
+                clickable
+              >
+                <q-item-section>Submenu Label</q-item-section>
+                <q-item-section side>
+                  <q-icon name="keyboard_arrow_right" />
+                </q-item-section>
+                <q-menu auto-close anchor="top right" self="top left">
+                  <q-list>
+                    <q-item
+                      v-for="n in 3"
+                      :key="n"
+                      dense
+                      clickable
+                    >
+                      <q-item-section>3rd level Label</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-item>
+            </q-list>
+          </q-menu>
+
+        </q-item>
+        <q-separator />
+        <q-item clickable v-close-popup>
+          <q-item-section>Quit</q-item-section>
+        </q-item>
+      </q-list>
+
+    </q-menu>
   </q-page-container>
 </template>
 <style>
@@ -17,7 +69,6 @@
 .item {
   width: 200px;
   height: 100px;
-  position: absolute;
   border: 1px solid cornflowerblue;
   border-radius: 5px;
   padding: 5px;
@@ -132,7 +183,20 @@ export default {
     }
   },
   methods: {
+    getItemById(id) {
+      return this.items.filter(function(r){
+        return r.id === id;
+      })[0];
+    },
+    getItemContainerTargetBtId(id) {
+      return document.getElementById(id);
+    },
+    itemSelected(event){
+      console.log("Item selected", event)
+      this.selectedItem = this.getItemById(event.target.id);
+    },
     addNew() {
+      console.log("add new", arguments, this.selectedItem)
       this.n += 1;
       this.items.push({
         name: "item " + this.n,

@@ -100,7 +100,7 @@ export default {
         {
           name: "Documents",
           enable: true,
-          path: '/apps/document',
+          path: '/apps/document/new',
           icon: 'fas fa-document'
         },
         {
