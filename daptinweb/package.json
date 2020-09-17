@@ -34,7 +34,6 @@
     "js-yaml": "^3.14.0",
     "jsonwebtoken": "^8.5.1",
     "jwt-decode": "^2.2.0",
-    "luckysheet": "^2.0.0",
     "moment-timezone": "^0.5.31",
     "npm": "^6.14.7",
     "quasar": "^1.0.0",
