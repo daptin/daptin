@@ -99,6 +99,9 @@ const routes = [
         path: 'document/:documentId', component: () => import('pages/UserApps/DocumentEditor')
       },
       {
+        path: 'spreadsheet/:documentId', component: () => import('pages/UserApps/SpreadsheetEditor')
+      },
+      {
         path: 'drageditor', component: () => import('pages/UserApps/DragEditor')
       },
       {

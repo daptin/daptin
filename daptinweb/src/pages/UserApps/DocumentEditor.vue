@@ -1,101 +1,57 @@
 <template>
   <q-page-container>
-    <q-header elevated>
 
-      <div class="q-pa-sm q-pl-md row items-center">
-        <div class="cursor-pointer non-selectable">
-          File
-          <q-menu>
-            <q-list dense style="min-width: 100px">
-              <q-item @click="$router.push('/apps/files')" clickable v-close-popup>
-                <q-item-section>Open...</q-item-section>
-              </q-item>
-              <q-item @click="newDocument" clickable v-close-popup>
-                <q-item-section>New</q-item-section>
-              </q-item>
-
-              <q-separator/>
-
-              <q-item clickable>
-                <q-item-section>Preferences</q-item-section>
-                <q-item-section side>
-                  <q-icon name="keyboard_arrow_right"/>
-                </q-item-section>
-
-                <q-menu anchor="top right" self="top left">
-                  <q-list>
-                    <q-item
-                      v-for="n in 3"
-                      :key="n"
-                      dense
-                      clickable
-                    >
-                      <q-item-section>Submenu Label</q-item-section>
-                      <q-item-section side>
-                        <q-icon name="keyboard_arrow_right"/>
-                      </q-item-section>
-                      <q-menu auto-close anchor="top right" self="top left">
-                        <q-list>
-                          <q-item
-                            v-for="n in 3"
-                            :key="n"
-                            dense
-                            clickable
-                          >
-                            <q-item-section>3rd level Label</q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-menu>
+    <q-header elevated class="bg-white text-black">
+      <div class="row">
+        <div class="12" >
+          <q-bar>
+            <q-btn-group flat>
+              <q-btn flat label="File">
+                <q-menu>
+                  <q-list dense style="min-width: 100px">
+                    <q-item @click="newDocument()" clickable v-close-popup>
+                      <q-item-section>New</q-item-section>
+                    </q-item>
+                    <q-item @click="$router.push('/apps/files')" clickable v-close-popup>
+                      <q-item-section>Open</q-item-section>
+                    </q-item>
+                    <q-item clickable v-close-popup>
+                      <q-item-section>Save as</q-item-section>
+                    </q-item>
+                    <q-item @click="window.print()" clickable v-close-popup>
+                      <q-item-section>Print</q-item-section>
+                    </q-item>
+                    <q-item @click="$router.push('/apps/files')" clickable v-close-popup>
+                      <q-item-section>Close</q-item-section>
                     </q-item>
                   </q-list>
                 </q-menu>
-              </q-item>
-
-              <q-separator/>
-
-              <q-item @click="$router.back()" clickable v-close-popup>
-                <q-item-section>Quit</q-item-section>
-              </q-item>
-            </q-list>
-          </q-menu>
+              </q-btn>
+              <q-btn flat label="Edit"></q-btn>
+              <q-btn flat label="Format"></q-btn>
+              <q-btn flat label="Data"></q-btn>
+              <q-btn flat label="Help"></q-btn>
+            </q-btn-group>
+          </q-bar>
         </div>
-
-        <div class="q-ml-md cursor-pointer non-selectable">
-          Edit
-          <q-menu auto-close>
-            <q-list dense style="min-width: 100px">
-              <q-item clickable>
-                <q-item-section>Cut</q-item-section>
-              </q-item>
-              <q-item clickable>
-                <q-item-section>Copy</q-item-section>
-              </q-item>
-              <q-item clickable>
-                <q-item-section>Paste</q-item-section>
-              </q-item>
-              <q-separator/>
-              <q-item clickable>
-                <q-item-section>Select All</q-item-section>
-              </q-item>
-            </q-list>
-          </q-menu>
+      </div>
+      <div class="row">
+        <div class="col-12">
+          <div class="document-editor__toolbar"></div>
         </div>
       </div>
     </q-header>
     <q-page>
-      <div class="row">
-        <div class="col-12">
-          <div class="document-editor" style="height: 100vh">
-            <div class="row">
-              <div class="document-editor__toolbar"></div>
-            </div>
-            <div class="row row-editor">
-              <div class="editor">
-              </div>
-            </div>
+
+      <main style="overflow: hidden;">
+
+        <div class="centered">
+          <div class="row row-editor">
+            <div class="editor" style="overflow: scroll"></div>
           </div>
         </div>
-      </div>
+      </main>
+
       <q-dialog v-model="newNameDialog">
         <q-card style="min-width: 400px">
           <q-card-section>
@@ -174,16 +130,15 @@ body[ data-editor='DecoupledDocumentEditor'] .row-editor .editor {
   min-height: 26.25cm;
   padding: 1.75cm 1.5cm;
   margin: 2.5rem;
-  border: 1px hsl(0, 0%, 82.7%) solid;
+  border: 1px hsl( 0, 0%, 82.7% ) solid;
   background-color: var(--ck-sample-color-white);
-  box-shadow: 0 0 5px hsla(0, 0%, 0%, .1);
+  box-shadow: 0 0 5px hsla( 0, 0%, 0%, .1 );
 }
 
 body[ data-editor='DecoupledDocumentEditor'] .row-editor {
   display: flex;
   position: relative;
   justify-content: center;
-  overflow-y: auto;
   background-color: #f2f2f2;
   border: 1px solid hsl(0, 0%, 77%);
 }
@@ -237,13 +192,13 @@ body[data-editor='DecoupledDocumentEditor'] .sidebar {
   top: 30px;
   border: 0;
   padding: 0;
-  color: hsl(0, 0%, 50%);
+  color: hsl( 0, 0%, 50% );
   transition: 250ms ease color;
   background-color: transparent;
 }
 
 #sidebar-display-toggle:hover {
-  color: hsl(0, 0%, 30%);
+  color: hsl( 0, 0%, 30% );
   cursor: pointer;
 }
 
@@ -320,12 +275,12 @@ body[ data-editor='InlineEditor'] .collaboration-demo__row {
   margin-right: 1em;
   outline-offset: 2px;
   outline-width: 2px;
-  background-color: var(--ck-sample-color-blue);
+  background-color: var( --ck-sample-color-blue );
 }
 
 .collaboration-demo__topbar .btn:focus,
 .collaboration-demo__topbar .btn:hover {
-  border-color: var(--ck-sample-color-blue);
+  border-color: var( --ck-sample-color-blue );
 }
 
 .collaboration-demo__share {
@@ -369,7 +324,7 @@ body[ data-editor='InlineEditor'] .collaboration-demo__row {
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
-  transition: all .15s cubic-bezier(.5, 1, .25, 1);
+  transition: all .15s cubic-bezier(.5,1,.25,1);
   z-index: 1;
 }
 
@@ -526,7 +481,7 @@ main .message h2 {
   font-size: 1rem;
   user-select: none;
   border-radius: 4px;
-  transition: color .2s ease-in-out, background-color .2s ease-in-out, border-color .2s ease-in-out, opacity .2s ease-in-out;
+  transition: color .2s ease-in-out,background-color .2s ease-in-out,border-color .2s ease-in-out,opacity .2s ease-in-out;
   background-color: var(--ck-sample-color-button-blue);
   border-color: var(--ck-sample-color-button-blue);
   color: var(--ck-sample-color-white);
@@ -539,10 +494,10 @@ main .message h2 {
 }
 
 footer {
-  margin: calc(2 * var(--ck-sample-base-spacing)) var(--ck-sample-base-spacing);
+  margin: calc(2*var(--ck-sample-base-spacing)) var(--ck-sample-base-spacing);
   font-size: .8em;
   text-align: center;
-  color: rgba(0, 0, 0, .4);
+  color: rgba(0,0,0,.4);
 }
 
 /* --------- RWD --------------------------------------------------------------------------------------------------- */
@@ -597,7 +552,7 @@ function debounce(func, wait, immediate) {
 
 export default {
 
-  name: "FilesApp",
+  name: "DocumentEditorApp",
   data() {
     return {
       file: null,
@@ -645,8 +600,8 @@ export default {
         name: newFileName,
         type: "text/html"
       }
-      this.newName =  null;
-      this.newNameDialog =  false;
+      this.newName = null;
+      this.newNameDialog = false;
       this.document.document_content = [this.file]
       this.contents = "";
       this.editor.setData("")
@@ -718,11 +673,14 @@ export default {
 
       setTimeout(function () {
 
+        window.document.body.setAttribute("data-editor", "DecoupledDocumentEditor")
         DecoupledDocumentEditor
           .create(document.querySelector('.editor'), {
 
             toolbar: {
               items: [
+                'file',
+                '|',
                 'heading',
                 '|',
                 'fontSize',
