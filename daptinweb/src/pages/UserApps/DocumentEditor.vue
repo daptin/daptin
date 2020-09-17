@@ -659,18 +659,21 @@ export default {
       if (this.document.reference_id) {
 
 
-        this.updateRow(this.document).then(function (res) {
+        that.updateRow(that.document).then(function (res) {
           console.log("Document saved", res);
         }).catch(function (err) {
+          console.log("errer", err)
           that.$q.notify({
             message: "We are offline, changes are not being stored"
           })
         })
       } else {
-        this.createRow(this.document).then(function (res) {
-          this.document = res.data;
+        that.createRow(that.document).then(function (res) {
+          that.document = res.data;
           console.log("Document created", res);
+          that.$router.push('/apps/document/' + that.document.reference_id)
         }).catch(function (err) {
+          console.log("errer", err)
           that.$q.notify({
             message: "We are offline, changes are not being stored"
           })
@@ -788,7 +791,7 @@ export default {
             document.querySelector('.document-editor__toolbar').appendChild(editor.ui.view.toolbar.element);
             document.querySelector('.ck-toolbar').classList.add('ck-reset_all');
 
-            const saveMethod = debounce(that.saveDocument, 3000, false)
+            const saveMethod = debounce(that.saveDocument, 1000, false)
             editor.model.document.on('change:data', () => {
               that.contents = editor.getData();
               saveMethod();
