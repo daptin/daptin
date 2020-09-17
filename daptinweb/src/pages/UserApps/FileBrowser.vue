@@ -66,9 +66,9 @@
               <q-btn-group>
                 <q-btn class="bg-white text-black" label="Download"
                        @click="fileDownload(selectedFile)"></q-btn>
-                <q-btn :href="'/apps/document/' + selectedFile.reference_id"
-                       v-if="isEditable(selectedFile)" label="Open"
-                       @click="openEditor(selectedFile, 'odf')"></q-btn>
+                <q-btn
+                  v-if="isEditable(selectedFile)" label="Open"
+                  @click="openEditor(selectedFile)"></q-btn>
 
               </q-btn-group>
             </q-card-section>
@@ -179,17 +179,37 @@ export default {
   name: "FileBrowser",
   methods: {
     isEditable(selectedFile) {
-      var ext = ["txt", "md", "html"]
-      if (selectedFile.name.endsWith("txt") || selectedFile.name.endsWith("md") || selectedFile.name.endsWith("html")) {
-        return true
+      console.log("Check file is editable", selectedFile)
+      var ext = ["txt", "md", "html", "csv", "tsv"]
+      let fileExtension = "";
+      if (selectedFile.document_name.indexOf(".") > -1) {
+        fileExtension = selectedFile.document_name.split(".")[1];
       }
-      return false;
+      console.log("Check file extension", fileExtension)
+
+      return ext.filter(function (r) {
+        return r === fileExtension
+      }).length > 0;
+
     },
     openEditor(file, app) {
-      switch (app) {
-        case "odf":
+      var fileExtention = file.document_name.split(".")[1]
+      switch (fileExtention) {
+        case "html":
           this.$router.push('/apps/document/' + file.reference_id)
-        // window.open('#/apps/document/' + file.reference_id, "_blank")
+          return;
+        case "md":
+          this.$router.push('/apps/document/' + file.reference_id)
+          return;
+        case "xml":
+          this.$router.push('/apps/document/' + file.reference_id)
+          return;
+        case "csv":
+          this.$router.push('/apps/spreadsheet/' + file.reference_id)
+          return;
+        case "tsv":
+          this.$router.push('/apps/spreadsheet/' + file.reference_id)
+          return;
       }
     },
     itemDelete(file) {
