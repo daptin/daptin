@@ -14,9 +14,8 @@
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.0.1",
-    "@ckeditor/ckeditor5-build-classic": "^22.0.0",
-    "@ckeditor/ckeditor5-build-decoupled-document": "^22.0.0",
-    "@ckeditor/ckeditor5-upload": "^22.0.0",
+    "@ckeditor/ckeditor5-build-decoupled-document": "^19.0.0",
+    "@ckeditor/ckeditor5-upload": "^19.0.0",
     "@ckeditor/ckeditor5-vue": "^1.0.2",
     "@fullcalendar/core": "^5.3.1",
     "@fullcalendar/daygrid": "^5.3.2",

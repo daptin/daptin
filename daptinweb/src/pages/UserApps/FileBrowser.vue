@@ -56,18 +56,18 @@
         <div class="col-2 col-sm-12 col-md-2 col-lg-2 col-xl-2 col-xs-12">
           <q-card flat style="background: transparent" v-if="selectedFile">
             <q-card-section>
-              <span class="text-h6">{{ selectedFile.name }}</span><br />
+              <span class="text-h6">{{ selectedFile.name }}</span><br/>
             </q-card-section>
             <q-card-section>
-              Size <span class="text-bold">{{ parseInt(selectedFile.document_content[0].size / 1024) }} Kb</span> <br />
-              Type <span class="text-bold">{{selectedFile.mime_type}}</span>
+              Size <span class="text-bold">{{ parseInt(selectedFile.document_content[0].size / 1024) }} Kb</span> <br/>
+              Type <span class="text-bold">{{ selectedFile.mime_type }}</span>
             </q-card-section>
             <q-card-section>
               <q-btn-group>
                 <q-btn class="bg-white text-black" label="Download"
                        @click="fileDownload(selectedFile)"></q-btn>
                 <q-btn :href="'/apps/document/' + selectedFile.reference_id"
-                       v-if="selectedFile.name.indexOf('.od') > -1" label="Open"
+                       v-if="isEditable(selectedFile)" label="Open"
                        @click="openEditor(selectedFile, 'odf')"></q-btn>
 
               </q-btn-group>
@@ -178,6 +178,13 @@ export default {
 
   name: "FileBrowser",
   methods: {
+    isEditable(selectedFile) {
+      var ext = ["txt", "md", "html"]
+      if (selectedFile.name.endsWith("txt") || selectedFile.name.endsWith("md") || selectedFile.name.endsWith("html")) {
+        return true
+      }
+      return false;
+    },
     openEditor(file, app) {
       switch (app) {
         case "odf":

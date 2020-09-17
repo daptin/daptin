@@ -17,8 +17,8 @@ import PaginatedTableView from "pages/UserApps/PaginatedListViewTemplate/Paginat
 import PaginatedCardView from "pages/UserApps/PaginatedListViewTemplate/PaginatedCardView";
 
 
-import CKEditor from '@ckeditor/ckeditor5-vue'
-Vue.use(CKEditor)
+// import CKEditor from '@ckeditor/ckeditor5-vue'
+// Vue.use(CKEditor)
 
 Vue.component('v-jstree', VJstree);
 Vue.component('ace-editor', AceEditor);
