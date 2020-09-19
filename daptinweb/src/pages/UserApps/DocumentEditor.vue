@@ -43,8 +43,7 @@
     </q-header>
     <q-page>
 
-      <main style="overflow: hidden;">
-
+      <main style="overflow: scroll; height: 90vh">
         <div class="centered">
           <div class="row row-editor">
             <div class="editor" style="overflow: scroll"></div>
@@ -68,7 +67,9 @@
 </template>
 <style>
 @import '../../statics/ckeditor/ckeditor.css';
-
+.ck {
+  overflow: hidden !important;
+}
 </style>
 <script>
 import {mapActions} from "vuex";

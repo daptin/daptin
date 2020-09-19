@@ -145,7 +145,7 @@ export default {
       }
       // console.log("Contents changed", arguments)
       if (this.saveDebounced === null) {
-        this.saveDebounced = debounce(this.saveDocument, 3000, false)
+        this.saveDebounced = debounce(this.saveDocument, 3000, true)
       }
       this.saveDebounced();
     }
