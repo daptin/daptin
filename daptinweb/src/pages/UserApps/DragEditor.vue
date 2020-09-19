@@ -69,6 +69,7 @@
 .item {
   width: 200px;
   height: 100px;
+  position: absolute;
   border: 1px solid cornflowerblue;
   border-radius: 5px;
   padding: 5px;

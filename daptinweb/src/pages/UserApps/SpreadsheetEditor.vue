@@ -15,8 +15,16 @@
                     <q-item @click="$router.push('/apps/files')" clickable v-close-popup>
                       <q-item-section>Open</q-item-section>
                     </q-item>
-                    <q-item clickable v-close-popup>
-                      <q-item-section>Save as</q-item-section>
+                    <q-item @click="saveDocument()" clickable v-close-popup>
+                      <q-item-section>Save spreadsheet</q-item-section>
+                    </q-item>
+                    <q-item @click="saveDocument()" clickable v-close-popup>
+                      <q-item-section>Export</q-item-section>
+                      <q-menu>
+                        <q-list>
+                          <q-item>To xlsx</q-item>
+                        </q-list>
+                      </q-menu>
                     </q-item>
                     <q-item @click="window.print()" clickable v-close-popup>
                       <q-item-section>Print</q-item-section>
@@ -60,13 +68,22 @@
 @import "../../statics/luckysheet/plugins/plugins.css";
 
 
+.luckysheet-work-area {
+  /*height: 41px !important;*/
+  top: 27px;
+}
+/**/
+/*.luckysheet-grid-container {*/
+/*  top: 64px !important;*/
+/*}*/
+
 /*div.luckysheet-grid-container.luckysheet-scrollbars-enabled {*/
 /*  top: 65px !important;*/
 /*}*/
 
 </style>
 <script>
-import {mapActions} from "vuex";
+import {mapActions, mapGetters} from "vuex";
 
 
 // import "../../statics/luckysheet/plugins/js/plugin.js"
@@ -110,6 +127,7 @@ export default {
   data() {
     return {
       file: null,
+      ...mapGetters(['decodedAuthToken']),
       saveDebounced: null,
       contents: "",
       loading: true,
@@ -133,6 +151,20 @@ export default {
     }
   },
   methods: {
+    saveDocumentState() {
+      const that = this;
+      let newData = luckysheet.getluckysheetfile();
+      newData = newData.map(function (sheet) {
+        console.log("Get grid data for sheet", sheet)
+        sheet.celldata = luckysheet.getGridData(sheet.data)
+        // delete sheet.data
+        return sheet;
+      })
+      that.contents = JSON.stringify(newData);
+      window.localStorage.setItem("d", that.contents)
+
+
+    },
     newDocument() {
 
       if (!this.newNameDialog) {
@@ -256,23 +288,27 @@ export default {
           var options = {
             container: 'luckysheet', //luckysheet is the container id
             showinfobar: false,
+            title: that.document.document_name,
+            userInfo: that.decodedAuthToken.email,
           }
           console.log("l", luckysheet)
 
+          luckysheet.destroy();
           if (that.contents.length > 0) {
             try {
-              var sheetData = JSON.parse(that.contents)
-              let item = window.localStorage.getItem("d");
+              console.log("set string data", that.contents)
+              var item = that.contents;
               if (!item) {
-                item = workingData
+                // item = workingData
               } else {
                 item = JSON.parse(item)
               }
+
               if (item) {
                 options.data = item;
                 // luckysheet.buildGridData(item)
               }
-              console.log("set sheet data", sheetData)
+              console.log("set sheet data", item)
               luckysheet.create(options);
 
             } catch (e) {
@@ -285,9 +321,16 @@ export default {
           setInterval(function () {
             that.loading = false;
             let newData = luckysheet.getluckysheetfile();
-            that.contents = JSON.stringify(newData, null, 4);
-            window.localStorage.setItem("d", that.contents)
-          }, 1000)
+            newData = newData.map(function (sheet) {
+              console.log("Get grid data for sheet", sheet)
+              sheet.celldata = luckysheet.getGridData(sheet.data)
+              // delete sheet.data
+              return sheet;
+            })
+            var newContents = JSON.stringify(newData);
+            that.contents = newContents;
+            window.localStorage.setItem("d", newContents)
+          }, 10000)
 
         }, 300)
       })

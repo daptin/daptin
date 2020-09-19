@@ -43,6 +43,7 @@ script:
 - GOOS=linux go build  -a -ldflags '-extldflags "-static"' -o main
 - mkdir docker_dir
 - cp ./main ./docker_dir/main
+- cp ./main ./docker_dir/main
 - cp Dockerfile docker_dir/Dockerfile
 
 

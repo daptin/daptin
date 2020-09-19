@@ -6,11 +6,11 @@
         after: [],
         }" title="Calendar"></user-header-bar>
 
-      <div class="row text-white">
+      <div class="row">
         <div :class="{'col-2': showSideBar}">
           <div class="row q-pa-md">
             <div class="col-12">
-              &nbsp;<q-btn class="bg-black" style="border: 1px solid black" flat label="Today"
+              &nbsp;<q-btn style="border: 1px solid black" flat label="Today"
                            @click="setDate()"></q-btn>
             </div>
           </div>
@@ -23,7 +23,6 @@
                 minimal
                 flat
                 style="background: transparent; width: 200px; min-width: 0px"
-                dark
               />
             </div>
           </div>
@@ -35,16 +34,16 @@
                 <q-btn flat @click="calendar.refetchEvents()" icon="fas fa-sync-alt"></q-btn>
                 <span class="text-h6">{{ monthNames[date.getMonth()] }} {{ date.getFullYear() }}</span>
                 <q-btn @click="(showEventDialogTarget = true) && (showEventDialog = true)" icon="fas fa-plus" flat>
-                  <q-menu :target="showEventDialogTarget" ref="newEventDialog" dark style="overflow: hidden">
-                    <q-bar dark>
+                  <q-menu :target="showEventDialogTarget" ref="newEventDialog" style="overflow: hidden">
+                    <q-bar>
                       <div class="text-weight-bold ">
                         New event
                       </div>
                     </q-bar>
-                    <q-card dark style="min-width: 450px; overflow: hidden;" class="q-pa-md">
+                    <q-card style="min-width: 450px; overflow: hidden;" class="q-pa-md">
 
                       <q-card-section>
-                        <q-input label="Title" dark v-model="newEvent.event_title"></q-input>
+                        <q-input label="Title"  v-model="newEvent.event_title"></q-input>
                       </q-card-section>
                       <q-card-section style="padding-left: 10px">
                         <div class="row">
@@ -58,7 +57,7 @@
                             </q-btn-toggle>
                           </div>
                           <div class="col-6">
-                            <q-checkbox dark v-model="newEvent.all_day" label="Full day event"></q-checkbox>
+                            <q-checkbox v-model="newEvent.all_day" label="Full day event"></q-checkbox>
                           </div>
                         </div>
 
@@ -66,10 +65,10 @@
                       </q-card-section>
 
                       <q-tab-panels v-model="newEvent.event_type" class="shadow-2 rounded-borders bg-transparent">
-                        <q-tab-panel class="new-event-panel" dark name="event">
+                        <q-tab-panel class="new-event-panel"  name="event">
                           <q-card-section>
 
-                            <q-input label="Event date and time" dark filled v-model="newEvent.date">
+                            <q-input label="Event date and time"  filled v-model="newEvent.date">
                               <template v-slot:prepend>
                                 <q-icon name="event" class="cursor-pointer">
                                   <q-popup-proxy transition-show="scale" transition-hide="scale">
@@ -98,19 +97,19 @@
                           </q-card-section>
 
                           <q-card-section v-if="newEventConfig.showAddDescription">
-                            <q-editor dark label="Description" v-model="newEvent.event_description">
+                            <q-editor  label="Description" v-model="newEvent.event_description">
                             </q-editor>
                           </q-card-section>
                           <q-card-section v-if="newEventConfig.showAddLocation">
-                            <q-input dark label="Event location" v-model="newEvent.event_location">
+                            <q-input  label="Event location" v-model="newEvent.event_location">
                             </q-input>
                           </q-card-section>
                         </q-tab-panel>
 
-                        <q-tab-panel class="new-event-panel" dark name="reminder">
+                        <q-tab-panel class="new-event-panel"  name="reminder">
                           <q-card-section>
 
-                            <q-input label="Event date and time" dark filled v-model="newEvent.date">
+                            <q-input label="Event date and time"  filled v-model="newEvent.date">
                               <template v-slot:prepend>
                                 <q-icon name="event" class="cursor-pointer">
                                   <q-popup-proxy transition-show="scale" transition-hide="scale">
@@ -139,10 +138,10 @@
 
                         </q-tab-panel>
 
-                        <q-tab-panel class="new-event-panel" dark name="task">
+                        <q-tab-panel class="new-event-panel"  name="task">
 
                           <q-card-section>
-                            <q-input label="Event date and time" dark filled v-model="newEvent.date">
+                            <q-input label="Event date and time"  filled v-model="newEvent.date">
                               <template v-slot:prepend>
                                 <q-icon name="event" class="cursor-pointer">
                                   <q-popup-proxy transition-show="scale" transition-hide="scale">
@@ -185,8 +184,8 @@
                 <q-btn icon="fas fa-angle-left" @click="calendar.prev()" flat></q-btn>
                 <q-btn icon="fas fa-angle-right" @click="calendar.next()" flat></q-btn>
                 <q-space/>
-                <q-btn-dropdown :label="calendarView" content-style="background: black" flat>
-                  <q-list dark>
+                <q-btn-dropdown :label="calendarView" flat>
+                  <q-list >
                     <q-item v-close-popup @click="setCalenderView('day')" clickable>
                       <q-item-section>Day</q-item-section>
                     </q-item>
@@ -224,7 +223,6 @@
 }
 
 .q-btn-toggle button.q-btn {
-  border: 1px solid white;
   padding: 5px;
 }
 
@@ -233,7 +231,6 @@
 }
 
 .fc .fc-list-event:hover td {
-  background: black;
 }
 </style>
 <script>
@@ -288,7 +285,7 @@ export default {
     createEvent() {
       const that = this;
       console.log("Create new event", this.newEvent);
-      this.newEvent.tableName = "event";
+      this.newEvent.tableName = "calendar";
       this.newEvent.event_start_date = this.newEvent.date;
       this.createRow(this.newEvent).then(function (res) {
         console.log("created event", res)
@@ -375,7 +372,7 @@ export default {
           console.log("drop info", dropInfo)
           var referenceId = dropInfo.oldEvent._def.extendedProps.reference_id;
           that.updateRow({
-            tableName: "event",
+            tableName: "calendar",
             id: referenceId,
             event_end_date: dropInfo.event.end
           }).then(function (res) {
@@ -392,7 +389,7 @@ export default {
           console.log("drop info", dropInfo)
           var referenceId = dropInfo.oldEvent._def.extendedProps.reference_id;
           that.updateRow({
-            tableName: "event",
+            tableName: "calendar",
             id: referenceId,
             event_start_date: dropInfo.event.start,
             event_end_date: dropInfo.event.end
@@ -413,7 +410,7 @@ export default {
         events: function (info, successCallback, failureCallback) {
           console.log("get events for date: ", info);
           that.loadData({
-            tableName: 'event',
+            tableName: 'calendar',
             params: {
               query: JSON.stringify([
                 {

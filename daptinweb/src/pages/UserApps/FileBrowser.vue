@@ -446,14 +446,14 @@ export default {
         }
       })
     },
-    uploadFile(file) {
+    uploadFile(file, fileName) {
       // console.log("Upload file", file);
       const that = this;
       file.status = "Queued"
 
       var uploadFile1 = function (fileToUpload) {
         return new Promise(function (resolve, reject) {
-          const name = fileToUpload.name;
+          const name = fileName || fileToUpload.name;
           const type = fileToUpload.type;
           const reader = new FileReader();
           file.status = "Reading"
@@ -474,12 +474,12 @@ export default {
             var obj = {
               tableName: "document",
               document_content: [{
-                name: fileToUpload.name,
+                name: fileName || fileToUpload.name,
                 contents: fileResult.target.result,
                 type: fileToUpload.type,
                 path: documentPath
               }],
-              document_name: fileToUpload.name,
+              document_name: fileName || fileToUpload.name,
               document_path: documentPath,
               mime_type: fileToUpload.type,
               document_extension: fileToUpload.name.indexOf(".") > -1 ? fileToUpload.name.split(".")[1] : "",
@@ -521,7 +521,7 @@ export default {
       ...mapGetters(['endpoint']),
       directoryEnsureCache: {},
       newNamePrompt: false,
-      viewMode: 'table',
+      viewMode: 'card',
       uploadedFiles: [],
       newName: '',
       newNameType: '',
@@ -584,15 +584,20 @@ export default {
 
     document.onpaste = function (event) {
       var items = (event.clipboardData || event.originalEvent.clipboardData).items;
+      console.log("Items", items)
+
       for (var index in items) {
         var item = items[index];
-        console.log("Items", index, item)
+        console.log("Items", index, item,item)
+        window.item = item;
         if (item.kind === 'file') {
           var blob = item.getAsFile();
           console.log("Upload blob", blob)
+          let nameParts = blob.name.split(".");
+          let newName = nameParts[0] + " pasted at " + new Date().toLocaleString() + "." + nameParts[1]
           that.uploadFile({
             file: blob,
-          })
+          }, newName)
         }
       }
     }

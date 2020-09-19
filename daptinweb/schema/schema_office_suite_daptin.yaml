@@ -32,7 +32,7 @@ Tables:
           KeyName: documents
         DataType: blob
         IsNullable: false
-  - TableName: event
+  - TableName: calendar
     Columns:
       - ColumnName: event_title
         Name: event_title

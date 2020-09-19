@@ -18,12 +18,12 @@
           <q-separator/>
         </q-list>
       </q-menu>
-      <q-card @click="itemClicked(item)" class="table-item" flat :style="{cursor: 'pointer', color: item.color}">
+      <q-card @click="itemClicked(item)" class="table-item" flat :style="{cursor: 'pointer'}">
         <q-tooltip :delay="1000">{{ item.name }}</q-tooltip>
         <q-card-section class="text-center" avatar>
-          <q-icon size="2.5em" :name="item.icon"/>
+          <q-icon :style="{'color': item.color}" size="2.5em" :name="item.icon"/>
         </q-card-section>
-        <q-card-section class="text-center text-white" style="padding: 1px; overflow-wrap: anywhere; overflow: hidden">
+        <q-card-section class="text-center" style="padding: 1px; overflow-wrap: anywhere; overflow: hidden">
           {{ item.name.substring(0, item.name.length > 20 ? 20 : item.name.length) }}
         </q-card-section>
       </q-card>
@@ -49,9 +49,9 @@
       <q-card @click="itemClicked(item)" class="table-item" flat :style="{cursor: 'pointer', color: item.color}">
         <q-tooltip :delay="1000">{{ item.name }}</q-tooltip>
         <q-card-section class="text-center" avatar>
-          <q-icon size="2.5em" :name="item.icon"/>
+          <q-icon :style="{'color': item.color}" size="2.5em" :name="item.icon"/>
         </q-card-section>
-        <q-card-section class="text-center text-white" style="padding: 1px; overflow-wrap: anywhere; overflow: hidden">
+        <q-card-section class="text-center" style="padding: 1px; overflow-wrap: anywhere; overflow: hidden">
           {{ item.name.substring(0, item.name.length > 20 ? 20 : item.name.length) }}
         </q-card-section>
       </q-card>

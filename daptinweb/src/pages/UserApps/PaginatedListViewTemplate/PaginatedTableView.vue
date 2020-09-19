@@ -1,7 +1,7 @@
 <template>
   <div id="dropArea"  class="row">
     <div class="col-12">
-      <q-markup-table  style="background: transparent; ">
+      <q-markup-table style="background: transparent; ">
         <thead style="text-align: left">
         <tr>
           <th style="width: 50px"></th>
@@ -29,7 +29,7 @@
             </q-list>
           </q-menu>
           <td>
-            <q-icon size="2.5em" :name="item.icon"/>
+            <q-icon :style="{'color': item.color}" size="2.5em" :name="item.icon"/>
           </td>
           <td>{{ item.name }}</td>
           <td>{{ item.size }}</td>
@@ -53,7 +53,7 @@
             </q-list>
           </q-menu>
           <td>
-            <q-icon size="2.5em" :name="item.icon"/>
+            <q-icon :style="{'color': item.color}" size="2.5em" :name="item.icon"/>
           </td>
           <td>{{ item.name }}</td>
           <td>{{ parseInt(item.document_content[0].size/1024) }} Kb</td>

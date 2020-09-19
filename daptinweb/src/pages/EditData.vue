@@ -151,6 +151,8 @@
   </div>
 </template>
 <style>
+@import "~tabulator-tables/dist/css/tabulator.min.css";
+/*@import "~tabulator-tables/dist/css/tabulator_simple.min.css";*/
 .tabulator-col-title input {
   margin-left: 9px;
 }
