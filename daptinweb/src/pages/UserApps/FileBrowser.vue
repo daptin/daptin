@@ -82,7 +82,7 @@
         </div>
       </div>
       <q-page-sticky :offset="[10, 10]" v-if="showUploadComponent">
-        <q-card style="width: 300px; height: 200px; background: black; font-size: 10px;">
+        <q-card style="width: 300px; height: 200px;  font-size: 10px;">
           <file-upload
             :multiple="true"
             style="height: 300px; width: 100%; text-align: left"
@@ -177,6 +177,12 @@ function debounce(func, wait, immediate) {
 export default {
 
   name: "FileBrowser",
+  watch: {
+    'currentPath': function (newVal) {
+      console.log("Current path changed", newVal);
+      localStorage.setItem("_last_current_path", newVal)
+    }
+  },
   methods: {
     isEditable(selectedFile) {
       console.log("Check file is editable", selectedFile)
@@ -541,6 +547,12 @@ export default {
     const that = this;
     this.containerId = "id-" + new Date().getMilliseconds();
     console.log("Mounted FilesBrowser", this.containerId);
+
+    var lastPath = localStorage.getItem("_last_current_path")
+    if (lastPath) {
+      this.currentPath = lastPath;
+    }
+
     that.refreshData();
 
 
@@ -588,7 +600,7 @@ export default {
 
       for (var index in items) {
         var item = items[index];
-        console.log("Items", index, item,item)
+        console.log("Items", index, item, item)
         window.item = item;
         if (item.kind === 'file') {
           var blob = item.getAsFile();
