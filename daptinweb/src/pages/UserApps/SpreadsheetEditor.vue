@@ -45,7 +45,7 @@
     </q-header>
     <q-page>
       <div id="luckysheet"
-           style="margin:0px;padding:0px;position:absolute;width:100%;height:100%;left: 0px;top: 0px; bottom: 0"></div>
+           style="margin:0px;padding:0px;position:absolute;width:100%;height:100%;left: 0px;top: -25px; bottom: 0"></div>
 
       <q-dialog v-model="newNameDialog">
         <q-card style="min-width: 400px">
