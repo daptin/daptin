@@ -1,10 +1,22 @@
 <template>
   <q-page-container>
-    <div id="grid-snap" style="height: 100vh; width: 100vw">
-      <div v-for="item in items" :style="item.style" :id="item.id" class="item drag-drop">{{ item }}</div>
+    <div @dblclick="addNew()" id="grid-snap" style="height: 100vh; width: 100vw">
+      <div @click="itemSelected({'target:': {'id' :item.id}})" v-for="item in items" :style="item.style" :id="item.id" class="item drag-drop">
+        {{ item }}
+      </div>
     </div>
     <q-page-sticky position="right" :offset="[0, 0]">
       <q-btn @click="addNew" size="xs" icon="fas fa-arrow-left"/>
+    </q-page-sticky>
+    <q-page-sticky v-if="selectedItem !== null" position="bottom" :offset="[0, 0]">
+      <q-card>
+        <div class="row">
+          <div class="col-12">{{selectedItem.script}}</div>
+          <div class="col-12">
+            <q-input v-model="newScriptLine"></q-input>
+          </div>
+        </div>
+      </q-card>
     </q-page-sticky>
     <q-menu
       touch-position
@@ -13,13 +25,13 @@
 
       <q-list dense style="min-width: 100px">
         <q-item clickable v-close-popup>
-          <q-item-section @click="addNew">Add</q-item-section>
+          <q-item-section @click="deleteItem">Delete</q-item-section>
         </q-item>
-        <q-separator />
+        <q-separator/>
         <q-item clickable>
           <q-item-section>Preferences</q-item-section>
           <q-item-section side>
-            <q-icon name="keyboard_arrow_right" />
+            <q-icon name="keyboard_arrow_right"/>
           </q-item-section>
 
           <q-menu anchor="top right" self="top left">
@@ -32,7 +44,7 @@
               >
                 <q-item-section>Submenu Label</q-item-section>
                 <q-item-section side>
-                  <q-icon name="keyboard_arrow_right" />
+                  <q-icon name="keyboard_arrow_right"/>
                 </q-item-section>
                 <q-menu auto-close anchor="top right" self="top left">
                   <q-list>
@@ -51,7 +63,7 @@
           </q-menu>
 
         </q-item>
-        <q-separator />
+        <q-separator/>
         <q-item clickable v-close-popup>
           <q-item-section>Quit</q-item-section>
         </q-item>
@@ -170,34 +182,42 @@ export default {
   name: "DragEditor",
   data() {
     return {
-      items: [{
-        name: "item 1",
-        id: "item-1",
-        style: {
-          top: "0",
-          left: "0",
-          width: "200px",
-          height: "100px",
-        }
-      }],
-      n: 1
+      items: [],
+      n: 0,
+      newScriptLine: null,
+      selectedItem: null,
     }
   },
   methods: {
+    deleteItem(item) {
+      console.log("Delete item ", this.selectedItem);
+      let i = -1;
+      for (var j = 0; j < this.items.length; j++) {
+        if (this.items[j].id === this.selectedItem.id) {
+          i = j;
+          break;
+        }
+      }
+      if (i !== -1) {
+        this.items.splice(i, 1)
+      }
+    },
     getItemById(id) {
-      return this.items.filter(function(r){
+      return this.items.filter(function (r) {
         return r.id === id;
       })[0];
     },
     getItemContainerTargetBtId(id) {
       return document.getElementById(id);
     },
-    itemSelected(event){
+    itemSelected(event) {
       console.log("Item selected", event)
       this.selectedItem = this.getItemById(event.target.id);
     },
     addNew() {
-      console.log("add new", arguments, this.selectedItem)
+      console.log("add new", arguments, this.selectedItem);
+      var gridWidth = document.body.clientWidth / 12;
+
       this.n += 1;
       this.items.push({
         name: "item " + this.n,
@@ -205,8 +225,8 @@ export default {
         style: {
           top: "0",
           left: "0",
-          width: "200px",
-          height: "100px",
+          width: (2 * gridWidth) + "px",
+          height: gridWidth + "px",
         }
       });
     }
@@ -218,6 +238,7 @@ export default {
 
     // var element = document.getElementById('grid-snap')
 
+    var gridWidth = document.body.clientWidth / 12;
 
     interact('.drag-drop')
       .draggable({
@@ -225,14 +246,14 @@ export default {
         modifiers: [
           interact.modifiers.snap({
             targets: [
-              interact.createSnapGrid({x: 20, y: 20})
+              interact.createSnapGrid({x: gridWidth, y: gridWidth})
             ],
             range: Infinity,
             relativePoints: [{x: 0, y: 0}]
           }),
           interact.modifiers.restrict({
             restriction: "#grid-snap",
-            elementRect: { top: 0, left: 0, bottom: 1, right: 1 },
+            elementRect: {top: 0, left: 0, bottom: 1, right: 1},
             endOnly: false
           })
         ],
@@ -256,7 +277,7 @@ export default {
             top += event.dy;
             left = parseInt(left)
             top = parseInt(top)
-            console.log("on move", event, rectangle)
+            // console.log("on move", event, rectangle)
             rectangle.style.left = left + "px";
             rectangle.style.top = top + "px";
           }
@@ -267,8 +288,8 @@ export default {
         modifiers: [
           interact.modifiers.snapSize({
             targets: [
-              {width: 20},
-              interact.createSnapGrid({width: 20, height: 20})
+              {width: gridWidth},
+              interact.createSnapGrid({width: gridWidth, height: gridWidth})
             ]
           })
         ],
@@ -283,6 +304,8 @@ export default {
           rectangle.style.height = event.rect.height + "px";
         }
       });
+
+    this.addNew();
 
 
   }
