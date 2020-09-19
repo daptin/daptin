@@ -43,7 +43,7 @@
     </q-header>
     <q-page>
 
-      <main style="overflow: scroll; height: 90vh">
+      <main style="overflow-y: scroll; height: 90vh">
         <div class="centered">
           <div class="row row-editor">
             <div class="editor" style="overflow: scroll"></div>
