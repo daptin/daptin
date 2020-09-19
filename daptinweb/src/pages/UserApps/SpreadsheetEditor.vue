@@ -72,6 +72,7 @@
   /*height: 41px !important;*/
   top: 27px;
 }
+
 /**/
 /*.luckysheet-grid-container {*/
 /*  top: 64px !important;*/
@@ -151,6 +152,60 @@ export default {
     }
   },
   methods: {
+    loadEditor() {
+      const that = this;
+      setTimeout(function () {
+
+        console.log("Create sheet")
+        var options = {
+          container: 'luckysheet', //luckysheet is the container id
+          showinfobar: false,
+          title: that.document ? that.document.document_name : "New document",
+          userInfo: that.decodedAuthToken.email,
+        }
+        console.log("l", luckysheet)
+
+        luckysheet.destroy();
+        if (that.contents.length > 0) {
+          try {
+            console.log("set string data", that.contents)
+            var item = that.contents;
+            if (!item) {
+              // item = workingData
+            } else {
+              item = JSON.parse(item)
+            }
+
+            if (item) {
+              options.data = item;
+              // luckysheet.buildGridData(item)
+            }
+            console.log("set sheet data", item)
+            luckysheet.create(options);
+
+          } catch (e) {
+            console.log("Failed to parse data", e);
+            luckysheet.create(options);
+          }
+        } else {
+          luckysheet.create(options);
+        }
+        setInterval(function () {
+          that.loading = false;
+          let newData = luckysheet.getluckysheetfile();
+          newData = newData.map(function (sheet) {
+            console.log("Get grid data for sheet", sheet)
+            sheet.celldata = luckysheet.getGridData(sheet.data)
+            // delete sheet.data
+            return sheet;
+          })
+          var newContents = JSON.stringify(newData);
+          that.contents = newContents;
+          window.localStorage.setItem("d", newContents)
+        }, 10000)
+
+      }, 300)
+    },
     saveDocumentState() {
       const that = this;
       let newData = luckysheet.getluckysheetfile();
@@ -166,7 +221,7 @@ export default {
 
     },
     newDocument() {
-
+      const that = this;
       if (!this.newNameDialog) {
         this.newNameDialog = true;
         return;
@@ -182,7 +237,6 @@ export default {
       var newFileName = null;
       newFileName = this.newName;
 
-
       this.document = {
         document_name: newFileName,
         document_extension: "html",
@@ -191,19 +245,21 @@ export default {
       }
 
       this.file = {
-        contents: JSON.stringify(workingData),
+        contents: that.contents,
         name: newFileName,
-        type: "text/html"
+        type: "text/json"
       }
       this.newName = null;
       this.newNameDialog = false;
       this.document.document_content = [this.file]
-      this.contents = JSON.stringify(workingData);
-      this.editor.setData("")
     },
     saveDocument() {
       const that = this;
-      console.log("save document", this.document, this.contents)
+      console.log("save document", this.document, this.contents);
+      if (!this.document) {
+        this.newNameDialog = true;
+        return
+      }
       this.document.tableName = "document";
       this.document.document_content[0].contents = "data:text/html," + encodeUnicode(this.contents)
       if (this.document.reference_id) {
@@ -220,8 +276,8 @@ export default {
       } else {
         that.createRow(that.document).then(function (res) {
           that.document = res.data;
-          console.log("Document created", res);
-          that.$router.push('/apps/document/' + that.document.reference_id)
+          console.log("Spreadsheet created", res);
+          that.$router.push('/apps/spreadsheet/' + that.document.reference_id)
         }).catch(function (err) {
           console.log("eror", err)
           that.$q.notify({
@@ -248,17 +304,18 @@ export default {
 
     document.getElementsByTagName("head")[0].appendChild(script);
     script.onload = function () {
-      console.log("loucky loaded");
+      console.log("lucky loaded");
 
       that.containerId = "id-" + new Date().getMilliseconds();
       var documentId = that.$route.params.documentId;
       console.log("Mounted FilesApp", that.containerId, that.$route.params.documentId);
       if (documentId === "new") {
         that.file = {
-          contents: JSON.stringify(workingData),
+          contents: "",
           name: "New file.html"
         }
         that.contents = that.file.contents;
+        that.loadEditor();
         return
       }
 
@@ -282,57 +339,7 @@ export default {
         that.contents = decodeUnicode(that.file.contents);
 
 
-        setTimeout(function () {
-
-          console.log("Create sheet")
-          var options = {
-            container: 'luckysheet', //luckysheet is the container id
-            showinfobar: false,
-            title: that.document.document_name,
-            userInfo: that.decodedAuthToken.email,
-          }
-          console.log("l", luckysheet)
-
-          luckysheet.destroy();
-          if (that.contents.length > 0) {
-            try {
-              console.log("set string data", that.contents)
-              var item = that.contents;
-              if (!item) {
-                // item = workingData
-              } else {
-                item = JSON.parse(item)
-              }
-
-              if (item) {
-                options.data = item;
-                // luckysheet.buildGridData(item)
-              }
-              console.log("set sheet data", item)
-              luckysheet.create(options);
-
-            } catch (e) {
-              console.log("Failed to parse data", e);
-              luckysheet.create(options);
-            }
-          } else {
-            luckysheet.create(options);
-          }
-          setInterval(function () {
-            that.loading = false;
-            let newData = luckysheet.getluckysheetfile();
-            newData = newData.map(function (sheet) {
-              console.log("Get grid data for sheet", sheet)
-              sheet.celldata = luckysheet.getGridData(sheet.data)
-              // delete sheet.data
-              return sheet;
-            })
-            var newContents = JSON.stringify(newData);
-            that.contents = newContents;
-            window.localStorage.setItem("d", newContents)
-          }, 10000)
-
-        }, 300)
+        that.loadEditor()
       })
 
 
