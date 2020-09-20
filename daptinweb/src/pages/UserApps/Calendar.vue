@@ -25,6 +25,14 @@
                 style="background: transparent; width: 200px; min-width: 0px"
               />
             </div>
+            <div class="col-12 q-pa-md">
+              <div @drop="eventTrashed" class="text-center vertical-middle trash-box"
+                   style="height: 100px; width: 100%; border: 1px solid red; padding: 5px; border-radius: 5px">
+                <br />
+                <q-icon size="3em" name="fas fa-trash"></q-icon> <br />
+                <span class="text-small">Drop events here to delete them</span>
+              </div>
+            </div>
           </div>
         </div>
         <div style="border-left: 1px solid black" :class="{'col-10': showSideBar, 'col-12': !showSideBar}">
@@ -43,7 +51,7 @@
                     <q-card style="min-width: 450px; overflow: hidden;" class="q-pa-md">
 
                       <q-card-section>
-                        <q-input label="Title"  v-model="newEvent.event_title"></q-input>
+                        <q-input label="Title" v-model="newEvent.event_title"></q-input>
                       </q-card-section>
                       <q-card-section style="padding-left: 10px">
                         <div class="row">
@@ -65,10 +73,10 @@
                       </q-card-section>
 
                       <q-tab-panels v-model="newEvent.event_type" class="shadow-2 rounded-borders bg-transparent">
-                        <q-tab-panel class="new-event-panel"  name="event">
+                        <q-tab-panel class="new-event-panel" name="event">
                           <q-card-section>
 
-                            <q-input label="Event date and time"  filled v-model="newEvent.date">
+                            <q-input label="Event date and time" filled v-model="newEvent.date">
                               <template v-slot:prepend>
                                 <q-icon name="event" class="cursor-pointer">
                                   <q-popup-proxy transition-show="scale" transition-hide="scale">
@@ -97,19 +105,19 @@
                           </q-card-section>
 
                           <q-card-section v-if="newEventConfig.showAddDescription">
-                            <q-editor  label="Description" v-model="newEvent.event_description">
+                            <q-editor label="Description" v-model="newEvent.event_description">
                             </q-editor>
                           </q-card-section>
                           <q-card-section v-if="newEventConfig.showAddLocation">
-                            <q-input  label="Event location" v-model="newEvent.event_location">
+                            <q-input label="Event location" v-model="newEvent.event_location">
                             </q-input>
                           </q-card-section>
                         </q-tab-panel>
 
-                        <q-tab-panel class="new-event-panel"  name="reminder">
+                        <q-tab-panel class="new-event-panel" name="reminder">
                           <q-card-section>
 
-                            <q-input label="Event date and time"  filled v-model="newEvent.date">
+                            <q-input label="Event date and time" filled v-model="newEvent.date">
                               <template v-slot:prepend>
                                 <q-icon name="event" class="cursor-pointer">
                                   <q-popup-proxy transition-show="scale" transition-hide="scale">
@@ -138,10 +146,10 @@
 
                         </q-tab-panel>
 
-                        <q-tab-panel class="new-event-panel"  name="task">
+                        <q-tab-panel class="new-event-panel" name="task">
 
                           <q-card-section>
-                            <q-input label="Event date and time"  filled v-model="newEvent.date">
+                            <q-input label="Event date and time" filled v-model="newEvent.date">
                               <template v-slot:prepend>
                                 <q-icon name="event" class="cursor-pointer">
                                   <q-popup-proxy transition-show="scale" transition-hide="scale">
@@ -173,7 +181,8 @@
 
 
                       <q-card-actions align="right">
-                        <q-btn class="float-right bg-grey-14" @click="createEvent()" flat label="Save">
+                        <q-btn class="float-right " style="border: 1px solid black" @click="createEvent()" flat
+                               label="Save">
 
                         </q-btn>
                       </q-card-actions>
@@ -185,7 +194,7 @@
                 <q-btn icon="fas fa-angle-right" @click="calendar.next()" flat></q-btn>
                 <q-space/>
                 <q-btn-dropdown :label="calendarView" flat>
-                  <q-list >
+                  <q-list>
                     <q-item v-close-popup @click="setCalenderView('day')" clickable>
                       <q-item-section>Day</q-item-section>
                     </q-item>
@@ -217,7 +226,9 @@
 
 </template>
 <style>
-
+.trash-box:hover {
+  color: red;
+}
 .new-event-panel .q-card__section {
   padding: 0;
 }
@@ -281,6 +292,9 @@ export default {
     }
   },
   methods: {
+    eventTrashed(){
+      console.log("Event trashed", arguments)
+    },
     ...mapActions(['createRow', "loadData", "updateRow"]),
     createEvent() {
       const that = this;
@@ -292,8 +306,8 @@ export default {
         that.calendar.refetchEvents();
         that.$refs.newEventDialog.hide();
         that.newEvent = {
-          event_title: 'New event',
-          event_type: 'event',
+          event_title: that.newEvent.event_title,
+          event_type: that.newEvent.event_type,
           event_description: null,
           event_location: null,
           all_day: false,

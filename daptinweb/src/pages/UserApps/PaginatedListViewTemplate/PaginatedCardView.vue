@@ -60,7 +60,7 @@
 </template>
 <style>
 .table-item:hover {
-  background: rgb(80, 80, 90);
+  background: rgb(193, 193, 202);
 }
 
 .table-item {
