@@ -30,8 +30,9 @@
           <span class="text-bold">Sharing by link</span>
         </q-card-section>
         <q-card-section v-if="document.permission === 2097027">
-          <q-input readonly
-                   :value="endpoint() + '/asset/document/' + document.reference_id + '/document_content.' + document.document_extension"></q-input>
+          <!--          <q-input readonly :value="endpoint() + '/asset/document/' + document.reference_id + '/document_content.' + document.document_extension"></q-input>-->
+          <q-input readonly :value="endpoint() + '/#/apps/spreadsheet/' + document.reference_id"></q-input>
+
         </q-card-section>
       </q-card>
 
@@ -77,7 +78,8 @@
         </q-btn-group>
         <q-space></q-space>
         <q-btn @click="showSharingBox = true" class="text-primary" flat label="Share"></q-btn>
-        <q-btn size="1.2em" class="profile-image" flat :icon="'img:' + decodedAuthToken().picture">
+        <q-btn v-if="decodedAuthToken() !== null" size="1.2em" class="profile-image" flat
+               :icon="'img:' + decodedAuthToken().picture">
           <q-menu>
             <div class="row no-wrap q-pa-md">
 
@@ -213,7 +215,7 @@ export default {
     }
   },
   methods: {
-    logout(){
+    logout() {
       this.$emit("logout");
     },
     loadEditor() {
@@ -225,7 +227,7 @@ export default {
           container: 'luckysheet', //luckysheet is the container id
           showinfobar: false,
           title: that.document ? that.document.document_name : "New document",
-          userInfo: that.decodedAuthToken.email,
+          userInfo: that.decodedAuthToken() !== null ? that.decodedAuthToken().email : 'Anonymous',
         }
         console.log("l", luckysheet)
 
@@ -253,6 +255,9 @@ export default {
           }
         } else {
           luckysheet.create(options);
+        }
+        if (that.decodedAuthToken() === null) {
+          return;
         }
         setInterval(function () {
           that.loading = false;
@@ -322,6 +327,9 @@ export default {
       // console.log("save document", this.document, this.contents);
       if (!this.document) {
         this.newNameDialog = true;
+        return
+      }
+      if (this.decodedAuthToken() === null) {
         return
       }
       this.document.tableName = "document";

@@ -31,8 +31,8 @@
           <span class="text-bold">Sharing by link</span>
         </q-card-section>
         <q-card-section v-if="document.permission === 2097027">
-          <q-input readonly
-                   :value="endpoint() + '/asset/document/' + document.reference_id + '/document_content.' + document.document_extension"></q-input>
+<!--          <q-input readonly :value="endpoint() + '/asset/document/' + document.reference_id + '/document_content.' + document.document_extension"></q-input>-->
+          <q-input readonly :value="endpoint() + '/#/apps/document/' + document.reference_id"></q-input>
         </q-card-section>
       </q-card>
 
@@ -69,7 +69,8 @@
         </q-btn-group>
         <q-space></q-space>
         <q-btn @click="showSharingBox = true" class="text-primary" flat label="Share"></q-btn>
-        <q-btn size="1.2em" class="profile-image" flat :icon="'img:' + decodedAuthToken().picture">
+        <q-btn v-if="decodedAuthToken() !== null" size="1.2em" class="profile-image" flat
+               :icon="'img:' + decodedAuthToken().picture">
           <q-menu>
             <div class="row no-wrap q-pa-md">
 
@@ -237,7 +238,7 @@ export default {
     }
   },
   methods: {
-    logout(){
+    logout() {
       this.$emit("logout");
     },
     loadEditor() {
@@ -264,13 +265,14 @@ export default {
 
               that.editor = editor;
               editor.setData(that.contents)
-              const saveMethod = debounce(that.saveDocument, 1000, false)
-              editor.model.document.on('change:data', () => {
-                that.contents = editor.getData();
-                console.log("Editor contents", that.contents)
-                saveMethod();
-              });
-
+              if (that.decodedAuthToken()) {
+                const saveMethod = debounce(that.saveDocument, 1000, false)
+                editor.model.document.on('change:data', () => {
+                  that.contents = editor.getData();
+                  console.log("Editor contents", that.contents)
+                  saveMethod();
+                });
+              }
 
               return editor;
             })
@@ -402,6 +404,9 @@ export default {
       if (!this.document) {
         this.newNameDialog = true;
         return;
+      }
+      if (this.decodedAuthToken() === null) {
+        return
       }
       this.document.tableName = "document";
       this.document.document_content[0].contents = "data:text/html," + btoa(this.contents)
