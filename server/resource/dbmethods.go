@@ -513,25 +513,66 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 	_, err = dbResource.db.Exec(query, args...)
 	CheckErr(err, "Failed to add user to administrator usergroup: %v == %v", query, args)
 
-	_, err = dbResource.db.Exec("update world set permission = ?, default_permission = ? where table_name not like '%_audit'",
-		auth.DEFAULT_PERMISSION, auth.DEFAULT_PERMISSION)
+	query, args, err = statementbuilder.Squirrel.Update("world").
+		Set("permission", int64(auth.DEFAULT_PERMISSION)).
+		Set("default_permission", int64(auth.DEFAULT_PERMISSION)).
+		Where(squirrel.NotLike{
+			"table_name": "%_audit",
+		}).
+		ToSql()
+	if err != nil {
+		log.Errorf("Failed to create sql for updating world permissions: %v", err)
+	}
+
+	_, err = dbResource.db.Exec(query, args...)
 	if err != nil {
 		log.Errorf("Failed to update world permissions: %v", err)
 	}
 
-	_, err = dbResource.db.Exec("update world set permission = ?, default_permission = ? where table_name like '%_audit'",
-		int64(auth.GuestCreate|auth.UserCreate|auth.GroupCreate),
-		int64(auth.GuestRead|auth.UserRead|auth.GroupRead))
+	query, args, err = statementbuilder.Squirrel.Update("world").
+		Set("permission", int64(auth.UserCreate|auth.GroupCreate)).
+		Set("default_permission", int64(auth.UserRead|auth.GroupRead)).
+		Where(squirrel.Like{
+			"table_name": "%_audit",
+		}).
+		ToSql()
+	if err != nil {
+		log.Errorf("Failed to create sql for update world audit permissions: %v", err)
+	}
+
+	_, err = dbResource.db.Exec(query, args...)
 	if err != nil {
 		log.Errorf("Failed to world update audit permissions: %v", err)
 	}
 
-	_, err = dbResource.db.Exec("update action set permission = ?", int64(auth.UserRead|auth.UserExecute|auth.GroupCRUD|auth.GroupExecute|auth.GroupRefer))
-	_, err = dbResource.db.Exec("update action set permission = ? where action_name in ('signin')", int64(auth.GuestPeek|auth.GuestExecute|auth.UserRead|auth.UserExecute|auth.GroupRead|auth.GroupExecute))
 
+	query, args, err = statementbuilder.Squirrel.Update("action").
+		Set("permission", int64(auth.UserRead|auth.UserExecute|auth.GroupCRUD|auth.GroupExecute|auth.GroupRefer)).
+		ToSql()
 	if err != nil {
-		log.Errorf("Failed to update audit permissions: %v", err)
+		log.Errorf("Failed to create update action permission sql : %v", err)
 	}
+
+	_, err = dbResource.db.Exec(query, args...)
+	if err != nil {
+		log.Errorf("Failed to update action permissions : %v", err)
+	}
+
+	query, args, err = statementbuilder.Squirrel.Update("action").
+		Set("permission", int64(auth.GuestPeek|auth.GuestExecute|auth.UserRead|auth.UserExecute|auth.GroupRead|auth.GroupExecute)).
+		Where(squirrel.Eq{
+			"action_name": "signin",
+		}).
+		ToSql()
+	if err != nil {
+		log.Errorf("Failed to create update sign in action permission sql : %v", err)
+	}
+
+	_, err = dbResource.db.Exec(query, args...)
+	if err != nil {
+		log.Errorf("Failed to world update signin action  permissions: %v", err)
+	}
+
 
 	return true
 }
@@ -1409,7 +1450,7 @@ func (resource *DbResource) GetFileFromLocalCloudStore(tableName string, columnN
 
 		filePath := fileItem["src"].(string)
 		filePath = strings.ReplaceAll(filePath, "/", string(os.PathSeparator))
-		if filePath[0] != os.PathSeparator	{
+		if filePath[0] != os.PathSeparator {
 			filePath = string(os.PathSeparator) + filePath
 		}
 		bytes, err := ioutil.ReadFile(assetFolder.LocalSyncPath + filePath)

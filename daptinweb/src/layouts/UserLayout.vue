@@ -2,7 +2,7 @@
   <q-layout class="user-area-pattern" view="lHh Lpr lFf">
 
 
-    <router-view v-if="loaded"/>
+    <router-view @logout="logout()" v-if="loaded"/>
 
   </q-layout>
 </template>

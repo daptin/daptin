@@ -213,6 +213,9 @@ export default {
     }
   },
   methods: {
+    logout(){
+      this.$emit("logout");
+    },
     loadEditor() {
       const that = this;
       setTimeout(function () {

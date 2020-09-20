@@ -382,7 +382,7 @@ export default {
           that.isUser = false;
         } else {
           that.isUser = true;
-          that.$router.push('/user/profile')
+          that.$router.push('/apps/files')
         }
       });
 

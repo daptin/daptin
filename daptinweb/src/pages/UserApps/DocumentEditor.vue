@@ -221,7 +221,7 @@ export default {
   data() {
     return {
       file: null,
-      showSharingBox: falsef,
+      showSharingBox: false,
       ...mapGetters(['endpoint', 'decodedAuthToken']),
       contents: "",
       newNameDialog: false,
@@ -237,6 +237,9 @@ export default {
     }
   },
   methods: {
+    logout(){
+      this.$emit("logout");
+    },
     loadEditor() {
       const that = this;
 
