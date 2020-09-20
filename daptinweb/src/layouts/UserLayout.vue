@@ -31,7 +31,7 @@
 /*}*/
 
 .user-area-pattern {
-  background-color: #e7e8e9;
+  background-color: #ffffff;
   /*background-image: linear-gradient(rgba(0, 0, 0, .5) 2px, transparent 2px),*/
   /*linear-gradient(90deg, rgba(0, 0, 0, .5) 2px, transparent 2px);*/
   /*linear-gradient(rgba(255, 255, 255, .28) 1px, transparent 1px),*/

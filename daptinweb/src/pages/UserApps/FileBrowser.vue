@@ -54,10 +54,14 @@
 
       <div style="height: 100vh; overflow-y: scroll" class="row">
         <div class="col-2 col-sm-12 col-md-2 col-lg-2 col-xl-2 col-xs-12">
-          <q-card flat style="background: transparent" v-if="selectedFile">
+          <q-card flat style="background: transparent; position: absolute; top: 0" v-if="selectedFile">
             <q-card-section>
               <span class="text-h6">{{ selectedFile.name }}</span><br/>
             </q-card-section>
+<!--            <q-card-section v-if="selectedFile.mime_type.startsWith('image/')">-->
+<!--              <q-img-->
+<!--                :src="endpoint() + '/asset/document/' + selectedFile.reference_id + '/' + 'document_content.png'  "></q-img>-->
+<!--            </q-card-section>-->
             <q-card-section>
               Size <span class="text-bold">{{ parseInt(selectedFile.document_content[0].size / 1024) }} Kb</span> <br/>
               Type <span class="text-bold">{{ selectedFile.mime_type }}</span>

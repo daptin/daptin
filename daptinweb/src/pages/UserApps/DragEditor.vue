@@ -1,7 +1,8 @@
 <template>
   <q-page-container>
-    <div @dblclick="addNew()" id="grid-snap" style="height: 100vh; width: 100vw">
-      <div @click="itemSelected({'target:': {'id' :item.id}})" v-for="item in items" :style="item.style" :id="item.id" class="item drag-drop">
+    <div @dblclick="addNew()" id="grid-snap" style="height: 100vh; width: 100vw; overflow: scroll">
+      <div @click="itemSelected({'target': {'id' :item.id}})" v-for="item in items" :style="item.style" :id="item.id"
+           class="item drag-drop">
         {{ item }}
       </div>
     </div>
@@ -11,9 +12,9 @@
     <q-page-sticky v-if="selectedItem !== null" position="bottom" :offset="[0, 0]">
       <q-card>
         <div class="row">
-          <div class="col-12">{{selectedItem.script}}</div>
+          <div class="col-12">{{ selectedItem.script }}</div>
           <div class="col-12">
-            <q-input v-model="newScriptLine"></q-input>
+            <input @keypress.enter="addItemScript(selectedItem, newScriptLine)" v-model="newScriptLine"/>
           </div>
         </div>
       </q-card>
@@ -177,6 +178,8 @@ function getSnapCoords(element, axis) {
   return result;
 }
 
+const gridWidth = document.body.clientWidth / 12;
+
 
 export default {
   name: "DragEditor",
@@ -184,13 +187,34 @@ export default {
     return {
       items: [],
       n: 0,
-      newScriptLine: null,
+      newScriptLine: "",
       selectedItem: null,
     }
   },
   methods: {
+    addItemScript(item, line) {
+      console.log("add item script")
+      if (!item.script) {
+        item.script = {
+          tag: null,
+          props: {}
+        };
+      }
+      var indx = line.indexOf(":")
+      if (indx === -1) {
+        item.script.tag = line.trim()
+      } else {
+        var lineParts = line.split(":")
+        var key = lineParts[0].trim()
+        var value = lineParts[1].trim()
+        item.script.props[key] = value;
+      }
+      // item.script = item.script + line + ";\n";
+      this.newScriptLine = "";
+    },
     deleteItem(item) {
       console.log("Delete item ", this.selectedItem);
+      this.selectedItem  = null;
       let i = -1;
       for (var j = 0; j < this.items.length; j++) {
         if (this.items[j].id === this.selectedItem.id) {
@@ -200,6 +224,7 @@ export default {
       }
       if (i !== -1) {
         this.items.splice(i, 1)
+        this.selectedItem  = null;
       }
     },
     getItemById(id) {
@@ -215,8 +240,7 @@ export default {
       this.selectedItem = this.getItemById(event.target.id);
     },
     addNew() {
-      console.log("add new", arguments, this.selectedItem);
-      var gridWidth = document.body.clientWidth / 12;
+      console.log("add new", arguments);
 
       this.n += 1;
       this.items.push({
