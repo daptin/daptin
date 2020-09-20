@@ -11,7 +11,7 @@
         </tr>
         </thead>
         <tbody @touchstart.stop @contextmenu.stop>
-        <tr @click="itemClicked(item)" style="cursor: pointer" v-for="item in items" v-if="item.is_dir">
+        <tr @dblclick="itemDoubleClicked(item)" @click="itemClicked(item)" style="cursor: pointer" v-for="item in items" v-if="item.is_dir">
           <q-menu context-menu>
             <q-list dense style="min-width: 100px">
               <q-item clickable v-close-popup>
@@ -88,6 +88,10 @@ export default {
     itemClicked(item) {
       console.log("Item clicked", item)
       this.$emit('item-clicked', item)
+    },
+    itemDoubleClicked(item) {
+      console.log("Item double clicked", item)
+      this.$emit('item-double-clicked', item)
     },
     ...mapActions([]),
     refreshData() {

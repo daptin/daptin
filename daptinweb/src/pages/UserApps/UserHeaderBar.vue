@@ -1,6 +1,6 @@
 <template>
 
-  <q-header>
+  <q-header class="bg-white text-black">
     <q-toolbar v-if="decodedAuthToken() !== null">
       <q-btn :key="btn.icon" v-for="btn in buttons.before" flat @click="btn.click" :icon="btn.icon"></q-btn>
       <q-toolbar-title shrink>{{ title }}</q-toolbar-title>

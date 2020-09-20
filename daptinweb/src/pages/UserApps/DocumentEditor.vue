@@ -1,6 +1,43 @@
 <template>
   <q-page-container>
 
+    <q-dialog v-model="showSharingBox" v-if="document">
+      <q-card style="min-width: 33vw; width: 43vw">
+        <q-item>
+          <q-item-section avatar>
+            <q-avatar>
+              <q-icon name="fas fa-link" size="1.8em"></q-icon>
+            </q-avatar>
+          </q-item-section>
+          <q-item-section>
+            <span class="text-h6">Share</span>
+          </q-item-section>
+        </q-item>
+        <q-separator/>
+        <q-card-section>
+          <q-btn-toggle @input="saveDocument()" v-model="document.permission" :options="[
+            {
+             value: 2097027,
+             label: 'Enable'
+            },
+            {
+             value: 16289,
+             label: 'Disable'
+            }
+          ]">
+          </q-btn-toggle>
+        </q-card-section>
+        <q-card-section v-if="document.permission === 2097027">
+          <span class="text-bold">Sharing by link</span>
+        </q-card-section>
+        <q-card-section v-if="document.permission === 2097027">
+          <q-input readonly
+                   :value="endpoint() + '/asset/document/' + document.reference_id + '/document_content.' + document.document_extension"></q-input>
+        </q-card-section>
+      </q-card>
+
+    </q-dialog>
+
     <q-header class="bg-white text-black document-heading">
       <q-toolbar>
         <q-btn-group flat>
@@ -31,9 +68,30 @@
           <q-btn flat label="Help"></q-btn>
         </q-btn-group>
         <q-space></q-space>
-        <q-btn-group>
-          <q-btn class="text-primary" flat label="Share"></q-btn>
-        </q-btn-group>
+        <q-btn @click="showSharingBox = true" class="text-primary" flat label="Share"></q-btn>
+        <q-btn size="1.2em" class="profile-image" flat :icon="'img:' + decodedAuthToken().picture">
+          <q-menu>
+            <div class="row no-wrap q-pa-md">
+
+              <div class="column items-center">
+                <q-avatar size="72px">
+                  <img :src="decodedAuthToken().picture">
+                </q-avatar>
+
+                <div class="text-subtitle1 q-mt-md q-mb-xs">{{ decodedAuthToken().name }}</div>
+
+                <q-btn
+                  color="black"
+                  label="Logout"
+                  push
+                  @click="logout()"
+                  size="sm"
+                  v-close-popup
+                />
+              </div>
+            </div>
+          </q-menu>
+        </q-btn>
       </q-toolbar>
       <div class="row">
         <div class="12">
@@ -138,7 +196,7 @@ body[data-editor="DecoupledDocumentEditor"] {
 }
 </style>
 <script>
-import {mapActions} from "vuex";
+import {mapActions, mapGetters} from "vuex";
 import '../../statics/ckeditor/ckeditor'
 
 function debounce(func, wait, immediate) {
@@ -163,6 +221,8 @@ export default {
   data() {
     return {
       file: null,
+      showSharingBox: falsef,
+      ...mapGetters(['endpoint', 'decodedAuthToken']),
       contents: "",
       newNameDialog: false,
       newName: null,
@@ -344,11 +404,48 @@ export default {
       this.document.document_content[0].contents = "data:text/html," + btoa(this.contents)
       if (this.document.reference_id) {
 
+        if (that.document.permission === 2097027) {
+          that.loadData({
+            tableName: "world",
+            params: {
+              query: JSON.stringify([{
+                column: "table_name",
+                operator: "is",
+                value: "document"
+              }]),
+              page: {
+                size: 1,
+              }
+            }
+          }).then(function (res) {
+            console.log("Document", res);
+            var documentTable = res.data[0];
+            if (documentTable.permission != that.document.permission) {
+              that.updateRow({
+                tableName: "world",
+                id: documentTable.reference_id,
+                permission: that.document.permission
+              }).then(function (res) {
+                console.log("Updated permission")
+              }).catch(function (res) {
+                console.log("Failed to get table document", res)
+                that.$q.notify({
+                  message: "Failed to check table permissions, share link might not be working"
+                })
+              })
+            }
+          }).catch(function (res) {
+            console.log("Failed to get table document", res)
+            that.$q.notify({
+              message: "Failed to check table permissions, share link might not be working"
+            })
+          })
+        }
 
         that.updateRow(that.document).then(function (res) {
           console.log("Document saved", res);
         }).catch(function (err) {
-          console.log("errer", err)
+          console.log("error", err)
           that.$q.notify({
             message: "We are offline, changes are not being stored"
           })

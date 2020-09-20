@@ -1,47 +1,107 @@
 <template>
   <q-page-container>
+    <q-dialog v-model="showSharingBox" v-if="document">
+      <q-card style="min-width: 33vw; width: 43vw">
+        <q-item>
+          <q-item-section avatar>
+            <q-avatar>
+              <q-icon name="fas fa-link" size="1.8em"></q-icon>
+            </q-avatar>
+          </q-item-section>
+          <q-item-section>
+            <span class="text-h6">Share</span>
+          </q-item-section>
+        </q-item>
+        <q-separator/>
+        <q-card-section>
+          <q-btn-toggle @input="saveDocument()" v-model="document.permission" :options="[
+            {
+             value: 2097027,
+             label: 'Enable'
+            },
+            {
+             value: 16289,
+             label: 'Disable'
+            }
+          ]">
+          </q-btn-toggle>
+        </q-card-section>
+        <q-card-section v-if="document.permission === 2097027">
+          <span class="text-bold">Sharing by link</span>
+        </q-card-section>
+        <q-card-section v-if="document.permission === 2097027">
+          <q-input readonly
+                   :value="endpoint() + '/asset/document/' + document.reference_id + '/document_content.' + document.document_extension"></q-input>
+        </q-card-section>
+      </q-card>
+
+    </q-dialog>
+
 
     <q-header elevated class="bg-white text-black">
-      <div class="row">
-        <div class="12">
-          <q-bar>
-            <q-btn-group flat>
-              <q-btn flat label="File">
-                <q-menu>
-                  <q-list dense style="min-width: 100px">
-                    <q-item @click="newDocument()" clickable v-close-popup>
-                      <q-item-section>New</q-item-section>
-                    </q-item>
-                    <q-item @click="$router.push('/apps/files')" clickable v-close-popup>
-                      <q-item-section>Open</q-item-section>
-                    </q-item>
-                    <q-item @click="saveDocument()" clickable v-close-popup>
-                      <q-item-section>Save spreadsheet</q-item-section>
-                    </q-item>
-                    <q-item @click="saveDocument()" clickable v-close-popup>
-                      <q-item-section>Export</q-item-section>
-                      <q-menu>
-                        <q-list>
-                          <q-item>To xlsx</q-item>
-                        </q-list>
-                      </q-menu>
-                    </q-item>
-                    <q-item @click="window.print()" clickable v-close-popup>
-                      <q-item-section>Print</q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-btn>
-              <q-btn flat label="Edit"></q-btn>
-              <q-btn flat label="Format"></q-btn>
-              <q-btn flat label="Data"></q-btn>
-              <q-btn flat label="Help"></q-btn>
-            </q-btn-group>
-          </q-bar>
-        </div>
-      </div>
-      <div class="row">
-      </div>
+      <q-toolbar>
+        <q-btn-group flat>
+          <q-btn flat label="File">
+            <q-menu>
+              <q-list dense style="min-width: 100px">
+                <q-item @click="newDocument()" clickable v-close-popup>
+                  <q-item-section>New</q-item-section>
+                </q-item>
+                <q-item @click="$router.push('/apps/files')" clickable v-close-popup>
+                  <q-item-section>Open</q-item-section>
+                </q-item>
+                <q-item @click="saveDocument()" clickable v-close-popup>
+                  <q-item-section>Save spreadsheet</q-item-section>
+                </q-item>
+                <q-item @click="saveDocument()" clickable v-close-popup>
+                  <q-item-section>Export</q-item-section>
+                  <q-menu>
+                    <q-list>
+                      <q-item>To xlsx</q-item>
+                    </q-list>
+                  </q-menu>
+                </q-item>
+                <q-item @click="window.print()" clickable v-close-popup>
+                  <q-item-section>Print</q-item-section>
+                </q-item>
+                <q-item @click="$router.back()" clickable v-close-popup>
+                  <q-item-section>Close</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+          <q-btn flat label="Edit"></q-btn>
+          <q-btn flat label="Format"></q-btn>
+          <q-btn flat label="Data"></q-btn>
+          <q-btn flat label="Help"></q-btn>
+        </q-btn-group>
+        <q-space></q-space>
+        <q-btn @click="showSharingBox = true" class="text-primary" flat label="Share"></q-btn>
+        <q-btn size="1.2em" class="profile-image" flat :icon="'img:' + decodedAuthToken().picture">
+          <q-menu>
+            <div class="row no-wrap q-pa-md">
+
+              <div class="column items-center">
+                <q-avatar size="72px">
+                  <img :src="decodedAuthToken().picture">
+                </q-avatar>
+
+                <div class="text-subtitle1 q-mt-md q-mb-xs">{{ decodedAuthToken().name }}</div>
+
+                <q-btn
+                  color="black"
+                  label="Logout"
+                  push
+                  @click="logout()"
+                  size="sm"
+                  v-close-popup
+                />
+              </div>
+            </div>
+          </q-menu>
+        </q-btn>
+
+      </q-toolbar>
     </q-header>
     <q-page>
       <div id="luckysheet"
@@ -128,8 +188,9 @@ export default {
   data() {
     return {
       file: null,
-      ...mapGetters(['decodedAuthToken']),
+      ...mapGetters(['decodedAuthToken', 'endpoint']),
       saveDebounced: null,
+      showSharingBox: false,
       contents: "",
       loading: true,
       newNameDialog: false,
@@ -255,7 +316,7 @@ export default {
     },
     saveDocument() {
       const that = this;
-      console.log("save document", this.document, this.contents);
+      // console.log("save document", this.document, this.contents);
       if (!this.document) {
         this.newNameDialog = true;
         return
@@ -263,6 +324,45 @@ export default {
       this.document.tableName = "document";
       this.document.document_content[0].contents = "data:text/html," + encodeUnicode(this.contents)
       if (this.document.reference_id) {
+
+
+        if (that.document.permission === 2097027) {
+          that.loadData({
+            tableName: "world",
+            params: {
+              query: JSON.stringify([{
+                column: "table_name",
+                operator: "is",
+                value: "document"
+              }]),
+              page: {
+                size: 1,
+              }
+            }
+          }).then(function (res) {
+            console.log("Document", res);
+            var documentTable = res.data[0];
+            if (documentTable.permission != that.document.permission) {
+              that.updateRow({
+                tableName: "world",
+                id: documentTable.reference_id,
+                permission: that.document.permission
+              }).then(function (res) {
+                console.log("Updated permission")
+              }).catch(function (res) {
+                console.log("Failed to get table document", res)
+                that.$q.notify({
+                  message: "Failed to check table permissions, share link might not be working"
+                })
+              })
+            }
+          }).catch(function (res) {
+            console.log("Failed to get table document", res)
+            that.$q.notify({
+              message: "Failed to check table permissions, share link might not be working"
+            })
+          })
+        }
 
 
         that.updateRow(that.document).then(function (res) {

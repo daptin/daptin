@@ -79,9 +79,14 @@
           </q-card>
         </div>
         <div class="col-10 col-sm-12 col-md-10 col-lg-10 col-xl-10 col-xs-12">
-          <paginated-table-view v-if="viewMode === 'table'" @item-deleted="itemDelete" @item-clicked="fileClicked"
+          <paginated-table-view v-if="viewMode === 'table'"
+                                @item-deleted="itemDelete"
+                                @item-clicked="fileClicked"
                                 :items="files"></paginated-table-view>
-          <paginated-card-view v-if="viewMode === 'card'" @item-deleted="itemDelete" @item-clicked="fileClicked"
+          <paginated-card-view v-if="viewMode === 'card'"
+                               @item-deleted="itemDelete"
+                               @item-clicked="fileClicked"
+                               @item-double-clicked="fileDblClicked"
                                :items="files"></paginated-card-view>
         </div>
       </div>
@@ -188,6 +193,9 @@ export default {
     }
   },
   methods: {
+    fileDblClicked(file){
+      console.log("Item double click", file)
+    },
     isEditable(selectedFile) {
       console.log("Check file is editable", selectedFile)
       var ext = ["txt", "md", "html", "csv", "tsv"]
