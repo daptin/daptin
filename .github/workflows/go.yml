@@ -81,10 +81,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
 
+
       - name: Install Go
         uses: actions/setup-go@v1
         with:
           go-version: ${{ matrix.go }}
+
+      - name: Install node
+        uses: actions/setup-node@v2-beta
+        with:
+          node-version: '12'
 
       - name: Set environment variables
         shell: bash
@@ -140,6 +146,19 @@ jobs:
           make vars
           printf "\n\nSystem environment:\n\n"
           env
+
+      - name: Build dashboard
+        shell: bash
+        run: |
+          printf "npm and qusar to build dashboard in ./daptinweb"
+          cd daptinweb
+          npm install -g @quasar/cli
+          npm install
+          npm run build
+          ls -lah dist/spa
+          printf "Dashboard build complete"
+          cd ..
+
 
       - name: Installl gorice on linux
         shell: bash
