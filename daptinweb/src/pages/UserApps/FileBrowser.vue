@@ -58,10 +58,10 @@
             <q-card-section>
               <span class="text-h6">{{ selectedFile.name }}</span><br/>
             </q-card-section>
-<!--            <q-card-section v-if="selectedFile.mime_type.startsWith('image/')">-->
-<!--              <q-img-->
-<!--                :src="endpoint() + '/asset/document/' + selectedFile.reference_id + '/' + 'document_content.png'  "></q-img>-->
-<!--            </q-card-section>-->
+            <!--            <q-card-section v-if="selectedFile.mime_type.startsWith('image/')">-->
+            <!--              <q-img-->
+            <!--                :src="endpoint() + '/asset/document/' + selectedFile.reference_id + '/' + 'document_content.png'  "></q-img>-->
+            <!--            </q-card-section>-->
             <q-card-section>
               Size <span class="text-bold">{{ parseInt(selectedFile.document_content[0].size / 1024) }} Kb</span> <br/>
               Type <span class="text-bold">{{ selectedFile.mime_type }}</span>
@@ -81,10 +81,12 @@
         <div class="col-10 col-sm-12 col-md-10 col-lg-10 col-xl-10 col-xs-12">
           <paginated-table-view v-if="viewMode === 'table'"
                                 @item-deleted="itemDelete"
+                                @item-rename="itemRename"
                                 @item-clicked="fileClicked"
                                 :items="files"></paginated-table-view>
           <paginated-card-view v-if="viewMode === 'card'"
                                @item-deleted="itemDelete"
+                               @item-rename="itemRename"
                                @item-clicked="fileClicked"
                                @item-double-clicked="fileDblClicked"
                                :items="files"></paginated-card-view>
@@ -193,12 +195,15 @@ export default {
     }
   },
   methods: {
-    fileDblClicked(file){
+    itemRename(file){
+      console.log("rename item", file);
+    },
+    fileDblClicked(file) {
       console.log("Item double click", file)
     },
     isEditable(selectedFile) {
       console.log("Check file is editable", selectedFile)
-      var ext = ["txt", "md", "html", "csv", "tsv"]
+      var ext = ["txt", "md", "ddoc", "dspread"]
       let fileExtension = "";
       if (selectedFile.document_name.indexOf(".") > -1) {
         fileExtension = selectedFile.document_name.split(".")[1];
@@ -213,19 +218,10 @@ export default {
     openEditor(file, app) {
       var fileExtention = file.document_name.split(".")[1]
       switch (fileExtention) {
-        case "html":
+        case "ddoc":
           this.$router.push('/apps/document/' + file.reference_id)
           return;
-        case "md":
-          this.$router.push('/apps/document/' + file.reference_id)
-          return;
-        case "xml":
-          this.$router.push('/apps/document/' + file.reference_id)
-          return;
-        case "csv":
-          this.$router.push('/apps/spreadsheet/' + file.reference_id)
-          return;
-        case "tsv":
+        case "dsheet":
           this.$router.push('/apps/spreadsheet/' + file.reference_id)
           return;
       }

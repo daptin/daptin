@@ -17,7 +17,7 @@
               <q-item clickable v-close-popup>
                 <q-item-section>Open</q-item-section>
               </q-item>
-              <q-item cl ickable v-close-popup>
+              <q-item @click="renameItem(item)" clickable v-close-popup>
                 <q-item-section>Rename</q-item-section>
               </q-item>
               <q-separator/>
@@ -84,6 +84,10 @@ export default {
     deleteItem(item) {
       console.log("Item deleted", item)
       this.$emit('item-deleted', item)
+    },
+    renameItem(item) {
+      console.log("Item rename", item)
+      this.$emit('item-rename', item)
     },
     itemClicked(item) {
       console.log("Item clicked", item)

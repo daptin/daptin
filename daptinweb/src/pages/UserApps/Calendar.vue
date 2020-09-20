@@ -25,7 +25,7 @@
                 style="background: transparent; width: 200px; min-width: 0px"
               />
             </div>
-            <div class="col-12 q-pa-md">
+            <div class="col-12 q-pa-md" style="display: none">
               <div @drop="eventTrashed" class="text-center vertical-middle trash-box"
                    style="height: 100px; width: 100%; border: 1px solid red; padding: 5px; border-radius: 5px">
                 <br />

@@ -31,7 +31,7 @@
           <span class="text-bold">Sharing by link</span>
         </q-card-section>
         <q-card-section v-if="document.permission === 2097027">
-<!--          <q-input readonly :value="endpoint() + '/asset/document/' + document.reference_id + '/document_content.' + document.document_extension"></q-input>-->
+          <!--          <q-input readonly :value="endpoint() + '/asset/document/' + document.reference_id + '/document_content.' + document.document_extension"></q-input>-->
           <q-input readonly :value="endpoint() + '/#/apps/document/' + document.reference_id"></q-input>
         </q-card-section>
       </q-card>
@@ -199,6 +199,7 @@ body[data-editor="DecoupledDocumentEditor"] {
 <script>
 import {mapActions, mapGetters} from "vuex";
 import '../../statics/ckeditor/ckeditor'
+import JSZip from 'jszip'
 
 function debounce(func, wait, immediate) {
   var timeout;
@@ -264,12 +265,14 @@ export default {
 
 
               that.editor = editor;
-              editor.setData(that.contents)
+              editor.setData(that.contents);
+
+
               if (that.decodedAuthToken()) {
                 const saveMethod = debounce(that.saveDocument, 1000, false)
                 editor.model.document.on('change:data', () => {
                   that.contents = editor.getData();
-                  console.log("Editor contents", that.contents)
+                  // console.log("Editor contents", that.contents)
                   saveMethod();
                 });
               }
@@ -409,68 +412,76 @@ export default {
         return
       }
       this.document.tableName = "document";
-      this.document.document_content[0].contents = "data:text/html," + btoa(this.contents)
-      if (this.document.reference_id) {
 
-        if (that.document.permission === 2097027) {
-          that.loadData({
-            tableName: "world",
-            params: {
-              query: JSON.stringify([{
-                column: "table_name",
-                operator: "is",
-                value: "document"
-              }]),
-              page: {
-                size: 1,
+      var zip = new JSZip();
+      zip.file("contents.html", this.contents);
+
+      zip.generateAsync({type: "base64"}).then(function (base64) {
+        that.document.document_content[0].contents = "data:application/x-ddocument," + base64
+
+        if (that.document.reference_id) {
+
+          if (that.document.permission === 2097027) {
+            that.loadData({
+              tableName: "world",
+              params: {
+                query: JSON.stringify([{
+                  column: "table_name",
+                  operator: "is",
+                  value: "document"
+                }]),
+                page: {
+                  size: 1,
+                }
               }
-            }
-          }).then(function (res) {
-            console.log("Document", res);
-            var documentTable = res.data[0];
-            if (documentTable.permission != that.document.permission) {
-              that.updateRow({
-                tableName: "world",
-                id: documentTable.reference_id,
-                permission: that.document.permission
-              }).then(function (res) {
-                console.log("Updated permission")
-              }).catch(function (res) {
-                console.log("Failed to get table document", res)
-                that.$q.notify({
-                  message: "Failed to check table permissions, share link might not be working"
+            }).then(function (res) {
+              console.log("Document", res);
+              var documentTable = res.data[0];
+              if (documentTable.permission != that.document.permission) {
+                that.updateRow({
+                  tableName: "world",
+                  id: documentTable.reference_id,
+                  permission: that.document.permission
+                }).then(function (res) {
+                  console.log("Updated permission")
+                }).catch(function (res) {
+                  console.log("Failed to get table document", res)
+                  that.$q.notify({
+                    message: "Failed to check table permissions, share link might not be working"
+                  })
                 })
+              }
+            }).catch(function (res) {
+              console.log("Failed to get table document", res)
+              that.$q.notify({
+                message: "Failed to check table permissions, share link might not be working"
               })
-            }
-          }).catch(function (res) {
-            console.log("Failed to get table document", res)
+            })
+          }
+
+          that.updateRow(that.document).then(function (res) {
+            console.log("Document saved", res);
+          }).catch(function (err) {
+            console.log("error", err)
             that.$q.notify({
-              message: "Failed to check table permissions, share link might not be working"
+              message: "We are offline, changes are not being stored"
+            })
+          })
+        } else {
+          that.createRow(that.document).then(function (res) {
+            that.document = res.data;
+            console.log("Document created", res);
+            that.$router.push('/apps/document/' + that.document.reference_id)
+          }).catch(function (err) {
+            console.log("errer", err)
+            that.$q.notify({
+              message: "We are offline, changes are not being stored"
             })
           })
         }
+      });
 
-        that.updateRow(that.document).then(function (res) {
-          console.log("Document saved", res);
-        }).catch(function (err) {
-          console.log("error", err)
-          that.$q.notify({
-            message: "We are offline, changes are not being stored"
-          })
-        })
-      } else {
-        that.createRow(that.document).then(function (res) {
-          that.document = res.data;
-          console.log("Document created", res);
-          that.$router.push('/apps/document/' + that.document.reference_id)
-        }).catch(function (err) {
-          console.log("errer", err)
-          that.$q.notify({
-            message: "We are offline, changes are not being stored"
-          })
-        })
 
-      }
     },
     ...mapActions(['loadData', 'updateRow', 'createRow'])
   },
@@ -507,8 +518,28 @@ export default {
       console.log("Loaded document", res.data)
       that.document = res.data[0];
       that.file = that.document.document_content[0];
-      that.contents = atob(that.file.contents);
-      that.loadEditor()
+
+
+      JSZip.loadAsync(atob(that.file.contents)).then(function (zipFile) {
+
+
+        // that.contents = atob(that.file.contents);
+        zipFile.file("contents.html").async("string").then(function (data) {
+          // data is "Hello World\n"
+          console.log("Loaded file: ", data)
+          that.contents = data;
+          that.loadEditor()
+        }).catch(function (err) {
+          console.log("Failed to open contents.html", err)
+          that.loadEditor()
+        });
+
+
+      }).catch(function (err) {
+        console.log("Failed to load zip file", err)
+        that.loadEditor()
+      });
+
 
     })
 
