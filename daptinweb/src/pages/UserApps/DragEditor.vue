@@ -202,12 +202,12 @@ export default {
       }
       var indx = line.indexOf(":")
       if (indx === -1) {
-        item.script.tag = line.trim()
+        item.tag = line.trim()
       } else {
         var lineParts = line.split(":")
         var key = lineParts[0].trim()
         var value = lineParts[1].trim()
-        item.script.props[key] = value;
+        item.props[key] = value;
       }
       // item.script = item.script + line + ";\n";
       this.newScriptLine = "";

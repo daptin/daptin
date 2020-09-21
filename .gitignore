@@ -11,7 +11,6 @@ npm-debug.log
 rice-box.go
 build/
 projectFilesBackup/
-daptinweb/static/samples/devsupport.json
 main
 !/daptinweb/dist/*
 vendor/

@@ -176,9 +176,6 @@ jobs:
           go get -v github.com/GeertJohan/go.rice
           go get -v github.com/GeertJohan/go.rice/rice
           go install github.com/GeertJohan/go.rice/rice
-          dir $GOPATH\\bin
-          dir $GOROOT
-          dir $GOROOT\\bin
           $GOPATH\\bin\\rice.exe embed-go
         if: matrix.os == 'windows-latest' && matrix.goarch != '386'
 
