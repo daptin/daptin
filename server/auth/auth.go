@@ -52,7 +52,7 @@ const (
 	GroupCRUD = GroupPeek | GroupRead | GroupCreate | GroupUpdate | GroupDelete | GroupRefer
 )
 
-var DEFAULT_PERMISSION = GuestPeek | GuestExecute | UserCRUD | UserExecute
+var DEFAULT_PERMISSION = GuestPeek | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute
 var ALLOW_ALL_PERMISSIONS = GuestCRUD | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute
 
 func (a AuthPermission) String() string {

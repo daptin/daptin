@@ -29,3 +29,7 @@ daptin.log
 daptin_test.db
 bin/
 github.com
+daptin.exe
+daptin
+*.prof
+*.db
