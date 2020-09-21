@@ -203,7 +203,7 @@ export default {
     },
     isEditable(selectedFile) {
       console.log("Check file is editable", selectedFile)
-      var ext = ["txt", "md", "ddoc", "dspread"]
+      var ext = ["txt", "md", "ddoc", "dsheet"]
       let fileExtension = "";
       if (selectedFile.document_name.indexOf(".") > -1) {
         fileExtension = selectedFile.document_name.split(".")[1];

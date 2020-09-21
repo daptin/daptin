@@ -194,27 +194,32 @@ export default {
   methods: {
     addItemScript(item, line) {
       console.log("add item script")
-      if (!item.script) {
-        item.script = {
-          tag: null,
-          props: {}
-        };
-      }
       var indx = line.indexOf(":")
       if (indx === -1) {
         item.tag = line.trim()
       } else {
         var lineParts = line.split(":")
         var key = lineParts[0].trim()
+        var keyParts = key.split(".")
         var value = lineParts[1].trim()
-        item.props[key] = value;
+        let props = item.props;
+        for (let i = 0; i < keyParts.length; i++) {
+          if (i + 1 === keyParts.length) {
+            props[keyParts[i]] = value;
+            break
+          }
+          if (!props[keyParts[i]]) {
+            props[keyParts[i]] = {}
+          }
+          props = props[keyParts[i]]
+        }
       }
       // item.script = item.script + line + ";\n";
       this.newScriptLine = "";
     },
     deleteItem(item) {
       console.log("Delete item ", this.selectedItem);
-      this.selectedItem  = null;
+      this.selectedItem = null;
       let i = -1;
       for (var j = 0; j < this.items.length; j++) {
         if (this.items[j].id === this.selectedItem.id) {
@@ -224,7 +229,7 @@ export default {
       }
       if (i !== -1) {
         this.items.splice(i, 1)
-        this.selectedItem  = null;
+        this.selectedItem = null;
       }
     },
     getItemById(id) {

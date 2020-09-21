@@ -108,8 +108,8 @@
     <q-page>
 
       <main>
-        <div>
-          <div class="row-editor" style="overflow-y: scroll; height: 85vh">
+        <div style="position: relative">
+          <div class="row-editor" style="overflow-y: scroll; height: 86vh">
             <div class="editor"></div>
           </div>
         </div>
@@ -156,10 +156,6 @@
     background: white;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100vw !important;
-    height: 100vh !important;
     border: none;
     box-shadow: none;
   }
@@ -167,23 +163,9 @@
   body[data-editor="DecoupledDocumentEditor"] .row-editor .editor {
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100vw !important;
-    height: 100vh !important;
     border: none;
     box-shadow: none;
   }
-}
-
-/*.ck.ck-dropdown .ck-dropdown__panel.ck-dropdown__panel-visible {*/
-/*  position: fixed !important;*/
-/*  top: 100px;*/
-/*}*/
-
-body[data-editor="DecoupledDocumentEditor"] .row-editor .editor {
-  /*width: 816px;*/
-  /*height: 1056px;*/
 }
 
 body[data-editor="DecoupledDocumentEditor"] {
@@ -267,10 +249,26 @@ export default {
               that.editor = editor;
               editor.setData(that.contents);
 
+              editor.ui.on("update", function (){
+                console.log("Editor ui update evenet", arguments)
+                let scrollHeight = document.querySelector(".editor").scrollHeight;
+                var height = document.querySelector(".editor").style.height;
+                if (height < scrollHeight + 10) {
+                  document.querySelector(".editor").style.height = (scrollHeight+10) + "px"
+                }
+
+              })
+
+
 
               if (that.decodedAuthToken()) {
                 const saveMethod = debounce(that.saveDocument, 1000, false)
                 editor.model.document.on('change:data', () => {
+                  let scrollHeight = document.querySelector(".editor").scrollHeight;
+                  var height = document.querySelector(".editor").style.height;
+                  if (height < scrollHeight + 10) {
+                    document.querySelector(".editor").style.height = (scrollHeight + 10) + "px"
+                  }
                   that.contents = editor.getData();
                   // console.log("Editor contents", that.contents)
                   saveMethod();
