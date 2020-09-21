@@ -105,11 +105,10 @@
         </div>
       </div>
     </q-header>
-    <q-page>
-
+    <q-page style="position: relative">
       <main>
-        <div style="position: relative">
-          <div class="row-editor" style="overflow-y: scroll; height: 86vh">
+        <div class="">
+          <div class="row-editor">
             <div class="editor"></div>
           </div>
         </div>
@@ -151,6 +150,9 @@
   .document-heading {
     display: none;
   }
+  body {
+    background: #fff !important;
+  }
 
   body[data-editor="DecoupledDocumentEditor"] .row-editor {
     background: white;
@@ -158,13 +160,13 @@
     left: 0;
     border: none;
     box-shadow: none;
+    position: absolute;
   }
 
   body[data-editor="DecoupledDocumentEditor"] .row-editor .editor {
-    top: 0;
-    left: 0;
-    border: none;
-    box-shadow: none;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
   }
 }
 
@@ -249,15 +251,15 @@ export default {
               that.editor = editor;
               editor.setData(that.contents);
 
-              editor.ui.on("update", function (){
-                console.log("Editor ui update evenet", arguments)
-                let scrollHeight = document.querySelector(".editor").scrollHeight;
-                var height = document.querySelector(".editor").style.height;
-                if (height < scrollHeight + 10) {
-                  document.querySelector(".editor").style.height = (scrollHeight+10) + "px"
-                }
-
-              })
+              // editor.ui.on("update", function (){
+              //   console.log("Editor ui update evenet", arguments)
+              //   let scrollHeight = document.querySelector(".editor").scrollHeight;
+              //   var height = document.querySelector(".editor").style.height;
+              //   if (height < scrollHeight + 10) {
+              //     document.querySelector(".editor").style.height = (scrollHeight+10) + "px"
+              //   }
+              //
+              // })
 
 
 
