@@ -50,6 +50,9 @@
                 <q-item @click="$router.push('/apps/files')" clickable v-close-popup>
                   <q-item-section>Open</q-item-section>
                 </q-item>
+                <q-item @click="pageSettingDialog = true" clickable v-close-popup>
+                  <q-item-section>Page setting</q-item-section>
+                </q-item>
                 <q-item clickable v-close-popup>
                   <q-item-section>Save as</q-item-section>
                 </q-item>
@@ -63,7 +66,9 @@
             </q-menu>
           </q-btn>
           <q-btn flat label="Edit"></q-btn>
-          <q-btn flat label="Format"></q-btn>
+          <q-btn flat label="Format">
+
+          </q-btn>
           <q-btn flat label="Data"></q-btn>
           <q-btn flat label="Help"></q-btn>
         </q-btn-group>
@@ -105,11 +110,33 @@
         </div>
       </div>
     </q-header>
-    <q-page style="position: relative">
-      <main>
-        <div class="">
-          <div class="row-editor">
-            <div class="editor"></div>
+    <q-dialog v-model="pageSettingDialog">
+      <q-card>
+        <q-card-section>
+          <span class="text-h6">Page setting</span>
+        </q-card-section>
+        <q-card-section>
+          <div class="row">
+            <div class="col-6">
+              <q-input v-model="pageSetting.height" label="Page height"></q-input>
+              <q-input v-model="pageSetting.width" label="Page width"></q-input>
+              <q-input v-model="pageSetting.margin.top" label="Margin top"></q-input>
+              <q-input v-model="pageSetting.margin.left" label="Margin left"></q-input>
+              <q-input v-model="pageSetting.margin.right" label="Margin right"></q-input>
+              <q-input v-model="pageSetting.margin.bottom" type="number" label="Margin bottom"></q-input>
+            </div>
+            <div class="col-6">
+
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+    <q-page>
+      <main style="height: 85vh; overflow-y: scroll">
+        <div>
+          <div class="row-editor" v-for="page in pages">
+            <div v-html="page.html" :id="page.id" class="editor" :style="{'min-height': pageSetting.height + 'px'}"></div>
           </div>
         </div>
       </main>
@@ -150,6 +177,7 @@
   .document-heading {
     display: none;
   }
+
   body {
     background: #fff !important;
   }
@@ -168,17 +196,15 @@
     box-shadow: none !important;
     margin: 0 !important;
   }
+
 }
+
 
 body[data-editor="DecoupledDocumentEditor"] {
   background: #eeebeb;
   border: none;
 }
 
-.ck {
-  /*overflow: hidden !important;*/
-  /*height: 100% !important;*/
-}
 </style>
 <script>
 import {mapActions, mapGetters} from "vuex";
@@ -207,6 +233,29 @@ export default {
   data() {
     return {
       file: null,
+      pageSettingDialog: false,
+      pageSetting: {
+        height: 800,
+        width: 600,
+        header: {
+          style: {
+            height: "100px",
+            "width": "13cm"
+          },
+        },
+        margin: {
+          top: 20,
+          bottom: 20,
+          left: 20,
+          right: 20,
+        }
+      },
+      pages: [{
+        id: "page-1",
+        html: "",
+        header: ""
+      }],
+      pageHeight: 1200,
       showSharingBox: false,
       ...mapGetters(['endpoint', 'decodedAuthToken']),
       contents: "",
@@ -226,6 +275,61 @@ export default {
     logout() {
       this.$emit("logout");
     },
+    pageReflow(currentPage = 1) {
+      const that = this;
+      const nextPageNumber = currentPage + 1;
+      let allItems = Array.prototype.slice.call(document.querySelector("#page-" + currentPage).children);
+      console.log("All items", allItems);
+      var currentHeight = 0;
+      var currentPageItems = [];
+      let currentItem = allItems[0];
+      for (; true ;) {
+        currentHeight = currentItem ? currentItem.offsetTop + currentItem.offsetHeight : 0;
+        if (!currentItem || currentHeight > that.pageSetting.height) {
+          console.log("Page break here please", currentItem, currentHeight);
+          let pageContents = currentPageItems.map(function (e) {
+            return e.outerHTML
+          }).join("");
+          console.log("page contents", currentPage, pageContents);
+          if (pageContents.length < 1) {
+            return;
+          }
+          that.editor.setData("page-" + currentPage, pageContents);
+          currentHeight = 0;
+          that.pages.push({
+            id: "page-" + nextPageNumber
+          });
+          (function (newPageName) {
+            setTimeout(function () {
+              var newPageDetails = {};
+              newPageDetails[newPageName] = document.querySelector("#" + newPageName)
+              that.editor.add(newPageDetails);
+
+              var remainingItems = [];
+              while (currentItem != null) {
+                remainingItems.push(currentItem)
+                currentItem = currentItem.nextSibling
+              }
+              if (remainingItems < 2) {
+                return
+              }
+              that.editor.setData(newPageName, remainingItems.map(function (e) {
+                return e.outerHTML
+              }).join(""))
+              that.pageReflow(nextPageNumber)
+            }, 100);
+          })("page-" + nextPageNumber);
+          return;
+        }
+        if (!currentItem) {
+          break;
+        }
+        currentPageItems.push(currentItem);
+        currentItem = currentItem.nextSibling;
+      }
+
+
+    },
     loadEditor() {
       const that = this;
 
@@ -233,133 +337,90 @@ export default {
       setTimeout(function () {
 
 
-        const watchdog = new CKSource.Watchdog();
-
-        window.watchdog = watchdog;
-
-        watchdog.setCreator((element, config) => {
-          return CKSource.Editor
-            .create(element, config)
-            .then(editor => {
+        window.document.body.setAttribute("data-editor", "DecoupledDocumentEditor");
 
 
-              // Set a custom container for the toolbar.
-              document.querySelector('.document-editor__toolbar').appendChild(editor.ui.view.toolbar.element);
-              document.querySelector('.ck-toolbar').classList.add('ck-reset_all');
+        CKSource.Editor.defaultConfig = {
 
+          toolbar: {
+            items: [
+              'undo',
+              'redo',
+              'removeFormat',
+              '|',
+              'heading',
+              'fontSize',
+              'fontFamily',
+              'fontBackgroundColor',
+              'fontColor',
+              '|',
+              'bold',
+              'italic',
+              'underline',
+              'strikethrough',
+              'highlight',
+              '|',
+              'numberedList',
+              'bulletedList',
+              'todoList',
+              '|',
+              'alignment',
+              'indent',
+              'outdent',
+              '|',
+              'link',
+              'blockQuote',
+              'imageUpload',
+              'insertTable',
+              'mediaEmbed'
+            ]
+          },
+          language: 'en',
+          image: {
+            toolbar: [
+              'imageTextAlternative',
+              'imageStyle:full',
+              'imageStyle:side'
+            ]
+          },
+          table: {
+            contentToolbar: [
+              'tableColumn',
+              'tableRow',
+              'mergeTableCells',
+              'tableCellProperties',
+              'tableProperties'
+            ]
+          },
+          licenseKey: '',
 
-              that.editor = editor;
-              editor.setData(that.contents);
+        }
 
-              // editor.ui.on("update", function (){
-              //   console.log("Editor ui update evenet", arguments)
-              //   let scrollHeight = document.querySelector(".editor").scrollHeight;
-              //   var height = document.querySelector(".editor").style.height;
-              //   if (height < scrollHeight + 10) {
-              //     document.querySelector(".editor").style.height = (scrollHeight+10) + "px"
-              //   }
-              //
-              // })
-
-
-
-              if (that.decodedAuthToken()) {
-                const saveMethod = debounce(that.saveDocument, 1000, false)
-                editor.model.document.on('change:data', () => {
-                  let scrollHeight = document.querySelector(".editor").scrollHeight;
-                  var height = document.querySelector(".editor").style.height;
-                  if (height < scrollHeight + 10) {
-                    document.querySelector(".editor").style.height = (scrollHeight + 10) + "px"
-                  }
-                  that.contents = editor.getData();
-                  // console.log("Editor contents", that.contents)
-                  saveMethod();
-                });
-              }
-
-              return editor;
-            })
-        });
-
-        watchdog.setDestructor(editor => {
-          // Set a custom container for the toolbar.
-          document.querySelector('.document-editor__toolbar').removeChild(editor.ui.view.toolbar.element);
-
-          return editor.destroy();
-        });
-
-        watchdog.on('error', function (err) {
-          console.log("Failed to create editor", err)
-        });
-
-
-        window.document.body.setAttribute("data-editor", "DecoupledDocumentEditor")
-        watchdog
-          .create(document.querySelector('.editor'), {
-
-            toolbar: {
-              items: [
-                'undo',
-                'redo',
-                'removeFormat',
-                '|',
-                'heading',
-                'fontSize',
-                'fontFamily',
-                'fontBackgroundColor',
-                'fontColor',
-                '|',
-                'bold',
-                'italic',
-                'underline',
-                'strikethrough',
-                'highlight',
-                '|',
-                'numberedList',
-                'bulletedList',
-                'todoList',
-                '|',
-                'alignment',
-                'indent',
-                'outdent',
-                '|',
-                'link',
-                'blockQuote',
-                'imageUpload',
-                'insertTable',
-                'mediaEmbed'
-              ]
-            },
-            language: 'en',
-            image: {
-              toolbar: [
-                'imageTextAlternative',
-                'imageStyle:full',
-                'imageStyle:side'
-              ]
-            },
-            table: {
-              contentToolbar: [
-                'tableColumn',
-                'tableRow',
-                'mergeTableCells',
-                'tableCellProperties',
-                'tableProperties'
-              ]
-            },
-            licenseKey: '',
-
+        CKSource.Editor
+          .create({
+            "page-1": document.querySelector('#page-1'),
           })
-
-
           .then(editor => {
+            document.querySelector('.document-editor__toolbar').appendChild(editor.ui.view.toolbar.element);
+            that.editor = editor;
+            editor.setData("page-1", that.contents);
+            // that.pageReflow()
+            const saveMethod = debounce(that.saveDocument, 1000, false)
+            if (that.decodedAuthToken()) {
+              editor.onChange((res) => { //提供onChange方法获取数据
+                console.log("Editor on change", res)
+                that.contents = editor.getData()["page-1"];
+                // console.log("Editor contents", that.contents)
+                saveMethod();
 
+              })
+            }
+
+
+            window.editor = editor; //将实例暴露给window
           })
-          .catch(error => {
-            console.error('Oops, something went wrong!', error);
-            console.error('Please, report the following error on https://github.com/ckeditor/ckeditor5/issues with the build id and the error stack trace:');
-            console.warn('Build id: keu49w7chwo-c6p4ujty9ev0');
-            console.error(error);
+          .catch(err => {
+            console.error(err);
           });
 
 

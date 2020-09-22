@@ -92,14 +92,18 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 					res, err := dr.db.Queryx(joinIdQuery, vals...)
 					CheckErr(err, "Failed to query for join ids")
-					defer res.Close()
+					defer func() {
+						err = res.Close()
+						CheckErr(err, "Failed to close result after join id query")
+					}()
 					if err == nil {
 
 						ids := map[string]int64{}
 						for res.Next() {
 							var relationReferenceId string
 							var objectReferenceId int64
-							res.Scan(&relationReferenceId, &objectReferenceId)
+							err = res.Scan(&relationReferenceId, &objectReferenceId)
+							CheckErr(err, "Failed to scan relation reference id")
 							ids[relationReferenceId] = objectReferenceId
 						}
 
