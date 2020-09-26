@@ -5,15 +5,15 @@ import (
 	"github.com/artpar/api2go"
 )
 
-type CloudStoreFileListActionPerformer struct {
+type cloudStoreFileListActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
-func (d *CloudStoreFileListActionPerformer) Name() string {
+func (d *cloudStoreFileListActionPerformer) Name() string {
 	return "site.file.list"
 }
 
-func (d *CloudStoreFileListActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *cloudStoreFileListActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -48,7 +48,7 @@ func (d *CloudStoreFileListActionPerformer) DoAction(request Outcome, inFields m
 
 func NewCloudStoreFileListActionPerformer(cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := CloudStoreFileListActionPerformer{
+	handler := cloudStoreFileListActionPerformer{
 		cruds: cruds,
 	}
 

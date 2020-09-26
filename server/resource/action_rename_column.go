@@ -7,16 +7,16 @@ import (
 	"strings"
 )
 
-type RenameWorldColumnPerformer struct {
+type renameWorldColumnPerformer struct {
 	cmsConfig *CmsConfig
 	cruds     map[string]*DbResource
 }
 
-func (d *RenameWorldColumnPerformer) Name() string {
+func (d *renameWorldColumnPerformer) Name() string {
 	return "world.column.rename"
 }
 
-func (d *RenameWorldColumnPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *renameWorldColumnPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	worldId := inFields["world_id"].(string)
 	columnToRename := inFields["column_name"].(string)
@@ -90,7 +90,7 @@ func (d *RenameWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 
 func NewRenameWorldColumnPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := RenameWorldColumnPerformer{
+	handler := renameWorldColumnPerformer{
 		cruds:     cruds,
 		cmsConfig: initConfig,
 	}

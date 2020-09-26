@@ -17,18 +17,18 @@ import (
 	"time"
 )
 
-// ImportCloudStoreFilesPerformer daptin action implementation
-type ImportCloudStoreFilesPerformer struct {
+// importCloudStoreFilesPerformer daptin action implementation
+type importCloudStoreFilesPerformer struct {
 	cruds map[string]*DbResource
 }
 
 // Name of the action
-func (d *ImportCloudStoreFilesPerformer) Name() string {
+func (d *importCloudStoreFilesPerformer) Name() string {
 	return "cloud_store.files.import"
 }
 
-// ImportCloudStoreFilesPerformer Imports files metadata from a cloud store
-func (d *ImportCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+// importCloudStoreFilesPerformer Imports files metadata from a cloud store
+func (d *importCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	tableName := inFields["table_name"].(string)
 	//columnName := inFieldMap["column_name"].(string)
@@ -144,7 +144,7 @@ func (d *ImportCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[
 // Create a new action performer for becoming administrator action
 func NewImportCloudStoreFilesPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := ImportCloudStoreFilesPerformer{
+	handler := importCloudStoreFilesPerformer{
 		cruds: cruds,
 	}
 

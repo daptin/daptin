@@ -7,18 +7,18 @@ import (
 /**
   Become administrator of daptin action implementation
 */
-type GraphqlEnableActionPerformer struct {
+type graphqlEnableActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
 // Name of the action
-func (d *GraphqlEnableActionPerformer) Name() string {
+func (d *graphqlEnableActionPerformer) Name() string {
 	return "__enable_graphql"
 }
 
 // Perform action and try to make the current user the admin of the system
 // Checks CanGraphqlEnable and then invokes GraphqlEnable if true
-func (d *GraphqlEnableActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *graphqlEnableActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	err := d.cruds["world"].configStore.SetConfigValueFor("graphql.enable", "true", "backend")
 
@@ -34,7 +34,7 @@ func (d *GraphqlEnableActionPerformer) DoAction(request Outcome, inFieldMap map[
 // Create a new action performer for becoming administrator action
 func NewGraphqlEnablePerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := GraphqlEnableActionPerformer{
+	handler := graphqlEnableActionPerformer{
 		cruds: cruds,
 	}
 

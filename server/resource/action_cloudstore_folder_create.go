@@ -18,15 +18,15 @@ import (
 	"strings"
 )
 
-type CloudStoreFolderCreateActionPerformer struct {
+type cloudStoreFolderCreateActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
-func (d *CloudStoreFolderCreateActionPerformer) Name() string {
+func (d *cloudStoreFolderCreateActionPerformer) Name() string {
 	return "cloudstore.folder.create"
 }
 
-func (d *CloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *cloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -107,7 +107,7 @@ func (d *CloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFiel
 
 func NewCloudStoreFolderCreateActionPerformer(cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := CloudStoreFolderCreateActionPerformer{
+	handler := cloudStoreFolderCreateActionPerformer{
 		cruds: cruds,
 	}
 

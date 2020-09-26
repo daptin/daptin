@@ -12,17 +12,17 @@ import (
 	"strconv"
 )
 
-type MailServersSyncActionPerformer struct {
+type mailServersSyncActionPerformer struct {
 	cruds              map[string]*DbResource
 	mailDaemon         *guerrilla.Daemon
 	certificateManager *CertificateManager
 }
 
-func (d *MailServersSyncActionPerformer) Name() string {
+func (d *mailServersSyncActionPerformer) Name() string {
 	return "mail.servers.sync"
 }
 
-func (d *MailServersSyncActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *mailServersSyncActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	//log.Printf("Sync mail servers")
 	responses := make([]ActionResponse, 0)
@@ -68,7 +68,7 @@ func (d *MailServersSyncActionPerformer) DoAction(request Outcome, inFields map[
 		//	log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
 		//}
 
-		err = ioutil.WriteFile(publicKeyFilePath, []byte(string(publicKeyBytes)+"\n"+string(certBytes) + "\n" + string(rootCertBytes)), 0666)
+		err = ioutil.WriteFile(publicKeyFilePath, []byte(string(publicKeyBytes)+"\n"+string(certBytes)+"\n"+string(rootCertBytes)), 0666)
 		if err != nil {
 			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
 		}
@@ -138,7 +138,7 @@ func (d *MailServersSyncActionPerformer) DoAction(request Outcome, inFields map[
 
 func NewMailServersSyncActionPerformer(cruds map[string]*DbResource, mailDaemon *guerrilla.Daemon, certificateManager *CertificateManager) (ActionPerformerInterface, error) {
 
-	handler := MailServersSyncActionPerformer{
+	handler := mailServersSyncActionPerformer{
 		cruds:              cruds,
 		mailDaemon:         mailDaemon,
 		certificateManager: certificateManager,

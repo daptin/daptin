@@ -12,18 +12,18 @@ import (
 	"time"
 )
 
-type OtpGenerateActionPerformer struct {
+type otpGenerateActionPerformer struct {
 	responseAttrs    map[string]interface{}
 	cruds            map[string]*DbResource
 	configStore      *ConfigStore
 	encryptionSecret []byte
 }
 
-func (d *OtpGenerateActionPerformer) Name() string {
+func (d *otpGenerateActionPerformer) Name() string {
 	return "otp.generate"
 }
 
-func (d *OtpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	email, emailOk := inFieldMap["email"]
 	mobile, phoneOk := inFieldMap["mobile"]
@@ -142,7 +142,7 @@ func NewOtpGenerateActionPerformer(cruds map[string]*DbResource, configStore *Co
 
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend")
 
-	handler := OtpGenerateActionPerformer{
+	handler := otpGenerateActionPerformer{
 		cruds:            cruds,
 		encryptionSecret: []byte(encryptionSecret),
 		configStore:      configStore,

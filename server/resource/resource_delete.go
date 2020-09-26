@@ -146,7 +146,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 					res, err := dr.db.Queryx(joinIdQuery, vals...)
 					CheckErr(err, "Failed to query for join ids")
-					defer func(r *sqlx.Rows){
+					defer func(r *sqlx.Rows) {
 						r.Close()
 					}(res)
 					if err == nil {

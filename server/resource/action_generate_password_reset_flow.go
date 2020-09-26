@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-type GeneratePasswordResetActionPerformer struct {
+type generatePasswordResetActionPerformer struct {
 	cruds                  map[string]*DbResource
 	secret                 []byte
 	tokenLifeTime          int
@@ -25,11 +25,11 @@ type GeneratePasswordResetActionPerformer struct {
 	passwordResetEmailFrom string
 }
 
-func (d *GeneratePasswordResetActionPerformer) Name() string {
+func (d *generatePasswordResetActionPerformer) Name() string {
 	return "password.reset.begin"
 }
 
-func (d *GeneratePasswordResetActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *generatePasswordResetActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -145,7 +145,7 @@ func NewGeneratePasswordResetActionPerformer(configStore *ConfigStore, cruds map
 		err = configStore.SetConfigValueFor("password.reset.email.from", hostname, "backend")
 	}
 
-	handler := GeneratePasswordResetActionPerformer{
+	handler := generatePasswordResetActionPerformer{
 		cruds:                  cruds,
 		secret:                 []byte(secret),
 		tokenLifeTime:          tokenLifeTimeHours,

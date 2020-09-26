@@ -31,7 +31,7 @@ const (
 /**
   Integration action performer
 */
-type IntegrationActionPerformer struct {
+type integrationActionPerformer struct {
 	cruds            map[string]*DbResource
 	integration      Integration
 	router           *openapi3.Swagger
@@ -42,12 +42,12 @@ type IntegrationActionPerformer struct {
 }
 
 // Name of the action
-func (d *IntegrationActionPerformer) Name() string {
+func (d *integrationActionPerformer) Name() string {
 	return d.integration.Name
 }
 
 // Perform integration api
-func (d *IntegrationActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	operation, ok := d.commandMap[request.Method]
 	method := d.methodMap[request.Method]
@@ -719,7 +719,7 @@ func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfi
 		log.Errorf("Failed to get encryption secret from config store: %v", err)
 	}
 
-	handler := IntegrationActionPerformer{
+	handler := integrationActionPerformer{
 		cruds:            cruds,
 		integration:      integration,
 		router:           router,

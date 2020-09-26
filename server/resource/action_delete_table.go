@@ -10,16 +10,16 @@ import (
 	"net/http"
 )
 
-type DeleteWorldPerformer struct {
+type deleteWorldPerformer struct {
 	cmsConfig *CmsConfig
 	cruds     map[string]*DbResource
 }
 
-func (d *DeleteWorldPerformer) Name() string {
+func (d *deleteWorldPerformer) Name() string {
 	return "world.delete"
 }
 
-func (d *DeleteWorldPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	worldId := inFields["world_id"].(string)
 
@@ -165,7 +165,7 @@ func (d *DeleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 
 func NewDeleteWorldPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := DeleteWorldPerformer{
+	handler := deleteWorldPerformer{
 		cruds:     cruds,
 		cmsConfig: initConfig,
 	}

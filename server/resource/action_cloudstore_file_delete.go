@@ -15,15 +15,15 @@ import (
 	"strings"
 )
 
-type CloudStoreFileDeleteActionPerformer struct {
+type cloudStoreFileDeleteActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
-func (d *CloudStoreFileDeleteActionPerformer) Name() string {
+func (d *cloudStoreFileDeleteActionPerformer) Name() string {
 	return "cloudstore.file.delete"
 }
 
-func (d *CloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *cloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 	var err error
@@ -104,7 +104,7 @@ func (d *CloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 
 func NewCloudStoreFileDeleteActionPerformer(cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := CloudStoreFileDeleteActionPerformer{
+	handler := cloudStoreFileDeleteActionPerformer{
 		cruds: cruds,
 	}
 

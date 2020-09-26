@@ -10,7 +10,6 @@ import (
 	"io"
 )
 
-
 // Encrypt string to base64 crypto using AES
 func Encrypt(key []byte, text string) (string, error) {
 	// key := []byte(keyText)

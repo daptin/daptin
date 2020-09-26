@@ -545,7 +545,6 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 		log.Errorf("Failed to world update audit permissions: %v", err)
 	}
 
-
 	query, args, err = statementbuilder.Squirrel.Update("action").
 		Set("permission", int64(auth.UserRead|auth.UserExecute|auth.GroupCRUD|auth.GroupExecute|auth.GroupRefer)).
 		ToSql()
@@ -572,7 +571,6 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 	if err != nil {
 		log.Errorf("Failed to world update signin action  permissions: %v", err)
 	}
-
 
 	return true
 }

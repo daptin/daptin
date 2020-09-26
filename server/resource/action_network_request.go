@@ -9,11 +9,11 @@ import (
 	"strings"
 )
 
-type NetworkRequestActionPerformer struct {
+type networkRequestActionPerformer struct {
 	responseAttrs map[string]interface{}
 }
 
-func (d *NetworkRequestActionPerformer) Name() string {
+func (d *networkRequestActionPerformer) Name() string {
 	return "$network.request"
 }
 
@@ -22,7 +22,7 @@ func toJson(obj interface{}) string {
 	return string(r)
 }
 
-func (d *NetworkRequestActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *networkRequestActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	headers, isHeader := inFieldMap["Headers"]
 	headerMap := make(map[string]string)
@@ -120,7 +120,7 @@ func (d *NetworkRequestActionPerformer) DoAction(request Outcome, inFieldMap map
 
 func NewNetworkRequestPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := NetworkRequestActionPerformer{}
+	handler := networkRequestActionPerformer{}
 
 	return &handler, nil
 

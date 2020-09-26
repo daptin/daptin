@@ -5,19 +5,19 @@ import (
 	"github.com/pkg/errors"
 )
 
-// BecomeAdminActionPerformer daptin action implementation
-type BecomeAdminActionPerformer struct {
+// becomeAdminActionPerformer daptin action implementation
+type becomeAdminActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
 // Name of the action
-func (d *BecomeAdminActionPerformer) Name() string {
+func (d *becomeAdminActionPerformer) Name() string {
 	return "__become_admin"
 }
 
-// BecomeAdminActionPerformer Perform action and try to make the current user the admin of the system
+// becomeAdminActionPerformer Perform action and try to make the current user the admin of the system
 // Checks CanBecomeAdmin and then invokes BecomeAdmin if true
-func (d *BecomeAdminActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *becomeAdminActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	if !d.cruds["world"].CanBecomeAdmin() {
 		return nil, nil, []error{errors.New("Unauthorized")}
@@ -46,7 +46,7 @@ func (d *BecomeAdminActionPerformer) DoAction(request Outcome, inFieldMap map[st
 // Create a new action performer for becoming administrator action
 func NewBecomeAdminPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := BecomeAdminActionPerformer{
+	handler := becomeAdminActionPerformer{
 		cruds: cruds,
 	}
 

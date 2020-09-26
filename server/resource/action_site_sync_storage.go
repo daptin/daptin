@@ -18,15 +18,15 @@ import (
 	"strings"
 )
 
-type SyncSiteStorageActionPerformer struct {
+type syncSiteStorageActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
-func (d *SyncSiteStorageActionPerformer) Name() string {
+func (d *syncSiteStorageActionPerformer) Name() string {
 	return "site.storage.sync"
 }
 
-func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -114,7 +114,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 			err = operations.CopyFile(ctx, fdst, fsrc, srcFileName, srcFileName)
 		}
 
-		if is_hugo_site && err == nil  {
+		if is_hugo_site && err == nil {
 			log.Infof("Starting hugo build for %v", tempDirectoryPath)
 			hugoCommandResponse := hugoCommand.Execute([]string{"--source", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public", "--verbose", "--verboseLog"})
 			log.Infof("Hugo command response for [%v] [%v]: %v", tempDirectoryPath, tempDirectoryPath+"/"+"public", hugoCommandResponse)
@@ -135,7 +135,7 @@ func (d *SyncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 
 func NewSyncSiteStorageActionPerformer(cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := SyncSiteStorageActionPerformer{
+	handler := syncSiteStorageActionPerformer{
 		cruds: cruds,
 	}
 

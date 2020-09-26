@@ -5,16 +5,16 @@ import (
 	"github.com/pkg/errors"
 )
 
-type GenerateOauth2TokenActionPerformer struct {
+type generateOauth2TokenActionPerformer struct {
 	cruds  map[string]*DbResource
 	secret []byte
 }
 
-func (d *GenerateOauth2TokenActionPerformer) Name() string {
+func (d *generateOauth2TokenActionPerformer) Name() string {
 	return "oauth.token"
 }
 
-func (d *GenerateOauth2TokenActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *generateOauth2TokenActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -36,7 +36,7 @@ func (d *GenerateOauth2TokenActionPerformer) DoAction(request Outcome, inFieldMa
 
 func NewGenerateOauth2TokenPerformer(configStore *ConfigStore, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := GenerateOauth2TokenActionPerformer{
+	handler := generateOauth2TokenActionPerformer{
 		cruds: cruds,
 	}
 

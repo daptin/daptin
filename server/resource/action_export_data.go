@@ -7,16 +7,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ExportDataPerformer struct {
+type exportDataPerformer struct {
 	cmsConfig *CmsConfig
 	cruds     map[string]*DbResource
 }
 
-func (d *ExportDataPerformer) Name() string {
+func (d *exportDataPerformer) Name() string {
 	return "__data_export"
 }
 
-func (d *ExportDataPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *exportDataPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -72,7 +72,7 @@ func (d *ExportDataPerformer) DoAction(request Outcome, inFields map[string]inte
 
 func NewExportDataPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := ExportDataPerformer{
+	handler := exportDataPerformer{
 		cmsConfig: initConfig,
 		cruds:     cruds,
 	}

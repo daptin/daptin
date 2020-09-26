@@ -361,8 +361,7 @@ var SystemActions = []Action{
 		Label:            "Delete table",
 		OnType:           "world",
 		InstanceOptional: false,
-		InFields: []api2go.ColumnInfo{
-		},
+		InFields:         []api2go.ColumnInfo{},
 		OutFields: []Outcome{
 			{
 				Type:   "world.delete",
@@ -734,7 +733,6 @@ var SystemActions = []Action{
 			},
 		},
 	},
-
 
 	{
 		Name:             "create_folder",

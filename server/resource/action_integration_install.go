@@ -15,7 +15,7 @@ import (
 /**
   Become administrator of daptin action implementation
 */
-type IntegrationInstallationPerformer struct {
+type integrationInstallationPerformer struct {
 	cruds            map[string]*DbResource
 	integration      Integration
 	router           *openapi3.Swagger
@@ -26,13 +26,13 @@ type IntegrationInstallationPerformer struct {
 }
 
 // Name of the action
-func (d *IntegrationInstallationPerformer) Name() string {
+func (d *integrationInstallationPerformer) Name() string {
 	return "integration.install"
 }
 
 // Perform action and try to make the current user the admin of the system
 // Checks CanBecomeAdmin and then invokes BecomeAdmin if true
-func (d *IntegrationInstallationPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *integrationInstallationPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	referenceId := inFieldMap["reference_id"].(string)
 	integration, _, err := d.cruds["integration"].GetSingleRowByReferenceId("integration", referenceId, nil)
@@ -239,7 +239,7 @@ func NewIntegrationInstallationPerformer(initConfig *CmsConfig, cruds map[string
 	if err != nil {
 		log.Errorf("Failed to get encryption secret from config store: %v", err)
 	}
-	handler := IntegrationInstallationPerformer{
+	handler := integrationInstallationPerformer{
 		cruds:            cruds,
 		encryptionSecret: []byte(encryptionSecret),
 	}

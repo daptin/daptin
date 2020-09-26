@@ -11,16 +11,16 @@ import (
 	"time"
 )
 
-type ExportCsvDataPerformer struct {
+type exportCsvDataPerformer struct {
 	cmsConfig *CmsConfig
 	cruds     map[string]*DbResource
 }
 
-func (d *ExportCsvDataPerformer) Name() string {
+func (d *exportCsvDataPerformer) Name() string {
 	return "__csv_data_export"
 }
 
-func (d *ExportCsvDataPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *exportCsvDataPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -116,7 +116,7 @@ func (d *ExportCsvDataPerformer) DoAction(request Outcome, inFields map[string]i
 
 func NewExportCsvDataPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := ExportCsvDataPerformer{
+	handler := exportCsvDataPerformer{
 		cmsConfig: initConfig,
 		cruds:     cruds,
 	}

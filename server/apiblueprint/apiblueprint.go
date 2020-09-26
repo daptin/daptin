@@ -92,9 +92,9 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 			"name": "MIT",
 		},
 		"contact": map[string]interface{}{
-			"name": "Parth",
-			"url":  "https://dapt.in",
-			"email":  "artpar@gmamil.com",
+			"name":  "Parth",
+			"url":   "https://dapt.in",
+			"email": "artpar@gmamil.com",
 		},
 		"description": "Daptin API server",
 	}
@@ -291,7 +291,7 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 			actionProperties[colInfo.ColumnName] = CreateColumnLine(colInfo)
 		}
 		if !action.InstanceOptional {
-			actionProperties[action.OnType + "_id"] = map[string]interface{}{
+			actionProperties[action.OnType+"_id"] = map[string]interface{}{
 				"type":        "string",
 				"description": "reference id of a " + action.OnType,
 			}
@@ -362,7 +362,7 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 			if tableInfo.TableName == rel.Subject {
 				relatedTable := tableInfoMap[rel.Object]
 				getMethod := CreateGetAllMethod(relatedTable, CreateDataInResponse(relatedTable))
-				getMethod["description"] = fmt.Sprintf("Returns a list of all %v", ProperCase(relatedTable.TableName)+" related to a "+ tableInfo.TableName)
+				getMethod["description"] = fmt.Sprintf("Returns a list of all %v", ProperCase(relatedTable.TableName)+" related to a "+tableInfo.TableName)
 				getMethod["operationId"] = fmt.Sprintf("Get" + strcase.ToCamel(rel.ObjectName) + "Of" + strcase.ToCamel(rel.SubjectName))
 				getMethod["summary"] = fmt.Sprintf("Fetch related %s of %v", rel.ObjectName, tableInfo.TableName)
 
@@ -511,7 +511,7 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 				"type":         "http",
 				"scheme":       "bearer",
 				"bearerFormat": "JWT",
-						},
+			},
 		},
 	}
 	apiDefinition["security"] = []map[string][]string{

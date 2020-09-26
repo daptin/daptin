@@ -15,15 +15,15 @@ import (
 	"strings"
 )
 
-type SyncColumnStorageActionPerformer struct {
+type syncColumnStorageActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
-func (d *SyncColumnStorageActionPerformer) Name() string {
+func (d *syncColumnStorageActionPerformer) Name() string {
 	return "column.storage.sync"
 }
 
-func (d *SyncColumnStorageActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -100,7 +100,7 @@ func (d *SyncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 
 func NewSyncColumnStorageActionPerformer(cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := SyncColumnStorageActionPerformer{
+	handler := syncColumnStorageActionPerformer{
 		cruds: cruds,
 	}
 

@@ -7,16 +7,16 @@ import (
 	"strings"
 )
 
-type ImportDataPerformer struct {
+type importDataPerformer struct {
 	cmsConfig *CmsConfig
 	cruds     map[string]*DbResource
 }
 
-func (d *ImportDataPerformer) Name() string {
+func (d *importDataPerformer) Name() string {
 	return "__data_import"
 }
 
-func (d *ImportDataPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *importDataPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -135,7 +135,7 @@ func (d *ImportDataPerformer) DoAction(request Outcome, inFields map[string]inte
 
 func NewImportDataPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := ImportDataPerformer{
+	handler := importDataPerformer{
 		cmsConfig: initConfig,
 		cruds:     cruds,
 	}

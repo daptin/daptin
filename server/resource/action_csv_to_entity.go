@@ -14,17 +14,17 @@ import (
 	"strings"
 )
 
-type UploadCsvFileToEntityPerformer struct {
+type uploadCsvFileToEntityPerformer struct {
 	responseAttrs map[string]interface{}
 	cruds         map[string]*DbResource
 	cmsConfig     *CmsConfig
 }
 
-func (d *UploadCsvFileToEntityPerformer) Name() string {
+func (d *uploadCsvFileToEntityPerformer) Name() string {
 	return "__upload_csv_file_to_entity"
 }
 
-func (d *UploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *uploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	//actions := make([]ActionResponse, 0)
 	log.Infof("Do action: %v", d.Name())
@@ -150,7 +150,7 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[
 				column.DataType = "varchar(100)"
 			} else {
 				column.ColumnType = EntityTypeToColumnTypeMap[eType]
-				column.DataType = EntityTypeToDataTypeMap[eType]
+				column.DataType = entityTypeToDataTypeMap[eType]
 			}
 
 			if len(datas) > (recordCount / 10) {
@@ -205,8 +205,6 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[
 		}
 		trigger.Fire("clean_up_uploaded_files")
 
-
-
 		return nil, successResponses, nil
 	} else {
 		return nil, failedResponses, nil
@@ -216,7 +214,7 @@ func (d *UploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[
 
 func NewUploadCsvFileToEntityPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := UploadCsvFileToEntityPerformer{
+	handler := uploadCsvFileToEntityPerformer{
 		cruds:     cruds,
 		cmsConfig: initConfig,
 	}

@@ -11,8 +11,6 @@ import (
 	//"sync"
 	"time"
 
-	server2 "github.com/fclairamb/ftpserver/server"
-	"github.com/gin-contrib/gzip"
 	"github.com/artpar/api2go"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/go-guerrilla"
@@ -27,6 +25,8 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
+	server2 "github.com/fclairamb/ftpserver/server"
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/icrowley/fake"
 	rateLimit "github.com/yangxikun/gin-limit-by-key"

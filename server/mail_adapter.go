@@ -179,8 +179,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 		return func(p backends.Processor) backends.Processor {
 			mailSender := func(e *mail.Envelope, task backends.SelectTask) (backends.Result, error) {
 
-
-
 				if task == backends.TaskSaveMail {
 					var to, body string
 

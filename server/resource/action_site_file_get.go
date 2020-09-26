@@ -7,15 +7,15 @@ import (
 	"io/ioutil"
 )
 
-type CloudStoreFileGetActionPerformer struct {
+type cloudStoreFileGetActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
-func (d *CloudStoreFileGetActionPerformer) Name() string {
+func (d *cloudStoreFileGetActionPerformer) Name() string {
 	return "site.file.get"
 }
 
-func (d *CloudStoreFileGetActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *cloudStoreFileGetActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -50,7 +50,7 @@ func (d *CloudStoreFileGetActionPerformer) DoAction(request Outcome, inFields ma
 
 func NewCloudStoreFileGetActionPerformer(cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := CloudStoreFileGetActionPerformer{
+	handler := cloudStoreFileGetActionPerformer{
 		cruds: cruds,
 	}
 

@@ -11,18 +11,18 @@ import (
 	"time"
 )
 
-type OauthLoginBeginActionPerformer struct {
+type oauthLoginBeginActionPerformer struct {
 	responseAttrs map[string]interface{}
 	cruds         map[string]*DbResource
 	configStore   *ConfigStore
 	otpKey        string
 }
 
-func (d *OauthLoginBeginActionPerformer) Name() string {
+func (d *oauthLoginBeginActionPerformer) Name() string {
 	return "oauth.client.redirect"
 }
 
-func (d *OauthLoginBeginActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *oauthLoginBeginActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	state, err := totp.GenerateCodeCustom(d.otpKey, time.Now(), totp.ValidateOpts{
 		Period:    300,
@@ -93,7 +93,7 @@ func NewOauthLoginBeginActionPerformer(initConfig *CmsConfig, cruds map[string]*
 		secret = key.Secret()
 	}
 
-	handler := OauthLoginBeginActionPerformer{
+	handler := oauthLoginBeginActionPerformer{
 		cruds:       cruds,
 		otpKey:      secret,
 		configStore: configStore,

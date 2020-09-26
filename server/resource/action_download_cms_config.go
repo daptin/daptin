@@ -6,15 +6,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type DownloadCmsConfigActionPerformer struct {
+type downloadCmsConfigActionPerformer struct {
 	responseAttrs map[string]interface{}
 }
 
-func (d *DownloadCmsConfigActionPerformer) Name() string {
+func (d *downloadCmsConfigActionPerformer) Name() string {
 	return "__download_cms_config"
 }
 
-func (d *DownloadCmsConfigActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *downloadCmsConfigActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -39,7 +39,7 @@ func NewDownloadCmsConfigPerformer(initConfig *CmsConfig) (ActionPerformerInterf
 	responseAttrs["contentType"] = "application/json"
 	responseAttrs["message"] = "Downloading system schema"
 
-	handler := DownloadCmsConfigActionPerformer{
+	handler := downloadCmsConfigActionPerformer{
 		responseAttrs: responseAttrs,
 	}
 

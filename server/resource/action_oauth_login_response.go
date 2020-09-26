@@ -16,14 +16,14 @@ import (
 	"time"
 )
 
-type OauthLoginResponseActionPerformer struct {
+type oauthLoginResponseActionPerformer struct {
 	responseAttrs map[string]interface{}
 	cruds         map[string]*DbResource
 	configStore   *ConfigStore
 	otpKey        string
 }
 
-func (d *OauthLoginResponseActionPerformer) Name() string {
+func (d *oauthLoginResponseActionPerformer) Name() string {
 	return "oauth.login.response"
 }
 
@@ -147,7 +147,7 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 	return err
 }
 
-func (d *OauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *oauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	state := inFieldMap["state"].(string)
 	//user := inFieldMap["user"].(map[string]interface{})
@@ -232,7 +232,7 @@ func NewOauthLoginResponseActionPerformer(initConfig *CmsConfig, cruds map[strin
 		secret = key.Secret()
 	}
 
-	handler := OauthLoginResponseActionPerformer{
+	handler := oauthLoginResponseActionPerformer{
 		cruds:       cruds,
 		otpKey:      secret,
 		configStore: configStore,

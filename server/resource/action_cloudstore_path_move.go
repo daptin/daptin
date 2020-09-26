@@ -19,15 +19,15 @@ import (
 	"strings"
 )
 
-type CloudStorePathMoveActionPerformer struct {
+type cloudStorePathMoveActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
-func (d *CloudStorePathMoveActionPerformer) Name() string {
+func (d *cloudStorePathMoveActionPerformer) Name() string {
 	return "cloudstore.path.move"
 }
 
-func (d *CloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *cloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -115,7 +115,7 @@ func (d *CloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields m
 
 func NewCloudStorePathMoveActionPerformer(cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := CloudStorePathMoveActionPerformer{
+	handler := cloudStorePathMoveActionPerformer{
 		cruds: cruds,
 	}
 

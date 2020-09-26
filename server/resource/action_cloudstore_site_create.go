@@ -21,15 +21,15 @@ import (
 	"strings"
 )
 
-type CloudStoreSiteCreateActionPerformer struct {
+type cloudStoreSiteCreateActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
-func (d *CloudStoreSiteCreateActionPerformer) Name() string {
+func (d *cloudStoreSiteCreateActionPerformer) Name() string {
 	return "cloudstore.site.create"
 }
 
-func (d *CloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *cloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -73,9 +73,7 @@ func (d *CloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 		rootPath,
 	}
 
-	plainRequest := &http.Request{
-
-	}
+	plainRequest := &http.Request{}
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "user", &auth.SessionUser{
 		UserReferenceId: user_account_id,
@@ -156,7 +154,7 @@ func (d *CloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 
 func NewCloudStoreSiteCreateActionPerformer(cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := CloudStoreSiteCreateActionPerformer{
+	handler := cloudStoreSiteCreateActionPerformer{
 		cruds: cruds,
 	}
 

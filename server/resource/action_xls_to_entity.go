@@ -16,17 +16,17 @@ import (
 	"strings"
 )
 
-type UploadXlsFileToEntityPerformer struct {
+type uploadXlsFileToEntityPerformer struct {
 	responseAttrs map[string]interface{}
 	cruds         map[string]*DbResource
 	cmsConfig     *CmsConfig
 }
 
-func (d *UploadXlsFileToEntityPerformer) Name() string {
+func (d *uploadXlsFileToEntityPerformer) Name() string {
 	return "__upload_xlsx_file_to_entity"
 }
 
-var EntityTypeToDataTypeMap = map[fieldtypes.EntityType]string{
+var entityTypeToDataTypeMap = map[fieldtypes.EntityType]string{
 	fieldtypes.DateTime:    "datetime",
 	fieldtypes.Id:          "varchar(100)",
 	fieldtypes.Time:        "time",
@@ -90,7 +90,7 @@ var EntityTypeToColumnTypeMap = map[fieldtypes.EntityType]string{
 	fieldtypes.Namespace:   "namespace",
 }
 
-func (d *UploadXlsFileToEntityPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *uploadXlsFileToEntityPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	//actions := make([]ActionResponse, 0)
 	log.Infof("Do action: %v", d.Name())
@@ -208,7 +208,7 @@ nextFile:
 					log.Infof("Column %v was identified as %v", colName, eType)
 					column.ColumnType = EntityTypeToColumnTypeMap[eType]
 
-					dbDataType := EntityTypeToDataTypeMap[eType]
+					dbDataType := entityTypeToDataTypeMap[eType]
 					if strings.Index(dbDataType, "varchar") == 0 {
 						dbDataType = fmt.Sprintf("varchar(%v)", maxLen+100)
 					}
@@ -374,7 +374,7 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 
 func NewUploadFileToEntityPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := UploadXlsFileToEntityPerformer{
+	handler := uploadXlsFileToEntityPerformer{
 		cruds:     cruds,
 		cmsConfig: initConfig,
 	}

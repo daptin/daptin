@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-type SelfTlsCertificateGenerateActionPerformer struct {
+type selfTlsCertificateGenerateActionPerformer struct {
 	responseAttrs      map[string]interface{}
 	cruds              map[string]*DbResource
 	configStore        *ConfigStore
@@ -13,11 +13,11 @@ type SelfTlsCertificateGenerateActionPerformer struct {
 	certificateManager *CertificateManager
 }
 
-func (d *SelfTlsCertificateGenerateActionPerformer) Name() string {
+func (d *selfTlsCertificateGenerateActionPerformer) Name() string {
 	return "self.tls.generate"
 }
 
-func (d *SelfTlsCertificateGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *selfTlsCertificateGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 	certificateSubject := inFieldMap["certificate"].(map[string]interface{})
 	log.Printf("Generate certificate for: %v", certificateSubject)
 
@@ -38,7 +38,7 @@ func NewSelfTlsCertificateGenerateActionPerformer(cruds map[string]*DbResource, 
 
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend")
 
-	handler := SelfTlsCertificateGenerateActionPerformer{
+	handler := selfTlsCertificateGenerateActionPerformer{
 		cruds:              cruds,
 		encryptionSecret:   []byte(encryptionSecret),
 		configStore:        configStore,

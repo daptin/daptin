@@ -10,17 +10,17 @@ import (
 	"strconv"
 )
 
-type RandomDataGeneratePerformer struct {
+type randomDataGeneratePerformer struct {
 	cmsConfig *CmsConfig
 	cruds     map[string]*DbResource
 	tableMap  map[string][]api2go.ColumnInfo
 }
 
-func (d *RandomDataGeneratePerformer) Name() string {
+func (d *randomDataGeneratePerformer) Name() string {
 	return "generate.random.data"
 }
 
-func (d *RandomDataGeneratePerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -116,7 +116,7 @@ func NewRandomDataGeneratePerformer(initConfig *CmsConfig, cruds map[string]*DbR
 		tableMap[table.TableName] = table.Columns
 	}
 
-	handler := RandomDataGeneratePerformer{
+	handler := randomDataGeneratePerformer{
 		cmsConfig: initConfig,
 		cruds:     cruds,
 		tableMap:  tableMap,

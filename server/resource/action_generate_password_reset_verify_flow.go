@@ -8,18 +8,18 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-type GeneratePasswordResetVerifyActionPerformer struct {
+type generatePasswordResetVerifyActionPerformer struct {
 	cruds          map[string]*DbResource
 	secret         []byte
 	tokenLifeTime  int
 	jwtTokenIssuer string
 }
 
-func (d *GeneratePasswordResetVerifyActionPerformer) Name() string {
+func (d *generatePasswordResetVerifyActionPerformer) Name() string {
 	return "password.reset.verify"
 }
 
-func (d *GeneratePasswordResetVerifyActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *generatePasswordResetVerifyActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -94,7 +94,7 @@ func NewGeneratePasswordResetVerifyActionPerformer(configStore *ConfigStore, cru
 		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
 	}
 
-	handler := GeneratePasswordResetVerifyActionPerformer{
+	handler := generatePasswordResetVerifyActionPerformer{
 		cruds:          cruds,
 		secret:         []byte(secret),
 		tokenLifeTime:  tokenLifeTimeHours,

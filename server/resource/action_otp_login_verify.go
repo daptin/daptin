@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-type OtpLoginVerifyActionPerformer struct {
+type otpLoginVerifyActionPerformer struct {
 	responseAttrs    map[string]interface{}
 	cruds            map[string]*DbResource
 	configStore      *ConfigStore
@@ -30,11 +30,11 @@ type OtpLoginVerifyActionPerformer struct {
 	totpSecret       string
 }
 
-func (d *OtpLoginVerifyActionPerformer) Name() string {
+func (d *otpLoginVerifyActionPerformer) Name() string {
 	return "otp.login.verify"
 }
 
-func (d *OtpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 	responses := make([]ActionResponse, 0)
 
 	state, ok := inFieldMap["otp"].(string)
@@ -185,7 +185,7 @@ func NewOtpLoginVerifyActionPerformer(cruds map[string]*DbResource, configStore 
 		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
 	}
 
-	handler := OtpLoginVerifyActionPerformer{
+	handler := otpLoginVerifyActionPerformer{
 		cruds:            cruds,
 		tokenLifeTime:    tokenLifeTimeHours,
 		configStore:      configStore,

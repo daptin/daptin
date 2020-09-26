@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewFakeInstance(t *testing.T) {
-	
+
 	resource.InitialiseColumnManager()
 	table := &resource.TableInfo{
 		TableName: "test",

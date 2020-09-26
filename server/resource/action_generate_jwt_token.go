@@ -11,18 +11,18 @@ import (
 	"time"
 )
 
-type GenerateJwtTokenActionPerformer struct {
+type generateJwtTokenActionPerformer struct {
 	cruds          map[string]*DbResource
 	secret         []byte
 	tokenLifeTime  int
 	jwtTokenIssuer string
 }
 
-func (d *GenerateJwtTokenActionPerformer) Name() string {
+func (d *generateJwtTokenActionPerformer) Name() string {
 	return "jwt.token"
 }
 
-func (d *GenerateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *generateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -143,7 +143,7 @@ func NewGenerateJwtTokenPerformer(configStore *ConfigStore, cruds map[string]*Db
 		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
 	}
 
-	handler := GenerateJwtTokenActionPerformer{
+	handler := generateJwtTokenActionPerformer{
 		cruds:          cruds,
 		secret:         []byte(secret),
 		tokenLifeTime:  tokenLifeTimeHours,

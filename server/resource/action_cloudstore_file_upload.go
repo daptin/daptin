@@ -25,11 +25,11 @@ import (
 	"strings"
 )
 
-type FileUploadActionPerformer struct {
+type fileUploadActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
-func (d *FileUploadActionPerformer) Name() string {
+func (d *fileUploadActionPerformer) Name() string {
 	return "cloudstore.file.upload"
 }
 
@@ -100,7 +100,7 @@ func EndsWith(str string, endsWith string) (string, bool) {
 
 }
 
-func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -236,7 +236,7 @@ func (d *FileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 
 func NewFileUploadActionPerformer(cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := FileUploadActionPerformer{
+	handler := fileUploadActionPerformer{
 		cruds: cruds,
 	}
 

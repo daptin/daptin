@@ -23,23 +23,23 @@ import (
 )
 
 // You'll need a user or account type that implements acme.User
-type MyUser struct {
+type acmeUser struct {
 	Email        string
 	Registration *registration.Resource
 	key          crypto.PrivateKey
 }
 
-func (u *MyUser) GetEmail() string {
+func (u *acmeUser) GetEmail() string {
 	return u.Email
 }
-func (u MyUser) GetRegistration() *registration.Resource {
+func (u acmeUser) GetRegistration() *registration.Resource {
 	return u.Registration
 }
-func (u *MyUser) GetPrivateKey() crypto.PrivateKey {
+func (u *acmeUser) GetPrivateKey() crypto.PrivateKey {
 	return u.key
 }
 
-type AcmeTlsCertificateGenerateActionPerformer struct {
+type acmeTlsCertificateGenerateActionPerformer struct {
 	responseAttrs    map[string]interface{}
 	cruds            map[string]*DbResource
 	configStore      *ConfigStore
@@ -48,22 +48,22 @@ type AcmeTlsCertificateGenerateActionPerformer struct {
 	challenge        map[string]string
 }
 
-func (d *AcmeTlsCertificateGenerateActionPerformer) Name() string {
+func (d *acmeTlsCertificateGenerateActionPerformer) Name() string {
 	return "acme.tls.generate"
 }
 
-func (d *AcmeTlsCertificateGenerateActionPerformer) Present(domain, token, keyAuth string) error {
+func (d *acmeTlsCertificateGenerateActionPerformer) Present(domain, token, keyAuth string) error {
 	log.Printf("Infof Present lego %v %v %v", domain, token, keyAuth)
 	d.challenge[token] = keyAuth
 	return nil
 }
-func (d *AcmeTlsCertificateGenerateActionPerformer) CleanUp(domain, token, keyAuth string) error {
+func (d *acmeTlsCertificateGenerateActionPerformer) CleanUp(domain, token, keyAuth string) error {
 	log.Printf("Infof CleanUp lego %v %v %v", domain, token, keyAuth)
 	delete(d.challenge, token)
 	return nil
 }
 
-func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *acmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	email, emailOk := inFieldMap["email"]
 	emailString, isEmailStr := email.(string)
@@ -97,7 +97,7 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 
 	userPrivateKeyEncrypted, err := d.configStore.GetConfigValueFor("encryption.private_key."+email.(string), "backend")
 
-	var myUser MyUser
+	var myUser acmeUser
 
 	certificateSubject := inFieldMap["certificate"].(map[string]interface{})
 	hostname := certificateSubject["hostname"].(string)
@@ -113,7 +113,7 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 			return nil, []ActionResponse{}, []error{err}
 		}
 
-		myUser = MyUser{
+		myUser = acmeUser{
 			Email: email.(string),
 			key:   privateKey,
 		}
@@ -144,7 +144,7 @@ func (d *AcmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 			return nil, []ActionResponse{}, []error{err}
 		}
 
-		myUser = MyUser{
+		myUser = acmeUser{
 			Email: email.(string),
 			key:   key,
 		}
@@ -277,7 +277,7 @@ func NewAcmeTlsCertificateGenerateActionPerformer(cruds map[string]*DbResource, 
 
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend")
 
-	handler := AcmeTlsCertificateGenerateActionPerformer{
+	handler := acmeTlsCertificateGenerateActionPerformer{
 		cruds:            cruds,
 		encryptionSecret: []byte(encryptionSecret),
 		configStore:      configStore,

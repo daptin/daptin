@@ -10,15 +10,15 @@ import (
 	"github.com/sadlil/go-trigger"
 )
 
-type RestartSystemActionPerformer struct {
+type restartSystemActionPerformer struct {
 	responseAttrs map[string]interface{}
 }
 
-func (d *RestartSystemActionPerformer) Name() string {
+func (d *restartSystemActionPerformer) Name() string {
 	return "__restart"
 }
 
-func (d *RestartSystemActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *restartSystemActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -44,7 +44,7 @@ func (d *RestartSystemActionPerformer) DoAction(request Outcome, inFields map[st
 
 func NewRestarSystemPerformer(initConfig *CmsConfig) (ActionPerformerInterface, error) {
 
-	handler := RestartSystemActionPerformer{}
+	handler := restartSystemActionPerformer{}
 
 	return &handler, nil
 

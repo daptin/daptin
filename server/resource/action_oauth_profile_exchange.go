@@ -12,12 +12,12 @@ import (
 	"time"
 )
 
-type OuathProfileExchangePerformer struct {
+type ouathProfileExchangePerformer struct {
 	responseAttrs map[string]interface{}
 	cruds         map[string]*DbResource
 }
 
-func (d *OuathProfileExchangePerformer) Name() string {
+func (d *ouathProfileExchangePerformer) Name() string {
 	return "oauth.profile.exchange"
 }
 
@@ -77,7 +77,7 @@ type TokenResponse struct {
 	Scope string
 }
 
-func (d *OuathProfileExchangePerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *ouathProfileExchangePerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	authenticator := inFieldMap["authenticator"].(string)
 	token := inFieldMap["token"].(string)
@@ -139,7 +139,7 @@ func (d *OuathProfileExchangePerformer) DoAction(request Outcome, inFieldMap map
 
 func NewOuathProfileExchangePerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := OuathProfileExchangePerformer{
+	handler := ouathProfileExchangePerformer{
 		cruds: cruds,
 	}
 

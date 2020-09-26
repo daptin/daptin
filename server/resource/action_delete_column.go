@@ -10,16 +10,16 @@ import (
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-type DeleteWorldColumnPerformer struct {
+type deleteWorldColumnPerformer struct {
 	cmsConfig *CmsConfig
 	cruds     map[string]*DbResource
 }
 
-func (d *DeleteWorldColumnPerformer) Name() string {
+func (d *deleteWorldColumnPerformer) Name() string {
 	return "world.column.delete"
 }
 
-func (d *DeleteWorldColumnPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	worldId := inFields["world_id"].(string)
 	columnToDelete := inFields["column_name"].(string)
@@ -90,7 +90,7 @@ func (d *DeleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 
 func NewDeleteWorldColumnPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	handler := DeleteWorldColumnPerformer{
+	handler := deleteWorldColumnPerformer{
 		cruds:     cruds,
 		cmsConfig: initConfig,
 	}
