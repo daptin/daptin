@@ -1354,7 +1354,11 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				}
 
 				for _, file := range foreignFilesList {
-					file["src"] = file["path"].(string) + string(os.PathSeparator) + file["name"].(string)
+					if file["path"] != nil {
+						file["src"] = file["path"].(string) + string(os.PathSeparator) + file["name"].(string)						
+					} else {
+						file["src"] = file["name"].(string)
+					}
 				}
 
 				row[key] = foreignFilesList
