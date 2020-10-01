@@ -102,8 +102,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	defaultRouter := gin.Default()
 	defaultRouter.Use(gzip.Gzip(gzip.DefaultCompression,
-		gzip.WithExcludedExtensions([]string{".pdf", ".mp4", ".jpg", ".png", "wav", "gif", "mp3"}),
-		gzip.WithExcludedPaths([]string{"/assets/"})),
+		gzip.WithExcludedExtensions([]string{".pdf", ".mp4", ".jpg", ".png", ".wav", ".gif", ".mp3"}),
+		gzip.WithExcludedPaths([]string{"/asset/"})),
 	)
 
 	defaultRouter.Use(func() gin.HandlerFunc {
@@ -384,7 +384,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	} else {
 		if err != nil {
-			configStore.SetConfigValueFor("imap.enabled", "false", "backend")
+			err = configStore.SetConfigValueFor("imap.enabled", "false", "backend")
+			resource.CheckErr(err, "Failed to set default value for imap.enabled")
 		}
 	}
 
