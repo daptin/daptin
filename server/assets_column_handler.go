@@ -85,17 +85,18 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 
 		if colInfo.IsForeignKey {
 
-			colType := strings.Split(colInfo.ColumnType, ".")[0]
 			//var filesData []interface{}
 			//err = json.Unmarshal([]byte(colData.(string)), &filesData)
 			//resource.CheckErr(err, "Failed to unmarshal file metadata")
 
 			fileToServe := ""
+			fileType := "application/octet-stream"
 			for _, fileData := range colData.([]map[string]interface{}) {
 				//fileData := fileInterface.(map[string]interface{})
 				fileName := fileData["name"].(string)
 				if c.Query(fileName) == fileName || fileToServe == "" {
 					fileToServe = fileName
+					fileType = fileData["type"].(string)
 				}
 			}
 
@@ -105,6 +106,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 				c.AbortWithStatus(404)
 				return
 			}
+			colType := strings.Split(fileType, "/")[0]
 
 			switch colType {
 
@@ -443,6 +445,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 				c.AbortWithStatus(200)
 
 			default:
+				c.Writer.Header().Set("Content-Type", fileType)
 				c.File(cruds["world"].AssetFolderCache[typeName][columnName].LocalSyncPath + string(os.PathSeparator) + fileToServe)
 
 			}
@@ -450,7 +453,6 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 
 			c.Writer.Header().Set("Content-Type", "text/html")
 			c.Writer.Write([]byte("<pre>" + colData.(string) + "</pre>"))
-			c.AbortWithStatus(200)
 
 		}
 
