@@ -160,10 +160,7 @@
 
 @page {
   size: 5.5in 8.5in;
-  margin-top: 2cm;
-  margin-bottom: 2cm;
-  margin-left: 2cm;
-  margin-right: 2cm;
+  margin: 2cm;
 }
 
 @page :right {

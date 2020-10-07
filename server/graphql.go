@@ -568,7 +568,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					//aggReq.Query =
 
 					aggResponse, err := resources[table.TableName].DataStats(aggReq)
-					return aggResponse, err
+					return aggResponse.Data, err
 				}
 			}(table),
 		}
