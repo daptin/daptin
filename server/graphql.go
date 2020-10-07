@@ -499,9 +499,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 		//
 
 		rootFields["aggregate"+strcase.ToCamel(table.TableName)] = &graphql.Field{
-			Type: graphql.NewList(graphql.NewObject(graphql.ObjectConfig{
-				//Name
-			})),
+			Type:        graphql.NewList(inputTypesMap[table.TableName]),
 			Description: "Aggregates for " + strings.ReplaceAll(table.TableName, "_", " "),
 			Args: graphql.FieldConfigArgument{
 				"group": &graphql.ArgumentConfig{
