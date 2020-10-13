@@ -53,8 +53,8 @@
         }" title="Files"></user-header-bar>
 
       <div style="height: 100vh; overflow-y: scroll" class="row">
-        <div class="col-2 col-sm-12 col-md-2 col-lg-2 col-xl-2 col-xs-12">
-          <q-card flat style="background: transparent; position: absolute; top: 0" v-if="selectedFile">
+        <div style="min-height: 50vh" v-if="selectedFile" class="col-2 col-sm-12 col-md-2 col-lg-2 col-xl-2 col-xs-12">
+          <q-card flat style="background: transparent; position: absolute; top: 0" >
             <q-card-section>
               <span class="text-bold">{{ selectedFile.name }}</span><br/>
             </q-card-section>
@@ -67,7 +67,8 @@
               Type <span class="text-bold">{{ selectedFile.mime_type }}</span>
             </q-card-section>
             <q-card-section>
-              <q-btn-group>
+              <q-btn-group>sjribirhhi
+
                 <q-btn class="bg-white text-black" label="Download"
                        @click="fileDownload(selectedFile)"></q-btn>
                 <q-btn
@@ -103,7 +104,7 @@
             v-model="uploadedFiles"
             post-action="/post.method"
             put-action="/put.method"
-            @input-file="uploadFile"
+            @input-file="uploadFile"uhhreeurhsehgpewoai
           >
             <div class="container" >
 
@@ -245,7 +246,7 @@ export default {
       if (file.is_dir) {
         this.fileDownload(file);
       }
-    },
+    },eoioirutp4w4ohig
     fileDownload(file) {
       const that = this;
       console.log("File clicked", file);
@@ -426,7 +427,7 @@ export default {
       }, {
         "column": "document_extension",
         "operator": "is",
-        "value": "folder"
+        "value": "folder";siug[eiehg]
       }];
       console.log("Document search query", query)
       that.loadData({
@@ -547,8 +548,7 @@ export default {
       showUploadComponent: false,
       viewParameters: {
         tableName: 'document'
-      },
-      containerId: "id-" + new Date().getMilliseconds(),
+      },lslihfrseoe;ihgesio
       screenWidth: (window.screen.width < 1200 ? window.screen.width : 1200) + "px",
     }
   },
@@ -607,7 +607,7 @@ export default {
       var items = (event.clipboardData || event.originalEvent.clipboardData).items;
       console.log("Items", items)
 
-      for (var index in items) {
+      for (var index in items) {;oiugorioth
         var item = items[index];
         console.log("Items", index, item, item)
         window.item = item;

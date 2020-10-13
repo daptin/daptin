@@ -1,9 +1,9 @@
 <template>
 
   <q-header class="bg-white text-black">
-    <q-toolbar v-if="decodedAuthToken() !== null">
+    <q-bar v-if="decodedAuthToken() !== null">
       <q-btn :key="btn.icon" v-for="btn in buttons.before" flat @click="btn.click" :icon="btn.icon"></q-btn>
-      <q-toolbar-title shrink>{{ title }}</q-toolbar-title>
+      <!--      <q-toolbar-title shrink>{{ title }}</q-toolbar-title>-->
       <q-btn :key="btn.icon" v-for="btn in buttons.after" flat @click="btn.click" :label="btn.label"
              :icon="btn.icon"></q-btn>
       <q-space/>
@@ -12,7 +12,8 @@
           <div class="row no-wrap q-pa-md">
             <q-list>
 
-              <q-item :disable="!item.enable" :key="item.name" v-for="item in menuItems" @click="$router.push(item.path)" clickable>
+              <q-item :disable="!item.enable" :key="item.name" v-for="item in menuItems"
+                      @click="$router.push(item.path)" clickable>
                 <q-item-section avatar>
                   <q-icon
                     :name="item.icon"
@@ -27,7 +28,7 @@
         </q-menu>
 
       </q-btn>
-      <q-btn size="1.2em" class="profile-image" flat :icon="'img:' + decodedAuthToken().picture">
+      <q-btn size="0.8em" class="profile-image" flat :icon="'img:' + decodedAuthToken().picture">
         <q-menu>
           <div class="row no-wrap q-pa-md">
 
@@ -51,7 +52,7 @@
         </q-menu>
       </q-btn>
       <!--      <q-img :src="decodedAuthToken().picture" width="40px" ></q-img>-->
-    </q-toolbar>
+    </q-bar>
   </q-header>
 
 </template>
