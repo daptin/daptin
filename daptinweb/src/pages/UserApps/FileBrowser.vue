@@ -56,7 +56,7 @@
         <div class="col-2 col-sm-12 col-md-2 col-lg-2 col-xl-2 col-xs-12">
           <q-card flat style="background: transparent; position: absolute; top: 0" v-if="selectedFile">
             <q-card-section>
-              <span class="text-h6">{{ selectedFile.name }}</span><br/>
+              <span class="text-bold">{{ selectedFile.name }}</span><br/>
             </q-card-section>
             <!--            <q-card-section v-if="selectedFile.mime_type.startsWith('image/')">-->
             <!--              <q-img-->
@@ -93,7 +93,7 @@
         </div>
       </div>
       <q-page-sticky :offset="[10, 10]" v-if="showUploadComponent">
-        <q-card style="width: 300px; height: 200px;  font-size: 10px;">
+        <q-card  style="border: 2px solid black; width: 300px; height: 200px;  font-size: 10px;">
           <file-upload
             :multiple="true"
             style="height: 300px; width: 100%; text-align: left"
@@ -105,16 +105,9 @@
             put-action="/put.method"
             @input-file="uploadFile"
           >
-            <div class="container">
-              <div class="row">
-                <div class="col-12" style="height: 100%; ">
-                <span class="vertical-middle" v-if="uploadedFiles.length === 0">
-                  Click here to select files, or drag and drop files here to upload</span>
-                </div>
-              </div>
-              <span v-if="uploadedFiles.length === 0"
-                    class="vertical-middle">Drop files or click to select <br/></span>
-              <div class="row q-pa-md">
+            <div class="container" >
+
+                <div class="row q-pa-xs">
                 <div class="col-12 ">
                   <table style="width: 100%">
                     <thead>
@@ -134,6 +127,13 @@
                   </table>
                 </div>
               </div>
+              <div style="padding: 10px" class="row">
+                <div class="col-12" style="height: 100%; ">
+                <span   class="vertical-middle" v-if="uploadedFiles.length === 0">
+                  Click here to select files, or drag and drop files here to upload</span>
+                </div>
+              </div>
+
             </div>
           </file-upload>
 
@@ -289,7 +289,7 @@ export default {
       }
     },
     createNew() {
-      console.log("Create ", this.newNameType, this.newName);
+      console.log("Create ", this.newNameType, this.newName, this.currentPath);
       const that = this;
       var newRow = {
         document_name: this.newName,
@@ -300,6 +300,7 @@ export default {
         document_content: [{
           name: this.newName,
           type: "text/plain",
+          path: this.currentPath,
           contents: "data:base64," + btoa(""),
         }],
       }

@@ -40,7 +40,7 @@
 
 
     <q-header elevated class="bg-white text-black">
-      <q-toolbar>
+      <q-bar>
         <q-btn-group flat>
           <q-btn flat label="File">
             <q-menu>
@@ -78,7 +78,7 @@
         </q-btn-group>
         <q-space></q-space>
         <q-btn @click="showSharingBox = true" class="text-primary" flat label="Share"></q-btn>
-        <q-btn v-if="decodedAuthToken() !== null" size="1.2em" class="profile-image" flat
+        <q-btn v-if="decodedAuthToken() !== null" size="0.8em" class="profile-image" flat
                :icon="'img:' + decodedAuthToken().picture">
           <q-menu>
             <div class="row no-wrap q-pa-md">
@@ -103,7 +103,7 @@
           </q-menu>
         </q-btn>
 
-      </q-toolbar>
+      </q-bar>
     </q-header>
     <q-page>
       <div id="luckysheet"
