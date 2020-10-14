@@ -8,12 +8,12 @@
 
       <div class="row">
         <div :class="{'col-2': showSideBar}">
-          <div class="row q-pa-md">
-            <div class="col-12">
-              &nbsp;<q-btn style="border: 1px solid black" flat label="Today"
-                           @click="setDate()"></q-btn>
-            </div>
-          </div>
+<!--          <div class="row q-pa-md">-->
+<!--            <div class="col-12">-->
+<!--              &nbsp;<q-btn style="border: 1px solid black" flat label="Today"-->
+<!--                           @click="setDate()"></q-btn>-->
+<!--            </div>-->
+<!--          </div>-->
           <div class="row" v-if="showSideBar">
             <div class="col-12">
               <q-date
@@ -39,6 +39,10 @@
           <div class="row">
             <div class="col-12">
               <q-toolbar>
+                <q-btn style="border: 1px solid black" flat label="Today"
+                               @click="setDate()"></q-btn>
+
+
                 <q-btn flat @click="calendar.refetchEvents()" icon="fas fa-sync-alt"></q-btn>
                 <span class="text-h6">{{ monthNames[date.getMonth()] }} {{ date.getFullYear() }}</span>
                 <q-btn @click="(showEventDialogTarget = true) && (showEventDialog = true)" icon="fas fa-plus" flat>

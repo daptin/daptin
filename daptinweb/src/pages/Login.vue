@@ -1,11 +1,11 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <q-page>
-    <div class="flex flex-center">
+    <div class="flex flex-center ">
       <div style="min-width: 30%">
-        <div class="q-pa-md">
-          <h2>Login</h2>
+        <div class="q-pa-md ">
+          <h3>Login</h3>
 
-          <q-form
+          <q-form autofocus
             @submit="onSubmit"
             class="q-gutter-md"
           >

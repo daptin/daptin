@@ -67,8 +67,7 @@
               Type <span class="text-bold">{{ selectedFile.mime_type }}</span>
             </q-card-section>
             <q-card-section>
-              <q-btn-group>sjribirhhi
-
+              <q-btn-group>
                 <q-btn class="bg-white text-black" label="Download"
                        @click="fileDownload(selectedFile)"></q-btn>
                 <q-btn
@@ -104,7 +103,7 @@
             v-model="uploadedFiles"
             post-action="/post.method"
             put-action="/put.method"
-            @input-file="uploadFile"uhhreeurhsehgpewoai
+            @input-file="uploadFile"
           >
             <div class="container" >
 
@@ -246,7 +245,7 @@ export default {
       if (file.is_dir) {
         this.fileDownload(file);
       }
-    },eoioirutp4w4ohig
+    },
     fileDownload(file) {
       const that = this;
       console.log("File clicked", file);
@@ -427,7 +426,7 @@ export default {
       }, {
         "column": "document_extension",
         "operator": "is",
-        "value": "folder";siug[eiehg]
+        "value": "folder"
       }];
       console.log("Document search query", query)
       that.loadData({
@@ -548,7 +547,8 @@ export default {
       showUploadComponent: false,
       viewParameters: {
         tableName: 'document'
-      },lslihfrseoe;ihgesio
+      },
+      containerId: "id-" + new Date().getMilliseconds(),
       screenWidth: (window.screen.width < 1200 ? window.screen.width : 1200) + "px",
     }
   },
@@ -607,7 +607,7 @@ export default {
       var items = (event.clipboardData || event.originalEvent.clipboardData).items;
       console.log("Items", items)
 
-      for (var index in items) {;oiugorioth
+      for (var index in items) {
         var item = items[index];
         console.log("Items", index, item, item)
         window.item = item;
