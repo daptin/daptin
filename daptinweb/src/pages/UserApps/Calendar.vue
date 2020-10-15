@@ -8,18 +8,18 @@
 
       <div class="row">
         <div :class="{'col-2': showSideBar}">
-<!--          <div class="row q-pa-md">-->
-<!--            <div class="col-12">-->
-<!--              &nbsp;<q-btn style="border: 1px solid black" flat label="Today"-->
-<!--                           @click="setDate()"></q-btn>-->
-<!--            </div>-->
-<!--          </div>-->
+          <!--          <div class="row q-pa-md">-->
+          <!--            <div class="col-12">-->
+          <!--              &nbsp;<q-btn style="border: 1px solid black" flat label="Today"-->
+          <!--                           @click="setDate()"></q-btn>-->
+          <!--            </div>-->
+          <!--          </div>-->
           <div class="row" v-if="showSideBar">
             <div class="col-12">
               <q-date
-                today-btn
-                mask="YYYY-MM-DD HH:mm:ss"
                 v-model="date"
+                @input="setDate"
+                today-btn
                 minimal
                 flat
                 style="background: transparent; width: 200px; min-width: 0px"
@@ -28,8 +28,9 @@
             <div class="col-12 q-pa-md" style="display: none">
               <div @drop="eventTrashed" class="text-center vertical-middle trash-box"
                    style="height: 100px; width: 100%; border: 1px solid red; padding: 5px; border-radius: 5px">
-                <br />
-                <q-icon size="3em" name="fas fa-trash"></q-icon> <br />
+                <br/>
+                <q-icon size="3em" name="fas fa-trash"></q-icon>
+                <br/>
                 <span class="text-small">Drop events here to delete them</span>
               </div>
             </div>
@@ -40,7 +41,7 @@
             <div class="col-12">
               <q-toolbar>
                 <q-btn style="border: 1px solid black" flat label="Today"
-                               @click="setDate()"></q-btn>
+                       @click="setDate()"></q-btn>
 
 
                 <q-btn flat @click="calendar.refetchEvents()" icon="fas fa-sync-alt"></q-btn>
@@ -233,6 +234,7 @@
 .trash-box:hover {
   color: red;
 }
+
 .new-event-panel .q-card__section {
   padding: 0;
 }
@@ -296,7 +298,7 @@ export default {
     }
   },
   methods: {
-    eventTrashed(){
+    eventTrashed() {
       console.log("Event trashed", arguments)
     },
     ...mapActions(['createRow', "loadData", "updateRow"]),
@@ -328,8 +330,11 @@ export default {
       })
     },
     setDate(date) {
+      console.log("set date", date)
       if (!date) {
         date = new Date();
+      } else {
+        date = new Date(Date.parse(date));
       }
       this.date = date;
       this.calendar.gotoDate(date);
@@ -363,7 +368,7 @@ export default {
   watch: {
     'date': function () {
       console.log("Date changed", this.date.toString())
-      this.calendar.gotoDate(this.date.toString())
+      // this.calendar.gotoDate(this.date.toString())
     }
   },
   mounted() {

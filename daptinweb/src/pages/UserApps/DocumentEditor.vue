@@ -456,7 +456,7 @@ export default {
         document_name: newFileName,
         document_extension: "html",
         mime_type: "text/html",
-        document_path: "/"
+        document_path: localStorage.getItem("_last_current_path") || "/"
       }
 
       this.file = {
@@ -483,6 +483,7 @@ export default {
 
       var zip = new JSZip();
       zip.file("contents.html", this.contents);
+      zip.file("page-setting.json", JSON.stringify(this.pageSetting));
 
       zip.generateAsync({type: "base64"}).then(function (base64) {
         that.document.document_content[0].contents = "data:application/x-ddocument," + base64
@@ -594,7 +595,7 @@ export default {
         // that.contents = atob(that.file.contents);
         zipFile.file("contents.html").async("string").then(function (data) {
           // data is "Hello World\n"
-          console.log("Loaded file: ", data)
+          // console.log("Loaded file: ", data)
           that.contents = data;
           that.loadEditor()
         }).catch(function (err) {

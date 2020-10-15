@@ -2,7 +2,7 @@
 
   <q-header class="bg-white text-black">
     <q-bar v-if="decodedAuthToken() !== null">
-      <q-btn :key="btn.icon" v-for="btn in buttons.before" flat @click="btn.click" :icon="btn.icon"></q-btn>
+      <q-btn :key="btn.icon" v-for="btn in buttons.before" flat @click="buttonClicked(btn)" :icon="btn.icon"></q-btn>
       <!--      <q-toolbar-title shrink>{{ title }}</q-toolbar-title>-->
       <q-btn :key="btn.icon" v-for="btn in buttons.after" flat @click="btn.click" :label="btn.label"
              :icon="btn.icon"></q-btn>
@@ -67,6 +67,10 @@ import {mapActions, mapGetters} from "vuex";
 export default {
   name: "UserHeaderBar",
   methods: {
+    buttonClicked(btn){
+      console.log("Button clicked", btn)
+      this.$emit(btn.event);
+    },
     logout() {
       localStorage.removeItem("token");
       localStorage.removeItem("user");

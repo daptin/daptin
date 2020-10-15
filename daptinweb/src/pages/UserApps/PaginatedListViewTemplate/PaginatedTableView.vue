@@ -33,7 +33,7 @@
           </td>
           <td>{{ item.name }}</td>
           <td>{{ item.size }}</td>
-          <td>{{ (item.updated_at || item.created_at) | formatDate  }}</td>
+          <td>{{ (item.updated_at || item.created_at)  }}</td>
         </tr>
         <tr @dblclick="itemDoubleClicked(item)" @click="itemClicked(item)" style="cursor: pointer" v-for="item in items" v-if="!item.is_dir">
           <q-menu context-menu>

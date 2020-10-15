@@ -318,7 +318,7 @@ export default {
         document_name: newFileName,
         document_extension: "html",
         mime_type: "text/html",
-        document_path: "/"
+        document_path: localStorage.getItem("_last_current_path") || "/"
       }
 
       this.file = {

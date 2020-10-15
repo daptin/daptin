@@ -33,17 +33,13 @@
           <q-item-section>New folder</q-item-section>
         </q-item>
         <q-separator/>
-        <q-item @click="showUploader()" clickable v-close-popup>
-          <q-item-section>Upload file</q-item-section>
-        </q-item>
 
       </q-list>
     </q-menu>
 
     <q-page>
-      <user-header-bar style="border-bottom: 1px solid black" :buttons="{
+      <user-header-bar style="border-bottom: 1px solid black" @show-uploader="showUploader" :buttons="{
         before: [
-            {icon: 'fas fa-plus', click: showUploader},
             {icon: 'fas fa-search', click: () => {}},
           ],
         after: [
@@ -89,9 +85,6 @@
                   <q-item-section>New spreadsheet</q-item-section>
                 </q-item>
                 <q-item clickable>
-                  <q-item-section>Upload</q-item-section>
-                </q-item>
-                <q-item clickable>
                   <q-item-section>Create file</q-item-section>
                 </q-item>
               </q-list>
@@ -101,6 +94,52 @@
             </q-card-section>
 
           </q-card>
+          <q-card style="border: 1px dashed black; font-size: 10px; box-shadow: none">
+            <file-upload
+              :multiple="true"
+              style="height: 300px; width: 100%; text-align: left"
+              ref="upload"
+              :drop="true"
+              :drop-directory="true"
+              v-model="uploadedFiles"
+              post-action="/post.method"
+              put-action="/put.method"
+              @input-file="uploadFile"
+            >
+              <div class="container">
+
+                <div class="row q-pa-xs">
+                  <div class="col-12 ">
+                    <table style="width: 100%">
+                      <thead v-if="uploadedFiles.length > 0">
+                      <tr>
+                        <th style="text-align: left">File</th>
+                        <th style="text-align: right">Size</th>
+                        <th style="text-align: right">Status</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      <tr v-for="file in uploadedFiles">
+                        <td style="text-align: left"> {{ file.name }}</td>
+                        <td style="text-align: right">{{ parseInt(file.size / 1024) }} Kb</td>
+                        <td style="text-align: right">{{ file.status }}</td>
+                      </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div style="padding: 10px" class="row">
+                  <div class="col-12" style="height: 100%; ">
+                <span class="vertical-middle" v-if="uploadedFiles.length === 0">
+                  Click here to select files, or drag and drop files here to upload</span>
+                  </div>
+                </div>
+
+              </div>
+            </file-upload>
+
+          </q-card>
+
         </div>
         <div class="col-10 col-sm-12 col-md-10 col-lg-10 col-xl-10 col-xs-12">
           <paginated-table-view v-if="viewMode === 'table'"
@@ -117,53 +156,9 @@
                                :items="files"></paginated-card-view>
         </div>
       </div>
-      <q-page-sticky :offset="[10, 10]" v-if="showUploadComponent">
-        <q-card style="border: 2px solid black; width: 300px; height: 200px;  font-size: 10px;">
-          <file-upload
-            :multiple="true"
-            style="height: 300px; width: 100%; text-align: left"
-            ref="upload"
-            :drop="true"
-            :drop-directory="true"
-            v-model="uploadedFiles"
-            post-action="/post.method"
-            put-action="/put.method"
-            @input-file="uploadFile"
-          >
-            <div class="container">
-
-              <div class="row q-pa-xs">
-                <div class="col-12 ">
-                  <table style="width: 100%">
-                    <thead>
-                    <tr>
-                      <th style="text-align: left">File</th>
-                      <th style="text-align: right">Size</th>
-                      <th style="text-align: right">Status</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr v-for="file in uploadedFiles">
-                      <td style="text-align: left"> {{ file.name }}</td>
-                      <td style="text-align: right">{{ parseInt(file.size / 1024) }} Kb</td>
-                      <td style="text-align: right">{{ file.status }}</td>
-                    </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div style="padding: 10px" class="row">
-                <div class="col-12" style="height: 100%; ">
-                <span class="vertical-middle" v-if="uploadedFiles.length === 0">
-                  Click here to select files, or drag and drop files here to upload</span>
-                </div>
-              </div>
-
-            </div>
-          </file-upload>
-
-        </q-card>
-      </q-page-sticky>
+      <!--      <q-page-sticky :offset="[10, 10]" v-if="showUploadComponent">-->
+      <!--        -->
+      <!--      </q-page-sticky>-->
     </q-page>
 
 
@@ -543,17 +538,18 @@ export default {
 
     },
     showUploader() {
+      console.log("show uploader", this.showUploadComponent)
       const that = this;
-      if (this.showUploadComponent) {
-        this.showUploadComponent = false;
-        return;
-      }
+      // if (this.showUploadComponent) {
+      //   this.showUploadComponent = false;
+      //   return;
+      // }
       this.uploadedFiles = [];
 
-      this.showUploadComponent = true
-      setTimeout(function () {
-        that.$refs.upload.$el.click()
-      }, 200);
+      // this.showUploadComponent = true
+      // setTimeout(function () {
+      that.$refs.upload.$el.click()
+      // }, 200);
     },
   },
   data() {
