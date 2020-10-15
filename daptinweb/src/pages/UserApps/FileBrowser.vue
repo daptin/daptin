@@ -53,8 +53,8 @@
         }" title="Files"></user-header-bar>
 
       <div style="height: 100vh; overflow-y: scroll" class="row">
-        <div style="min-height: 50vh" v-if="selectedFile" class="col-2 col-sm-12 col-md-2 col-lg-2 col-xl-2 col-xs-12">
-          <q-card flat style="background: transparent; position: absolute; top: 0" >
+        <div class="col-2 col-sm-12 col-md-2 col-lg-2 col-xl-2 col-xs-12">
+          <q-card v-if="selectedFile" flat style="background: transparent;">
             <q-card-section>
               <span class="text-bold">{{ selectedFile.name }}</span><br/>
             </q-card-section>
@@ -77,11 +77,36 @@
               </q-btn-group>
             </q-card-section>
           </q-card>
+
+
+          <q-card flat>
+            <q-card-section>
+              <q-list separator>
+                <q-item @click="$router.push('/apps/document/new')" clickable>
+                  <q-item-section>New document</q-item-section>
+                </q-item>
+                <q-item @click="$router.push('/apps/spreadsheet/new')" clickable>
+                  <q-item-section>New spreadsheet</q-item-section>
+                </q-item>
+                <q-item clickable>
+                  <q-item-section>Upload</q-item-section>
+                </q-item>
+                <q-item clickable>
+                  <q-item-section>Create file</q-item-section>
+                </q-item>
+              </q-list>
+            </q-card-section>
+            <q-card-section>
+
+            </q-card-section>
+
+          </q-card>
         </div>
         <div class="col-10 col-sm-12 col-md-10 col-lg-10 col-xl-10 col-xs-12">
           <paginated-table-view v-if="viewMode === 'table'"
                                 @item-deleted="itemDelete"
                                 @item-rename="itemRename"
+                                @item-double-clicked="fileDblClicked"
                                 @item-clicked="fileClicked"
                                 :items="files"></paginated-table-view>
           <paginated-card-view v-if="viewMode === 'card'"
@@ -93,7 +118,7 @@
         </div>
       </div>
       <q-page-sticky :offset="[10, 10]" v-if="showUploadComponent">
-        <q-card  style="border: 2px solid black; width: 300px; height: 200px;  font-size: 10px;">
+        <q-card style="border: 2px solid black; width: 300px; height: 200px;  font-size: 10px;">
           <file-upload
             :multiple="true"
             style="height: 300px; width: 100%; text-align: left"
@@ -105,9 +130,9 @@
             put-action="/put.method"
             @input-file="uploadFile"
           >
-            <div class="container" >
+            <div class="container">
 
-                <div class="row q-pa-xs">
+              <div class="row q-pa-xs">
                 <div class="col-12 ">
                   <table style="width: 100%">
                     <thead>
@@ -129,7 +154,7 @@
               </div>
               <div style="padding: 10px" class="row">
                 <div class="col-12" style="height: 100%; ">
-                <span   class="vertical-middle" v-if="uploadedFiles.length === 0">
+                <span class="vertical-middle" v-if="uploadedFiles.length === 0">
                   Click here to select files, or drag and drop files here to upload</span>
                 </div>
               </div>
@@ -195,15 +220,15 @@ export default {
     }
   },
   methods: {
-    itemRename(file){
+    itemRename(file) {
       console.log("rename item", file);
     },
     fileDblClicked(file) {
       console.log("Item double click", file)
     },
     isEditable(selectedFile) {
-      console.log("Check file is editable", selectedFile)
-      var ext = ["txt", "md", "ddoc", "dsheet"]
+      // console.log("Check file is editable", selectedFile)
+      var ext = ["ddoc", "dsheet"]
       let fileExtension = "";
       if (selectedFile.document_name.indexOf(".") > -1) {
         fileExtension = selectedFile.document_name.split(".")[1];
@@ -241,6 +266,7 @@ export default {
       })
     },
     fileClicked(file) {
+      console.log("file clicked", file)
       this.selectedFile = file;
       if (file.is_dir) {
         this.fileDownload(file);

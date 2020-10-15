@@ -52,29 +52,29 @@
                   <q-item-section>Open</q-item-section>
                 </q-item>
                 <q-item @click="saveDocument()" clickable v-close-popup>
-                  <q-item-section>Save spreadsheet</q-item-section>
+                  <q-item-section>Save</q-item-section>
                 </q-item>
-                <q-item @click="saveDocument()" clickable v-close-popup>
-                  <q-item-section>Export</q-item-section>
-                  <q-menu>
-                    <q-list>
-                      <q-item>To xlsx</q-item>
-                    </q-list>
-                  </q-menu>
-                </q-item>
-                <q-item @click="window.print()" clickable v-close-popup>
-                  <q-item-section>Print</q-item-section>
-                </q-item>
+                <!--                <q-item @click="saveDocument()" clickable v-close-popup>-->
+                <!--                  <q-item-section>Export</q-item-section>-->
+                <!--                  <q-menu>-->
+                <!--                    <q-list>-->
+                <!--                      <q-item>To xlsx</q-item>-->
+                <!--                    </q-list>-->
+                <!--                  </q-menu>-->
+                <!--                </q-item>-->
+                <!--                <q-item @click="window.print()" clickable v-close-popup>-->
+                <!--                  <q-item-section>Print</q-item-section>-->
+                <!--                </q-item>-->
                 <q-item @click="$router.back()" clickable v-close-popup>
                   <q-item-section>Close</q-item-section>
                 </q-item>
               </q-list>
             </q-menu>
           </q-btn>
-          <q-btn flat label="Edit"></q-btn>
-          <q-btn flat label="Format"></q-btn>
-          <q-btn flat label="Data"></q-btn>
-          <q-btn flat label="Help"></q-btn>
+          <!--          <q-btn flat label="Edit"></q-btn>-->
+          <!--          <q-btn flat label="Format"></q-btn>-->
+          <!--          <q-btn flat label="Data"></q-btn>-->
+          <!--          <q-btn flat label="Help"></q-btn>-->
         </q-btn-group>
         <q-space></q-space>
         <q-btn @click="showSharingBox = true" class="text-primary" flat label="Share"></q-btn>
@@ -107,7 +107,7 @@
     </q-header>
     <q-page>
       <div id="luckysheet"
-           style="margin:0px;padding:0px;position:absolute;width:100%;height:100%;left: 0px;top: -25px; bottom: 0"></div>
+           style="margin:0px;padding:0px;position:absolute;width:100%;height:calc(100% + 28px);left: 0px;top: -28px;"></div>
 
       <q-dialog v-model="newNameDialog">
         <q-card style="min-width: 400px">
@@ -129,6 +129,10 @@
 @import "../../statics/luckysheet/plugins/css/pluginsCss.css";
 @import "../../statics/luckysheet/plugins/plugins.css";
 
+
+.q-layout__shadow::after {
+  box-shadow: none;
+}
 
 .luckysheet-work-area {
   /*height: 41px !important;*/
@@ -303,6 +307,9 @@ export default {
         });
         return
       }
+      if (!this.newName.endsWith(".dsheet")) {
+        this.newName = this.newName + ".dsheet"
+      }
 
       var newFileName = null;
       newFileName = this.newName;
@@ -458,18 +465,20 @@ export default {
       }).then(function (res) {
         console.log("Loaded document", res.data)
         that.document = res.data[0];
-        that.file = that.document.document_content[0];
-
-
-        // that.contents = decodeUnicode(that.file.contents);
-
+        if (that.document.document_content) {
+          that.file = that.document.document_content[0];
+        } else {
+          that.document.document_content = [{
+            contents: null,
+          }]
+          that.file = {
+            contents: btoa("")
+          }
+        }
 
         JSZip.loadAsync(atob(that.file.contents)).then(function (zipFile) {
-
-
           // that.contents = atob(that.file.contents);
           zipFile.file("contents_encoded.json").async("string").then(function (data) {
-            // data is "Hello World\n"
             console.log("Loaded file: ", data)
             that.contents = decodeUnicode(data);
             that.loadEditor()

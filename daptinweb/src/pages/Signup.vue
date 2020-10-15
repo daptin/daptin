@@ -3,7 +3,7 @@
     <div class="flex flex-center">
       <div style="min-width: 30%">
         <div class="q-pa-md">
-          <h2>Register</h2>
+          <h3>Register</h3>
 
           <q-form
             @submit="onSubmit"

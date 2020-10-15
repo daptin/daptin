@@ -98,18 +98,18 @@ export default {
           path: '/apps/contacts',
           icon: 'fas fa-users'
         },
-        {
-          name: "Documents",
-          enable: true,
-          path: '/apps/document/new',
-          icon: 'fas fa-file-alt'
-        },
-        {
-          name: "Spreadsheet",
-          enable: true,
-          path: '/apps/spreadsheet/new',
-          icon: 'fas fa-file-csv'
-        },
+        // {
+        //   name: "Documents",
+        //   enable: true,
+        //   path: '/apps/document/new',
+        //   icon: 'fas fa-file-alt'
+        // },
+        // {
+        //   name: "Spreadsheet",
+        //   enable: true,
+          //   path: '/apps/spreadsheet/new',
+        //   icon: 'fas fa-file-csv'
+        // },
         {
           name: "Calendar",
           enable: true,

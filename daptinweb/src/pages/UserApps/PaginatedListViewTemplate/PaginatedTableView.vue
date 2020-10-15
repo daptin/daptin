@@ -33,9 +33,9 @@
           </td>
           <td>{{ item.name }}</td>
           <td>{{ item.size }}</td>
-          <td>{{ item.updated_at || item.created_at }}</td>
+          <td>{{ (item.updated_at || item.created_at) | formatDate  }}</td>
         </tr>
-        <tr @click="itemClicked(item)" style="cursor: pointer" v-for="item in items" v-if="!item.is_dir">
+        <tr @dblclick="itemDoubleClicked(item)" @click="itemClicked(item)" style="cursor: pointer" v-for="item in items" v-if="!item.is_dir">
           <q-menu context-menu>
             <q-list dense style="min-width: 100px">
               <q-item clickable v-close-popup>
@@ -77,6 +77,7 @@
 <script>
 import {mapActions} from "vuex";
 
+
 export default {
   name: "PaginatedTableView",
   props: ["items"],
@@ -90,11 +91,11 @@ export default {
       this.$emit('item-rename', item)
     },
     itemClicked(item) {
-      console.log("Item clicked", item)
+      // console.log("Item clicked", item)
       this.$emit('item-clicked', item)
     },
     itemDoubleClicked(item) {
-      console.log("Item double clicked", item)
+      // console.log("Item double clicked", item)
       this.$emit('item-double-clicked', item)
     },
     ...mapActions([]),

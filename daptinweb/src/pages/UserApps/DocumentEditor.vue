@@ -65,12 +65,12 @@
               </q-list>
             </q-menu>
           </q-btn>
-          <q-btn flat label="Edit"></q-btn>
-          <q-btn flat label="Format">
-
-          </q-btn>
-          <q-btn flat label="Data"></q-btn>
-          <q-btn flat label="Help"></q-btn>
+          <!--          <q-btn flat label="Edit"></q-btn>-->
+          <!--          <q-btn flat label="Format">-->
+          <!---->
+          <!--          </q-btn>-->
+          <!--          <q-btn flat label="Data"></q-btn>-->
+          <!--          <q-btn flat label="Help"></q-btn>-->
         </q-btn-group>
         <q-space></q-space>
         <q-btn @click="showSharingBox = true" class="text-primary" flat label="Share"></q-btn>
@@ -117,26 +117,33 @@
         </q-card-section>
         <q-card-section>
           <div class="row">
-            <div class="col-6">
-              <q-input v-model="pageSetting.height" label="Page height"></q-input>
-              <q-input v-model="pageSetting.width" label="Page width"></q-input>
-              <q-input v-model="pageSetting.margin.top" label="Margin top"></q-input>
-              <q-input v-model="pageSetting.margin.left" label="Margin left"></q-input>
-              <q-input v-model="pageSetting.margin.right" label="Margin right"></q-input>
-              <q-input v-model="pageSetting.margin.bottom" type="number" label="Margin bottom"></q-input>
+            <div class="col-6 q-pa-xs">
+              <!--              <q-input v-model="pageSetting.height" type="number" label="Page height"></q-input>-->
+              <q-input v-model="pageSetting.width" type="number" label="Page width"></q-input>
             </div>
-            <div class="col-6">
-
+            <div class="col-6  q-pa-xs">
+              <q-input v-model="pageSetting.margin.top" type="number" label="Margin top"></q-input>
+              <q-input v-model="pageSetting.margin.left" type="number" label="Margin left"></q-input>
+              <q-input v-model="pageSetting.margin.right" type="number" label="Margin right"></q-input>
+              <q-input v-model="pageSetting.margin.bottom" type="number" label="Margin bottom"></q-input>
             </div>
           </div>
         </q-card-section>
       </q-card>
     </q-dialog>
     <q-page>
-      <main style="height: 85vh; overflow-y: scroll">
+      <main style="position: absolute; bottom: 0; left: 0; right: 0; top: -1px; overflow-y: scroll">
         <div>
           <div class="row-editor" v-for="page in pages">
-            <div v-html="page.html" :id="page.id" class="editor" :style="{'min-height': pageSetting.height + 'px'}"></div>
+            <div v-html="page.html" :id="page.id" class="editor"
+                 :style="{
+              'min-height': pageSetting.height + 'px',
+              'width': pageSetting.width  + 'px',
+              'padding-left': pageSetting.margin.left  + 'px',
+              'padding-right': pageSetting.margin.right  + 'px',
+              'padding-top': pageSetting.margin.top  + 'px',
+              'padding-bottom': pageSetting.margin.bottom  + 'px',
+            }"></div>
           </div>
         </div>
       </main>
@@ -280,7 +287,7 @@ export default {
       var currentHeight = 0;
       var currentPageItems = [];
       let currentItem = allItems[0];
-      for (; true ;) {
+      for (; true;) {
         currentHeight = currentItem ? currentItem.offsetTop + currentItem.offsetHeight : 0;
         if (!currentItem || currentHeight > that.pageSetting.height) {
           console.log("Page break here please", currentItem, currentHeight);
@@ -436,6 +443,9 @@ export default {
           message: "Please enter a name"
         });
         return
+      }
+      if (!this.newName.endsWith(".ddoc")) {
+        this.newName = this.newName + ".ddoc"
       }
 
       var newFileName = null;
