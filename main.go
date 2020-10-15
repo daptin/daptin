@@ -165,6 +165,10 @@ func main() {
 	var imapServerInstance *imapServer.Server
 	var olricDb *olric.Olric
 
+	if localStoragePath != nil && *localStoragePath != "" {
+		_ = os.Mkdir(*localStoragePath, 0644)
+	}
+
 	hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
 		ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath)
 	rhs := RestartHandlerServer{

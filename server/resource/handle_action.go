@@ -193,7 +193,7 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 		return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 	}
 
-	log.Infof("Handle event for action [%v]", actionRequest.Action)
+	//log.Infof("Handle event for action [%v]", actionRequest.Action)
 
 	action, err := db.GetActionByName(actionRequest.Type, actionRequest.Action)
 	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
@@ -314,7 +314,7 @@ OutFields:
 		dbResource, _ := db.Cruds[outcome.Type]
 
 		actionResponses := make([]ActionResponse, 0)
-		log.Infof("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
+		//log.Infof("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
 		switch outcome.Method {
 		case "POST":
 			responseObjects, err = dbResource.CreateWithoutFilter(model, request)

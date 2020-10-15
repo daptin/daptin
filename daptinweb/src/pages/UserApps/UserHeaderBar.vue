@@ -43,6 +43,7 @@
                 color="black"
                 label="Logout"
                 push
+                rounded
                 @click="logout()"
                 size="sm"
                 v-close-popup
@@ -67,7 +68,7 @@ import {mapActions, mapGetters} from "vuex";
 export default {
   name: "UserHeaderBar",
   methods: {
-    buttonClicked(btn){
+    buttonClicked(btn) {
       console.log("Button clicked", btn)
       this.$emit(btn.event);
     },
@@ -111,7 +112,7 @@ export default {
         // {
         //   name: "Spreadsheet",
         //   enable: true,
-          //   path: '/apps/spreadsheet/new',
+        //   path: '/apps/spreadsheet/new',
         //   icon: 'fas fa-file-csv'
         // },
         {

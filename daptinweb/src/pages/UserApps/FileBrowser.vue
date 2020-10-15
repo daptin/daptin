@@ -63,29 +63,34 @@
               Type <span class="text-bold">{{ selectedFile.mime_type }}</span>
             </q-card-section>
             <q-card-section>
-              <q-btn-group>
-                <q-btn class="bg-white text-black" label="Download"
-                       @click="fileDownload(selectedFile)"></q-btn>
-                <q-btn
-                  v-if="isEditable(selectedFile)" label="Open"
-                  @click="openEditor(selectedFile)"></q-btn>
-
-              </q-btn-group>
+              <q-list separator bordered>
+                <q-item clickable @click="fileDownload(selectedFile)">
+                  <q-item-section>Download</q-item-section>
+                </q-item>
+                <q-item clickable v-if="isEditable(selectedFile)"
+                        @click="openEditor(selectedFile)">
+                  <q-item-section>Open</q-item-section>
+                </q-item>
+                <q-item clickable v-if="isViewable(selectedFile)"
+                        @click="openViewer(selectedFile)">
+                  <q-item-section>View</q-item-section>
+                </q-item>
+              </q-list>
             </q-card-section>
           </q-card>
 
 
           <q-card flat>
             <q-card-section>
-              <q-list separator>
+              <q-list bordered separator>
                 <q-item @click="$router.push('/apps/document/new')" clickable>
                   <q-item-section>New document</q-item-section>
                 </q-item>
                 <q-item @click="$router.push('/apps/spreadsheet/new')" clickable>
                   <q-item-section>New spreadsheet</q-item-section>
                 </q-item>
-                <q-item clickable>
-                  <q-item-section>Create file</q-item-section>
+                <q-item clickable @click="() => {(newNamePrompt = true) ; (newName = '') ; ( newNameType = 'file')}">
+                  <q-item-section>New file</q-item-section>
                 </q-item>
               </q-list>
             </q-card-section>
@@ -233,11 +238,32 @@ export default {
       return ext.filter(function (r) {
         return r === fileExtension
       }).length > 0;
-
+    },
+    isViewable(selectedFile) {
+      // console.log("Check file is editable", selectedFile)
+      var ext = ["jpg", "png", "gif", "txt", "pdf", "mp4", "mp3", "wav", "mkv"]
+      let fileExtension = "";
+      if (selectedFile.document_name.indexOf(".") > -1) {
+        fileExtension = selectedFile.document_name.split(".")[1];
+      }
+      return ext.filter(function (r) {
+        return r === fileExtension
+      }).length > 0;
     },
     openEditor(file, app) {
       var fileExtention = file.document_name.split(".")[1]
       switch (fileExtention) {
+        case "ddoc":
+          this.$router.push('/apps/document/' + file.reference_id)
+          return;
+        case "dsheet":
+          this.$router.push('/apps/spreadsheet/' + file.reference_id)
+          return;
+      }
+    },
+    openViewer(file, app) {
+      var fileExtension = file.document_name.split(".")[1]
+      switch (fileExtension) {
         case "ddoc":
           this.$router.push('/apps/document/' + file.reference_id)
           return;
@@ -369,8 +395,12 @@ export default {
 
           if (e.name.endsWith("xlsx") || e.name.endsWith("xls")) {
             e.icon = "fas fa-file-excel"
-          } else if (e.name.endsWith("doc") || e.name.endsWith("docx")) {
+          } else if (e.name.endsWith(".doc") || e.name.endsWith("docx")) {
             e.icon = "fas fa-file-word"
+          } else if (e.name.endsWith("dsheet")) {
+            e.icon = "fas fa-border-none"
+          } else if (e.name.endsWith("ddoc")) {
+            e.icon = "fas fa-file-alt"
           } else if (e.name.endsWith("ppt") || e.name.endsWith("pptx")) {
             e.icon = "fas fa-file-powerpoint"
           } else if (e.name.endsWith("pdf")) {

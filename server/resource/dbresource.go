@@ -99,6 +99,9 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 				if e != nil {
 					continue
 				}
+				if file["name"] == nil {
+					return errors.WithMessage(errors.New("file name cannot be null"), "File name is null")
+				}
 				localFilePath := afc.LocalSyncPath + string(os.PathSeparator) + file["name"].(string)
 				err := ioutil.WriteFile(localFilePath, fileBytes, os.ModePerm)
 				CheckErr(err, "Failed to write data to local file store")
