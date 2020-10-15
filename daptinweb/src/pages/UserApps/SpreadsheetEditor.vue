@@ -128,6 +128,7 @@
 @import "../../statics/luckysheet/css/luckysheet.css";
 @import "../../statics/luckysheet/plugins/css/pluginsCss.css";
 @import "../../statics/luckysheet/plugins/plugins.css";
+@import "../../statics/luckysheet/assets/iconfont/iconfont.css";
 
 
 .q-layout__shadow::after {
@@ -154,6 +155,7 @@ import {mapActions, mapGetters} from "vuex";
 import JSZip from "jszip";
 
 
+// import "../../statics/luckysheet/luckysheet.umd.js"
 // import "../../statics/luckysheet/plugins/js/plugin.js"
 
 function debounce(func, wait, immediate) {
@@ -212,7 +214,7 @@ export default {
       if (this.loading) {
         return
       }
-      // console.log("Contents changed", arguments)
+      console.log("Contents changed", arguments)
       if (this.saveDebounced === null) {
         this.saveDebounced = debounce(this.saveDocument, 3000, true)
       }
@@ -239,7 +241,7 @@ export default {
         luckysheet.destroy();
         if (that.contents.length > 0) {
           try {
-            // console.log("set string data", that.contents)
+            console.log("set string data", that.contents)
             var item = that.contents;
             if (!item) {
               // item = workingData
@@ -259,6 +261,7 @@ export default {
             luckysheet.create(options);
           }
         } else {
+          console.log("Else just create")
           luckysheet.create(options);
         }
         if (that.decodedAuthToken() === null) {
@@ -282,14 +285,16 @@ export default {
     },
     saveDocumentState() {
       const that = this;
-      let newData = luckysheet.getluckysheetfile();
-      newData = newData.map(function (sheet) {
-        // console.log("Get grid data for sheet", sheet)
-        sheet.celldata = luckysheet.getGridData(sheet.data)
-        // delete sheet.data
-        return sheet;
-      })
-      that.contents = JSON.stringify(newData);
+      // let newData = luckysheet.getluckysheetfile();
+      // newData = newData.map(function (sheet) {
+      //   console.log("Get grid data for sheet", sheet)
+      // sheet.celldata = luckysheet.getGridData(sheet.data)
+      // delete sheet.data
+      // return sheet;
+      // })
+      let value = luckysheet.toJson();
+      console.log("sheet json", value);
+      that.contents = JSON.stringify(value);
       window.localStorage.setItem("d", that.contents)
 
 
@@ -464,6 +469,14 @@ export default {
         }
       }).then(function (res) {
         console.log("Loaded document", res.data)
+        if (res.data === null || res.data.length < 1) {
+          that.file = {
+            contents: "",
+            name: "New file.html"
+          };
+          that.loadEditor();
+          return
+        }
         that.document = res.data[0];
         if (that.document.document_content) {
           that.file = that.document.document_content[0];
@@ -492,9 +505,6 @@ export default {
           console.log("Failed to load zip file", err)
           that.loadEditor()
         });
-
-
-        that.loadEditor()
       })
 
 

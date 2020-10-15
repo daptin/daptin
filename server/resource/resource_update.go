@@ -205,6 +205,9 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					if ok {
 						err = columnAssetCache.UploadFiles(val.([]interface{}))
 						CheckErr(err, "Failed to store uploaded file in column [%v]", col.ColumnName)
+						if err != nil {
+							return nil, err
+						}
 					}
 
 					files, ok = val.([]interface{})

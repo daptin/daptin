@@ -1354,10 +1354,12 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				}
 
 				for _, file := range foreignFilesList {
-					if file["path"] != nil {
-						file["src"] = file["path"].(string) + string(os.PathSeparator) + file["name"].(string)						
-					} else {
+					if file["path"] != nil && file["name"] != nil {
+						file["src"] = file["path"].(string) + string(os.PathSeparator) + file["name"].(string)
+					} else if file["name"] != nil {
 						file["src"] = file["name"].(string)
+					} else {
+						log.Errorf("File entry is missing name and path [%v][%v]", dr.TableInfo().TableName, key)
 					}
 				}
 
