@@ -53,10 +53,10 @@
                 <q-item @click="pageSettingDialog = true" clickable v-close-popup>
                   <q-item-section>Page setting</q-item-section>
                 </q-item>
-                <q-item clickable v-close-popup>
-                  <q-item-section>Save as</q-item-section>
+                <q-item @click="saveDocument()" clickable v-close-popup>
+                  <q-item-section>Save</q-item-section>
                 </q-item>
-                <q-item @click="window.print()" clickable v-close-popup>
+                <q-item @click="printDocument()" clickable v-close-popup>
                   <q-item-section>Print</q-item-section>
                 </q-item>
                 <q-item @click="$router.push('/apps/files')" clickable v-close-popup>
@@ -167,7 +167,6 @@
 
 @page {
   size: 5.5in 8.5in;
-  margin: 2cm;
 }
 
 @page :right {
@@ -276,6 +275,11 @@ export default {
     }
   },
   methods: {
+    printDocument() {
+      setTimeout(function () {
+        window.print();
+      }, 100)
+    },
     logout() {
       this.$emit("logout");
     },
@@ -412,7 +416,7 @@ export default {
             const saveMethod = debounce(that.saveDocument, 1000, false)
             if (that.decodedAuthToken()) {
               editor.onChange((res) => { //提供onChange方法获取数据
-                console.log("Editor on change", res)
+                // console.log("Editor on change", res)
                 that.contents = editor.getData()["page-1"];
                 // console.log("Editor contents", that.contents)
                 saveMethod();
@@ -484,6 +488,14 @@ export default {
       var zip = new JSZip();
       zip.file("contents.html", this.contents);
       zip.file("page-setting.json", JSON.stringify(this.pageSetting));
+
+      if (that.document.document_content == null || that.document.document_content.length < 0) {
+        that.document.document_content = [{
+          name: this.document.document_name,
+          type: "application/x-ddocument",
+          path: localStorage.getItem("_last_current_path")
+        }]
+      }
 
       zip.generateAsync({type: "base64"}).then(function (base64) {
         that.document.document_content[0].contents = "data:application/x-ddocument," + base64
@@ -586,12 +598,18 @@ export default {
     }).then(function (res) {
       console.log("Loaded document", res.data)
       that.document = res.data[0];
-      that.file = that.document.document_content[0];
+      if (!that.document.document_content) {
+        that.loadEditor();
+        return;
+      }
 
-
+      if (that.document.document_content.length > 0) {
+        that.file = that.document.document_content[0];
+      } else {
+        that.loadEditor();
+        return;
+      }
       JSZip.loadAsync(atob(that.file.contents)).then(function (zipFile) {
-
-
         // that.contents = atob(that.file.contents);
         zipFile.file("contents.html").async("string").then(function (data) {
           // data is "Hello World\n"

@@ -2,9 +2,13 @@
 
   <q-header class="bg-white text-black">
     <q-bar v-if="decodedAuthToken() !== null">
+      <form @submit="emitSearch">
+        <input @focusin="searchFocused" @focusout="searchUnFocused" id="searchInput"
+               placeholder="Type '/' to focus here"
+               type="text" v-model="searchQuery"/>
+      </form>
       <q-btn :key="btn.icon" v-for="btn in buttons.before" flat @click="buttonClicked(btn)" :icon="btn.icon"></q-btn>
-      <!--      <q-toolbar-title shrink>{{ title }}</q-toolbar-title>-->
-      <q-btn :key="btn.icon" v-for="btn in buttons.after" flat @click="btn.click" :label="btn.label"
+      <q-btn :key="btn.icon" v-for="btn in buttons.after" flat @click="buttonClicked(btn)" :label="btn.label"
              :icon="btn.icon"></q-btn>
       <q-space/>
       <q-btn flat icon="fas fa-th">
@@ -68,9 +72,24 @@ import {mapActions, mapGetters} from "vuex";
 export default {
   name: "UserHeaderBar",
   methods: {
+    emitSearch(event) {
+      this.$emit('search', this.searchQuery)
+      event.stopPropagation();
+      event.preventDefault();
+    },
+    searchFocused() {
+      this.isTypingSearchQuery = true;
+    },
+    searchUnFocused() {
+      this.isTypingSearchQuery = false;
+    },
     buttonClicked(btn) {
-      console.log("Button clicked", btn)
-      this.$emit(btn.event);
+      console.log("Button clicked", btn, this.searchQuery)
+      if (btn.click) {
+        btn.click();
+        return;
+      }
+      this.$emit(btn.event, this.searchQuery);
     },
     logout() {
       localStorage.removeItem("token");
@@ -81,9 +100,28 @@ export default {
     },
     ...mapActions(['setDecodedAuthToken'])
   },
+  beforeDestroy() {
+    document.onkeypress = null;
+  },
+  mounted() {
+    const that = this;
+    document.onkeypress = function (keyEvent) {
+      if (that.isTypingSearchQuery) {
+        return;
+      }
+      console.log("Key pressed", keyEvent)
+      if (keyEvent.key === '/') {
+        document.getElementById("searchInput").focus();
+        keyEvent.stopPropagation();
+        keyEvent.preventDefault();
+      }
+    }
+  },
   data() {
     return {
       ...mapGetters(['decodedAuthToken']),
+      searchQuery: null,
+      isTypingSearchQuery: false,
       menuItems: [
         {
           name: "Email",

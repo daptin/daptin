@@ -18,7 +18,7 @@
           <q-separator/>
         </q-list>
       </q-menu>
-      <q-card @dblclick="itemDoubleClicked(item)" @click="itemClicked(item)" class="table-item" flat>
+      <q-card style="cursor: default" @dblclick="itemDoubleClicked(item)" @click="itemClicked(item)" class="table-item" flat>
         <q-tooltip :delay="1000">{{ item.name }}</q-tooltip>
         <q-card-section class="text-center" avatar>
           <q-icon :style="{'color': item.color}" size="2.5em" :name="item.icon"/>
@@ -46,7 +46,8 @@
           <q-separator/>
         </q-list>
       </q-menu>
-      <q-card @click="itemClicked(item)" class="table-item" flat :style="{cursor: 'pointer', color: item.color}">
+      <q-card @click="itemClicked(item)" @dblclick="itemDoubleClicked(item)" class="table-item" flat
+              :style="{cursor: 'default', color: item.color}">
         <q-tooltip :delay="1000">{{ item.name }}</q-tooltip>
         <q-card-section class="text-center" avatar>
           <q-icon :style="{'color': item.color}" size="2.5em" :name="item.icon"/>

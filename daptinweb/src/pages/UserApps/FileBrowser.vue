@@ -38,26 +38,23 @@
     </q-menu>
 
     <q-page>
-      <user-header-bar style="border-bottom: 1px solid black" @show-uploader="showUploader" :buttons="{
+      <user-header-bar style="border-bottom: 1px solid black" @search="searchDocuments" @show-uploader="showUploader"
+                       :buttons="{
         before: [
-            {icon: 'fas fa-search', click: () => {}},
+            {icon: 'fas fa-search', event: 'search'},
           ],
         after: [
             {icon: viewMode === 'card' ? 'fas fa-th-list' : 'fas fa-th-large', click: () => {viewMode = viewMode === 'card' ? 'table' : 'card'}},
-            {icon: 'fas fa-sync-alt', click: refreshData},
+            {icon: 'fas fa-sync-alt', event: 'search'},
           ],
         }" title="Files"></user-header-bar>
 
       <div style="height: 100vh; overflow-y: scroll" class="row">
         <div class="col-2 col-sm-12 col-md-2 col-lg-2 col-xl-2 col-xs-12">
-          <q-card v-if="selectedFile" flat style="background: transparent;">
+          <q-card v-if="selectedFile && !selectedFile.is_dir" flat style="background: transparent;">
             <q-card-section>
               <span class="text-bold">{{ selectedFile.name }}</span><br/>
             </q-card-section>
-            <!--            <q-card-section v-if="selectedFile.mime_type.startsWith('image/')">-->
-            <!--              <q-img-->
-            <!--                :src="endpoint() + '/asset/document/' + selectedFile.reference_id + '/' + 'document_content.png'  "></q-img>-->
-            <!--            </q-card-section>-->
             <q-card-section>
               Size <span class="text-bold">{{ parseInt(selectedFile.document_content[0].size / 1024) }} Kb</span> <br/>
               Type <span class="text-bold">{{ selectedFile.mime_type }}</span>
@@ -192,21 +189,6 @@ function saveByteArray(reportName, fileType, byte) {
   var fileName = reportName;
   link.download = fileName;
   link.click();
-};
-
-function debounce(func, wait, immediate) {
-  var timeout;
-  return function () {
-    var context = this, args = arguments;
-    var later = function () {
-      timeout = null;
-      if (!immediate) func.apply(context, args);
-    };
-    var callNow = immediate && !timeout;
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-    if (callNow) func.apply(context, args);
-  };
 }
 
 
@@ -220,11 +202,25 @@ export default {
     }
   },
   methods: {
+    searchDocuments(query) {
+      console.log("search documents", query);
+      this.refreshData(query);
+    },
     itemRename(file) {
       console.log("rename item", file);
     },
     fileDblClicked(file) {
       console.log("Item double click", file)
+      if (file.is_dir) {
+        this.fileDownload(file);
+      } else if (this.isEditable(file)) {
+        this.openEditor(file)
+      } else if (this.isViewable(file)) {
+        this.openViewer(file)
+      } else {
+        this.fileDownload(file);
+      }
+
     },
     isEditable(selectedFile) {
       // console.log("Check file is editable", selectedFile)
@@ -250,7 +246,7 @@ export default {
         return r === fileExtension
       }).length > 0;
     },
-    openEditor(file, app) {
+    openEditor(file) {
       var fileExtention = file.document_name.split(".")[1]
       switch (fileExtention) {
         case "ddoc":
@@ -261,7 +257,7 @@ export default {
           return;
       }
     },
-    openViewer(file, app) {
+    openViewer(file) {
       var fileExtension = file.document_name.split(".")[1]
       switch (fileExtension) {
         case "ddoc":
@@ -289,9 +285,6 @@ export default {
     fileClicked(file) {
       console.log("file clicked", file)
       this.selectedFile = file;
-      if (file.is_dir) {
-        this.fileDownload(file);
-      }
     },
     fileDownload(file) {
       const that = this;
@@ -370,10 +363,80 @@ export default {
 
     },
     ...mapActions(['loadData', 'createRow', 'loadModel', 'deleteRow']),
-    refreshData() {
+    handleDataLoad(documentList) {
+      const that = this;
+      if (documentList.data === null) {
+        that.$q.notify({
+          message: "Error fetching files"
+        })
+        return
+      }
+      console.log("Documents ", documentList);
+      that.files = documentList.data.map(function (e) {
+        // e.color = "white"
+        e.icon = "fas fa-file"
+        e.name = e.document_name
+        e.path = e.document_path
+
+        if (e.name.endsWith("xlsx") || e.name.endsWith("xls")) {
+          e.icon = "fas fa-file-excel"
+        } else if (e.name.endsWith(".doc") || e.name.endsWith("docx")) {
+          e.icon = "fas fa-file-word"
+        } else if (e.name.endsWith("dsheet")) {
+          e.icon = "fas fa-border-none"
+        } else if (e.name.endsWith("ddoc")) {
+          e.icon = "fas fa-file-alt"
+        } else if (e.name.endsWith("ppt") || e.name.endsWith("pptx")) {
+          e.icon = "fas fa-file-powerpoint"
+        } else if (e.name.endsWith("pdf")) {
+          e.icon = "fas fa-file-pdf"
+        } else if (e.name.endsWith("txt") || e.name.endsWith("yaml") || e.name.endsWith("json")) {
+          e.icon = "fas fa-file-alt"
+        } else if (e.name.endsWith("html") || e.name.endsWith("xml") || e.name.endsWith("css")) {
+          e.icon = "fas fa-file-code"
+        } else if (e.name.endsWith("csv")) {
+          e.icon = "fas fa-file-csv"
+        } else if (e.name.endsWith("jpg") || e.name.endsWith("tiff") || e.name.endsWith("gif") || e.name.endsWith("png")) {
+          e.icon = "fas fa-image"
+        } else if (e.name.endsWith("mp3") || e.name.endsWith("wav") || e.name.endsWith("riff") || e.name.endsWith("ogg")) {
+          e.icon = "fas fa-file-audio"
+        } else if (e.name.endsWith("mp4") || e.name.endsWith("mkv") || e.name.endsWith("riff") || e.name.endsWith("m4a")) {
+          e.icon = "fas fa-file-video"
+        } else if (e.name.endsWith("zip") || e.name.endsWith("rar") || e.name.endsWith("gz") || e.name.endsWith("tar")) {
+          e.icon = "fas fa-file-archive"
+        }
+        if (e.document_extension === "folder") {
+          e.icon = "fas fa-folder"
+          e.is_dir = true
+          e.color = "rgb(224, 135, 94)"
+
+        }
+
+        return e;
+      });
+      if (that.currentPath !== "") {
+        that.files.unshift({
+          name: '..',
+          path: '..',
+          icon: 'fas fa-folder',
+          is_dir: true,
+          color: "rgb(224, 135, 94)"
+        })
+        that.files.unshift({
+          name: '.',
+          path: '.',
+          icon: 'fas fa-folder',
+          is_dir: true,
+          color: "rgb(224, 135, 94)"
+        });
+
+      }
+
+    },
+    refreshData(searchTerm) {
       const that = this;
       that.selectedFile = null;
-      that.loadData({
+      let queryPayload = {
         tableName: "document",
         params: {
           query: JSON.stringify([{
@@ -385,67 +448,24 @@ export default {
             size: 100,
           }
         }
-      }).then(function (res) {
-        console.log("Documents ", res);
-        that.files = res.data.map(function (e) {
-          // e.color = "white"
-          e.icon = "fas fa-file"
-          e.name = e.document_name
-          e.path = e.document_path
-
-          if (e.name.endsWith("xlsx") || e.name.endsWith("xls")) {
-            e.icon = "fas fa-file-excel"
-          } else if (e.name.endsWith(".doc") || e.name.endsWith("docx")) {
-            e.icon = "fas fa-file-word"
-          } else if (e.name.endsWith("dsheet")) {
-            e.icon = "fas fa-border-none"
-          } else if (e.name.endsWith("ddoc")) {
-            e.icon = "fas fa-file-alt"
-          } else if (e.name.endsWith("ppt") || e.name.endsWith("pptx")) {
-            e.icon = "fas fa-file-powerpoint"
-          } else if (e.name.endsWith("pdf")) {
-            e.icon = "fas fa-file-pdf"
-          } else if (e.name.endsWith("txt") || e.name.endsWith("yaml") || e.name.endsWith("json")) {
-            e.icon = "fas fa-file-alt"
-          } else if (e.name.endsWith("html") || e.name.endsWith("xml") || e.name.endsWith("css")) {
-            e.icon = "fas fa-file-code"
-          } else if (e.name.endsWith("csv")) {
-            e.icon = "fas fa-file-csv"
-          } else if (e.name.endsWith("jpg") || e.name.endsWith("tiff") || e.name.endsWith("gif") || e.name.endsWith("png")) {
-            e.icon = "fas fa-image"
-          } else if (e.name.endsWith("mp3") || e.name.endsWith("wav") || e.name.endsWith("riff") || e.name.endsWith("ogg")) {
-            e.icon = "fas fa-file-audio"
-          } else if (e.name.endsWith("mp4") || e.name.endsWith("mkv") || e.name.endsWith("riff") || e.name.endsWith("m4a")) {
-            e.icon = "fas fa-file-video"
-          } else if (e.name.endsWith("zip") || e.name.endsWith("rar") || e.name.endsWith("gz") || e.name.endsWith("tar")) {
-            e.icon = "fas fa-file-archive"
+      };
+      if (searchTerm && searchTerm.trim().length > 0) {
+        queryPayload.params.query = JSON.stringify([
+          {
+            column: "document_name",
+            operator: "contains",
+            value: searchTerm
           }
-          if (e.document_extension === "folder") {
-            e.icon = "fas fa-folder"
-            e.is_dir = true
-            e.color = "rgb(224, 135, 94)"
+        ])
+      }
 
-          }
 
-          return e;
-        });
-        if (that.currentPath !== "") {
-          that.files.unshift({
-            name: '..',
-            path: '..',
-            icon: 'fas fa-folder',
-            is_dir: true,
-            color: "rgb(224, 135, 94)"
-          })
-          that.files.unshift({
-            name: '.',
-            path: '.',
-            icon: 'fas fa-folder',
-            is_dir: true,
-            color: "rgb(224, 135, 94)"
-          });
+      that.files = [];
+      console.log("Query data")
 
-        }
+      that.loadData(queryPayload).then(function (res) {
+        console.log("data load complete")
+        that.handleDataLoad(res)
       });
 
 
