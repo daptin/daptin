@@ -1423,8 +1423,9 @@ func (resource *DbResource) GetFileFromCloudStore(data api2go.ForeignKeyData, fi
 		}
 
 		fileName := fileItem["name"].(string)
-		bytes, err := ioutil.ReadFile(cloudStore.RootPath + "/" + data.KeyName + "/" + fileName)
-		CheckErr(err, "Failed to read file on storage")
+		filePath := cloudStore.RootPath + "/" + data.KeyName + "/" + fileName
+		bytes, err := ioutil.ReadFile(filePath)
+		CheckErr(err, "Failed to read file on storage %s", filePath)
 		if err != nil {
 			continue
 		}
@@ -1450,6 +1451,11 @@ func (resource *DbResource) GetFileFromLocalCloudStore(tableName string, columnN
 
 		for key, val := range fileItem {
 			newFileItem[key] = val
+		}
+
+		if fileItem["src"] == nil {
+			log.Printf("file has no source: [%v][%v]", tableName, columnName)
+			continue
 		}
 
 		filePath := fileItem["src"].(string)

@@ -270,6 +270,9 @@ export default {
         setInterval(function () {
           that.loading = false;
           let newData = luckysheet.getluckysheetfile();
+          if (!newData) {
+            return
+          }
           newData = newData.map(function (sheet) {
             // console.log("Get grid data for sheet", sheet)
             sheet.celldata = luckysheet.getGridData(sheet.data)
@@ -337,7 +340,7 @@ export default {
     },
     saveDocument() {
       const that = this;
-      // console.log("save document", this.document, this.contents);
+      console.log("save document", this.document, this.contents);
       if (!this.document) {
         this.newNameDialog = true;
         return
@@ -472,7 +475,8 @@ export default {
         if (res.data === null || res.data.length < 1) {
           that.file = {
             contents: "",
-            name: "New file.html"
+            name: "New file.html",
+            path: localStorage.getItem("_last_current_path") || "/"
           };
           that.loadEditor();
           return
@@ -481,12 +485,13 @@ export default {
         if (that.document.document_content) {
           that.file = that.document.document_content[0];
         } else {
-          that.document.document_content = [{
-            contents: null,
-          }]
           that.file = {
-            contents: btoa("")
+            contents: btoa(""),
+            name: that.document.document_name,
+            type: "application/x-ddocument",
+            path: localStorage.getItem("_last_current_path") || "/"
           }
+          that.document.document_content = [that.file]
         }
 
         JSZip.loadAsync(atob(that.file.contents)).then(function (zipFile) {
