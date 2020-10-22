@@ -94,7 +94,7 @@ func main() {
 	boxRoot1, err := rice.FindBox("daptinweb/dist/spa/")
 
 	var boxRoot http.FileSystem
-	if err != nil {
+	if err != nil || webDashboardSource != nil {
 		log.Printf("Try loading web dashboard from: %v", *webDashboardSource)
 		boxRoot = http.Dir(*webDashboardSource)
 	} else {
