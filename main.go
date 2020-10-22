@@ -51,6 +51,38 @@ func init() {
 	//log.SetOutput(mwriter)
 }
 
+// Following variables will be statically linked at the time of compiling
+
+// GitCommit holds short commit hash of source tree
+var GitCommit string
+
+// GitBranch holds current branch name the code is built off
+var GitBranch string
+
+// GitState shows whether there are uncommitted changes
+var GitState string
+
+// GitSummary holds output of git describe --tags --dirty --always
+var GitSummary string
+
+// BuildDate holds RFC3339 formatted UTC date (build time)
+var BuildDate string
+
+// Version holds contents of ./VERSION file, if exists, or the value passed via the -version option
+var Version string
+
+
+func printVersion() {
+	fmt.Printf(`
+   GitCommit: %s
+   GitBranch: %s
+    GitState: %s
+  GitSummary: %s
+   BuildDate: %s
+     Version: %s
+	`, GitCommit, GitBranch, GitState, GitSummary, BuildDate, Version)
+}
+
 func main() {
 	//eventEmitter := &emitter.Emitter{}
 
@@ -67,9 +99,17 @@ func main() {
 	var port = flag.String("port", ":6336", "daptin port")
 	var httpsPort = flag.String("https_port", ":6443", "daptin https port")
 	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: profile, debug, test, release")
+	var version = flag.Bool("version", false, "print version information")
+
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
+
+	if version != nil && *version {
+		printVersion()
+		return
+	}
+
 
 	restart_count := 0
 	if *runtimeMode == "profile" {

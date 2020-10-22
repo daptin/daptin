@@ -45,7 +45,7 @@ endif
 
 daptin:
 	go get
-	go build -v --ldflags "-s -X github.com/daptin/daptin/fs.Version=$(TAG)" $(BUILDTAGS)
+	go build -v --ldflags "-s $(govvv -flags) -X github.com/daptin/daptin/fs.Version=$(TAG)" $(BUILDTAGS)
 	mkdir -p `go env GOPATH`/bin/
 	cp -av daptin`go env GOEXE` `go env GOPATH`/bin/daptin`go env GOEXE`.new
 	mv -v `go env GOPATH`/bin/daptin`go env GOEXE`.new `go env GOPATH`/bin/daptin`go env GOEXE`
