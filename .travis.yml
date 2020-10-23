@@ -41,7 +41,7 @@ script:
 - pwd
 - rice embed-go
 - ls -lah
-- GOOS=linux go build  -a -ldflags '$(govvv -flags) -extldflags "-static"' -o main
+- GOOS=linux go build  -a -ldflags "$(govvv -flags) -extldflags '-static'" -o main
 - mkdir docker_dir
 - cp ./main ./docker_dir/main
 - cp ./main ./docker_dir/main
