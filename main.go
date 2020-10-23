@@ -71,7 +71,6 @@ var BuildDate string
 // Version holds contents of ./VERSION file, if exists, or the value passed via the -version option
 var Version string
 
-
 func printVersion() {
 	fmt.Printf(`
    GitCommit: %s
@@ -99,17 +98,11 @@ func main() {
 	var port = flag.String("port", ":6336", "daptin port")
 	var httpsPort = flag.String("https_port", ":6443", "daptin https port")
 	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: profile, debug, test, release")
-	var version = flag.Bool("version", false, "print version information")
-
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
 
-	if version != nil && *version {
-		printVersion()
-		return
-	}
-
+	printVersion()
 
 	restart_count := 0
 	if *runtimeMode == "profile" {
