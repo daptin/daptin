@@ -111,13 +111,6 @@ jobs:
           sudo apt-get install fuse libfuse-dev rpm pkg-config rclone
         if: matrix.os == 'ubuntu-latest'
 
-      - name: Install Libraries on macOS
-        shell: bash
-        run: |
-          brew update
-          brew install rclone
-          brew cask install osxfuse
-        if: matrix.os == 'macOS-latest'
 
       - name: Install Libraries on Windows
         shell: powershell
