@@ -535,12 +535,17 @@ var SystemActions = []Action{
 		Name:             "generate_random_data",
 		Label:            "Generate random data",
 		OnType:           "world",
-		InstanceOptional: false,
+		InstanceOptional: true,
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "Number of records",
 				ColumnName: "count",
 				ColumnType: "measurement",
+			},
+			{
+				Name:       "Table name",
+				ColumnName: "table_name",
+				ColumnType: "label",
 			},
 		},
 		OutFields: []Outcome{
@@ -549,7 +554,7 @@ var SystemActions = []Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"count":             "~count",
-					"table_name":        "$.table_name",
+					"table_name":        "~table_name",
 					"user_reference_id": "$user.reference_id",
 					"user_account_id":   "$user.id",
 				},
@@ -1439,7 +1444,7 @@ var StandardTables = []TableInfo{
 				ColumnName: "document_extension",
 				Name:       "document_extension",
 				ColumnType: "label",
-				DataType:   "varchar(20)",
+				DataType:   "varchar(50)",
 				IsNullable: false,
 				IsIndexed:  true,
 			},
@@ -1447,7 +1452,7 @@ var StandardTables = []TableInfo{
 				ColumnName: "mime_type",
 				Name:       "mime_type",
 				ColumnType: "label",
-				DataType:   "varchar(20)",
+				DataType:   "varchar(50)",
 				IsNullable: false,
 				IsIndexed:  true,
 			},

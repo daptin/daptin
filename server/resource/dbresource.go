@@ -79,6 +79,16 @@ func (afc *AssetFolderCache) GetPathContents(path string) ([]map[string]interfac
 
 }
 
+func createDirIfNotExist(dir string) {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err = os.MkdirAll(dir, 0755)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+
 func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 
 	for i := range files {
@@ -104,11 +114,13 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 				}
 				filePath := string(os.PathSeparator)
 				if file["path"] != nil {
-					filePath = strings.Replace(file["path"].(string), "/", string(os.PathSeparator), -1) +  string(os.PathSeparator)
+					filePath = strings.Replace(file["path"].(string), "/", string(os.PathSeparator), -1) + string(os.PathSeparator)
 				}
-				localFilePath := afc.LocalSyncPath + string(os.PathSeparator) + filePath + file["name"].(string)
+				localPath := afc.LocalSyncPath + string(os.PathSeparator) + filePath
+				createDirIfNotExist(localPath)
+				localFilePath := localPath + file["name"].(string)
 				err := ioutil.WriteFile(localFilePath, fileBytes, os.ModePerm)
-				CheckErr(err, "Failed to write data to local file store")
+				CheckErr(err, "Failed to write data to local file store asset cache folder")
 				return errors.WithMessage(err, "Failed to write data to local file store ")
 			}
 		}

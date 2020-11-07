@@ -118,7 +118,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		c.JSON(http.StatusOK, Stats.Data())
 	})
 
-	// 6 UID FETCH 1:2 (UID)
 	defaultRouter.Use(NewCorsMiddleware().CorsMiddlewareFunc)
 	defaultRouter.StaticFS("/statics", NewSubPathFs(boxRoot, "/statics"))
 	defaultRouter.StaticFS("/js", NewSubPathFs(boxRoot, "/js"))
@@ -310,7 +309,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend")
 	if err != nil {
 		rcloneRetries = 5
-		configStore.SetConfigIntValueFor("rclone.retries", rcloneRetries, "backend")
+		_ = configStore.SetConfigIntValueFor("rclone.retries", rcloneRetries, "backend")
 	}
 
 	certificateManager, err := resource.NewCertificateManager(cruds, configStore)

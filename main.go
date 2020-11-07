@@ -199,7 +199,9 @@ func main() {
 	var olricDb *olric.Olric
 
 	if localStoragePath != nil && *localStoragePath != "" {
-		_ = os.Mkdir(*localStoragePath, 0644)
+		if _, err := os.Stat(*localStoragePath); err == os.ErrNotExist {
+			_ = os.Mkdir(*localStoragePath, 0644)
+		}
 	}
 
 	hostSwitch, mailDaemon, taskScheduler, configStore, certManager,

@@ -8,7 +8,6 @@ require (
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/Masterminds/squirrel v1.1.0
 	github.com/advance512/yaml v0.0.0-20141213031416-e401b2b02685
-	github.com/ahmetb/govvv v0.3.0 // indirect
 	github.com/alexeyco/simpletable v0.0.0-20180729223640-1fa9009f1080
 	github.com/anthonynsimon/bild v0.10.0
 	github.com/araddon/dateparse v0.0.0-20181123171228-21df004e09ca
