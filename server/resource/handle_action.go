@@ -614,7 +614,15 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 			log.Infof("File name: %v", fileName)
 			fileNameParts := strings.Split(fileName, ".")
 			fileFormat := fileNameParts[len(fileNameParts)-1]
-			fileContentsBase64 := f["file"].(string)
+			contents := f["file"]
+			if contents == nil {
+				contents = f["contents"]
+			}
+			if contents == nil {
+				log.Printf("Contents are missing in the update schema request: %v", f)
+				continue
+			}
+			fileContentsBase64 := contents.(string)
 			fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
 			if err != nil {
 				return nil, returnRequest, err

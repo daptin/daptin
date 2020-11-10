@@ -24,6 +24,7 @@ func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[str
 
 	responses := make([]ActionResponse, 0)
 
+	log.Printf("Generate random data for table %s", inFields["table_name"])
 	//subjectInstance := inFields["subject"].(map[string]interface{})
 	userReferenceId := ""
 	//userIdInt := uint64(1)
@@ -34,7 +35,7 @@ func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[str
 		userReferenceId = inFields["user_reference_id"].(string)
 	}
 
-	userIdInt, _ := strconv.ParseInt(inFields[USER_ACCOUNT_ID_COLUMN].(string), 10, 32)
+	userIdInt, err := strconv.ParseInt(inFields[USER_ACCOUNT_ID_COLUMN].(string), 10, 32)
 
 	//userIdInt, err = d.Cruds["user"].GetReferenceIdToId("user", userReferenceId)
 	if err != nil {
