@@ -159,9 +159,14 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	}
 
 	for _, table := range cmsConfig.Tables {
+
+		if len(table.TableName) < 1 {
+			continue
+		}
 		if table.IsJoinTable {
 			continue
 		}
+
 
 		tableType := graphql.NewObject(graphql.ObjectConfig{
 			Name: table.TableName,
