@@ -79,7 +79,7 @@ func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 		}
 
 		ctx := context.Background()
-		log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
+		//log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil

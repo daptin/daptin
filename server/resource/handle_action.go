@@ -623,7 +623,13 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 				continue
 			}
 			fileContentsBase64 := contents.(string)
-			fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
+			var fileBytes []byte
+			contentParts := strings.Split(fileContentsBase64, ",")
+			if len(contentParts) > 1 {
+				fileBytes, err = base64.StdEncoding.DecodeString(contentParts[1])
+			} else {
+				fileBytes, err = base64.StdEncoding.DecodeString(fileContentsBase64)
+			}
 			if err != nil {
 				return nil, returnRequest, err
 			}

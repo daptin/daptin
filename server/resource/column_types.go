@@ -90,7 +90,7 @@ func (ct ColumnType) Fake() interface{} {
 	case "value":
 		return rand.Intn(1000)
 	case "truefalse":
-		return rand.Intn(2)
+		return rand.Intn(1)
 	case "timestamp":
 		return randate().Unix()
 	case "location.latitude":
