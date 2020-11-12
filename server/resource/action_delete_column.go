@@ -21,7 +21,7 @@ func (d *deleteWorldColumnPerformer) Name() string {
 
 func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
-	worldId := inFields["world_id"].(string)
+	worldName := inFields["world_name"].(string)
 	columnToDelete := inFields["column_name"].(string)
 
 	sessionUser := request.Attributes["user"]
@@ -34,18 +34,14 @@ func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 		PlainRequest: httpReq,
 	}
 
-	table, err := d.cruds["world"].FindOne(worldId, *req)
+	table, err := d.cruds["world"].GetObjectByWhereClause("world", "table_name", worldName)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
 
-	res := table.Result()
-	tableData, ok := res.(*api2go.Api2GoModel)
-	if !ok {
-		return nil, nil, []error{errors.New("failed to find the table")}
-	}
+	tableData := table
 
-	schemaJson := tableData.Data["world_schema_json"]
+	schemaJson := tableData["world_schema_json"]
 
 	var tableSchema TableInfo
 	err = json.Unmarshal([]byte(schemaJson.(string)), &tableSchema)
@@ -75,8 +71,8 @@ func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 		return nil, nil, []error{err}
 	}
 
-	tableData.Data["world_schema_json"] = schemaJson
-	delete(tableData.Data, "version")
+	tableData["world_schema_json"] = schemaJson
+	delete(tableData, "version")
 
 	_, err = d.cruds["world"].UpdateWithoutFilters(tableData, *req)
 	if err != nil {

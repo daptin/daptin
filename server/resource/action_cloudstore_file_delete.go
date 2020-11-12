@@ -28,7 +28,7 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 	responses := make([]ActionResponse, 0)
 	var err error
 
-	CheckErr(err, "Failed to create temp tempDirectoryPath for rclone upload")
+
 	atPath, ok := inFields["path"].(string)
 	if !ok {
 		return nil, nil, []error{errors.New("path is missing")}

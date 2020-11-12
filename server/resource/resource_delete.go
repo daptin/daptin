@@ -4,6 +4,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
+	"os"
 
 	"fmt"
 	"github.com/Masterminds/squirrel"
@@ -68,6 +69,50 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 	parentId := data["id"].(int64)
 	parentReferenceId := data["reference_id"].(string)
+
+	for _, column := range dr.model.GetColumns() {
+		if column.IsForeignKey && column.ForeignKeyData.DataSource == "cloud_store" {
+
+			cloudStoreData, err := dr.GetCloudStoreByName(column.ForeignKeyData.Namespace)
+			if err != nil {
+				log.Errorf("Failed to load cloud store information %v: %v", column.ForeignKeyData.Namespace, err)
+				continue
+			}
+
+			deleteFileActionPerformer, err := NewCloudStoreFileDeleteActionPerformer(dr.Cruds)
+			CheckErr(err, "Failed to create upload action performer")
+			log.Infof("created upload action performer")
+
+			fileListJson, ok := data[column.ColumnName].([]map[string]interface{})
+			if !ok {
+				log.Printf("Unknown content in cloud store column [%s]%s", dr.model.GetName(), column.ColumnName)
+				continue
+			}
+			log.Printf("Delete attached file on column %s from disk: %v", column.Name, fileListJson)
+			for _, fileItem := range fileListJson {
+
+				outcome := Outcome{}
+				actionParameters := map[string]interface{}{
+					"oauth_token_id": cloudStoreData.OAutoTokenId,
+					"store_provider": cloudStoreData.StoreProvider,
+					"path":           fileItem["path"].(string) + "/" + fileItem["name"].(string),
+					"root_path":      cloudStoreData.RootPath + "/" + column.ForeignKeyData.KeyName,
+				}
+				_, _, errList := deleteFileActionPerformer.DoAction(outcome, actionParameters)
+				if len(errList) > 0 {
+					log.Printf("Failed to delete file: %v", errList)
+				}
+
+				columnAssetCache, ok := dr.AssetFolderCache[dr.tableInfo.TableName][column.ColumnName]
+				if ok {
+					err = columnAssetCache.DeleteFileByName(fileItem["path"].(string) + string(os.PathSeparator) + fileItem["name"].(string))
+					CheckErr(err, "Failed to delete file from local asset cache: %v", column.ColumnName)
+				}
+
+			}
+		}
+	}
+
 	for _, rel := range dr.model.GetRelations() {
 
 		if EndsWithCheck(rel.GetSubject(), "_audit") || EndsWithCheck(rel.GetObject(), "_audit") {
@@ -188,7 +233,8 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 			}
 
-		} else {
+		} else
+		{
 
 			// i am the object
 			// delete subject
@@ -338,7 +384,8 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 			_, err = dr.db.Exec(sql1, args...)
 
 		}
-	} else {
+	} else
+	{
 
 		queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName()).Where(squirrel.Eq{"reference_id": id})
 
