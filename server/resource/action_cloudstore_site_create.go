@@ -97,7 +97,7 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 		return nil, nil, []error{err}
 	}
 
-	log.Infof("Upload source target %v %v", tempDirectoryPath, rootPath)
+	log.Infof("Upload source target for site create %v %v", tempDirectoryPath, rootPath)
 
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}

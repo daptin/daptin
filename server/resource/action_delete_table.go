@@ -158,7 +158,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 		}
 	}
 
-	restart()
+	//restart()
 
 	return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Table deleted", "Success"))}, errorsList
 }

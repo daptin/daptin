@@ -76,7 +76,15 @@ func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[str
 			log.Errorf("Failed to fake insert into table [%v] : %v", tableName, err)
 		}
 	}
-	return nil, responses, nil
+	responder := api2go.Response{
+		Res: &api2go.Api2GoModel{
+			Data: map[string]interface{}{
+				"message": "Random data generated",
+			},
+		},
+		Code: 201,
+	}
+	return responder, responses, nil
 }
 
 func GetFakeRow(columns []api2go.ColumnInfo) map[string]interface{} {
