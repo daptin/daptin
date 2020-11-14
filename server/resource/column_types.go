@@ -30,12 +30,14 @@ type ColumnType struct {
 
 func randate() time.Time {
 	min := time.Date(1980, 1, 0, 0, 0, 0, 0, time.UTC).Unix()
-	max := time.Date(2020, 1, 0, 0, 0, 0, 0, time.UTC).Unix()
+	max := time.Date(2022, 1, 0, 0, 0, 0, 0, time.UTC).Unix()
 	delta := max - min
 
 	sec := rand.Int63n(delta) + min
 	return time.Unix(sec, 0)
 }
+
+var randomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func (ct ColumnType) Fake() interface{} {
 
@@ -59,9 +61,9 @@ func (ct ColumnType) Fake() interface{} {
 	case "year":
 		return fake.Year(1990, 2018)
 	case "minute":
-		return rand.Intn(60)
+		return randomGenerator.Intn(60)
 	case "hour":
-		return rand.Intn(24)
+		return randomGenerator.Intn(24)
 	case "datetime":
 		return randate().Format(time.RFC3339)
 	case "email":
@@ -88,9 +90,9 @@ func (ct ColumnType) Fake() interface{} {
 		hash := digest.Sum(nil)
 		return fmt.Sprintf("%x", hash)
 	case "value":
-		return rand.Intn(1000)
+		return randomGenerator.Intn(1000)
 	case "truefalse":
-		return rand.Intn(1)
+		return randomGenerator.Intn(2)
 	case "timestamp":
 		return randate().Unix()
 	case "location.latitude":
@@ -100,13 +102,13 @@ func (ct ColumnType) Fake() interface{} {
 	case "location.longitude":
 		return fake.Longitude()
 	case "location.altitude":
-		return rand.Intn(10000)
+		return randomGenerator.Intn(10000)
 	case "color":
 		return fake.HexColor()
 	case "rating.10":
-		return rand.Intn(11)
+		return randomGenerator.Intn(11)
 	case "measurement":
-		return rand.Intn(5000)
+		return randomGenerator.Intn(5000)
 	case "label":
 		return fake.ProductName()
 	case "content":
@@ -118,7 +120,7 @@ func (ct ColumnType) Fake() interface{} {
 	case "video":
 		return ""
 	case "url":
-		return "https://places.com/"
+		return "https://example.com/?q=" + fmt.Sprintf("%d", randomGenerator.Int())
 	default:
 		return ""
 	}

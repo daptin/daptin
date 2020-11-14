@@ -387,7 +387,8 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			} else {
 				valString, ok := val.(string)
 				if ok {
-					if strings.ToLower(strings.TrimSpace(valString)) == "true" {
+					valueClean := strings.ToLower(strings.TrimSpace(valString))
+					if valueClean == "true" || valueClean == "1" {
 						val = 1
 					} else {
 						val = 0
