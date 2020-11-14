@@ -213,7 +213,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if hasRequestedFields {
 
 		for _, col := range cols {
-			if !col.ExcludeFromApi && reqFieldMap[col.Name] && col.ColumnName != "permission" && col.ColumnName != "reference_id" {
+			if !col.ExcludeFromApi && reqFieldMap[col.ColumnName] && col.ColumnName != "permission" && col.ColumnName != "reference_id" {
 				finalCols = append(finalCols, col.ColumnName)
 			}
 		}
