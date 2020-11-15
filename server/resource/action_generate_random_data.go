@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"errors"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
@@ -43,6 +44,12 @@ func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[str
 	}
 	tableName := inFields["table_name"].(string)
 
+	tableResource := d.cruds[tableName]
+	if tableResource == nil {
+		log.Errorf("Table [%v] is not created yet", tableName)
+		return nil, nil, []error{errors.New("table not found")}
+	}
+
 	count := int(inFields["count"].(float64))
 
 	rows := make([]map[string]interface{}, 0)
@@ -68,9 +75,10 @@ func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[str
 	req := api2go.Request{
 		PlainRequest: httpRequest,
 	}
+
 	for _, row := range rows {
 
-		_, err := d.cruds[tableName].Create(api2go.NewApi2GoModelWithData(tableName, nil, 0, nil, row), req)
+		_, err := tableResource.Create(api2go.NewApi2GoModelWithData(tableName, nil, 0, nil, row), req)
 		if err != nil {
 			log.Errorf("Was about to insert this fake object: %v", row)
 			log.Errorf("Failed to fake insert into table [%v] : %v", tableName, err)
