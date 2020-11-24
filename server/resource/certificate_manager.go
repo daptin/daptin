@@ -158,7 +158,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 			ClientAuth:   tls.NoClientCert,
 		}
 
-		adminUserReferenceId := cm.cruds["certificate"].GetAdminReferenceId()
+		adminUserReferenceId := cm.cruds["certificate"].GetAdminReferenceId()[0]
 		adminId, err := cm.cruds[USER_ACCOUNT_TABLE_NAME].GetReferenceIdToId("user_account", adminUserReferenceId)
 		if err != nil {
 			log.Printf("Failed to get admin id for user: %v == %v", adminUserReferenceId, err)

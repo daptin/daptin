@@ -88,7 +88,6 @@ func createDirIfNotExist(dir string) {
 	}
 }
 
-
 func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 
 	for i := range files {
@@ -189,16 +188,27 @@ func (dr *DbResource) GetContext(key string) interface{} {
 	return dr.contextCache[key]
 }
 
-func (dr *DbResource) GetAdminReferenceId() string {
+func (dr *DbResource) GetAdminReferenceId() []string {
 	cacheVal := dr.GetContext("administrator_reference_id")
-	if cacheVal == nil || cacheVal == "" {
+	if cacheVal == nil || len(cacheVal.([]string)) == 0 {
 
-		userRefId := dr.GetUserIdByUsergroupId(2)
+		userRefId := dr.GetUserMembersByGroupName("administrator")
 		dr.PutContext("administrator_reference_id", userRefId)
 		return userRefId
 	} else {
-		return cacheVal.(string)
+		return cacheVal.([]string)
 	}
+}
+
+func (dr *DbResource) IsAdmin(userReferenceId string) bool {
+	admins := dr.GetAdminReferenceId()
+	for _, id := range admins {
+		if id == userReferenceId {
+			return true
+		}
+	}
+	return false
+
 }
 
 func (dr *DbResource) TableInfo() *TableInfo {

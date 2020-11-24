@@ -75,8 +75,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	adminId := dr.GetAdminReferenceId()
-	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
+	isAdmin := dr.IsAdmin(sessionUser.UserReferenceId)
 
 	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
 	relatedTableName := ""

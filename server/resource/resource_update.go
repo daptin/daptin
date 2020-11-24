@@ -44,8 +44,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
 	}
-	adminId := dr.GetAdminReferenceId()
-	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
+	isAdmin := dr.IsAdmin(sessionUser.UserReferenceId)
 
 	attrs := data.GetAllAsAttributes()
 

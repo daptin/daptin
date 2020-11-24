@@ -33,10 +33,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	adminId := dr.GetAdminReferenceId()
-	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
-
-	if isAdmin {
+	if dr.IsAdmin(sessionUser.UserReferenceId) {
 		return results, nil
 	}
 
@@ -80,10 +77,7 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	adminId := dr.GetAdminReferenceId()
-	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
-
-	if isAdmin {
+	if dr.IsAdmin(sessionUser.UserReferenceId) {
 		return results, nil
 	}
 

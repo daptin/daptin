@@ -230,7 +230,13 @@ func main() {
 
 		startTime := time.Now()
 
-		olricDb.Shutdown(context.Background())
+		if olricDb != nil {
+			err = olricDb.Shutdown(context.Background())
+			if err != nil {
+				log.Errorf("Failed to shutdown olric: %v", err)
+			}
+		}
+
 		log.Printf("Close down services and db connection")
 		taskScheduler.StopTasks()
 		if ftpServer != nil {

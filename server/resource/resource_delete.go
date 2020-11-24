@@ -34,8 +34,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 		sessionUser = user.(*auth.SessionUser)
 
 	}
-	adminId := dr.GetAdminReferenceId()
-	isAdmin := adminId != "" && adminId == sessionUser.UserReferenceId
+	isAdmin := dr.IsAdmin(sessionUser.UserReferenceId)
 
 	m := dr.model
 	//log.Infof("Get all resource type: %v\n", m)

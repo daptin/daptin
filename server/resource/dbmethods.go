@@ -409,7 +409,7 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 func (dbResource *DbResource) CanBecomeAdmin() bool {
 
 	adminRefId := dbResource.GetAdminReferenceId()
-	if adminRefId == "" {
+	if adminRefId == nil || len(adminRefId) == 0 {
 		return true
 	}
 
@@ -713,23 +713,35 @@ func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 	return refId
 
 }
-func (dr *DbResource) GetUserIdByUsergroupId(usergroupId int64) string {
+func (dr *DbResource) GetUserMembersByGroupName(groupName string) []string {
 
-	s, q, err := statementbuilder.Squirrel.Select("u.reference_id").From("user_account_user_account_id_has_usergroup_usergroup_id uu").LeftJoin("user_account u on uu.user_account_id = u.id").Where(squirrel.Eq{"uu.usergroup_id": usergroupId}).OrderBy("uu.created_at").Limit(1).ToSql()
+	s, q, err := statementbuilder.Squirrel.
+		Select("u.reference_id").
+		From("user_account_user_account_id_has_usergroup_usergroup_id uu").
+		LeftJoin("user_account u on uu.user_account_id = u.id").
+		LeftJoin("group g on uu.usergroup_id = g.id").
+		Where(squirrel.Eq{"g.name": groupName}).
+		OrderBy("uu.created_at").
+		Limit(1).ToSql()
 	if err != nil {
 		log.Errorf("Failed to create sql query: %v", err)
-		return ""
+		return []string{}
 	}
 
-	var refId string
+	refIds := make([]string, 0)
 
-	err = dr.db.QueryRowx(s, q...).Scan(&refId)
+	rows, err := dr.db.Queryx(s, q...)
 	if err != nil {
-		//log.Errorf("Failed to execute query: %v == %v", s, q)
-		//log.Errorf("Failed to scan user group id from the result 2: %v", err)
+		log.Errorf("Failed to create sql query: %v", err)
+		return []string{}
+	}
+	for rows.Next() {
+		var refId string
+		err = rows.Scan(&refId)
+		refIds = append(refIds, refId)
 	}
 
-	return refId
+	return refIds
 
 }
 
@@ -1345,7 +1357,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 			case "cloud_store":
 				referenceStorageInformation := val.(string)
-				//log.Infof("Resolve files from cloud store: %v", referenceStorageInformation)
+				log.Infof("Resolve files from cloud store: %v", referenceStorageInformation)
 				foreignFilesList := make([]map[string]interface{}, 0)
 				err := json.Unmarshal([]byte(referenceStorageInformation), &foreignFilesList)
 				CheckErr(err, "Failed to obtain list of file information")
