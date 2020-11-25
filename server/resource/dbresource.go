@@ -191,7 +191,6 @@ func (dr *DbResource) GetContext(key string) interface{} {
 func (dr *DbResource) GetAdminReferenceId() []string {
 	cacheVal := dr.GetContext("administrator_reference_id")
 	if cacheVal == nil || len(cacheVal.([]string)) == 0 {
-
 		userRefId := dr.GetUserMembersByGroupName("administrator")
 		dr.PutContext("administrator_reference_id", userRefId)
 		return userRefId
