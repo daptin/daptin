@@ -95,13 +95,15 @@ jobs:
       - name: Set environment variables
         shell: bash
         run: |
-          echo '::set-env name=GOPATH::${{ runner.workspace }}'
-          echo '::add-path::${{ runner.workspace }}/bin'
-          echo '::set-env name=GO111MODULE::${{ matrix.modules }}'
-          echo '::set-env name=GOTAGS::${{ matrix.gotags }}'
-          echo '::set-env name=BUILD_FLAGS::${{ matrix.build_flags }}'
-          if [[ "${{ matrix.goarch }}" != "" ]]; then echo '::set-env name=GOARCH::${{ matrix.goarch }}' ; fi
-          if [[ "${{ matrix.cgo }}" != "" ]]; then echo '::set-env name=CGO_ENABLED::${{ matrix.cgo }}' ; fi
+          
+          echo "GOPATH=${{ runner.workspace }}" >> $GITHUB_ENV
+          echo "GO111MODULE=${{ matrix.modules }}" >> $GITHUB_ENV
+          echo "GOTAGS=${{ matrix.gotags }}" >> $GITHUB_ENV
+          echo "BUILD_FLAGS=${{ matrix.build_flags }}" >> $GITHUB_ENV
+          echo "${{ runner.workspace }}/bin" >> $GITHUB_PATH
+          
+          if [[ "${{ matrix.goarch }}" != "" ]]; then echo "GOARCH=${{ matrix.goarch }}" >> $GITHUB_ENV ; fi
+          if [[ "${{ matrix.cgo }}" != "" ]]; then echo "CGO_ENABLED=${{ matrix.cgo }}" >> $GITHUB_ENV  ; fi
       - name: Install Libraries on Linux
         shell: bash
         run: |
@@ -116,16 +118,7 @@ jobs:
         shell: powershell
         run: |
           $ProgressPreference = 'SilentlyContinue'
-          choco install -y winfsp zip rclone
-          Write-Host "::set-env name=CPATH::C:\Program Files\WinFsp\inc\fuse;C:\Program Files (x86)\WinFsp\inc\fuse"
-          if ($env:GOARCH -eq "386") {
-            choco install -y mingw --forcex86 --force
-            Write-Host "::add-path::C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw32\\bin"
-          }
-          # Copy mingw32-make.exe to make.exe so the same command line
-          # can be used on Windows as on macOS and Linux
-          $path = (get-command mingw32-make.exe).Path
-          Copy-Item -Path $path -Destination (Join-Path (Split-Path -Path $path) 'make.exe')
+          choco install -y winfsp zip
         if: matrix.os == 'windows-latest'
 
       - name: Print Go version and environment
@@ -291,8 +284,9 @@ jobs:
       - name: Set environment variables
         shell: bash
         run: |
-          echo '::set-env name=GOPATH::${{ runner.workspace }}'
-          echo '::add-path::${{ runner.workspace }}/bin'
+          echo "GOPATH=${{ runner.workspace }}" >> $GITHUB_ENV
+          echo "${{ runner.workspace }}/bin" >> $GITHUB_PATH
+
 
       - name: Copy Code
         shell: bash
