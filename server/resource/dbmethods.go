@@ -719,7 +719,7 @@ func (dr *DbResource) GetUserMembersByGroupName(groupName string) []string {
 		Select("u.reference_id").
 		From("user_account_user_account_id_has_usergroup_usergroup_id uu").
 		LeftJoin("user_account u on uu.user_account_id = u.id").
-		LeftJoin("group g on uu.usergroup_id = g.id").
+		LeftJoin("usergroup g on uu.usergroup_id = g.id").
 		Where(squirrel.Eq{"g.name": groupName}).
 		OrderBy("uu.created_at").
 		Limit(1).ToSql()
