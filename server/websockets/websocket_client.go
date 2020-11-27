@@ -1,6 +1,7 @@
 package websockets
 
 import (
+	"errors"
 	"fmt"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
@@ -24,7 +25,7 @@ type Client struct {
 }
 
 // Create new chat client.
-func NewClient(ws *websocket.Conn, server *Server) *Client {
+func NewClient(ws *websocket.Conn, server *Server) (*Client, error) {
 
 	if ws == nil {
 		panic("ws cannot be nil")
@@ -35,7 +36,8 @@ func NewClient(ws *websocket.Conn, server *Server) *Client {
 	}
 
 	webSocketConnectionHandler := WebSocketConnectionHandlerImpl{
-		DtopicMap: server.dtopicMap,
+		DtopicMap:        server.dtopicMap,
+		subscribedTopics: make(map[string]uint64),
 	}
 
 	maxId++
@@ -44,7 +46,7 @@ func NewClient(ws *websocket.Conn, server *Server) *Client {
 
 	u := ws.Request().Context().Value("user")
 	if u == nil {
-		panic("Unauthorized")
+		return nil, errors.New("unauthorized")
 	}
 	user := u.(*auth.SessionUser)
 	return &Client{
@@ -55,7 +57,7 @@ func NewClient(ws *websocket.Conn, server *Server) *Client {
 		doneCh:                     doneCh,
 		user:                       user,
 		webSocketConnectionHandler: webSocketConnectionHandler,
-	}
+	}, nil
 }
 
 func (c *Client) Conn() *websocket.Conn {
@@ -84,7 +86,6 @@ func (c *Client) Listen() {
 
 // Listen write request via chanel
 func (c *Client) listenWrite() {
-	log.Println("Listening write to client")
 	for {
 		select {
 

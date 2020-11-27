@@ -102,7 +102,12 @@ func (s *Server) Listen(router *gin.Engine) {
 			}
 		}()
 
-		client := NewClient(ws, s)
+		client, err := NewClient(ws, s)
+		if err != nil {
+			_, _ = ws.Write([]byte(err.Error()))
+			_ = ws.WriteClose(400)
+			return
+		}
 		s.Add(client)
 		client.Listen()
 	}

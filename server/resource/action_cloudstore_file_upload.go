@@ -105,7 +105,7 @@ func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 	responses := make([]ActionResponse, 0)
 
 	u, _ := uuid.NewV4()
-	sourceDirectoryName := "upload-" + u.String()
+	sourceDirectoryName := "upload-" + u.String()[0:8]
 	tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 	log.Infof("Temp directory for this upload: %v", tempDirectoryPath)
 
