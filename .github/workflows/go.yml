@@ -63,7 +63,7 @@ jobs:
             os: ubuntu-latest
             go: '1.14.x'
             modules: 'on'
-            build_flags: '-exclude "^(windows/|darwin/amd64|linux/)"'
+            build_flags: "-exclude '^(windows/|darwin/amd64|linux/)'"
             compile_all: true
             deploy: true
 
