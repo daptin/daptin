@@ -157,7 +157,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 							otherObjectPermission := dr.GetObjectPermissionById(rel.GetObject(), objectId)
 
-							if !isAdmin || !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+							if !isAdmin && !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 								canDeleteAllIds = false
 								break
 							}
@@ -209,7 +209,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 							otherObjectPermission := dr.GetObjectPermissionByReferenceId(rel.GetObject(), id)
 
-							if !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+							if !isAdmin && !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 								canDeleteAllIds = false
 								break
 							}

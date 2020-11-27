@@ -234,11 +234,11 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	const baseAddress = "http://localhost:6337"
 
-	r := req.New()
+	requestClient := req.New()
 
 	responseMap := make(map[string]interface{})
 
-	resp, err := r.Get(baseAddress+"/api/world", req.QueryParam{
+	resp, err := requestClient.Get(baseAddress+"/api/world", req.QueryParam{
 		"page[size]":   100,
 		"page[number]": 1,
 		"sort":         "",
@@ -250,7 +250,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	responseMap = make(map[string]interface{})
 
-	resp, err = r.Get(baseAddress+"/api/world", req.QueryParam{
+	resp, err = requestClient.Get(baseAddress+"/api/world", req.QueryParam{
 		"page[size]":   100,
 		"page[number]": 1,
 		"sort":         "-reference_id",
@@ -276,7 +276,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("world type mismatch")
 	}
 
-	resp, err = r.Get(baseAddress + "/actions")
+	resp, err = requestClient.Get(baseAddress + "/actions")
 
 	if err != nil {
 		return err
@@ -302,7 +302,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("Unexpected on type")
 	}
 
-	resp, err = r.Get(baseAddress + "/meta?query=column_types")
+	resp, err = requestClient.Get(baseAddress + "/meta?query=column_types")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "meta", err)
 		return err
@@ -315,7 +315,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("label not found")
 	}
 
-	resp, err = r.Get(baseAddress + "/stats/world?group=date(created_at),column=date(created_at),count")
+	resp, err = requestClient.Get(baseAddress + "/stats/world?group=date(created_at),column=date(created_at),count")
 	if err != nil {
 		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
 		return err
@@ -324,7 +324,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("Was able to get aggreagte without auth token")
 	}
 
-	resp, err = r.Post(baseAddress+"/action/user_account/signup", req.BodyJSON(map[string]interface{}{
+	resp, err = requestClient.Post(baseAddress+"/action/user_account/signup", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{
 			"email":           "test@gmail.com",
 			"name":            "name",
@@ -344,7 +344,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("Unexpected response type from sign up")
 	}
 
-	resp, err = r.Post(baseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
+	resp, err = requestClient.Post(baseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{
 			"email":    "test@gmail.com",
 			"password": "tester123",
@@ -371,14 +371,14 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 	t.Logf("Token: %v", token)
 
-	resp, err = r.Get(baseAddress+"/stats/world?group=date(created_at)&column=date(created_at),count(*)", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/stats/world?group=date(created_at)&column=date(created_at),count(*)", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
 		return err
 	}
 	log.Printf("Aggregation response: %v", resp.String())
 
-	resp, err = r.Get(baseAddress + "/recline_model")
+	resp, err = requestClient.Get(baseAddress + "/recline_model")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "recline_model", err)
 		return err
@@ -394,7 +394,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		return errors.New("unexpected recline model response")
 	}
 
-	resp, err = r.Get(baseAddress + "/jsmodel/world.js")
+	resp, err = requestClient.Get(baseAddress + "/jsmodel/world.js")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "jsmodel world", err)
 		return err
@@ -410,32 +410,32 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		return errors.New("unexpected model map response")
 	}
 
-	_, err = r.Get(baseAddress + "/favicon.ico")
+	_, err = requestClient.Get(baseAddress + "/favicon.ico")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "favicon.ico", err)
 		return err
 	}
 
-	_, err = r.Get(baseAddress + "/favicon.png")
+	_, err = requestClient.Get(baseAddress + "/favicon.png")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "favicon.png", err)
 		return err
 	}
 
-	resp, err = r.Get(baseAddress + "/statistics")
+	resp, err = requestClient.Get(baseAddress + "/statistics")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "statistics", err)
 		return err
 	}
 
-	resp, err = r.Get(baseAddress + "/openapi.yaml")
+	resp, err = requestClient.Get(baseAddress + "/openapi.yaml")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "openapi.yaml", err)
 		return err
 	}
 
 	// check user flow
-	resp, err = r.Get(baseAddress+"/api/world", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/api/world", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get %s %s", "world with token ", err)
 		return err
@@ -450,14 +450,14 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("world type mismatch")
 	}
 
-	resp, err = r.Get(baseAddress+"/api/gallery_image?sort=reference_id,-created_at", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/api/gallery_image?sort=reference_id,-created_at", authTokenHeader)
 
 	if err != nil {
 		log.Printf("Failed to get %s %s", "gallerty image get", err)
 		return err
 	}
 
-	resp, err = r.Post(baseAddress+"/api/gallery_image", req.BodyJSON(OneImage))
+	resp, err = requestClient.Post(baseAddress+"/api/gallery_image", req.BodyJSON(OneImage))
 	if err != nil {
 		log.Printf("Failed to create %s %s", "gallery image post", err)
 		return err
@@ -475,7 +475,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	t.Logf("Image create response id: %v", createdID)
 
-	resp, err = r.Get(baseAddress + "/api/gallery_image/" + createdID)
+	resp, err = requestClient.Get(baseAddress + "/api/gallery_image/" + createdID)
 	readImageResp := make(map[string]interface{})
 	err = resp.ToJSON(&readImageResp)
 	if err != nil {
@@ -485,7 +485,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	//t.Logf("Image read response id: %v", readImageResp)
 
-	resp, err = r.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png")
+	resp, err = requestClient.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "gallery image get by id", err)
 		return err
@@ -545,7 +545,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	for _, param := range Params {
-		resp, err = r.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png?" + param)
+		resp, err = requestClient.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png?" + param)
 		if err != nil {
 			log.Printf("Failed to get %s %s", param, err)
 			return err
@@ -561,7 +561,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	// do a sign in
-	resp, err = r.Post(baseAddress+"/action/world/become_an_administrator", req.BodyJSON(map[string]interface{}{
+	resp, err = requestClient.Post(baseAddress+"/action/world/become_an_administrator", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{},
 	}), authTokenHeader)
 
@@ -577,7 +577,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	time.Sleep(5 * time.Second)
 	t.Logf("Wake up after sleep")
 
-	resp, err = r.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get read image %s %s", "config hostname get", err)
 		return err
@@ -585,7 +585,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	t.Logf("Hostname from config: %v", resp.String())
 
-	resp, err = r.Post(baseAddress+"/_config/backend/hostname", authTokenHeader, "test")
+	resp, err = requestClient.Post(baseAddress+"/_config/backend/hostname", authTokenHeader, "test")
 	if err != nil {
 		log.Printf("Failed to get read image %s %s", "config hostname post", err)
 		return err
@@ -598,25 +598,25 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	time.Sleep(5 * time.Second)
 	t.Logf("Wake up after sleep")
 
-	resp, err = r.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to read %s %s", "config hostname get", err)
 		return err
 	}
 	t.Logf("Hostname from config: %v", resp.String())
 
-	graphqlResponse, err := r.Post(baseAddress+"/graphql",
+	graphqlResponse, err := requestClient.Post(baseAddress+"/graphql",
 		`{"query":"query {\n  action {\n    action_name\n  }\n}","variables":null}`,
 		authTokenHeader)
 	if err != nil {
-		log.Printf("Failed to get graphql response for action query %s", err)
+		log.Printf("Failed to get graphql response for graphql query %s", err)
 		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"action_name": "generate_acme_certificate"`) == -1 {
 		t.Errorf("Expected action name not found in response from graphql [%v]", graphqlResponse.String())
 	}
 
-	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		`{"query":"query {\n  action {\n    action_name\n  }\n}","variables":null}`)
 	if err != nil {
 		log.Printf("Failed to get action name from graphl query %s", err)
@@ -626,21 +626,22 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("Unexpected action name found in response from graphql [%v] without auth token", graphqlResponse.String())
 	}
 
-	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		`{"query":"mutation {\n  addCertificate (hostname: \"test\", issuer:\"localhost\", private_key_pem:\"\") {\n    created_at\n    reference_id\n  }\n  \n}","variables":{}}`)
 	if err != nil {
-		log.Printf("Failed to query graphql endpoint %s %s", "addCertificate", err)
-		return err
+		log.Printf("Success in add graphql endpoint without token %s %s", "addCertificate", err)
+		log.Printf("body %v", graphqlResponse.String())
+		return errors.New("auth failure")
 	}
 	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
 		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token", graphqlResponse.String())
 	}
 
-	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		`{"query":"mutation {\n  addCertificate (hostname: \"test\", issuer:\"localhost\", private_key_pem:\"\") {\n    created_at\n    reference_id\n  }\n  \n}","variables":{}}`,
 		authTokenHeader)
 	if err != nil {
-		log.Printf("Failed to query graphql endpoint %s %s", "addCertificate", err)
+		log.Printf("Failed to query graphql endpoint 2 %s %s", "addCertificate", err)
 		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"reference_id": "`) == -1 {
@@ -649,17 +650,17 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 
 	certReferenceId := strings.Split(strings.Split(graphqlResponse.String(), `"reference_id": "`)[1], "\"")[0]
 
-	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (resource_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
 	if err != nil {
-		log.Printf("Failed to query graphql endpoint %s %s", "updateCertificate", err)
-		return err
+		log.Printf("Success in  query graphql endpoint without auth token %s %s", "updateCertificate", err)
+		return errors.New("auth failure")
 	}
 	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
 		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
 	}
 
-	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (resource_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId),
 		authTokenHeader)
 	if err != nil {
@@ -667,34 +668,35 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"hostname": "hello"`) == -1 {
-		t.Errorf("Expected string not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
+		t.Errorf("[hostname=hello]Expected string not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
 	}
 
-	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (resource_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
 	if err != nil {
-		log.Printf("Failed to query graphql endpoint %s %s", "deleteCertificate", err)
-		return err
+		log.Printf("Success in delete graphql endpoint without auth token %s %s", "deleteCertificate", err)
+		return errors.New("auth failure")
 	}
 	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
 		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
 	}
 
-	graphqlResponse, err = r.Post(baseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (resource_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId),
 		authTokenHeader)
 	if err != nil {
-		log.Printf("Failed to query graphql endpoint %s %s", "deleteCertificate", err)
+		log.Printf("Failed to delete graphql endpoint %s %s", "deleteCertificate", err)
 		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"hostname": null`) == -1 {
-		t.Errorf("Expected string not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
+		t.Errorf("hostname=null] Expected string not found in response from graphql [%v] " +
+			"without auth token on certificate delete", graphqlResponse.String())
 	}
 
 	FtpTest(t)
 
 	// do a sign in
-	resp, err = r.Post(baseAddress+"/action/world/import_files_from_store", req.BodyJSON(map[string]interface{}{
+	resp, err = requestClient.Post(baseAddress+"/action/world/import_files_from_store", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{
 			"world_id": tableNameToIdMap["gallery_image"],
 		},

@@ -92,6 +92,8 @@ func (p PermissionInstance) CanDelete(userId string, usergroupId []auth.GroupPer
 }
 
 func (p PermissionInstance) CanRefer(userId string, usergroupId []auth.GroupPermission) bool {
+
+
 	if p.UserId == userId && (p.Permission&auth.UserRefer == auth.UserRefer) {
 		return true
 	}
