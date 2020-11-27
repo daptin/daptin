@@ -432,7 +432,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								"size":             mailSize,
 							},
 						}
-						_, err = dbResource.Cruds["mail"].CreateWithoutFilter(&model, *req)
+						_, err = dbResource.Cruds["mail"].Create(&model, *req)
 						resource.CheckErr(err, "Failed to store mail")
 						//err1 := dbResource.Cruds["mail"].IncrementMailBoxUid(mailBox["id"].(int64), nextUid+1)
 						//resource.CheckErr(err1, "Failed to increment uid for mailbox")

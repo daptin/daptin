@@ -378,7 +378,7 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	}
 
-	allExchnages := make([]ExchangeContract, 0)
+	allExchanges := make([]ExchangeContract, 0)
 
 	s, v, err := statementbuilder.Squirrel.Select("name", "source_attributes", "source_type", "target_attributes",
 		"target_type", "attributes", "options", "oauth_token_id").
@@ -431,11 +431,11 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 			ec.OauthTokenId = oauth_token_id
 
-			allExchnages = append(allExchnages, ec)
+			allExchanges = append(allExchanges, ec)
 		}
 	}
 
-	initConfig.ExchangeContracts = allExchnages
+	initConfig.ExchangeContracts = allExchanges
 
 }
 
