@@ -262,7 +262,7 @@ var cache *olric.DMap
 // Return a NoPermissionToAnyone if no such object exist
 func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colName string, colValue string) PermissionInstance {
 	if cache == nil {
-		cache, _ = dr.olricDb.NewDMap("default-cache")
+		cache, _ = dr.OlricDb.NewDMap("default-cache")
 	}
 
 	cacheKey := ""

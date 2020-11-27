@@ -11,7 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 )
 
@@ -35,25 +34,7 @@ func CheckSystemSecrets(store *resource.ConfigStore) error {
 
 }
 
-func InArrayIndex(val interface{}, array interface{}) (index int) {
-	index = -1
-
-	switch reflect.TypeOf(array).Kind() {
-	case reflect.Slice:
-		s := reflect.ValueOf(array)
-
-		for i := 0; i < s.Len(); i++ {
-			if reflect.DeepEqual(val, s.Index(i).Interface()) == true {
-				index = i
-				return
-			}
-		}
-	}
-
-	return
-}
-
-func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, olricDb *olric.Olric, cruds map[string]*resource.DbResource) map[string]*resource.DbResource {
+func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, olricDb *olric.Olric, cruds map[string]*resource.DbResource) {
 	for _, table := range tables {
 
 		if table.TableName == "" {
@@ -83,7 +64,6 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 		}()
 	}
 
-	return cruds
 }
 
 func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, error) {
@@ -103,7 +83,10 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 		log.Infof("Failed to select from world table: %v", err)
 		return ts, err
 	}
-	defer res.Close()
+	defer func() {
+		err = res.Close()
+		resource.CheckErr(err, "Failed to close db result")
+	}()
 
 	for res.Next() {
 		var table_name string
@@ -160,7 +143,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 }
 
-func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds *map[string]*resource.DbResource) resource.MiddlewareSet {
+func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds *map[string]*resource.DbResource, dtopicMap *map[string]*olric.DTopic) resource.MiddlewareSet {
 
 	var ms resource.MiddlewareSet
 
@@ -170,10 +153,9 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds *map[string]*resour
 	objectPermissionChecker := &resource.ObjectAccessPermissionChecker{}
 	dataValidationMiddleware := resource.NewDataValidationMiddleware(cmsConfig, cruds)
 
-	findOneHandler := resource.NewFindOneEventHandler()
-	createEventHandler := resource.NewCreateEventHandler()
-	updateEventHandler := resource.NewUpdateEventHandler()
-	deleteEventHandler := resource.NewDeleteEventHandler()
+	createEventHandler := resource.NewCreateEventHandler(cruds, dtopicMap)
+	updateEventHandler := resource.NewUpdateEventHandler(cruds, dtopicMap)
+	deleteEventHandler := resource.NewDeleteEventHandler(cruds, dtopicMap)
 
 	ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
@@ -224,12 +206,10 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds *map[string]*resour
 	ms.BeforeFindOne = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
-		findOneHandler,
 	}
 	ms.AfterFindOne = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
-		findOneHandler,
 	}
 	return ms
 }

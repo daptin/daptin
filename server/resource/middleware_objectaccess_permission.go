@@ -21,6 +21,10 @@ func (pc *ObjectAccessPermissionChecker) String() string {
 
 func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
 
+	if req.PlainRequest.Method == "DELETE" {
+		return results, nil
+	}
+
 	originalCount := len(results)
 	if results == nil || originalCount < 1 {
 		return results, nil

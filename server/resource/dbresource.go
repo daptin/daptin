@@ -32,7 +32,7 @@ type DbResource struct {
 	contextCache       map[string]interface{}
 	defaultGroups      []int64
 	contextLock        sync.RWMutex
-	olricDb            *olric.Olric
+	OlricDb            *olric.Olric
 	AssetFolderCache   map[string]map[string]*AssetFolderCache
 	SubsiteFolderCache map[string]*AssetFolderCache
 	MailSender         func(e *mail.Envelope, task backends.SelectTask) (backends.Result, error)
@@ -139,7 +139,7 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms
 		configStore:        configStore,
 		Cruds:              cruds,
 		tableInfo:          &tableInfo,
-		olricDb:            olricDb,
+		OlricDb:            olricDb,
 		defaultGroups:      GroupNamesToIds(db, tableInfo.DefaultGroups),
 		contextCache:       make(map[string]interface{}),
 		contextLock:        sync.RWMutex{},

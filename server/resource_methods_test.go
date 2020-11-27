@@ -3,6 +3,7 @@ package server
 import (
 	"database/sql"
 	"github.com/artpar/api2go"
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -40,11 +41,20 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 
 	cruds := make(map[string]*resource.DbResource)
 
-	ms := BuildMiddlewareSet(&initConfig, &cruds)
+	dtopicMap := make(map[string]*olric.DTopic)
+
+	ms := BuildMiddlewareSet(&initConfig, &cruds, &dtopicMap)
 	for _, table := range initConfig.Tables {
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
 		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, nil, table)
 		cruds[table.TableName] = res
+	}
+
+	var err error
+	for key, _ := range cruds {
+		dtopicMap[key], err = cruds["world"].OlricDb.NewDTopic(key, 4, 1)
+		resource.CheckErr(err, "Failed to create topic for table: %v", key)
+		err = nil
 	}
 
 	resource.CheckRelations(&initConfig)
@@ -87,7 +97,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	//resource.UpdateMarketplaces(&initConfig, wrapper)
 	resource.UpdateStandardData(&initConfig, wrapper)
 
-	err := resource.UpdateActionTable(&initConfig, wrapper)
+	err = resource.UpdateActionTable(&initConfig, wrapper)
 	resource.CheckErr(err, "Failed to update action table")
 
 	for _, table := range initConfig.Tables {

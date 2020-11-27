@@ -2,10 +2,11 @@ package websockets
 
 import (
 	"fmt"
+	"github.com/buraksezer/olric"
+	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
-	"net/http"
 )
 
 type WebSocketPayload struct {
@@ -26,17 +27,17 @@ func (self *Message) String() string {
 
 // Chat server.
 type Server struct {
-	pattern        string
-	clients        map[int]*Client
-	addCh          chan *Client
-	delCh          chan *Client
-	doneCh         chan bool
-	errCh          chan error
-	messageHandler WebSocketConnectionHandler
+	pattern   string
+	clients   map[int]*Client
+	addCh     chan *Client
+	delCh     chan *Client
+	doneCh    chan bool
+	errCh     chan error
+	dtopicMap *map[string]*olric.DTopic
 }
 
 // Create new chat server.
-func NewServer(pattern string, messageHandler WebSocketConnectionHandler) *Server {
+func NewServer(pattern string, dtopicMap *map[string]*olric.DTopic) *Server {
 	clients := make(map[int]*Client)
 	addCh := make(chan *Client)
 	delCh := make(chan *Client)
@@ -44,13 +45,13 @@ func NewServer(pattern string, messageHandler WebSocketConnectionHandler) *Serve
 	errCh := make(chan error)
 
 	return &Server{
-		pattern:        pattern,
-		clients:        clients,
-		addCh:          addCh,
-		delCh:          delCh,
-		doneCh:         doneCh,
-		errCh:          errCh,
-		messageHandler: messageHandler,
+		pattern:   pattern,
+		clients:   clients,
+		addCh:     addCh,
+		delCh:     delCh,
+		doneCh:    doneCh,
+		errCh:     errCh,
+		dtopicMap: dtopicMap,
 	}
 }
 
@@ -76,14 +77,14 @@ func (s *Server) Err(err error) {
 	s.errCh <- err
 }
 
-func (s *Server) sendAll(msg *WebSocketPayload) {
+func (s *Server) sendAll(msg resource.EventMessage) {
 	for _, c := range s.clients {
 		c.Write(msg)
 	}
 }
 
 type WebSocketConnectionHandler interface {
-	MessageFromClient(message WebSocketPayload, request *http.Request)
+	MessageFromClient(message WebSocketPayload, request *Client)
 }
 
 // Listen and serve.

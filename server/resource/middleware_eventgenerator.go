@@ -3,29 +3,64 @@ package resource
 import (
 	"context"
 	"github.com/artpar/api2go"
+	"github.com/buraksezer/olric"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
 type eventHandlerMiddleware struct {
+	dtopicMap *map[string]*olric.DTopic
+	cruds     *map[string]*DbResource
 }
 
 func (pc eventHandlerMiddleware) String() string {
 	return "EventGenerator"
 }
 
+type EventMessage struct {
+	MessageSource string
+	EventType     string
+	ObjectType    string
+	EventData     map[string]interface{}
+}
+
 func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
+
+	topic := (*pc.dtopicMap)[dr.model.GetTableName()]
+	if topic == nil {
+		return results, nil
+	}
 
 	switch strings.ToLower(req.PlainRequest.Method) {
 	case "get":
 		break
 	case "post":
-		break
-	case "update":
+		err := topic.Publish(EventMessage{
+			MessageSource: "middleware",
+			EventType:     "create",
+			ObjectType:    dr.model.GetTableName(),
+			EventData:     results[0],
+		})
+		CheckErr(err, "Failed to publish create message")
 		break
 	case "delete":
+		err := topic.Publish(EventMessage{
+			MessageSource: "middleware",
+			EventType:     "delete",
+			ObjectType:    dr.model.GetTableName(),
+			EventData:     results[0],
+		})
+		CheckErr(err, "Failed to delete create message")
 		break
+	case "update":
 	case "patch":
+		err := topic.Publish(EventMessage{
+			MessageSource: "middleware",
+			EventType:     "update",
+			ObjectType:    dr.model.GetTableName(),
+			EventData:     results[0],
+		})
+		CheckErr(err, "Failed to update create message")
 		break
 	default:
 		log.Errorf("Invalid method: %v", req.PlainRequest.Method)

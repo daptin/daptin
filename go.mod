@@ -28,7 +28,7 @@ require (
 	github.com/artpar/xlsx/v2 v2.0.5
 	github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
-	github.com/buraksezer/olric v0.2.0
+	github.com/buraksezer/olric v0.3.0
 	github.com/corpix/uarand v0.0.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/gift v1.2.1
@@ -93,8 +93,8 @@ require (
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/cobra v1.0.0
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
-	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
-	golang.org/x/net v0.0.0-20200707034311-ab3426394381
+	golang.org/x/crypto v0.0.0-20201001193750-eb9a90e9f9cb
+	golang.org/x/net v0.0.0-20200930145003-4acb6c075d10
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1

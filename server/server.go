@@ -303,8 +303,15 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		gingonic.New(defaultRouter),
 	)
 
-	ms := BuildMiddlewareSet(&initConfig, &cruds)
-	cruds = AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
+	dtopicMap := make(map[string]*olric.DTopic)
+
+	ms := BuildMiddlewareSet(&initConfig, &cruds, &dtopicMap)
+	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
+	for key, _ := range cruds {
+		dtopicMap[key], err = cruds["world"].OlricDb.NewDTopic(key, 4, 1)
+		resource.CheckErr(err, "Failed to create topic for table: %v", key)
+		err = nil
+	}
 
 	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend")
 	if err != nil {
@@ -550,11 +557,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	//defaultRouter.GET("/site/content/load", loader)
 	//defaultRouter.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
-	// TODO: make websockets functional at /live
-	//webSocketConnectionHandler := WebSocketConnectionHandlerImpl{}
-	//websocketServer := websockets.NewServer("/live", &webSocketConnectionHandler)
+	//TODO: make websockets functional at /live
+	websocketServer := websockets.NewServer("/live", &dtopicMap)
 
-	//go websocketServer.Listen(defaultRouter)
+	go func() {
+		websocketServer.Listen(defaultRouter)
+	}()
 
 	indexFile, err := boxRoot.Open("index.html")
 
@@ -861,13 +869,6 @@ type SubPathFs struct {
 func (spf *SubPathFs) Open(name string) (http.File, error) {
 	//log.Infof("Service file from static path: %s/%s", spf.subPath, name)
 	return spf.system.Open(spf.subPath + name)
-}
-
-type WebSocketConnectionHandlerImpl struct {
-}
-
-func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message websockets.WebSocketPayload, request *http.Request) {
-	// todo: complete implementation
 }
 
 func AddStreamsToApi2Go(api *api2go.API, processors []*resource.StreamProcessor, db database.DatabaseConnection, middlewareSet *resource.MiddlewareSet, configStore *resource.ConfigStore) {
