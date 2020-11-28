@@ -37,8 +37,7 @@ require (
 	github.com/emersion/go-msgauth v0.4.0
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/fclairamb/ftpserver v0.0.0-20200221221851-84e5d668e655
-	github.com/frankban/quicktest v1.7.3 // indirect
-	github.com/getkin/kin-openapi v0.14.0
+	github.com/getkin/kin-openapi v0.31.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gin-contrib/gzip v0.0.2
 	github.com/gin-contrib/static v0.0.0-20181225054800-cf5e10bbd933
@@ -53,7 +52,7 @@ require (
 	github.com/gobuffalo/flect v0.1.5
 	github.com/gocarina/gocsv v0.0.0-20181213162136-af1d9380204a
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
-	github.com/gohugoio/hugo v0.74.3
+	github.com/gohugoio/hugo v0.79.0
 	github.com/gonum/blas v0.0.0-20181208220705-f22b278b28ac // indirect
 	github.com/gonum/floats v0.0.0-20181209220543-c233463c7e82 // indirect
 	github.com/gonum/integrate v0.0.0-20181209220457-a422b5c0fdf2 // indirect
@@ -91,12 +90,12 @@ require (
 	github.com/simplereach/timeutils v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.1.1
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
 	golang.org/x/crypto v0.0.0-20201001193750-eb9a90e9f9cb
 	golang.org/x/net v0.0.0-20200930145003-4acb6c075d10
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/text v0.3.3
+	golang.org/x/text v0.3.4
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	gonum.org/v1/gonum v0.6.2 // indirect
 	gopkg.in/go-playground/validator.v9 v9.30.0
