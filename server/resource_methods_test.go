@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/artpar/api2go"
 	"github.com/buraksezer/olric"
+	olricConfig "github.com/buraksezer/olric/config"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -41,18 +42,20 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 
 	cruds := make(map[string]*resource.DbResource)
 
+	olricDb, _ := olric.New(olricConfig.New("local"))
+
 	dtopicMap := make(map[string]*olric.DTopic)
 
 	ms := BuildMiddlewareSet(&initConfig, &cruds, &dtopicMap)
 	for _, table := range initConfig.Tables {
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
-		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, nil, table)
+		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, olricDb, table)
 		cruds[table.TableName] = res
 	}
 
 	var err error
-	for key, _ := range cruds {
-		dtopicMap[key], err = cruds["world"].OlricDb.NewDTopic(key, 4, 1)
+	for key, crud := range cruds {
+		dtopicMap[key], err = crud.OlricDb.NewDTopic(key, 4, 1)
 		resource.CheckErr(err, "Failed to create topic for table: %v", key)
 		err = nil
 	}

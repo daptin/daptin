@@ -46,7 +46,7 @@ func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 	oauthTokenId := cloudStore.OAutoTokenId
 
 	token, oauthConf, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
-	CheckErr(err, "Failed to get oauth2 token for storage sync")
+	//CheckErr(err, "Failed to get oauth2 token for storage sync")
 
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to convert token to json")

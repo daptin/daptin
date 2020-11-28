@@ -85,10 +85,37 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	initialiseResources(&initConfig, db)
 
-	olricConfig1 := olricConfig.New("local")
+	configStore, err := resource.NewConfigStore(db)
+	resource.CheckErr(err, "Failed to get config store")
+
+	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
+	if err != nil {
+		name, e := os.Hostname()
+		if e != nil {
+			name = "localhost"
+		}
+		hostname = name
+		err = configStore.SetConfigValueFor("hostname", hostname, "backend")
+		resource.CheckErr(err, "Failed to store hostname in _config")
+	}
+
+	initConfig.Hostname = hostname
+
+	olricPeersList, err := configStore.GetConfigValueFor("cluster.peers", "backend")
+	if err != nil {
+		olricPeersList = ""
+		err = configStore.SetConfigValueFor("cluster.peers", "", "backend")
+		resource.CheckErr(err, "Failed to store hostname in _config")
+	}
+
+	olricConfig1 := olricConfig.New("wan")
 	olricConfig1.LogLevel = "ERROR"
 	olricConfig1.LogVerbosity = 1
 	olricConfig1.LogOutput = os.Stderr
+	if len(olricPeersList) > 0 {
+		peersList := strings.Split(olricPeersList, ",")
+		olricConfig1.Peers = peersList
+	}
 	//olricConfig1.Logger = nil
 	olricDb, err := olric.New(olricConfig1)
 	if err != nil {
@@ -158,8 +185,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to write favicon")
 	})
 
-	configStore, err := resource.NewConfigStore(db)
-	resource.CheckErr(err, "Failed to get config store")
 	defaultRouter.Use(NewLanguageMiddleware(configStore).LanguageMiddlewareFunc)
 
 	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend")
@@ -188,19 +213,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}, func(c *gin.Context) {
 		c.AbortWithStatus(429) // handle exceed rate limit request
 	}))
-
-	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
-	if err != nil {
-		name, e := os.Hostname()
-		if e != nil {
-			name = "localhost"
-		}
-		hostname = name
-		err = configStore.SetConfigValueFor("hostname", hostname, "backend")
-		resource.CheckErr(err, "Failed to store hostname in _config")
-	}
-
-	initConfig.Hostname = hostname
 
 	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
 	if err != nil {
