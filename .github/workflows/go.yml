@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        job_name: ['linux', 'mac', 'windows_amd64', 'windows_386', 'other_os', 'modules_race']
+        job_name: ['linux', 'mac', 'windows_amd64', 'other_os', 'modules_race']
 
         include:
           - job_name: linux
@@ -47,16 +47,6 @@ jobs:
             modules: 'on'
             gotags: cmount
             build_flags: '-include "^windows/amd64" -cgo'
-            deploy: true
-
-          - job_name: windows_386
-            os: windows-latest
-            go: '1.14.x'
-            modules: 'on'
-            gotags: cmount
-            goarch: '386'
-            cgo: '1'
-            build_flags: '-include "^windows/386" -cgo'
             deploy: true
 
           - job_name: other_os
@@ -375,11 +365,6 @@ jobs:
           path: build/daptin-linux-mips64le
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
-      - uses: actions/upload-artifact@v1
-        with:
-          name: daptin-windows-4.0-386.exe
-          path: build/daptin-windows-4.0-386.exe
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
@@ -404,7 +389,6 @@ jobs:
             ./build/daptin-linux-mipsle
             ./build/daptin-linux-mips64
             ./build/daptin-linux-mips64le
-            ./build/daptin-windows-4.0-386.exe
             ./build/daptin-windows-4.0-amd64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
