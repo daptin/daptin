@@ -2,7 +2,6 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
-	log "github.com/sirupsen/logrus"
 	"strings"
 
 	//"github.com/Masterminds/squirrel"
@@ -54,7 +53,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 		}
 
 		if strings.Index(result["__type"].(string), ".") > -1 {
-			log.Infof("Included object is an file")
+			//log.Infof("Included object is an file")
 			returnMap = append(returnMap, result)
 			continue
 		}

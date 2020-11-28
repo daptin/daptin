@@ -8,6 +8,7 @@ import (
 	"github.com/artpar/rclone/fs"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"golang.org/x/oauth2"
 
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
@@ -45,8 +46,14 @@ func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 
 	oauthTokenId := cloudStore.OAutoTokenId
 
-	token, oauthConf, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
-	//CheckErr(err, "Failed to get oauth2 token for storage sync")
+	var token *oauth2.Token
+	var oauthConf *oauth2.Config
+	var err error
+
+	if cloudStore.StoreProvider != "local" {
+		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+		CheckErr(err, "Failed to get oauth2 token for storage sync")
+	}
 
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to convert token to json")
