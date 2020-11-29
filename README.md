@@ -32,6 +32,9 @@
 ### Dashboard for daptin
 
 - Dadadash : https://github.com/daptin/dadadash/
+  - `docker run -p 8080:8080 daptin/dadadash`
+
+Go down if you are looking for headless CMS
 
 
 |      |    |
