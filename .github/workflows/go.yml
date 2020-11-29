@@ -283,6 +283,19 @@ jobs:
         run: go get github.com/daptin/daptin
 
 
+      - name: Build dashboard
+        shell: bash
+        run: |
+          printf "npm and qusar to build dashboard in ./daptinweb"
+          git clone https://github.com/daptin/dadadash daptinweb && cd daptinweb
+          npm install -g @quasar/cli
+          npm install
+          npm run build
+          ls -lah dist/spa
+          printf "Dashboard build complete"
+          cd ..
+
+
       - name: Cross-compile daptin
         run: |
           export GO111MODULE=on
