@@ -32,7 +32,7 @@ script:
 - go get github.com/karalabe/xgo
 - go get -u -v github.com/ahmetb/govvv
 - go get
-- cd daptinweb
+- git clone github.com/daptin/dadadash daptinweb && cd daptinweb
 - pwd
 - npm install -g @quasar/cli
 - npm install && npm rebuild node-sass

@@ -12,6 +12,8 @@ test_with_go_modules: &test_with_go_modules
   - run: go get
   - run: go build  -ldflags='-extldflags "-static"' -a -installsuffix cgo -o main
   - run: ls -lah
+  - run: git clone github.com/daptin/dadadash daptinweb
+  - run: cd daptinweb && npm install -g @quasar/cli && npm install && npm run build && cd ..
   - run: mkdir docker_dir
   - run: cp main docker_dir/main
   - run: cp Dockerfile docker_dir/Dockerfile
