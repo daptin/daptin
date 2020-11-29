@@ -231,6 +231,9 @@ func main() {
 		startTime := time.Now()
 
 		if olricDb != nil {
+			cache, _ := olricDb.NewDMap("default-cache")
+			_ = cache.Destroy()
+
 			err = olricDb.Shutdown(context.Background())
 			if err != nil {
 				log.Errorf("Failed to shutdown olric: %v", err)

@@ -1207,6 +1207,30 @@ func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (i
 
 }
 
+// Lookup an string reference id and return a internal integer id of an object of type `typeName`
+func (dr *DbResource) GetReferenceIdListToIdList(typeName string, referenceId []string) ([]int64, error) {
+
+	id := make([]int64, 0)
+	s, q, err := statementbuilder.Squirrel.Select("id").
+		From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+	if err != nil {
+		return id, err
+	}
+
+	rows, err := dr.db.Queryx(s, q...)
+	if err != nil {
+		return id, err
+	}
+	for rows.Next() {
+		var id1 int64
+		err = rows.Scan(&id1)
+		id = append(id, id1)
+	}
+
+	return id, err
+
+}
+
 // select "column" from "typeName" where matchColumn in (values)
 // returns list of values of the column
 func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectColumn []string, matchColumn string, values []string) ([]interface{}, error) {

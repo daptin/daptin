@@ -38,16 +38,16 @@ func TestAllPermission(t *testing.T) {
 
 func TestAuthPermissions(t *testing.T) {
 
-	t.Logf("Permission [%v] %v", None, None)
+	t.Logf("Permission None [%v] %v", None, None)
 
-	t.Logf("Permission [%v] %v", GuestPeek, int64(GuestPeek))
-	t.Logf("Permission [%v] %v", GuestRead, int64(GuestRead))
-	t.Logf("Permission [%v] %v", GuestRefer, int64(GuestRefer))
-	t.Logf("Permission [%v] %v", GuestCreate, int64(GuestCreate))
-	t.Logf("Permission [%v] %v", GuestUpdate, int64(GuestUpdate))
-	t.Logf("Permission [%v] %v", GuestDelete, int64(GuestDelete))
-	t.Logf("Permission [%v] %v", GuestExecute, int64(GuestExecute))
-	t.Logf("Permission [%v] %v", GuestCRUD, int64(GuestCRUD))
+	t.Logf("Permission GuestPeek [%v] %v", GuestPeek, int64(GuestPeek))
+	t.Logf("Permission GuestRead [%v] %v", GuestRead, int64(GuestRead))
+	t.Logf("Permission GuestRefer [%v] %v", GuestRefer, int64(GuestRefer))
+	t.Logf("Permission GuestCreate [%v] %v", GuestCreate, int64(GuestCreate))
+	t.Logf("Permission GuestUpdate [%v] %v", GuestUpdate, int64(GuestUpdate))
+	t.Logf("Permission GuestDelete [%v] %v", GuestDelete, int64(GuestDelete))
+	t.Logf("Permission GuestExecute [%v] %v", GuestExecute, int64(GuestExecute))
+	t.Logf("Permission GuestCRUD [%v] %v", GuestCRUD, int64(GuestCRUD))
 
 	AllPermissions := []AuthPermission{
 		None,

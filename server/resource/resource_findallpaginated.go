@@ -502,12 +502,42 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 
 	if !isAdmin && tableModel.GetTableName() != "usergroup" {
-		queryBuilder = queryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
-			"((%s.permission & 32768) = 32768) or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", tableModel.GetTableName(), joinTableName, tableModel.GetTableName(), tableModel.GetTableName()), sessionUser.UserId)
-		countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("(((%s.permission & 2) = 2) or "+
-			//"((%s.permission & 32768) = 32768) or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256))", tableModel.GetTableName(), tableModel.GetTableName(), tableModel.GetTableName()), sessionUser.UserId)
+
+		groupReferenceIds := make([]string, 0)
+		for _, group := range sessionUser.Groups {
+			groupReferenceIds = append(groupReferenceIds, group.GroupReferenceId)
+		}
+		groupIds, err := dr.GetReferenceIdListToIdList("usergroup", groupReferenceIds)
+		CheckErr(err, "Failed to fetch group ids")
+		groupCount := len(groupReferenceIds)
+		groupParameters := ""
+
+		if groupCount > 0 {
+			groupParameters = strings.Join(strings.Split(strings.Repeat("?", groupCount), ""), ",")
+			groupParameters = fmt.Sprintf(" or ((%s.permission & 32768) = 32768 and "+"%s.usergroup_id in ("+groupParameters+")) ",
+				joinTableName, joinTableName,
+			)
+		}
+		queryArgs := make([]interface{}, 0)
+		for _, id := range groupIds {
+			queryArgs = append(queryArgs, id)
+		}
+		queryArgs = append(queryArgs, sessionUser.UserId)
+
+		queryBuilder = queryBuilder.Where(fmt.Sprintf("("+
+			"((%s.permission & 2) = 2)"+ groupParameters+" ) or "+
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256)",
+			tableModel.GetTableName(),
+			tableModel.GetTableName(), tableModel.GetTableName()),
+			queryArgs...)
+
+		countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("("+
+			"((%s.permission & 2) = 2)  " + groupParameters+" ) or "+
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256)",
+			tableModel.GetTableName(),
+			tableModel.GetTableName(), tableModel.GetTableName()),
+			queryArgs...)
+
 	}
 
 	idsListQuery, args, err := queryBuilder.OrderBy(orders...).ToSql()

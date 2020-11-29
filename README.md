@@ -8,7 +8,6 @@
 </h1>
 
 
-<img src="docs_markdown/docs/images/dashboard/index-page.png">
 
 
 <p align="center">
@@ -28,6 +27,21 @@
 <p align="center">
     <a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLWJmZmRlN2M4YzRkOTI4MDhlNWQ1YzBiMDNhMzE0NTVmNzA3NjA5ZDdkMDExZmI0M2UyMmM2NzhlNDc3M2VhZTQ"><img src="https://img.shields.io/badge/join-on%20slack-orange.svg?longCache=true&style=for-the-badge" /> <a/> 
 </p>
+
+
+### Dashboard for daptin
+
+- Dadadash : https://github.com/daptin/dadadash/
+
+
+|      |    |
+|------------------------------------------------|------------------------------------------------------|
+| ![ new workspace](https://github.com/daptin/dadadash/raw/assets/newWorkspace.png)     | ![ worksapce view](https://github.com/daptin/dadadash/raw/assets/workspaceView.png)         |
+| ![ new base](https://github.com/daptin/dadadash/raw/assets/newBase.png)               | ![ new app item menu](https://github.com/daptin/dadadash/raw/assets/newAppItemMenu.png)     |
+| ![ document editor](https://github.com/daptin/dadadash/raw/assets/documentEditor.png) | ![ spreadsheet editor](https://github.com/daptin/dadadash/raw/assets/spreadsheetEditor.png) |
+| ![ data tables](https://github.com/daptin/dadadash/raw/assets/dataTable.png)          | ![ file browser](https://github.com/daptin/dadadash/raw/assets/fileBrowser.png)             |
+| ![ calendar](https://github.com/daptin/dadadash/raw/assets/newCalendarEvent.png)      | ![ File browser](https://github.com/daptin/dadadash/raw/assets/7.png)                       |
+
 
 
 <p align="center">
