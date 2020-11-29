@@ -36,11 +36,11 @@
 
 |      |    |
 |------------------------------------------------|------------------------------------------------------|
-| ![ new workspace](https://github.com/daptin/dadadash/raw/assets/newWorkspace.png)     | ![ worksapce view](https://github.com/daptin/dadadash/raw/assets/workspaceView.png)         |
-| ![ new base](https://github.com/daptin/dadadash/raw/assets/newBase.png)               | ![ new app item menu](https://github.com/daptin/dadadash/raw/assets/newAppItemMenu.png)     |
-| ![ document editor](https://github.com/daptin/dadadash/raw/assets/documentEditor.png) | ![ spreadsheet editor](https://github.com/daptin/dadadash/raw/assets/spreadsheetEditor.png) |
-| ![ data tables](https://github.com/daptin/dadadash/raw/assets/dataTable.png)          | ![ file browser](https://github.com/daptin/dadadash/raw/assets/fileBrowser.png)             |
-| ![ calendar](https://github.com/daptin/dadadash/raw/assets/newCalendarEvent.png)      | ![ File browser](https://github.com/daptin/dadadash/raw/assets/7.png)                       |
+| ![ new workspace](https://github.com/daptin/daptin/raw/master/images/workspace-create.png)     | ![ worksapce view](https://github.com/daptin/dadadash/raw/master/assets/workspaceView.png)         |
+| ![ new base](https://github.com/daptin/daptin/raw/master/images/admin-dashboard-home.png)               | ![ new app item menu](https://github.com/daptin/dadadash/raw/master/assets/newAppItemMenu.png)     |
+| ![ document editor](https://github.com/daptin/dadadash/raw/master/assets/documentEditor.png) | ![ spreadsheet editor](https://github.com/daptin/dadadash/raw/master/assets/spreadsheetEditor.png) |
+| ![ data tables](https://github.com/daptin/dadadash/raw/master/assets/dataTable.png)          | ![ file browser](https://github.com/daptin/dadadash/raw/master/assets/fileBrowser.png)             |
+| ![ calendar](https://github.com/daptin/dadadash/raw/master/assets/newCalendarEvent.png)      | ![ File browser](https://github.com/daptin/dadadash/raw/master/assets/7.png)                       |
 
 
 
