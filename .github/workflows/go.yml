@@ -283,18 +283,6 @@ jobs:
         run: go get github.com/daptin/daptin
 
 
-      - name: Build dashboard
-        shell: bash
-        run: |
-          printf "npm and qusar to build dashboard in ./daptinweb"
-          git clone https://github.com/daptin/dadadash daptinweb && cd daptinweb
-          npm install -g @quasar/cli
-          npm install
-          npm run build
-          ls -lah dist/spa
-          printf "Dashboard build complete"
-          cd ..
-
 
       - name: Cross-compile daptin
         run: |
@@ -304,7 +292,6 @@ jobs:
           go get -v github.com/GeertJohan/go.rice
           go get -v github.com/GeertJohan/go.rice/rice
           go install github.com/GeertJohan/go.rice/rice
-          rice embed-go
           go get
           xgo \
               -image=artpar/daptin-xgo:1.14 \
