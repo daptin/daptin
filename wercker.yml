@@ -18,7 +18,7 @@ build:
   - script:
       name: dashboard build
       code: |
-        cd daptinweb
+        git clone https://github.com/daptin/dadadash daptinweb && cd daptinweb
         npm install -g @quasar/cli
         npm install
         npm run build
