@@ -57,7 +57,9 @@ func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to convert token to json")
-	config.FileSet(cloudStore.StoreProvider, "token", string(jsonToken))
+	if jsonToken != nil {
+		config.FileSet(cloudStore.StoreProvider, "token", string(jsonToken))
+	}
 	if oauthConf != nil {
 		config.FileSet(cloudStore.StoreProvider, "client_id", oauthConf.ClientID)
 		config.FileSet(cloudStore.StoreProvider, "type", cloudStore.StoreProvider)
