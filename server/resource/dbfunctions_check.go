@@ -360,7 +360,8 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 	rowx := db.QueryRowx(s)
 	columns, err := rowx.Columns()
 	if err != nil {
-		log.Infof("Failed to select * from %v: %v", tableInfo.TableName, err)
+		// expected error, no need to log
+		//log.Infof("Failed to select * from %v: %v", tableInfo.TableName, err)
 		err = CreateTable(tableInfo, tx)
 		return err
 	} else {
