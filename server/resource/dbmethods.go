@@ -253,7 +253,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 	return perm
 }
 
-var cache *olric.DMap
+var OlricCache *olric.DMap
 
 // Get permission of an GetObjectPermissionByReferenceId by typeName and string referenceId with a simple where clause colName = colValue
 // Use carefully
@@ -261,14 +261,14 @@ var cache *olric.DMap
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
 func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colName string, colValue string) PermissionInstance {
-	if cache == nil {
-		cache, _ = dr.OlricDb.NewDMap("default-cache")
+	if OlricCache == nil {
+		OlricCache, _ = dr.OlricDb.NewDMap("default-cache")
 	}
 
 	cacheKey := ""
-	if cache != nil {
+	if OlricCache != nil {
 		cacheKey = fmt.Sprintf("%s_%s_%s", objectType, colName, colValue)
-		cachedPermission, _ := cache.Get(cacheKey)
+		cachedPermission, _ := OlricCache.Get(cacheKey)
 		if cachedPermission != nil {
 			return cachedPermission.(PermissionInstance)
 		}
@@ -306,8 +306,8 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 
 	//log.Infof("PermissionInstance for [%v]: %v", typeName, perm)
 
-	if cache != nil {
-		_ = cache.PutEx(cacheKey, perm, 5*time.Minute)
+	if OlricCache != nil {
+		_ = OlricCache.PutEx(cacheKey, perm, 5*time.Minute)
 	}
 	return perm
 }
@@ -1344,8 +1344,8 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 				idCacheKey := fmt.Sprintf("%s_%d", namespace, referenceIdInt)
 				refId, ok := referenceIdCache[idCacheKey]
-				if !ok && cache != nil {
-					cachedId, err := cache.Get(idCacheKey)
+				if !ok && OlricCache != nil {
+					cachedId, err := OlricCache.Get(idCacheKey)
 					if err != nil && cachedId != nil {
 						refId = cachedId.(string)
 						referenceIdCache[idCacheKey] = refId
@@ -1356,8 +1356,8 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				if !ok {
 					refId, err = dr.GetIdToReferenceId(namespace, referenceIdInt)
 					referenceIdCache[idCacheKey] = refId
-					if cache != nil {
-						_ = cache.PutEx(cacheKey, refId, 5*time.Minute)
+					if OlricCache != nil {
+						_ = OlricCache.PutEx(cacheKey, refId, 5*time.Minute)
 					}
 
 				}

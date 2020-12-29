@@ -107,9 +107,9 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		return results, nil
 	}
 
-	if cache == nil {
-		cache, _ = dr.OlricDb.NewDMap("default-cache")
-	}
+	//if OlricCache == nil {
+	//	OlricCache, _ = dr.OlricDb.NewDMap("default-OlricCache")
+	//}
 
 	//var err error
 	//log.Infof("context: %v", context.GetAll(req.PlainRequest))

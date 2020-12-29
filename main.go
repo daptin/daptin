@@ -179,6 +179,7 @@ func main() {
 	}
 
 	statementbuilder.InitialiseStatementBuilder(*dbType)
+	auth.PrepareAuthQueries()
 	log.Printf("Database connection using: [%v] [%v]", *dbType, *connectionString)
 
 	db, err := server.GetDbConnection(*dbType, *connectionString)
@@ -231,8 +232,8 @@ func main() {
 		startTime := time.Now()
 
 		if olricDb != nil {
-			cache, _ := olricDb.NewDMap("default-cache")
-			_ = cache.Destroy()
+			//cache, _ := olricDb.NewDMap("default-cache")
+			_ = resource.OlricCache.Destroy()
 
 			err = olricDb.Shutdown(context.Background())
 			if err != nil {

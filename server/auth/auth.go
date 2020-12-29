@@ -194,6 +194,13 @@ var UserSelectQuery, _, _ = statementbuilder.Squirrel.Select("ug.reference_id as
 	"uug.reference_id as \"relationreferenceid\"", "uug.permission").From("usergroup ug").
 	Join("user_account_user_account_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id").Where("uug.user_account_id = ?", 1).ToSql()
 
+func PrepareAuthQueries() {
+	UserSelectQuery, _, _ = statementbuilder.Squirrel.Select("ug.reference_id as \"groupreferenceid\"",
+		"uug.reference_id as \"relationreferenceid\"", "uug.permission").From("usergroup ug").
+		Join("user_account_user_account_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id").Where("uug.user_account_id = ?", 1).ToSql()
+
+}
+
 func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer http.ResponseWriter, doBasicAuthCheck bool) (okToContinue, abortRequest bool, returnRequest *http.Request) {
 	okToContinue = true
 	abortRequest = false
@@ -342,7 +349,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				}
 
 				if cache != nil {
-					err = cache.PutEx(email, user, 5*time.Minute)
+					err = cache.PutEx(email, user, 1*time.Minute)
 					CheckErr(err, "Failed to put user in cache")
 				}
 			} else {

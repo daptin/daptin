@@ -37,7 +37,7 @@ func (d *becomeAdminActionPerformer) DoAction(request Outcome, inFieldMap map[st
 	}
 
 	actionResponse := NewActionResponse("client.redirect", responseAttrs)
-	_ = cache.Destroy()
+	_ = OlricCache.Destroy()
 
 	go restart()
 
