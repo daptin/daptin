@@ -655,45 +655,48 @@ func excludeFromMode(mode Mode, schema *openapi3.Schema) bool {
 func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
 
 	var err error
-	jsonBytes := []byte(integration.Specification)
-
-	if integration.SpecificationFormat == "yaml" {
-
-		jsonBytes, err = yaml.YAMLToJSON(jsonBytes)
-
-		if err != nil {
-			log.Errorf("Failed to convert yaml to json for integration: %v", err)
-			return nil, err
-		}
-
-	}
-
+	yamlBytes := []byte(integration.Specification)
 	var router *openapi3.Swagger
 
 	if integration.SpecificationLanguage == "openapiv2" {
-
 		openapiv2Spec := openapi2.Swagger{}
+		if integration.SpecificationFormat == "json" {
 
-		err := json.Unmarshal(jsonBytes, &openapiv2Spec)
+			err = json.Unmarshal(yamlBytes, &openapiv2Spec)
+			if err != nil {
+				log.Errorf("Failed to unmarshal json for integration: %v", err)
+				return nil, err
+			}
 
-		if err != nil {
-			log.Errorf("Failed to unmarshal as openapiv2: %v", err)
-			return nil, err
+		} else if integration.SpecificationFormat == "yaml" {
+			err = yaml.Unmarshal(yamlBytes, &openapiv2Spec)
+			if err != nil {
+				log.Errorf("Failed to unmarshal yaml for integration: %v", err)
+				return nil, err
+			}
+
 		}
-
 		router, err = openapi2conv.ToV3Swagger(&openapiv2Spec)
+	} else if integration.SpecificationLanguage == "openapiv3" {
+		if integration.SpecificationFormat == "json" {
 
-		if err != nil {
-			log.Errorf("Failed to convert to openapi v3 spec: %v", err)
-			return nil, err
+			err = json.Unmarshal(yamlBytes, &router)
+			if err != nil {
+				log.Errorf("Failed to unmarshal json for integration: %v", err)
+				return nil, err
+			}
+
+		} else if integration.SpecificationFormat == "yaml" {
+			err = yaml.Unmarshal(yamlBytes, &router)
+			if err != nil {
+				log.Errorf("Failed to unmarshal yaml for integration: %v", err)
+				return nil, err
+			}
+
 		}
-
 	}
 
-	if router == nil {
-
-		router, err = openapi3.NewSwaggerLoader().LoadSwaggerFromData(jsonBytes)
-	}
+	err = openapi3.NewSwaggerLoader().ResolveRefsIn(router, nil)
 
 	if err != nil {
 		log.Errorf("Failed to load swagger spec: %v", err)

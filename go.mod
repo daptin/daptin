@@ -37,7 +37,7 @@ require (
 	github.com/emersion/go-msgauth v0.4.0
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/fclairamb/ftpserver v0.0.0-20200221221851-84e5d668e655
-	github.com/getkin/kin-openapi v0.31.0
+	github.com/getkin/kin-openapi v0.34.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gin-contrib/gzip v0.0.2
 	github.com/gin-contrib/static v0.0.0-20181225054800-cf5e10bbd933
