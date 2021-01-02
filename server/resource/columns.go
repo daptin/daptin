@@ -1462,7 +1462,7 @@ var StandardTables = []TableInfo{
 				IsForeignKey: true,
 				IsNullable:   false,
 				ColumnType:   "file.*",
-				DataType:     "blob",
+				DataType:     "longblob",
 				ForeignKeyData: api2go.ForeignKeyData{
 					DataSource: "cloud_store",
 					Namespace:  "localstore",

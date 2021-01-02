@@ -758,15 +758,21 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 
 	if datatype == "" {
 		datatype = "varchar(100)"
-	} else if BeginsWith(datatype, "int(") && sqlDriverName == "postgres" {
-		datatype = "INTEGER"
-	} else if BeginsWith(datatype, "medium") && sqlDriverName == "postgres" {
-		datatype = datatype[len("medium"):]
-	} else if BeginsWith(datatype, "long") && sqlDriverName == "postgres" {
-		datatype = datatype[len("long"):]
-	} else if BeginsWith(datatype, "varbinary") && sqlDriverName == "postgres" {
-		datatype = strings.Replace(datatype, "varbinary", "bit", 1)
 	}
+
+	// update column type if the db is postgres
+	if sqlDriverName == "postgres" {
+		if BeginsWith(datatype, "int(") {
+			datatype = "INTEGER"
+		} else if BeginsWith(datatype, "medium") {
+			datatype = datatype[len("medium"):]
+		} else if BeginsWith(datatype, "long") {
+			datatype = datatype[len("long"):]
+		} else if BeginsWith(datatype, "varbinary") {
+			datatype = strings.Replace(datatype, "varbinary", "bit", 1)
+		}
+	}
+
 	if BeginsWith(datatype, "blob") && sqlDriverName == "postgres" {
 		datatype = "bytea"
 	}
