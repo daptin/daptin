@@ -1779,7 +1779,7 @@ var StandardTables = []TableInfo{
 				Name:       "specification",
 				ColumnName: "specification",
 				ColumnType: "content",
-				DataType:   "text",
+				DataType:   "mediumtext",
 				IsNullable: false,
 			},
 			{
