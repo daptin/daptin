@@ -14,6 +14,3 @@ description: |
 vendor: "daptin"
 homepage: "https://dapt.in"
 license: "GPLv3"
-bindir: "/usr/bin"
-files:
-  ./daptin: "/usr/bin/daptin"
