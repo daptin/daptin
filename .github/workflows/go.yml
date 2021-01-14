@@ -189,7 +189,7 @@ jobs:
           docker build -t daptin/daptin:travis .
           docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
           docker push daptin/daptin:travis
-        if: matrix.os == 'linux'
+        if: matrix.os == 'ubuntu-latest'
 
 
       - uses: actions/upload-artifact@v1
