@@ -1421,7 +1421,7 @@ var StandardTables = []TableInfo{
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-file",
 		CompositeKeys: [][]string{
-			{"document_name", "document_path"},
+			//{"document_name", "document_path"},
 		},
 		Columns: []api2go.ColumnInfo{
 			{

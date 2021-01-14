@@ -43,6 +43,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 				_, err := db.Exec(alterTable)
 				if err != nil {
 					log.Errorf("Table[%v] Column[%v]: Failed to create unique composite key index: %v", table.TableName, compositeKeyCols, err)
+					log.Errorf("Create unique index sql: %v", alterTable)
 					db.Exec("COMMIT ")
 				}
 			}
