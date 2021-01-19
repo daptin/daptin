@@ -186,6 +186,7 @@ jobs:
 
       - name: Build and push
         run: |
+          go build -o main
           docker build -t daptin/daptin:travis .
           docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
           docker push daptin/daptin:travis
