@@ -147,6 +147,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	defaultRouter.Use(NewCorsMiddleware().CorsMiddlewareFunc)
 	defaultRouter.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
+	defaultRouter.StaticFS("/statics", NewSubPathFs(boxRoot, "/statics"))
 	defaultRouter.StaticFS("/js", NewSubPathFs(boxRoot, "/js"))
 	defaultRouter.StaticFS("/css", NewSubPathFs(boxRoot, "/css"))
 	defaultRouter.StaticFS("/fonts", NewSubPathFs(boxRoot, "/fonts"))
