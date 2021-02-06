@@ -134,6 +134,8 @@ jobs:
           ls -lah dist/spa
           printf "Dashboard build complete"
           cd ..
+          mv daptinweb/dist/spa dashboard-build
+          ls -lah dashboard-build
 
 
       - name: Installl gorice on linux
@@ -154,6 +156,7 @@ jobs:
           go get -v github.com/GeertJohan/go.rice/rice
           go install github.com/GeertJohan/go.rice/rice
           $GOPATH\\bin\\rice.exe embed-go
+          ls -lah rice-box.go
         if: matrix.os == 'windows-latest' && matrix.goarch != '386'
 
       - name: Run quick tests
