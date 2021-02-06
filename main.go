@@ -91,7 +91,7 @@ func main() {
 		"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
 		"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
-	var webDashboardSource = flag.String("dashboard", strings.ReplaceAll("dashboard-build", "/", string(os.PathSeparator)), "path to dist folder for daptin web dashboard")
+	var webDashboardSource = flag.String("dashboard", strings.ReplaceAll("daptinweb/dist/spa/", "/", string(os.PathSeparator)), "path to dist folder for daptin web dashboard")
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
 	var port_variable = flag.String("port_variable", "DAPTIN_PORT", "ENV port variable name to look for port")
 	var database_url_variable = flag.String("database_url_variable", "DAPTIN_DB_CONNECTION_STRING", "ENV port variable name to look for port")
@@ -124,10 +124,10 @@ func main() {
 	stream.AddSink(&health.WriterSink{
 		Writer: os.Stdout,
 	})
-	boxRoot1, err := rice.FindBox("dashboard-build")
+	boxRoot1, err := rice.FindBox("daptinweb/dist/spa/")
 
 	var boxRoot http.FileSystem
-	if err != nil || webDashboardSource != nil {
+	if err != nil && webDashboardSource != nil {
 		log.Printf("Try loading web dashboard from: %v", *webDashboardSource)
 		boxRoot = http.Dir(*webDashboardSource)
 	} else {

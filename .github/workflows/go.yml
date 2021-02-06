@@ -134,8 +134,6 @@ jobs:
           ls -lah dist/spa
           printf "Dashboard build complete"
           cd ..
-          mv daptinweb/dist/spa dashboard-build
-          ls -lah dashboard-build
 
 
       - name: Installl gorice on linux
