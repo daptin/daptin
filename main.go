@@ -128,7 +128,7 @@ func main() {
 
 	var boxRoot http.FileSystem
 	if err != nil && webDashboardSource != nil {
-		log.Errorf("Dashboard not found at default path: daptinweb/dist/spa/: %v == ", err, boxRoot1)
+		log.Errorf("Dashboard not found at default path: daptinweb/dist/spa/: %v == %v", err, boxRoot1)
 		log.Printf("Try loading web dashboard from: %v", *webDashboardSource)
 		boxRoot = http.Dir(*webDashboardSource)
 	} else {
