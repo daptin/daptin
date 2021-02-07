@@ -234,7 +234,12 @@ func main() {
 
 		if olricDb != nil {
 			//cache, _ := olricDb.NewDMap("default-cache")
-			_ = resource.OlricCache.Destroy()
+			if resource.OlricCache != nil {
+				err = resource.OlricCache.Destroy()
+				if err != nil {
+					log.Errorf("Failed to destroy olric cache: %v", err)
+				}
+			}
 
 			err = olricDb.Shutdown(context.Background())
 			if err != nil {
