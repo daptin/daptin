@@ -245,9 +245,9 @@ func main() {
 					log.Errorf("Failed to destroy olric cache: %v", err)
 				}
 			}
-			olricStats, err := olricDb.Stats()
-			log.Printf("Olric DB Stats before shutdown: %v", olricStats)
-			if err != nil {
+			_, err := olricDb.Stats()
+			log.Printf("Olric DB Stats before shutdown: %v", err)
+			if err == nil {
 				err = olricDb.Shutdown(context.Background())
 				if err != nil {
 					log.Errorf("Failed to shutdown olric: %v", err)
