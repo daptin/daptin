@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"runtime/pprof"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GeertJohan/go.rice"
@@ -83,6 +84,8 @@ func printVersion() {
 }
 
 func main() {
+
+	restartLock := sync.Mutex{}
 	//eventEmitter := &emitter.Emitter{}
 
 	var dbType = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
@@ -213,7 +216,9 @@ func main() {
 	}
 
 	err = trigger.On("restart", func() {
-		log.Printf("Trigger restart")
+		log.Printf("Trigger restart");
+		restartLock.Lock()
+		defer restartLock.Unlock()
 		restart_count += 1
 
 		if *runtimeMode == "profile" {
