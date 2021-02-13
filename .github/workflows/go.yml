@@ -177,16 +177,18 @@ jobs:
           make
           make compile_all
         if: matrix.compile_all
+
       - name: Build and deploy built binaries
         shell: bash
         run: |
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then make release_dep ; fi
+          ls -lah
           make travis_beta
           ls -lah build/
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
 
-      - name: Build and push
+      - name: Build and push docker image
         run: |
           go build -o main
           docker build -t daptin/daptin:travis .
