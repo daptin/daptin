@@ -223,6 +223,13 @@ jobs:
       - uses: actions/upload-artifact@v1
         continue-on-error: true
         with:
+          name: daptin-beta-latest-windows-amd64.zip
+          path: build/daptin-beta-latest-windows-amd64.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        continue-on-error: true
+        with:
           name: daptin-beta-latest-netbsd-386.zip
           path: build/daptin-beta-latest-netbsd-386.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
@@ -260,6 +267,13 @@ jobs:
         with:
           name: daptin-beta-latest-osx-386.zip
           path: build/daptin-beta-latest-osx-386.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        continue-on-error: true
+        with:
+          name: daptin-beta-latest-osx-amd64.zip
+          path: build/daptin-beta-latest-osx-amd64.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
