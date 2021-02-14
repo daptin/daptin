@@ -445,17 +445,17 @@ jobs:
         with:
           draft: true
           files: |
-            ./build/daptin-linux-amd64
-            ./build/daptin-darwin-10.6-amd64
-            ./build/daptin-linux-386
-            ./build/daptin-linux-arm-5
-            ./build/daptin-linux-arm-6
-            ./build/daptin-linux-arm-7
-            ./build/daptin-linux-mips
-            ./build/daptin-linux-mipsle
-            ./build/daptin-linux-mips64
-            ./build/daptin-linux-mips64le
-            ./build/daptin-windows-4.0-amd64.exe
+            ./build/github.com/daptin/daptin-linux-amd64
+            ./build/github.com/daptin/daptin-darwin-10.6-amd64
+            ./build/github.com/daptin/daptin-linux-386
+            ./build/github.com/daptin/daptin-linux-arm-5
+            ./build/github.com/daptin/daptin-linux-arm-6
+            ./build/github.com/daptin/daptin-linux-arm-7
+            ./build/github.com/daptin/daptin-linux-mips
+            ./build/github.com/daptin/daptin-linux-mipsle
+            ./build/github.com/daptin/daptin-linux-mips64
+            ./build/github.com/daptin/daptin-linux-mips64le
+            ./build/github.com/daptin/daptin-windows-4.0-amd64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
