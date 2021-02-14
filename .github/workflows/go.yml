@@ -344,7 +344,7 @@ jobs:
           go get -v github.com/karalabe/xgo
           go get
           cd ..
-          cp -Rf /home/runner/work/daptin/daptin /home/runner/work/daptin/src
+          ln -s /home/runner/work/daptin/daptin $GOPATH/src/daptin
           ls -lah /home/runner/work/daptin
           cd -
           pwd
