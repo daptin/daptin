@@ -336,19 +336,26 @@ jobs:
           $GOPATH/bin/rice embed-go
           ls -lah rice-box.go
 
+      - name: Set environment variables
+        shell: bash
+        run: |
+
+          echo "GOPATH=${{ runner.workspace }}" >> $GITHUB_ENV
+          echo "GO111MODULE=${{ matrix.modules }}" >> $GITHUB_ENV
+          echo "GOTAGS=${{ matrix.gotags }}" >> $GITHUB_ENV
+          echo "BUILD_FLAGS=${{ matrix.build_flags }}" >> $GITHUB_ENV
+          echo "${{ runner.workspace }}/bin" >> $GITHUB_PATH
+
+          if [[ "${{ matrix.goarch }}" != "" ]]; then echo "GOARCH=${{ matrix.goarch }}" >> $GITHUB_ENV ; fi
+          if [[ "${{ matrix.cgo }}" != "" ]]; then echo "CGO_ENABLED=${{ matrix.cgo }}" >> $GITHUB_ENV  ; fi
+
 
       - name: Cross-compile daptin
         run: |
-          export GO111MODULE=on
           docker pull artpar/daptin-xgo:1.14
-          go get -v github.com/karalabe/xgo
+          go get -v github.com/artpar/xgo
           pwd
-          cd ..
           ls -lah /home/runner/work/daptin
-          mkdir -p $GOPATH/src
-          ln -s /home/runner/work/daptin/daptin $GOPATH/src/daptin
-          ls -lah /home/runner/work/daptin
-          ls -lah $GOPATH/src/daptin
           pwd
           go env
           ls -lah
