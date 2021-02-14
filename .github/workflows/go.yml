@@ -139,9 +139,9 @@ jobs:
       - name: Installl gorice on linux
         shell: bash
         run: |
-          go get -u -v github.com/ahmetb/govvv
-          go get -v github.com/GeertJohan/go.rice
-          go get -v github.com/GeertJohan/go.rice/rice
+          go get -u github.com/ahmetb/govvv
+          go get github.com/GeertJohan/go.rice
+          go get github.com/GeertJohan/go.rice/rice
           go install github.com/GeertJohan/go.rice/rice
           $GOPATH/bin/rice embed-go
           ls -lah rice-box.go
@@ -151,8 +151,8 @@ jobs:
       - name: Install gorice on windows
         shell: bash
         run: |
-          go get -v github.com/GeertJohan/go.rice
-          go get -v github.com/GeertJohan/go.rice/rice
+          go get github.com/GeertJohan/go.rice
+          go get github.com/GeertJohan/go.rice/rice
           go install github.com/GeertJohan/go.rice/rice
           $GOPATH\\bin\\rice.exe embed-go
           ls -lah rice-box.go
@@ -329,9 +329,9 @@ jobs:
       - name: Installl gorice on linux
         shell: bash
         run: |
-          go get -u -v github.com/ahmetb/govvv
-          go get -v github.com/GeertJohan/go.rice
-          go get -v github.com/GeertJohan/go.rice/rice
+          go get -u github.com/ahmetb/govvv
+          go get github.com/GeertJohan/go.rice
+          go get github.com/GeertJohan/go.rice/rice
           go install github.com/GeertJohan/go.rice/rice
           $GOPATH/bin/rice embed-go
           ls -lah rice-box.go
@@ -353,7 +353,7 @@ jobs:
       - name: Cross-compile daptin
         run: |
           docker pull artpar/daptin-xgo:1.14
-          go get -v github.com/artpar/xgo
+          go get github.com/artpar/xgo
           pwd
           ls -lah /home/runner/work/daptin
           pwd
@@ -362,10 +362,10 @@ jobs:
           xgo \
               -image=artpar/daptin-xgo:1.14 \
               -targets=linux/386,darwin/amd64,linux/amd64,linux/arm-5,linux/arm-6,linux/arm-7,linux/mips,linux/mips64,linux/mips64le,linux/mipsle,windows/386,windows/amd64 \
-              --tags netgo -ldflags='-linkmode external' -dest build ./daptin
+              --tags netgo -ldflags='-linkmode external' -dest build .
 
 
-      - name: Set environment variables
+      - name: List built artifacts
         shell: bash
         run: |
           ls build
