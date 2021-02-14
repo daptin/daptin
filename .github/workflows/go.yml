@@ -342,8 +342,10 @@ jobs:
           export GO111MODULE=on
           docker pull artpar/daptin-xgo:1.14
           go get -v github.com/karalabe/xgo
-          go get
+          pwd
           cd ..
+          ls -lah /home/runner/work/daptin
+          mkdir -p $GOPATH/src
           ln -s /home/runner/work/daptin/daptin $GOPATH/src/daptin
           ls -lah /home/runner/work/daptin
           cd -
@@ -351,7 +353,7 @@ jobs:
           go env
           ls -lah
           xgo \
-              -image=artpar/daptin-xgo:1.14 \
+              -image=artpar/daptin-xgo389++/+
               -targets=linux/386,darwin/amd64,linux/amd64,linux/arm-5,linux/arm-6,linux/arm-7,linux/mips,linux/mips64,linux/mips64le,linux/mipsle,windows/386,windows/amd64 \
               --tags netgo -ldflags='-linkmode external' -dest build /home/runner/work/daptin/daptin
 
