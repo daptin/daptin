@@ -343,6 +343,10 @@ jobs:
           docker pull artpar/daptin-xgo:1.14
           go get -v github.com/karalabe/xgo
           go get
+          cd ..
+          cp -Rf /home/runner/work/daptin/daptin /home/runner/work/daptin/src
+          ls -lah /home/runner/work/daptin
+          cd -
           pwd
           go env
           ls -lah
