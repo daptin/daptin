@@ -369,7 +369,7 @@ jobs:
         shell: bash
         run: |
           ls build
-          file build/*
+          find build
 
       - uses: actions/upload-artifact@v1
         with:
