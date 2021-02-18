@@ -130,8 +130,8 @@ func main() {
 	boxRoot1, err := rice.FindBox("daptinweb/dist/spa/")
 
 	var boxRoot http.FileSystem
-	if err != nil && webDashboardSource != nil {
-		log.Errorf("Dashboard not found at default path: daptinweb/dist/spa/: %v == %v", err, boxRoot1)
+	if err != nil || (webDashboardSource != nil && *webDashboardSource != "daptinweb/dist/spa/") {
+		log.Errorf("Dashboard not loading from default path: daptinweb/dist/spa/: %v == %v", err, boxRoot1)
 		log.Printf("Try loading web dashboard from: %v", *webDashboardSource)
 		boxRoot = http.Dir(*webDashboardSource)
 	} else {
