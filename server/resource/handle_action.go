@@ -316,9 +316,12 @@ OutFields:
 		}
 
 		requestContext := req.PlainRequest.Context()
-		requestContext = context.WithValue(requestContext, "user", &auth.SessionUser{
-			UserReferenceId: db.GetAdminReferenceId()[0],
-		})
+		adminUserReferenceId := db.GetAdminReferenceId()
+		if adminUserReferenceId != nil && len(adminUserReferenceId) > 0 {
+			requestContext = context.WithValue(requestContext, "user", &auth.SessionUser{
+				UserReferenceId: adminUserReferenceId[0],
+			})
+		}
 		request.PlainRequest = request.PlainRequest.WithContext(requestContext)
 		dbResource, _ := db.Cruds[outcome.Type]
 
