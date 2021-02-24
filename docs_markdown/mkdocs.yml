@@ -2,13 +2,15 @@ site_name: Daptin
 site_favicon: images/favicon.png
 site_url: https://daptin.github.io/daptin/
 pages:
-- Getting started:
-  - Daptin: index.md
-  - Installation: setting-up/installation.md
-  - Getting started: setting-up/settingup.md
-  - User management: setting-up/access.md
-  - Data model: setting-up/data_modeling.md
-- JSON API reference:
+- Overview: index.md
+- Download and Deploy: setting-up/installation.md
+- Accessing the web dashboard: setting-up/settingup.md
+- User management:
+    - New User: user-management/new-users.md
+    - Sign in API: user-management/signin.md
+    - Access control: user-management/new-users.md
+- Data model: setting-up/data_modeling.md
+- HTTP JSON API:
   - CRUD API: apis/crud/#crud-api
   - Action API: apis/crud/#action-api
   - Relation API: apis/crud/#relation-apis
@@ -19,27 +21,26 @@ pages:
   - What are actions: actions/actions.md
   - Actions list: actions/default_actions.md
   - Examples: actions/examples.md
-- Features:
-  - GraphQL: features/enable-graphql.md
-  - Data Auditing: features/enable-data-auditing.md
-  - Multilingual Table: features/enable-multilingual-table.md
-  - SMTP/IMPS server: features/enable-smtp-imap.md
-  - Logs: features/enable-logs.md
-  - State tracking: state/machines.md
+- GraphQL: features/enable-graphql.md
+- Data Auditing: features/enable-data-auditing.md
+- Multilingual Table: features/enable-multilingual-table.md
+- SMTP/IMPS server: features/enable-smtp-imap.md
+- State tracking: state/machines.md
+- OAuth:
   - OAuth Connections: extend/oauth_connection.md
   - OAuth Tokens: extend/oauth_token.md
-  - Integrations Overview: integrations/overview.md
-  - Cloud store: cloudstore/cloudstore.md
-  - Cloud store backed asset columns: cloudstore/assetcolumns.md
-  - Sub-sites:
-    - Creating a subsite: subsite/subsite.md
-    - Live editing a subsite: subsite/grapes.md
-    - Basic Authentication: subsite/basic_auth.md
-- Reference Documents:
+- 3rd party API Integrations: integrations/overview.md
+- Cloud store: cloudstore/cloudstore.md
+- Cloud store backed asset columns: cloudstore/assetcolumns.md
+- Sub-sites:
+  - Creating a subsite: subsite/subsite.md
+  - Live editing a subsite: subsite/grapes.md
+  - Basic Authentication: subsite/basic_auth.md
+- Internal Reference Documents:
   - Data store format: data-modeling/data_storage.md
   - Data exchange and sync: extend/data_exchange.md
   - Data streams: streams/streams.md
-  - Enable/Disabling features: setting-up/enabling-features.md
+- Global Configuration: setting-up/configuration.md
 theme:
   name: material
   logo: images/theme-logo.png

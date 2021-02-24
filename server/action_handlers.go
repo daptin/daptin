@@ -102,6 +102,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create mail server sync performer")
 	performers = append(performers, mailServerSync)
 
+	mailSendAction, err := resource.NewMailSendActionPerformer(cruds, mailDaemon, certificateManager)
+	resource.CheckErr(err, "Failed to create mail send performer")
+	performers = append(performers, mailSendAction)
+
 	restartPerformer, err := resource.NewRestarSystemPerformer(initConfig)
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, restartPerformer)
@@ -125,6 +129,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	columnRenamePerformer, err := resource.NewRenameWorldColumnPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create column rename performer")
 	performers = append(performers, columnRenamePerformer)
+
+	randomValueGeneratePerformer, err := resource.NewRandomValueGeneratePerformer()
+	resource.CheckErr(err, "Failed to create random value generate performer")
+	performers = append(performers, randomValueGeneratePerformer)
 
 	enableGraphqlPerformer, err := resource.NewGraphqlEnablePerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create enable graphql performer")

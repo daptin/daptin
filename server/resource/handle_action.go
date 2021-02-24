@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -307,10 +308,18 @@ OutFields:
 		if err != nil {
 			log.Errorf("Failed to build outcome: %v", err)
 			responses = append(responses, NewActionResponse("error", "Failed to build outcome "+outcome.Type))
-			continue
+			if outcome.ContinueOnError {
+				continue
+			} else {
+				return []ActionResponse{}, fmt.Errorf("invalid input for %v", outcome.Type)
+			}
 		}
 
-		request.PlainRequest = request.PlainRequest.WithContext(req.PlainRequest.Context())
+		requestContext := req.PlainRequest.Context()
+		requestContext = context.WithValue(requestContext, "user", &auth.SessionUser{
+			UserReferenceId: db.GetAdminReferenceId()[0],
+		})
+		request.PlainRequest = request.PlainRequest.WithContext(requestContext)
 		dbResource, _ := db.Cruds[outcome.Type]
 
 		actionResponses := make([]ActionResponse, 0)
@@ -453,7 +462,7 @@ OutFields:
 		if len(actionResponses) > 0 && outcome.Reference != "" {
 			lst := make([]interface{}, 0)
 			for i, res := range actionResponses {
-				inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = res.Attributes
+				inFieldMap[fmt.Sprintf("response.%v[%v]", outcome.Reference, i)] = res.Attributes
 				lst = append(lst, res.Attributes)
 			}
 			inFieldMap[fmt.Sprintf("%v", outcome.Reference)] = lst
@@ -863,7 +872,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 	} else {
 		//log.Printf("Get [%v] from infields: %v", fieldString, toJson(inFieldMap))
 
-		rex := regexp.MustCompile(`\$([a-zA-Z0-9_\[\]]+)?(\.[a-zA-Z0-9_\[\]]+)+`)
+		rex := regexp.MustCompile(`\$([a-zA-Z0-9_\[\]]+)?(\.[a-zA-Z0-9_\[\]]+)*`)
 		matches := rex.FindAllStringSubmatch(fieldString, -1)
 
 		for _, match := range matches {

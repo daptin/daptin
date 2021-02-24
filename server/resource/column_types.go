@@ -27,10 +27,10 @@ type ColumnType struct {
 	DataTypes     []string
 	GraphqlType   graphql.Type
 }
-
-func randate() time.Time {
+// generate random date between 1980 - 2050
+func randomDate() time.Time {
 	min := time.Date(1980, 1, 0, 0, 0, 0, 0, time.UTC).Unix()
-	max := time.Date(2022, 1, 0, 0, 0, 0, 0, time.UTC).Unix()
+	max := time.Date(2050, 1, 0, 0, 0, 0, 0, time.UTC).Unix()
 	delta := max - min
 
 	sec := rand.Int63n(delta) + min
@@ -49,9 +49,9 @@ func (ct ColumnType) Fake() interface{} {
 		u, _ := uuid.NewV4()
 		return u.String()
 	case "date":
-		return randate().Format("2006-01-02")
+		return randomDate().Format("2006-01-02")
 	case "time":
-		return randate().Format("15:04:05")
+		return randomDate().Format("15:04:05")
 	case "day":
 		return fake.Day()
 	case "enum":
@@ -65,7 +65,7 @@ func (ct ColumnType) Fake() interface{} {
 	case "hour":
 		return randomGenerator.Intn(24)
 	case "datetime":
-		return randate().Format(time.RFC3339)
+		return randomDate().Format(time.RFC3339)
 	case "email":
 		return fake.EmailAddress()
 	case "name":
@@ -73,7 +73,7 @@ func (ct ColumnType) Fake() interface{} {
 	case "json":
 		return "{}"
 	case "password":
-		pass, _ := BcryptHashString(fake.SimplePassword())
+		pass := fake.SimplePassword()
 		return pass
 	case "bcrypt":
 		pass, _ := BcryptHashString(fake.SimplePassword())
@@ -94,7 +94,7 @@ func (ct ColumnType) Fake() interface{} {
 	case "truefalse":
 		return randomGenerator.Intn(2)
 	case "timestamp":
-		return randate().Unix()
+		return randomDate().Unix()
 	case "location.latitude":
 		return fake.Latitude()
 	case "location":
