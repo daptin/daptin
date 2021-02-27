@@ -863,7 +863,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 	} else {
 		//log.Printf("Get [%v] from infields: %v", fieldString, toJson(inFieldMap))
 
-		rex := regexp.MustCompile(`\$([a-zA-Z0-9_\[\]]+)?(\.[a-zA-Z0-9_\[\]]+)+`)
+		rex := regexp.MustCompile(`\$([a-zA-Z0-9_\[\]]+)?(\.?[a-zA-Z0-9_\[\]]+)+`)
 		matches := rex.FindAllStringSubmatch(fieldString, -1)
 
 		for _, match := range matches {
@@ -913,7 +913,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 					var ok bool
 					finalValue, ok = finalValue.(map[string]interface{})[fieldPart]
 					if !ok {
-						return nil, errors.New(fmt.Sprintf("value is nill for key [%v]", fieldString))
+						return nil, errors.New(fmt.Sprintf("value is nil for key [%v]", fieldString))
 					}
 
 				}
