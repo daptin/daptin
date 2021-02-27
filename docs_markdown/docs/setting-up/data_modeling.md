@@ -20,7 +20,7 @@ Lets imagine we were creating a todo application and wanted to keep a track of t
     - the todo text field - title
 
 
-!!! example"YAML example"
+!!! example "YAML example"
     ```yaml
     Tables:
     - TableName: todo
@@ -32,7 +32,7 @@ Lets imagine we were creating a todo application and wanted to keep a track of t
     ```
 
 
-!!! example"JSON example"
+!!! example "JSON example"
     ```json
     {
       "Tables": [

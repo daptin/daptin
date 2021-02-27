@@ -9,31 +9,10 @@ Daptin maintains its own ```User accounts``` and ```User groups``` entries in th
 
 Authentication involves identifying the current user of the request. Daptin expectes a JWT token issued at signin as ```Authorization: Bearer <Token>``` header, otherwise the request is considered coming from a [guest](#Guests).
 
-### Sign Up
-
-[Sign up is an action](/actions/actions) on user entity. Sign up takes four inputs:
-
-- Name
-- Email
-- Password
-- PasswordConfirm
-
-When the user initiates a Sign up action, the following things happen
-
-- Check if guests can initiate sign in action
-- Check if guests can create a new user (create permission)
-- Create a new user row
-- Check if guests can create a new usergroup (create permission)
-- Create a new usergroup row
-- Associate the user to the usergroup (refer permission)
-
-This means that every user has his own dedicated user group by default.
-
-
 
 #### Signup API
 
-Sign up action can be allowed to guests to allow open registration by anyone. Users with enough permission over the `user_account` table can create users manually.
+Sign up action can be allowed to guests for open registration by anyone. Users with enough permission over the `user_account` table can create users manually.
 
 Users registered using signup action are their own owners. Hence they can update and delete themselves. These permission can be changed based on the use case.
 
@@ -62,83 +41,6 @@ You can either allow guests to be able to invoke `sign up` action or allow only 
 ```
 
 This user can sign in now (generate an auth token). But what he can access is again based on the permission of the system.
-
-
-#### Signup CURL example
-
-Creating a user manually
-
-```
-curl '/api/user_account' \
-  -H 'Authorization: Bearer <Auth Token>' \
-  --data-binary '{
-                    "data": {
-                        "type": "user_account",
-                        "attributes": {
-                            "email": "test@user.com",
-                            "name": "test",
-                            "password": "password",
-                        }
-                    }
-                 }'
-```
-
-
-### Sign In
-
-[Sign In is also an action](/actions/actions) on user entity. Sign in takes two inputs:
-
-- Email
-- Password
-
-When the user initiates Sign in action, the following things happen:
-
-- Check if guests can peek users table (Peek permission)
-- Check if guests can peek the particular user (Peek Permission)
-- Match if the provided password bcrypted matches the stored bcrypted password
-- If true, issue a JWT token, which is used for future calls
-
-The main outcome of the Sign In action is the jwt token, which is to be used in the ```Authorization``` header of following calls.
-
-
-#### Sign in CURL example
-
-!!! example"POST call for sign in"
-    ```bash
-    curl 'http://localhost:6336/action/user_account/signin' \
-    -H 'Content-Type: application/json;charset=UTF-8' \
-    -H 'Accept: application/json, text/plain, */*' \
-    --data-binary '{"attributes":{"email":"<Email>","password":"<Password>"}}'
-    ```
-
-```json
-[
-  {
-    "ResponseType": "client.store.set",
-    "Attributes": {
-      "key": "token",
-      "value": "<AccessToken>"
-    }
-  },
-  {
-    "ResponseType": "client.notify",
-    "Attributes": {
-      "message": "Logged in",
-      "title": "Success",
-      "type": "success"
-    }
-  },
-  {
-    "ResponseType": "client.redirect",
-    "Attributes": {
-      "delay": 2000,
-      "location": "/",
-      "window": "self"
-    }
-  }
-]
-```
-
 
 #### Directly into user_account table
 

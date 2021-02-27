@@ -14,12 +14,13 @@ import (
 // The attributes are evaluated to generate the actual data to be sent to execution
 // JS scripting can be used to reference existing outcomes by reference names
 type Outcome struct {
-	Type           string
-	Method         string // method name
-	Reference      string
-	SkipInResponse bool
-	Condition      string
-	Attributes     map[string]interface{}
+	Type            string
+	Method          string // method name
+	Reference       string
+	SkipInResponse  bool
+	Condition       string
+	Attributes      map[string]interface{}
+	ContinueOnError bool
 }
 
 // Action is a set of `Outcome` based on set of Input values on a particular data type

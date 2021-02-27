@@ -36,12 +36,18 @@ func (d *otpLoginVerifyActionPerformer) Name() string {
 
 func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 	responses := make([]ActionResponse, 0)
+	var err error
 
 	state, ok := inFieldMap["otp"].(string)
+	if !ok {
+		stateInt, ok := inFieldMap["otp"]
+		if ok {
+			state = fmt.Sprintf("%v", stateInt)
+		}
+	}
 	email, ok := inFieldMap["email"]
 	var userAccount map[string]interface{}
 	var userOtpProfile map[string]interface{}
-	var err error
 	if email == nil || email == "" {
 		phone, ok := inFieldMap["mobile"]
 		if !ok {
@@ -111,7 +117,7 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		//	log.Errorf("Failed to associate verified otp account with user account: %v", err)
 		//}
 		notificationAttrs := make(map[string]string)
-		notificationAttrs["message"] = "You can now login using this number"
+		notificationAttrs["message"] = "OTP Verified"
 		notificationAttrs["title"] = "OTP Verified"
 		notificationAttrs["type"] = "success"
 		responses = append(responses, NewActionResponse("client.notify", notificationAttrs))

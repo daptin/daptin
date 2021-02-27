@@ -1143,9 +1143,9 @@ var SystemActions = []Action{
 		},
 	},
 	{
-		Name:             "resetpassword",
+		Name:             "reset-password",
 		Label:            "Reset password",
-		InstanceOptional: false,
+		InstanceOptional: true,
 		OnType:           USER_ACCOUNT_TABLE_NAME,
 		InFields: []api2go.ColumnInfo{
 			{
@@ -1169,30 +1169,107 @@ var SystemActions = []Action{
 		},
 		OutFields: []Outcome{
 			{
-				Type:      USER_ACCOUNT_TABLE_NAME,
-				Method:    "GET",
-				Reference: "user",
+				Type:           USER_ACCOUNT_TABLE_NAME,
+				Method:         "GET",
+				Reference:      "user",
+				SkipInResponse: true,
 				Attributes: map[string]interface{}{
-					"query": "[{'column': 'email', 'operator': 'is', 'value': '$email'}]",
+					"query": "[{\"column\": \"email\", \"operator\": \"is\", \"value\": \"$email\"}]",
 				},
 			},
 			{
 				Type:      "otp.generate",
 				Method:    "EXECUTE",
 				Reference: "otp",
-				Condition: "!mobile != null && mobile != undefined && mobile != ''",
 				Attributes: map[string]interface{}{
-					"mobile": "~mobile",
-					"email":  "~email",
+					"email": "$email",
 				},
 			},
 			{
-				Type:   "client.notify",
-				Method: "ACTIONRESPONSE",
+				Type:   "mail.send",
+				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"type":    "success",
-					"title":   "Success",
-					"message": "Sign-up successful. Redirecting to sign in",
+					"to":      "~email",
+					"subject": "Request for password reset",
+					"body":    "Your verification code is: $otp.otp",
+					"from":    "no-reply@localhost",
+				},
+			},
+		},
+	},
+	{
+		Name:             "reset-password-verify",
+		Label:            "Reset password verify code",
+		InstanceOptional: true,
+		OnType:           USER_ACCOUNT_TABLE_NAME,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "email",
+				ColumnName: "email",
+				ColumnType: "email",
+				IsNullable: false,
+			}, {
+				Name:       "otp",
+				ColumnName: "otp",
+				ColumnType: "value",
+				IsNullable: false,
+			},
+		},
+		Validations: []ColumnTag{
+			{
+				ColumnName: "email",
+				Tags:       "email",
+			},
+		},
+		Conformations: []ColumnTag{
+			{
+				ColumnName: "email",
+				Tags:       "email",
+			},
+		},
+		OutFields: []Outcome{
+			{
+				Type:           USER_ACCOUNT_TABLE_NAME,
+				Method:         "GET",
+				Reference:      "user",
+				SkipInResponse: true,
+				Attributes: map[string]interface{}{
+					"query": "[{\"column\": \"email\", \"operator\": \"is\", \"value\": \"$email\"}]",
+				},
+			},
+			{
+				Type:   "otp.login.verify",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"otp":   "~otp",
+					"email": "~email",
+				},
+			},
+			{
+				Type:           "random.generate",
+				Method:         "EXECUTE",
+				Reference:      "newPassword",
+				SkipInResponse: true,
+				Attributes: map[string]interface{}{
+					"type": "password",
+				},
+			},
+			{
+				Type:   USER_ACCOUNT_TABLE_NAME,
+				Method: "UPDATE",
+				Attributes: map[string]interface{}{
+					"reference_id": "$user[0].reference_id",
+					"password":     "!newPassword.value",
+				},
+			},
+			{
+				Type:   "mail.send",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"to":      "~email",
+					"subject": "Request for password reset",
+					"body":    "Your new password is: $newPassword.value",
+					"from":    "no-reply@localhost",
 				},
 			},
 		},
@@ -2054,7 +2131,7 @@ var StandardTables = []TableInfo{
 			{
 				ColumnName: "mobile_number",
 				IsIndexed:  true,
-				IsUnique:   true,
+				IsNullable: true,
 				DataType:   "varchar(20)",
 				ColumnType: "label",
 			},

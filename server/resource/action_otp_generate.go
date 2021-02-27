@@ -60,6 +60,11 @@ func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		}
 	}
 
+	if mobile == nil {
+		mobile = ""
+		phoneOk = true
+	}
+
 	httpReq := &http.Request{}
 	user := &auth.SessionUser{
 		UserId:          userAccount["id"].(int64),
@@ -101,7 +106,7 @@ func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		userOtpProfile = createdOtpProfile
 	}
 
-	if userOtpProfile["verified"] == 1 && phoneOk && mobile != userOtpProfile["mobile_number"] {
+	if userOtpProfile["verified"] == 1 && phoneOk && mobile != userOtpProfile["mobile_number"] && mobile != "" {
 		userOtpProfile["mobile_number"] = mobile
 		userOtpProfile["verified"] = 0
 		req.PlainRequest.Method = "PUT"
@@ -132,10 +137,10 @@ func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		})
 		resp.Res = responder
 	} else {
-		resp.Res = map[string]interface{}{}
+		resp = nil
 	}
 
-	return resp, []ActionResponse{}, nil
+	return resp, []ActionResponse{}, []error{err}
 }
 
 func NewOtpGenerateActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {

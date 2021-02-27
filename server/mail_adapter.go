@@ -257,7 +257,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							fmt.Printf("Original Mail: \n%s\n", string(mailBytes))
 
 							r := strings.NewReader(string(mailBytes))
-							netMesasge, _ := mail1.ReadMessage(r)
+							netMessage, _ := mail1.ReadMessage(r)
 
 							_, _, privateKeyPemByte, _, _, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false)
 							if err != nil {
@@ -286,7 +286,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								Signer:                 privateKey,
 							}
 
-							body, _ := ioutil.ReadAll(netMesasge.Body)
+							body, _ := ioutil.ReadAll(netMessage.Body)
 							newMailString := fmt.Sprintf("From: %s\r\nSubject: %s\r\nTo: %s\r\nDate: %s\r\n", e.MailFrom.String(), e.Subject, rcpt.String(), time.Now().Format(time.RFC822Z))
 
 							for headerName, headerValue := range e.Header {

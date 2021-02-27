@@ -18,6 +18,11 @@ func (d *networkRequestActionPerformer) Name() string {
 }
 
 func toJson(obj interface{}) string {
+
+	if _, ok := obj.(string); ok {
+		return obj.(string)
+	}
+
 	r, _ := json.Marshal(obj)
 	return string(r)
 }
