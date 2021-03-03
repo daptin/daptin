@@ -34,10 +34,11 @@ type Server struct {
 	doneCh    chan bool
 	errCh     chan error
 	dtopicMap *map[string]*olric.DTopic
+	olricDb   *olric.Olric
 }
 
 // Create new chat server.
-func NewServer(pattern string, dtopicMap *map[string]*olric.DTopic) *Server {
+func NewServer(pattern string, dtopicMap *map[string]*olric.DTopic, olricDb *olric.Olric) *Server {
 	clients := make(map[int]*Client)
 	addCh := make(chan *Client)
 	delCh := make(chan *Client)
@@ -52,6 +53,7 @@ func NewServer(pattern string, dtopicMap *map[string]*olric.DTopic) *Server {
 		doneCh:    doneCh,
 		errCh:     errCh,
 		dtopicMap: dtopicMap,
+		olricDb: olricDb,
 	}
 }
 
@@ -84,7 +86,7 @@ func (s *Server) sendAll(msg resource.EventMessage) {
 }
 
 type WebSocketConnectionHandler interface {
-	MessageFromClient(message WebSocketPayload, request *Client)
+	MessageFromClient(message WebSocketPayload, client *Client)
 }
 
 // Listen and serve.

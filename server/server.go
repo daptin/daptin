@@ -571,7 +571,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	//defaultRouter.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
 	//TODO: make websockets functional at /live
-	websocketServer := websockets.NewServer("/live", &dtopicMap)
+	websocketServer := websockets.NewServer("/live", &dtopicMap, cruds["world"].OlricDb)
 
 	go func() {
 		websocketServer.Listen(defaultRouter)

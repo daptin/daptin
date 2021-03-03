@@ -200,7 +200,7 @@ func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, 
 
 	err = c.db.QueryRowx(s, v...).Scan(&val)
 	if err != nil {
-		log.Infof("No config value set for: %v", err)
+		log.Infof("No config value set for [%v]: %v", key, err)
 	}
 	return val, err
 }

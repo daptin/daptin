@@ -483,54 +483,6 @@ var SystemActions = []Action{
 			},
 		},
 	},
-	//{
-	//	Name:             "publish_package_to_market",
-	//	Label:            "Update package list",
-	//	OnType:           "marketplace",
-	//	InstanceOptional: false,
-	//	InFields:         []api2go.ColumnInfo{},
-	//	OutFields: []Outcome{
-	//		{
-	//			Type:   "marketplace.package.publish",
-	//			Method: "EXECUTE",
-	//			Attributes: map[string]interface{}{
-	//				"marketplace_id": "$.reference_id",
-	//			},
-	//		},
-	//	},
-	//},
-	//{
-	//	Name:             "visit_marketplace_github",
-	//	Label:            "Go to marketplace",
-	//	OnType:           "marketplace",
-	//	InstanceOptional: false,
-	//	InFields:         []api2go.ColumnInfo{},
-	//	OutFields: []Outcome{
-	//		{
-	//			Type:   "client.redirect",
-	//			Method: "ACTIONRESPONSE",
-	//			Attributes: map[string]interface{}{
-	//				"location": "$subject.endpoint",
-	//				"window":   "_blank",
-	//			}},
-	//	},
-	//},
-	//{
-	//	Name:             "refresh_marketplace_packages",
-	//	Label:            "Refresh marketplace",
-	//	OnType:           "marketplace",
-	//	InstanceOptional: false,
-	//	InFields:         []api2go.ColumnInfo{},
-	//	OutFields: []Outcome{
-	//		{
-	//			Type:   "marketplace.package.refresh",
-	//			Method: "EXECUTE",
-	//			Attributes: map[string]interface{}{
-	//				"marketplace_id": "$.reference_id",
-	//			},
-	//		},
-	//	},
-	//},
 	{
 		Name:             "generate_random_data",
 		Label:            "Generate random data",
@@ -1178,16 +1130,18 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:      "otp.generate",
-				Method:    "EXECUTE",
-				Reference: "otp",
+				Type:           "otp.generate",
+				Method:         "EXECUTE",
+				Reference:      "otp",
+				SkipInResponse: true,
 				Attributes: map[string]interface{}{
 					"email": "$email",
 				},
 			},
 			{
-				Type:   "mail.send",
-				Method: "EXECUTE",
+				Type:           "mail.send",
+				Method:         "EXECUTE",
+				SkipInResponse: true,
 				Attributes: map[string]interface{}{
 					"to":      "~email",
 					"subject": "Request for password reset",
@@ -1255,16 +1209,18 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:   USER_ACCOUNT_TABLE_NAME,
-				Method: "UPDATE",
+				Type:           USER_ACCOUNT_TABLE_NAME,
+				SkipInResponse: true,
+				Method:         "UPDATE",
 				Attributes: map[string]interface{}{
 					"reference_id": "$user[0].reference_id",
 					"password":     "!newPassword.value",
 				},
 			},
 			{
-				Type:   "mail.send",
-				Method: "EXECUTE",
+				Type:           "mail.send",
+				Method:         "EXECUTE",
+				SkipInResponse: true,
 				Attributes: map[string]interface{}{
 					"to":      "~email",
 					"subject": "Request for password reset",
