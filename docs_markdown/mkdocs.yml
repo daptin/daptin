@@ -20,7 +20,7 @@ pages:
 - Actions:
   - What are actions: actions/actions.md
   - Actions list: actions/default_actions.md
-  - OutComes: actions/outcomes.md
+  - Action OutComes: actions/outcomes.md
   - Examples: actions/examples.md
 - GraphQL: features/enable-graphql.md
 - Data Auditing: features/enable-data-auditing.md
