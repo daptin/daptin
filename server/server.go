@@ -224,11 +224,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		jwtSecret = newSecret
 	}
 
-	enablelogs, err := configStore.GetConfigValueFor("logs.enable", "backend")
-	if err != nil {
-		err = configStore.SetConfigValueFor("logs.enable", "false", "backend")
-		resource.CheckErr(err, "Failed to store a default value for logs.enable")
-	}
+	//enablelogs, err := configStore.GetConfigValueFor("logs.enable", "backend")
+	//if err != nil {
+	//	err = configStore.SetConfigValueFor("logs.enable", "false", "backend")
+	//	resource.CheckErr(err, "Failed to store a default value for logs.enable")
+	//}
 
 	var ok bool
 	LogFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
@@ -268,18 +268,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 		}
 	}()
-
-	if enablelogs == "true" {
-
-		//defaultRouter.GET("/__logs", func(c *gin.Context) {
-		//	webtail.ViewLog(c.Writer, c.Request, []httprouter.Param{
-		//		{
-		//			Key:   "name",
-		//			Value: "daptin.log",
-		//		},
-		//	})
-		//})
-	}
 
 	enableGraphql, err := configStore.GetConfigValueFor("graphql.enable", "backend")
 	if err != nil {

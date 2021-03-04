@@ -71,9 +71,39 @@ func (dr *StreamProcessor) Update(obj interface{}, req api2go.Request) (api2go.R
 func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint, response api2go.Responder, err error) {
 
 	contract := dr.contract
+	queryParams := make(map[string]interface{})
 
 	for key, val := range contract.QueryParams {
-		req.QueryParams[key] = val
+		queryParams[key] = val
+	}
+
+	userParams := make(map[string]interface{})
+
+	for key, val := range req.QueryParams {
+		userParams[key] = val[0]
+	}
+
+	queryParameters, err := BuildActionContext(queryParams, userParams)
+
+	if err != nil {
+		return 0, nil, err
+	}
+
+	for key, val := range queryParameters.(map[string]interface{}) {
+		arrayVal, ok := val.([]interface{})
+		arrayString := make([]string, 0)
+		if !ok {
+			stringVal, ok := val.(string)
+			if !ok {
+				return 0, nil, fmt.Errorf("failed to convert parameter to search request: %v", val)
+			}
+			arrayString = []string{stringVal}
+		} else {
+			for _, v := range arrayVal {
+				arrayString = append(arrayString, v.(string))
+			}
+		}
+		req.QueryParams[key] = arrayString
 	}
 
 	totalCount, responder1, err := dr.cruds[dr.contract.RootEntityName].PaginatedFindAll(req)

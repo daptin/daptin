@@ -67,7 +67,8 @@ func NewDaptinError(str string, code string) *DaptinError {
 	}
 }
 
-func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore, cruds map[string]*DbResource, actionPerformers []ActionPerformerInterface) func(*gin.Context) {
+func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore,
+	cruds map[string]*DbResource, actionPerformers []ActionPerformerInterface) func(*gin.Context) {
 
 	actionMap := make(map[string]Action)
 
@@ -596,7 +597,7 @@ func NewActionResponse(responseType string, attrs interface{}) ActionResponse {
 
 func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.Api2GoModel, api2go.Request, error) {
 
-	attrInterface, err := buildActionContext(outcome.Attributes, inFieldMap)
+	attrInterface, err := BuildActionContext(outcome.Attributes, inFieldMap)
 	if err != nil {
 		return nil, api2go.Request{}, err
 	}
@@ -732,7 +733,7 @@ func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) (inte
 	return v.Export(), nil
 }
 
-func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]interface{}) (interface{}, error) {
+func BuildActionContext(outcomeAttributes interface{}, inFieldMap map[string]interface{}) (interface{}, error) {
 
 	var data interface{}
 
@@ -763,7 +764,7 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 
 			} else if typeOfField == reflect.Map || typeOfField == reflect.Slice || typeOfField == reflect.Array {
 
-				val, err := buildActionContext(field, inFieldMap)
+				val, err := BuildActionContext(field, inFieldMap)
 				if err != nil {
 					return nil, err
 				}
@@ -807,7 +808,7 @@ func buildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 				outcomes = append(outcomes, evtStr)
 
 			} else if outcomeKind == reflect.Map || outcomeKind == reflect.Array || outcomeKind == reflect.Slice {
-				outc, err := buildActionContext(outcome, inFieldMap)
+				outc, err := BuildActionContext(outcome, inFieldMap)
 				//log.Infof("Outcome is: %v", outc)
 				if err != nil {
 					return data, err
@@ -839,7 +840,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 		}
 		val = res
 
-	} else if fieldString[0] == ':' {
+	} else if len(fieldString) > 3 && fieldString[0:3] == "js:" {
 
 		res, err := runUnsafeJavascript(fieldString[1:], inFieldMap)
 		if err != nil {

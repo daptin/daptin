@@ -34,7 +34,9 @@ func CheckSystemSecrets(store *resource.ConfigStore) error {
 
 }
 
-func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, olricDb *olric.Olric, cruds map[string]*resource.DbResource) {
+func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection,
+	ms *resource.MiddlewareSet, configStore *resource.ConfigStore, olricDb *olric.Olric,
+	cruds map[string]*resource.DbResource) {
 	for _, table := range tables {
 
 		if table.TableName == "" {

@@ -56,7 +56,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, inField
 
 	headersMap := make(map[string]string)
 
-	headInterface, err := buildActionContext(g.exchangeInformation.Headers, inFieldMap)
+	headInterface, err := BuildActionContext(g.exchangeInformation.Headers, inFieldMap)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, inField
 	}
 
 	queryParamsMap := make(map[string]string)
-	queryInterface, err := buildActionContext(g.exchangeInformation.QueryParams, inFieldMap)
+	queryInterface, err := BuildActionContext(g.exchangeInformation.QueryParams, inFieldMap)
 	if err != nil {
 		return err
 	}
@@ -100,13 +100,13 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, inField
 		bodyMap = row
 	} else {
 		inFieldMap["subject"] = row
-		bodyMap, err = buildActionContext(body, inFieldMap)
+		bodyMap, err = BuildActionContext(body, inFieldMap)
 		if err != nil {
 			return err
 		}
 	}
 
-	buildAttrsInterface, err := buildActionContext(attrs, inFieldMap)
+	buildAttrsInterface, err := BuildActionContext(attrs, inFieldMap)
 	buildAttrs := buildAttrsInterface.(map[string]interface{})
 
 	url := buildAttrs["url"].(string)
