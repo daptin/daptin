@@ -13,5 +13,4 @@ RUN chmod +x /opt/daptin/daptin
 RUN ls -lah /opt/daptin/daptin
 
 EXPOSE 8080
-RUN cat /opt/daptin/daptin
 ENTRYPOINT ["/opt/daptin/daptin", "-runtime", "release", "-port", ":8080"]
