@@ -241,4 +241,4 @@ Daptin includes the [otto js engine](https://github.com/robertkrimen/otto). An e
 				},
 			},
 
-the ```$``` sign is to refer the previous outcomes. Here this outcome adds the newly created user to the newly created usergroup.
+the ```$``` sign is to refer the reference variables. Here this outcome adds the newly created user to the newly created usergroup.
