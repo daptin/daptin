@@ -201,6 +201,9 @@ func (dr *DbResource) GetAdminReferenceId() []string {
 
 func (dr *DbResource) IsAdmin(userReferenceId string) bool {
 	admins := dr.GetAdminReferenceId()
+	//if len(admins) < 1 {
+	//	return true
+	//}
 	for _, id := range admins {
 		if id == userReferenceId {
 			return true

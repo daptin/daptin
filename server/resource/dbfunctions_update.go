@@ -795,11 +795,15 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 					}
 					log.Infof("Existing [%v] found by unique column: %v = %v", crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
 
-					for key, val := range row {
-						existingRow[key] = val
-					}
+					//for key, val := range row {
+					//	existingRow[key] = val
+					//}
+
 
 					obj := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, 0, nil, existingRow)
+
+					obj.SetAttributes(row)
+
 					_, err = crud.Update(obj, req)
 					if err != nil {
 						log.Errorf("Failed to update table [%v] update row by unique column [%v]: %v", crud.tableInfo.TableName, uniqueCol.ColumnName, err)
@@ -981,7 +985,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 	defaultWorldPermission := auth.DEFAULT_PERMISSION
 
 	if systemHasNoAdmin {
-		defaultWorldPermission = auth.GuestCRUD | auth.GuestExecute | auth.UserCRUD | auth.UserExecute | auth.GroupCRUD | auth.GroupExecute
+		defaultWorldPermission = auth.DEFAULT_PERMISSION_WHEN_ON_ADMIN
 	}
 
 	st := simpletable.New()

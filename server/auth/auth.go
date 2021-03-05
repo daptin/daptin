@@ -53,6 +53,7 @@ const (
 )
 
 var DEFAULT_PERMISSION = GuestPeek | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute
+var DEFAULT_PERMISSION_WHEN_ON_ADMIN = GuestCRUD | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute
 var ALLOW_ALL_PERMISSIONS = GuestCRUD | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute
 
 func (a AuthPermission) String() string {

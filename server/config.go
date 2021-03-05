@@ -124,6 +124,13 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		//globalInitConfig.Relations = append(globalInitConfig.Relations, initConfig.Relations...)
 		globalInitConfig.AddRelations(initConfig.Relations...)
 
+		for i, importPath := range initConfig.Imports {
+			if importPath.FilePath[0] != '/' {
+				importPath.FilePath = schemaPath + importPath.FilePath
+				initConfig.Imports[i] = importPath
+ 			}
+		}
+
 		globalInitConfig.Imports = append(globalInitConfig.Imports, initConfig.Imports...)
 		globalInitConfig.Streams = append(globalInitConfig.Streams, initConfig.Streams...)
 		//globalInitConfig.Marketplaces = append(globalInitConfig.Marketplaces, initConfig.Marketplaces...)
