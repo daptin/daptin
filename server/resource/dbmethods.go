@@ -486,7 +486,6 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 			q, v, err := statementbuilder.Squirrel.Update(crud.model.GetName()).
 				Set(USER_ACCOUNT_ID_COLUMN, userId).
 				Set("permission", auth.DEFAULT_PERMISSION).
-				Set("default_permission", auth.DEFAULT_PERMISSION).
 				ToSql()
 			if err != nil {
 				log.Errorf("Query: %v", q)
