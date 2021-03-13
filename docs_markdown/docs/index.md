@@ -1,8 +1,6 @@
 # Daptin
 
 
-<img src="images/dashboard/index-page.png">
-
 
 The most powerful ready to use data and services API server.
 

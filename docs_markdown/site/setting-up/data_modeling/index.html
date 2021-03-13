@@ -1,0 +1,2029 @@
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+        <link rel="canonical" href="https://daptin.github.io/daptin/setting-up/data_modeling/">
+      
+      
+      <link rel="shortcut icon" href="../../images/theme-favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.3">
+    
+    
+      
+        <title>Data model - Daptin</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.947af8d5.min.css">
+      
+      
+    
+    
+    
+      
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+      
+    
+    
+    
+      <link rel="stylesheet" href="../../css/theme_extra.css">
+    
+    
+      
+        
+<script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-114227400-1","docs.dapt.in"),ga("set","anonymizeIp",!0),ga("send","pageview"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){if(this.value){var e=document.location.pathname;ga("send","pageview",e+"?q="+this.value)}})}),document.addEventListener("DOMContentSwitch",function(){ga("send","pageview",document.location.pathname)})</script>
+<script async src="https://www.google-analytics.com/analytics.js"></script>
+      
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#data-model" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href="https://daptin.github.io/daptin/" title="Daptin" class="md-header-nav__button md-logo" aria-label="Daptin">
+      
+  <img src="../../images/theme-logo.png" alt="logo">
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            Daptin
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
+              Data model
+            
+          </span>
+        </div>
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+        
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://daptin.github.io/daptin/" title="Daptin" class="md-nav__button md-logo" aria-label="Daptin">
+      
+  <img src="../../images/theme-logo.png" alt="logo">
+
+    </a>
+    Daptin
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../.." title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../installation/" title="Download and Deploy" class="md-nav__link">
+      Download and Deploy
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../settingup/" title="Accessing the web dashboard" class="md-nav__link">
+      Accessing the web dashboard
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+    
+    <label class="md-nav__link" for="nav-4">
+      User management
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="User management" data-md-level="1">
+      <label class="md-nav__title" for="nav-4">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        User management
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../user-management/new-users/" title="New User" class="md-nav__link">
+      New User
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../user-management/signin/" title="Sign in API" class="md-nav__link">
+      Sign in API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../user-management/new-users/" title="Access control" class="md-nav__link">
+      Access control
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Data model
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
+      </label>
+    
+    <a href="./" title="Data model" class="md-nav__link md-nav__link--active">
+      Data model
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#automatic-creation" class="md-nav__link">
+    Automatic creation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual-creation" class="md-nav__link">
+    Manual creation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#yamljson-schema" class="md-nav__link">
+    YAML/JSON schema
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-validations" class="md-nav__link">
+    Data validations
+  </a>
+  
+    <nav class="md-nav" aria-label="Data validations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#validation-example" class="md-nav__link">
+    Validation Example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#json-example" class="md-nav__link">
+    JSON example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yaml-example" class="md-nav__link">
+    YAML example
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#online-entity-designer" class="md-nav__link">
+    Online entity designer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#column-specifications" class="md-nav__link">
+    Column specifications
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#column-types" class="md-nav__link">
+    Column types
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-relations" class="md-nav__link">
+    Data relations
+  </a>
+  
+    <nav class="md-nav" aria-label="Data relations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#relations-in-jsonyaml-schema" class="md-nav__link">
+    Relations in JSON/YAML schema
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#relations-types" class="md-nav__link">
+    Relations types
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#default-relations" class="md-nav__link">
+    Default relations
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-relation" class="md-nav__link">
+    Multiple relation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sql-constraints" class="md-nav__link">
+    SQL constraints
+  </a>
+  
+    <nav class="md-nav" aria-label="SQL constraints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#belongs-to" class="md-nav__link">
+    belongs to
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#has-one" class="md-nav__link">
+    has one
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#has-many" class="md-nav__link">
+    has many
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#importing-data" class="md-nav__link">
+    Importing data
+  </a>
+  
+    <nav class="md-nav" aria-label="Importing data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#excel-file-upload" class="md-nav__link">
+    Excel file upload
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#csv-file-upload" class="md-nav__link">
+    CSV file upload
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-conformations" class="md-nav__link">
+    Data conformations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-auditing" class="md-nav__link">
+    Data auditing
+  </a>
+  
+    <nav class="md-nav" aria-label="Data auditing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#audit-tables" class="md-nav__link">
+    Audit tables
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#audit-row" class="md-nav__link">
+    Audit row
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#audit-table-permissions" class="md-nav__link">
+    Audit table permissions
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+    
+    <label class="md-nav__link" for="nav-6">
+      HTTP JSON API
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="HTTP JSON API" data-md-level="1">
+      <label class="md-nav__title" for="nav-6">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        HTTP JSON API
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud/" title="CRUD API" class="md-nav__link">
+      CRUD API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud/" title="Action API" class="md-nav__link">
+      Action API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud/" title="Relation API" class="md-nav__link">
+      Relation API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud/" title="Aggregation API" class="md-nav__link">
+      Aggregation API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud/" title="State machine API" class="md-nav__link">
+      State machine API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud/" title="Metadata API" class="md-nav__link">
+      Metadata API
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
+    
+    <label class="md-nav__link" for="nav-7">
+      Actions
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Actions" data-md-level="1">
+      <label class="md-nav__title" for="nav-7">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Actions
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../actions/actions/" title="What are actions" class="md-nav__link">
+      What are actions
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../actions/default_actions/" title="Actions list" class="md-nav__link">
+      Actions list
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../actions/outcomes/" title="Action OutComes" class="md-nav__link">
+      Action OutComes
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../actions/examples/" title="Examples" class="md-nav__link">
+      Examples
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../features/enable-graphql/" title="GraphQL" class="md-nav__link">
+      GraphQL
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../features/enable-data-auditing/" title="Data Auditing" class="md-nav__link">
+      Data Auditing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../features/enable-multilingual-table/" title="Multilingual Table" class="md-nav__link">
+      Multilingual Table
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../features/enable-smtp-imap/" title="SMTP/IMPS server" class="md-nav__link">
+      SMTP/IMPS server
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../state/machines/" title="State tracking" class="md-nav__link">
+      State tracking
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-13" type="checkbox" id="nav-13">
+    
+    <label class="md-nav__link" for="nav-13">
+      OAuth
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="OAuth" data-md-level="1">
+      <label class="md-nav__title" for="nav-13">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        OAuth
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../extend/oauth_connection/" title="OAuth Connections" class="md-nav__link">
+      OAuth Connections
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../extend/oauth_token/" title="OAuth Tokens" class="md-nav__link">
+      OAuth Tokens
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../integrations/overview/" title="3rd party API Integrations" class="md-nav__link">
+      3rd party API Integrations
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-15" type="checkbox" id="nav-15">
+    
+    <label class="md-nav__link" for="nav-15">
+      Cloud store
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Cloud store" data-md-level="1">
+      <label class="md-nav__title" for="nav-15">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Cloud store
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/" title="Cloud store" class="md-nav__link">
+      Cloud store
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/cloudstore/" title="Available cloud stores" class="md-nav__link">
+      Available cloud stores
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/cloudstore/" title="Asset columns" class="md-nav__link">
+      Asset columns
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/cloudstore/" title="Asset columns" class="md-nav__link">
+      Asset columns
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/sites/" title="Sites" class="md-nav__link">
+      Sites
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/assetcolumns/" title="Cloud store backed asset columns" class="md-nav__link">
+      Cloud store backed asset columns
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-17" type="checkbox" id="nav-17">
+    
+    <label class="md-nav__link" for="nav-17">
+      Sub-sites
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Sub-sites" data-md-level="1">
+      <label class="md-nav__title" for="nav-17">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Sub-sites
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../subsite/subsite/" title="Creating a subsite" class="md-nav__link">
+      Creating a subsite
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../subsite/grapes/" title="Live editing a subsite" class="md-nav__link">
+      Live editing a subsite
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../subsite/basic_auth/" title="Basic Authentication" class="md-nav__link">
+      Basic Authentication
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-18" type="checkbox" id="nav-18">
+    
+    <label class="md-nav__link" for="nav-18">
+      Internal Reference Documents
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Internal Reference Documents" data-md-level="1">
+      <label class="md-nav__title" for="nav-18">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Internal Reference Documents
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../data-modeling/data_storage/" title="Data store format" class="md-nav__link">
+      Data store format
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../extend/data_exchange/" title="Data exchange and sync" class="md-nav__link">
+      Data exchange and sync
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../streams/streams/" title="Data streams" class="md-nav__link">
+      Data streams
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../configurations/" title="Global Configuration" class="md-nav__link">
+      Global Configuration
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#automatic-creation" class="md-nav__link">
+    Automatic creation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual-creation" class="md-nav__link">
+    Manual creation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#yamljson-schema" class="md-nav__link">
+    YAML/JSON schema
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-validations" class="md-nav__link">
+    Data validations
+  </a>
+  
+    <nav class="md-nav" aria-label="Data validations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#validation-example" class="md-nav__link">
+    Validation Example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#json-example" class="md-nav__link">
+    JSON example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#yaml-example" class="md-nav__link">
+    YAML example
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#online-entity-designer" class="md-nav__link">
+    Online entity designer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#column-specifications" class="md-nav__link">
+    Column specifications
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#column-types" class="md-nav__link">
+    Column types
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-relations" class="md-nav__link">
+    Data relations
+  </a>
+  
+    <nav class="md-nav" aria-label="Data relations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#relations-in-jsonyaml-schema" class="md-nav__link">
+    Relations in JSON/YAML schema
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#relations-types" class="md-nav__link">
+    Relations types
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#default-relations" class="md-nav__link">
+    Default relations
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-relation" class="md-nav__link">
+    Multiple relation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sql-constraints" class="md-nav__link">
+    SQL constraints
+  </a>
+  
+    <nav class="md-nav" aria-label="SQL constraints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#belongs-to" class="md-nav__link">
+    belongs to
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#has-one" class="md-nav__link">
+    has one
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#has-many" class="md-nav__link">
+    has many
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#importing-data" class="md-nav__link">
+    Importing data
+  </a>
+  
+    <nav class="md-nav" aria-label="Importing data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#excel-file-upload" class="md-nav__link">
+    Excel file upload
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#csv-file-upload" class="md-nav__link">
+    CSV file upload
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-conformations" class="md-nav__link">
+    Data conformations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-auditing" class="md-nav__link">
+    Data auditing
+  </a>
+  
+    <nav class="md-nav" aria-label="Data auditing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#audit-tables" class="md-nav__link">
+    Audit tables
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#audit-row" class="md-nav__link">
+    Audit row
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#audit-table-permissions" class="md-nav__link">
+    Audit table permissions
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                  
+                
+                
+                <h1 id="data-model">Data model<a class="headerlink" href="#data-model" title="Permanent link">Link</a></h1>
+<p>Tables are the basic data structure. Tables have columns. Each column has a particular data type. Tables are exposed as JSON APIs under the <code>/api/&lt;entityName&gt;</code> path.</p>
+<h2 id="automatic-creation">Automatic creation<a class="headerlink" href="#automatic-creation" title="Permanent link">Link</a></h2>
+<p>Import CSV or XLS file and you can let Daptin create the entities for you based on intelligent data pre-processor.</p>
+<h2 id="manual-creation">Manual creation<a class="headerlink" href="#manual-creation" title="Permanent link">Link</a></h2>
+<h2 id="yamljson-schema">YAML/JSON schema<a class="headerlink" href="#yamljson-schema" title="Permanent link">Link</a></h2>
+<p>If you are looking for a more reproducible way, design your entities and create JSON or YAML files. These files can be used again to create an exact same replica.</p>
+<p>Multiple schema json files can be uploaded, and changes are merged accordingly.</p>
+<p>Lets imagine we were creating a todo application and wanted to keep a track of the following for each todo item</p>
+<div class="admonition example">
+<p class="admonition-title">Todo list example</p>
+<ul>
+<li>the todo text field - title</li>
+</ul>
+</div>
+<div class="admonition example">
+<p class="admonition-title">YAML example</p>
+<div class="highlight"><pre><span></span><code><span class="nt">Tables</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="nt">Columns</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+    <span class="nt">IsIndexed</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+
+</div>
+<div class="admonition example">
+<p class="admonition-title">JSON example</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="nt">&quot;Tables&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="nt">&quot;TableName&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Columns&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;title&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;DataType&quot;</span><span class="p">:</span> <span class="s2">&quot;varchar(500)&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span class="s2">&quot;label&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;IsIndexed&quot;</span><span class="p">:</span> <span class="kc">true</span>
+        <span class="p">}</span>
+      <span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+</div>
+<h2 id="data-validations">Data validations<a class="headerlink" href="#data-validations" title="Permanent link">Link</a></h2>
+<p>Along with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo</p>
+<div class="admonition example">
+<p class="admonition-title">Validations</p>
+<ul>
+<li>title cannot be empty</li>
+<li>order has to be numeric</li>
+</ul>
+</div>
+<p>Once we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this.</p>
+<p>Daptin uses the excellent <a href="https://github.com/go-playground/validator">go-playground/validator</a> library to provide extensive validations when creating and updating data.</p>
+<p>It gives us the following unique features:</p>
+<ul>
+<li>Cross Field and Cross Struct validations by using validation tags or custom validators.</li>
+<li>Slice, Array and Map diving, which allows any or all levels of a multidimensional field to be validated.</li>
+</ul>
+<h3 id="validation-example">Validation Example<a class="headerlink" href="#validation-example" title="Permanent link">Link</a></h3>
+<h3 id="json-example">JSON example<a class="headerlink" href="#json-example" title="Permanent link">Link</a></h3>
+<p>JSON files are the primary way to create new entities in daptin. The above two ways ultimately create a JSON file or fetch from the market.</p>
+<p>The JSON for our <code>todo</code> entity will look as follows:</p>
+<div class="highlight"><pre><span></span><code>    <span class="p">{</span>
+        <span class="nt">&quot;Tables&quot;</span><span class="p">:</span> <span class="p">[{</span>
+            <span class="nt">&quot;TableName&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;Columns&quot;</span><span class="p">:</span> <span class="p">[{</span>
+                    <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;title&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;DataType&quot;</span><span class="p">:</span> <span class="s2">&quot;varchar(500)&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span class="s2">&quot;label&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;IsIndexed&quot;</span><span class="p">:</span> <span class="kc">true</span>
+                <span class="p">},</span>
+                <span class="p">{</span>
+                    <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;completed&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;DataType&quot;</span><span class="p">:</span> <span class="s2">&quot;int(1)&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span class="s2">&quot;truefalse&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;DefaultValue&quot;</span><span class="p">:</span> <span class="s2">&quot;false&quot;</span>
+                <span class="p">},</span>
+                <span class="p">{</span>
+                    <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;deadline&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;DataType&quot;</span><span class="p">:</span> <span class="s2">&quot;date&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span class="s2">&quot;date&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;IsNullable&quot;</span><span class="p">:</span> <span class="kc">true</span>
+                <span class="p">},</span>
+                <span class="p">{</span>
+                    <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;order&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;ColumnName&quot;</span><span class="p">:</span> <span class="s2">&quot;item_order&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;DataType&quot;</span><span class="p">:</span> <span class="s2">&quot;int(4)&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span class="s2">&quot;measurement&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;DefaultValue&quot;</span><span class="p">:</span> <span class="s2">&quot;10&quot;</span>
+                <span class="p">},</span>
+                <span class="p">{</span>
+                    <span class="nt">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;DataType&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;ColumnType&quot;</span><span class="p">:</span> <span class="s2">&quot;content&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;IsNullable&quot;</span><span class="p">:</span> <span class="kc">true</span>
+                <span class="p">}</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Conformations&quot;</span><span class="p">:</span> <span class="p">[{</span>
+                <span class="nt">&quot;ColumnName&quot;</span><span class="p">:</span> <span class="s2">&quot;order&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Tags&quot;</span><span class="p">:</span> <span class="s2">&quot;numeric&quot;</span>
+            <span class="p">}],</span>
+            <span class="nt">&quot;validations&quot;</span><span class="p">:</span> <span class="p">[{</span>
+                <span class="nt">&quot;ColumnName&quot;</span><span class="p">:</span> <span class="s2">&quot;title&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;Tags&quot;</span><span class="p">:</span> <span class="s2">&quot;required&quot;</span>
+            <span class="p">}]</span>
+<span class="err">]</span><span class="p">}</span>
+</code></pre></div>
+
+<ul>
+<li>Name: Name is a human readable name</li>
+<li>Column Name: Name of the column in the table</li>
+<li>Column Type: The type of the column. Daptin supports a variety of types and these allow daptin to give you useful options in future (eg for viewing a timeline, a date/datetime column is required)</li>
+<li>Default value: Columns can have default values, which is used a new row is created and no value for that column is specified.</li>
+</ul>
+<h3 id="yaml-example">YAML example<a class="headerlink" href="#yaml-example" title="Permanent link">Link</a></h3>
+<p>YAML example for <code>todo</code> entity is as follows</p>
+<div class="highlight"><pre><span></span><code><span class="nt">Tables</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="nt">Columns</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+    <span class="nt">IsIndexed</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">url</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">url</span>
+    <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">completed</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int(1)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">truefalse</span>
+    <span class="nt">DefaultValue</span><span class="p">:</span> <span class="s">&#39;false&#39;</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">schedule</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">date</span>
+    <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">order</span>
+    <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">item_order</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int(4)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
+    <span class="nt">DefaultValue</span><span class="p">:</span> <span class="s">&#39;10&#39;</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
+    <span class="nt">IsNullable</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="nt">Conformations</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">order</span>
+    <span class="nt">Tags</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">numeric</span>
+  <span class="nt">Validations</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+<span class="nt">Tags</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">required</span>
+</code></pre></div>
+
+<p>You can choose to work with either json or yaml. Once the schema is ready, it can be uploaded directly from daptin dashboard.</p>
+<h2 id="online-entity-designer">Online entity designer<a class="headerlink" href="#online-entity-designer" title="Permanent link">Link</a></h2>
+<p>The entity designer is accessible from dashboard using the "Online designer" button. Here you can set the name, add columns and relations and create it. This is a basic designer and more advanced features to customise every aspect of the entity will be added later.</p>
+<p><img alt="Entity designer" src="/images/create_entity.png" /></p>
+<h2 id="column-specifications">Column specifications<a class="headerlink" href="#column-specifications" title="Permanent link">Link</a></h2>
+<p>Columns of the entity can be customized:</p>
+<table>
+<thead>
+<tr>
+<th>Property Name</th>
+<th>Property Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>string</td>
+<td>human readable name, can be skipped</td>
+</tr>
+<tr>
+<td>ColumnName</td>
+<td>string</td>
+<td>column name in the table</td>
+</tr>
+<tr>
+<td>ColumnDescription</td>
+<td>string</td>
+<td>human readable description</td>
+</tr>
+<tr>
+<td>ColumnType</td>
+<td>string</td>
+<td>column type is a rich type of the column</td>
+</tr>
+<tr>
+<td>IsIndexed</td>
+<td>boolean</td>
+<td>true to add an index on this column</td>
+</tr>
+<tr>
+<td>IsUnique</td>
+<td>boolean</td>
+<td>true to set a unique constraint on this column</td>
+</tr>
+<tr>
+<td>IsNullable</td>
+<td>boolean</td>
+<td>are null values allowed</td>
+</tr>
+<tr>
+<td>Permission</td>
+<td>uint64</td>
+<td>permission column (check authorization docs)</td>
+</tr>
+<tr>
+<td>DataType</td>
+<td>string</td>
+<td>the column type inside the database</td>
+</tr>
+<tr>
+<td>DefaultValue</td>
+<td>string</td>
+<td>default value if any (has to be inside single quotes for static values</td>
+</tr>
+<tr>
+<td>Options</td>
+<td>Array[value,label]</td>
+<td>Valid values if column in enum type</td>
+</tr>
+</tbody>
+</table>
+<h2 id="column-types">Column types<a class="headerlink" href="#column-types" title="Permanent link">Link</a></h2>
+<p>Daptin supports a variety of rich data types, which helps it to automatically make intelligent decisions and validations. Here is a list of all column types and what should they be used for</p>
+<table>
+<thead>
+<tr>
+<th>Type Name</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>an identity column, mostly for internal purposes</td>
+<td>1</td>
+</tr>
+<tr>
+<td>alias</td>
+<td>a foreign key column</td>
+<td>uuid v4</td>
+</tr>
+<tr>
+<td>date</td>
+<td>full date, no time</td>
+<td>2017-12-30</td>
+</tr>
+<tr>
+<td>time</td>
+<td>time/time interval, no date</td>
+<td>12:34:54</td>
+</tr>
+<tr>
+<td>day</td>
+<td>day of the month</td>
+<td>1 to 31</td>
+</tr>
+<tr>
+<td>month</td>
+<td>month of the year</td>
+<td>1 to 12</td>
+</tr>
+<tr>
+<td>year</td>
+<td>Year</td>
+<td>2017</td>
+</tr>
+<tr>
+<td>minute</td>
+<td>minute of the hour</td>
+<td>0 to 59</td>
+</tr>
+<tr>
+<td>hour</td>
+<td>hour of the dat</td>
+<td>0 - 23</td>
+</tr>
+<tr>
+<td>datetime</td>
+<td>date + time (not stored as timestamp, served at date time string)</td>
+<td>2017-12-30T12:34:54</td>
+</tr>
+<tr>
+<td>email</td>
+<td>email</td>
+<td><a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#116;&#101;&#115;&#116;&#64;&#100;&#111;&#109;&#97;&#105;&#110;&#46;&#99;&#111;&#109;">&#116;&#101;&#115;&#116;&#64;&#100;&#111;&#109;&#97;&#105;&#110;&#46;&#99;&#111;&#109;</a></td>
+</tr>
+<tr>
+<td>name</td>
+<td>column to be used as name of the entity</td>
+<td>daptin</td>
+</tr>
+<tr>
+<td>json</td>
+<td>JSON data</td>
+<td><code>{}</code></td>
+</tr>
+<tr>
+<td>password</td>
+<td>password - are bcrypted with cost 11</td>
+<td>$2a$11$z/VlxycDgZ...</td>
+</tr>
+<tr>
+<td>value</td>
+<td>value is enumeration type</td>
+<td>completed</td>
+</tr>
+<tr>
+<td>truefalse</td>
+<td>boolean</td>
+<td>1</td>
+</tr>
+<tr>
+<td>timestamp</td>
+<td>timestamp (stored as timestamp, served as timestamp)</td>
+<td>123123123</td>
+</tr>
+<tr>
+<td>location.latitude</td>
+<td>only latitude</td>
+<td>34.2938</td>
+</tr>
+<tr>
+<td>location</td>
+<td>latitude + longitude in geoJson format</td>
+<td>[34.223,64.123]</td>
+</tr>
+<tr>
+<td>location.longitude</td>
+<td>only longitude</td>
+<td>64.123</td>
+</tr>
+<tr>
+<td>location.altitude</td>
+<td>only altitude</td>
+<td>34</td>
+</tr>
+<tr>
+<td>color</td>
+<td>hex color string</td>
+<td>#ABCDE1</td>
+</tr>
+<tr>
+<td>rating.10</td>
+<td>rating on a scale of 10</td>
+<td>8</td>
+</tr>
+<tr>
+<td>measurement</td>
+<td>numeric column</td>
+<td>534</td>
+</tr>
+<tr>
+<td>label</td>
+<td>a label for the entity, similar to name but can be more than one</td>
+<td>red</td>
+</tr>
+<tr>
+<td>content</td>
+<td>larger contents - texts/html/json/yaml</td>
+<td>very long text</td>
+</tr>
+<tr>
+<td>file</td>
+<td>uploads, connect storage for using this</td>
+<td></td>
+</tr>
+<tr>
+<td>url</td>
+<td>Urls/links</td>
+<td><a href="http://docs.dapt.in">http://docs.dapt.in</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="data-relations">Data relations<a class="headerlink" href="#data-relations" title="Permanent link">Link</a></h2>
+<p>A data oriented system with no relational knowledge of the data is next to an Excel sheet. Specifying relations in your data is the most important thing after creating your entities.</p>
+<p>Relations are constraints among tables and help you keep clean and consistent data. Relational data is easily accessible over APIs using a path structure like <code>/api/&lt;entityName&gt;/&lt;id&gt;/&lt;relationName&gt;</code> and the response is consistent with <a href="https://JSONAPI.org">JSONAPI.org</a>.</p>
+<p>Checkout the <a href="/apis/relation">relation apis</a> exposed by daptin.</p>
+<p>!!! example"YAML example"
+    <div class="highlight"><pre><span></span><code><span class="nt">Relations</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
+  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
+</code></pre></div></p>
+<p>!!! example"JSON example"
+    <div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="nt">&quot;Relations&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="nt">&quot;Subject&quot;</span><span class="p">:</span> <span class="s2">&quot;todo&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Relation&quot;</span><span class="p">:</span> <span class="s2">&quot;has_one&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Object&quot;</span><span class="p">:</span> <span class="s2">&quot;project&quot;</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<h3 id="relations-in-jsonyaml-schema">Relations in JSON/YAML schema<a class="headerlink" href="#relations-in-jsonyaml-schema" title="Permanent link">Link</a></h3>
+<p>When uploading schema using a JSON / YAML file, relations can be added in the same file and daptin will create appropriate constraints and foreign keys in your underlying database.</p>
+<p>Continuing with our example of todos, lets say we want to group todo's in "projects" and each todo can belong to only a single project.</p>
+<p>Lets design a "project" entity:</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
+  <span class="nt">Columns</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">name</span>
+    <span class="nt">IsIndexed</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+
+<p>A very simple table with just a name column. Now we can tell daptin about the relation between todos and projects</p>
+<div class="highlight"><pre><span></span><code><span class="nt">Relations</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
+  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
+  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">project</span>
+</code></pre></div>
+
+<p>This tells daptin that todo "has_one" project.</p>
+<h3 id="relations-types">Relations types<a class="headerlink" href="#relations-types" title="Permanent link">Link</a></h3>
+<p>Any entity can be associated to any other entity (or to itself) as one of the follows</p>
+<table>
+<thead>
+<tr>
+<th>Relation Name</th>
+<th>Relation Descriptio</th>
+<th>Can be empty</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>belongs_to</td>
+<td>a single object relation</td>
+<td>No</td>
+</tr>
+<tr>
+<td>has_one</td>
+<td>a single object relation</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>has_many</td>
+<td>many related objects</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h3 id="default-relations">Default relations<a class="headerlink" href="#default-relations" title="Permanent link">Link</a></h3>
+<p>Every entity created on daptin has at least two relations</p>
+<table>
+<thead>
+<tr>
+<th>Relation Type</th>
+<th>Related Entity</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>belongs</td>
+<td>user</td>
+<td>owner of the object</td>
+</tr>
+<tr>
+<td>has many</td>
+<td>usergroup</td>
+<td>belongs to usergroup</td>
+</tr>
+</tbody>
+</table>
+<p>These relations help you precisely control the authorization for each user.</p>
+<p>Read more about <a href="/auth/authorization">authorization and permissions</a></p>
+<h3 id="multiple-relation">Multiple relation<a class="headerlink" href="#multiple-relation" title="Permanent link">Link</a></h3>
+<p>There can be a scenario where two entities are related in more then 1 way. Consider the following example</p>
+<ul>
+<li>A blog entity</li>
+<li>A post entity</li>
+<li>Blog has many posts</li>
+<li>Each blog can have a "highlighted post" (blog has one "highlighted post")</li>
+</ul>
+<p>To achieve the above scenario, our schema would look like as follows</p>
+<div class="highlight"><pre><span></span><code><span class="nt">Tables</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">blog</span>
+  <span class="nt">Columns</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(500)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">view_count</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int(11)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
+<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
+  <span class="nt">Columns</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">title</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">varchar(200)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">label</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">body</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
+<span class="p p-Indicator">-</span> <span class="nt">TableName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">comment</span>
+  <span class="nt">Columns</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">body</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">content</span>
+  <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">likes_count</span>
+    <span class="nt">ColumnName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">likes_count</span>
+    <span class="nt">DataType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int(11)</span>
+    <span class="nt">ColumnType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">measurement</span>
+<span class="nt">Relations</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">comment</span>
+  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">belongs_to</span>
+  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
+<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
+  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">belongs_to</span>
+  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">blog                   // this is our post belongs to blog relation</span>
+<span class="p p-Indicator">-</span> <span class="nt">Subject</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">blog</span>
+  <span class="nt">Relation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">has_one</span>
+  <span class="nt">Object</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">post</span>
+  <span class="nt">ObjectName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">current_post</span>
+  <span class="nt">SubjectName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">current_post_of   // this is our highlighted post relation</span>
+</code></pre></div>
+
+<p>Notice the "SubjectName" and "ObjectName" keys which helps to name our relations more intuitively.</p>
+<h3 id="sql-constraints">SQL constraints<a class="headerlink" href="#sql-constraints" title="Permanent link">Link</a></h3>
+<h4 id="belongs-to">belongs to<a class="headerlink" href="#belongs-to" title="Permanent link">Link</a></h4>
+<ul>
+<li>A column is added to the subject entity, which refers to the Object entity, set to non nullable</li>
+</ul>
+<h4 id="has-one">has one<a class="headerlink" href="#has-one" title="Permanent link">Link</a></h4>
+<ul>
+<li>Same as above, but nullable</li>
+</ul>
+<h4 id="has-many">has many<a class="headerlink" href="#has-many" title="Permanent link">Link</a></h4>
+<ul>
+<li>A join table is created</li>
+</ul>
+<h2 id="importing-data">Importing data<a class="headerlink" href="#importing-data" title="Permanent link">Link</a></h2>
+<p>Upload one of these files:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Schema JSON</td>
+<td>Create schema and apis</td>
+</tr>
+<tr>
+<td>CSV</td>
+<td>Auto create entity and upload data</td>
+</tr>
+<tr>
+<td>XLSX</td>
+<td>Auto create entity and upload data</td>
+</tr>
+<tr>
+<td>Data JSON</td>
+<td>Upload data from dumps</td>
+</tr>
+</tbody>
+</table>
+<h3 id="excel-file-upload">Excel file upload<a class="headerlink" href="#excel-file-upload" title="Permanent link">Link</a></h3>
+<p>Excel upload provides an easy way to create entities. This takes away the complexity of writing each column type. Daptin uses a combination of rules to identify columns and their types based on the data in the excel.</p>
+<p>You can upload data from XLS. Daptin will take care of going through your XLS file and identifying column types. This is one of the easiest and fastest ways to create entities and uploading data in daptin. You can specify relations among entities later from the online designer.</p>
+<h3 id="csv-file-upload">CSV file upload<a class="headerlink" href="#csv-file-upload" title="Permanent link">Link</a></h3>
+<p>CSV upload provides an easy way to create entities. This takes away the complexity of writing each column type. Daptin uses a combination of rules to identify columns and their types based on the data in the csv.</p>
+<p>You can upload data from CSV. Daptin will take care of going through your XLS file and identifying column types. This is one of the easiest and fastest ways to create entities and uploading data in daptin. You can specify relations among entities later from the online designer.</p>
+<h2 id="data-conformations">Data conformations<a class="headerlink" href="#data-conformations" title="Permanent link">Link</a></h2>
+<p>Daptin uses the excellent <a href="https://github.com/leebenson/conform">leebenson/conform</a> library to apply conformations on data before storing them in the database</p>
+<ul>
+<li>Conform: keep user input in check (go, golang)</li>
+<li>Trim, sanitize, and modify struct string fields in place, based on tags.</li>
+</ul>
+<p>Use it for names, e-mail addresses, URL slugs, or any other form field where formatting matters.</p>
+<p>Conform doesn't attempt any kind of validation on your fields.</p>
+<h2 id="data-auditing">Data auditing<a class="headerlink" href="#data-auditing" title="Permanent link">Link</a></h2>
+<p>To enable recoding of all historical data for a particular entity, enable data audit for it in the worlds configuration.</p>
+<p>Audits are ready only and cannot be manipulated over api. You can configure the permission for your use case.</p>
+<p>All changes in daptin can be recorded by enabling <strong>auditing</strong>. History is maintained in separate audit tables which maintain a copy of all columns at each change. Audit table are entities just like regular entities. All Patch/Put/Delete calls to daptin will create an entry in the audit table if the entity is changed.</p>
+<h3 id="audit-tables">Audit tables<a class="headerlink" href="#audit-tables" title="Permanent link">Link</a></h3>
+<p>For any entity named <code>&lt;X&gt;</code>, another tables <code>&lt;X&gt;_audit</code> is added by daptin. Eg if you enable auditing of the <code>user_account</code> table, then a <code>user_account_audit</code> table will be created.</p>
+<p>The audit table will contain all the columns which are present in the original table, plus an extra column <code>is_audit_of</code> is added, which contains the ID of the original row. The <code>is_audit_of</code> is a foreign key column to the parent tables <code>id</code> column.</p>
+<h3 id="audit-row">Audit row<a class="headerlink" href="#audit-row" title="Permanent link">Link</a></h3>
+<p>Each row in the audit table is the copy of the original row just before it is being modified. The audit rows can be accessed just like any other relation.</p>
+<h3 id="audit-table-permissions">Audit table permissions<a class="headerlink" href="#audit-table-permissions" title="Permanent link">Link</a></h3>
+<p>By default, everyone has the access to create audit row, and no one has the access to update or delete them. These permissions can be changed, but it is not recommended at present.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Permission</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Audit table permission</td>
+<td>007007007</td>
+</tr>
+<tr>
+<td>Audit object permission</td>
+<td>003003003</td>
+</tr>
+</tbody>
+</table>
+                
+              
+              
+                
+
+
+  <h2 id="__comments">Comments</h2>
+  <div id="disqus_thread"></div>
+  <script>var disqus_config=function(){this.page.url="https://daptin.github.io/daptin/setting-up/data_modeling/",this.page.identifier="setting-up/data_modeling/"};!function(){var e=document,i=e.createElement("script");i.src="//daptin-documentation.disqus.com/embed.js",i.setAttribute("data-timestamp",+new Date),(e.head||e.body).appendChild(i)}()</script>
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+        
+          <a href="../../user-management/new-users/" title="Access control" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+            </div>
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Access control
+              </div>
+            </div>
+          </a>
+        
+        
+          <a href="../../apis/crud/" title="CRUD API" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                CRUD API
+              </div>
+            </div>
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../../assets/javascripts/vendor.c3dc8c49.min.js"></script>
+      <script src="../../assets/javascripts/bundle.f9edbbd5.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      
+      <script>
+        app = initialize({
+          base: "../..",
+          features: [],
+          search: Object.assign({
+            worker: "../../assets/javascripts/worker/search.8e2cddea.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
+      
+    
+  </body>
+</html>

@@ -11,12 +11,12 @@ pages:
     - Access control: user-management/new-users.md
 - Data model: setting-up/data_modeling.md
 - HTTP JSON API:
-  - CRUD API: apis/crud.md#crud-api
-  - Action API: apis/crud.md#action-api
-  - Relation API: apis/crud.md#relation-apis
-  - Aggregation API: apis/crud.md#aggregate-api
-  - State machine API: apis/crud.md#state-machine-apis
-  - Metadata API: apis/crud.md#metadata-api
+  - CRUD API: apis/crud.md
+  - Action API: apis/crud.md
+  - Relation API: apis/crud.md
+  - Aggregation API: apis/crud.md
+  - State machine API: apis/crud.md
+  - Metadata API: apis/crud.md
 - Actions:
   - What are actions: actions/actions.md
   - Actions list: actions/default_actions.md

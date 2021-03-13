@@ -1,7 +1,7 @@
 
 ### Sign In
 
-[Sign In is also an action](/actions/actions) on user entity. Sign in takes two inputs:
+Sign In is an [action](actions/actions) on user entity. Sign in takes two inputs:
 
 - Email
 - Password

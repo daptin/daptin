@@ -10,7 +10,6 @@ You will be presented with the Sign-in screen. If you are on a freshly created i
 
 Use the dashboard to sign-up as the first user or call the sign-up API manually to create the first user.
 
-<img src="/images/signup.png" width="300px">
 
 API CALL
 
@@ -146,13 +145,6 @@ The token is to be used in the Authorization header of for all HTTP calls to ide
 
 ## Become Administrator
 
-On the main screen of the dashboard under "Users" heading, locate the "Become admin" button.
-
-<img src="/images/users_and_groups.png" width="600px">
-
-Clicking this will make the following changes:
-
-- Disallow the sign-up API for guests
-- Makes you the owner of all the data
+First user to sign up with automatically become an administrator. More administrators can be added.
 
 
