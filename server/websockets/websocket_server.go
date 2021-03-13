@@ -1,7 +1,6 @@
 package websockets
 
 import (
-	"fmt"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
@@ -10,20 +9,11 @@ import (
 )
 
 type WebSocketPayload struct {
-	Method   string  `json:"method"`
-	TypeName string  `json:"type"`
-	Payload  Message `json:"payload"`
+	Method  string  `json:"method"`
+	Payload Message `json:"attributes"`
 }
 
-type Message struct {
-	Id         string                 `json:"id"`
-	Type       string                 `json:"type"`
-	Attributes map[string]interface{} `json:"attributes"`
-}
-
-func (self *Message) String() string {
-	return fmt.Sprintf("[%v] %v", self.Type, self.Attributes)
-}
+type Message map[string]interface{}
 
 // Chat server.
 type Server struct {
@@ -35,10 +25,11 @@ type Server struct {
 	errCh     chan error
 	dtopicMap *map[string]*olric.DTopic
 	olricDb   *olric.Olric
+	cruds     map[string]*resource.DbResource
 }
 
 // Create new chat server.
-func NewServer(pattern string, dtopicMap *map[string]*olric.DTopic, olricDb *olric.Olric) *Server {
+func NewServer(pattern string, dtopicMap *map[string]*olric.DTopic, cruds map[string]*resource.DbResource) *Server {
 	clients := make(map[int]*Client)
 	addCh := make(chan *Client)
 	delCh := make(chan *Client)
@@ -53,7 +44,8 @@ func NewServer(pattern string, dtopicMap *map[string]*olric.DTopic, olricDb *olr
 		doneCh:    doneCh,
 		errCh:     errCh,
 		dtopicMap: dtopicMap,
-		olricDb: olricDb,
+		olricDb:   cruds["world"].OlricDb,
+		cruds:     cruds,
 	}
 }
 

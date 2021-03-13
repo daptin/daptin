@@ -1,7 +1,6 @@
 # User management
 
 
-<img src="/images/users_and_groups.png">
 
 Daptin maintains its own ```User accounts``` and ```User groups``` entries in the database. Users are identified by ```email``` which is a unique key in the ```user_account``` entity. Passwords are stored using bcrypt with a cost of 11. Password field has a column_type ```password``` which makes daptin to bcrypt it before storing, and password fields are never returned in any JSONAPI call.
 

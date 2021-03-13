@@ -98,7 +98,6 @@ Or
 
 ### Logging in dashboard
 
-<img src="/images/signin.png" width="300px">
 
 API CAll
 

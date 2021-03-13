@@ -603,7 +603,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 	loc := strings.Index(rowType, "_has_")
 	//log.Infof("Location [%v]: %v", dr.model.GetName(), loc)
 
-	if BeginsWith(rowType, "file.") {
+	if BeginsWith(rowType, "file.") || rowType == "none" {
 		perm.UserGroupId = []auth.GroupPermission{
 			{
 				GroupReferenceId:    "",

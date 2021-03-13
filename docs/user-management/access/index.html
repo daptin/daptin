@@ -678,18 +678,30 @@
       
 
 
+  <li class="md-nav__item">
+    <a href="../../websockets/websocket/" title="Websockets" class="md-nav__link">
+      Websockets
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-17" type="checkbox" id="nav-17">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-18" type="checkbox" id="nav-18">
     
-    <label class="md-nav__link" for="nav-17">
+    <label class="md-nav__link" for="nav-18">
       Sub-sites
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Sub-sites" data-md-level="1">
-      <label class="md-nav__title" for="nav-17">
+      <label class="md-nav__title" for="nav-18">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -746,16 +758,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-18" type="checkbox" id="nav-18">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-19" type="checkbox" id="nav-19">
     
-    <label class="md-nav__link" for="nav-18">
+    <label class="md-nav__link" for="nav-19">
       Internal Reference Documents
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Internal Reference Documents" data-md-level="1">
-      <label class="md-nav__title" for="nav-18">
+      <label class="md-nav__title" for="nav-19">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -1090,7 +1102,6 @@
                 
                 
                 <h1 id="user-management">User management<a class="headerlink" href="#user-management" title="Permanent link">Link</a></h1>
-<p><img src="/images/users_and_groups.png"></p>
 <p>Daptin maintains its own <code>User accounts</code> and <code>User groups</code> entries in the database. Users are identified by <code>email</code> which is a unique key in the <code>user_account</code> entity. Passwords are stored using bcrypt with a cost of 11. Password field has a column_type <code>password</code> which makes daptin to bcrypt it before storing, and password fields are never returned in any JSONAPI call.</p>
 <h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">Link</a></h2>
 <p>Authentication involves identifying the current user of the request. Daptin expectes a JWT token issued at signin as <code>Authorization: Bearer &lt;Token&gt;</code> header, otherwise the request is considered coming from a <a href="#Guests">guest</a>.</p>
