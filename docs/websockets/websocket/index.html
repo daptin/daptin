@@ -1154,7 +1154,7 @@
 </code></pre></div>
 
 <h4 id="create-topic">Create topic<a class="headerlink" href="#create-topic" title="Permanent link">Link</a></h4>
-<p>List all the available topics - System topics - User created topics</p>
+<p>Create a new topic</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;create-topic&quot;</span><span class="p">,</span>
   <span class="nt">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -1164,9 +1164,12 @@
 </code></pre></div>
 
 <h4 id="destroy-topic">Destroy topic<a class="headerlink" href="#destroy-topic" title="Permanent link">Link</a></h4>
-<p>List all the available topics - System topics - User created topics</p>
+<p>Delete a user created topic</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;destroy-topic&quot;</span>
+  <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;destroy-topic&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;topic_name&gt;&quot;</span>
+  <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -1238,7 +1241,7 @@
 </code></pre></div>
 
 <h4 id="unsubscribe-topic">Unsubscribe topic<a class="headerlink" href="#unsubscribe-topic" title="Permanent link">Link</a></h4>
-<p>List all the available topics - System topics - User created topics</p>
+<p>Unsubscribe to an subscribed topic (this is required if you want to subscribe with new filters)</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;unsubscribe&quot;</span><span class="p">,</span>
   <span class="nt">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -1248,7 +1251,7 @@
 </code></pre></div>
 
 <h4 id="new-message-for-a-user-created-topic">New message for a user-created topic<a class="headerlink" href="#new-message-for-a-user-created-topic" title="Permanent link">Link</a></h4>
-<p>List all the available topics - System topics - User created topics</p>
+<p>Send a message on a user created topic, broad-casted to all subscribers of this topic</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;new-message&quot;</span><span class="p">,</span>
   <span class="nt">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
