@@ -4,7 +4,7 @@ Exchanges are internal hooks to external apis, to either push data and update an
 
 Example, use exchange to sync data creation call to Google Sheets. So on every row created using the POST API also creates a corresponding row in your google sheet.
 
-!!! example"Google drive exchange YAML"
+!!! example "Google drive exchange YAML"
     ```yaml
     Exchanges:
     - Name: Task to excel sheet
@@ -23,4 +23,41 @@ Example, use exchange to sync data creation call to Google Sheets. So on every r
       Options:
         hasHeader: true
     ```
+
+```yaml
+Exchanges:
+- Name: Blog to excel sheet sync
+  SourceAttributes:
+    Name: blog
+  SourceType: self
+  TargetAttributes:
+    sheetUrl: https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append
+  TargetType: gsheet-append
+  Attributes:
+  - SourceColumn: "$blog.title"
+    TargetColumn: Blog title
+  - SourceColumn: "$blog.view_count"
+    TargetColumn: View count
+  Options:
+    hasHeader: true
+```
+
+
+```yaml
+Exchanges:
+- Name: Blog to excel sheet sync
+  SourceAttributes:
+    Name: blog
+  SourceType: table
+  TargetAttributes:
+    sheetUrl: https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append
+  TargetType: gsheet-append
+  Attributes:
+  - SourceColumn: "$blog.title"
+    TargetColumn: Blog title
+  - SourceColumn: "$blog.view_count"
+    TargetColumn: View count
+  Options:
+    hasHeader: true
+```
 

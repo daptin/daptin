@@ -6,7 +6,8 @@ Endpoint
 
 ```ws://localhost:6336/live?token=<auth_token>```
 
-!note WSS Use wss:// if you have enabled SSL
+!note WSS 
+    Use wss:// if you have enabled SSL
 
 Client request payload structure
 

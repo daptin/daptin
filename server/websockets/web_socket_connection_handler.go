@@ -149,7 +149,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 		topic, ok = (*wsch.DtopicMap)[topicName]
 
 		if !ok {
-			log.Printf("topic does not exist: {}", topicName)
+			log.Printf("topic does not exist: %v", topicName)
 			return
 		}
 
