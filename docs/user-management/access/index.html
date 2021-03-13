@@ -1,0 +1,1304 @@
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+        <link rel="canonical" href="https://daptin.github.io/daptin/user-management/access/">
+      
+      
+      <link rel="shortcut icon" href="../../images/theme-favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.3">
+    
+    
+      
+        <title>User management - Daptin</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.947af8d5.min.css">
+      
+      
+    
+    
+    
+      
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+      
+    
+    
+    
+      <link rel="stylesheet" href="../../css/theme_extra.css">
+    
+    
+      
+        
+<script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-114227400-1","docs.dapt.in"),ga("set","anonymizeIp",!0),ga("send","pageview"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){if(this.value){var e=document.location.pathname;ga("send","pageview",e+"?q="+this.value)}})}),document.addEventListener("DOMContentSwitch",function(){ga("send","pageview",document.location.pathname)})</script>
+<script async src="https://www.google-analytics.com/analytics.js"></script>
+      
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#user-management" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href="https://daptin.github.io/daptin/" title="Daptin" class="md-header-nav__button md-logo" aria-label="Daptin">
+      
+  <img src="../../images/theme-logo.png" alt="logo">
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            Daptin
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
+              User management
+            
+          </span>
+        </div>
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+        
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://daptin.github.io/daptin/" title="Daptin" class="md-nav__button md-logo" aria-label="Daptin">
+      
+  <img src="../../images/theme-logo.png" alt="logo">
+
+    </a>
+    Daptin
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../.." title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../setting-up/installation/" title="Download and Deploy" class="md-nav__link">
+      Download and Deploy
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../setting-up/settingup/" title="Accessing the web dashboard" class="md-nav__link">
+      Accessing the web dashboard
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+    
+    <label class="md-nav__link" for="nav-4">
+      User management
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="User management" data-md-level="1">
+      <label class="md-nav__title" for="nav-4">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        User management
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../new-users/" title="New User" class="md-nav__link">
+      New User
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../signin/" title="Sign in API" class="md-nav__link">
+      Sign in API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../new-users/" title="Access control" class="md-nav__link">
+      Access control
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../setting-up/data_modeling/" title="Data model" class="md-nav__link">
+      Data model
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+    
+    <label class="md-nav__link" for="nav-6">
+      HTTP JSON API
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="HTTP JSON API" data-md-level="1">
+      <label class="md-nav__title" for="nav-6">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        HTTP JSON API
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud.md#crud-api" title="CRUD API" class="md-nav__link">
+      CRUD API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud.md#action-api" title="Action API" class="md-nav__link">
+      Action API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud.md#relation-apis" title="Relation API" class="md-nav__link">
+      Relation API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud.md#aggregate-api" title="Aggregation API" class="md-nav__link">
+      Aggregation API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud.md#state-machine-apis" title="State machine API" class="md-nav__link">
+      State machine API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud.md#metadata-api" title="Metadata API" class="md-nav__link">
+      Metadata API
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
+    
+    <label class="md-nav__link" for="nav-7">
+      Actions
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Actions" data-md-level="1">
+      <label class="md-nav__title" for="nav-7">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Actions
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../actions/actions/" title="What are actions" class="md-nav__link">
+      What are actions
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../actions/default_actions/" title="Actions list" class="md-nav__link">
+      Actions list
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../actions/outcomes/" title="Action OutComes" class="md-nav__link">
+      Action OutComes
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../actions/examples/" title="Examples" class="md-nav__link">
+      Examples
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../features/enable-graphql/" title="GraphQL" class="md-nav__link">
+      GraphQL
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../features/enable-data-auditing/" title="Data Auditing" class="md-nav__link">
+      Data Auditing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../features/enable-multilingual-table/" title="Multilingual Table" class="md-nav__link">
+      Multilingual Table
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../features/enable-smtp-imap/" title="SMTP/IMPS server" class="md-nav__link">
+      SMTP/IMPS server
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../state/machines/" title="State tracking" class="md-nav__link">
+      State tracking
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-13" type="checkbox" id="nav-13">
+    
+    <label class="md-nav__link" for="nav-13">
+      OAuth
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="OAuth" data-md-level="1">
+      <label class="md-nav__title" for="nav-13">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        OAuth
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../extend/oauth_connection/" title="OAuth Connections" class="md-nav__link">
+      OAuth Connections
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../extend/oauth_token/" title="OAuth Tokens" class="md-nav__link">
+      OAuth Tokens
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../integrations/overview/" title="3rd party API Integrations" class="md-nav__link">
+      3rd party API Integrations
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-15" type="checkbox" id="nav-15">
+    
+    <label class="md-nav__link" for="nav-15">
+      Cloud store
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Cloud store" data-md-level="1">
+      <label class="md-nav__title" for="nav-15">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Cloud store
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/" title="Cloud store" class="md-nav__link">
+      Cloud store
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/cloudstore/" title="Available cloud stores" class="md-nav__link">
+      Available cloud stores
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/cloudstore/" title="Asset columns" class="md-nav__link">
+      Asset columns
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/cloudstore/" title="Asset columns" class="md-nav__link">
+      Asset columns
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/sites/" title="Sites" class="md-nav__link">
+      Sites
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/assetcolumns/" title="Cloud store backed asset columns" class="md-nav__link">
+      Cloud store backed asset columns
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-17" type="checkbox" id="nav-17">
+    
+    <label class="md-nav__link" for="nav-17">
+      Sub-sites
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Sub-sites" data-md-level="1">
+      <label class="md-nav__title" for="nav-17">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Sub-sites
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../subsite/subsite/" title="Creating a subsite" class="md-nav__link">
+      Creating a subsite
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../subsite/grapes/" title="Live editing a subsite" class="md-nav__link">
+      Live editing a subsite
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../subsite/basic_auth/" title="Basic Authentication" class="md-nav__link">
+      Basic Authentication
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-18" type="checkbox" id="nav-18">
+    
+    <label class="md-nav__link" for="nav-18">
+      Internal Reference Documents
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Internal Reference Documents" data-md-level="1">
+      <label class="md-nav__title" for="nav-18">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Internal Reference Documents
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../data-modeling/data_storage/" title="Data store format" class="md-nav__link">
+      Data store format
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../extend/data_exchange/" title="Data exchange and sync" class="md-nav__link">
+      Data exchange and sync
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../streams/streams/" title="Data streams" class="md-nav__link">
+      Data streams
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../setting-up/configurations/" title="Global Configuration" class="md-nav__link">
+      Global Configuration
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#signup-api" class="md-nav__link">
+    Signup API
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#directly-into-user_account-table" class="md-nav__link">
+    Directly into user_account table
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guests" class="md-nav__link">
+    Guests
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authorization" class="md-nav__link">
+    Authorization
+  </a>
+  
+    <nav class="md-nav" aria-label="Authorization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#permission-model" class="md-nav__link">
+    Permission model
+  </a>
+  
+    <nav class="md-nav" aria-label="Permission model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#peek" class="md-nav__link">
+    Peek
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c-create" class="md-nav__link">
+    [C] Create
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r-read" class="md-nav__link">
+    [R] Read
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#u-update" class="md-nav__link">
+    [U] Update
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#d-delete" class="md-nav__link">
+    [D] Delete
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r-refer" class="md-nav__link">
+    [R] Refer
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#x-execute" class="md-nav__link">
+    [X] Execute
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authorization_1" class="md-nav__link">
+    Authorization
+  </a>
+  
+    <nav class="md-nav" aria-label="Authorization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#object-level-permission-check" class="md-nav__link">
+    Object level permission check
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#order-of-permission-check" class="md-nav__link">
+    Order of permission check
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access-flow" class="md-nav__link">
+    Access flow
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#entity-level-permission" class="md-nav__link">
+    Entity level permission
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#instance-level-permission" class="md-nav__link">
+    Instance level permission
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#user-data-api-examples" class="md-nav__link">
+    User data API Examples
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#user-groups" class="md-nav__link">
+    User groups
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#social-login" class="md-nav__link">
+    Social login
+  </a>
+  
+    <nav class="md-nav" aria-label="Social login">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#social-login_1" class="md-nav__link">
+    Social login
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuring-default-user-group" class="md-nav__link">
+    Configuring default user group
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuring default user group">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-token" class="md-nav__link">
+    Authentication token
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication token">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-side" class="md-nav__link">
+    Server side
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#client-side" class="md-nav__link">
+    Client side
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                  
+                
+                
+                <h1 id="user-management">User management<a class="headerlink" href="#user-management" title="Permanent link">Link</a></h1>
+<p><img src="/images/users_and_groups.png"></p>
+<p>Daptin maintains its own <code>User accounts</code> and <code>User groups</code> entries in the database. Users are identified by <code>email</code> which is a unique key in the <code>user_account</code> entity. Passwords are stored using bcrypt with a cost of 11. Password field has a column_type <code>password</code> which makes daptin to bcrypt it before storing, and password fields are never returned in any JSONAPI call.</p>
+<h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">Link</a></h2>
+<p>Authentication involves identifying the current user of the request. Daptin expectes a JWT token issued at signin as <code>Authorization: Bearer &lt;Token&gt;</code> header, otherwise the request is considered coming from a <a href="#Guests">guest</a>.</p>
+<h4 id="signup-api">Signup API<a class="headerlink" href="#signup-api" title="Permanent link">Link</a></h4>
+<p>Sign up action can be allowed to guests for open registration by anyone. Users with enough permission over the <code>user_account</code> table can create users manually.</p>
+<p>Users registered using signup action are their own owners. Hence they can update and delete themselves. These permission can be changed based on the use case.</p>
+<p>!!! example"POST call for user registration"
+    <div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;http://localhost:6336/action/user_account/signup&#39;</span> <span class="se">\</span>
+-H <span class="s1">&#39;Authorization: Bearer null&#39;</span> <span class="se">\</span>
+-H <span class="s1">&#39;Content-Type: application/json;charset=UTF-8&#39;</span> <span class="se">\</span>
+-H <span class="s1">&#39;Accept: application/json, text/plain, */*&#39;</span> <span class="se">\</span>
+--data-binary <span class="s1">&#39;{&quot;attributes&quot;:{&quot;name&quot;:&quot;username&quot;,&quot;email&quot;:&quot;&lt;UserEmail&gt;&quot;,&quot;password&quot;:&quot;&lt;Password&gt;&quot;,&quot;passwordConfirm&quot;:&quot;&lt;Password&gt;&quot;}}&#39;</span>
+</code></pre></div></p>
+<p>You can either allow guests to be able to invoke <code>sign up</code> action or allow only a particular user to be able to create new users or a usergroup.</p>
+<div class="highlight"><pre><span></span><code><span class="p">[</span>
+  <span class="p">{</span>
+    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Created user&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Success&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">]</span>
+</code></pre></div>
+
+<p>This user can sign in now (generate an auth token). But what he can access is again based on the permission of the system.</p>
+<h4 id="directly-into-user_account-table">Directly into user_account table<a class="headerlink" href="#directly-into-user_account-table" title="Permanent link">Link</a></h4>
+<div class="highlight"><pre><span></span><code>import requests
+
+headers = {
+    &#39;Authorization&#39;: &#39;Bearer &lt;Auth Token&gt;&#39;,
+}
+
+data = &#39;{
+            &quot;data&quot;: {
+                &quot;type&quot;: &quot;user&quot;,
+                &quot;attributes&quot;: {
+                    &quot;email&quot;: &quot;test@user.com&quot;,
+                    &quot;name&quot;: &quot;test&quot;,
+                    &quot;password&quot;: &quot;password&quot;,
+                }
+            }
+        }&#39;
+
+response = requests.post(&#39;http://localhost:6336/api/user&#39;, headers=headers, data=data)
+</code></pre></div>
+
+<p>You can manually add users from the users page, or allow sign-up action to be performed by guests which will take care of creating a user and an associated usergroup for that user. All new signed up users will also be added to the "users" usergroup.</p>
+<h3 id="guests">Guests<a class="headerlink" href="#guests" title="Permanent link">Link</a></h3>
+<p>Requests <strong>without</strong> a valid <code>Authorization Bearer</code> <code>token</code> will be referred to as "guests requests". Requests with a valid token will have an identified user in the context.</p>
+<h2 id="authorization">Authorization<a class="headerlink" href="#authorization" title="Permanent link">Link</a></h2>
+<p>Daptin has a built-in authorization framework based on users groups and permissions. Users are identified by their authorization token or other means of identification. Each request is identified as coming from a registered user or a guest.</p>
+<h3 id="permission-model">Permission model<a class="headerlink" href="#permission-model" title="Permanent link">Link</a></h3>
+<p>Every read/write to the system passes through two level of permission check.</p>
+<ul>
+<li>Type level: apply permission on all types of entities at the same time</li>
+<li>Data level: object level permission</li>
+</ul>
+<p>The <code>world</code> table contains two columns:</p>
+<ul>
+<li><code>Permission</code>: defines the entity level permission</li>
+<li><code>Default permission</code>: defines the default permission for a new object of this entity type</li>
+</ul>
+<p>The default permission for an object is picked from the default permission setting, and can be changed after the object creation (if the permission allows).</p>
+<h4 id="peek">Peek<a class="headerlink" href="#peek" title="Permanent link">Link</a></h4>
+<p><strong>Peek</strong> gives access to the user to read data in the system but not allow it in response as data. So while the query to read the data will execute and certain <strong>actions</strong> can be allowed over them, directly trying to read the data in response will fail.</p>
+<h4 id="c-create">[C] Create<a class="headerlink" href="#c-create" title="Permanent link">Link</a></h4>
+<p><strong>Create</strong> allows a new row to be created by using the POST api. Note: this doesn't apply over indirect creations using <em>actions</em>*.</p>
+<h4 id="r-read">[R] Read<a class="headerlink" href="#r-read" title="Permanent link">Link</a></h4>
+<p><strong>Read</strong> allows the data to be served in the http response body. The response will usually follow the JSONAPI.org structure.</p>
+<h4 id="u-update">[U] Update<a class="headerlink" href="#u-update" title="Permanent link">Link</a></h4>
+<p><strong>Update</strong> allows the data fields to be updated using the PUT/PATCH http methods.</p>
+<h4 id="d-delete">[D] Delete<a class="headerlink" href="#d-delete" title="Permanent link">Link</a></h4>
+<p><strong>Delete</strong> gives permission to be delete a row or certain type of data using DELETE http method. Unless you have enabled <strong>auditing</strong>, you will permanently loose this data.</p>
+<h4 id="r-refer">[R] Refer<a class="headerlink" href="#r-refer" title="Permanent link">Link</a></h4>
+<p><strong>Refer</strong> gives permission to add data/users to usergroups. Note that you will also need certain permission on the <strong>usergroup</strong> as well.</p>
+<h4 id="x-execute">[X] Execute<a class="headerlink" href="#x-execute" title="Permanent link">Link</a></h4>
+<p><strong>Execute</strong> gives permission to invoke action over data (like export). Note that giving access to a <strong>type of data</strong> doesn't give access to all rows of that <strong>entity type</strong>.</p>
+<h3 id="authorization_1">Authorization<a class="headerlink" href="#authorization_1" title="Permanent link">Link</a></h3>
+<p>Authorization is the part where daptin decides if the caller has enough permission to execute the call. Access check happens at two levels:</p>
+<ul>
+<li>Entity level check</li>
+<li>Object level check</li>
+</ul>
+<p>Both the checks have a "before" and "after" part.</p>
+<h4 id="object-level-permission-check">Object level permission check<a class="headerlink" href="#object-level-permission-check" title="Permanent link">Link</a></h4>
+<p>Once the call clears the entity level check, an object level permission check is applied. This happens in cases where the action is going to affect/read an existing row. The permission is stored in the same way. Each table has a permission column which stores the permission in <code>OOOGGGXXX</code> format.</p>
+<h4 id="order-of-permission-check">Order of permission check<a class="headerlink" href="#order-of-permission-check" title="Permanent link">Link</a></h4>
+<p>The permission is checked in order of:</p>
+<ul>
+<li>Check if the user is owner, if yes, check if permission allows the current action, if yes do action</li>
+<li>Check if the user belongs to a group to which this object also belongs, if yes, check if permisison allows the current action, if yes do action</li>
+<li>User is guest, check if guest permission allows this actions, if yes do action, if no, unauthorized</li>
+</ul>
+<p>Things to note here:</p>
+<ul>
+<li>There is no negative permission (this may be introduced in the future)</li>
+<li>eg, you cannot say owner is 'not allowed' to read but read by guest is allowed.</li>
+<li>Permission check is done in a hierarchy type order</li>
+</ul>
+<h4 id="access-flow">Access flow<a class="headerlink" href="#access-flow" title="Permanent link">Link</a></h4>
+<p>Every "interaction" in daptin goes through two levels of access. Each level has a <code>before</code> and <code>after</code> check.</p>
+<ul>
+<li>Entity level access: does the user invoking the interaction has the appropriate permission to invoke this (So for sign up, the user table need to be writable by guests, for sign in the user table needs to be peakable by guests)</li>
+<li>Instance level access: this is the second level, even if a User Account has access to "user" entity, not all "user" rows would be accessible by them</li>
+</ul>
+<p>So the actual checks happen in following order:</p>
+<ul>
+<li>"Before check" for entity</li>
+<li>"Before check" for instance</li>
+<li>"After check" for instance</li>
+<li>"After check" for entity</li>
+</ul>
+<p>Each of these checks can filter out objects where the user does not have enough permission.</p>
+<h4 id="entity-level-permission">Entity level permission<a class="headerlink" href="#entity-level-permission" title="Permanent link">Link</a></h4>
+<p>Entity level permission are set in the world table and can be updated from dashboard. This can be done by updating the "permission" column for the entity.</p>
+<p>For these changes to take effect a restart is necessary.</p>
+<h4 id="instance-level-permission">Instance level permission<a class="headerlink" href="#instance-level-permission" title="Permanent link">Link</a></h4>
+<p>Like we saw in the <a href="/setting-up/entities">entity documentation</a>, every table has a <code>permission</code> column. No restart is necessary for changes in these permission.</p>
+<p>You can choose to disable new user registration by changing the <code>signup</code> action permissions.</p>
+<h3 id="user-data-api-examples">User data API Examples<a class="headerlink" href="#user-data-api-examples" title="Permanent link">Link</a></h3>
+<p>Users are just like any other data you maintain. User information is stored in the <code>user_account</code> table and exposed over <code>/api/user_account</code> endpoint.</p>
+<p>You can choose to allow <code>read/write</code> permission directly to that <code>table</code> to allow other users/processes to use this api to <code>read/create/update/delete</code> users.</p>
+<h2 id="user-groups">User groups<a class="headerlink" href="#user-groups" title="Permanent link">Link</a></h2>
+<p>User groups is a group concept that helps you manage "who" can interact with daptin, and in what ways.</p>
+<p>All objects (including users and groups) belong to one or more user group.</p>
+<p>Users can interact with objects which also belong to their group based on the defined group permission setting</p>
+<h2 id="social-login">Social login<a class="headerlink" href="#social-login" title="Permanent link">Link</a></h2>
+<p>Oauth connection can be used to allow guests to identify themselves based on the email provided by the oauth id provider.</p>
+<h3 id="social-login_1">Social login<a class="headerlink" href="#social-login_1" title="Permanent link">Link</a></h3>
+<p>Allow users to login using their existing social accounts like twitter/google/github.</p>
+<p>Daptin can work with any oauth flow aware identity provider to allow new users to be registered (if you have disabled normal signup).</p>
+<p>Create a <a href="/extend/oauth_connection">OAuth Connection</a> and mark "Allow login" to enable APIs for OAuth flow.</p>
+<p>Examples</p>
+<p>!!! example"Google login configuration"
+    <img alt="Google oauth" src="/images/oauth/google.png" /></p>
+<p>!!! example"Dropbox login configuration"
+    <img alt="Google oauth" src="/images/oauth/dropbox.png" /></p>
+<p>!!! example"Github login configuration"
+    <img alt="Google oauth" src="/images/oauth/github.png" /></p>
+<p>!!! example"Linkedin login configuration"
+    <img alt="Google oauth" src="/images/oauth/linkedin.png" /></p>
+<p>!!! example"Encrypted values"
+    The secrets are stored after encryption so the value you see in above screenshots are encrypted values.</p>
+<h2 id="configuring-default-user-group">Configuring default user group<a class="headerlink" href="#configuring-default-user-group" title="Permanent link">Link</a></h2>
+<p>You can configure which User groups should newly registered users be added to after their signup.</p>
+<p>This can be configured in the table properties from the dashboard or by updating the entity configuration from the API</p>
+<div class="admonition note">
+<p class="admonition-title">Restart required</p>
+<p>Restart is required for default group settings to take effect</p>
+</div>
+<h3 id="authentication-token">Authentication token<a class="headerlink" href="#authentication-token" title="Permanent link">Link</a></h3>
+<p>The authentication token is a JWT token issued by daptin on sign in action. Users can create new actions to allow other means of generating JWT token. It is as simple as adding another outcome to an action.</p>
+<h4 id="server-side">Server side<a class="headerlink" href="#server-side" title="Permanent link">Link</a></h4>
+<p>Daptin uses OAuth 2 based authentication strategy. HTTP calls are checked for <code>Authorization</code> header, and if present, validated as a JWT token. The JWT token should have been issued by daptin earlier and should not have expired. To see how to generate JWT token, checkout the <a href="/actions/signin">sing-in action</a>.</p>
+<p>The JWT token contains the issuer information (daptin) plus basic user profile (email). The JWT token has a one hour (configurable) expiry from the time of issue.</p>
+<p>If the token is absent or invalid, the user is considered as a guest. Guests also have certain permissions. Checkout the <a href="/auth/authorization">Authorization docs</a> for details.</p>
+<h4 id="client-side">Client side<a class="headerlink" href="#client-side" title="Permanent link">Link</a></h4>
+<p>On the client side, for dashboard, the token is stored in local storage. The local storage is cleared on logout or if the server responds with a 401 Unauthorized status.</p>
+                
+              
+              
+                
+
+
+  <h2 id="__comments">Comments</h2>
+  <div id="disqus_thread"></div>
+  <script>var disqus_config=function(){this.page.url="https://daptin.github.io/daptin/user-management/access/",this.page.identifier="user-management/access/"};!function(){var e=document,i=e.createElement("script");i.src="//daptin-documentation.disqus.com/embed.js",i.setAttribute("data-timestamp",+new Date),(e.head||e.body).appendChild(i)}()</script>
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../../assets/javascripts/vendor.c3dc8c49.min.js"></script>
+      <script src="../../assets/javascripts/bundle.f9edbbd5.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      
+      <script>
+        app = initialize({
+          base: "../..",
+          features: [],
+          search: Object.assign({
+            worker: "../../assets/javascripts/worker/search.8e2cddea.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
+      
+    
+  </body>
+</html>

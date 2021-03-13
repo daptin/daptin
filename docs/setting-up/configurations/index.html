@@ -1,0 +1,1351 @@
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+        <link rel="canonical" href="https://daptin.github.io/daptin/setting-up/configurations/">
+      
+      
+      <link rel="shortcut icon" href="../../images/theme-favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.3">
+    
+    
+      
+        <title>Global Configuration - Daptin</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.947af8d5.min.css">
+      
+      
+    
+    
+    
+      
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+      
+    
+    
+    
+      <link rel="stylesheet" href="../../css/theme_extra.css">
+    
+    
+      
+        
+<script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-114227400-1","docs.dapt.in"),ga("set","anonymizeIp",!0),ga("send","pageview"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){if(this.value){var e=document.location.pathname;ga("send","pageview",e+"?q="+this.value)}})}),document.addEventListener("DOMContentSwitch",function(){ga("send","pageview",document.location.pathname)})</script>
+<script async src="https://www.google-analytics.com/analytics.js"></script>
+      
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_config-table" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href="https://daptin.github.io/daptin/" title="Daptin" class="md-header-nav__button md-logo" aria-label="Daptin">
+      
+  <img src="../../images/theme-logo.png" alt="logo">
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            Daptin
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
+              Global Configuration
+            
+          </span>
+        </div>
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+        
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://daptin.github.io/daptin/" title="Daptin" class="md-nav__button md-logo" aria-label="Daptin">
+      
+  <img src="../../images/theme-logo.png" alt="logo">
+
+    </a>
+    Daptin
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../.." title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../installation/" title="Download and Deploy" class="md-nav__link">
+      Download and Deploy
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../settingup/" title="Accessing the web dashboard" class="md-nav__link">
+      Accessing the web dashboard
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+    
+    <label class="md-nav__link" for="nav-4">
+      User management
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="User management" data-md-level="1">
+      <label class="md-nav__title" for="nav-4">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        User management
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../user-management/new-users/" title="New User" class="md-nav__link">
+      New User
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../user-management/signin/" title="Sign in API" class="md-nav__link">
+      Sign in API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../user-management/new-users/" title="Access control" class="md-nav__link">
+      Access control
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../data_modeling/" title="Data model" class="md-nav__link">
+      Data model
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+    
+    <label class="md-nav__link" for="nav-6">
+      HTTP JSON API
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="HTTP JSON API" data-md-level="1">
+      <label class="md-nav__title" for="nav-6">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        HTTP JSON API
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud.md#crud-api" title="CRUD API" class="md-nav__link">
+      CRUD API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud.md#action-api" title="Action API" class="md-nav__link">
+      Action API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud.md#relation-apis" title="Relation API" class="md-nav__link">
+      Relation API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud.md#aggregate-api" title="Aggregation API" class="md-nav__link">
+      Aggregation API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud.md#state-machine-apis" title="State machine API" class="md-nav__link">
+      State machine API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../apis/crud.md#metadata-api" title="Metadata API" class="md-nav__link">
+      Metadata API
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
+    
+    <label class="md-nav__link" for="nav-7">
+      Actions
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Actions" data-md-level="1">
+      <label class="md-nav__title" for="nav-7">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Actions
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../actions/actions/" title="What are actions" class="md-nav__link">
+      What are actions
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../actions/default_actions/" title="Actions list" class="md-nav__link">
+      Actions list
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../actions/outcomes/" title="Action OutComes" class="md-nav__link">
+      Action OutComes
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../actions/examples/" title="Examples" class="md-nav__link">
+      Examples
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../features/enable-graphql/" title="GraphQL" class="md-nav__link">
+      GraphQL
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../features/enable-data-auditing/" title="Data Auditing" class="md-nav__link">
+      Data Auditing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../features/enable-multilingual-table/" title="Multilingual Table" class="md-nav__link">
+      Multilingual Table
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../features/enable-smtp-imap/" title="SMTP/IMPS server" class="md-nav__link">
+      SMTP/IMPS server
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../state/machines/" title="State tracking" class="md-nav__link">
+      State tracking
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-13" type="checkbox" id="nav-13">
+    
+    <label class="md-nav__link" for="nav-13">
+      OAuth
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="OAuth" data-md-level="1">
+      <label class="md-nav__title" for="nav-13">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        OAuth
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../extend/oauth_connection/" title="OAuth Connections" class="md-nav__link">
+      OAuth Connections
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../extend/oauth_token/" title="OAuth Tokens" class="md-nav__link">
+      OAuth Tokens
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../integrations/overview/" title="3rd party API Integrations" class="md-nav__link">
+      3rd party API Integrations
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-15" type="checkbox" id="nav-15">
+    
+    <label class="md-nav__link" for="nav-15">
+      Cloud store
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Cloud store" data-md-level="1">
+      <label class="md-nav__title" for="nav-15">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Cloud store
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/" title="Cloud store" class="md-nav__link">
+      Cloud store
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/cloudstore/" title="Available cloud stores" class="md-nav__link">
+      Available cloud stores
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/cloudstore/" title="Asset columns" class="md-nav__link">
+      Asset columns
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/cloudstore/" title="Asset columns" class="md-nav__link">
+      Asset columns
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/sites/" title="Sites" class="md-nav__link">
+      Sites
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../cloudstore/assetcolumns/" title="Cloud store backed asset columns" class="md-nav__link">
+      Cloud store backed asset columns
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-17" type="checkbox" id="nav-17">
+    
+    <label class="md-nav__link" for="nav-17">
+      Sub-sites
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Sub-sites" data-md-level="1">
+      <label class="md-nav__title" for="nav-17">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Sub-sites
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../subsite/subsite/" title="Creating a subsite" class="md-nav__link">
+      Creating a subsite
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../subsite/grapes/" title="Live editing a subsite" class="md-nav__link">
+      Live editing a subsite
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../subsite/basic_auth/" title="Basic Authentication" class="md-nav__link">
+      Basic Authentication
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-18" type="checkbox" id="nav-18">
+    
+    <label class="md-nav__link" for="nav-18">
+      Internal Reference Documents
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Internal Reference Documents" data-md-level="1">
+      <label class="md-nav__title" for="nav-18">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Internal Reference Documents
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../data-modeling/data_storage/" title="Data store format" class="md-nav__link">
+      Data store format
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../extend/data_exchange/" title="Data exchange and sync" class="md-nav__link">
+      Data exchange and sync
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../streams/streams/" title="Data streams" class="md-nav__link">
+      Data streams
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Global Configuration
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
+      </label>
+    
+    <a href="./" title="Global Configuration" class="md-nav__link md-nav__link--active">
+      Global Configuration
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hostname" class="md-nav__link">
+    Hostname
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jwt-secret" class="md-nav__link">
+    JWT secret
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#encryption-secret" class="md-nav__link">
+    Encryption secret
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jwt-token-issuer" class="md-nav__link">
+    JWT token issuer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#language-default" class="md-nav__link">
+    Language default
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#max-connection-limit" class="md-nav__link">
+    Max connection limit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rate-limit" class="md-nav__link">
+    Rate limit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enable-graphql" class="md-nav__link">
+    Enable Graphql
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enable-imap" class="md-nav__link">
+    Enable IMAP
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jwt-token-lifetime-hours" class="md-nav__link">
+    JWT token lifetime (hours)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#totp-secret" class="md-nav__link">
+    TOTP secret
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enable-ftp" class="md-nav__link">
+    Enable FTP
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hostname" class="md-nav__link">
+    Hostname
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jwt-secret" class="md-nav__link">
+    JWT secret
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#encryption-secret" class="md-nav__link">
+    Encryption secret
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jwt-token-issuer" class="md-nav__link">
+    JWT token issuer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#language-default" class="md-nav__link">
+    Language default
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#max-connection-limit" class="md-nav__link">
+    Max connection limit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rate-limit" class="md-nav__link">
+    Rate limit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enable-graphql" class="md-nav__link">
+    Enable Graphql
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enable-imap" class="md-nav__link">
+    Enable IMAP
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jwt-token-lifetime-hours" class="md-nav__link">
+    JWT token lifetime (hours)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#totp-secret" class="md-nav__link">
+    TOTP secret
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enable-ftp" class="md-nav__link">
+    Enable FTP
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                  
+                
+                
+                <h1 id="_config-table">_config table<a class="headerlink" href="#_config-table" title="Permanent link">Link</a></h1>
+<p>Global configurations are stored in <code>_config</code>. <code>_config</code> table is not exposed as CRUD API like other tables.</p>
+<p>Only users who belong to administrators group cann reading/writing config entries from the config API.</p>
+<p>Any change in _config requires a re-init of daptin for them to take effect.</p>
+<h2 id="hostname">Hostname<a class="headerlink" href="#hostname" title="Permanent link">Link</a></h2>
+<p>Used for identification as IMAP/SMTP server Default value from os hostname</p>
+<h2 id="jwt-secret">JWT secret<a class="headerlink" href="#jwt-secret" title="Permanent link">Link</a></h2>
+<p>Used for signing the jwt tokens issue at login</p>
+<p>Changing this would force all users logout</p>
+<h2 id="encryption-secret">Encryption secret<a class="headerlink" href="#encryption-secret" title="Permanent link">Link</a></h2>
+<p>Secret used to encrypt data for storing in encrypted columns</p>
+<p>Changing the secret would make the data stored in all encrypted column unrecoverable.</p>
+<h2 id="jwt-token-issuer">JWT token issuer<a class="headerlink" href="#jwt-token-issuer" title="Permanent link">Link</a></h2>
+<p>The issuer name for JWT tokens</p>
+<h2 id="language-default">Language default<a class="headerlink" href="#language-default" title="Permanent link">Link</a></h2>
+<p>The default language expected in the Accept-Language header. Different value in Accept-Language header in request will
+trigger a lookup in corresponding translations table if enabled.</p>
+<h2 id="max-connection-limit">Max connection limit<a class="headerlink" href="#max-connection-limit" title="Permanent link">Link</a></h2>
+<p>The limit for max connections from a single IP</p>
+<h2 id="rate-limit">Rate limit<a class="headerlink" href="#rate-limit" title="Permanent link">Link</a></h2>
+<p>The limit for request rate limit per minute</p>
+<h2 id="enable-graphql">Enable Graphql<a class="headerlink" href="#enable-graphql" title="Permanent link">Link</a></h2>
+<p>Graphql endpoint <code>/graphql</code> is disabled by default. Set to true to use graphql endpoint</p>
+<h2 id="enable-imap">Enable IMAP<a class="headerlink" href="#enable-imap" title="Permanent link">Link</a></h2>
+<p>IMAP interface is disabled by default. Set to true to start listening to IMAP port</p>
+<h2 id="jwt-token-lifetime-hours">JWT token lifetime (hours)<a class="headerlink" href="#jwt-token-lifetime-hours" title="Permanent link">Link</a></h2>
+<p>Life time in hours of JWT tokens generated for login</p>
+<h2 id="totp-secret">TOTP secret<a class="headerlink" href="#totp-secret" title="Permanent link">Link</a></h2>
+<p>TOTP secret used for CSRF token generation and 2factor token generator</p>
+<h2 id="enable-ftp">Enable FTP<a class="headerlink" href="#enable-ftp" title="Permanent link">Link</a></h2>
+<p>FTP interface for sites is disabled by default (even if enabled per site). Set to true to start FTP services.</p>
+<h1 id="default-values">Default values<a class="headerlink" href="#default-values" title="Permanent link">Link</a></h1>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>name</th>
+<th>configtype</th>
+<th>configstate</th>
+<th>configenv</th>
+<th>value</th>
+<th>valuetype</th>
+<th>previousvalue</th>
+<th>created_at</th>
+<th>updated_at</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>hostname</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>abbad.local</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:56.836475</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td>language.default</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>en</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:56.95177</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td>limit.max_connections</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>100</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:56.96863</td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td>limit.rate</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>100</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:56.990064</td>
+<td></td>
+</tr>
+<tr>
+<td>6</td>
+<td>jwt.secret</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>d4f5ca52-74d3-4a50-ae6e-27b72be759b0</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:57.026539</td>
+<td></td>
+</tr>
+<tr>
+<td>8</td>
+<td>graphql.enable</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>false</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:57.100476</td>
+<td></td>
+</tr>
+<tr>
+<td>9</td>
+<td>encryption.secret</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>1cdb8101fc0047e688f24c9071de76f0</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:57.128269</td>
+<td></td>
+</tr>
+<tr>
+<td>10</td>
+<td>jwt.token.issuer</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>daptin-40f1e5</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:57.148896</td>
+<td></td>
+</tr>
+<tr>
+<td>11</td>
+<td>rclone.retries</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>5</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:57.470469</td>
+<td></td>
+</tr>
+<tr>
+<td>12</td>
+<td>imap.enabled</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>false</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:57.523543</td>
+<td></td>
+</tr>
+<tr>
+<td>13</td>
+<td>jwt.token.life.hours</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>72</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:57.709687</td>
+<td></td>
+</tr>
+<tr>
+<td>14</td>
+<td>totp.secret</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>2DOEBQZYQBITVPTW</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:57.752502</td>
+<td></td>
+</tr>
+<tr>
+<td>15</td>
+<td>ftp.enable</td>
+<td>backend</td>
+<td>enabled</td>
+<td>release</td>
+<td>false</td>
+<td></td>
+<td></td>
+<td>2021-01-02 15:11:57.999189</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="get-value-_config-table-api">Get value _config table API<a class="headerlink" href="#get-value-_config-table-api" title="Permanent link">Link</a></h3>
+<div class="highlight"><pre><span></span><code>curl <span class="se">\</span>
+-H <span class="s2">&quot;Authorization: Bearer &lt;ADMIN_TOKEN&gt;&quot;</span> http://localhost:6336/_config/backend/&lt;setting.name&gt;
+</code></pre></div>
+
+<h3 id="set-new-value-_config-table-api">Set new value _config table API<a class="headerlink" href="#set-new-value-_config-table-api" title="Permanent link">Link</a></h3>
+<div class="highlight"><pre><span></span><code>curl <span class="se">\</span>
+-H <span class="s2">&quot;Authorization: Bearer &lt;ADMIN_TOKEN&gt;&quot;</span> http://localhost:6336/_config/backend/&lt;setting.name&gt; <span class="se">\</span>
+--data <span class="s2">&quot;New Value&quot;</span>
+</code></pre></div>
+                
+              
+              
+                
+
+
+  <h2 id="__comments">Comments</h2>
+  <div id="disqus_thread"></div>
+  <script>var disqus_config=function(){this.page.url="https://daptin.github.io/daptin/setting-up/configurations/",this.page.identifier="setting-up/configurations/"};!function(){var e=document,i=e.createElement("script");i.src="//daptin-documentation.disqus.com/embed.js",i.setAttribute("data-timestamp",+new Date),(e.head||e.body).appendChild(i)}()</script>
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+        
+          <a href="../../streams/streams/" title="Data streams" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+            </div>
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Data streams
+              </div>
+            </div>
+          </a>
+        
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../../assets/javascripts/vendor.c3dc8c49.min.js"></script>
+      <script src="../../assets/javascripts/bundle.f9edbbd5.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      
+      <script>
+        app = initialize({
+          base: "../..",
+          features: [],
+          search: Object.assign({
+            worker: "../../assets/javascripts/worker/search.8e2cddea.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
+      
+    
+  </body>
+</html>

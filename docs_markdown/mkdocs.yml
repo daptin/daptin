@@ -11,12 +11,12 @@ pages:
     - Access control: user-management/new-users.md
 - Data model: setting-up/data_modeling.md
 - HTTP JSON API:
-  - CRUD API: apis/crud/#crud-api
-  - Action API: apis/crud/#action-api
-  - Relation API: apis/crud/#relation-apis
-  - Aggregation API: apis/crud/#aggregate-api
-  - State machine API: apis/crud/#state-machine-apis
-  - Metadata API: apis/crud/#metadata-api
+  - CRUD API: apis/crud.md#crud-api
+  - Action API: apis/crud.md#action-api
+  - Relation API: apis/crud.md#relation-apis
+  - Aggregation API: apis/crud.md#aggregate-api
+  - State machine API: apis/crud.md#state-machine-apis
+  - Metadata API: apis/crud.md#metadata-api
 - Actions:
   - What are actions: actions/actions.md
   - Actions list: actions/default_actions.md
@@ -31,7 +31,12 @@ pages:
   - OAuth Connections: extend/oauth_connection.md
   - OAuth Tokens: extend/oauth_token.md
 - 3rd party API Integrations: integrations/overview.md
-- Cloud store: cloudstore/cloudstore.md
+- Cloud store:
+  - Cloud store: cloudstore/index.md
+  - Available cloud stores: cloudstore/cloudstore.md
+  - Asset columns: cloudstore/cloudstore.md
+  - Asset columns: cloudstore/cloudstore.md
+  - Sites: cloudstore/sites.md
 - Cloud store backed asset columns: cloudstore/assetcolumns.md
 - Sub-sites:
   - Creating a subsite: subsite/subsite.md
@@ -41,7 +46,7 @@ pages:
   - Data store format: data-modeling/data_storage.md
   - Data exchange and sync: extend/data_exchange.md
   - Data streams: streams/streams.md
-- Global Configuration: setting-up/configuration.md
+- Global Configuration: setting-up/configurations.md
 theme:
   name: material
   logo: images/theme-logo.png
