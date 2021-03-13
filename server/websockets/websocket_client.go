@@ -38,7 +38,8 @@ func NewClient(ws *websocket.Conn, server *Server) (*Client, error) {
 	webSocketConnectionHandler := WebSocketConnectionHandlerImpl{
 		DtopicMap:        server.dtopicMap,
 		subscribedTopics: make(map[string]uint64),
-		olricDb: server.olricDb,
+		olricDb:          server.olricDb,
+		cruds:            server.cruds,
 	}
 
 	maxId++

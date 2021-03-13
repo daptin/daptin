@@ -36,7 +36,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		break
 	case "post":
 		err := topic.Publish(EventMessage{
-			MessageSource: "middleware",
+			MessageSource: "database",
 			EventType:     "create",
 			ObjectType:    dr.model.GetTableName(),
 			EventData:     results[0],
@@ -45,7 +45,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		break
 	case "delete":
 		err := topic.Publish(EventMessage{
-			MessageSource: "middleware",
+			MessageSource: "database",
 			EventType:     "delete",
 			ObjectType:    dr.model.GetTableName(),
 			EventData:     results[0],
@@ -55,7 +55,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 	case "update":
 	case "patch":
 		err := topic.Publish(EventMessage{
-			MessageSource: "middleware",
+			MessageSource: "database",
 			EventType:     "update",
 			ObjectType:    dr.model.GetTableName(),
 			EventData:     results[0],

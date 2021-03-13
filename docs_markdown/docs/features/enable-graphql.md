@@ -2,8 +2,6 @@
 
 GraphQL endpoint provides access to all the data methods and actions in GraphQL format.
 
-<img src="/images/dashboard/graphql-web-interface.png" />
-
 
 ## Enable 
 

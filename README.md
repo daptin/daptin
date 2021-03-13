@@ -29,7 +29,13 @@
 </p>
 
 
-### Dashboard for daptin
+Daptin is a server exposing HTTP APIs for web and application developers providing to talk to database and persistent storage.
+
+- Consistent API with authentication and authorization for database table and metadata
+- User management and user group management API with row and table level ownership
+- Stateless and easily scalable
+
+
 
 - Dadadash : https://github.com/daptin/dadadash/
   - `docker run -p 8080:8080 daptin/dadadash`

@@ -2,7 +2,6 @@
 
 You can host multiple sites using daptin. A sub site is exposing a cloud storage folder statically under a sub-domain, domain or a path. 
 
-<img src="/images/subsite.png">
 
 Expose folders on cloud storage services as websites using your daptin instance.
 

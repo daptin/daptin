@@ -35,10 +35,11 @@ type Server struct {
 	errCh     chan error
 	dtopicMap *map[string]*olric.DTopic
 	olricDb   *olric.Olric
+	cruds     map[string]*resource.DbResource
 }
 
 // Create new chat server.
-func NewServer(pattern string, dtopicMap *map[string]*olric.DTopic, olricDb *olric.Olric) *Server {
+func NewServer(pattern string, dtopicMap *map[string]*olric.DTopic, cruds map[string]*resource.DbResource) *Server {
 	clients := make(map[int]*Client)
 	addCh := make(chan *Client)
 	delCh := make(chan *Client)
@@ -53,7 +54,8 @@ func NewServer(pattern string, dtopicMap *map[string]*olric.DTopic, olricDb *olr
 		doneCh:    doneCh,
 		errCh:     errCh,
 		dtopicMap: dtopicMap,
-		olricDb: olricDb,
+		olricDb:   cruds["world"].OlricDb,
+		cruds:     cruds,
 	}
 }
 

@@ -7,22 +7,31 @@ import (
 	"strings"
 )
 
+// Each websocket connection has its own handler
 type WebSocketConnectionHandlerImpl struct {
 	DtopicMap        *map[string]*olric.DTopic
 	subscribedTopics map[string]uint64
 	olricDb          *olric.Olric
+	cruds            map[string]*resource.DbResource
 }
 
 func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketPayload, client *Client) {
 	switch message.Method {
 	case "subscribe":
-		topics, ok := message.Payload.Attributes["topics"].(string)
+		topics, ok := message.Payload.Attributes["topicName"].(string)
+
 		if !ok {
 			return
 		}
 		if len(topics) < 1 {
 			return
 		}
+		filters, ok := message.Payload.Attributes["filters"]
+		var filtersMap map[string]interface{}
+		if ok {
+			filtersMap = filters.(map[string]interface{})
+		}
+
 		topicsList := strings.Split(topics, ",")
 		for _, topic := range topicsList {
 			_, ok := wsch.subscribedTopics[topic]
@@ -30,7 +39,25 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 				var err error
 				wsch.subscribedTopics[topic], err = (*wsch.DtopicMap)[topic].AddListener(func(message olric.DTopicMessage) {
 					eventMessage := message.Message.(resource.EventMessage)
-					client.ch <- eventMessage
+
+					permission := wsch.cruds["world"].GetRowPermission(eventMessage.EventData)
+					if permission.CanRead(client.user.UserReferenceId, client.user.Groups) {
+
+						sendMessage := true
+						if filtersMap != nil {
+							for key, val := range filtersMap {
+								if eventMessage.EventData[key] != val {
+									sendMessage = false
+									break
+								}
+							}
+						}
+						if sendMessage {
+							client.ch <- eventMessage
+						}
+
+					}
+
 				})
 				if err != nil {
 					log.Printf("Failed to add listener to topic: %v", err)
@@ -40,6 +67,12 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 	case "create-topic":
 		topic, ok := message.Payload.Attributes["name"].(string)
 		if !ok {
+			return
+		}
+
+		_, exists := (*wsch.DtopicMap)[topic]
+		if exists {
+			log.Printf("topic already exists: %v", topic)
 			return
 		}
 
@@ -66,10 +99,19 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 	case "destroy-topic":
 		topic, ok := message.Payload.Attributes["name"].(string)
 		if !ok {
+			log.Printf("topic does not exist: %v", topic)
 			return
 		}
 
-		_ = (*wsch.DtopicMap)[topic].Destroy()
+		_, isSystemTopic := wsch.cruds[topic]
+		if isSystemTopic {
+			log.Printf("user can delete only user created topics: %v", topic)
+			return
+		}
+
+		err := (*wsch.DtopicMap)[topic].Destroy()
+		resource.CheckErr(err, "failed to destroy topic")
+		delete(*wsch.DtopicMap, topic)
 
 	case "new-message":
 		var err error
@@ -78,20 +120,19 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 		message, ok := message.Payload.Attributes["message"].(map[string]interface{})
 
 		topic, ok = (*wsch.DtopicMap)[topicName]
+
 		if !ok {
-			topic, err = wsch.olricDb.NewDTopic(topicName, 4, 1)
-			resource.CheckErr(err, "Failed to create the topic")
-			if err != nil {
-				return
-			}
-			(*wsch.DtopicMap)[topicName] = topic
+			log.Printf("topic does not exist: {}", topicName)
+			return
 		}
+
 		err = topic.Publish(resource.EventMessage{
-			MessageSource: "client",
+			MessageSource: client.user.UserReferenceId,
 			EventType:     "new-message",
 			ObjectType:    topicName,
 			EventData:     message,
 		})
+
 		resource.CheckErr(err, "Failed to publish message on topic")
 
 	case "unsubscribe":
