@@ -17,7 +17,7 @@
     
     
       
-        <title>API reference - Daptin</title>
+        <title>Metadata API - Daptin</title>
       
     
     
@@ -84,7 +84,7 @@
           </span>
           <span class="md-header-nav__topic md-ellipsis">
             
-              API reference
+              Metadata API
             
           </span>
         </div>
@@ -269,10 +269,12 @@
       
       
 
+  
 
-  <li class="md-nav__item md-nav__item--nested">
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6" checked>
     
     <label class="md-nav__link" for="nav-6">
       HTTP JSON API
@@ -296,7 +298,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../crud.md#crud-api" title="CRUD API" class="md-nav__link">
+    <a href="./" title="CRUD API" class="md-nav__link">
       CRUD API
     </a>
   </li>
@@ -308,7 +310,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../crud.md#action-api" title="Action API" class="md-nav__link">
+    <a href="./" title="Action API" class="md-nav__link">
       Action API
     </a>
   </li>
@@ -320,7 +322,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../crud.md#relation-apis" title="Relation API" class="md-nav__link">
+    <a href="./" title="Relation API" class="md-nav__link">
       Relation API
     </a>
   </li>
@@ -332,7 +334,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../crud.md#aggregate-api" title="Aggregation API" class="md-nav__link">
+    <a href="./" title="Aggregation API" class="md-nav__link">
       Aggregation API
     </a>
   </li>
@@ -344,7 +346,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../crud.md#state-machine-apis" title="State machine API" class="md-nav__link">
+    <a href="./" title="State machine API" class="md-nav__link">
       State machine API
     </a>
   </li>
@@ -354,11 +356,238 @@
           
           
 
+  
 
-  <li class="md-nav__item">
-    <a href="../crud.md#metadata-api" title="Metadata API" class="md-nav__link">
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Metadata API
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
+      </label>
+    
+    <a href="./" title="Metadata API" class="md-nav__link md-nav__link--active">
       Metadata API
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#api-overview" class="md-nav__link">
+    API Overview
+  </a>
+  
+    <nav class="md-nav" aria-label="API Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#crud-api" class="md-nav__link">
+    CRUD API
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#action-api" class="md-nav__link">
+    Action API
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#relation-apis" class="md-nav__link">
+    Relation APIs
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aggregate-api" class="md-nav__link">
+    Aggregate API
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#state-machine-apis" class="md-nav__link">
+    State machine APIs
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#websocket-api-wip" class="md-nav__link">
+    Websocket API (wip)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metadata-api" class="md-nav__link">
+    Metadata API
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#read" class="md-nav__link">
+    Read
+  </a>
+  
+    <nav class="md-nav" aria-label="Read">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#query-parameters" class="md-nav__link">
+    Query Parameters
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#response" class="md-nav__link">
+    Response
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    Examples
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curl-example" class="md-nav__link">
+    Curl example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jquery-ajax-example" class="md-nav__link">
+    jQuery ajax example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-js-example" class="md-nav__link">
+    Node js example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#python-example" class="md-nav__link">
+    Python example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#php-example" class="md-nav__link">
+    PHP example
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filtering" class="md-nav__link">
+    Filtering
+  </a>
+  
+    <nav class="md-nav" aria-label="Filtering">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#create" class="md-nav__link">
+    Create
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#update" class="md-nav__link">
+    Update
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delete" class="md-nav__link">
+    Delete
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execute" class="md-nav__link">
+    Execute
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#relations" class="md-nav__link">
+    Relations
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+    
   </li>
 
         
@@ -1946,6 +2175,41 @@ request(options, callback);
       
         
 <footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+        
+          <a href="./" title="State machine API" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+            </div>
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                State machine API
+              </div>
+            </div>
+          </a>
+        
+        
+          <a href="../../actions/actions/" title="What are actions" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                What are actions
+              </div>
+            </div>
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
