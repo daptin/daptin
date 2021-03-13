@@ -115,7 +115,7 @@ Sample Response
 
 #### Create topic
 
-List all the available topics - System topics - User created topics
+Create a new topic
 
 ```json
 {
@@ -128,11 +128,14 @@ List all the available topics - System topics - User created topics
 
 #### Destroy topic
 
-List all the available topics - System topics - User created topics
+Delete a user created topic
 
 ```json
 {
-  "method": "destroy-topic"
+  "method": "destroy-topic",
+  "attributes": {
+    "name": "<topic_name>"
+  }
 }
 ```
 
@@ -214,7 +217,7 @@ Update event sample payload
 
 #### Unsubscribe topic
 
-List all the available topics - System topics - User created topics
+Unsubscribe to an subscribed topic (this is required if you want to subscribe with new filters)
 
 ```json
 {
@@ -227,7 +230,7 @@ List all the available topics - System topics - User created topics
 
 #### New message for a user-created topic
 
-List all the available topics - System topics - User created topics
+Send a message on a user created topic, broad-casted to all subscribers of this topic
 
 ```json
 {
