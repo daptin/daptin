@@ -35,32 +35,39 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 	case "get":
 		break
 	case "post":
-		err := topic.Publish(EventMessage{
-			MessageSource: "database",
-			EventType:     "create",
-			ObjectType:    dr.model.GetTableName(),
-			EventData:     results[0],
-		})
-		CheckErr(err, "Failed to publish create message")
+		go func() {
+			err := topic.Publish(EventMessage{
+				MessageSource: "database",
+				EventType:     "create",
+				ObjectType:    dr.model.GetTableName(),
+				EventData:     results[0],
+			})
+			CheckErr(err, "Failed to publish create message")
+		}()
 		break
 	case "delete":
-		err := topic.Publish(EventMessage{
-			MessageSource: "database",
-			EventType:     "delete",
-			ObjectType:    dr.model.GetTableName(),
-			EventData:     results[0],
-		})
-		CheckErr(err, "Failed to delete create message")
+		go func() {
+			err := topic.Publish(EventMessage{
+				MessageSource: "database",
+				EventType:     "delete",
+				ObjectType:    dr.model.GetTableName(),
+				EventData:     results[0],
+			})
+			CheckErr(err, "Failed to delete create message")
+
+		}()
 		break
 	case "update":
 	case "patch":
-		err := topic.Publish(EventMessage{
-			MessageSource: "database",
-			EventType:     "update",
-			ObjectType:    dr.model.GetTableName(),
-			EventData:     results[0],
-		})
-		CheckErr(err, "Failed to update create message")
+		go func() {
+			err := topic.Publish(EventMessage{
+				MessageSource: "database",
+				EventType:     "update",
+				ObjectType:    dr.model.GetTableName(),
+				EventData:     results[0],
+			})
+			CheckErr(err, "Failed to update create message")
+		}()
 		break
 	default:
 		log.Errorf("Invalid method: %v", req.PlainRequest.Method)

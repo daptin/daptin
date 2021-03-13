@@ -1,7 +1,6 @@
 package websockets
 
 import (
-	"fmt"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
@@ -10,20 +9,11 @@ import (
 )
 
 type WebSocketPayload struct {
-	Method   string  `json:"method"`
-	TypeName string  `json:"type"`
-	Payload  Message `json:"payload"`
+	Method  string  `json:"method"`
+	Payload Message `json:"attributes"`
 }
 
-type Message struct {
-	Id         string                 `json:"id"`
-	Type       string                 `json:"type"`
-	Attributes map[string]interface{} `json:"attributes"`
-}
-
-func (self *Message) String() string {
-	return fmt.Sprintf("[%v] %v", self.Type, self.Attributes)
-}
+type Message map[string]interface{}
 
 // Chat server.
 type Server struct {

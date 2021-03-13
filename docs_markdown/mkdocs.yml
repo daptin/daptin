@@ -38,6 +38,7 @@ pages:
   - Asset columns: cloudstore/cloudstore.md
   - Sites: cloudstore/sites.md
 - Cloud store backed asset columns: cloudstore/assetcolumns.md
+- Websockets: websockets/websocket.md
 - Sub-sites:
   - Creating a subsite: subsite/subsite.md
   - Live editing a subsite: subsite/grapes.md

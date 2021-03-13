@@ -2,6 +2,7 @@ package websockets
 
 import (
 	"github.com/buraksezer/olric"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
 	"log"
 	"strings"
@@ -18,7 +19,7 @@ type WebSocketConnectionHandlerImpl struct {
 func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketPayload, client *Client) {
 	switch message.Method {
 	case "subscribe":
-		topics, ok := message.Payload.Attributes["topicName"].(string)
+		topics, ok := message.Payload["topic"].(string)
 
 		if !ok {
 			return
@@ -26,7 +27,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 		if len(topics) < 1 {
 			return
 		}
-		filters, ok := message.Payload.Attributes["filters"]
+		filters, ok := message.Payload["filters"]
 		var filtersMap map[string]interface{}
 		if ok {
 			filtersMap = filters.(map[string]interface{})
@@ -37,35 +38,61 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 			_, ok := wsch.subscribedTopics[topic]
 			if !ok {
 				var err error
-				wsch.subscribedTopics[topic], err = (*wsch.DtopicMap)[topic].AddListener(func(message olric.DTopicMessage) {
-					eventMessage := message.Message.(resource.EventMessage)
+				eventType, ok := filtersMap["EventType"]
+				eventTypeString := ""
+				if ok {
+					eventTypeString = eventType.(string)
+					delete(filtersMap, "EventType")
+				}
+				wsch.subscribedTopics[topic], err = (*wsch.DtopicMap)[topic].AddListener(func(eventType string, filtersMap map[string]interface{}) func(olric.DTopicMessage) {
+					return func(message olric.DTopicMessage) {
+						eventMessage := message.Message.(resource.EventMessage)
 
-					permission := wsch.cruds["world"].GetRowPermission(eventMessage.EventData)
-					if permission.CanRead(client.user.UserReferenceId, client.user.Groups) {
+						typeName, _ := eventMessage.EventData["__type"]
+						tableExists := false
+						if typeName != nil {
+							_, tableExists = wsch.cruds[typeName.(string)]
+						}
 
-						sendMessage := true
-						if filtersMap != nil {
-							for key, val := range filtersMap {
-								if eventMessage.EventData[key] != val {
-									sendMessage = false
-									break
+						permission := resource.PermissionInstance{Permission: auth.ALLOW_ALL_PERMISSIONS}
+
+						if tableExists {
+							permission = wsch.cruds["world"].GetRowPermission(eventMessage.EventData)
+
+						}
+						if permission.CanRead(client.user.UserReferenceId, client.user.Groups) {
+
+							sendMessage := true
+							if filtersMap != nil {
+
+								if eventType != "" {
+									if eventMessage.EventType != eventType {
+										return
+									}
+								}
+
+								for key, val := range filtersMap {
+									if eventMessage.EventData[key] != val {
+										sendMessage = false
+										break
+									}
 								}
 							}
-						}
-						if sendMessage {
-							client.ch <- eventMessage
+							if sendMessage {
+								client.ch <- eventMessage
+							}
+
 						}
 
 					}
-
-				})
+				}(eventTypeString, filtersMap))
 				if err != nil {
 					log.Printf("Failed to add listener to topic: %v", err)
 				}
 			}
 		}
 	case "create-topic":
-		topic, ok := message.Payload.Attributes["name"].(string)
+		topic, ok := message.Payload["name"].(string)
 		if !ok {
 			return
 		}
@@ -97,7 +124,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 		}
 
 	case "destroy-topic":
-		topic, ok := message.Payload.Attributes["name"].(string)
+		topic, ok := message.Payload["name"].(string)
 		if !ok {
 			log.Printf("topic does not exist: %v", topic)
 			return
@@ -116,8 +143,8 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 	case "new-message":
 		var err error
 		var topic *olric.DTopic
-		topicName, ok := message.Payload.Attributes["topic"].(string)
-		message, ok := message.Payload.Attributes["message"].(map[string]interface{})
+		topicName, ok := message.Payload["topic"].(string)
+		message, ok := message.Payload["message"].(map[string]interface{})
 
 		topic, ok = (*wsch.DtopicMap)[topicName]
 
@@ -136,7 +163,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 		resource.CheckErr(err, "Failed to publish message on topic")
 
 	case "unsubscribe":
-		topics := message.Payload.Attributes["topics"].(string)
+		topics := message.Payload["topic"].(string)
 		if len(topics) < 1 {
 			return
 		}
