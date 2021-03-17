@@ -31,4 +31,5 @@ github.com
 daptin.exe
 daptin
 *.prof
-*.db
+*.dbdocs_markdown/site
+docs_markdown/site/*
