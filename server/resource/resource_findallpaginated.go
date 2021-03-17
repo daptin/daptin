@@ -273,17 +273,21 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 	queryBuilder := statementbuilder.Squirrel.Select(idQueryCols...).From(tableModel.GetTableName())
 	//queryBuilder = queryBuilder.From(tableModel.GetTableName())
+	var countQueryBuilder squirrel.SelectBuilder
+	countQueryBuilder = statementbuilder.Squirrel.Select("count(*)").From(tableModel.GetTableName()).Offset(0).Limit(1)
 
 	joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", tableModel.GetTableName(), tableModel.GetTableName())
 	if !isRelatedGroupRequest && tableModel.GetTableName() != "usergroup" {
+		countQueryBuilder = countQueryBuilder.LeftJoin(
+			fmt.Sprintf("%s %s on %s.id=%s.%s_id",
+				joinTableName, joinTableName, tableModel.GetTableName(), joinTableName, tableModel.GetTableName(),
+			))
 		queryBuilder = queryBuilder.LeftJoin(
 			fmt.Sprintf("%s %s on %s.id=%s.%s_id",
 				joinTableName, joinTableName, tableModel.GetTableName(), joinTableName, tableModel.GetTableName(),
 			))
 	}
 
-	var countQueryBuilder squirrel.SelectBuilder
-	countQueryBuilder = statementbuilder.Squirrel.Select("count(*)").From(tableModel.GetTableName()).Offset(0).Limit(1)
 	if req.QueryParams["page[after]"] != nil && len(req.QueryParams["page[after]"]) > 0 {
 		id, err := dr.GetReferenceIdToId(dr.TableInfo().TableName, req.QueryParams["page[after]"][0])
 		if err != nil {

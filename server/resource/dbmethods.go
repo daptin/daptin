@@ -722,8 +722,7 @@ func (dr *DbResource) GetUserMembersByGroupName(groupName string) []string {
 		LeftJoin("user_account u on uu.user_account_id = u.id").
 		LeftJoin("usergroup g on uu.usergroup_id = g.id").
 		Where(squirrel.Eq{"g.name": groupName}).
-		OrderBy("uu.created_at").
-		Limit(1).ToSql()
+		OrderBy("uu.created_at").ToSql()
 	if err != nil {
 		log.Errorf("Failed to create sql query: %v", err)
 		return []string{}

@@ -168,6 +168,8 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 	var subjectInstance *api2go.Api2GoModel
 	var subjectInstanceMap map[string]interface{}
 
+	isAdmin := db.IsAdmin(sessionUser.UserReferenceId)
+
 	subjectInstanceReferenceId, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
 	if ok {
 		req.PlainRequest.Method = "GET"
@@ -191,7 +193,7 @@ func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2
 		}
 	}
 
-	if !db.IsUserActionAllowed(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action) {
+	if !isAdmin && !db.IsUserActionAllowed(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action) {
 		return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 	}
 
