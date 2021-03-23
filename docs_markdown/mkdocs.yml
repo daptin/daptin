@@ -9,7 +9,6 @@ pages:
     - New User: user-management/new-users.md
     - Access Permissions: user-management/access.md
     - Sign in API: user-management/signin.md
-    - Access control: user-management/new-users.md
 - Data model: setting-up/data_modeling.md
 - HTTP JSON API:
   - CRUD API: apis/crud.md
