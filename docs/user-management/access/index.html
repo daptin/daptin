@@ -17,7 +17,7 @@
     
     
       
-        <title>User management - Daptin</title>
+        <title>Access Permissions - Daptin</title>
       
     
     
@@ -57,7 +57,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#user-management" class="md-skip">
+        <a href="#guests" class="md-skip">
           Skip to content
         </a>
       
@@ -84,7 +84,7 @@
           </span>
           <span class="md-header-nav__topic md-ellipsis">
             
-              User management
+              Access Permissions
             
           </span>
         </div>
@@ -191,10 +191,12 @@
       
       
 
+  
 
-  <li class="md-nav__item md-nav__item--nested">
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" checked>
     
     <label class="md-nav__link" for="nav-4">
       User management
@@ -221,6 +223,27 @@
     <a href="../new-users/" title="New User" class="md-nav__link">
       New User
     </a>
+  </li>
+
+        
+          
+          
+          
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+    <a href="./" title="Access Permissions" class="md-nav__link md-nav__link--active">
+      Access Permissions
+    </a>
+    
   </li>
 
         
@@ -846,247 +869,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
-  </a>
-  
-    <nav class="md-nav" aria-label="Authentication">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#signup-api" class="md-nav__link">
-    Signup API
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#directly-into-user_account-table" class="md-nav__link">
-    Directly into user_account table
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#guests" class="md-nav__link">
-    Guests
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#authorization" class="md-nav__link">
-    Authorization
-  </a>
-  
-    <nav class="md-nav" aria-label="Authorization">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#permission-model" class="md-nav__link">
-    Permission model
-  </a>
-  
-    <nav class="md-nav" aria-label="Permission model">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#peek" class="md-nav__link">
-    Peek
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#c-create" class="md-nav__link">
-    [C] Create
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#r-read" class="md-nav__link">
-    [R] Read
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#u-update" class="md-nav__link">
-    [U] Update
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#d-delete" class="md-nav__link">
-    [D] Delete
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#r-refer" class="md-nav__link">
-    [R] Refer
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#x-execute" class="md-nav__link">
-    [X] Execute
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#authorization_1" class="md-nav__link">
-    Authorization
-  </a>
-  
-    <nav class="md-nav" aria-label="Authorization">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#object-level-permission-check" class="md-nav__link">
-    Object level permission check
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#order-of-permission-check" class="md-nav__link">
-    Order of permission check
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#access-flow" class="md-nav__link">
-    Access flow
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#entity-level-permission" class="md-nav__link">
-    Entity level permission
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#instance-level-permission" class="md-nav__link">
-    Instance level permission
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#user-data-api-examples" class="md-nav__link">
-    User data API Examples
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#user-groups" class="md-nav__link">
-    User groups
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#social-login" class="md-nav__link">
-    Social login
-  </a>
-  
-    <nav class="md-nav" aria-label="Social login">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#social-login_1" class="md-nav__link">
-    Social login
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuring-default-user-group" class="md-nav__link">
-    Configuring default user group
-  </a>
-  
-    <nav class="md-nav" aria-label="Configuring default user group">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#authentication-token" class="md-nav__link">
-    Authentication token
-  </a>
-  
-    <nav class="md-nav" aria-label="Authentication token">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#server-side" class="md-nav__link">
-    Server side
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#client-side" class="md-nav__link">
-    Client side
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1101,61 +883,11 @@
                   
                 
                 
-                <h1 id="user-management">User management<a class="headerlink" href="#user-management" title="Permanent link">Link</a></h1>
-<p>Daptin maintains its own <code>User accounts</code> and <code>User groups</code> entries in the database. Users are identified by <code>email</code> which is a unique key in the <code>user_account</code> entity. Passwords are stored using bcrypt with a cost of 11. Password field has a column_type <code>password</code> which makes daptin to bcrypt it before storing, and password fields are never returned in any JSONAPI call.</p>
-<h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">Link</a></h2>
-<p>Authentication involves identifying the current user of the request. Daptin expectes a JWT token issued at signin as <code>Authorization: Bearer &lt;Token&gt;</code> header, otherwise the request is considered coming from a <a href="#Guests">guest</a>.</p>
-<h4 id="signup-api">Signup API<a class="headerlink" href="#signup-api" title="Permanent link">Link</a></h4>
-<p>Sign up action can be allowed to guests for open registration by anyone. Users with enough permission over the <code>user_account</code> table can create users manually.</p>
-<p>Users registered using signup action are their own owners. Hence they can update and delete themselves. These permission can be changed based on the use case.</p>
-<p>!!! example"POST call for user registration"
-    <div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;http://localhost:6336/action/user_account/signup&#39;</span> <span class="se">\</span>
--H <span class="s1">&#39;Authorization: Bearer null&#39;</span> <span class="se">\</span>
--H <span class="s1">&#39;Content-Type: application/json;charset=UTF-8&#39;</span> <span class="se">\</span>
--H <span class="s1">&#39;Accept: application/json, text/plain, */*&#39;</span> <span class="se">\</span>
---data-binary <span class="s1">&#39;{&quot;attributes&quot;:{&quot;name&quot;:&quot;username&quot;,&quot;email&quot;:&quot;&lt;UserEmail&gt;&quot;,&quot;password&quot;:&quot;&lt;Password&gt;&quot;,&quot;passwordConfirm&quot;:&quot;&lt;Password&gt;&quot;}}&#39;</span>
-</code></pre></div></p>
-<p>You can either allow guests to be able to invoke <code>sign up</code> action or allow only a particular user to be able to create new users or a usergroup.</p>
-<div class="highlight"><pre><span></span><code><span class="p">[</span>
-  <span class="p">{</span>
-    <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.notify&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;Attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Created user&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Success&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-<span class="p">]</span>
-</code></pre></div>
-
-<p>This user can sign in now (generate an auth token). But what he can access is again based on the permission of the system.</p>
-<h4 id="directly-into-user_account-table">Directly into user_account table<a class="headerlink" href="#directly-into-user_account-table" title="Permanent link">Link</a></h4>
-<div class="highlight"><pre><span></span><code>import requests
-
-headers = {
-    &#39;Authorization&#39;: &#39;Bearer &lt;Auth Token&gt;&#39;,
-}
-
-data = &#39;{
-            &quot;data&quot;: {
-                &quot;type&quot;: &quot;user&quot;,
-                &quot;attributes&quot;: {
-                    &quot;email&quot;: &quot;test@user.com&quot;,
-                    &quot;name&quot;: &quot;test&quot;,
-                    &quot;password&quot;: &quot;password&quot;,
-                }
-            }
-        }&#39;
-
-response = requests.post(&#39;http://localhost:6336/api/user&#39;, headers=headers, data=data)
-</code></pre></div>
-
-<p>You can manually add users from the users page, or allow sign-up action to be performed by guests which will take care of creating a user and an associated usergroup for that user. All new signed up users will also be added to the "users" usergroup.</p>
-<h3 id="guests">Guests<a class="headerlink" href="#guests" title="Permanent link">Link</a></h3>
+                <h1 id="guests">Guests<a class="headerlink" href="#guests" title="Permanent link">Link</a></h1>
 <p>Requests <strong>without</strong> a valid <code>Authorization Bearer</code> <code>token</code> will be referred to as "guests requests". Requests with a valid token will have an identified user in the context.</p>
-<h2 id="authorization">Authorization<a class="headerlink" href="#authorization" title="Permanent link">Link</a></h2>
+<h1 id="authorization">Authorization<a class="headerlink" href="#authorization" title="Permanent link">Link</a></h1>
 <p>Daptin has a built-in authorization framework based on users groups and permissions. Users are identified by their authorization token or other means of identification. Each request is identified as coming from a registered user or a guest.</p>
-<h3 id="permission-model">Permission model<a class="headerlink" href="#permission-model" title="Permanent link">Link</a></h3>
+<h2 id="permission-model">Permission model<a class="headerlink" href="#permission-model" title="Permanent link">Link</a></h2>
 <p>Every read/write to the system passes through two level of permission check.</p>
 <ul>
 <li>Type level: apply permission on all types of entities at the same time</li>
@@ -1167,30 +899,43 @@ response = requests.post(&#39;http://localhost:6336/api/user&#39;, headers=heade
 <li><code>Default permission</code>: defines the default permission for a new object of this entity type</li>
 </ul>
 <p>The default permission for an object is picked from the default permission setting, and can be changed after the object creation (if the permission allows).</p>
-<h4 id="peek">Peek<a class="headerlink" href="#peek" title="Permanent link">Link</a></h4>
-<p><strong>Peek</strong> gives access to the user to read data in the system but not allow it in response as data. So while the query to read the data will execute and certain <strong>actions</strong> can be allowed over them, directly trying to read the data in response will fail.</p>
-<h4 id="c-create">[C] Create<a class="headerlink" href="#c-create" title="Permanent link">Link</a></h4>
-<p><strong>Create</strong> allows a new row to be created by using the POST api. Note: this doesn't apply over indirect creations using <em>actions</em>*.</p>
-<h4 id="r-read">[R] Read<a class="headerlink" href="#r-read" title="Permanent link">Link</a></h4>
-<p><strong>Read</strong> allows the data to be served in the http response body. The response will usually follow the JSONAPI.org structure.</p>
-<h4 id="u-update">[U] Update<a class="headerlink" href="#u-update" title="Permanent link">Link</a></h4>
-<p><strong>Update</strong> allows the data fields to be updated using the PUT/PATCH http methods.</p>
-<h4 id="d-delete">[D] Delete<a class="headerlink" href="#d-delete" title="Permanent link">Link</a></h4>
-<p><strong>Delete</strong> gives permission to be delete a row or certain type of data using DELETE http method. Unless you have enabled <strong>auditing</strong>, you will permanently loose this data.</p>
-<h4 id="r-refer">[R] Refer<a class="headerlink" href="#r-refer" title="Permanent link">Link</a></h4>
-<p><strong>Refer</strong> gives permission to add data/users to usergroups. Note that you will also need certain permission on the <strong>usergroup</strong> as well.</p>
-<h4 id="x-execute">[X] Execute<a class="headerlink" href="#x-execute" title="Permanent link">Link</a></h4>
-<p><strong>Execute</strong> gives permission to invoke action over data (like export). Note that giving access to a <strong>type of data</strong> doesn't give access to all rows of that <strong>entity type</strong>.</p>
-<h3 id="authorization_1">Authorization<a class="headerlink" href="#authorization_1" title="Permanent link">Link</a></h3>
+<h2 id="permission-bits">Permission Bits<a class="headerlink" href="#permission-bits" title="Permanent link">Link</a></h2>
+<div class="highlight"><pre><span></span><code>None: 0,
+GuestPeek: 1 &lt;&lt; 0,
+GuestRead: 1 &lt;&lt; 1,
+GuestCreate: 1 &lt;&lt; 2,
+GuestUpdate: 1 &lt;&lt; 3,
+GuestDelete: 1 &lt;&lt; 4,
+GuestExecute: 1 &lt;&lt; 5,
+GuestRefer: 1 &lt;&lt; 6,
+UserPeek: 1 &lt;&lt; 7,
+UserRead: 1 &lt;&lt; 8,
+UserCreate: 1 &lt;&lt; 9,
+UserUpdate: 1 &lt;&lt; 10,
+UserDelete: 1 &lt;&lt; 11,
+UserExecute: 1 &lt;&lt; 12,
+UserRefer: 1 &lt;&lt; 13,
+GroupPeek: 1 &lt;&lt; 14,
+GroupRead: 1 &lt;&lt; 15,
+GroupCreate: 1 &lt;&lt; 16,
+GroupUpdate: 1 &lt;&lt; 17,
+GroupDelete: 1 &lt;&lt; 18,
+GroupExecute: 1 &lt;&lt; 19,
+GroupRefer: 1 &lt;&lt; 20,
+</code></pre></div>
+
+<p><code>OR</code> the desired permission bits to get the final permission column value. Example</p>
+<p><code>DEFAULT_PERMISSION = GuestPeek | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute</code></p>
+<h2 id="authorization_1">Authorization<a class="headerlink" href="#authorization_1" title="Permanent link">Link</a></h2>
 <p>Authorization is the part where daptin decides if the caller has enough permission to execute the call. Access check happens at two levels:</p>
 <ul>
 <li>Entity level check</li>
 <li>Object level check</li>
 </ul>
 <p>Both the checks have a "before" and "after" part.</p>
-<h4 id="object-level-permission-check">Object level permission check<a class="headerlink" href="#object-level-permission-check" title="Permanent link">Link</a></h4>
+<h3 id="object-level-permission-check">Object level permission check<a class="headerlink" href="#object-level-permission-check" title="Permanent link">Link</a></h3>
 <p>Once the call clears the entity level check, an object level permission check is applied. This happens in cases where the action is going to affect/read an existing row. The permission is stored in the same way. Each table has a permission column which stores the permission in <code>OOOGGGXXX</code> format.</p>
-<h4 id="order-of-permission-check">Order of permission check<a class="headerlink" href="#order-of-permission-check" title="Permanent link">Link</a></h4>
+<h3 id="order-of-permission-check">Order of permission check<a class="headerlink" href="#order-of-permission-check" title="Permanent link">Link</a></h3>
 <p>The permission is checked in order of:</p>
 <ul>
 <li>Check if the user is owner, if yes, check if permission allows the current action, if yes do action</li>
@@ -1203,7 +948,7 @@ response = requests.post(&#39;http://localhost:6336/api/user&#39;, headers=heade
 <li>eg, you cannot say owner is 'not allowed' to read but read by guest is allowed.</li>
 <li>Permission check is done in a hierarchy type order</li>
 </ul>
-<h4 id="access-flow">Access flow<a class="headerlink" href="#access-flow" title="Permanent link">Link</a></h4>
+<h3 id="access-flow">Access flow<a class="headerlink" href="#access-flow" title="Permanent link">Link</a></h3>
 <p>Every "interaction" in daptin goes through two levels of access. Each level has a <code>before</code> and <code>after</code> check.</p>
 <ul>
 <li>Entity level access: does the user invoking the interaction has the appropriate permission to invoke this (So for sign up, the user table need to be writable by guests, for sign in the user table needs to be peakable by guests)</li>
@@ -1217,50 +962,60 @@ response = requests.post(&#39;http://localhost:6336/api/user&#39;, headers=heade
 <li>"After check" for entity</li>
 </ul>
 <p>Each of these checks can filter out objects where the user does not have enough permission.</p>
-<h4 id="entity-level-permission">Entity level permission<a class="headerlink" href="#entity-level-permission" title="Permanent link">Link</a></h4>
+<h3 id="entity-level-permission">Entity level permission<a class="headerlink" href="#entity-level-permission" title="Permanent link">Link</a></h3>
 <p>Entity level permission are set in the world table and can be updated from dashboard. This can be done by updating the "permission" column for the entity.</p>
 <p>For these changes to take effect a restart is necessary.</p>
-<h4 id="instance-level-permission">Instance level permission<a class="headerlink" href="#instance-level-permission" title="Permanent link">Link</a></h4>
+<h3 id="instance-level-permission">Instance level permission<a class="headerlink" href="#instance-level-permission" title="Permanent link">Link</a></h3>
 <p>Like we saw in the <a href="/setting-up/entities">entity documentation</a>, every table has a <code>permission</code> column. No restart is necessary for changes in these permission.</p>
 <p>You can choose to disable new user registration by changing the <code>signup</code> action permissions.</p>
-<h3 id="user-data-api-examples">User data API Examples<a class="headerlink" href="#user-data-api-examples" title="Permanent link">Link</a></h3>
+<h2 id="user-data-api-examples">User data API Examples<a class="headerlink" href="#user-data-api-examples" title="Permanent link">Link</a></h2>
 <p>Users are just like any other data you maintain. User information is stored in the <code>user_account</code> table and exposed over <code>/api/user_account</code> endpoint.</p>
 <p>You can choose to allow <code>read/write</code> permission directly to that <code>table</code> to allow other users/processes to use this api to <code>read/create/update/delete</code> users.</p>
-<h2 id="user-groups">User groups<a class="headerlink" href="#user-groups" title="Permanent link">Link</a></h2>
+<h1 id="user-groups">User groups<a class="headerlink" href="#user-groups" title="Permanent link">Link</a></h1>
 <p>User groups is a group concept that helps you manage "who" can interact with daptin, and in what ways.</p>
 <p>All objects (including users and groups) belong to one or more user group.</p>
 <p>Users can interact with objects which also belong to their group based on the defined group permission setting</p>
-<h2 id="social-login">Social login<a class="headerlink" href="#social-login" title="Permanent link">Link</a></h2>
+<h1 id="social-login">Social login<a class="headerlink" href="#social-login" title="Permanent link">Link</a></h1>
 <p>Oauth connection can be used to allow guests to identify themselves based on the email provided by the oauth id provider.</p>
-<h3 id="social-login_1">Social login<a class="headerlink" href="#social-login_1" title="Permanent link">Link</a></h3>
+<h2 id="social-login_1">Social login<a class="headerlink" href="#social-login_1" title="Permanent link">Link</a></h2>
 <p>Allow users to login using their existing social accounts like twitter/google/github.</p>
 <p>Daptin can work with any oauth flow aware identity provider to allow new users to be registered (if you have disabled normal signup).</p>
 <p>Create a <a href="/extend/oauth_connection">OAuth Connection</a> and mark "Allow login" to enable APIs for OAuth flow.</p>
 <p>Examples</p>
-<p>!!! example"Google login configuration"
-    <img alt="Google oauth" src="/images/oauth/google.png" /></p>
-<p>!!! example"Dropbox login configuration"
-    <img alt="Google oauth" src="/images/oauth/dropbox.png" /></p>
-<p>!!! example"Github login configuration"
-    <img alt="Google oauth" src="/images/oauth/github.png" /></p>
-<p>!!! example"Linkedin login configuration"
-    <img alt="Google oauth" src="/images/oauth/linkedin.png" /></p>
-<p>!!! example"Encrypted values"
-    The secrets are stored after encryption so the value you see in above screenshots are encrypted values.</p>
+<div class="admonition example">
+<p class="admonition-title">Google login configuration</p>
+<p><img alt="Google oauth" src="/images/oauth/google.png" /></p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Dropbox login configuration</p>
+<p><img alt="Google oauth" src="/images/oauth/dropbox.png" /></p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Github login configuration</p>
+<p><img alt="Google oauth" src="/images/oauth/github.png" /></p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Linkedin login configuration</p>
+<p><img alt="Google oauth" src="/images/oauth/linkedin.png" /></p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Encrypted values</p>
+<p>The secrets are stored after encryption so the value you see in above screenshots are encrypted values.</p>
+</div>
 <h2 id="configuring-default-user-group">Configuring default user group<a class="headerlink" href="#configuring-default-user-group" title="Permanent link">Link</a></h2>
 <p>You can configure which User groups should newly registered users be added to after their signup.</p>
 <p>This can be configured in the table properties from the dashboard or by updating the entity configuration from the API</p>
 <div class="admonition note">
-<p class="admonition-title">Restart required</p>
-<p>Restart is required for default group settings to take effect</p>
+<p class="admonition-title">Resync required</p>
+<p>Resync action is required to be called for default group settings to take effect</p>
 </div>
-<h3 id="authentication-token">Authentication token<a class="headerlink" href="#authentication-token" title="Permanent link">Link</a></h3>
+<h2 id="authentication-token">Authentication token<a class="headerlink" href="#authentication-token" title="Permanent link">Link</a></h2>
 <p>The authentication token is a JWT token issued by daptin on sign in action. Users can create new actions to allow other means of generating JWT token. It is as simple as adding another outcome to an action.</p>
-<h4 id="server-side">Server side<a class="headerlink" href="#server-side" title="Permanent link">Link</a></h4>
+<h3 id="server-side">Server side<a class="headerlink" href="#server-side" title="Permanent link">Link</a></h3>
 <p>Daptin uses OAuth 2 based authentication strategy. HTTP calls are checked for <code>Authorization</code> header, and if present, validated as a JWT token. The JWT token should have been issued by daptin earlier and should not have expired. To see how to generate JWT token, checkout the <a href="/actions/signin">sing-in action</a>.</p>
 <p>The JWT token contains the issuer information (daptin) plus basic user profile (email). The JWT token has a one hour (configurable) expiry from the time of issue.</p>
 <p>If the token is absent or invalid, the user is considered as a guest. Guests also have certain permissions. Checkout the <a href="/auth/authorization">Authorization docs</a> for details.</p>
-<h4 id="client-side">Client side<a class="headerlink" href="#client-side" title="Permanent link">Link</a></h4>
+<h3 id="client-side">Client side<a class="headerlink" href="#client-side" title="Permanent link">Link</a></h3>
 <p>On the client side, for dashboard, the token is stored in local storage. The local storage is cleared on logout or if the server responds with a 401 Unauthorized status.</p>
                 
               
@@ -1280,6 +1035,41 @@ response = requests.post(&#39;http://localhost:6336/api/user&#39;, headers=heade
       
         
 <footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+        
+          <a href="../new-users/" title="New User" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+            </div>
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                New User
+              </div>
+            </div>
+          </a>
+        
+        
+          <a href="../signin/" title="Sign in API" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Sign in API
+              </div>
+            </div>
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
