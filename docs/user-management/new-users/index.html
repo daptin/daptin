@@ -294,6 +294,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#curl-example" class="md-nav__link">
+    Curl Example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sign-up-action-permissions" class="md-nav__link">
     Sign Up Action Permissions
   </a>
@@ -919,6 +926,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#curl-example" class="md-nav__link">
+    Curl Example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sign-up-action-permissions" class="md-nav__link">
     Sign Up Action Permissions
   </a>
@@ -944,7 +958,7 @@
                   <h1>Access control</h1>
                 
                 <h2 id="sign-up-action">Sign Up Action<a class="headerlink" href="#sign-up-action" title="Permanent link">Link</a></h2>
-<p><a href="/actions/actions">Sign up is an action</a> on user entity. Sign up takes four inputs:</p>
+<p>Sign up is an <a href="/actions/actions">action</a> on user entity. Sign up takes four inputs:</p>
 <ul>
 <li>Name</li>
 <li>Email</li>
@@ -961,6 +975,11 @@
 <li>Associate the user to the usergroup (refer permission)</li>
 </ul>
 <p>This means that every user has his own dedicated user group by default.</p>
+<h2 id="curl-example">Curl Example<a class="headerlink" href="#curl-example" title="Permanent link">Link</a></h2>
+<div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;http://localhost:6336/action/user_account/signup&#39;</span> -H <span class="s1">&#39;Content-Type: application/json;charset=utf-8&#39;</span>
+--data-raw <span class="s1">&#39;{&quot;attributes&quot;:{&quot;email&quot;:&quot;email@host.com&quot;,&quot;password&quot;:&quot;password&quot;,&quot;name&quot;:&quot;name&quot;,&quot;passwordConfirm&quot;:&quot;password&quot;}}&#39;</span>
+</code></pre></div>
+
 <h2 id="sign-up-action-permissions">Sign Up Action Permissions<a class="headerlink" href="#sign-up-action-permissions" title="Permanent link">Link</a></h2>
 <p>First you need to fetch the available actions</p>
 <p><code>curl -H "Authorization: Bearer &lt;token&gt;" 'http://localhost:6336/api/action' | python -m json.tool</code></p>

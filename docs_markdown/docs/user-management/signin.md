@@ -18,7 +18,7 @@ The main outcome of the Sign In action is the jwt token, which is to be used in 
 
 #### Sign in CURL example
 
-!!! example"POST call for sign in"
+!!! example "POST call for sign in"
 ```bash
 curl 'http://localhost:6336/action/user_account/signin' \
 -H 'Content-Type: application/json;charset=UTF-8' \

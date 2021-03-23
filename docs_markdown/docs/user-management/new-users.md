@@ -1,6 +1,6 @@
 ## Sign Up Action
 
-[Sign up is an action](/actions/actions) on user entity. Sign up takes four inputs:
+Sign up is an [action](/actions/actions) on user entity. Sign up takes four inputs:
 
 - Name
 - Email
@@ -17,6 +17,15 @@ When the user initiates a Sign up action, the following things happen
 - Associate the user to the usergroup (refer permission)
 
 This means that every user has his own dedicated user group by default.
+
+## Curl Example
+
+
+```bash
+curl 'http://localhost:6336/action/user_account/signup' -H 'Content-Type: application/json;charset=utf-8'
+--data-raw '{"attributes":{"email":"email@host.com","password":"password","name":"name","passwordConfirm":"password"}}'
+```
+
 
 ## Sign Up Action Permissions
 

@@ -970,12 +970,15 @@
 </ul>
 <p>The main outcome of the Sign In action is the jwt token, which is to be used in the <code>Authorization</code> header of following calls.</p>
 <h4 id="sign-in-curl-example">Sign in CURL example<a class="headerlink" href="#sign-in-curl-example" title="Permanent link">Link</a></h4>
-<p>!!! example"POST call for sign in"
+<div class="admonition example">
+<p class="admonition-title">POST call for sign in</p>
+</div>
 <div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;http://localhost:6336/action/user_account/signin&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Content-Type: application/json;charset=UTF-8&#39;</span> <span class="se">\</span>
 -H <span class="s1">&#39;Accept: application/json, text/plain, */*&#39;</span> <span class="se">\</span>
 --data-binary <span class="s1">&#39;{&quot;attributes&quot;:{&quot;email&quot;:&quot;&lt;Email&gt;&quot;,&quot;password&quot;:&quot;&lt;Password&gt;&quot;}}&#39;</span>
-</code></pre></div></p>
+</code></pre></div>
+
 <div class="highlight"><pre><span></span><code><span class="p">[</span>
   <span class="p">{</span>
     <span class="nt">&quot;ResponseType&quot;</span><span class="p">:</span> <span class="s2">&quot;client.store.set&quot;</span><span class="p">,</span>
