@@ -129,7 +129,9 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 
 }
 
-func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection, ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore, olricDb *olric.Olric, tableInfo TableInfo) *DbResource {
+func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
+	ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore,
+	olricDb *olric.Olric, tableInfo TableInfo) *DbResource {
 	//log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
 	return &DbResource{
 		model:              model,

@@ -874,8 +874,9 @@
                 <h1 id="data-exchanges">Data Exchanges<a class="headerlink" href="#data-exchanges" title="Permanent link">Link</a></h1>
 <p>Exchanges are internal hooks to external apis, to either push data and update an external service, or pull data and update itself from some external service.</p>
 <p>Example, use exchange to sync data creation call to Google Sheets. So on every row created using the POST API also creates a corresponding row in your google sheet.</p>
-<p>!!! example"Google drive exchange YAML"
-    <div class="highlight"><pre><span></span><code><span class="nt">Exchanges</span><span class="p">:</span>
+<div class="admonition example">
+<p class="admonition-title">Google drive exchange YAML</p>
+<div class="highlight"><pre><span></span><code><span class="nt">Exchanges</span><span class="p">:</span>
 <span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Task to excel sheet</span>
   <span class="nt">SourceAttributes</span><span class="p">:</span>
     <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">todo</span>
@@ -891,7 +892,42 @@
     <span class="nt">TargetColumn</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Scheduled at</span>
   <span class="nt">Options</span><span class="p">:</span>
     <span class="nt">hasHeader</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-</code></pre></div></p>
+</code></pre></div>
+
+</div>
+<div class="highlight"><pre><span></span><code><span class="nt">Exchanges</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Blog to excel sheet sync</span>
+  <span class="nt">SourceAttributes</span><span class="p">:</span>
+    <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">blog</span>
+  <span class="nt">SourceType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">self</span>
+  <span class="nt">TargetAttributes</span><span class="p">:</span>
+    <span class="nt">sheetUrl</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append</span>
+  <span class="nt">TargetType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gsheet-append</span>
+  <span class="nt">Attributes</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">SourceColumn</span><span class="p">:</span> <span class="s">&quot;$blog.title&quot;</span>
+    <span class="nt">TargetColumn</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Blog title</span>
+  <span class="p p-Indicator">-</span> <span class="nt">SourceColumn</span><span class="p">:</span> <span class="s">&quot;$blog.view_count&quot;</span>
+    <span class="nt">TargetColumn</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">View count</span>
+  <span class="nt">Options</span><span class="p">:</span>
+    <span class="nt">hasHeader</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="nt">Exchanges</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Blog to excel sheet sync</span>
+  <span class="nt">SourceAttributes</span><span class="p">:</span>
+    <span class="nt">Name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">blog</span>
+  <span class="nt">SourceType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">table</span>
+  <span class="nt">TargetAttributes</span><span class="p">:</span>
+    <span class="nt">sheetUrl</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://content-sheets.googleapis.com/v4/spreadsheets/1Ru-bDk3AjQotQj72k8SyxoOs84eXA1Y6sSPumBb3WSA/values/A1:append</span>
+  <span class="nt">TargetType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gsheet-append</span>
+  <span class="nt">Attributes</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">SourceColumn</span><span class="p">:</span> <span class="s">&quot;$blog.title&quot;</span>
+    <span class="nt">TargetColumn</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Blog title</span>
+  <span class="p p-Indicator">-</span> <span class="nt">SourceColumn</span><span class="p">:</span> <span class="s">&quot;$blog.view_count&quot;</span>
+    <span class="nt">TargetColumn</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">View count</span>
+  <span class="nt">Options</span><span class="p">:</span>
+    <span class="nt">hasHeader</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
                 
               
               

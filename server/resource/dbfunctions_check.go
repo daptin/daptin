@@ -247,6 +247,12 @@ func PrintRelations(relations []api2go.TableRelation) {
 			{
 				Text: "Object",
 			},
+			{
+				Text: "Subject Name",
+			},
+			{
+				Text: "Object Name",
+			},
 		},
 	}
 	table.Header = &header
@@ -264,7 +270,12 @@ func PrintRelations(relations []api2go.TableRelation) {
 			Text: relation.Relation,
 		}, &simpletable.Cell{
 			Text: relation.Object,
-		})
+		}, &simpletable.Cell{
+			Text: relation.SubjectName,
+		}, &simpletable.Cell{
+			Text: relation.ObjectName,
+		},
+		)
 
 		body.Cells = append(body.Cells, row)
 	}
