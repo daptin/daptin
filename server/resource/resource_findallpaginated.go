@@ -11,7 +11,6 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
-	"net/url"
 )
 
 func (dr *DbResource) GetTotalCount() uint64 {
@@ -64,7 +63,7 @@ type Group struct {
 }
 
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
-func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[string]interface{}, [][]map[string]interface{}, *PaginationData, error) {
+func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[string]interface{}, [][]map[string]interface{}, *PaginationData, bool, error) {
 	//log.Infof("Find all row by params: [%v]: %v", dr.model.GetName(), req.QueryParams)
 	var err error
 
@@ -185,10 +184,10 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if len(req.QueryParams["filter"]) > 0 && len(queries) == 0 {
 		filters = req.QueryParams["filter"]
 
-		for i, q := range filters {
-			unescaped, _ := url.QueryUnescape(q)
-			filters[i] = unescaped
-		}
+		//for i, q := range filters {
+		//	unescaped, _ := url.QueryUnescape(q)
+		//	filters[i] = unescaped
+		//}
 	}
 
 	//filters := []string{}
@@ -349,6 +348,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	//	}
 	//}
 
+	// for relation api calls with has_one or belongs_to relations
+	finalResponseIsSingleObject := false
+
 	for _, rel := range dr.model.GetRelations() {
 
 		if rel.GetSubject() == dr.model.GetName() {
@@ -384,10 +386,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				//log.Infof("Converted ids: %v", ids)
 				if err != nil {
 					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
-					return nil, nil, nil, err
+					return nil, nil, nil, false, err
 				}
 				switch rel.Relation {
 				case "has_one":
+					finalResponseIsSingleObject = false
 					if len(ids) < 1 {
 						continue
 					}
@@ -396,6 +399,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 					break
 
 				case "belongs_to":
+					finalResponseIsSingleObject = false
 					queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
 					countQueryBuilder = countQueryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
 					break
@@ -431,6 +435,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			switch rel.Relation {
 			case "has_one":
 
+				finalResponseIsSingleObject = true
 				subjectId := req.QueryParams[rel.GetSubject()+"_id"]
 				if len(subjectId) < 1 {
 					continue
@@ -443,6 +448,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 			case "belongs_to":
 
+				finalResponseIsSingleObject = true
 				queries, ok := req.QueryParams[rel.GetSubject()+"_id"]
 				//log.Infof("%d Values as RefIds for relation [%v]", len(filters), rel.String())
 				if !ok || len(queries) < 1 {
@@ -451,7 +457,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), []string{"id"}, "reference_id", queries)
 				if err != nil {
 					log.Errorf("Failed to convert [%v]refids to ids[%v]: %v", rel.GetSubject(), queries, err)
-					return nil, nil, nil, err
+					return nil, nil, nil, false, err
 				}
 
 				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".id": ids})
@@ -529,14 +535,14 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		queryArgs = append(queryArgs, sessionUser.UserId)
 
 		queryBuilder = queryBuilder.Where(fmt.Sprintf("("+
-			"((%s.permission & 2) = 2)"+ groupParameters+" ) or "+
+			"((%s.permission & 2) = 2)"+groupParameters+" ) or "+
 			"(%s.user_account_id = ? and (%s.permission & 256) = 256)",
 			tableModel.GetTableName(),
 			tableModel.GetTableName(), tableModel.GetTableName()),
 			queryArgs...)
 
 		countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("("+
-			"((%s.permission & 2) = 2)  " + groupParameters+" ) or "+
+			"((%s.permission & 2) = 2)  "+groupParameters+" ) or "+
 			"(%s.user_account_id = ? and (%s.permission & 256) = 256)",
 			tableModel.GetTableName(),
 			tableModel.GetTableName(), tableModel.GetTableName()),
@@ -546,7 +552,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	idsListQuery, args, err := queryBuilder.OrderBy(orders...).ToSql()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, false, err
 	}
 	log.Debugf("Id query: [%s]", idsListQuery)
 	log.Debugf("Id query args: %v", args)
@@ -554,13 +560,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if err != nil {
 		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
 		log.Errorf("Failed to prepare sql: %v", err)
-		return nil, nil, nil, err
+		return nil, nil, nil, false, err
 	}
 	idsRow, err := stmt.Queryx(args...)
 	if err != nil {
 		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
 		log.Errorf("Failed to prepare sql: %v", err)
-		return nil, nil, nil, err
+		return nil, nil, nil, false, err
 	}
 	ids := make([]int64, 0)
 
@@ -568,7 +574,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		row := make(map[string]interface{})
 		err = idsRow.MapScan(row)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, false, err
 		}
 		ids = append(ids, row["id"].(int64))
 	}
@@ -631,14 +637,14 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	if err != nil {
 		log.Infof("Error: %v", err)
-		return nil, nil, nil, err
+		return nil, nil, nil, false, err
 	}
 
 	stmt, err = dr.connection.Preparex(sql1)
 	if err != nil {
 		log.Infof("Findall select query sql: %v == %v", sql1, args)
 		log.Errorf("Failed to prepare sql: %v", err)
-		return nil, nil, nil, err
+		return nil, nil, nil, false, err
 	}
 	defer func() {
 		err = stmt.Close()
@@ -648,7 +654,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	if err != nil {
 		log.Infof("Error: %v", err)
-		return nil, nil, nil, err
+		return nil, nil, nil, false, err
 	}
 	defer func() {
 		err = rows.Close()
@@ -672,7 +678,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		TotalCount: total1,
 	}
 
-	return results, includes, paginationData, err
+	return results, includes, paginationData, finalResponseIsSingleObject, err
 
 }
 
@@ -755,7 +761,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	}
 	//log.Infof("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
 
-	results, includes, pagination, err := dr.PaginatedFindAllWithoutFilters(req)
+	results, includes, pagination, finalResponseIsSingleObject, err := dr.PaginatedFindAllWithoutFilters(req)
 
 	for _, bf := range dr.ms.AfterFindAll {
 		//log.Infof("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
@@ -821,7 +827,12 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	}
 	//log.Infof("Pagination :%v", pagination)
 
-	return uint(pagination.TotalCount), NewResponse(nil, result, 200, &api2go.Pagination{
+	var resultObj interface{}
+	resultObj = result
+	if finalResponseIsSingleObject {
+		resultObj = result[0]
+	}
+	return uint(pagination.TotalCount), NewResponse(nil, resultObj, 200, &api2go.Pagination{
 		Next:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageSize+pagination.PageNumber)},
 		Prev:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageNumber-pagination.PageSize)},
 		First:       map[string]string{},

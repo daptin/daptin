@@ -355,7 +355,7 @@ OutFields:
 				}
 			}
 
-			responseObjects, _, _, err = dbResource.PaginatedFindAllWithoutFilters(request)
+			responseObjects, _, _, _, err = dbResource.PaginatedFindAllWithoutFilters(request)
 			CheckErr(err, "Failed to get inside action")
 			if err != nil {
 				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to get "+model.GetName()+". "+err.Error(), "Failed"))
