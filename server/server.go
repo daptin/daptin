@@ -20,6 +20,7 @@ import (
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/stats"
+	"github.com/artpar/ydb"
 	"github.com/aviddiviner/gin-limit"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
@@ -560,6 +561,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	//TODO: make websockets functional at /live
 	websocketServer := websockets.NewServer("/live", &dtopicMap, cruds)
+	ydbInstance := ydb.InitYdb("/tmp")
+	yjsConnectionHandler := ydb.YdbWsConnectionHandler(ydbInstance)
+
+	defaultRouter.GET("/yjs/:documentName", func(ginContext *gin.Context) {
+		yjsConnectionHandler(ginContext.Writer, ginContext.Request)
+	})
 
 	go func() {
 		websocketServer.Listen(defaultRouter)
