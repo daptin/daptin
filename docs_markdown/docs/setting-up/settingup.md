@@ -8,7 +8,7 @@ You will be presented with the Sign-in screen. If you are on a freshly created i
 
 ### First user
 
-Use the dashboard to sign-up as the first user or call the sign-up API manually to create the first user.
+Use the dashboard to sign-up as the first user or call the sign-up API manually to create the first user. Users must create a password with at least 8 characters.
 
 
 API CALL
