@@ -141,6 +141,8 @@ func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 			log.Infof("Write file [%v] for upload", temproryFilePath)
 			CheckErr(err, "Failed to convert base64 to []bytes")
 
+			os.MkdirAll(tempDirectoryPath, 0600)
+
 			err = ioutil.WriteFile(temproryFilePath, fileBytes, 0666)
 			CheckErr(err, "Failed to write file bytes to temp file for rclone upload")
 

@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"encoding/base64"
 	"fmt"
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"
@@ -307,7 +309,42 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	dtopicMap := make(map[string]*olric.DTopic)
 
-	ms := BuildMiddlewareSet(&initConfig, &cruds, &dtopicMap)
+	yjs_temp_directory, err := configStore.GetConfigValueFor("yjs.temp.path", "backend")
+	if err != nil {
+		yjs_temp_directory = "/tmp"
+		configStore.SetConfigValueFor("yjs.temp.path", yjs_temp_directory, "backend")
+	}
+
+	documentProvider := ydb.NewDiskDocumentProvider(yjs_temp_directory, 10000, ydb.DocumentListener{
+		GetDocumentInitialContent: func(documentPath string) []byte {
+			log.Printf("Get initial content for document: %v", documentPath)
+			pathParts := strings.Split(documentPath, ".")
+			typeName := pathParts[0]
+			referenceId := pathParts[1]
+			columnName := pathParts[2]
+
+			object, _, _ := cruds[typeName].GetSingleRowByReferenceId(typeName, referenceId, map[string]bool{
+				columnName: true,
+			})
+
+			columnValueArray := object[columnName].([]map[string]interface{})
+
+			fileContentsJson := []byte{}
+			for _, file := range columnValueArray {
+				if file["type"] != "x-crdt/yjs" {
+					continue
+				}
+
+				fileContentsJson, _ = base64.StdEncoding.DecodeString(file["contents"].(string))
+
+			}
+
+			return fileContentsJson
+		},
+		SetDocumentInitialContent: nil,
+	})
+
+	ms := BuildMiddlewareSet(&initConfig, &cruds, documentProvider, &dtopicMap)
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
 	for key, _ := range cruds {
 		dtopicMap[key], err = cruds["world"].OlricDb.NewDTopic(key, 4, 1)
@@ -560,13 +597,102 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	//defaultRouter.POST("/site/content/store", CreateSubSiteSaveContentHandler(&initConfig, cruds, db))
 
 	//TODO: make websockets functional at /live
+
 	websocketServer := websockets.NewServer("/live", &dtopicMap, cruds)
-	ydbInstance := ydb.InitYdb("/tmp")
+
+	var ydbInstance = ydb.InitYdb(documentProvider)
+
 	yjsConnectionHandler := ydb.YdbWsConnectionHandler(ydbInstance)
 
 	defaultRouter.GET("/yjs/:documentName", func(ginContext *gin.Context) {
+
+		sessionUser := ginContext.Request.Context().Value("user")
+		if sessionUser == nil {
+			ginContext.AbortWithStatus(403)
+		}
+
 		yjsConnectionHandler(ginContext.Writer, ginContext.Request)
+
 	})
+
+	for typename, crud := range cruds {
+
+		for _, columnInfo := range crud.TableInfo().Columns {
+			if !BeginsWithCheck(columnInfo.ColumnType, "file.") {
+				continue
+			}
+
+			path := fmt.Sprintf("/live/%v/:referenceId/%v/yjs", typename, columnInfo.ColumnName)
+
+			defaultRouter.GET(path, func(typename string, columnInfo api2go.ColumnInfo) func(ginContext *gin.Context) {
+
+				dtopicMap[typename].AddListener(func(message olric.DTopicMessage) {
+					eventMessage := message.Message.(resource.EventMessage)
+
+					if eventMessage.EventType == "update" && eventMessage.ObjectType == typename {
+						referenceId := eventMessage.EventData["reference_id"].(string)
+
+						object, _, _ := cruds[typename].GetSingleRowByReferenceId(typename, referenceId, map[string]bool{
+							columnInfo.ColumnName: true,
+						})
+
+						columnValueArray := object[columnInfo.ColumnName].([]map[string]interface{})
+						fileContentsJson, _ := base64.StdEncoding.DecodeString(columnValueArray[0]["contents"].(string))
+						if typename == "document" {
+							var data map[string]interface{}
+							json.Unmarshal(fileContentsJson, &data)
+							realFileContentsBase64, ok := data["file"]
+							if ok {
+								realFileContents, _ := base64.StdEncoding.DecodeString(realFileContentsBase64.(string))
+								fileContentsJson = realFileContents
+							}
+						}
+
+						documentName := fmt.Sprintf("%v.%v.%v", typename, referenceId, columnInfo.ColumnName)
+						document := documentProvider.GetDocument(ydb.YjsRoomName(documentName))
+						if document != nil {
+							document.SetInitialContent(fileContentsJson)
+						}
+
+					}
+
+				})
+
+				return func(ginContext *gin.Context) {
+
+					sessionUser := ginContext.Request.Context().Value("user")
+					if sessionUser == nil {
+						ginContext.AbortWithStatus(403)
+						return
+					}
+					user := sessionUser.(*auth.SessionUser)
+
+					referenceId := ginContext.Param("referenceId")
+
+					object, _, err := cruds[typename].GetSingleRowByReferenceId(typename, referenceId, nil)
+					if err != nil {
+						ginContext.AbortWithStatus(404)
+						return
+					}
+
+					objectPermission := cruds[typename].GetRowPermission(object)
+
+					if !objectPermission.CanUpdate(user.UserReferenceId, user.Groups) {
+						ginContext.AbortWithStatus(401)
+						return
+					}
+
+					roomName := fmt.Sprintf("%v%v%v%v%v", typename, ".", referenceId, ".", columnInfo.ColumnName)
+					ginContext.Request = ginContext.Request.WithContext(context.WithValue(ginContext.Request.Context(), "roomname", roomName))
+
+					yjsConnectionHandler(ginContext.Writer, ginContext.Request)
+
+				}
+			}(typename, columnInfo))
+
+		}
+
+	}
 
 	go func() {
 		websocketServer.Listen(defaultRouter)

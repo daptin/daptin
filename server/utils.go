@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
+	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
@@ -145,7 +146,10 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 }
 
-func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds *map[string]*resource.DbResource, dtopicMap *map[string]*olric.DTopic) resource.MiddlewareSet {
+func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
+	cruds *map[string]*resource.DbResource,
+	documentProvider ydb.DocumentProvider,
+	dtopicMap *map[string]*olric.DTopic) resource.MiddlewareSet {
 
 	var ms resource.MiddlewareSet
 
@@ -158,6 +162,8 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds *map[string]*resour
 	createEventHandler := resource.NewCreateEventHandler(cruds, dtopicMap)
 	updateEventHandler := resource.NewUpdateEventHandler(cruds, dtopicMap)
 	deleteEventHandler := resource.NewDeleteEventHandler(cruds, dtopicMap)
+
+	yhsHandler := resource.NewYJSHandlerMiddleware(documentProvider)
 
 	ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
@@ -173,6 +179,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds *map[string]*resour
 		tablePermissionChecker,
 		objectPermissionChecker,
 		dataValidationMiddleware,
+		yhsHandler,
 		createEventHandler,
 	}
 	ms.AfterCreate = []resource.DatabaseRequestInterceptor{
@@ -197,6 +204,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig, cruds *map[string]*resour
 		tablePermissionChecker,
 		objectPermissionChecker,
 		dataValidationMiddleware,
+		yhsHandler,
 		updateEventHandler,
 	}
 	ms.AfterUpdate = []resource.DatabaseRequestInterceptor{
