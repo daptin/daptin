@@ -71,10 +71,15 @@ func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 		return nil, nil, []error{err}
 	}
 
-	tableData["world_schema_json"] = schemaJson
-	delete(tableData, "version")
+	updateObj := &api2go.Api2GoModel{
+		Data: tableData,
+	}
 
-	_, err = d.cruds["world"].UpdateWithoutFilters(tableData, *req)
+	updateObj.SetAttributes(map[string]interface{}{
+		"world_schema_json": schemaJson,
+	})
+
+	_, err = d.cruds["world"].UpdateWithoutFilters(updateObj, *req)
 	if err != nil {
 		return nil, nil, []error{err}
 	}

@@ -376,8 +376,13 @@ var SystemActions = []Action{
 		Name:             "rename_column",
 		Label:            "Rename column",
 		OnType:           "world",
-		InstanceOptional: false,
+		InstanceOptional: true,
 		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "table_name",
+				ColumnName: "table_name",
+				ColumnType: "label",
+			},
 			{
 				Name:       "column_name",
 				ColumnName: "column_name",
@@ -394,7 +399,7 @@ var SystemActions = []Action{
 				Type:   "world.column.rename",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"world_id":        "$.reference_id",
+					"world_name":      "~table_name",
 					"column_name":     "~column_name",
 					"new_column_name": "~new_column_name",
 				},

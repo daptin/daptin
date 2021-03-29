@@ -18,7 +18,7 @@ func (d *renameWorldColumnPerformer) Name() string {
 
 func (d *renameWorldColumnPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
-	worldId := inFields["world_id"].(string)
+	worldName := inFields["world_name"].(string)
 	columnToRename := inFields["column_name"].(string)
 	columnToNew := inFields["new_column_name"].(string)
 
@@ -36,15 +36,12 @@ func (d *renameWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 			Method: "GET",
 		},
 	}
-	table, err := d.cruds["world"].FindOne(worldId, req)
+	tableObj, err := d.cruds["world"].GetObjectByWhereClause("world", "table_name", worldName)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
-
-	res := table.Result()
-	tableData, ok := res.(*api2go.Api2GoModel)
-	if !ok {
-		return nil, nil, []error{errors.New("failed to find the table")}
+	tableData := &api2go.Api2GoModel{
+		Data: tableObj,
 	}
 
 	schemaJson := tableData.Data["world_schema_json"]
@@ -77,8 +74,9 @@ func (d *renameWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 		return nil, nil, []error{err}
 	}
 
-	tableData.Data["world_schema_json"] = schemaJson
-	delete(tableData.Data, "version")
+	tableData.SetAttributes(map[string]interface{}{
+		"world_schema_json": schemaJson,
+	})
 
 	_, err = d.cruds["world"].UpdateWithoutFilters(tableData, req)
 	if err != nil {
