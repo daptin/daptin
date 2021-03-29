@@ -179,7 +179,6 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		tablePermissionChecker,
 		objectPermissionChecker,
 		dataValidationMiddleware,
-		yhsHandler,
 		createEventHandler,
 	}
 	ms.AfterCreate = []resource.DatabaseRequestInterceptor{

@@ -63,6 +63,7 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 					fileColumnValueArray := fileColumnValue.([]interface{})
 
 					existingYjsDocument := false
+					// there should be only 2 files at max if the column
 					if len(fileColumnValueArray) > 1 {
 						existingYjsDocument = true
 					}
@@ -80,6 +81,10 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 						if document != nil {
 							var documentHistory []byte
 							documentHistory = document.GetInitialContentBytes()
+
+							if len(documentHistory) < 1 {
+								continue
+							}
 
 							if !existingYjsDocument {
 								fileColumnValueArray = append(fileColumnValueArray, map[string]interface{}{
