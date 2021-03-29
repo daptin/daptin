@@ -61,22 +61,44 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 						continue
 					}
 					fileColumnValueArray := fileColumnValue.([]interface{})
-					for _, fileInterface := range fileColumnValueArray {
- 						file := fileInterface.(map[string]interface{})
+
+					existingYjsDocument := false
+					if len(fileColumnValueArray) > 1 {
+						existingYjsDocument = true
+					}
+
+					for i, fileInterface := range fileColumnValueArray {
+
+						file := fileInterface.(map[string]interface{})
+
 						if file["type"] == "x-crdt/yjs" {
 							continue
 						}
+
 						var documentName = fmt.Sprintf("%v.%v.%v", dr.tableInfo.TableName, reference_id, column.ColumnName)
 						document := pc.documentProvider.GetDocument(ydb.YjsRoomName(documentName))
 						if document != nil {
 							var documentHistory []byte
 							documentHistory = document.GetInitialContentBytes()
-							fileColumnValueArray = append(fileColumnValueArray, map[string]interface{}{
-								"contents": "x-crdt/yjs," + base64.StdEncoding.EncodeToString(documentHistory),
-								"name":     file["name"].(string) + ".yjs",
-								"type":     "x-crdt/yjs",
-								"path":     file["path"],
-							})
+
+							if !existingYjsDocument {
+								fileColumnValueArray = append(fileColumnValueArray, map[string]interface{}{
+									"contents": "x-crdt/yjs," + base64.StdEncoding.EncodeToString(documentHistory),
+									"name":     file["name"].(string) + ".yjs",
+									"type":     "x-crdt/yjs",
+									"path":     file["path"],
+								})
+
+							} else {
+								// yes remember the trick ?
+								fileColumnValueArray[1-i] = map[string]interface{}{
+									"contents": "x-crdt/yjs," + base64.StdEncoding.EncodeToString(documentHistory),
+									"name":     file["name"].(string) + ".yjs",
+									"type":     "x-crdt/yjs",
+									"path":     file["path"],
+								}
+							}
+
 							obj[column.ColumnName] = fileColumnValueArray
 						}
 
