@@ -682,7 +682,11 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				Args:        updateInputFields,
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 
-					resourceId := params.Args["resource_id"].(string)
+					resourceId, ok := params.Args["resource_id"].(string)
+					if !ok {
+						log.Errorf("parameter reference_id is not a valid string")
+						return nil, errors.New("invalid parameter value for reference_id")
+					}
 
 					sessionUser := &auth.SessionUser{}
 					sessionUserInterface := params.Context.Value("user")
