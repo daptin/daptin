@@ -660,8 +660,9 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
 	}
 
+	graphqlRequest := fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (resource_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId)
 	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
-		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (resource_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId),
+		graphqlRequest,
 		authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to query graphql endpoint %s %s", "updateCertificate", err)
@@ -669,6 +670,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 	if strings.Index(graphqlResponse.String(), `"hostname": "hello"`) == -1 {
 		t.Errorf("[hostname=hello]Expected string not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
+		t.Errorf("graphql request was: %v", graphqlRequest)
 	}
 
 	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
