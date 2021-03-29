@@ -120,7 +120,9 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 				localFilePath := localPath + file["name"].(string)
 				err := ioutil.WriteFile(localFilePath, fileBytes, os.ModePerm)
 				CheckErr(err, "Failed to write data to local file store asset cache folder")
-				return errors.WithMessage(err, "Failed to write data to local file store ")
+				if err != nil {
+					return errors.WithMessage(err, "Failed to write data to local file store ")
+				}
 			}
 		}
 	}

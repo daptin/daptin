@@ -637,15 +637,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 						})
 
 						columnValueArray := object[columnInfo.ColumnName].([]map[string]interface{})
-						fileContentsJson, _ := base64.StdEncoding.DecodeString(columnValueArray[0]["contents"].(string))
-						if typename == "document" {
-							var data map[string]interface{}
-							json.Unmarshal(fileContentsJson, &data)
-							realFileContentsBase64, ok := data["file"]
-							if ok {
-								realFileContents, _ := base64.StdEncoding.DecodeString(realFileContentsBase64.(string))
-								fileContentsJson = realFileContents
+
+						fileContentsJson := []byte{}
+						for _, file := range columnValueArray {
+							if file["type"] != "x-crdt/yjs" {
+								continue
 							}
+							fileContentsJson, _ = base64.StdEncoding.DecodeString(file["contents"].(string))
 						}
 
 						documentName := fmt.Sprintf("%v.%v.%v", typename, referenceId, columnInfo.ColumnName)
