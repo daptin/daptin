@@ -167,7 +167,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			continue
 		}
 
-
 		tableType := graphql.NewObject(graphql.ObjectConfig{
 			Name: table.TableName,
 			Interfaces: []*graphql.Interface{
@@ -682,8 +681,13 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				Args:        updateInputFields,
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 
-					resourceId, ok := params.Args["resource_id"].(string)
-					if !ok {
+					resourceIdInf, ok := params.Args["resource_id"]
+					resourceId := ""
+					ok1 := false
+					if ok {
+						resourceId, ok1 = resourceIdInf.(string)
+					}
+					if !ok || !ok1 {
 						log.Errorf("parameter resource_id is not a valid string")
 						return nil, errors.New("invalid parameter value for resource_id")
 					}
