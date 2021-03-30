@@ -152,8 +152,14 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					for i := range files {
 						file := files[i].(map[string]interface{})
 
-						fileContentsBase64, ok := file["file"].(string)
-						if !ok {
+						i2, ok := file["file"]
+						fileContentsBase64 := ""
+						ok1 := false
+						if ok {
+
+							fileContentsBase64, ok1 = i2.(string)
+						}
+						if !ok || !ok1 {
 							fileContentsBase64, ok = file["contents"].(string)
 							if !ok {
 								continue
