@@ -670,7 +670,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				updateInputFields[k] = v
 			}
 
-			updateInputFields["resource_id"] = &graphql.ArgumentConfig{
+			updateInputFields["reference_id"] = &graphql.ArgumentConfig{
 				Type:        graphql.NewNonNull(graphql.String),
 				Description: "Resource id",
 			}
@@ -681,15 +681,15 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				Args:        updateInputFields,
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 
-					resourceIdInf, ok := params.Args["resource_id"]
-					resourceId := ""
+					referenceIdInf, ok := params.Args["reference_id"]
+					referenceId := ""
 					ok1 := false
 					if ok {
-						resourceId, ok1 = resourceIdInf.(string)
+						referenceId, ok1 = referenceIdInf.(string)
 					}
 					if !ok || !ok1 {
-						log.Errorf("parameter resource_id is not a valid string")
-						return nil, errors.New("invalid parameter value for resource_id")
+						log.Errorf("parameter reference_id is not a valid string")
+						return nil, errors.New("invalid parameter value for reference_id")
 					}
 
 					sessionUser := &auth.SessionUser{}
@@ -698,7 +698,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						sessionUser = sessionUserInterface.(*auth.SessionUser)
 					}
 
-					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceId(table.TableName, resourceId, nil)
+					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceId(table.TableName, referenceId, nil)
 					if err != nil {
 						return nil, err
 					}
@@ -751,7 +751,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				Type:        inputTypesMap[table.TableName],
 				Description: "Delete " + strings.ReplaceAll(table.TableName, "_", " "),
 				Args: graphql.FieldConfigArgument{
-					"resource_id": &graphql.ArgumentConfig{
+					"reference_id": &graphql.ArgumentConfig{
 						Type:        graphql.String,
 						Description: "Resource id",
 					},
@@ -768,7 +768,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						PlainRequest: pr,
 					}
 
-					_, err := resources[table.TableName].Delete(params.Args["resource_id"].(string), req)
+					_, err := resources[table.TableName].Delete(params.Args["reference_id"].(string), req)
 
 					if err != nil {
 						return nil, err

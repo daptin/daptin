@@ -664,7 +664,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	t.Logf("reference id from certificate: %v", certReferenceId)
 
 	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
-		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (resource_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
+		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (reference_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
 	if err != nil {
 		log.Printf("Success in  query graphql endpoint without auth token %s %s", "updateCertificate", err)
 		return errors.New("auth failure")
@@ -673,7 +673,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
 	}
 
-	graphqlRequest := fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (resource_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId)
+	graphqlRequest := fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (reference_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId)
 	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		graphqlRequest,
 		authTokenHeader)
@@ -687,7 +687,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
-		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (resource_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
+		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (reference_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
 	if err != nil {
 		log.Printf("Success in delete graphql endpoint without auth token %s %s", "deleteCertificate", err)
 		return errors.New("auth failure")
@@ -697,7 +697,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
-		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (resource_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId),
+		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (reference_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId),
 		authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to delete graphql endpoint %s %s", "deleteCertificate", err)
