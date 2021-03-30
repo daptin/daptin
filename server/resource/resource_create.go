@@ -275,8 +275,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			valString, ok := val.(string)
 			if ok {
 				val, err = dateparse.ParseLocal(valString)
-
-				CheckErr(err, fmt.Sprintf("Failed to parse string as date time in create [%v]", val))
+				CheckErr(err, fmt.Sprintf("Failed to parse string as date time in create [%v] = [%v]", col.ColumnName, val))
 			} else {
 				floatVal, ok := val.(float64)
 				if ok {

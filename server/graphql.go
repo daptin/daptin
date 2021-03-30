@@ -703,6 +703,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						return nil, err
 					}
 
+					log.Printf("Get row permission before update: %v", existingObj)
 					permission := resources[table.TableName].GetRowPermission(existingObj)
 
 					if !permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
@@ -738,6 +739,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					created, err := resources[table.TableName].Update(obj, req)
 
 					if err != nil {
+						log.Printf("Failed to update resource: %v", err)
 						return nil, err
 					}
 

@@ -26,7 +26,7 @@ require (
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
 	github.com/artpar/xlsx/v2 v2.0.5
-	github.com/artpar/ydb v0.1.25
+	github.com/artpar/ydb v0.1.26
 	//github.com/artpar/ydb v0.0.5
 	github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293

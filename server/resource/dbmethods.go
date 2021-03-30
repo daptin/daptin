@@ -1390,6 +1390,11 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				}
 
 				for _, file := range foreignFilesList {
+
+					if file["name"] == "x-crdt/yjs" {
+						continue
+					}
+
 					if file["path"] != nil && file["name"] != nil {
 						file["src"] = file["path"].(string) + string(os.PathSeparator) + file["name"].(string)
 					} else if file["name"] != nil {

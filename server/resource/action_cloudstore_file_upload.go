@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io/ioutil"
+	sync2 "sync"
 	"time"
 
 	//"os"
@@ -99,6 +100,9 @@ func EndsWith(str string, endsWith string) (string, bool) {
 	return prefix, i
 
 }
+
+var cleanupmux = sync2.Mutex{}
+var cleanuppath = make(map[string]bool)
 
 func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
@@ -218,7 +222,19 @@ func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 		InfoErr(err, "Failed to sync files for upload to cloud")
 
 		go func() {
+			cleanupmux.Lock()
+			_, ok := cleanuppath[tempDirectoryPath]
+			if ok {
+				cleanupmux.Unlock()
+				return
+			}
+			cleanuppath[tempDirectoryPath] = true
+			cleanupmux.Unlock()
+
 			time.Sleep(10 * time.Minute)
+			cleanupmux.Lock()
+			delete(cleanuppath, tempDirectoryPath)
+			cleanupmux.Unlock()
 			err = os.RemoveAll(tempDirectoryPath)
 			InfoErr(err, "Failed to remove temp directory after upload")
 		}()
