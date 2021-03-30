@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -10,6 +9,7 @@ import (
 	"fmt"
 	ImapServer "github.com/artpar/go-imap/server"
 	"github.com/buraksezer/olric"
+	olricConfig "github.com/buraksezer/olric/config"
 	server2 "github.com/fclairamb/ftpserver/server"
 
 	"github.com/jlaffaye/ftp"
@@ -169,6 +169,21 @@ func TestServer(t *testing.T) {
 	var imapServer *ImapServer.Server
 	var olricDb *olric.Olric
 
+	olricConfig1 := olricConfig.New("wan")
+	olricConfig1.LogLevel = "ERROR"
+	olricConfig1.LogVerbosity = 1
+	olricConfig1.LogOutput = os.Stderr
+
+	olricDb, err = olric.New(olricConfig1)
+	if err != nil {
+		fmt.Printf("Failed to create olric cache: %v", err)
+	}
+
+	go func() {
+		err = olricDb.Start()
+		resource.CheckErr(err, "failed to start cache server")
+	}()
+
 	configStore, _ = resource.NewConfigStore(db)
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
 	configStore.SetConfigValueFor("ftp.enable", "true", "backend")
@@ -179,7 +194,7 @@ func TestServer(t *testing.T) {
 	configStore.SetConfigValueFor("limit.max_connectioins", "5000", "backend")
 	configStore.SetConfigValueFor("limit.rate", "5000", "backend")
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, "./local")
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, "./local", olricDb)
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -189,9 +204,6 @@ func TestServer(t *testing.T) {
 		log.Printf("Trigger restart")
 
 		taskScheduler.StopTasks()
-		if olricDb != nil {
-			olricDb.Shutdown(context.Background())
-		}
 
 		mailDaemon.Shutdown()
 		ftpServer.Stop()
@@ -203,7 +215,7 @@ func TestServer(t *testing.T) {
 
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, "./local")
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, "./local", olricDb)
 		rhs.HostSwitch = &hostSwitch
 	})
 
@@ -691,7 +703,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"hostname": null`) == -1 {
-		t.Errorf("hostname=null] Expected string not found in response from graphql [%v] " +
+		t.Errorf("hostname=null] Expected string not found in response from graphql [%v] "+
 			"without auth token on certificate delete", graphqlResponse.String())
 	}
 

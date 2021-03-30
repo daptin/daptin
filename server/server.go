@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/buraksezer/olric"
-	olricConfig "github.com/buraksezer/olric/config"
 	"github.com/sadlil/go-trigger"
 	"io"
 	"os"
@@ -45,7 +44,7 @@ import (
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string) (HostSwitch, *guerrilla.Daemon,
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.Olric) (HostSwitch, *guerrilla.Daemon,
 	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server, *olric.Olric) {
 
 	fmt.Print(`                                                                           
@@ -103,32 +102,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	initConfig.Hostname = hostname
-
-	olricPeersList, err := configStore.GetConfigValueFor("cluster.peers", "backend")
-	if err != nil {
-		olricPeersList = ""
-		err = configStore.SetConfigValueFor("cluster.peers", "", "backend")
-		resource.CheckErr(err, "Failed to store hostname in _config")
-	}
-
-	olricConfig1 := olricConfig.New("wan")
-	olricConfig1.LogLevel = "ERROR"
-	olricConfig1.LogVerbosity = 1
-	olricConfig1.LogOutput = os.Stderr
-	if len(olricPeersList) > 0 {
-		peersList := strings.Split(olricPeersList, ",")
-		olricConfig1.Peers = peersList
-	}
-	//olricConfig1.Logger = nil
-	olricDb, err := olric.New(olricConfig1)
-	if err != nil {
-		log.Errorf("Failed to create olric cache: %v", err)
-	}
-
-	go func() {
-		err = olricDb.Start()
-		resource.CheckErr(err, "failed to start cache server")
-	}()
 
 	defaultRouter := gin.Default()
 	defaultRouter.Use(gzip.Gzip(gzip.DefaultCompression,

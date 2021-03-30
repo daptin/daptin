@@ -1,11 +1,11 @@
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
 	"github.com/buraksezer/olric"
+	olricConfig "github.com/buraksezer/olric/config"
 	"github.com/daptin/daptin/server/auth"
 	server2 "github.com/fclairamb/ftpserver/server"
 	"io/ioutil"
@@ -209,8 +209,24 @@ func main() {
 		}
 	}
 
+
+	olricConfig1 := olricConfig.New("wan")
+	olricConfig1.LogLevel = "ERROR"
+	olricConfig1.LogVerbosity = 1
+	olricConfig1.LogOutput = os.Stderr
+
+	olricDb, err = olric.New(olricConfig1)
+	if err != nil {
+		log.Errorf("Failed to create olric cache: %v", err)
+	}
+
+	go func() {
+		err = olricDb.Start()
+		resource.CheckErr(err, "failed to start cache server")
+	}()
+
 	hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-		ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath)
+		ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -237,25 +253,6 @@ func main() {
 
 		startTime := time.Now()
 
-		if olricDb != nil {
-			//cache, _ := olricDb.NewDMap("default-cache")
-			if resource.OlricCache != nil {
-				err = resource.OlricCache.Destroy()
-				if err != nil {
-					log.Errorf("Failed to destroy olric cache: %v", err)
-				}
-			}
-			_, err := olricDb.Stats()
-			log.Printf("Olric DB Stats before shutdown: %v", err)
-			if err == nil {
-				err = olricDb.Shutdown(context.Background())
-				if err != nil {
-					log.Errorf("Failed to shutdown olric: %v", err)
-				}
-
-			}
-
-		}
 
 		log.Printf("Close down services and db connection")
 		taskScheduler.StopTasks()
@@ -283,7 +280,7 @@ func main() {
 		}
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-			ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db1, *localStoragePath)
+			ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db1, *localStoragePath, olricDb)
 		rhs.HostSwitch = &hostSwitch
 		err = db.Close()
 		auth.CheckErr(err, "Failed to close old db connection")
