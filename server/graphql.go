@@ -703,6 +703,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						return nil, err
 					}
 
+					log.Printf("Get row permission before update: %v", existingObj)
 					permission := resources[table.TableName].GetRowPermission(existingObj)
 
 					if !permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {

@@ -68,11 +68,25 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 						existingYjsDocument = true
 					}
 
-					for i, fileInterface := range fileColumnValueArray {
+					stateFileExists := make(map[string]bool)
+
+					for _, fileInterface := range fileColumnValueArray {
 
 						file := fileInterface.(map[string]interface{})
 
 						if file["type"] == "x-crdt/yjs" {
+							stateFileExists[strings.Split(file["name"].(string), ".yjs")[0]] = true
+						}
+
+					}
+
+					for i, fileInterface := range fileColumnValueArray {
+
+						file := fileInterface.(map[string]interface{})
+						if file["type"] == "x-crdt/yjs" {
+							continue
+						}
+						if stateFileExists[file["name"].(string)] {
 							continue
 						}
 

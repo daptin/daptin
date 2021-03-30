@@ -661,6 +661,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	certReferenceId := strings.Split(strings.Split(graphqlResponse.String(), `"reference_id": "`)[1], "\"")[0]
+	t.Logf("reference id from certificate: %v", certReferenceId)
 
 	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (resource_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
