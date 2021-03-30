@@ -61,6 +61,7 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 						continue
 					}
 					fileColumnValueArray := fileColumnValue.([]interface{})
+					log.Printf("yjs middleware for column [%v][%v]", dr.tableInfo.TableName, column.ColumnName)
 
 					existingYjsDocument := false
 					// there should be only 2 files at max if the column
@@ -75,7 +76,12 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 						file := fileInterface.(map[string]interface{})
 
 						if file["type"] == "x-crdt/yjs" {
-							stateFileExists[strings.Split(file["name"].(string), ".yjs")[0]] = true
+							filename, ok := file["name"]
+							if !ok {
+								continue
+							}
+
+							stateFileExists[strings.Split(filename.(string), ".yjs")[0]] = true
 						}
 
 					}
@@ -86,7 +92,9 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 						if file["type"] == "x-crdt/yjs" {
 							continue
 						}
-						if stateFileExists[file["name"].(string)] {
+						filename := file["name"]
+						filenamestring := filename.(string)
+						if stateFileExists[filenamestring] {
 							continue
 						}
 
@@ -103,7 +111,7 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 							if !existingYjsDocument {
 								fileColumnValueArray = append(fileColumnValueArray, map[string]interface{}{
 									"contents": "x-crdt/yjs," + base64.StdEncoding.EncodeToString(documentHistory),
-									"name":     file["name"].(string) + ".yjs",
+									"name":     filenamestring + ".yjs",
 									"type":     "x-crdt/yjs",
 									"path":     file["path"],
 								})
@@ -112,7 +120,7 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 								// yes remember the trick ?
 								fileColumnValueArray[1-i] = map[string]interface{}{
 									"contents": "x-crdt/yjs," + base64.StdEncoding.EncodeToString(documentHistory),
-									"name":     file["name"].(string) + ".yjs",
+									"name":     filenamestring + ".yjs",
 									"type":     "x-crdt/yjs",
 									"path":     file["path"],
 								}

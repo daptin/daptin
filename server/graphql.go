@@ -739,6 +739,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					created, err := resources[table.TableName].Update(obj, req)
 
 					if err != nil {
+						log.Printf("Failed to update resource: %v", err)
 						return nil, err
 					}
 
