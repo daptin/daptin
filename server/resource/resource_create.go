@@ -594,7 +594,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		data.Data["__type"] = dr.model.GetName()
 		responseData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{data.Data})
 		if err != nil {
-			log.Warnf("Error from before create middleware [%v]: %v", bf.String(), err)
+			log.Warnf("Error from BeforeCreate[%v]: %v", bf.String(), err)
 			return nil, err
 		}
 		if responseData == nil {
@@ -611,7 +611,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		//log.Infof("Invoke AfterCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
 		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource})
 		if err != nil {
-			log.Errorf("Error from after create middleware: %v", err)
+			log.Errorf("Error from AfterCreate[%v] middleware: %v", bf.String(), err)
 		}
 		if len(results) < 1 {
 			createdResource = nil

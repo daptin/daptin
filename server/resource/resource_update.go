@@ -820,7 +820,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			data.Data,
 		})
 		if err != nil {
-			log.Errorf("error set attributes from BeforeUpdate middleware: %v", err)
+			log.Errorf("Error From BeforeUpdate middleware: %v", err)
 			return nil, err
 		}
 		if len(finalData) == 0 {

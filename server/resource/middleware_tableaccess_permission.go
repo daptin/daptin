@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"fmt"
 	"github.com/artpar/api2go"
 	//log "github.com/sirupsen/logrus"
 	//"github.com/Masterminds/squirrel"
@@ -16,6 +17,8 @@ type TableAccessPermissionChecker struct {
 func (pc *TableAccessPermissionChecker) String() string {
 	return "TableAccessPermissionChecker"
 }
+
+var errorMsgFormat = "[%v] [%v] access not allowed for action [%v] to user [%v]"
 
 // Intercept after check implements if the data should be returned after the data change is complete
 func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
@@ -56,7 +59,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 		return results, nil
 	}
 
-	return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
+	return nil, api2go.NewHTTPError(errors.New(fmt.Sprintf(errorMsgFormat, dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId)), pc.String(), 403)
 }
 
 var (
@@ -66,7 +69,6 @@ var (
 
 // Intercept before implemetation for entity level authentication check
 func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
-
 
 	//var err error
 	//log.Infof("context: %v", context.GetAll(req.PlainRequest))
@@ -93,25 +95,25 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 	//log.Printf("[TableAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), tableOwnership)
 	if req.PlainRequest.Method == "GET" {
 		if !tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
-			return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
+			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 		}
 	} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" {
 		if !tableOwnership.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups) {
-			return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
+			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 
 		}
 	} else if req.PlainRequest.Method == "POST" {
 		if !tableOwnership.CanCreate(sessionUser.UserReferenceId, sessionUser.Groups) {
-			return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
+			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 
 		}
 	} else if req.PlainRequest.Method == "DELETE" {
 		if !tableOwnership.CanDelete(sessionUser.UserReferenceId, sessionUser.Groups) {
-			return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
+			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 
 		}
 	} else {
-		return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
+		return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 	}
 
 	return results, nil

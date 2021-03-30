@@ -195,7 +195,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 	}
 
 	if len(results) != 0 && len(returnMap) == 0 {
-		return returnMap, api2go.NewHTTPError(fmt.Errorf("%v", "forbidden"), pc.String(), 403)
+		return returnMap, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "object", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 	}
 
 	return returnMap, nil
