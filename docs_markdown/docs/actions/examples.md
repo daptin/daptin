@@ -4,7 +4,7 @@ Actions are entity dependent APIs which you want to expose which may have an out
 
 Use action to expose endpoints for your forms and processes. Here is an example of creating a "/action/project/new_task" API:
 
-!!! example"New task action YAML"
+!!! example "New task action YAML"
     ```yaml
     Actions:
     - Name: new_task
@@ -34,7 +34,7 @@ Use action to expose endpoints for your forms and processes. Here is an example 
     ```
 
 
-!!! example"New task action JSON"
+!!! example "New task action JSON"
     ```json
     {
       "Actions": [

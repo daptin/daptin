@@ -223,7 +223,7 @@ If we skip the ```~```, like ```"confirmed": "0"``` Then the literal value is us
 				},
 			},
 
-Daptin includes the [otto js engine](https://github.com/robertkrimen/otto). An exclamation mark tell daptin to evaluate the rest of the string as Javascript.
+Daptin embeds the [otto js engine](https://github.com/robertkrimen/otto). An exclamation mark sets to evaluate the rest of the string as Javascript.
 
 
 ```'Home group for ' + user.name``` becomes "Home group for parth"

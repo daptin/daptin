@@ -609,7 +609,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 							columnInfo.ColumnName: true,
 						})
 
-						columnValueArray := object[columnInfo.ColumnName].([]map[string]interface{})
+						colValue := object[columnInfo.ColumnName]
+						if colValue == nil {
+							return
+						}
+						columnValueArray := colValue.([]map[string]interface{})
 
 						fileContentsJson := []byte{}
 						for _, file := range columnValueArray {

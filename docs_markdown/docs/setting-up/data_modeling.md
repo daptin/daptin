@@ -5,10 +5,38 @@ Tables are the basic data structure. Tables have columns. Each column has a part
 
 ## Automatic creation
 
-Import CSV or XLS file and you can let Daptin create the entities for you based on intelligent data pre-processor.
+Upload files of following types to import data in table, or create new table
 
-## Manual creation
-## YAML/JSON schema
+- JSON
+!!! example ""
+    ```json  
+      {
+        "typeName": [ { dataRow } ... ]  ,
+        "typeName2": [ { dataRow } ... ]  ,
+      }
+    ```
+- CSV
+!!! example ""
+    ```csv
+        col1,col2,col3
+        val1,val2,val3
+        val4,val5,val6
+    ```
+- XLS
+
+
+## Declarative creation
+
+Daptin is compatible with config files of these formats:
+
+- JSON
+- YAML
+- HCL
+- TOML
+
+You can choose to maintain the schema in any of the above.
+
+### name, columns and column attributes
 
 If you are looking for a more reproducible way, design your entities and create JSON or YAML files. These files can be used again to create an exact same replica.
 
@@ -52,7 +80,7 @@ Lets imagine we were creating a todo application and wanted to keep a track of t
     ```
 
 
-## Data validations
+## Column data validations
 
 Along with the fields mentioned above, we might want certain validations and conformations whenever we store a new todo
 
@@ -60,7 +88,7 @@ Along with the fields mentioned above, we might want certain validations and con
     - title cannot be empty
     - order has to be numeric
 
-Once we have come up with the above picture in mind, we can use one of the following ways to tell daptin about this.
+Once we have come up with the above picture in mind, we can use one of the following ways define this.
 
 Daptin uses the excellent [go-playground/validator](https://github.com/go-playground/validator) library to provide extensive validations when creating and updating data.
 
@@ -244,7 +272,7 @@ Relations are constraints among tables and help you keep clean and consistent da
 
 Checkout the [relation apis](/apis/relation) exposed by daptin.
 
-!!! example"YAML example"
+!!!example "YAML example"
     ```yaml
     Relations:
     - Subject: todo
@@ -252,7 +280,7 @@ Checkout the [relation apis](/apis/relation) exposed by daptin.
       Object: project
     ```
 
-!!! example"JSON example"
+!!!example "JSON example"
     ```json
     {
       "Relations": [
@@ -283,7 +311,7 @@ Lets design a "project" entity:
     IsIndexed: true
 ```
 
-A very simple table with just a name column. Now we can tell daptin about the relation between todos and projects
+A very simple table with just a name column. Now we can define the relation between `todo`s and `project`s
 
 ```yaml
 Relations:

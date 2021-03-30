@@ -771,22 +771,33 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 	//log.Infof("Get single row by id: [%v][%v]", typeName, referenceId)
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
 	if err != nil {
-		log.Errorf("Failed to create select query by ref id: %v", referenceId)
+		log.Errorf("failed to create select query by ref id: %v", referenceId)
 		return nil, nil, err
 	}
 
 	rows, err := dr.db.Queryx(s, q...)
+	if err != nil {
+		log.Errorf("Failed to query by ref id: %v", referenceId)
+		return nil, nil, err
+	}
+
 	defer func() {
+		if rows == nil {
+			log.Printf("rows is already closed in get single row by reference id")
+			return
+		}
 		err = rows.Close()
 		CheckErr(err, "Failed to close rows after db query [%v]", s)
 	}()
+
 	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), includedRelations)
 	if err != nil {
+		log.Printf("failed to ResultToArrayOfMap: %v", err)
 		return nil, nil, err
 	}
 
 	if len(resultRows) < 1 {
-		return nil, nil, errors.New("No such entity")
+		return nil, nil, errors.New("no such entity")
 	}
 
 	m := resultRows[0]
@@ -1279,6 +1290,9 @@ func RowsToMap(rows *sqlx.Rows, typeName string) ([]map[string]interface{}, erro
 func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]api2go.ColumnInfo, includedRelationMap map[string]bool) ([]map[string]interface{}, [][]map[string]interface{}, error) {
 
 	//finalArray := make([]map[string]interface{}, 0)
+	if includedRelationMap == nil {
+		includedRelationMap = make(map[string]bool)
+	}
 
 	responseArray, err := RowsToMap(rows, dr.model.GetName())
 	if err != nil {
@@ -1389,9 +1403,11 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					continue
 				}
 
+				returnFileList := make([]map[string]interface{}, 0)
+
 				for _, file := range foreignFilesList {
 
-					if file["name"] == "x-crdt/yjs" {
+					if file["type"] == "x-crdt/yjs" && !includedRelationMap["x-crdt/yjs"] {
 						continue
 					}
 
@@ -1402,13 +1418,14 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					} else {
 						log.Errorf("File entry is missing name and path [%v][%v]", dr.TableInfo().TableName, key)
 					}
+					returnFileList = append(returnFileList, file)
 				}
 
-				row[key] = foreignFilesList
+				row[key] = returnFileList
 				//log.Infof("set row[%v]  == %v", key, foreignFilesList)
-				if includedRelationMap != nil && (includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"]) {
+				if includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"] {
 
-					resolvedFilesList, err := dr.GetFileFromLocalCloudStore(dr.TableInfo().TableName, columnInfo.ColumnName, foreignFilesList)
+					resolvedFilesList, err := dr.GetFileFromLocalCloudStore(dr.TableInfo().TableName, columnInfo.ColumnName, returnFileList)
 					CheckErr(err, "Failed to resolve file from cloud store")
 					row[key] = resolvedFilesList
 					for _, file := range resolvedFilesList {

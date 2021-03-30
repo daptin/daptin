@@ -2,54 +2,58 @@ site_name: Daptin
 site_favicon: images/favicon.png
 site_url: https://daptin.github.io/daptin/
 pages:
-- Overview: index.md
-- Download and Deploy: setting-up/installation.md
-- Accessing the web dashboard: setting-up/settingup.md
-- User management:
-    - New User: user-management/new-users.md
-    - Access Permissions: user-management/access.md
-    - Sign in API: user-management/signin.md
-- Data model: setting-up/data_modeling.md
-- HTTP JSON API:
-  - CRUD API: apis/crud.md
-  - Action API: apis/crud.md
-  - Relation API: apis/crud.md
-  - Aggregation API: apis/crud.md
-  - State machine API: apis/crud.md
-  - Metadata API: apis/crud.md
-- Actions:
-  - What are actions: actions/actions.md
-  - Actions list: actions/default_actions.md
-  - Action OutComes: actions/outcomes.md
-  - Examples: actions/examples.md
-- GraphQL: features/enable-graphql.md
-- Data Auditing: features/enable-data-auditing.md
-- Multilingual Table: features/enable-multilingual-table.md
-- SMTP/IMPS server: features/enable-smtp-imap.md
-- State tracking: state/machines.md
-- OAuth:
-  - OAuth Connections: extend/oauth_connection.md
-  - OAuth Tokens: extend/oauth_token.md
-- 3rd party API Integrations: integrations/overview.md
-- Cloud store:
-  - Cloud store: cloudstore/index.md
-  - Available cloud stores: cloudstore/cloudstore.md
-  - Asset columns: cloudstore/cloudstore.md
-  - Asset columns: cloudstore/cloudstore.md
-  - Sites: cloudstore/sites.md
-- Cloud store backed asset columns: cloudstore/assetcolumns.md
-- Websockets: websockets/websocket.md
-- Sub-sites:
-  - Creating a subsite: subsite/subsite.md
-  - Live editing a subsite: subsite/grapes.md
-  - Basic Authentication: subsite/basic_auth.md
-- Internal Reference Documents:
-  - Data store format: data-modeling/data_storage.md
-  - Data exchange and sync: extend/data_exchange.md
-  - Data streams: streams/streams.md
-- Global Configuration: setting-up/configurations.md
+- Introduction:
+  - About: index.md
+  - FAQs: faq.md
+  - How to use:
+    - Download and Deploy: setting-up/installation.md
+    - Accessing the web dashboard: setting-up/settingup.md
+- Documentation:
+  - User management:
+      - New User: user-management/new-users.md
+      - Access Permissions: user-management/access.md
+      - Sign in API: user-management/signin.md
+  - Data model: setting-up/data_modeling.md
+  - HTTP JSON API:
+    - CRUD API: apis/crud.md
+    - Action API: apis/crud.md
+    - Relation API: apis/crud.md
+    - Aggregation API: apis/crud.md
+    - State machine API: apis/crud.md
+    - Metadata API: apis/crud.md
+  - Actions:
+    - What are actions: actions/actions.md
+    - Actions list: actions/default_actions.md
+    - Action OutComes: actions/outcomes.md
+    - Examples: actions/examples.md
+  - GraphQL: features/enable-graphql.md
+  - Data Auditing: features/enable-data-auditing.md
+  - Multilingual Table: features/enable-multilingual-table.md
+  - SMTP/IMPS server: features/enable-smtp-imap.md
+  - State tracking: state/machines.md
+  - OAuth:
+    - OAuth Connections: extend/oauth_connection.md
+    - OAuth Tokens: extend/oauth_token.md
+  - 3rd party API Integrations: integrations/overview.md
+  - Cloud store:
+    - Cloud store: cloudstore/index.md
+    - Available cloud stores: cloudstore/cloudstore.md
+    - Asset columns: cloudstore/cloudstore.md
+    - Asset columns: cloudstore/cloudstore.md
+    - Sites: cloudstore/sites.md
+  - Cloud store backed asset columns: cloudstore/assetcolumns.md
+  - Websockets: websockets/websocket.md
+  - Sub-sites:
+    - Creating a subsite: subsite/subsite.md
+    - Live editing a subsite: subsite/grapes.md
+    - Basic Authentication: subsite/basic_auth.md
+  - Internal Documents:
+    - Data store format: data-modeling/data_storage.md
+    - Data exchange and sync: extend/data_exchange.md
+    - Data streams: streams/streams.md
+  - Global Configuration: setting-up/configurations.md
 theme:
-  name: material
+  name: cluster
   logo: images/theme-logo.png
   favicon: images/theme-favicon.png
 extra_css:
@@ -58,8 +62,6 @@ google_analytics: ['UA-114227400-1', 'docs.dapt.in']
 extra:
   disqus: daptin-documentation
 markdown_extensions:
-- toc:
-    permalink: Link
 - admonition
 - codehilite
 - pymdownx.superfences

@@ -5,7 +5,7 @@ You can host multiple sites using daptin. A sub site is exposing a cloud storage
 
 Expose folders on cloud storage services as websites using your daptin instance.
 
-!!! example"New subsite"
+!!! example "New subsite"
     - Select a cloud storage
     - Choose a domain/sub-domain
     - Choose a sub-path
@@ -16,7 +16,7 @@ Restart is required to reflect changes.
 ## Creating a new sub-site
 
 
-!!! example"Exposing a folder as a subsite"
+!!! example "Exposing a folder as a subsite"
     - Goto dashboard https://dashboard.domain.com/
     - Click "Sub sites"
     - Click the green "+" icon
