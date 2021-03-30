@@ -639,7 +639,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	}
 
 	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
-		`{"query":"mutation {\n  addCertificate (hostname: \"test\", issuer:\"localhost\", private_key_pem:\"\") {\n    created_at\n    reference_id\n  }\n  \n}","variables":{}}`)
+		`{"query":"mutation {\n  addCertificate (hostname: \"test\", generated_at: \"02 Jan 2006 15:04:05 -0700\", issuer:\"localhost\", private_key_pem:\"\") {\n    created_at\n    reference_id\n  }\n  \n}","variables":{}}`)
 	if err != nil {
 		log.Printf("Success in add graphql endpoint without token %s %s", "addCertificate", err)
 		log.Printf("body %v", graphqlResponse.String())
