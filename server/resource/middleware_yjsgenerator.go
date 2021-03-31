@@ -50,8 +50,11 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 		for _, obj := range objects {
 			reference_id := ""
 			if requestMethod != "post" {
-				reference_id = obj["reference_id"].(string)
-
+				refId := obj["reference_id"]
+				if refId == nil {
+					continue
+				}
+				reference_id = refId.(string)
 			}
 
 			for _, column := range dr.TableInfo().Columns {

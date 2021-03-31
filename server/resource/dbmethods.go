@@ -4,21 +4,22 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/Masterminds/squirrel"
-	"github.com/araddon/dateparse"
-	"github.com/artpar/api2go"
-	"github.com/artpar/go.uuid"
-	"github.com/buraksezer/olric"
-	"github.com/daptin/daptin/server/auth"
-	"github.com/daptin/daptin/server/columntypes"
-	"github.com/daptin/daptin/server/statementbuilder"
-	"github.com/jmoiron/sqlx"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Masterminds/squirrel"
+	"github.com/araddon/dateparse"
+	"github.com/artpar/api2go"
+	uuid "github.com/artpar/go.uuid"
+	"github.com/buraksezer/olric"
+	"github.com/daptin/daptin/server/auth"
+	fieldtypes "github.com/daptin/daptin/server/columntypes"
+	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/jmoiron/sqlx"
+	log "github.com/sirupsen/logrus"
 )
 
 const DATE_LAYOUT = "2006-01-02 15:04:05"
@@ -420,7 +421,7 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 // Returns the user account row of a user by looking up on email
 func (d *DbResource) GetUserAccountRowByEmail(email string) (map[string]interface{}, error) {
 
-	user, _, err := d.Cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", squirrel.Eq{"email": email})
+	user, _, err := d.Cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", nil, squirrel.Eq{"email": email})
 
 	if len(user) > 0 {
 
@@ -434,7 +435,7 @@ func (d *DbResource) GetUserAccountRowByEmail(email string) (map[string]interfac
 func (d *DbResource) GetUserPassword(email string) (string, error) {
 	passwordHash := ""
 
-	existingUsers, _, err := d.Cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", squirrel.Eq{"email": email})
+	existingUsers, _, err := d.Cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", nil, squirrel.Eq{"email": email})
 	if err != nil {
 		return passwordHash, err
 	}
@@ -673,7 +674,8 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 	return perm
 }
 
-func (dr *DbResource) GetRowsByWhereClause(typeName string, where ...squirrel.Eq) ([]map[string]interface{}, [][]map[string]interface{}, error) {
+func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations map[string]bool, where ...squirrel.Eq, ) (
+	[]map[string]interface{}, [][]map[string]interface{}, error) {
 
 	stmt := statementbuilder.Squirrel.Select("*").From(typeName)
 
@@ -683,14 +685,14 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, where ...squirrel.Eq
 
 	s, q, err := stmt.ToSql()
 
-	//log.Infof("Select query: %v == [%v]", s, q)
+	log.Infof("GetRowsByWhereClause: %v == [%v]", s)
 	rows, err := dr.db.Queryx(s, q...)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer rows.Close()
 
-	m1, include, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), map[string]bool{"*": true})
+	m1, include, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), includedRelations)
 
 	return m1, include, err
 
@@ -1025,7 +1027,7 @@ func (dr *DbResource) GetAllObjectsWithWhere(typeName string, where ...squirrel.
 	}
 	defer row.Close()
 
-	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
+	m, _, err := dr.Cruds[typeName].ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 
 	return m, err
 }
@@ -1251,8 +1253,24 @@ func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectC
 		return nil, err
 	}
 
-	rows := dr.db.QueryRowx(s, q...)
-	return rows.SliceScan()
+	rows, err := dr.db.Queryx(s, q...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	returnValues := make([]interface{}, 0)
+
+	for rows.Next() {
+		var val interface{}
+		err = rows.Scan(&val)
+		if err != nil {
+			break
+		}
+		returnValues = append(returnValues, val)
+	}
+
+	return returnValues, nil
 }
 
 // convert the result of db.QueryRowx => rows to array of data
@@ -1343,6 +1361,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 			//log.Infof("Resolve foreign key from [%v][%v][%v]", columnInfo.ForeignKeyData.DataSource, namespace, val)
 			switch columnInfo.ForeignKeyData.DataSource {
 			case "self":
+
 				referenceIdInt, ok := val.(int64)
 				if !ok {
 					stringIntId := val.(string)
@@ -1437,6 +1456,145 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 			default:
 				log.Errorf("Undefined data source: %v", columnInfo.ForeignKeyData.DataSource)
 				continue
+			}
+
+		}
+
+		for _, relation := range dr.tableInfo.Relations {
+
+			if !(includedRelationMap[relation.GetObjectName()] || includedRelationMap[relation.GetSubjectName()]) {
+				continue
+			}
+
+
+			if relation.Subject == dr.tableInfo.TableName {
+				// fetch objects
+
+				switch relation.Relation {
+				case "has_one":
+					// nothing to do here
+					break
+				case "belongs_to":
+					// nothing to do here
+					break
+				case "has_many":
+
+					fallthrough
+				case "has_many_and_belongs_to_many":
+					query, args, err := statementbuilder.Squirrel.
+						Select(relation.GetObjectName() + ".id").
+						From(relation.Subject).Join(relation.GetJoinString()).
+						Where(squirrel.Eq{
+							relation.Subject + ".reference_id": row["reference_id"],
+						}).Limit(50).ToSql()
+					if err != nil {
+						log.Printf("Failed to build query 1474: %v", err)
+					}
+
+					rows, err := dr.connection.Queryx(query, args...)
+					if err != nil {
+						log.Printf("Failed to query 1482: %v", err)
+					}
+
+					ids := make([]int64, 0)
+
+					for rows.Next() {
+						includeRow := map[string]interface{}{}
+						err = rows.StructScan(&includeRow)
+						if err != nil {
+							log.Printf("Failed to scan include row 1489: %v", err)
+							continue
+						}
+						ids = append(ids, includeRow["id"].(int64))
+					}
+
+					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetObject(), squirrel.Eq{
+						"id": ids,
+					})
+					localInclude = append(localInclude, includes1...)
+
+					break
+				}
+
+			} else {
+				// fetch subjects
+
+				switch relation.Relation {
+				case "has_one":
+
+					fallthrough
+				case "belongs_to":
+
+					query, args, err := statementbuilder.Squirrel.
+						Select(relation.GetSubjectName() + ".id").
+						From(relation.GetObject()).Join(relation.GetReverseJoinString()).
+						Where(squirrel.Eq{
+							relation.Object + ".reference_id": row["reference_id"],
+						}).Limit(50).ToSql()
+					if err != nil {
+						log.Printf("Failed to build query 1533: %v", err)
+					}
+
+					includedSubject := dr.connection.QueryRowx(query, args...)
+					if includedSubject.Err() != nil {
+						log.Printf("Failed to query 1538: %v", includedSubject.Err())
+						continue
+					}
+					includedSubjectId := int64(0)
+					err = includedSubject.Scan(&includedSubjectId)
+					if includedSubjectId < 1 {
+						continue
+					}
+
+					localSubjectInclude, err := dr.Cruds[relation.GetSubject()].GetAllObjectsWithWhere(relation.GetSubject(), squirrel.Eq{
+						"id": includedSubjectId,
+					})
+
+					localInclude = append(localInclude, localSubjectInclude[0])
+
+
+
+					break
+				case "has_many":
+
+					fallthrough
+				case "has_many_and_belongs_to_many":
+					query, args, err := statementbuilder.Squirrel.
+						Select(relation.GetSubjectName() + ".*").
+						From(relation.GetObject()).Join(relation.GetReverseJoinString()).
+						Where(squirrel.Eq{
+							relation.Subject + ".reference_id": row["reference_id"],
+						}).Limit(50).ToSql()
+					if err != nil {
+						log.Printf("Failed to build query 1526: %v", err)
+					}
+
+					rows, err := dr.connection.Queryx(query, args...)
+					if err != nil {
+						log.Printf("Failed to query 1531: %v", err)
+					}
+
+					ids := make([]int64, 0)
+
+					for rows.Next() {
+						includeRow := map[string]interface{}{}
+						err = rows.StructScan(&includeRow)
+						if err != nil {
+							log.Printf("Failed to scan include row 1489: %v", err)
+							continue
+						}
+						ids = append(ids, includeRow["id"].(int64))
+					}
+
+					includes, err := dr.Cruds[relation.GetSubject()].GetAllObjectsWithWhere(relation.GetSubject(), squirrel.Eq{
+						"id": ids,
+					})
+					localInclude = append(localInclude, includes...)
+
+
+					break
+				}
+
 			}
 
 		}

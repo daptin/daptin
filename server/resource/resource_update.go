@@ -742,7 +742,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				if referencedRelation.Relation == "has_many" || referencedRelation.Relation == "has_many_and_belongs_to_many" {
 
 					joinReference, _, err := dr.Cruds[referencedRelation.GetJoinTableName()].GetRowsByWhereClause(referencedRelation.GetJoinTableName(),
-						squirrel.Eq{
+						nil, squirrel.Eq{
 							relationName:     otherObjectId,
 							hostRelationName: idInt,
 						},
@@ -823,7 +823,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 			Header:       req.Header,
 			Pagination:   req.Pagination,
 		}, []map[string]interface{}{
-			data.Data,
+			data.GetAllAsAttributes(),
 		})
 		if err != nil {
 			log.Errorf("Error From BeforeUpdate middleware: %v", err)

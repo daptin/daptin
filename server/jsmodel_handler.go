@@ -125,7 +125,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		streamMap[stream.StreamName] = stream
 	}
 
-	worlds, _, err := cruds["world"].GetRowsByWhereClause("world")
+	worlds, _, err := cruds["world"].GetRowsByWhereClause("world", nil)
 	if err != nil {
 		log.Errorf("Failed to get worlds list")
 	}

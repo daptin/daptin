@@ -248,7 +248,7 @@ type Integration struct {
 func (resource *DbResource) GetActiveIntegrations() ([]Integration, error) {
 
 	integrations := make([]Integration, 0)
-	rows, _, err := resource.GetRowsByWhereClause("integration")
+	rows, _, err := resource.GetRowsByWhereClause("integration", nil)
 	if err == nil && len(rows) > 0 {
 
 		for _, row := range rows {
@@ -290,7 +290,7 @@ func (resource *DbResource) GetActiveIntegrations() ([]Integration, error) {
 func (resource *DbResource) GetCloudStoreByName(name string) (CloudStore, error) {
 	var cloudStore CloudStore
 
-	rows, _, err := resource.GetRowsByWhereClause("cloud_store", squirrel.Eq{"name": name})
+	rows, _, err := resource.GetRowsByWhereClause("cloud_store", nil, squirrel.Eq{"name": name})
 
 	if err == nil && len(rows) > 0 {
 		row := rows[0]
@@ -316,7 +316,7 @@ func (resource *DbResource) GetCloudStoreByName(name string) (CloudStore, error)
 func (resource *DbResource) GetCloudStoreByReferenceId(referenceID string) (CloudStore, error) {
 	var cloudStore CloudStore
 
-	rows, _, err := resource.GetRowsByWhereClause("cloud_store", squirrel.Eq{"reference_id": referenceID})
+	rows, _, err := resource.GetRowsByWhereClause("cloud_store", nil, squirrel.Eq{"reference_id": referenceID})
 
 	if err == nil && len(rows) > 0 {
 		row := rows[0]

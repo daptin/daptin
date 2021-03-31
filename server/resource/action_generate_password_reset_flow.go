@@ -35,7 +35,7 @@ func (d *generatePasswordResetActionPerformer) DoAction(request Outcome, inField
 
 	email := inFieldMap["email"]
 
-	existingUsers, _, err := d.cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", squirrel.Eq{"email": email})
+	existingUsers, _, err := d.cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", nil, squirrel.Eq{"email": email})
 
 	responseAttrs := make(map[string]interface{})
 	if err != nil || len(existingUsers) < 1 {

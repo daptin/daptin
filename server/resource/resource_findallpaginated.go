@@ -340,7 +340,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 	}
 
-	queryBuilder = addFilters(queryBuilder, queries, prefix)
+	queryBuilder, countQueryBuilder = dr.addFilters(queryBuilder, countQueryBuilder, queries, prefix)
 
 	//if len(groupings) > 0 && false {
 	//	for _, groupBy := range groupings {
@@ -362,6 +362,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			if !ok || len(queries) < 1 {
 				continue
 			}
+			query := queries[0]
+			queryParts := strings.Split(query, ",")
+			queries = queryParts
 			log.Infof("Forward Relation %v", rel.String())
 
 			objectNameList, ok := req.QueryParams[rel.GetObject()+"Name"]
@@ -682,39 +685,93 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 }
 
-func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix string) squirrel.SelectBuilder {
+func (dr *DbResource) addFilters(queryBuilder squirrel.SelectBuilder,
+		countQueryBuilder squirrel.SelectBuilder,
+		queries []Query, prefix string) (
+		squirrel.SelectBuilder, squirrel.SelectBuilder) {
 
 	if len(queries) == 0 {
-		return queryBuilder
+		return queryBuilder, countQueryBuilder
 	}
 
 	for _, filterQuery := range queries {
+
+		columnName := filterQuery.ColumnName
+		colInfo, ok := dr.tableInfo.GetColumnByName(columnName)
+		if !ok {
+			log.Printf("warn: invalid column [%v] in query, skipping", columnName)
+			continue
+		}
+
+		if colInfo.IsForeignKey {
+
+			values := filterQuery.Value
+
+			valueString, isString := values.(string)
+			valuesArray := []string{}
+			if !isString {
+				valuesArray, ok = values.([]string)
+				if !ok {
+					log.Printf("invalid value type in forign key column [%v] filter: %v", columnName, values)
+				}
+			} else {
+				valuesArray = append(valuesArray, valueString)
+			}
+
+			valueIds := make([]int64, len(valuesArray))
+
+			valueIds, err := dr.GetReferenceIdListToIdList(colInfo.ForeignKeyData.Namespace, valuesArray)
+			if err != nil {
+				log.Printf("failed to lookup foreign key value: %v, skipping column filter", err)
+				continue
+			}
+
+			values = valueIds
+			if isString {
+				values = valueIds[0]
+			}
+			filterQuery.Value = values
+
+		}
+
 		switch filterQuery.Operator {
 		case "contains":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v%%", filterQuery.Value))
+			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v%%", filterQuery.Value))
 		case "like":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v", filterQuery.Value))
+			countQueryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v", filterQuery.Value))
 		case "begins with":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v%%", filterQuery.Value))
+			queryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v%%", filterQuery.Value))
 		case "ends with":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v", filterQuery.Value))
+			queryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v", filterQuery.Value))
 		case "not contains":
+			queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
 		case "not like":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
+			queryBuilder = countQueryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
 		case "is":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 		case "in":
 			//queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (?)", prefix+filterQuery.ColumnName), filterQuery.Value)
-			queryBuilder.Where(squirrel.Eq{prefix + filterQuery.ColumnName: filterQuery.Value.([]string)})
+			queryBuilder = queryBuilder.Where(squirrel.Eq{prefix + filterQuery.ColumnName: filterQuery.Value.([]string)})
+			countQueryBuilder = countQueryBuilder.Where(squirrel.Eq{prefix + filterQuery.ColumnName: filterQuery.Value.([]string)})
 		case "is not":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 		case "before":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 		case "after":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 		case "more then":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 		case "any of":
 			vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
 			valsInterface := make([]interface{}, len(vals))
@@ -723,6 +780,7 @@ func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix str
 			}
 			questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
+			countQueryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
 		case "none of":
 			vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
 			valsInterface := make([]interface{}, len(vals))
@@ -731,16 +789,20 @@ func addFilters(queryBuilder squirrel.SelectBuilder, queries []Query, prefix str
 			}
 			questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
+			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s not in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
 		case "less then":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
 		case "is empty":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
+			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
 		case "is not empty":
 			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
+			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
 		}
 	}
 
-	return queryBuilder
+	return queryBuilder, countQueryBuilder
 }
 
 func (dr *DbResource) FindAll(req api2go.Request) (response api2go.Responder, err error) {

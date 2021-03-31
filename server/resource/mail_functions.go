@@ -15,7 +15,7 @@ import (
 func (d *DbResource) GetUserMailAccountRowByEmail(username string) (map[string]interface{}, error) {
 
 	mailAccount, _, err := d.Cruds["mail_account"].GetRowsByWhereClause("mail_account",
-		squirrel.Eq{"username": username})
+		nil, squirrel.Eq{"username": username})
 
 	if len(mailAccount) > 0 {
 
@@ -29,7 +29,7 @@ func (d *DbResource) GetUserMailAccountRowByEmail(username string) (map[string]i
 // Returns the user mail account box row of a user
 func (d *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName string) (map[string]interface{}, error) {
 
-	mailAccount, _, err := d.Cruds["mail_box"].GetRowsByWhereClause("mail_box", squirrel.Eq{"mail_account_id": mailAccountId}, squirrel.Eq{"name": mailBoxName})
+	mailAccount, _, err := d.Cruds["mail_box"].GetRowsByWhereClause("mail_box", nil, squirrel.Eq{"mail_account_id": mailAccountId}, squirrel.Eq{"name": mailBoxName})
 
 	if len(mailAccount) > 0 {
 
