@@ -3,10 +3,10 @@ package resource
 import (
 	"context"
 	"errors"
-	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/doug-martin/goqu/v9"
 	"net/http"
 	"time"
 )
@@ -15,7 +15,7 @@ import (
 func (d *DbResource) GetUserMailAccountRowByEmail(username string) (map[string]interface{}, error) {
 
 	mailAccount, _, err := d.Cruds["mail_account"].GetRowsByWhereClause("mail_account",
-		nil, squirrel.Eq{"username": username})
+		nil, goqu.Ex{"username": username})
 
 	if len(mailAccount) > 0 {
 
@@ -29,7 +29,7 @@ func (d *DbResource) GetUserMailAccountRowByEmail(username string) (map[string]i
 // Returns the user mail account box row of a user
 func (d *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName string) (map[string]interface{}, error) {
 
-	mailAccount, _, err := d.Cruds["mail_box"].GetRowsByWhereClause("mail_box", nil, squirrel.Eq{"mail_account_id": mailAccountId}, squirrel.Eq{"name": mailBoxName})
+	mailAccount, _, err := d.Cruds["mail_box"].GetRowsByWhereClause("mail_box", nil, goqu.Ex{"mail_account_id": mailAccountId}, goqu.Ex{"name": mailBoxName})
 
 	if len(mailAccount) > 0 {
 
@@ -71,7 +71,7 @@ func (d *DbResource) CreateMailAccountBox(mailAccountId string, sessionUser *aut
 func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) error {
 
 	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
-		squirrel.Eq{
+		goqu.Ex{
 			"mail_account_id": mailAccountId,
 			"name":            mailBoxName,
 		},
@@ -80,7 +80,7 @@ func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName strin
 		return errors.New("mailbox does not exist")
 	}
 
-	query, args, err := statementbuilder.Squirrel.Delete("mail").Where(squirrel.Eq{"mail_box_id": box[0]["id"]}).ToSql()
+	query, args, err := statementbuilder.Squirrel.Delete("mail").Where(goqu.Ex{"mail_box_id": box[0]["id"]}).ToSQL()
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName strin
 		return err
 	}
 
-	query, args, err = statementbuilder.Squirrel.Delete("mail_box").Where(squirrel.Eq{"id": box[0]["id"]}).ToSql()
+	query, args, err = statementbuilder.Squirrel.Delete("mail_box").Where(goqu.Ex{"id": box[0]["id"]}).ToSQL()
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName strin
 func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) error {
 
 	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
-		squirrel.Eq{
+		goqu.Ex{
 			"mail_account_id": mailAccountId,
 			"name":            oldBoxName,
 		},
@@ -114,7 +114,10 @@ func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string
 		return errors.New("mailbox does not exist")
 	}
 
-	query, args, err := statementbuilder.Squirrel.Update("mail_box").Set("name", newBoxName).Where(squirrel.Eq{"id": box[0]["id"]}).ToSql()
+	query, args, err := statementbuilder.Squirrel.
+		Update("mail_box").
+		Set(goqu.Record{"name": newBoxName}).
+		Where(goqu.Ex{"id": box[0]["id"]}).ToSQL()
 	if err != nil {
 		return err
 	}
@@ -128,10 +131,13 @@ func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string
 // Returns the user mail account box row of a user
 func (d *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool) error {
 
-	query, args, err := statementbuilder.Squirrel.Update("mail_box").Set("subscribed", subscribed).Where(squirrel.Eq{
-		"mail_account_id": mailAccountId,
-		"name":            mailBoxName,
-	}).ToSql()
+	query, args, err := statementbuilder.Squirrel.
+		Update("mail_box").
+		Set(goqu.Record{"subscribed": subscribed}).
+		Where(goqu.Ex{
+			"mail_account_id": mailAccountId,
+			"name":            mailBoxName,
+		}).ToSQL()
 	if err != nil {
 		return err
 	}

@@ -6,13 +6,13 @@ import (
 	uuid "github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/doug-martin/goqu/v9"
 	log "github.com/sirupsen/logrus"
 	"strings"
 
 	//"reflect"
 	"errors"
 	"fmt"
-	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/auth"
 	"net/http"
 	"time"
@@ -392,11 +392,13 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 			builder := statementbuilder.Squirrel.Update(dr.model.GetName())
 
+			setVals := make(map[string]interface{})
 			for i := range colsList {
-				builder = builder.Set(colsList[i], valsList[i])
+				setVals[colsList[i]] = valsList[i]
 			}
+			builder = builder.Set(goqu.Record(setVals))
 
-			query, vals, err := builder.Where(squirrel.Eq{"reference_id": id}).Where(squirrel.Eq{"version": data.GetCurrentVersion()}).ToSql()
+			query, vals, err := builder.Where(goqu.Ex{"reference_id": id}).Where(goqu.Ex{"version": data.GetCurrentVersion()}).ToSQL()
 			//log.Infof("Update query: %v", query)
 			if err != nil {
 				log.Errorf("Failed to create update query: %v", err)
@@ -414,7 +416,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 			for _, lang := range languagePreferences {
 
-				langTableCols := make([]string, 0)
+				langTableCols := make([]interface{}, 0)
 				langTableVals := make([]interface{}, 0)
 
 				for _, col := range colsList {
@@ -427,11 +429,13 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 				builder := statementbuilder.Squirrel.Update(dr.model.GetName() + "_i18n")
 
+				updateMap := make(map[string]interface{})
 				for i := range langTableCols {
-					builder = builder.Set(langTableCols[i], langTableVals[i])
+					updateMap[langTableCols[i].(string)] = langTableVals[i]
 				}
+				builder = builder.Set(updateMap)
 
-				query, vals, err := builder.Where(squirrel.Eq{"translation_reference_id": idInt}).Where(squirrel.Eq{"language_id": lang}).ToSql()
+				query, vals, err := builder.Where(goqu.Ex{"translation_reference_id": idInt}).Where(goqu.Ex{"language_id": lang}).ToSQL()
 				log.Infof("Update query: %v", query)
 				if err != nil {
 					log.Errorf("Failed to create update query: %v", err)
@@ -450,9 +454,9 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					langTableVals = append(langTableVals, lang, idInt, nuuid)
 
 					insert := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n")
-					insert = insert.Columns(langTableCols...)
-					insert = insert.Values(langTableVals...)
-					query, vals, err := insert.ToSql()
+					insert = insert.Cols(langTableCols...)
+					insert = insert.Vals(langTableVals)
+					query, vals, err := insert.ToSQL()
 
 					_, err = dr.db.Exec(query, vals...)
 
@@ -599,7 +603,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				}
 
 				//relUpdateQuery, vars, err = statementbuilder.Squirrel.Update(rel.GetSubject()).
-				//    Set(rel.GetObjectName(), intId).Where(squirrel.Eq{"reference_id": val}).ToSql()
+				//    Set(rel.GetObjectName(), intId).Where(goqu.Ex{"reference_id": val}).ToSQL()
 
 				//if err != nil {
 				//  log.Errorf("Failed to make update query: %v", err)
@@ -742,7 +746,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				if referencedRelation.Relation == "has_many" || referencedRelation.Relation == "has_many_and_belongs_to_many" {
 
 					joinReference, _, err := dr.Cruds[referencedRelation.GetJoinTableName()].GetRowsByWhereClause(referencedRelation.GetJoinTableName(),
-						nil, squirrel.Eq{
+						nil, goqu.Ex{
 							relationName:     otherObjectId,
 							hostRelationName: idInt,
 						},

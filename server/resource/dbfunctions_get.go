@@ -3,9 +3,9 @@ package resource
 import (
 	"context"
 	"fmt"
-	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -14,15 +14,15 @@ import (
 	"time"
 )
 
-func GetObjectByWhereClause(objType string, db database.DatabaseConnection, queries ...squirrel.Eq) ([]map[string]interface{}, error) {
+func GetObjectByWhereClause(objType string, db database.DatabaseConnection, queries ...goqu.Ex) ([]map[string]interface{}, error) {
 	result := make([]map[string]interface{}, 0)
 
-	builder := statementbuilder.Squirrel.Select("*").From(objType)
+	builder := statementbuilder.Squirrel.Select(goqu.L("*")).From(objType)
 
 	for _, q := range queries {
 		builder = builder.Where(q)
 	}
-	q, v, err := builder.ToSql()
+	q, v, err := builder.ToSQL()
 
 	if err != nil {
 		return result, err
@@ -99,28 +99,30 @@ func GetWorldTableMapBy(col string, db database.DatabaseConnection) (map[string]
 
 func GetAdminUserIdAndUserGroupId(db sqlx.Ext) (int64, int64) {
 	var userCount int
-	s, v, err := statementbuilder.Squirrel.Select("count(*)").From(USER_ACCOUNT_TABLE_NAME).ToSql()
+	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(USER_ACCOUNT_TABLE_NAME).ToSQL()
 	err = db.QueryRowx(s, v...).Scan(&userCount)
-	CheckErr(err, "Failed to get user count")
+	CheckErr(err, "Failed to get user count 104")
 
 	var userId int64
 	var userGroupId int64
 
 	if userCount < 2 {
-		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).OrderBy("id").Limit(1).ToSql()
+		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).Order(goqu.C("id").Asc()).Limit(1).ToSQL()
 		CheckErr(err, "Failed to create select user sql")
 		err = db.QueryRowx(s, v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
-		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSql()
+		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSQL()
 		CheckErr(err, "Failed to create user group sql")
 		err = db.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
 	} else {
-		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).Where(squirrel.NotEq{"email": "guest@cms.go"}).OrderBy("id").Limit(1).ToSql()
+		s, v, err := statementbuilder.Squirrel.Select("id").
+			From(USER_ACCOUNT_TABLE_NAME).
+			Where(goqu.Ex{"email": goqu.Op{"neq": "guest@cms.go"}}).Order(goqu.C("id").Asc()).Limit(1).ToSQL()
 		CheckErr(err, "Failed to create select user sql")
 		err = db.QueryRowx(s, v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
-		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSql()
+		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSQL()
 		CheckErr(err, "Failed to create user group sql")
 		err = db.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
@@ -290,7 +292,7 @@ func (resource *DbResource) GetActiveIntegrations() ([]Integration, error) {
 func (resource *DbResource) GetCloudStoreByName(name string) (CloudStore, error) {
 	var cloudStore CloudStore
 
-	rows, _, err := resource.GetRowsByWhereClause("cloud_store", nil, squirrel.Eq{"name": name})
+	rows, _, err := resource.GetRowsByWhereClause("cloud_store", nil, goqu.Ex{"name": name})
 
 	if err == nil && len(rows) > 0 {
 		row := rows[0]
@@ -316,7 +318,7 @@ func (resource *DbResource) GetCloudStoreByName(name string) (CloudStore, error)
 func (resource *DbResource) GetCloudStoreByReferenceId(referenceID string) (CloudStore, error) {
 	var cloudStore CloudStore
 
-	rows, _, err := resource.GetRowsByWhereClause("cloud_store", nil, squirrel.Eq{"reference_id": referenceID})
+	rows, _, err := resource.GetRowsByWhereClause("cloud_store", nil, goqu.Ex{"reference_id": referenceID})
 
 	if err == nil && len(rows) > 0 {
 		row := rows[0]
@@ -343,9 +345,10 @@ func (resource *DbResource) GetAllTasks() ([]Task, error) {
 
 	var tasks []Task
 
-	s, v, err := statementbuilder.Squirrel.Select("t.name", "t.action_name", "t.entity_name", "t.schedule", "t.active", "t.attributes", "t.as_user_id").
-		From("task t").
-		ToSql()
+	s, v, err := statementbuilder.Squirrel.Select(goqu.I("t.name"),
+		goqu.I("t.action_name"), goqu.I("t.entity_name"), goqu.I("t.schedule"),
+		goqu.I("t.active"), goqu.I("t.attributes"), goqu.I("t.as_user_id")).
+		From(goqu.T("task").As("t")).ToSQL()
 	if err != nil {
 		return tasks, err
 	}
@@ -378,10 +381,13 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	var sites []SubSite
 
-	s, v, err := statementbuilder.Squirrel.Select("s.name", "s.hostname", "s.cloud_store_id",
-		"s."+USER_ACCOUNT_ID_COLUMN, "s.path", "s.reference_id", "s.id", "s.enable", "s.site_type", "s.ftp_enabled").
-		From("site s").
-		ToSql()
+	s, v, err := statementbuilder.Squirrel.Select(
+		goqu.I("s.name"), goqu.I("s.hostname"),
+		goqu.I("s.cloud_store_id"),
+		goqu.I("s."+USER_ACCOUNT_ID_COLUMN), goqu.I("s.path"),
+		goqu.I("s.reference_id"), goqu.I("s.id"), goqu.I("s.enable"),
+		goqu.I("s.site_type"), goqu.I("s.ftp_enabled")).
+		From(goqu.T("site").As("s")).ToSQL()
 	if err != nil {
 		return sites, err
 	}
@@ -415,10 +421,13 @@ func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Conf
 	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
 	s, v, err := statementbuilder.Squirrel.
-		Select("oc.client_id", "oc.client_secret", "oc.redirect_uri", "oc.auth_url", "oc.token_url", "oc.scope").
-		From("oauth_token ot").Join("oauth_connect oc").
-		JoinClause("on oc.id = ot.oauth_connect_id").
-		Where(squirrel.Eq{"ot.id": id}).ToSql()
+		Select(goqu.I("oc.client_id"), goqu.I("oc.client_secret"),
+			goqu.I("oc.redirect_uri"), goqu.I("oc.auth_url"),
+			goqu.I("oc.token_url"), goqu.I("oc.scope")).
+		From(goqu.T("oauth_token").As("ot")).Join(goqu.T("oauth_connect").As("oc"), goqu.On(goqu.Ex{
+		"oc.id": goqu.I("ot.oauth_connect_id"),
+	})).
+		Where(goqu.Ex{"ot.id": id}).ToSQL()
 
 	if err != nil {
 		return nil, err
@@ -460,10 +469,12 @@ func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId st
 	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
 	s, v, err := statementbuilder.Squirrel.
-		Select("oc.client_id", "oc.client_secret", "oc.redirect_uri", "oc.auth_url", "oc.token_url", "oc.scope").
-		From("oauth_token ot").Join("oauth_connect oc").
-		JoinClause("on oc.id = ot.oauth_connect_id").
-		Where(squirrel.Eq{"ot.reference_id": referenceId}).ToSql()
+		Select(goqu.I("oc.client_id"), goqu.I("oc.client_secret"), goqu.I("oc.redirect_uri"),
+			goqu.I("oc.auth_url"), goqu.I("oc.token_url"), goqu.I("oc.scope")).
+		From(goqu.T("oauth_token").As("ot")).Join(goqu.T("oauth_connect").As("oc"), goqu.On(goqu.Ex{
+		"oc.id": goqu.I("ot.oauth_connect_id"),
+	})).
+		Where(goqu.Ex{"ot.reference_id": referenceId}).ToSQL()
 
 	if err != nil {
 		return nil, err
@@ -507,7 +518,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 	var expires_in int64
 	var token oauth2.Token
 	s, v, err := statementbuilder.Squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
-		Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+		Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
 
 	if err != nil {
 		return nil, oauthConf, err
@@ -564,7 +575,7 @@ func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 	var expires_in int64
 	var token oauth2.Token
 	s, v, err := statementbuilder.Squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
-		Where(squirrel.Eq{"id": id}).ToSql()
+		Where(goqu.Ex{"id": id}).ToSQL()
 
 	if err != nil {
 		return nil, err
@@ -600,7 +611,7 @@ func (resource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, err
 	var expires_in int64
 	var token oauth2.Token
 	s, v, err := statementbuilder.Squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
-		Where(squirrel.Eq{"token_type": name}).OrderBy("created_at desc").Limit(1).ToSql()
+		Where(goqu.Ex{"token_type": name}).Order(goqu.C("created_at").Desc()).Limit(1).ToSQL()
 
 	if err != nil {
 		return nil, err

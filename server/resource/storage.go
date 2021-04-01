@@ -2,18 +2,18 @@ package resource
 
 import (
 	"database/sql"
-	"github.com/Masterminds/squirrel"
 	uuid "github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/doug-martin/goqu/v9"
 )
 
 func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath string) error {
 
-	query, vars, err := statementbuilder.Squirrel.Select("reference_id").From("cloud_store").Where(squirrel.Eq{
+	query, vars, err := statementbuilder.Squirrel.Select("reference_id").From("cloud_store").Where(goqu.Ex{
 		"name": "localstore",
-	}).ToSql()
+	}).ToSQL()
 
 	if err != nil {
 		return err
@@ -28,8 +28,8 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 			adminUserId, adminGroupId := GetAdminUserIdAndUserGroupId(db)
 			newUuid, _ := uuid.NewV4()
 			query, vars, err = statementbuilder.Squirrel.Insert("cloud_store").
-				Columns("reference_id", "name", "store_type", "store_provider", "root_path", "store_parameters", "user_account_id", "permission").
-				Values(newUuid.String(), "localstore", "local", "local", localStoragePath, "", adminUserId, auth.DEFAULT_PERMISSION).ToSql()
+				Cols("reference_id", "name", "store_type", "store_provider", "root_path", "store_parameters", "user_account_id", "permission").
+				Vals([]interface{}{newUuid.String(), "localstore", "local", "local", localStoragePath, "", adminUserId, auth.DEFAULT_PERMISSION}).ToSQL()
 
 			if err != nil {
 				return err
@@ -40,9 +40,9 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 				return err
 			}
 
-			query, vars, err = statementbuilder.Squirrel.Select("id").From("cloud_store").Where(squirrel.Eq{
+			query, vars, err = statementbuilder.Squirrel.Select("id").From("cloud_store").Where(goqu.Ex{
 				"reference_id": newUuid.String(),
-			}).ToSql()
+			}).ToSQL()
 			if err != nil {
 				return err
 			}
@@ -59,8 +59,8 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 
 			groupRefId, _ := uuid.NewV4()
 			query, vars, err = statementbuilder.Squirrel.Insert("cloud_store_cloud_store_id_has_usergroup_usergroup_id").
-				Columns("cloud_store_id", "usergroup_id", "reference_id", "permission").
-				Values(id, adminGroupId, groupRefId.String(), auth.DEFAULT_PERMISSION).ToSql()
+				Cols("cloud_store_id", "usergroup_id", "reference_id", "permission").
+				Vals([]interface{}{id, adminGroupId, groupRefId.String(), auth.DEFAULT_PERMISSION}).ToSQL()
 
 			if err != nil {
 				return err

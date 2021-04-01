@@ -1,9 +1,8 @@
 package resource
 
 import (
-	"fmt"
-	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/pkg/errors"
 	"regexp"
 	"sort"
@@ -30,7 +29,7 @@ type AggregateData struct {
 	Data []map[string]interface{} `json:"data"`
 }
 
-func InArray(val []string, ar string) (exists bool) {
+func InArray(val []interface{}, ar interface{}) (exists bool) {
 	exists = false
 
 	for _, v := range val {
@@ -41,30 +40,56 @@ func InArray(val []string, ar string) (exists bool) {
 	return false
 }
 
+func ToInterfaceArray(s []string) []interface{} {
+	r := make([]interface{}, len(s))
+	for i, e := range s {
+		r[i] = e
+	}
+	return r
+}
+func ColumnToInterfaceArray(s []column) []interface{} {
+	r := make([]interface{}, len(s))
+	for i, e := range s {
+		r[i] = e.originalvalue
+	}
+	return r
+}
+
 func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 
 	sort.Strings(req.GroupBy)
 	projections := req.ProjectColumn
 
+	projectionsAdded := make([]interface{}, 0)
 	for i, project := range projections {
 		if project == "count" {
 			projections[i] = "count(*) as count"
+			projectionsAdded = append(projectionsAdded, goqu.L("count(*)").As("count"))
+		} else {
+			projectionsAdded = append(projectionsAdded, goqu.I(project))
 		}
 	}
 
 	for _, group := range req.GroupBy {
 		projections = append(projections, group)
+		projectionsAdded = append(projectionsAdded, goqu.I(group))
 	}
 
 	if len(projections) == 0 {
-		projections = append(projections, "count(*) as count")
+		projectionsAdded = append(projectionsAdded, goqu.L("count(*)").As("count"))
 	}
 
-	selectBuilder := statementbuilder.Squirrel.Select(projections...)
+	selectBuilder := statementbuilder.Squirrel.Select(projectionsAdded...)
 	builder := selectBuilder.From(req.RootEntity)
-	builder = builder.GroupBy(req.GroupBy...)
 
-	builder = builder.OrderBy(req.Order...)
+	for _, group := range req.GroupBy {
+		builder = builder.GroupBy(group)
+	}
+
+	for _, order := range req.Order {
+
+		builder = builder.Order(goqu.C(order).Asc())
+	}
 
 	// functionName(param1, param2)
 	querySyntax, err := regexp.Compile("([a-zA-Z0-9]+)\\(([^,]+?),(.+)\\)")
@@ -81,35 +106,20 @@ func (dr *DbResource) DataStats(req AggregationRequest) (AggregateData, error) {
 			leftVal := strings.TrimSpace(parts[2])
 			rightVal := strings.TrimSpace(parts[3])
 
-			function := builder.Where
-			if len(req.GroupBy) > 0 {
-				//function = builder.Having
+			//function := builder.Where
+
+			var rightValInterface interface{}
+			rightValInterface = rightVal
+
+			if functionName == "in" || functionName == "notin" {
+				rightValInterface = strings.Split(rightVal, ",")
 			}
 
-			switch functionName {
-			case "eq":
-				builder = function(squirrel.Eq{leftVal: rightVal})
-			case "neq":
-				builder = function(fmt.Sprintf("%s != %s", leftVal, rightVal))
-			case "lt":
-				builder = function(fmt.Sprintf("%s < %s", leftVal, rightVal))
-			case "lte":
-				builder = function(fmt.Sprintf("%s <= %s", leftVal, rightVal))
-			case "gt":
-				builder = function(fmt.Sprintf("%s > %s", leftVal, rightVal))
-			case "gte":
-				builder = function(fmt.Sprintf("%s >= %s", leftVal, rightVal))
-			case "like":
-				builder = function(fmt.Sprintf("%s LIKE %s", leftVal, rightVal))
-			case "in":
-				builder = function(squirrel.Eq{leftVal: strings.Split(rightVal, ",")})
-			case "notin":
-				builder = function(squirrel.Eq{leftVal: strings.Split(rightVal, ",")})
-			}
+			builder = builder.Where(goqu.Ex{leftVal: goqu.Op{functionName: rightValInterface}})
 		}
 	}
 
-	sql, args, err := builder.ToSql()
+	sql, args, err := builder.ToSQL()
 	CheckErr(err, "Failed to generate stats sql: [%v]")
 	if err != nil {
 		return AggregateData{}, err

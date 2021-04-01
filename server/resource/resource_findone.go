@@ -1,9 +1,9 @@
 package resource
 
 import (
-	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/pkg/errors"
 	"strings"
 
@@ -69,7 +69,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 
 	if len(languagePreferences) > 0 {
 		for _, lang := range languagePreferences {
-			data_i18n_id, err := dr.GetIdByWhereClause(modelName+"_i18n", squirrel.Eq{
+			data_i18n_id, err := dr.GetIdByWhereClause(modelName+"_i18n", goqu.Ex{
 				"translation_reference_id": data["id"],
 				"language_id":              lang,
 			})

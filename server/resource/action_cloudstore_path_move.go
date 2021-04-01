@@ -34,7 +34,7 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields m
 	u, _ := uuid.NewV4()
 	sourceDirectoryName := "upload-" + u.String()[0:8]
 	tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
-	log.Infof("Temp directory for this upload: %v", tempDirectoryPath)
+	log.Infof("Temp directory for this upload cloudStorePathMoveActionPerformer: %v", tempDirectoryPath)
 
 	//defer os.RemoveAll(tempDirectoryPath) // clean up
 

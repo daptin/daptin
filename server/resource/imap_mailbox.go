@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
-	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend/backendutil"
@@ -13,6 +12,7 @@ import (
 	"github.com/bjarneh/latinx"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/columntypes"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/textproto"
@@ -107,7 +107,7 @@ func (dimb *DaptinImapMailBox) SetSubscribed(subscribed bool) error {
 func (dimb *DaptinImapMailBox) Check() error {
 
 	box, err := dimb.dbResource["mail_box"].GetAllObjectsWithWhere("mail_box",
-		squirrel.Eq{
+		goqu.Ex{
 			"mail_account_id": dimb.mailAccountId,
 			"name":            dimb.name,
 		},

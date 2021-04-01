@@ -3,9 +3,9 @@ package resource
 import (
 	"context"
 	"fmt"
-	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/pkg/errors"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
@@ -29,7 +29,7 @@ func (d *oauthLoginResponseActionPerformer) Name() string {
 
 func GetOauthConnectionDescription(authenticator string, dbResource *DbResource) (*oauth2.Config, string, error) {
 
-	rows, _, err := dbResource.Cruds["oauth_connect"].GetRowsByWhereClause("oauth_connect",  nil, squirrel.Eq{"name": authenticator})
+	rows, _, err := dbResource.Cruds["oauth_connect"].GetRowsByWhereClause("oauth_connect", nil, goqu.Ex{"name": authenticator})
 
 	if err != nil {
 		log.Errorf("Failed to get oauth connection details for in response handler  [%v]", authenticator)

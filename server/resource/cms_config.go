@@ -2,10 +2,10 @@ package resource
 
 import (
 	"fmt"
-	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/doug-martin/goqu/v9"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v9"
 	"time"
@@ -172,10 +172,10 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
 		From(settingsTableName).
-		Where(squirrel.Eq{"name": key}).
-		Where(squirrel.Eq{"configstate": "enabled"}).
-		Where(squirrel.Eq{"configenv": c.defaultEnv}).
-		Where(squirrel.Eq{"configtype": configtype}).ToSql()
+		Where(goqu.Ex{"name": key}).
+		Where(goqu.Ex{"configstate": "enabled"}).
+		Where(goqu.Ex{"configenv": c.defaultEnv}).
+		Where(goqu.Ex{"configtype": configtype}).ToSQL()
 
 	CheckErr(err, "Failed to create config select query")
 
@@ -191,10 +191,10 @@ func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, 
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
 		From(settingsTableName).
-		Where(squirrel.Eq{"name": key}).
-		Where(squirrel.Eq{"configstate": "enabled"}).
-		Where(squirrel.Eq{"configenv": c.defaultEnv}).
-		Where(squirrel.Eq{"configtype": configtype}).ToSql()
+		Where(goqu.Ex{"name": key}).
+		Where(goqu.Ex{"configstate": "enabled"}).
+		Where(goqu.Ex{"configenv": c.defaultEnv}).
+		Where(goqu.Ex{"configtype": configtype}).ToSQL()
 
 	CheckErr(err, "Failed to create config select query")
 
@@ -209,8 +209,8 @@ func (c *ConfigStore) GetAllConfig() map[string]string {
 
 	s, v, err := statementbuilder.Squirrel.Select("name", "value").
 		From(settingsTableName).
-		Where(squirrel.Eq{"configstate": "enabled"}).
-		Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
+		Where(goqu.Ex{"configstate": "enabled"}).
+		Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
 
 	CheckErr(err, "Failed to create config select query")
 
@@ -234,9 +234,9 @@ func (c *ConfigStore) GetAllConfig() map[string]string {
 func (c *ConfigStore) DeleteConfigValueFor(key string, configtype string) error {
 
 	s, v, err := statementbuilder.Squirrel.Delete(settingsTableName).
-		Where(squirrel.Eq{"name": key}).
-		Where(squirrel.Eq{"configtype": configtype}).
-		Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
+		Where(goqu.Ex{"name": key}).
+		Where(goqu.Ex{"configtype": configtype}).
+		Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
 
 	CheckErr(err, "Failed to create config insert query")
 
@@ -250,10 +250,10 @@ func (c *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype 
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
 		From(settingsTableName).
-		Where(squirrel.Eq{"name": key}).
-		Where(squirrel.Eq{"configstate": "enabled"}).
-		Where(squirrel.Eq{"configtype": configtype}).
-		Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
+		Where(goqu.Ex{"name": key}).
+		Where(goqu.Ex{"configstate": "enabled"}).
+		Where(goqu.Ex{"configtype": configtype}).
+		Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
 
 	CheckErr(err, "Failed to create config select query")
 
@@ -262,9 +262,9 @@ func (c *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype 
 	if err != nil {
 
 		// row doesnt exist
-		s, v, err := statementbuilder.Squirrel.Insert(settingsTableName).
-			Columns("name", "configstate", "configtype", "configenv", "value").
-			Values(key, "enabled", configtype, c.defaultEnv, val).ToSql()
+		s, v, err := statementbuilder.Squirrel.
+			Insert(settingsTableName).Cols("name", "configstate", "configtype", "configenv", "value").
+			Vals([]interface{}{key, "enabled", configtype, c.defaultEnv, val}).ToSQL()
 
 		CheckErr(err, "Failed to create config insert query")
 
@@ -276,14 +276,15 @@ func (c *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype 
 		// row already exists
 
 		s, v, err := statementbuilder.Squirrel.Update(settingsTableName).
-			Set("value", val).
-			Set("updated_at", time.Now()).
-			Set("previousvalue", previousValue).
-			Where(squirrel.Eq{"name": key}).
-			Where(squirrel.Eq{"configstate": "enabled"}).
-			Where(squirrel.Eq{"configtype": configtype}).
-			Where(squirrel.NotEq{"value": val}).
-			Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
+			Set(goqu.Record{
+				"value":         val,
+				"updated_at":    time.Now(),
+				"previousvalue": previousValue,
+			}).
+			Where(goqu.Ex{"name": key}).
+			Where(goqu.Ex{"configstate": "enabled"}).
+			Where(goqu.Ex{"configtype": configtype}).
+			Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
 
 		CheckErr(err, "Failed to create config insert query")
 
@@ -299,10 +300,10 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
 		From(settingsTableName).
-		Where(squirrel.Eq{"name": key}).
-		Where(squirrel.Eq{"configstate": "enabled"}).
-		Where(squirrel.Eq{"configtype": configtype}).
-		Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
+		Where(goqu.Ex{"name": key}).
+		Where(goqu.Ex{"configstate": "enabled"}).
+		Where(goqu.Ex{"configtype": configtype}).
+		Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
 
 	CheckErr(err, "Failed to create config select query")
 
@@ -312,8 +313,8 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 
 		// row doesnt exist
 		s, v, err := statementbuilder.Squirrel.Insert(settingsTableName).
-			Columns("name", "configstate", "configtype", "configenv", "value").
-			Values(key, "enabled", configtype, c.defaultEnv, val).ToSql()
+			Cols("name", "configstate", "configtype", "configenv", "value").
+			Vals([]interface{}{key, "enabled", configtype, c.defaultEnv, val}).ToSQL()
 
 		CheckErr(err, "Failed to create config insert query")
 
@@ -325,14 +326,15 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 		// row already exists
 
 		s, v, err := statementbuilder.Squirrel.Update(settingsTableName).
-			Set("value", val).
-			Set("previousvalue", previousValue).
-			Set("updated_at", time.Now()).
-			Where(squirrel.Eq{"name": key}).
-			Where(squirrel.NotEq{"value": val}).
-			Where(squirrel.Eq{"configstate": "enabled"}).
-			Where(squirrel.Eq{"configtype": configtype}).
-			Where(squirrel.Eq{"configenv": c.defaultEnv}).ToSql()
+			Set(goqu.Record{
+				"value":         val,
+				"previousvalue": previousValue,
+				"updated_at":    time.Now(),
+			}).
+			Where(goqu.Ex{"name": key}).
+			Where(goqu.Ex{"configstate": "enabled"}).
+			Where(goqu.Ex{"configtype": configtype}).
+			Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
 
 		CheckErr(err, "Failed to create config insert query")
 
@@ -345,7 +347,7 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 
 func NewConfigStore(db database.DatabaseConnection) (*ConfigStore, error) {
 	var cs ConfigStore
-	s, v, err := statementbuilder.Squirrel.Select("count(*)").From(settingsTableName).ToSql()
+	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(settingsTableName).ToSQL()
 	CheckErr(err, "Failed to create sql for config check table")
 	if err != nil {
 		return &cs, err
@@ -364,6 +366,8 @@ func NewConfigStore(db database.DatabaseConnection) (*ConfigStore, error) {
 			log.Printf("create config table query: %v", createTableQuery)
 		}
 
+	} else {
+		log.Printf("Failed to query config table: %v", err)
 	}
 
 	return &ConfigStore{

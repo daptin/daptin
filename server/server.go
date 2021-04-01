@@ -300,7 +300,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 				columnName: true,
 			})
 
-			columnValueArray := object[columnName].([]map[string]interface{})
+			originalFile := object[columnName]
+			if originalFile == nil {
+				return []byte{}
+			}
+			columnValueArray := originalFile.([]map[string]interface{})
 
 			fileContentsJson := []byte{}
 			for _, file := range columnValueArray {
@@ -854,7 +858,7 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 		resource.UpdateStreams(initConfig, db)
 		//resource.UpdateMarketplaces(initConfig, db)
 		err := resource.UpdateTasksData(initConfig, db)
-		resource.CheckErr(err, "Failed to  update cron jobs")
+		resource.CheckErr(err, "Failed to update cron jobs")
 		resource.UpdateStandardData(initConfig, db)
 
 		err = resource.UpdateActionTable(initConfig, db)

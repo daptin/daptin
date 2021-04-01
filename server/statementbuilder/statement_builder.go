@@ -1,14 +1,18 @@
 package statementbuilder
 
-import "github.com/Masterminds/squirrel"
+import (
+	"github.com/doug-martin/goqu/v9"
+)
 
-var Squirrel = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+import _ "github.com/doug-martin/goqu/v9/dialect/postgres"
+import _ "github.com/doug-martin/goqu/v9/dialect/sqlite3"
+import _ "github.com/doug-martin/goqu/v9/dialect/sqlserver"
+
+var Squirrel = goqu.Dialect("sqlite")
 
 func InitialiseStatementBuilder(dbTypeName string) {
 
-	if dbTypeName == "postgres" {
-		Squirrel = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-	} else {
-		Squirrel = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
-	}
+	Squirrel = goqu.Dialect(dbTypeName)
+
 }

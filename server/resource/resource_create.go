@@ -3,8 +3,8 @@ package resource
 import (
 	"crypto/md5"
 	"encoding/base64"
-	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"strconv"
@@ -68,7 +68,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	u, _ := uuid.NewV4()
 	newUuid := u.String()
 
-	var colsList []string
+	var colsList []interface{}
 	var valsList []interface{}
 	for _, col := range allColumns {
 
@@ -379,18 +379,18 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			valBoolean, ok := val.(bool)
 			if ok {
 				if valBoolean {
-					val = 1
+					val = true
 				} else {
-					val = 0
+					val = false
 				}
 			} else {
 				valString, ok := val.(string)
 				if ok {
 					valueClean := strings.ToLower(strings.TrimSpace(valString))
 					if valueClean == "true" || valueClean == "1" {
-						val = 1
+						val = true
 					} else {
-						val = 0
+						val = false
 					}
 				}
 			}
@@ -425,7 +425,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		valsList = append(valsList, sessionUser.UserId)
 	}
 
-	query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName()).Columns(colsList...).Values(valsList...).ToSql()
+	query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName()).Cols(colsList...).Vals(valsList).ToSQL()
 
 	if err != nil {
 		log.Errorf("Failed to create insert query: %v", err)
@@ -434,9 +434,9 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 	_, err = dr.db.Exec(query, vals...)
 	if err != nil {
-		log.Infof("Insert query: %v", query)
+		log.Infof("Insert query 437: %v", query)
 		//log.Infof("Insert values: %v", vals)
-		log.Errorf("Failed to execute insert query: %v", err)
+		log.Errorf("Failed to execute insert query 439: %v", err)
 		//log.Errorf("%v", vals)
 		return nil, err
 	}
@@ -457,7 +457,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			colsList = append(colsList, "translation_reference_id")
 			valsList = append(valsList, createdResource["id"])
 
-			query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n").Columns(colsList...).Values(valsList...).ToSql()
+			query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n").Cols(colsList...).Vals(valsList).ToSQL()
 			if err != nil {
 				log.Errorf("Failed to create insert query: %v", err)
 				return nil, err
@@ -465,8 +465,8 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 			_, err = dr.db.Exec(query, vals...)
 			if err != nil {
-				log.Infof("Insert query: %v", query)
-				log.Errorf("Failed to execute insert query: %v", err)
+				log.Infof("Insert query 468: %v", query)
+				log.Errorf("Failed to execute insert query 469: %v", err)
 				log.Errorf("%v", vals)
 				return nil, err
 			}
@@ -484,8 +484,8 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
 			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
-			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
-			Values(createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
+			Cols(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
+			Vals([]interface{}{createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
 
 		//log.Infof("Query for default group belonging: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
@@ -503,8 +503,8 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
 			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
-			Columns(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
-			Values(createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION).ToSql()
+			Cols(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
+			Vals([]interface{}{createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
 
 		//log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
@@ -521,8 +521,8 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
 			Insert("user_account_user_account_id_has_usergroup_usergroup_id").
-			Columns(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "reference_id", "permission").
-			Values(sessionUser.UserId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION).ToSql()
+			Cols(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "reference_id", "permission").
+			Vals([]interface{}{sessionUser.UserId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
 		//log.Infof("Query: %v", belogsToUserGroupSql)
 		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 
@@ -535,13 +535,13 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		adminUserId, _ := GetAdminUserIdAndUserGroupId(dr.db)
 		log.Infof("Associate new user with user: %v", adminUserId)
 
-		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
+		belongsToUserGroupSql, q, err := statementbuilder.Squirrel.
 			Update(USER_ACCOUNT_TABLE_NAME).
-			Set(USER_ACCOUNT_ID_COLUMN, adminUserId).
-			Where(squirrel.Eq{"id": createdResource["id"]}).ToSql()
+			Set(goqu.Record{USER_ACCOUNT_ID_COLUMN: adminUserId}).
+			Where(goqu.Ex{"id": createdResource["id"]}).ToSQL()
 
 		//log.Infof("Query: %v", belogsToUserGroupSql)
-		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
+		_, err = dr.db.Exec(belongsToUserGroupSql, q...)
 
 		if err != nil {
 			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
@@ -558,10 +558,10 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 				continue
 			}
 
-			updateRelatedTable, args, err := statementbuilder.Squirrel.Update(rel.Subject).Set(rel.ObjectName, createdResource["id"]).Where(
-				squirrel.Eq{
+			updateRelatedTable, args, err := statementbuilder.Squirrel.Update(rel.Subject).Set(goqu.Record{rel.ObjectName: createdResource["id"]}).Where(
+				goqu.Ex{
 					"reference_id": foreignObjectId,
-				}).ToSql()
+				}).ToSQL()
 
 			if err != nil {
 				log.Printf("Failed to create update foreign key sql: %s", err)

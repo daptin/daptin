@@ -1,12 +1,12 @@
 package server
 
 import (
-	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -87,10 +87,12 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 			resource.CheckErr(err, "Failed to create audit for [%v]", objectStateMachine.GetTableName())
 		}
 
-		s, v, err := statementbuilder.Squirrel.Update(typename+"_state").
-			Set("current_state", nextState).
-			Set("version", stateObject["version"].(int64)+1).
-			Where(squirrel.Eq{"reference_id": stateMachineId}).ToSql()
+		s, v, err := statementbuilder.Squirrel.Update(typename + "_state").
+			Set(goqu.Record{
+				"current_state": nextState,
+				"version":       stateObject["version"].(int64) + 1,
+			}).
+			Where(goqu.Ex{"reference_id": stateMachineId}).ToSQL()
 
 		_, err = db.Exec(s, v...)
 		if err != nil {

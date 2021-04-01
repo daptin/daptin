@@ -2,9 +2,9 @@ package resource
 
 import (
 	"fmt"
-	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/doug-martin/goqu/v9"
 	loopfsm "github.com/looplab/fsm"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -25,8 +25,8 @@ func (fsm *fsmManager) getStateMachineInstance(objType string, objId int64, mach
 
 	s, v, err := statementbuilder.Squirrel.Select("current_state", objType+"_smd", "is_state_of_"+objType, "id", "created_at", "permission").
 		From(objType + "_state").
-		Where(squirrel.Eq{"reference_id": machineInstanceId}).
-		Where(squirrel.Eq{"is_state_of_" + objType: objId}).ToSql()
+		Where(goqu.Ex{"reference_id": machineInstanceId}).
+		Where(goqu.Ex{"is_state_of_" + objType: objId}).ToSQL()
 
 	var res StateMachineInstance
 	if err != nil {
@@ -78,7 +78,7 @@ type LoopbookFsmDescription struct {
 
 func (fsm *fsmManager) stateMachineRunnerFor(currentState string, typeName string, machineId int64) (*loopfsm.FSM, error) {
 
-	s, v, err := statementbuilder.Squirrel.Select("initial_state", "events").From("smd").Where(squirrel.Eq{"id": machineId}).ToSql()
+	s, v, err := statementbuilder.Squirrel.Select("initial_state", "events").From("smd").Where(goqu.Ex{"id": machineId}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (fsm *fsmManager) ApplyEvent(subject map[string]interface{}, stateMachineEv
 }
 func ReferenceIdToIntegerId(typeName string, referenceId string, db database.DatabaseConnection) (int64, error) {
 
-	s, v, err := statementbuilder.Squirrel.Select("id").From(typeName).Where(squirrel.Eq{"reference_id": referenceId}).ToSql()
+	s, v, err := statementbuilder.Squirrel.Select("id").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
 	if err != nil {
 		return 0, err
 	}

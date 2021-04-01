@@ -10,6 +10,7 @@ import (
 	"github.com/daptin/daptin/server/jwt"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
@@ -191,14 +192,27 @@ func CheckErr(err error, message ...interface{}) {
 	}
 }
 
-var UserSelectQuery, _, _ = statementbuilder.Squirrel.Select("ug.reference_id as \"groupreferenceid\"",
-	"uug.reference_id as \"relationreferenceid\"", "uug.permission").From("usergroup ug").
-	Join("user_account_user_account_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id").Where("uug.user_account_id = ?", 1).ToSql()
+var UserSelectQuery  = statementbuilder.Squirrel.Select(
+	goqu.I("ug.reference_id").As("groupreferenceid"),
+	goqu.I("uug.reference_id").As("relationreferenceid"),
+	goqu.I("uug.permission")).
+	From(goqu.T("usergroup").As("ug")).
+	Join(goqu.T("user_account_user_account_id_has_usergroup_usergroup_id").As("uug"),
+		goqu.On(goqu.Ex{
+			"uug.usergroup_id": goqu.I("ug.id"),
+		}))
 
 func PrepareAuthQueries() {
-	UserSelectQuery, _, _ = statementbuilder.Squirrel.Select("ug.reference_id as \"groupreferenceid\"",
-		"uug.reference_id as \"relationreferenceid\"", "uug.permission").From("usergroup ug").
-		Join("user_account_user_account_id_has_usergroup_usergroup_id uug on uug.usergroup_id = ug.id").Where("uug.user_account_id = ?", 1).ToSql()
+	UserSelectQuery = statementbuilder.Squirrel.Select(
+		goqu.I("ug.reference_id").As("groupreferenceid"),
+		goqu.I("uug.reference_id").As("relationreferenceid"),
+		goqu.I("uug.permission")).
+		From(goqu.T("usergroup").As("ug")).
+		Join(
+			goqu.T("user_account_user_account_id_has_usergroup_usergroup_id").As("uug"),
+			goqu.On(goqu.Ex{
+				"uug.usergroup_id": goqu.I("ug.id"),
+			}))
 
 }
 
@@ -258,7 +272,10 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			var userGroups []GroupPermission
 			if err != nil || cachedUser == nil {
 
-				sql, args, err := statementbuilder.Squirrel.Select("u.id", "u.reference_id").From("user_account u").Where("email = ?", email).ToSql()
+				sql, args, err := statementbuilder.Squirrel.Select(goqu.I("u.id"),
+					goqu.I("u.reference_id")).
+					From(goqu.T("user_account").As("u")).Where(
+					goqu.Ex{"email": email}).ToSQL()
 				if err != nil {
 					log.Errorf("Failed to create select query for user table")
 					return false, true, req
@@ -319,7 +336,8 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 					args = []interface{}{userId}
 
-					rows, err := a.db.Queryx(UserSelectQuery, args...)
+					query, args1, err := UserSelectQuery.Where(goqu.Ex{"uug.user_account_id": userId}).ToSQL()
+					rows, err := a.db.Queryx(query, args1...)
 
 					if err != nil {
 						log.Errorf("Failed to get user group permissions: %v", err)

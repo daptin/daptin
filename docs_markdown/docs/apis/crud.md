@@ -15,80 +15,36 @@ Daptin exposes various endpoints for each entity defined in the schema:
 
 All endpoints allow authentication using the Authorization Header.
 
-## API Overview
-
-### CRUD API
-
-Read/Create/Update/Delete
-
-| GET    | /api/{entityName}                                         | Query Params                          | Request Body                                                                                  | Description                                                                                           |
-| ------ | --------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| GET    | /api/{entityName}                                         | page[size]= page[number] query filter |                                                                                                    | [Detailed documentation](#read)                                                                                           |
-| POST   | /api/{entityName}                                         |                                       |                                                                                               | Find all rows, paginated with query and filters [Example](#create)                                                       |
-| PATCH  | /api/{entityName}/{id}                                    |                                       | {"attributes": { ...{fields} } "type": "{entityType} }                                                   | Update row by reference id [Example](#update)                                                                             |
-| PUT    | /api/{entityName}/{id}                                    |                                       | {"attributes": { } "type": "{entityType} }                                                    | Update row by reference id  [Example](#update)                                                                             |
-| DELETE | /api/{entityName}/{id}                                    |                                       |                                                                                               | Delete a row  [Example](#delete)                                                                                           |
-
-
-### Action API
-
-
-| GET    | /action/{entityName}/{actionName}                         | Query Params                          | Request Body                                                                                  | Description                                                                                           |
-| ------ | --------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| POST   | /api/{entityName}/                                         | action parameters |     Action Parameters| Execute action |
-
-### Relation APIs
-
-
-| Method | Path | Query params  | Request body | Description |
-| ------ | ---- | ------------- | ------------ | ----------- |
-| GET    | /api/{entityName}/{id}/{relationName}                     | page[size]= page[number] query filter |                                                                                               | Find all related rows by relation name, eg, "posts" of a user                                         |
-| DELETE | /api/{entityName}/{id}/{relationName}                     |                                       | {"id": , "type":  }                                                                           | Delete a related row, eg: delete post of a user. this only removes a relation and not the actual row. |
-| GET    | /action/{entityName}/{actionName}                         | Parameters for action                 |                                                                                               | Invoke an action on an entity                                                                         |
-| POST   | /action/{entityName}/{actionName}                         |                                       | { "attribute": { Parameters for action }, "id": "< object id >" type: "< entity type >" }     | Invoke an action on an entity                                                                         |
-
-
-### Aggregate API
-
-| Method | Path | Query params  | Request body | Description |
-| ------ | ---- | ------------- | ------------ | ----------- |
-| GET   | /stats/{typeName}         |  group/filter/join/column/timestamp/timefrom/timeto/order     |         | Run aggregate function over entity table  |
-
-
-### State machine APIs
-
-Enabled for the entities for which you have enabled state machines
-
-| Method | Path | Query params  | Request body | Description |
-| ------ | ---- | ------------- | ------------ | ----------- |
-| POST   | /track/start/{stateMachineId}                             |                                       | { "id": " < reference id >", type: " < entity type > " }                                      | Start tracking according to the state machine for an object                                           |
-| POST   | /track/event/{typename}/{objectStateId}/{eventName}       |                                       |                                                                                               | Invoke an event on a particular track of the state machine for a object                               |
-
-
-### Websocket API (wip)
-
-Listed to incoming updates to data over websocket live
-
-| Method | Path | Query params  | Request body | Description |
-| ------ | ---- | ------------- | ------------ | ----------- |
-| GET    | /live                                                     |                                       |                                                                                               | Initiate a web socket connection                                                                      |
-
-
-### Metadata API
-
-Meatadata APIs expose information about the daptin server itself
-
-| Method | Path | Query params  | Request body | Description |
-| ------ | ---- | ------------- | ------------ | ----------- |
-| GET    | /apispec.raml                                             |                                       |                                                                                               | RAML Spec for all API's  exposed by the current instance                                                                             |
-| GET    | /ping                                                     |                                       |                                                                                               | Replies with PONG, Endpoint for liveness probe                                                            |
-| GET    | /statistics                                                     |                                       |                                                                                               | Replies with PONG, Endpoint for healht check probe                                                            |
-
 
 
 ## Read
 
 ### Query Parameters
+
+#### ?fields=col1,col2
+
+Include values for columns col1 and col2. Skip other columns in responsee
+
+#### ?filter=value
+
+Filter results by searching `value` in indexed label columns in the table
+
+#### ?query=[QueryObject]
+
+- QueryObject
+
+    `{"column": "col1", "operator": "is", "value": "value 1"}`
+
+All objects are ANDed together in the query
+
+List of [all operators here](#Filtering)
+
+#### ?included_relations=column_name1,column_name2
+
+Fetch associated second level row, or asset object and return as part of included objects in the response
+
+Use
+
 
 | Name               |  parameter type          |  default value |  example value                                            |
 |--------------------|--------------------------|----------------|-----------------------------------------------------------|
@@ -97,7 +53,7 @@ Meatadata APIs expose information about the daptin server itself
 | query              |  json base64             |  []            | [{"column": "name", "operator": "is", "value": "england"}] |
 | group              |  string                  |  -             |  [{"column": "name", "order": "desc"}]                     |
 | included_relations |  comma separated string  |  -             |  user post author                                         |
-| sort               |  comma seaparated string |  -             |  created_at amount guest_count                            |
+| sort               |  comma separated string |  -             |  created_at amount guest_count                            |
 | filter             |  string                  |  -             |  england                                                  |
 
 
@@ -215,7 +171,7 @@ Meatadata APIs expose information about the daptin server itself
 
 ### Filtering
 
-Used to search items in a table that matche the filter's conditions. Filters follow the syntax `query=[{"column": "<column_name>", "operator": "<compare-operator>", "value":"<value>"}]`
+Used to search items in a table that match the filter's conditions. Filters follow the syntax `query=[{"column": "<column_name>", "operator": "<compare-operator>", "value":"<value>"}]`
 
 | Daptin operator|  SQL compare operator  |
 |----------------|------------------------|
@@ -226,7 +182,7 @@ Used to search items in a table that matche the filter's conditions. Filters fol
 | before         |  <                     |
 | less then      |  <                     |
 | after          |  >                     |
-|  more then     |  >                     |
+| more then     |  >                     |
 |  any of        |  in                    |
 |  none of       |  not in                |
 |  is empty      |  is null               |
@@ -648,3 +604,75 @@ Execute an action on an entity type or instance
     response = requests.get('/api/<EntityName>/<ReferenceId>/<RelationName>', headers=headers, params=params)
 
     ```
+
+
+## API Overview
+
+### CRUD API
+
+Read/Create/Update/Delete
+
+| GET    | /api/{entityName}                                         | Query Params                          | Request Body                                                                                  | Description                                                                                           |
+| ------ | --------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| GET    | /api/{entityName}                                         | page[size]= page[number] query filter |                                                                                                    | [Detailed documentation](#read)                                                                                           |
+| POST   | /api/{entityName}                                         |                                       |                                                                                               | Find all rows, paginated with query and filters [Example](#create)                                                       |
+| PATCH  | /api/{entityName}/{id}                                    |                                       | {"attributes": { ...{fields} } "type": "{entityType} }                                                   | Update row by reference id [Example](#update)                                                                             |
+| PUT    | /api/{entityName}/{id}                                    |                                       | {"attributes": { } "type": "{entityType} }                                                    | Update row by reference id  [Example](#update)                                                                             |
+| DELETE | /api/{entityName}/{id}                                    |                                       |                                                                                               | Delete a row  [Example](#delete)                                                                                           |
+
+
+### Action API
+
+
+| GET    | /action/{entityName}/{actionName}                         | Query Params                          | Request Body                                                                                  | Description                                                                                           |
+| ------ | --------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| POST   | /api/{entityName}/                                         | action parameters |     Action Parameters| Execute action |
+
+### Relation APIs
+
+
+| Method | Path | Query params  | Request body | Description |
+| ------ | ---- | ------------- | ------------ | ----------- |
+| GET    | /api/{entityName}/{id}/{relationName}                     | page[size]= page[number] query filter |                                                                                               | Find all related rows by relation name, eg, "posts" of a user                                         |
+| DELETE | /api/{entityName}/{id}/{relationName}                     |                                       | {"id": , "type":  }                                                                           | Delete a related row, eg: delete post of a user. this only removes a relation and not the actual row. |
+| GET    | /action/{entityName}/{actionName}                         | Parameters for action                 |                                                                                               | Invoke an action on an entity                                                                         |
+| POST   | /action/{entityName}/{actionName}                         |                                       | { "attribute": { Parameters for action }, "id": "< object id >" type: "< entity type >" }     | Invoke an action on an entity                                                                         |
+
+
+### Aggregate API
+
+| Method | Path | Query params  | Request body | Description |
+| ------ | ---- | ------------- | ------------ | ----------- |
+| GET   | /stats/{typeName}         |  group/filter/join/column/timestamp/timefrom/timeto/order     |         | Run aggregate function over entity table  |
+
+
+### State machine APIs
+
+Enabled for the entities for which you have enabled state machines
+
+| Method | Path | Query params  | Request body | Description |
+| ------ | ---- | ------------- | ------------ | ----------- |
+| POST   | /track/start/{stateMachineId}                             |                                       | { "id": " < reference id >", type: " < entity type > " }                                      | Start tracking according to the state machine for an object                                           |
+| POST   | /track/event/{typename}/{objectStateId}/{eventName}       |                                       |                                                                                               | Invoke an event on a particular track of the state machine for a object                               |
+
+
+### Websocket API (wip)
+
+Listed to incoming updates to data over websocket live
+
+| Method | Path | Query params  | Request body | Description |
+| ------ | ---- | ------------- | ------------ | ----------- |
+| GET    | /live                                                     |                                       |                                                                                               | Initiate a web socket connection                                                                      |
+
+
+### Metadata API
+
+Meatadata APIs expose information about the daptin server itself
+
+| Method | Path | Query params  | Request body | Description |
+| ------ | ---- | ------------- | ------------ | ----------- |
+| GET    | /apispec.raml                                             |                                       |                                                                                               | RAML Spec for all API's  exposed by the current instance                                                                             |
+| GET    | /ping                                                     |                                       |                                                                                               | Replies with PONG, Endpoint for liveness probe                                                            |
+| GET    | /statistics                                                     |                                       |                                                                                               | Replies with PONG, Endpoint for healht check probe                                                            |
+
+

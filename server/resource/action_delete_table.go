@@ -3,8 +3,8 @@ package resource
 import (
 	"context"
 	"fmt"
-	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/pkg/errors"
 	"log"
 	"net/http"
@@ -85,7 +85,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 			if err != nil {
 				errorsList = append(errorsList, err)
 			}
-			refId, err := d.cruds["world"].GetReferenceIdByWhereClause("world", squirrel.Eq{"table_name": relation.GetJoinTableName()})
+			refId, err := d.cruds["world"].GetReferenceIdByWhereClause("world", goqu.Ex{"table_name": relation.GetJoinTableName()})
 			if len(refId) < 1 {
 				errorsList = append(errorsList, fmt.Errorf("failed to find reference id of the join table '%s' when deleting table '%s'", relation.GetJoinTableName(), tableSchema.TableName))
 			}

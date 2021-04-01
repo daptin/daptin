@@ -3,18 +3,19 @@ package resource
 import (
 	"fmt"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/exp"
 	"strconv"
 	"strings"
 
 	"encoding/base64"
-	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
 )
 
 func (dr *DbResource) GetTotalCount() uint64 {
-	s, v, err := statementbuilder.Squirrel.Select("count(*)").From(dr.model.GetName()).ToSql()
+	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(dr.model.GetName()).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to generate count query for %v: %v", dr.model.GetName(), err)
 		return 0
@@ -27,9 +28,9 @@ func (dr *DbResource) GetTotalCount() uint64 {
 	return count
 }
 
-func (dr *DbResource) GetTotalCountBySelectBuilder(builder squirrel.SelectBuilder) uint64 {
+func (dr *DbResource) GetTotalCountBySelectBuilder(builder *goqu.SelectDataset) uint64 {
 
-	s, v, err := builder.ToSql()
+	s, v, err := builder.ToSQL()
 	//log.Infof("Count query: %v == %v", s, v)
 	if err != nil {
 		log.Errorf("Failed to generate count query for %v: %v", dr.model.GetName(), err)
@@ -60,6 +61,16 @@ type Query struct {
 type Group struct {
 	ColumnName string `json:"column"`
 	Order      string `json:"order"`
+}
+
+type join struct {
+	table     exp.Expression
+	condition exp.JoinCondition
+}
+
+type column struct {
+	originalvalue interface{}
+	reference     string
 }
 
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
@@ -204,7 +215,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	//log.Infof("Get all resource type: %v\n", tableModel)
 
 	cols := tableModel.GetColumns()
-	finalCols := make([]string, 0)
+	finalCols := make([]column, 0)
 	//log.Infof("Cols: %v", cols)
 
 	prefix := dr.model.GetName() + "."
@@ -212,7 +223,10 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 		for _, col := range cols {
 			if !col.ExcludeFromApi && reqFieldMap[col.ColumnName] && col.ColumnName != "permission" && col.ColumnName != "reference_id" {
-				finalCols = append(finalCols, col.ColumnName)
+				finalCols = append(finalCols, column{
+					originalvalue: goqu.C(col.ColumnName),
+					reference:     col.ColumnName,
+				})
 			}
 		}
 	} else {
@@ -220,7 +234,10 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			if col.ExcludeFromApi || col.ColumnName == "permission" || col.ColumnName == "reference_id" || col.ColumnName == "id" {
 				continue
 			}
-			finalCols = append(finalCols, col.ColumnName)
+			finalCols = append(finalCols, column{
+				originalvalue: goqu.C(col.ColumnName),
+				reference:     col.ColumnName,
+			})
 		}
 	}
 
@@ -232,29 +249,55 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 
 	idColumn := fmt.Sprintf("%s.id", tableModel.GetTableName())
-	distinctIdColumn := fmt.Sprintf("distinct(%s.id)", tableModel.GetTableName())
+	distinctIdColumn := goqu.L(fmt.Sprintf("distinct(%s.id)", tableModel.GetTableName()))
 	if isRelatedGroupRequest {
 		//log.Infof("Switch permission to join table j1 instead of %v%v", prefix, "permission")
 		if dr.model.GetName() == "usergroup" {
-			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName))
-			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as reference_id", relatedTableName, relatedTableName))
-			finalCols = append(finalCols, "usergroup.reference_id as relation_reference_id")
+			finalCols = append(finalCols, column{
+				originalvalue: goqu.I(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName)),
+				reference:     fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName),
+			})
+			finalCols = append(finalCols, column{
+				originalvalue: goqu.I(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id", relatedTableName, relatedTableName)).As("reference_id"),
+				reference:     fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id", relatedTableName, relatedTableName),
+			})
+			finalCols = append(finalCols,
+				column{
+					originalvalue: goqu.I("usergroup.reference_id").As("reference_id"),
+					reference:     "usergroup.reference_id as relation_reference_id",
+				},
+			)
 		} else {
-			finalCols = append(finalCols, "usergroup_id.permission")
-			finalCols = append(finalCols, fmt.Sprintf("%s.reference_id as relation_reference_id", relatedTableName))
-			finalCols = append(finalCols, fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id as reference_id", relatedTableName, relatedTableName))
+			finalCols = append(finalCols, column{
+				originalvalue: goqu.I("usergroup_id.permission"),
+				reference:     "usergroup_id.permission",
+			})
+			finalCols = append(finalCols, column{
+				originalvalue: goqu.I(fmt.Sprintf("%s.reference_id", relatedTableName)).As("relation_reference_id"),
+				reference:     fmt.Sprintf("%s.reference_id", relatedTableName),
+			})
+			finalCols = append(finalCols, column{
+				originalvalue: goqu.I(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id", relatedTableName, relatedTableName)).As("reference_id"),
+				reference:     fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id", relatedTableName, relatedTableName),
+			})
 			joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", relatedTableName, relatedTableName)
-			distinctIdColumn = fmt.Sprintf("distinct(%s.id)", joinTableName)
+			distinctIdColumn = goqu.L(fmt.Sprintf("distinct(%s.id)", joinTableName))
 			idColumn = fmt.Sprintf("%s.id", joinTableName)
 		}
 		//		finalCols = append(finalCols, prefix+"reference_id as reference_id")
 	} else {
-		finalCols = append(finalCols, prefix+"permission")
-		finalCols = append(finalCols, prefix+"reference_id")
+		finalCols = append(finalCols, column{
+			originalvalue: goqu.I(prefix + "permission"),
+			reference:     prefix + "permission",
+		})
+		finalCols = append(finalCols, column{
+			originalvalue: goqu.I(prefix + "reference_id"),
+			reference:     prefix + "reference_id",
+		})
 
 	}
 
-	idQueryCols := []string{distinctIdColumn}
+	idQueryCols := []interface{}{distinctIdColumn}
 	for _, sort := range sortOrder {
 
 		if len(sort) == 0 {
@@ -268,44 +311,53 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		if strings.Index(sort, "(") == -1 {
 			sort = prefix + sort
 		}
-		idQueryCols = append(idQueryCols, sort)
+		idQueryCols = append(idQueryCols, goqu.I(sort))
 	}
 	queryBuilder := statementbuilder.Squirrel.Select(idQueryCols...).From(tableModel.GetTableName())
 	//queryBuilder = queryBuilder.From(tableModel.GetTableName())
-	var countQueryBuilder squirrel.SelectBuilder
-	countQueryBuilder = statementbuilder.Squirrel.Select("count(*)").From(tableModel.GetTableName()).Offset(0).Limit(1)
+	var countQueryBuilder *goqu.SelectDataset
+	countQueryBuilder = statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(tableModel.GetTableName()).Offset(0).Limit(1)
 
 	joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", tableModel.GetTableName(), tableModel.GetTableName())
 	if !isRelatedGroupRequest && tableModel.GetTableName() != "usergroup" {
+
 		countQueryBuilder = countQueryBuilder.LeftJoin(
-			fmt.Sprintf("%s %s on %s.id=%s.%s_id",
-				joinTableName, joinTableName, tableModel.GetTableName(), joinTableName, tableModel.GetTableName(),
-			))
+			goqu.T(joinTableName).As(joinTableName),
+			goqu.On(goqu.Ex{
+				fmt.Sprintf("%s.id", tableModel.GetTableName()): goqu.I(fmt.Sprintf("%s.%s_id", joinTableName, tableModel.GetTableName())),
+			},
+			),
+		)
+
 		queryBuilder = queryBuilder.LeftJoin(
-			fmt.Sprintf("%s %s on %s.id=%s.%s_id",
-				joinTableName, joinTableName, tableModel.GetTableName(), joinTableName, tableModel.GetTableName(),
-			))
+			goqu.T(joinTableName).As(joinTableName),
+			goqu.On(goqu.Ex{
+				fmt.Sprintf("%s.id", tableModel.GetTableName()): goqu.I(fmt.Sprintf("%s.%s_id", joinTableName, tableModel.GetTableName())),
+			},
+			),
+		)
+
 	}
 
 	if req.QueryParams["page[after]"] != nil && len(req.QueryParams["page[after]"]) > 0 {
 		id, err := dr.GetReferenceIdToId(dr.TableInfo().TableName, req.QueryParams["page[after]"][0])
 		if err != nil {
-			queryBuilder = queryBuilder.Where(squirrel.Gt{
-				dr.TableInfo().TableName + ".id": id,
-			}).Limit(pageSize)
+			queryBuilder = queryBuilder.Where(goqu.Ex{
+				dr.TableInfo().TableName + ".id": goqu.Op{"gt": id},
+			}).Limit(uint(pageSize))
 		}
 	} else if req.QueryParams["page[before]"] != nil && len(req.QueryParams["page[before]"]) > 0 {
 		id, err := dr.GetReferenceIdToId(dr.TableInfo().TableName, req.QueryParams["page[before]"][0])
 		if err != nil {
-			queryBuilder = queryBuilder.Where(squirrel.Lt{
-				dr.TableInfo().TableName + ".id": id,
-			}).Limit(pageSize)
+			queryBuilder = queryBuilder.Where(goqu.Ex{
+				dr.TableInfo().TableName + ".id": goqu.Op{"lt": id},
+			}).Limit(uint(pageSize))
 		}
 	} else {
-		queryBuilder = queryBuilder.Offset(pageNumber).Limit(pageSize)
+		queryBuilder = queryBuilder.Offset(uint(pageNumber)).Limit(uint(pageSize))
 	}
-	joins := make([]string, 0)
-	joinFilters := make([]interface{}, 0)
+	joins := make([]join, 0)
+	joinFilters := make([]goqu.Ex, 0)
 
 	infos := dr.model.GetColumns()
 
@@ -313,7 +365,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if len(filters) > 0 {
 
 		colsToAdd := make([]string, 0)
-		wheres := make([]interface{}, 0)
 
 		for _, col := range infos {
 			if col.IsIndexed && col.ColumnType == "name" || col.ColumnType == "label" || col.ColumnType == "email" {
@@ -322,21 +373,31 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 
 		if len(colsToAdd) > 0 {
-			colString := make([]string, 0)
+
+			queryExpressions := make([]goqu.Expression, 0)
+
 			for _, q := range filters {
+
 				if len(q) < 1 {
 					continue
 				}
 
 				for _, c := range colsToAdd {
-					colString = append(colString, fmt.Sprintf("%v like ?", prefix+c))
-					wheres = append(wheres, fmt.Sprint("%", q, "%"))
+
+					query := goqu.Ex{
+						prefix + c: goqu.Op{"like": fmt.Sprintf("%", q, "%")},
+					}
+					queryExpressions = append(queryExpressions, query)
 				}
 			}
-			if len(colString) > 0 {
-				queryBuilder = queryBuilder.Where("( "+strings.Join(colString, " or ")+")", wheres...)
-				countQueryBuilder = countQueryBuilder.Where("( "+strings.Join(colString, " or ")+")", wheres...)
+
+			if len(queryExpressions) > 0 {
+				queryBuilder = queryBuilder.Where(goqu.Or(queryExpressions...))
+				countQueryBuilder = countQueryBuilder.Where(goqu.Or(queryExpressions...))
+				//queryBuilder = queryBuilder.Where("( "+strings.Join(colString, " or ")+")", wheres...)
+				//countQueryBuilder = countQueryBuilder.Where("( "+strings.Join(colString, " or ")+")", wheres...)
 			}
+
 		}
 	}
 
@@ -385,7 +446,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			}
 			if ok {
 
-				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetObject(), []string{"id"}, "reference_id", queries)
+				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetObject(), []interface{}{"id"}, "reference_id", queries)
 				//log.Infof("Converted ids: %v", ids)
 				if err != nil {
 					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
@@ -397,22 +458,47 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 					if len(ids) < 1 {
 						continue
 					}
-					queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
-					countQueryBuilder = countQueryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
+					queryBuilder = queryBuilder.Where(goqu.Ex{rel.GetObjectName(): ids})
+					countQueryBuilder = countQueryBuilder.Where(goqu.Ex{rel.GetObjectName(): ids})
 					break
 
 				case "belongs_to":
 					finalResponseIsSingleObject = false
-					queryBuilder = queryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
-					countQueryBuilder = countQueryBuilder.Where(squirrel.Eq{rel.GetObjectName(): ids})
+					queryBuilder = queryBuilder.Where(goqu.Ex{rel.GetObjectName(): ids})
+					countQueryBuilder = countQueryBuilder.Where(goqu.Ex{rel.GetObjectName(): ids})
 					break
 
 				case "has_many":
-					wh := squirrel.Eq{}
+					wh := goqu.Ex{}
 					wh[rel.GetObjectName()+".id"] = ids
-					queryBuilder = queryBuilder.Join(rel.GetJoinString()).Where(wh)
-					countQueryBuilder = countQueryBuilder.Join(rel.GetJoinString()).Where(wh)
-					joins = append(joins, rel.GetJoinString())
+					queryBuilder = queryBuilder.
+						Join(
+							goqu.T(rel.GetJoinTableName()).As(rel.GetJoinTableName()),
+							goqu.On(goqu.Ex{
+								fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetSubjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetSubject())),
+							}),
+						).
+						Join(
+							goqu.T(rel.GetObject()).As(rel.GetObjectName()),
+							goqu.On(goqu.Ex{
+								fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetObjectName())),
+							}),
+						).Where(wh)
+
+					countQueryBuilder = countQueryBuilder.
+						Join(
+							goqu.T(rel.GetJoinTableName()).As(rel.GetJoinTableName()),
+							goqu.On(goqu.Ex{
+								fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetSubjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetSubject())),
+							}),
+						).
+						Join(
+							goqu.T(rel.GetObject()).As(rel.GetObjectName()),
+							goqu.On(goqu.Ex{
+								fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetObjectName())),
+							}),
+						).Where(wh)
+					joins = append(joins, GetJoins(rel)...)
 					joinFilters = append(joinFilters, wh)
 				}
 			}
@@ -443,10 +529,26 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				if len(subjectId) < 1 {
 					continue
 				}
-				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
-				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
-				joins = append(joins, rel.GetReverseJoinString())
-				joinFilters = append(joinFilters, squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
+
+				queryBuilder = queryBuilder.
+					Join(
+						goqu.T(rel.GetSubject()).As(rel.GetSubjectName()),
+						goqu.On(goqu.Ex{
+							fmt.Sprintf("%v.%v", rel.GetSubjectName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetObject())),
+						}),
+					).
+					Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
+
+				countQueryBuilder = countQueryBuilder.Join(
+					goqu.T(rel.GetSubject()).As(rel.GetSubjectName()),
+					goqu.On(goqu.Ex{
+						fmt.Sprintf("%v.%v", rel.GetSubjectName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetObject())),
+					}),
+				).
+					Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
+
+				joins = append(joins, GetReverseJoins(rel)...)
+				joinFilters = append(joinFilters, goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
 				break
 
 			case "belongs_to":
@@ -457,16 +559,28 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				if !ok || len(queries) < 1 {
 					continue
 				}
-				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), []string{"id"}, "reference_id", queries)
+				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), []interface{}{"id"}, "reference_id", queries)
 				if err != nil {
 					log.Errorf("Failed to convert [%v]refids to ids[%v]: %v", rel.GetSubject(), queries, err)
 					return nil, nil, nil, false, err
 				}
 
-				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".id": ids})
-				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".id": ids})
-				joins = append(joins, rel.GetReverseJoinString())
-				joinFilters = append(joinFilters, squirrel.Eq{rel.GetSubjectName() + ".id": ids})
+				queryBuilder = queryBuilder.
+					Join(
+						goqu.T(rel.GetSubject()).As(rel.GetSubjectName()),
+						goqu.On(goqu.Ex{
+							fmt.Sprintf("%v.%v", rel.GetSubjectName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetObject())),
+						}),
+					).
+					Where(goqu.Ex{rel.GetSubjectName() + ".id": ids})
+				countQueryBuilder = countQueryBuilder.Join(
+					goqu.T(rel.GetSubject()).As(rel.GetSubjectName()),
+					goqu.On(goqu.Ex{
+						fmt.Sprintf("%v.%v", rel.GetSubjectName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetObject())),
+					}),
+				).Where(goqu.Ex{rel.GetSubjectName() + ".id": ids})
+				joins = append(joins, GetReverseJoins(rel)...)
+				joinFilters = append(joinFilters, goqu.Ex{rel.GetSubjectName() + ".id": ids})
 				break
 			case "has_many":
 				subjectId := req.QueryParams[rel.GetSubject()+"_id"]
@@ -474,17 +588,40 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 					continue
 				}
 				//log.Infof("Has many [%v] : [%v] === %v", dr.model.GetName(), subjectId, req.QueryParams)
-				queryBuilder = queryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
-				countQueryBuilder = countQueryBuilder.Join(rel.GetReverseJoinString()).Where(squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
-				joins = append(joins, rel.GetReverseJoinString())
-				joinFilters = append(joinFilters, squirrel.Eq{rel.GetSubjectName() + ".reference_id": subjectId})
+				queryBuilder = queryBuilder.
+					Join(
+						goqu.T(rel.GetJoinTableName()).As(rel.GetJoinTableName()),
+						goqu.On(goqu.Ex{
+							fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetObject())),
+						}),
+					).
+					Join(
+						goqu.T(rel.GetSubject()).As(rel.GetSubjectName()),
+						goqu.On(goqu.Ex{
+							fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetSubjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetSubjectName())),
+						}),
+					).
+					Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
+				countQueryBuilder = countQueryBuilder.
+					Join(
+						goqu.T(rel.GetJoinTableName()).As(rel.GetJoinTableName()),
+						goqu.On(goqu.Ex{
+							fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetObject())),
+						})).
+					Join(
+						goqu.T(rel.GetSubject()).As(rel.GetSubjectName()),
+						goqu.On(goqu.Ex{
+							fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetSubjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetSubjectName())),
+						})).Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
+				joins = append(joins, GetReverseJoins(rel)...)
+				joinFilters = append(joinFilters, goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
 
 			}
 
 		}
 	}
 
-	orders := make([]string, 0)
+	orders := make([]exp.OrderedExpression, 0)
 	for _, so := range sortOrder {
 
 		if len(so) < 1 {
@@ -492,24 +629,24 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 		//log.Infof("Sort order: %v", so)
 		if so[0] == '-' {
-			ord := prefix + so[1:] + " desc"
+			//ord := prefix + so[1:] + " desc"
 			// queryBuilder = queryBuilder.OrderBy(ord)
 			// countQueryBuilder = countQueryBuilder.OrderBy(ord)
-			orders = append(orders, ord)
+			orders = append(orders, goqu.I(prefix+so[1:]).Desc())
 		} else {
 			if so[0] == '+' {
-				ord := prefix + so[1:] + " asc"
+				//ord := prefix + so[1:] + " asc"
 				// queryBuilder = queryBuilder.OrderBy(ord)
 				// countQueryBuilder = countQueryBuilder.OrderBy(ord)
-				orders = append(orders, ord)
+				orders = append(orders, goqu.I(prefix+so[1:]).Asc())
 			} else {
-				ord := prefix + so + " asc"
+				ord := prefix + so
 				if strings.ToLower(so) == "rand()" || strings.ToLower(so) == "random()" {
 					ord = so
 				}
 				// queryBuilder = queryBuilder.OrderBy(ord)
 				// countQueryBuilder = countQueryBuilder.OrderBy(ord)
-				orders = append(orders, ord)
+				orders = append(orders, goqu.I(ord).Asc())
 			}
 		}
 	}
@@ -525,7 +662,14 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		groupCount := len(groupReferenceIds)
 		groupParameters := ""
 
+		groupQueries := make([]goqu.Ex, 0)
+
 		if groupCount > 0 {
+			groupQueries = append(groupQueries, goqu.Ex{
+				fmt.Sprintf("%s.usergroup_id", joinTableName): goqu.Op{
+					"in": groupIds,
+				},
+			})
 			groupParameters = strings.Join(strings.Split(strings.Repeat("?", groupCount), ""), ",")
 			groupParameters = fmt.Sprintf(" or ((%s.permission & 32768) = 32768 and "+"%s.usergroup_id in ("+groupParameters+")) ",
 				joinTableName, joinTableName,
@@ -537,23 +681,22 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 		queryArgs = append(queryArgs, sessionUser.UserId)
 
-		queryBuilder = queryBuilder.Where(fmt.Sprintf("("+
-			"((%s.permission & 2) = 2)"+groupParameters+" ) or "+
+		queryBuilder = queryBuilder.Where(goqu.L(fmt.Sprintf("(((%s.permission & 2) = 2)"+
+			groupParameters+" ) or "+
 			"(%s.user_account_id = ? and (%s.permission & 256) = 256)",
-			tableModel.GetTableName(),
-			tableModel.GetTableName(), tableModel.GetTableName()),
-			queryArgs...)
+			tableModel.GetTableName(), tableModel.GetTableName(), tableModel.GetTableName(),
+		), queryArgs...))
 
-		countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("("+
+		countQueryBuilder = countQueryBuilder.Where(goqu.L(fmt.Sprintf("("+
 			"((%s.permission & 2) = 2)  "+groupParameters+" ) or "+
 			"(%s.user_account_id = ? and (%s.permission & 256) = 256)",
 			tableModel.GetTableName(),
 			tableModel.GetTableName(), tableModel.GetTableName()),
-			queryArgs...)
+			queryArgs...))
 
 	}
 
-	idsListQuery, args, err := queryBuilder.OrderBy(orders...).ToSql()
+	idsListQuery, args, err := queryBuilder.Order(orders...).ToSQL()
 	if err != nil {
 		return nil, nil, nil, false, err
 	}
@@ -562,13 +705,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	stmt, err := dr.connection.Preparex(idsListQuery)
 	if err != nil {
 		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
-		log.Errorf("Failed to prepare sql: %v", err)
+		log.Errorf("Failed to prepare sql 674: %v", err)
 		return nil, nil, nil, false, err
 	}
 	idsRow, err := stmt.Queryx(args...)
 	if err != nil {
 		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
-		log.Errorf("Failed to prepare sql: %v", err)
+		log.Errorf("Failed to prepare sql 680: %v", err)
 		return nil, nil, nil, false, err
 	}
 	ids := make([]int64, 0)
@@ -585,14 +728,18 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if len(languagePreferences) == 0 {
 
 		for i, col := range finalCols {
-			if strings.Index(col, ".") == -1 {
-				finalCols[i] = prefix + col
+			if strings.Index(col.reference, ".") == -1 {
+				finalCols[i] = column{
+					originalvalue: goqu.I(prefix + col.reference),
+					reference:     prefix + col.reference,
+				}
 			}
 		}
 
-		queryBuilder = statementbuilder.Squirrel.Select(finalCols...).From(tableModel.GetTableName()).Where(squirrel.Eq{
+		queryBuilder = statementbuilder.Squirrel.Select(ColumnToInterfaceArray(finalCols)...).From(tableModel.GetTableName()).Where(goqu.Ex{
 			idColumn: ids,
-		}).OrderBy(orders...)
+		}).Order(orders...)
+
 	} else {
 		var preferredLanguage = languagePreferences[0]
 		translateTableName := tableModel.GetTableName() + "_i18n"
@@ -605,71 +752,88 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 
 		//translatedColumns := make([]string, 0)
-		for i, colName := range finalCols {
-			if IsStandardColumn(colName) {
-				finalCols[i] = prefix + colName
+		for i, columnValue := range finalCols {
+			if IsStandardColumn(columnValue.reference) {
+				finalCols[i] = column{
+					originalvalue: goqu.I(prefix + columnValue.reference),
+					reference:     columnValue.reference,
+				}
 			} else {
-				if strings.Index(colName, ".") == -1 {
-					finalCols[i] = ifNullFunctionName + "(" + translateTableName + "." + colName + "," + prefix + colName + ") as " + colName
+				if strings.Index(columnValue.reference, ".") == -1 {
+					finalCols[i] = column{
+						originalvalue: goqu.L(ifNullFunctionName + "(" + translateTableName + "." + columnValue.reference + "," + prefix + columnValue.reference + ") as " + columnValue.reference),
+						reference:     columnValue.reference,
+					}
 				} else {
-					finalCols[i] = colName
+					finalCols[i] = columnValue
 				}
 			}
 		}
 
-		queryBuilder = statementbuilder.Squirrel.Select(finalCols...).From(tableModel.GetTableName()).
-			LeftJoin(translateTableName +
-				" on " + translateTableName + ".translation_reference_id = " + tableModel.GetTableName() + ".id" +
-				" and " + translateTableName + ".language_id = " + "'" + preferredLanguage + "'").Where(squirrel.Eq{
-			idColumn: ids,
-		}).OrderBy(orders...)
+		queryBuilder = statementbuilder.Squirrel.Select(ColumnToInterfaceArray(finalCols)...).
+			From(tableModel.GetTableName()).
+			LeftJoin(
+				goqu.T(translateTableName),
+				goqu.On(goqu.Ex{
+					translateTableName + ".translation_reference_id": tableModel.GetTableName() + ".id",
+					translateTableName + ".language_id":              "'" + preferredLanguage + "'",
+				})).
+			Where(goqu.Ex{
+				idColumn: ids,
+			}).Order(orders...)
 
 	}
 
 	if len(joins) > 0 {
 		for _, j := range joins {
-			queryBuilder = queryBuilder.Join(j)
+			queryBuilder = queryBuilder.Join(j.table, j.condition)
 		}
 		for _, w := range joinFilters {
 			queryBuilder = queryBuilder.Where(w)
 		}
 	}
 
-	sql1, args, err := queryBuilder.ToSql()
-	//log.Printf("Query: %v == %v", sql1, args)
+	results := make([]map[string]interface{}, 0)
+	includes := make([][]map[string]interface{}, 0)
+	total1 := uint64(0)
+	if len(ids) > 0 {
 
-	if err != nil {
-		log.Infof("Error: %v", err)
-		return nil, nil, nil, false, err
+		sql1, args, err := queryBuilder.ToSQL()
+		//log.Printf("Query: %v == %v", sql1, args)
+
+		if err != nil {
+			log.Infof("Error: %v", err)
+			return nil, nil, nil, false, err
+		}
+
+		stmt, err = dr.connection.Preparex(sql1)
+		if err != nil {
+			log.Infof("Findall select query sql 762: %v == %v", sql1, args)
+			log.Errorf("Failed to prepare sql 763: %v", err)
+			return nil, nil, nil, false, err
+		}
+		defer func() {
+			err = stmt.Close()
+			CheckErr(err, "Failed to close statement")
+		}()
+		rows, err := stmt.Queryx(args...)
+
+		if err != nil {
+			log.Infof("Error: %v", err)
+			return nil, nil, nil, false, err
+		}
+		defer func() {
+			err = rows.Close()
+			CheckErr(err, "Failed to close rows")
+		}()
+
+		results, includes, err = dr.ResultToArrayOfMap(rows, dr.model.GetColumnMap(), includedRelations)
+		total1 = dr.GetTotalCountBySelectBuilder(countQueryBuilder)
+
 	}
 
-	stmt, err = dr.connection.Preparex(sql1)
-	if err != nil {
-		log.Infof("Findall select query sql: %v == %v", sql1, args)
-		log.Errorf("Failed to prepare sql: %v", err)
-		return nil, nil, nil, false, err
-	}
-	defer func() {
-		err = stmt.Close()
-		CheckErr(err, "Failed to close statement")
-	}()
-	rows, err := stmt.Queryx(args...)
-
-	if err != nil {
-		log.Infof("Error: %v", err)
-		return nil, nil, nil, false, err
-	}
-	defer func() {
-		err = rows.Close()
-		CheckErr(err, "Failed to close rows")
-	}()
-
-	//log.Infof("Included relations: %v", includedRelations)
-	results, includes, err := dr.ResultToArrayOfMap(rows, dr.model.GetColumnMap(), includedRelations)
 	//log.Infof("Found: %d results", len(results))
 	//log.Infof("Results: %v", results)
-
-	total1 := dr.GetTotalCountBySelectBuilder(countQueryBuilder)
 
 	if pageSize < 1 {
 		pageSize = 10
@@ -685,10 +849,115 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 }
 
-func (dr *DbResource) addFilters(queryBuilder squirrel.SelectBuilder,
-		countQueryBuilder squirrel.SelectBuilder,
-		queries []Query, prefix string) (
-		squirrel.SelectBuilder, squirrel.SelectBuilder) {
+func GetJoins(rel api2go.TableRelation) []join {
+	switch rel.Relation {
+	case "belongs_to":
+		return []join{
+			{
+				table: goqu.T(rel.GetObject()).As(rel.GetObjectName()),
+				condition: goqu.On(goqu.Ex{
+					fmt.Sprintf("%v.%v", rel.GetSubject(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.%v", rel.GetObjectName(), "id")),
+				}),
+			},
+		}
+	case "has_one":
+		return []join{
+			{
+				table: goqu.T(rel.GetObject()).As(rel.GetObjectName()),
+				condition: goqu.On(goqu.Ex{
+					fmt.Sprintf("%v.%v", rel.GetSubject(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.%v", rel.GetObjectName(), "id")),
+				}),
+			},
+		}
+
+	case "has_many":
+		fallthrough
+	case "has_many_and_belongs_to_many":
+		return []join{
+			{
+				table: goqu.T(rel.GetJoinTableName()).As(rel.GetJoinTableName()),
+				condition: goqu.On(goqu.Ex{
+					fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetSubjectName()): goqu.I(fmt.Sprintf("%v.%v", rel.GetSubject(), "id")),
+				}),
+			},
+			{
+				table: goqu.T(rel.GetObject()).As(rel.GetObjectName()),
+				condition: goqu.On(goqu.Ex{
+					fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.%v", rel.GetObjectName(), "id")),
+				}),
+			},
+		}
+
+	}
+	return []join{}
+}
+
+func GetReverseJoins(rel api2go.TableRelation) []join {
+	switch rel.Relation {
+	case "belongs_to":
+		return []join{
+			{
+				table: goqu.T(rel.GetSubject()).As(rel.GetSubjectName()),
+				condition: goqu.On(goqu.Ex{
+					fmt.Sprintf("%v.%v", rel.GetSubjectName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.%v", rel.GetObject(), "id")),
+				}),
+			},
+		}
+	case "has_one":
+		return []join{
+			{
+				table: goqu.T(rel.GetSubject()).As(rel.GetSubjectName()),
+				condition: goqu.On(goqu.Ex{
+					fmt.Sprintf("%v.%v", rel.GetSubjectName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.%v", rel.GetObject(), "id")),
+				}),
+			},
+		}
+
+	case "has_many":
+		fallthrough
+	case "has_many_and_belongs_to_many":
+		return []join{
+			{
+				table: goqu.T(rel.GetJoinTableName()).As(rel.GetJoinTableName()),
+				condition: goqu.On(goqu.Ex{
+					fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.%v", rel.GetObject(), "id")),
+				}),
+			},
+			{
+				table: goqu.T(rel.GetSubject()).As(rel.GetSubjectName()),
+				condition: goqu.On(goqu.Ex{
+					fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetSubjectName()): goqu.I(fmt.Sprintf("%v.%v", rel.GetSubjectName(), "id")),
+				}),
+			},
+		}
+
+	}
+	return []join{}
+}
+
+var OperatorMap = map[string]string{
+	"contains":     "like",
+	"like":         "like",
+	"begins with":  "like",
+	"ends with":    "like",
+	"not contains": "notlike",
+	"not like":     "notlike",
+	"is":           "is",
+	"in":           "in",
+	"is not":       "isnot",
+	"before":       "lt",
+	"after":        "gt",
+	"more then":    "gt",
+	"any of":       "any of",
+	"none of":      "none of",
+	"less then":    "lt",
+	"is empty":     "is nil",
+	"is true":      "is true",
+	"is false":     "is false",
+}
+
+func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBuilder *goqu.SelectDataset,
+	queries []Query, prefix string) (*goqu.SelectDataset, *goqu.SelectDataset) {
 
 	if len(queries) == 0 {
 		return queryBuilder, countQueryBuilder
@@ -734,72 +1003,129 @@ func (dr *DbResource) addFilters(queryBuilder squirrel.SelectBuilder,
 
 		}
 
-		switch filterQuery.Operator {
-		case "contains":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v%%", filterQuery.Value))
-			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v%%", filterQuery.Value))
-		case "like":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v", filterQuery.Value))
-			countQueryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v", filterQuery.Value))
-		case "begins with":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v%%", filterQuery.Value))
-			queryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v%%", filterQuery.Value))
-		case "ends with":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v", filterQuery.Value))
-			queryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v", filterQuery.Value))
-		case "not contains":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
-		case "not like":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
-			queryBuilder = countQueryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
-		case "is":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		case "in":
-			//queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (?)", prefix+filterQuery.ColumnName), filterQuery.Value)
-			queryBuilder = queryBuilder.Where(squirrel.Eq{prefix + filterQuery.ColumnName: filterQuery.Value.([]string)})
-			countQueryBuilder = countQueryBuilder.Where(squirrel.Eq{prefix + filterQuery.ColumnName: filterQuery.Value.([]string)})
-		case "is not":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		case "before":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		case "after":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		case "more then":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		case "any of":
-			vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
-			valsInterface := make([]interface{}, len(vals))
-			for i, v := range vals {
-				valsInterface[i] = v
-			}
-			questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
-			countQueryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
-		case "none of":
-			vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
-			valsInterface := make([]interface{}, len(vals))
-			for i, v := range vals {
-				valsInterface[i] = v
-			}
-			questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
-			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s not in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
-		case "less then":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		case "is empty":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
-			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
-		case "is not empty":
-			queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
-			countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
+		opValue, ok := OperatorMap[filterQuery.Operator]
+		var actualvalue interface{}
+		query := goqu.I(prefix + filterQuery.ColumnName)
+
+		actualvalue = filterQuery.Value
+		if !ok {
+			opValue = filterQuery.Operator
 		}
+
+		if BeginsWith(opValue, "is") {
+			parts := strings.Split(opValue, " ")
+			if len(parts) > 1 {
+				switch parts[1] {
+				case "true":
+					actualvalue = true
+				case "false":
+					actualvalue = false
+				case "empty":
+					actualvalue = nil
+				case "nil":
+					actualvalue = nil
+				}
+			}
+			switch parts[0] {
+			case "is":
+				opValue = "="
+			case "not":
+				query.IsNot(actualvalue)
+			}
+		}
+
+		if opValue == "=" {
+
+			queryBuilder = queryBuilder.Where(goqu.Ex{
+				prefix + filterQuery.ColumnName: actualvalue,
+			})
+
+			countQueryBuilder = countQueryBuilder.Where(goqu.Ex{
+				prefix + filterQuery.ColumnName: actualvalue,
+			})
+
+		} else {
+
+			queryBuilder = queryBuilder.Where(goqu.Ex{
+				prefix + filterQuery.ColumnName: goqu.Op{
+					opValue: actualvalue,
+				},
+			})
+
+			countQueryBuilder = countQueryBuilder.Where(goqu.Ex{
+				prefix + filterQuery.ColumnName: goqu.Op{
+					opValue: actualvalue,
+				},
+			})
+
+		}
+
+		//switch filterQuery.Operator {
+		//case "contains":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v%%", filterQuery.Value))
+		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v%%", filterQuery.Value))
+		//case "like":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v", filterQuery.Value))
+		//	countQueryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v", filterQuery.Value))
+		//case "begins with":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v%%", filterQuery.Value))
+		//	queryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v%%", filterQuery.Value))
+		//case "ends with":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v", filterQuery.Value))
+		//	queryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v", filterQuery.Value))
+		//case "not contains":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
+		//case "not like":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
+		//	queryBuilder = countQueryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
+		//case "is":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//case "in":
+		//	//queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (?)", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//	queryBuilder = queryBuilder.Where(goqu.Ex{prefix + filterQuery.ColumnName: filterQuery.Value.([]string)})
+		//	countQueryBuilder = countQueryBuilder.Where(goqu.Ex{prefix + filterQuery.ColumnName: filterQuery.Value.([]string)})
+		//case "is not":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//case "before":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//case "after":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//case "more then":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//case "any of":
+		//	vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
+		//	valsInterface := make([]interface{}, len(vals))
+		//	for i, v := range vals {
+		//		valsInterface[i] = v
+		//	}
+		//	questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
+		//	countQueryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
+		//case "none of":
+		//	vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
+		//	valsInterface := make([]interface{}, len(vals))
+		//	for i, v := range vals {
+		//		valsInterface[i] = v
+		//	}
+		//	questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
+		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s not in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
+		//case "less then":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
+		//case "is empty":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
+		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
+		//case "is not empty":
+		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
+		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
+		//}
 	}
 
 	return queryBuilder, countQueryBuilder

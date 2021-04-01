@@ -2,10 +2,10 @@ package resource
 
 import (
 	"errors"
-	"github.com/Masterminds/squirrel"
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/doug-martin/goqu/v9"
 	"log"
 	"strings"
 	"sync"
@@ -33,7 +33,7 @@ func (diu *DaptinImapUser) Username() string {
 func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, error) {
 
 	var boxes []backend.Mailbox
-	mailBoxes, err := diu.dbResource["mail_box"].GetAllObjectsWithWhere("mail_box", squirrel.Eq{"mail_account_id": diu.mailAccountId})
+	mailBoxes, err := diu.dbResource["mail_box"].GetAllObjectsWithWhere("mail_box", goqu.Ex{"mail_account_id": diu.mailAccountId})
 	if err != nil || len(mailBoxes) == 0 {
 		return boxes, err
 	}
@@ -168,7 +168,7 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 
 	box, err := diu.dbResource["mail_box"].GetAllObjectsWithWhere("mail_box",
-		squirrel.Eq{
+		goqu.Ex{
 			"mail_account_id": diu.mailAccountId,
 			"name":            name,
 		},
@@ -233,7 +233,7 @@ func (diu *DaptinImapUser) CreateMailbox(name string) error {
 
 	log.Printf("Creating mailbox with name [%v] for mail account id [%v]", name, diu.mailAccountId)
 	box, err := diu.dbResource["mail_box"].GetAllObjectsWithWhere("mail_box",
-		squirrel.Eq{
+		goqu.Ex{
 			"mail_account_id": diu.mailAccountId,
 			"name":            name,
 		},

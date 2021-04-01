@@ -357,6 +357,9 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
 func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.Tx) error {
 
 	for i, c := range tableInfo.Columns {
+		if c.ColumnType == "truefalse" {
+			c.DataType = "bool"
+		}
 		if c.ColumnName == "" && c.Name != "" {
 			tableInfo.Columns[i].ColumnName = SmallSnakeCaseText(c.Name)
 		} else if c.ColumnName != "" && c.Name == "" {

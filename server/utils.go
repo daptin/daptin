@@ -9,6 +9,7 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/doug-martin/goqu/v9"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
@@ -73,10 +74,27 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 	ts := make([]resource.TableInfo, 0)
 
-	sql, args, err := statementbuilder.Squirrel.Select("table_name", "permission", "default_permission",
-		"world_schema_json", "is_top_level", "is_hidden", "is_state_tracking_enabled", "default_order",
-	).From("world").Where("table_name not like '%_has_%'").Where("table_name not like '%_audit'").Where("table_name not in (?,?,?)",
-		"world", "action", "usergroup").ToSql()
+	sql, args, err := statementbuilder.Squirrel.
+		Select("table_name", "permission", "default_permission",
+			"world_schema_json", "is_top_level", "is_hidden", "is_state_tracking_enabled", "default_order",
+		).
+		From("world").
+		Where(goqu.Ex{
+			"table_name": goqu.Op{
+				"notlike": "%_has_%",
+			},
+		}).
+		Where(goqu.Ex{
+			"table_name": goqu.Op{
+				"notlike": "%_audit",
+			},
+		}).
+		Where(goqu.Ex{
+			"table_name": goqu.Op{
+				"notin": []string{"world", "action", "usergroup"},
+			},
+		}).
+		ToSQL()
 	if err != nil {
 		return nil, err
 	}

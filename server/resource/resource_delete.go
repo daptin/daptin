@@ -2,12 +2,12 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"os"
 
 	"fmt"
-	"github.com/Masterminds/squirrel"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"net/http"
@@ -129,7 +129,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 				joinTableName := rel.GetJoinTableName()
 				//columnName := rel.GetSubjectName()
 
-				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id", rel.GetObjectName()).From(joinTableName).Where(squirrel.Eq{rel.GetSubjectName(): parentId}).ToSql()
+				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id", rel.GetObjectName()).From(joinTableName).Where(goqu.Ex{rel.GetSubjectName(): parentId}).ToSQL()
 				CheckErr(err, "Failed to create query for getting join ids")
 
 				if err == nil {
@@ -183,7 +183,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 				joinTableName := rel.GetJoinTableName()
 				//columnName := rel.GetSubjectName()
 
-				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id").From(joinTableName).Where(squirrel.Eq{rel.GetSubjectName(): parentId}).ToSql()
+				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id").From(joinTableName).Where(goqu.Ex{rel.GetSubjectName(): parentId}).ToSQL()
 				CheckErr(err, "Failed to create query for getting join ids")
 
 				if err == nil {
@@ -296,7 +296,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 				//columnName := rel.GetSubjectName()
 
-				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id").From(joinTableName).Where(squirrel.Eq{rel.GetObjectName(): parentId}).ToSql()
+				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id").From(joinTableName).Where(goqu.Ex{rel.GetObjectName(): parentId}).ToSQL()
 				CheckErr(err, "Failed to create query for getting join ids")
 
 				if err == nil {
@@ -369,10 +369,10 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 		for _, lang := range languagePreferences {
 
 			queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName() + "_i18n").
-				Where(squirrel.Eq{"translation_reference_id": parentId}).
-				Where(squirrel.Eq{"language_id": lang})
+				Where(goqu.Ex{"translation_reference_id": parentId}).
+				Where(goqu.Ex{"language_id": lang})
 
-			sql1, args, err := queryBuilder.ToSql()
+			sql1, args, err := queryBuilder.ToSQL()
 			if err != nil {
 				log.Infof("Error: %v", err)
 				return err
@@ -386,9 +386,9 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 	} else
 	{
 
-		queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName()).Where(squirrel.Eq{"reference_id": id})
+		queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName()).Where(goqu.Ex{"reference_id": id})
 
-		sql1, args, err := queryBuilder.ToSql()
+		sql1, args, err := queryBuilder.ToSQL()
 		if err != nil {
 			log.Infof("Error: %v", err)
 			return err

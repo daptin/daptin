@@ -2,7 +2,6 @@ package resource
 
 import (
 	"encoding/base64"
-	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
@@ -11,6 +10,7 @@ import (
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"io/ioutil"
@@ -159,7 +159,7 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int6
 
 	var retArray []int64
 
-	query, args, err := sqlx.In("select id from usergroup where name in (?)", groupsName)
+	query, args, err := statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"name": goqu.Op{"in": groupsName}}).ToSQL()
 	CheckErr(err, "Failed to convert usergroup names to ids")
 	query = db.Rebind(query)
 
@@ -234,16 +234,16 @@ func (dr *DbResource) GetAdminEmailId() string {
 
 func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, stop uint32) ([]map[string]interface{}, error) {
 
-	q := statementbuilder.Squirrel.Select("*").From("mail").Where(squirrel.Eq{
+	q := statementbuilder.Squirrel.Select("*").From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 		"deleted":     false,
-	}).Offset(uint64(start - 1))
+	}).Offset(uint(start - 1))
 
 	if stop > 0 {
-		q = q.Limit(uint64(stop - start + 1))
+		q = q.Limit(uint(stop - start + 1))
 	}
 
-	query, args, err := q.ToSql()
+	query, args, err := q.ToSQL()
 
 	if err != nil {
 		return nil, err
@@ -264,22 +264,22 @@ func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, sto
 
 func (dr *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32, stop uint32) ([]map[string]interface{}, error) {
 
-	q := statementbuilder.Squirrel.Select("*").From("mail").Where(squirrel.Eq{
+	q := statementbuilder.Squirrel.Select("*").From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 		"deleted":     false,
-	}).Where(squirrel.GtOrEq{
-		"id": start,
+	}).Where(goqu.Ex{
+		"id": goqu.Op{"gte": start},
 	})
 
 	if stop > 0 {
-		q = q.Where(squirrel.LtOrEq{
-			"id": stop,
+		q = q.Where(goqu.Ex{
+			"id": goqu.Op{"lte": stop},
 		})
 	}
 
-	q = q.OrderBy("id asc")
+	q = q.Order(goqu.C("id").Asc())
 
-	query, args, err := q.ToSql()
+	query, args, err := q.ToSQL()
 
 	if err != nil {
 		return nil, err
@@ -306,9 +306,9 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 	var uidNext uint32
 	var messgeCount uint32
 
-	q4, v4, e4 := statementbuilder.Squirrel.Select("count(*)").From("mail").Where(squirrel.Eq{
+	q4, v4, e4 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
-	}).ToSql()
+	}).ToSQL()
 
 	if e4 != nil {
 		return nil, e4
@@ -317,10 +317,10 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 	r4 := dr.db.QueryRowx(q4, v4...)
 	r4.Scan(&messgeCount)
 
-	q1, v1, e1 := statementbuilder.Squirrel.Select("count(*)").From("mail").Where(squirrel.Eq{
+	q1, v1, e1 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 		"seen":        false,
-	}).ToSql()
+	}).ToSQL()
 
 	if e1 != nil {
 		return nil, e1
@@ -329,10 +329,10 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 	r := dr.db.QueryRowx(q1, v1...)
 	r.Scan(&unseenCount)
 
-	q2, v2, e2 := statementbuilder.Squirrel.Select("count(*)").From("mail").Where(squirrel.Eq{
+	q2, v2, e2 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 		"recent":      true,
-	}).ToSql()
+	}).ToSQL()
 
 	if e2 != nil {
 		return nil, e2
@@ -341,9 +341,9 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 	r2 := dr.db.QueryRowx(q2, v2...)
 	r2.Scan(&recentCount)
 
-	q3, v3, e3 := statementbuilder.Squirrel.Select("uidvalidity").From("mail_box").Where(squirrel.Eq{
+	q3, v3, e3 := statementbuilder.Squirrel.Select("uidvalidity").From("mail_box").Where(goqu.Ex{
 		"id": mailBoxId,
-	}).ToSql()
+	}).ToSQL()
 
 	if e3 != nil {
 		return nil, e3
@@ -369,11 +369,11 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 
 func (dr *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
 
-	query, args, err := statementbuilder.Squirrel.Select("min(id)").From("mail").Where(
-		squirrel.Eq{
+	query, args, err := statementbuilder.Squirrel.Select(goqu.L("min(id)")).From("mail").Where(
+		goqu.Ex{
 			"mail_box_id": mailBoxId,
 			"seen":        false,
-		}).ToSql()
+		}).ToSQL()
 
 	if err != nil {
 		return 0
@@ -417,14 +417,16 @@ func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []
 
 	query, args, err := statementbuilder.Squirrel.
 		Update("mail").
-		Set("flags", strings.Join(newFlags, ",")).
-		Set("seen", seen).
-		Set("recent", recent).
-		Set("deleted", deleted).
-		Where(squirrel.Eq{
+		Set(goqu.Record{
+			"flags":   strings.Join(newFlags, ","),
+			"seen":    seen,
+			"recent":  recent,
+			"deleted": deleted,
+		}).
+		Where(goqu.Ex{
 			"mail_box_id": mailBoxId,
 			"id":          mailId,
-		}).ToSql()
+		}).ToSQL()
 	if err != nil {
 		return err
 	}
@@ -436,11 +438,11 @@ func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []
 func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 
 	selectQuery, args, err := statementbuilder.Squirrel.Select("id").From("mail").Where(
-		squirrel.Eq{
+		goqu.Ex{
 			"mail_box_id": mailBoxId,
 			"deleted":     true,
 		},
-	).ToSql()
+	).ToSQL()
 
 	if err != nil {
 		return 0, err
@@ -463,9 +465,9 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, nil
 	}
 
-	query, args, err := statementbuilder.Squirrel.Delete("mail_mail_id_has_usergroup_usergroup_id").Where(squirrel.Eq{
+	query, args, err := statementbuilder.Squirrel.Delete("mail_mail_id_has_usergroup_usergroup_id").Where(goqu.Ex{
 		"mail_id": ids,
-	}).ToSql()
+	}).ToSQL()
 
 	if err != nil {
 		log.Printf("Query: %v", query)
@@ -477,9 +479,9 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, err
 	}
 
-	query, args, err = statementbuilder.Squirrel.Delete("mail").Where(squirrel.Eq{
+	query, args, err = statementbuilder.Squirrel.Delete("mail").Where(goqu.Ex{
 		"id": ids,
-	}).ToSql()
+	}).ToSQL()
 	if err != nil {
 		return 0, err
 	}
@@ -497,9 +499,9 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 func (dr *DbResource) GetMailboxNextUid(mailBoxId int64) (uint32, error) {
 
 	var uidNext int64
-	q5, v5, e5 := statementbuilder.Squirrel.Select("max(id)").From("mail").Where(squirrel.Eq{
+	q5, v5, e5 := statementbuilder.Squirrel.Select("max(id)").From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
-	}).ToSql()
+	}).ToSQL()
 
 	if e5 != nil {
 		return 1, e5

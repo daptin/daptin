@@ -2,10 +2,10 @@ package resource
 
 import (
 	"encoding/base64"
-	"github.com/Masterminds/squirrel"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/doug-martin/goqu/v9"
 )
 
 type generatePasswordResetVerifyActionPerformer struct {
@@ -25,7 +25,7 @@ func (d *generatePasswordResetVerifyActionPerformer) DoAction(request Outcome, i
 
 	email := inFieldMap["email"]
 
-	existingUsers, _, err := d.cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", nil, squirrel.Eq{"email": email})
+	existingUsers, _, err := d.cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", nil, goqu.Ex{"email": email})
 
 	responseAttrs := make(map[string]interface{})
 	if err != nil || len(existingUsers) < 1 {

@@ -6,12 +6,11 @@ go 1.14
 
 require (
 	github.com/GeertJohan/go.rice v1.0.0
-	github.com/Masterminds/squirrel v1.1.0
 	github.com/advance512/yaml v0.0.0-20141213031416-e401b2b02685
 	github.com/alexeyco/simpletable v0.0.0-20180729223640-1fa9009f1080
 	github.com/anthonynsimon/bild v0.10.0
 	github.com/araddon/dateparse v0.0.0-20181123171228-21df004e09ca
-	github.com/artpar/api2go v2.4.6+incompatible
+	github.com/artpar/api2go v2.4.7+incompatible
 	github.com/artpar/api2go-adapter v1.0.1
 	github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6
 	github.com/artpar/go-guerrilla v1.5.2
@@ -35,6 +34,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/gift v1.2.1
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
+	github.com/doug-martin/goqu/v9 v9.11.0
 	github.com/emersion/go-message v0.11.1
 	github.com/emersion/go-msgauth v0.4.0
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
@@ -80,7 +80,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/gommon v0.2.8 // indirect
-	github.com/lib/pq v1.1.0
+	github.com/lib/pq v1.2.0
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/naoina/toml v0.1.1

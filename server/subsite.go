@@ -113,7 +113,13 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 	//log.Printf("Cruds before making sub sits: %v", cruds)
 	sites, err := cruds["site"].GetAllSites()
+	if err != nil {
+		log.Printf("Failed to get all sites 117: %v", err)
+	}
 	stores, err := cruds["cloud_store"].GetAllCloudStores()
+	if err != nil {
+		log.Printf("Failed to get all cloudstores 121: %v", err)
+	}
 	cloudStoreMap := make(map[int64]resource.CloudStore)
 
 	adminEmailId := cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId()
