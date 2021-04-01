@@ -385,7 +385,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				for _, c := range colsToAdd {
 
 					query := goqu.Ex{
-						prefix + c: goqu.Op{"like": fmt.Sprintf("%", q, "%")},
+						prefix + c: goqu.Op{"like": fmt.Sprintf("%s%s%s", "%", q, "%")},
 					}
 					queryExpressions = append(queryExpressions, query)
 				}
