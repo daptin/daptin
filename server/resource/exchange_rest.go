@@ -5,13 +5,9 @@ import (
 	"github.com/artpar/resty"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/oauth2"
 	"strings"
 )
 
-type ExternalExchange interface {
-	ExecuteTarget(row map[string]interface{}, inFieldMap map[string]interface{}) error
-}
 
 type RestExchange struct {
 	Name        string
@@ -44,17 +40,21 @@ var restExchanges = []RestExchange{
 }
 
 type RestExternalExchange struct {
-	oauthToken          *oauth2.Token
 	exchangeContract    ExchangeContract
 	exchangeInformation *RestExchange
-	oauthConfig         *oauth2.Config
 }
 
-func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, inFieldMap map[string]interface{}) error {
+func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}) error {
 
 	log.Infof("Execute rest external exchange")
 
 	headersMap := make(map[string]string)
+
+	inFieldMap := make(map[string]interface{})
+
+	for k, v  := range g.exchangeContract.TargetAttributes {
+		inFieldMap[k] = v
+	}
 
 	headInterface, err := BuildActionContext(g.exchangeInformation.Headers, inFieldMap)
 	if err != nil {
@@ -120,7 +120,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, inField
 	client.SetHeaders(headersMap)
 	client.SetQueryParams(queryParamsMap)
 
-	client.SetAuthToken(g.oauthToken.AccessToken)
+	//client.SetAuthToken(g.oauthToken.AccessToken)
 
 	method = strings.ToLower(method)
 
@@ -147,7 +147,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, inField
 	return nil
 }
 
-func NewRestExchangeHandler(exchangeContext ExchangeContract, oauthToken *oauth2.Token, oauthConfig *oauth2.Config) (ExternalExchange, error) {
+func NewRestExchangeHandler(exchangeContext ExchangeContract) (ExternalExchange, error) {
 
 	found := false
 	var selected *RestExchange
@@ -164,8 +164,6 @@ func NewRestExchangeHandler(exchangeContext ExchangeContract, oauthToken *oauth2
 	}
 
 	return &RestExternalExchange{
-		oauthToken:          oauthToken,
-		oauthConfig:         oauthConfig,
 		exchangeContract:    exchangeContext,
 		exchangeInformation: selected,
 	}, nil

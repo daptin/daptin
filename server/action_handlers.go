@@ -6,7 +6,9 @@ import (
 	"log"
 )
 
-func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore, cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon, hostSwitch HostSwitch, certificateManager *resource.CertificateManager) []resource.ActionPerformerInterface {
+func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore,
+	cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon,
+	hostSwitch HostSwitch, certificateManager *resource.CertificateManager) []resource.ActionPerformerInterface {
 
 	performers := make([]resource.ActionPerformerInterface, 0)
 

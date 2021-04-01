@@ -103,7 +103,7 @@ func (ati *ActiveTaskInstance) Run() {
 	req := api2go.Request{
 		PlainRequest: pr,
 	}
-	_, err := ati.DbResource.Cruds[ati.ActionRequest.Type].HandleActionRequest(&ati.ActionRequest, req)
+	_, err := ati.DbResource.Cruds[ati.ActionRequest.Type].HandleActionRequest(ati.ActionRequest, req)
 
 	if err != nil {
 		log.Errorf("Errors while executing action 109: %v", err)

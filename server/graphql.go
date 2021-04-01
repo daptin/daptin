@@ -839,7 +839,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						Attributes: params.Args,
 					}
 
-					response, err := resources[action.OnType].HandleActionRequest(&actionRequest, req)
+					response, err := resources[action.OnType].HandleActionRequest(actionRequest, req)
 
 					return response, err
 				},

@@ -863,7 +863,7 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 
 }
 
-func (dr *DbResource) GetSingleRowById(typeName string, id int64) (map[string]interface{}, []map[string]interface{}, error) {
+func (dr *DbResource) GetSingleRowById(typeName string, id int64, includedRelations map[string]bool) (map[string]interface{}, []map[string]interface{}, error) {
 	//log.Infof("Get single row by id: [%v][%v]", typeName, referenceId)
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
@@ -873,7 +873,7 @@ func (dr *DbResource) GetSingleRowById(typeName string, id int64) (map[string]in
 
 	rows, err := dr.db.Queryx(s, q...)
 	defer rows.Close()
-	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), map[string]bool{"*": true})
+	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), includedRelations)
 	if err != nil {
 		return nil, nil, err
 	}

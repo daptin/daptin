@@ -654,12 +654,15 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if !isAdmin && tableModel.GetTableName() != "usergroup" {
 
 		groupReferenceIds := make([]string, 0)
+		groupIds := make([]int64, 0)
 		for _, group := range sessionUser.Groups {
 			groupReferenceIds = append(groupReferenceIds, group.GroupReferenceId)
 		}
-		groupIds, err := dr.GetReferenceIdListToIdList("usergroup", groupReferenceIds)
-		CheckErr(err, "Failed to fetch group ids")
 		groupCount := len(groupReferenceIds)
+		if groupCount > 0 {
+			groupIds, err = dr.GetReferenceIdListToIdList("usergroup", groupReferenceIds)
+			CheckErr(err, "Failed to fetch group ids")
+		}
 		groupParameters := ""
 
 		groupQueries := make([]goqu.Ex, 0)

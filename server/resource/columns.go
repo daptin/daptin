@@ -75,6 +75,7 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("world", "has_many", "smd"),
 	api2go.NewTableRelation("oauth_token", "has_one", "oauth_connect"),
 	api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
+	api2go.NewTableRelationWithNames("data_exchange", "user_data_exchange", "has_one", "user_account", "as_user_id"),
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "oauth_token"),
 	api2go.NewTableRelation("site", "has_one", "cloud_store"),
@@ -223,15 +224,15 @@ var SystemActions = []Action{
 					"mobile": "~mobile_number",
 				},
 			},
-			{
-				Type:      "2factor.in",
-				Method:    "GET_api_key-SMS-phone_number-otp",
-				Condition: "!mobile_number != null && mobile_number != undefined && mobile_number != ''",
-				Attributes: map[string]interface{}{
-					"phone_number": "~mobile_number",
-					"otp":          "$otp.otp",
-				},
-			},
+			//{
+			//	Type:      "2factor.in",
+			//	Method:    "GET_api_key-SMS-phone_number-otp",
+			//	Condition: "!mobile_number != null && mobile_number != undefined && mobile_number != ''",
+			//	Attributes: map[string]interface{}{
+			//		"phone_number": "~mobile_number",
+			//		"otp":          "$otp.otp",
+			//	},
+			//},
 		},
 	},
 	{
@@ -294,15 +295,15 @@ var SystemActions = []Action{
 					"mobile": "~mobile_number",
 				},
 			},
-			{
-				Type:      "2factor.in",
-				Method:    "GET_api_key-SMS-phone_number-otp",
-				Condition: "!mobile_number != null && mobile_number != undefined && mobile_number != ''",
-				Attributes: map[string]interface{}{
-					"phone_number": "~mobile_number",
-					"otp":          "$otp.otp",
-				},
-			},
+			//{
+			//	Type:      "2factor.in",
+			//	Method:    "GET_api_key-SMS-phone_number-otp",
+			//	Condition: "!mobile_number != null && mobile_number != undefined && mobile_number != ''",
+			//	Attributes: map[string]interface{}{
+			//		"phone_number": "~mobile_number",
+			//		"otp":          "$otp.otp",
+			//	},
+			//},
 		},
 	},
 	{
@@ -1545,7 +1546,7 @@ var StandardTables = []TableInfo{
 				ColumnType:   "truefalse",
 				DataType:     "bool",
 				IsNullable:   false,
-				DefaultValue: "0",
+				DefaultValue: "false",
 			},
 			{
 				ColumnName: "event_location",
@@ -1748,7 +1749,7 @@ var StandardTables = []TableInfo{
 				ColumnType:   "truefalse",
 				DataType:     "bool",
 				IsNullable:   false,
-				DefaultValue: "0",
+				DefaultValue: "false",
 			},
 			{
 				Name:         "enable_atom",
@@ -1756,7 +1757,7 @@ var StandardTables = []TableInfo{
 				ColumnType:   "truefalse",
 				DataType:     "bool",
 				IsNullable:   false,
-				DefaultValue: "1",
+				DefaultValue: "true",
 			},
 			{
 				Name:         "enable_json",
@@ -1764,7 +1765,7 @@ var StandardTables = []TableInfo{
 				ColumnType:   "truefalse",
 				DataType:     "bool",
 				IsNullable:   false,
-				DefaultValue: "1",
+				DefaultValue: "true",
 			},
 			{
 				Name:         "enable_rss",
@@ -1772,7 +1773,7 @@ var StandardTables = []TableInfo{
 				ColumnType:   "truefalse",
 				DataType:     "bool",
 				IsNullable:   false,
-				DefaultValue: "1",
+				DefaultValue: "true",
 			},
 			{
 				Name:         "page_size",
@@ -1837,7 +1838,7 @@ var StandardTables = []TableInfo{
 				ColumnName:   "enable",
 				ColumnType:   "truefalse",
 				DataType:     "bool",
-				DefaultValue: "1",
+				DefaultValue: "true",
 				IsNullable:   false,
 			},
 		},
@@ -2072,7 +2073,7 @@ var StandardTables = []TableInfo{
 				DataType:     "bool",
 				IsNullable:   false,
 				ColumnType:   "truefalse",
-				DefaultValue: "1",
+				DefaultValue: "true",
 			},
 			{
 				Name:       "stream_contract",
@@ -2536,7 +2537,7 @@ var StandardTables = []TableInfo{
 				ColumnName:   "is_enabled",
 				DataType:     "bool",
 				ColumnType:   "truefalse",
-				DefaultValue: "0",
+				DefaultValue: "false",
 			},
 			{
 				Name:         "listen_interface",
@@ -2564,21 +2565,21 @@ var StandardTables = []TableInfo{
 				ColumnName:   "xclient_on",
 				DataType:     "bool",
 				ColumnType:   "truefalse",
-				DefaultValue: "0",
+				DefaultValue: "false",
 			},
 			{
 				Name:         "always_on_tls",
 				ColumnName:   "always_on_tls",
 				DataType:     "bool",
 				ColumnType:   "truefalse",
-				DefaultValue: "1",
+				DefaultValue: "true",
 			},
 			{
 				Name:         "authentication_required",
 				ColumnName:   "authentication_required",
 				DataType:     "bool",
 				ColumnType:   "truefalse",
-				DefaultValue: "1",
+				DefaultValue: "true",
 			},
 		},
 	},
@@ -2853,7 +2854,7 @@ var StandardTables = []TableInfo{
 				ColumnName:   "sent",
 				ColumnType:   "truefalse",
 				DataType:     "bool",
-				DefaultValue: "0",
+				DefaultValue: "false",
 			},
 		},
 	},

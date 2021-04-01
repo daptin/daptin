@@ -192,7 +192,7 @@ func CheckErr(err error, message ...interface{}) {
 	}
 }
 
-var UserSelectQuery  = statementbuilder.Squirrel.Select(
+var UserGroupSelectQuery = statementbuilder.Squirrel.Select(
 	goqu.I("ug.reference_id").As("groupreferenceid"),
 	goqu.I("uug.reference_id").As("relationreferenceid"),
 	goqu.I("uug.permission")).
@@ -203,7 +203,7 @@ var UserSelectQuery  = statementbuilder.Squirrel.Select(
 		}))
 
 func PrepareAuthQueries() {
-	UserSelectQuery = statementbuilder.Squirrel.Select(
+	UserGroupSelectQuery = statementbuilder.Squirrel.Select(
 		goqu.I("ug.reference_id").As("groupreferenceid"),
 		goqu.I("uug.reference_id").As("relationreferenceid"),
 		goqu.I("uug.permission")).
@@ -334,9 +334,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 				} else {
 
-					args = []interface{}{userId}
-
-					query, args1, err := UserSelectQuery.Where(goqu.Ex{"uug.user_account_id": userId}).ToSQL()
+					query, args1, err := UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": userId}).ToSQL()
 					rows, err := a.db.Queryx(query, args1...)
 
 					if err != nil {

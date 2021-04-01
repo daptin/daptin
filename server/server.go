@@ -321,6 +321,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		SetDocumentInitialContent: nil,
 	})
 
+
 	ms := BuildMiddlewareSet(&initConfig, &cruds, documentProvider, &dtopicMap)
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
 	for key, _ := range cruds {
@@ -339,6 +340,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	resource.CheckErr(err, "Failed to create certificate manager")
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
+	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
+	feedHandler := CreateFeedHandler(cruds, streamProcessors)
 
 	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager, hostname)
 
@@ -425,8 +428,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager)
 	initConfig.ActionPerformers = actionPerformers
 
-	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
-
 	// todo : move this somewhere and make it part of something
 	actionHandlerMap := actionPerformersListToMap(actionPerformers)
 	for k := range cruds {
@@ -502,7 +503,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	dbAssetHandler := CreateDbAssetHandler(cruds)
 	defaultRouter.GET("/asset/:typename/:resource_id/:columnname", dbAssetHandler)
 
-	feedHandler := CreateFeedHandler(cruds, streamProcessors)
 	defaultRouter.GET("/feed/:feedname", feedHandler)
 
 	configHandler := CreateConfigHandler(&initConfig, cruds, configStore)
@@ -561,7 +561,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		c.AbortWithStatusJSON(200, Stats.Data())
 	})
 
-	actionHandler := resource.CreatePostActionHandler(&initConfig, configStore, cruds, actionPerformers)
+	actionHandler := resource.CreatePostActionHandler(&initConfig, cruds, actionPerformers)
 	defaultRouter.POST("/action/:typename/:actionName", actionHandler)
 	defaultRouter.GET("/action/:typename/:actionName", actionHandler)
 

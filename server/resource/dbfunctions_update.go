@@ -321,7 +321,7 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 		s, v, err := statementbuilder.Squirrel.Select("reference_id").From("data_exchange").Where(goqu.Ex{"name": exchange.Name}).ToSQL()
 
 		if err != nil {
-			log.Errorf("Failed to query existing data exchange: %v", err)
+			log.Errorf("Failed to build query existing data exchange: %v", err)
 			continue
 		}
 
@@ -381,9 +381,11 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 				Cols("permission", "name", "source_attributes",
 					"source_type", "target_attributes", "target_type",
 					"attributes", "options", "created_at", USER_ACCOUNT_ID_COLUMN, "reference_id").
-				Vals([]interface{}{auth.DEFAULT_PERMISSION, exchange.Name, sourceAttrsJson,
-					exchange.SourceType, targetAttrsJson, exchange.TargetType,
-					attrsJson, optionsJson, time.Now(), adminId, u.String()}).
+				Vals([]interface{}{
+					auth.DEFAULT_PERMISSION, exchange.Name,
+					sourceAttrsJson, exchange.SourceType, targetAttrsJson,
+					exchange.TargetType, attrsJson, optionsJson,
+					time.Now(), adminId, u.String()}).
 				ToSQL()
 
 			_, err = db.Exec(s, v...)
@@ -396,8 +398,10 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	allExchanges := make([]ExchangeContract, 0)
 
-	s, v, err := statementbuilder.Squirrel.Select("name", "source_attributes", "source_type", "target_attributes",
-		"target_type", "attributes", "options", "oauth_token_id").
+	s, v, err := statementbuilder.Squirrel.Select(
+		"name", "source_attributes",
+		"source_type", "target_attributes",
+		"target_type", "attributes", "options", "as_user_id").
 		From("data_exchange").ToSQL()
 
 	rows, err := db.Queryx(s, v...)
@@ -414,10 +418,10 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 			var name, source_type, target_type string
 			var attributes, source_attributes, target_attributes, options []byte
-			var oauth_token_id *int64
+			var user_account_id int64
 
 			var ec ExchangeContract
-			err = rows.Scan(&name, &source_attributes, &source_type, &target_attributes, &target_type, &attributes, &options, &oauth_token_id)
+			err = rows.Scan(&name, &source_attributes, &source_type, &target_attributes, &target_type, &attributes, &options, &user_account_id)
 			CheckErr(err, "Failed to Scan existing exchanges")
 
 			m := make(map[string]interface{})
@@ -442,10 +446,8 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 			err = json.Unmarshal(options, &ec.Options)
 			CheckErr(err, "Failed to unmarshal exchange options")
 
-			if oauth_token_id == nil {
-			}
+			ec.AsUserId = user_account_id
 
-			ec.OauthTokenId = oauth_token_id
 
 			allExchanges = append(allExchanges, ec)
 		}

@@ -67,7 +67,7 @@ func NewDaptinError(str string, code string) *DaptinError {
 	}
 }
 
-func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore,
+func CreatePostActionHandler(initConfig *CmsConfig,
 	cruds map[string]*DbResource, actionPerformers []ActionPerformerInterface) func(*gin.Context) {
 
 	actionMap := make(map[string]Action)
@@ -156,7 +156,7 @@ func CreatePostActionHandler(initConfig *CmsConfig, configStore *ConfigStore,
 	}
 }
 
-func (db *DbResource) HandleActionRequest(actionRequest *ActionRequest, req api2go.Request) ([]ActionResponse, error) {
+func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2go.Request) ([]ActionResponse, error) {
 
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -503,13 +503,13 @@ OutFields:
 	return responses, nil
 }
 
-func BuildActionRequest(closer io.ReadCloser, actionType, actionName string, params gin.Params) (*ActionRequest, error) {
+func BuildActionRequest(closer io.ReadCloser, actionType, actionName string, params gin.Params) (ActionRequest, error) {
 	bytes, err := ioutil.ReadAll(closer)
+	actionRequest := ActionRequest{}
 	if err != nil {
-		return nil, err
+		return actionRequest, err
 	}
 
-	actionRequest := ActionRequest{}
 	err = json.Unmarshal(bytes, &actionRequest)
 	CheckErr(err, "Failed to read request body as json")
 	if err != nil {
@@ -557,7 +557,7 @@ func BuildActionRequest(closer io.ReadCloser, actionType, actionName string, par
 		actionRequest.Attributes[param.Key] = param.Value
 	}
 
-	return &actionRequest, nil
+	return actionRequest, nil
 }
 
 func NewClientNotification(notificationType string, message string, title string) map[string]interface{} {
@@ -954,7 +954,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 	return val, nil
 }
 
-func GetValidatedInFields(actionRequest *ActionRequest, action Action) (map[string]interface{}, error) {
+func GetValidatedInFields(actionRequest ActionRequest, action Action) (map[string]interface{}, error) {
 
 	dataMap := actionRequest.Attributes
 	finalDataMap := make(map[string]interface{})
