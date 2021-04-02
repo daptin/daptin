@@ -34,17 +34,17 @@ func NewExchangeMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) 
 
 		if exc.SourceType == "self" {
 
-			if exc.SourceAttributes["name"] == nil {
+			if exc.Attributes["name"] == nil {
 				continue
 			}
 
-			m, ok := exchangeMap[exc.SourceAttributes["name"].(string)]
+			m, ok := exchangeMap[exc.Attributes["name"].(string)]
 			if !ok {
 				m = make([]ExchangeContract, 0)
 			}
 
 			m = append(m, exc)
-			exchangeMap[exc.SourceAttributes["name"].(string)] = m
+			exchangeMap[exc.Attributes["name"].(string)] = m
 			hasExchange[exc.Name] = true
 		} else if exc.TargetType == "self" {
 			m, ok := exchangeMap[exc.TargetAttributes["name"].(string)]
@@ -67,7 +67,65 @@ func NewExchangeMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) 
 }
 
 // Intercept before does nothing for exchange middleware and the calls are made only if data update was successful
-func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, objects []map[string]interface{}) ([]map[string]interface{}, error) {
+func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
+
+	reqmethod := req.PlainRequest.Method
+	reqmethod = strings.ToLower(reqmethod)
+	//log.Infof("Request to intercept in middleware exchange: %v", reqmethod)
+
+	for _, resultRow := range results {
+
+		typ, ok := resultRow["__type"]
+
+		if !ok || typ == nil {
+			continue
+		}
+		resultType := resultRow["__type"].(string)
+
+		exchanges, ok := em.exchangeMap[resultType]
+
+		if ok {
+			log.Infof("Got %d exchanges for [%v]", len(exchanges), resultType)
+		} else {
+			continue
+		}
+
+		for _, exchange := range exchanges {
+
+			hookEvent := exchange.Attributes["hook"].(string)
+			if hookEvent != "before" {
+				continue
+			}
+ 			methods := exchange.Attributes["methods"].([]interface{})
+			if !InArray(methods, reqmethod) {
+				continue
+			}
+
+			//client := oauthDesc.Client(ctx, token)
+
+			log.Printf("executing exchange in routine: %v -> %v", exchange.SourceType, exchange.TargetType)
+			exchangeExecution := NewExchangeExecution(exchange, em.cruds)
+
+			exchangeResult, err := exchangeExecution.Execute([]map[string]interface{}{resultRow})
+			if err != nil {
+				log.Errorf("Failed to execute exchange: %v", err)
+				//errors = append(errors, err)
+			} else {
+
+				if exchange.Attributes != nil && len(exchange.Attributes) > 0 {
+					resultValue, err := BuildActionContext(exchange.Attributes, exchangeResult)
+					if err != nil {
+						resultMap := resultValue.(map[string]interface{})
+						for key, val := range resultMap {
+							exchangeResult[key] = val
+						}
+					}
+				}
+
+			}
+		}
+	}
+
 	return nil, nil
 }
 
@@ -80,45 +138,56 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 	reqmethod = strings.ToLower(reqmethod)
 	//log.Infof("Request to intercept in middleware exchange: %v", reqmethod)
 
-	if len(results) > 0 {
+	for _, resultRow := range results {
 
-		for _, result := range results {
+		typ, ok := resultRow["__type"]
 
-			typ, ok := result["__type"]
+		if !ok || typ == nil {
+			continue
+		}
+		resultType := resultRow["__type"].(string)
 
-			if !ok || typ == nil {
+		exchanges, ok := em.exchangeMap[resultType]
+
+		if ok {
+			log.Infof("Got %d exchanges for [%v]", len(exchanges), resultType)
+		} else {
+			continue
+		}
+
+		for _, exchange := range exchanges {
+
+			hookEvent := exchange.Attributes["hook"].(string)
+			if hookEvent != "after" {
 				continue
 			}
-			resultType := result["__type"].(string)
 
-			exchanges, ok := em.exchangeMap[resultType]
+			methods := exchange.Attributes["methods"].([]interface{})
+			if !InArray(methods, reqmethod) {
+				continue
+			}
 
-			if ok {
-				log.Infof("Got %d exchanges for [%v]", len(exchanges), resultType)
+			//client := oauthDesc.Client(ctx, token)
+
+			log.Printf("executing exchange in routine: %v -> %v", exchange.SourceType, exchange.TargetType)
+			exchangeExecution := NewExchangeExecution(exchange, em.cruds)
+
+			exchangeResult, err := exchangeExecution.Execute([]map[string]interface{}{resultRow})
+			if err != nil {
+				log.Errorf("Failed to execute exchange: %v", err)
+				//errors = append(errors, err)
 			} else {
-				continue
-			}
 
-			for _, exchange := range exchanges {
-
-				methods := exchange.SourceAttributes["methods"].([]interface{})
-				if !InArray(methods, reqmethod) {
-					continue
+				if exchange.Attributes != nil && len(exchange.Attributes) > 0 {
+					resultValue, err := BuildActionContext(exchange.Attributes, exchangeResult)
+					if err != nil {
+						resultMap := resultValue.(map[string]interface{})
+						for key, val := range resultMap {
+							exchangeResult[key] = val
+						}
+					}
 				}
 
-				//client := oauthDesc.Client(ctx, token)
-
-				go func(exchange ExchangeContract) {
-
-					log.Printf("executing exchange in routine: %v -> %v", exchange.SourceType, exchange.TargetType)
-					exchangeExecution := NewExchangeExecution(exchange, em.cruds)
-
-					err := exchangeExecution.Execute([]map[string]interface{}{result})
-					if err != nil {
-						log.Errorf("Failed to execute exchange: %v", err)
-						//errors = append(errors, err)
-					}
-				}(exchange)
 			}
 		}
 	}

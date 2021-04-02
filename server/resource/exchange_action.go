@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/doug-martin/goqu/v9"
@@ -15,7 +16,7 @@ type ActionExchangeHandler struct {
 	exchangeContract ExchangeContract
 }
 
-func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) error {
+func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[string]interface{}, error) {
 
 	log.Infof("Execute action exchange")
 
@@ -38,7 +39,7 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) error 
 
 	userRow, _, err := g.cruds[USER_ACCOUNT_TABLE_NAME].GetSingleRowById(USER_ACCOUNT_TABLE_NAME, g.exchangeContract.AsUserId, nil)
 	if err != nil {
-		return errors.New("user account not found to execute data exchange with action")
+		return nil, errors.New("user account not found to execute data exchange with action")
 	}
 	userReferenceId := userRow["reference_id"].(string)
 
@@ -74,13 +75,18 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) error 
 	req.PlainRequest = req.PlainRequest.WithContext(context.WithValue(context.Background(), "user", &sessionUser))
 
 	request.Attributes["subject"] = row
-	request.Attributes[tableName + "_id"] = row["reference_id"]
+	request.Attributes[tableName+"_id"] = row["reference_id"]
 	response, err := g.cruds[tableName].HandleActionRequest(request, req)
 
 	log.Infof("Response from action exchange execution: %v", response)
 	CheckErr(err, "Error from action exchange execution: %v")
 
-	return err
+	res := make(map[string]interface{})
+	for _, r := range response {
+		res[fmt.Sprintf("%v", r.ResponseType)] = r.Attributes
+	}
+
+	return res, err
 }
 
 func NewActionExchangeHandler(exchangeContract ExchangeContract, cruds map[string]*DbResource) ExternalExchange {

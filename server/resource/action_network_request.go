@@ -116,7 +116,7 @@ func (d *networkRequestActionPerformer) DoAction(request Outcome, inFieldMap map
 	responseMap["headers"] = responseHeaders
 
 	return api2go.Response{
-			Res: responseMap["body"],
+			Res: responseMap,
 		}, []ActionResponse{{
 			ResponseType: request.Type,
 			Attributes:   responseMap,

@@ -5,9 +5,9 @@ import (
 	"github.com/artpar/resty"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"io/ioutil"
 	"strings"
 )
-
 
 type RestExchange struct {
 	Name        string
@@ -44,7 +44,7 @@ type RestExternalExchange struct {
 	exchangeInformation *RestExchange
 }
 
-func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}) error {
+func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}) (map[string]interface{}, error) {
 
 	log.Infof("Execute rest external exchange")
 
@@ -52,13 +52,13 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}) error {
 
 	inFieldMap := make(map[string]interface{})
 
-	for k, v  := range g.exchangeContract.TargetAttributes {
+	for k, v := range g.exchangeContract.TargetAttributes {
 		inFieldMap[k] = v
 	}
 
 	headInterface, err := BuildActionContext(g.exchangeInformation.Headers, inFieldMap)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	headers := headInterface.(map[string]interface{})
 
@@ -72,7 +72,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}) error {
 	queryParamsMap := make(map[string]string)
 	queryInterface, err := BuildActionContext(g.exchangeInformation.QueryParams, inFieldMap)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	queryParams := queryInterface.(map[string]interface{})
 
@@ -88,7 +88,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}) error {
 	attrs := make(map[string]interface{})
 	urlStr, err := evaluateString(g.exchangeInformation.Url, inFieldMap)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	attrs["url"] = urlStr
 	attrs["method"] = g.exchangeInformation.Method
@@ -102,7 +102,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}) error {
 		inFieldMap["subject"] = row
 		bodyMap, err = BuildActionContext(body, inFieldMap)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -144,7 +144,19 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}) error {
 	log.Infof("Response from exchange execution: %v", response.String())
 	log.Infof("Error from exchange execution: %v", err)
 
-	return nil
+	res := make(map[string]interface{})
+	res["headers"] = response.Header()
+	if err != nil {
+		bodyBytes, err := ioutil.ReadAll(response.RawBody())
+		if err == nil {
+			res["bodyString"] = string(bodyBytes)
+			bodyAttrs := make(map[string]interface{})
+			json.Unmarshal(bodyBytes, &bodyAttrs)
+			res["body"] = bodyAttrs
+		}
+	}
+
+	return res, err
 }
 
 func NewRestExchangeHandler(exchangeContext ExchangeContract) (ExternalExchange, error) {

@@ -2379,16 +2379,16 @@ var StandardTables = []TableInfo{
 				DataType:   "text",
 			},
 			{
-				Name:       "target_type",
-				ColumnName: "target_type",
-				ColumnType: "label",
-				DataType:   "varchar(100)",
-			},
-			{
 				Name:       "attributes",
 				ColumnName: "attributes",
 				ColumnType: "json",
 				DataType:   "text",
+			},
+			{
+				Name:       "target_type",
+				ColumnName: "target_type",
+				ColumnType: "label",
+				DataType:   "varchar(100)",
 			},
 			{
 				Name:       "options",
