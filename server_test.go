@@ -618,7 +618,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	t.Logf("Hostname from config: %v", resp.String())
 
 	graphqlResponse, err := requestClient.Post(baseAddress+"/graphql",
-		`{"query":"query {\n  action {\n    action_name\n  }\n}","variables":null}`,
+		`{"query":"query {\n  action (filter:\"become_an_administrator\")  {\n    action_name\n  }\n}","variables":null}`,
 		authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get graphql response for graphql query %s", err)

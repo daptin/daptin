@@ -77,62 +77,50 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 	//errors := []error{}
 
 	reqmethod := req.PlainRequest.Method
+	reqmethod = strings.ToLower(reqmethod)
 	//log.Infof("Request to intercept in middleware exchange: %v", reqmethod)
-	switch reqmethod {
-	case "GET":
-		break
-	case "POST":
 
-		if len(results) > 0 {
+	if len(results) > 0 {
 
-			for _, result := range results {
+		for _, result := range results {
 
-				typ, ok := result["__type"]
+			typ, ok := result["__type"]
 
-				if !ok || typ == nil {
+			if !ok || typ == nil {
+				continue
+			}
+			resultType := result["__type"].(string)
+
+			exchanges, ok := em.exchangeMap[resultType]
+
+			if ok {
+				log.Infof("Got %d exchanges for [%v]", len(exchanges), resultType)
+			} else {
+				continue
+			}
+
+			for _, exchange := range exchanges {
+
+				methods := exchange.SourceAttributes["methods"].([]interface{})
+				if !InArray(methods, reqmethod) {
 					continue
 				}
-				resultType := result["__type"].(string)
 
-				exchanges, ok := em.exchangeMap[resultType]
+				//client := oauthDesc.Client(ctx, token)
 
-				if ok {
-					log.Infof("Got %d exchanges for [%v]", len(exchanges), resultType)
-				} else {
-					continue
-				}
+				go func(exchange ExchangeContract) {
 
-				for _, exchange := range exchanges {
+					log.Printf("executing exchange in routine: %v -> %v", exchange.SourceType, exchange.TargetType)
+					exchangeExecution := NewExchangeExecution(exchange, em.cruds)
 
-					methods := exchange.SourceAttributes["methods"].([]interface{})
-					if !InArray(methods, strings.ToLower(reqmethod)) {
-						continue
+					err := exchangeExecution.Execute([]map[string]interface{}{result})
+					if err != nil {
+						log.Errorf("Failed to execute exchange: %v", err)
+						//errors = append(errors, err)
 					}
-
-					//client := oauthDesc.Client(ctx, token)
-
-					go func(exchange ExchangeContract) {
-
-						log.Printf("executing exchange in routine: %v -> %v", exchange.SourceType, exchange.TargetType)
-						exchangeExecution := NewExchangeExecution(exchange, em.cruds)
-
-						err := exchangeExecution.Execute([]map[string]interface{}{result})
-						if err != nil {
-							log.Errorf("Failed to execute exchange: %v", err)
-							//errors = append(errors, err)
-						}
-					}(exchange)
-				}
+				}(exchange)
 			}
 		}
-
-		break
-	case "PATCH":
-		break
-	case "DELETE":
-		break
-	default:
-		log.Errorf("Invalid method: %v", reqmethod)
 	}
 
 	return results, nil
