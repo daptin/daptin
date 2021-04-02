@@ -408,7 +408,7 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 	err = resp.ToJSON(&res)
 	CheckErr(err, "Failed to read value as json")
 	if err != nil {
-		log.Printf("Action response: %v", resp.String())
+		log.Printf("Action response: %v %v", resp.Response().Status, resp.String())
 		return nil, nil, []error{err}
 	}
 	responder := NewResponse(nil, res, resp.Response().StatusCode, nil)

@@ -357,19 +357,26 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 			} else if col.ColumnType == "truefalse" {
 				valBoolean, ok := val.(bool)
 				if ok {
-					if valBoolean {
-						val = 1
-					} else {
-						val = 0
-					}
+					val = valBoolean
 				} else {
 					valString, ok := val.(string)
 					if ok {
-						if strings.ToLower(strings.TrimSpace(valString)) == "true" {
-							val = 1
+						str := strings.ToLower(strings.TrimSpace(valString))
+						if str == "true" || str == "1" {
+							val = true
 						} else {
-							val = 0
+							val = false
 						}
+					} else {
+						valInt, ok := val.(int)
+						if ok {
+							if ok && valInt != 0 {
+								val = true
+							} else if ok {
+								val = false
+							}
+						}
+
 					}
 				}
 			}
@@ -408,7 +415,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 			log.Infof("Update query: %v", query)
 			_, err = dr.db.Exec(query, vals...)
 			if err != nil {
-				log.Errorf("Failed to execute update query: %v", err)
+				log.Errorf("Failed to execute update query 411: %v", err)
 				return nil, err
 			}
 
