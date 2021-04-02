@@ -833,9 +833,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}()
 
 		results, includes, err = dr.ResultToArrayOfMap(rows, dr.model.GetColumnMap(), includedRelations)
-		total1 = dr.GetTotalCountBySelectBuilder(countQueryBuilder)
 
 	}
+	total1 = dr.GetTotalCountBySelectBuilder(countQueryBuilder)
 
 	//log.Infof("Found: %d results", len(results))
 	//log.Infof("Results: %v", results)
