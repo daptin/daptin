@@ -624,7 +624,7 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 		log.Printf("Failed to get graphql response for graphql query %s", err)
 		return err
 	}
-	if strings.Index(graphqlResponse.String(), `"action_name": "generate_acme_certificate"`) == -1 {
+	if strings.Index(graphqlResponse.String(), `"action_name": "become_an_administrator"`) == -1 {
 		t.Errorf("Expected action name not found in response from graphql [%v]", graphqlResponse.String())
 	}
 
