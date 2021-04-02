@@ -15,7 +15,7 @@ import (
 	"github.com/go-acme/lego/v3/certificate"
 	"github.com/go-acme/lego/v3/lego"
 	"github.com/go-acme/lego/v3/registration"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net"
 	"net/http"
 	"strings"

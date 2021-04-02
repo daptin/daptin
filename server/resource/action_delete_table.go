@@ -6,7 +6,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/pkg/errors"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 

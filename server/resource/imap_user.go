@@ -6,7 +6,7 @@ import (
 	"github.com/artpar/go-imap/backend"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/doug-martin/goqu/v9"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"strings"
 	"sync"
 )

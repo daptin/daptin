@@ -7,14 +7,15 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	ImapServer "github.com/artpar/go-imap/server"
+	"github.com/artpar/rclone/lib/random"
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"
 	server2 "github.com/fclairamb/ftpserver/server"
 
 	"github.com/jlaffaye/ftp"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -30,7 +31,6 @@ import (
 	"github.com/gocraft/health"
 	"github.com/imroc/req"
 	"github.com/jamiealquiza/envy"
-	"github.com/jmoiron/sqlx"
 	"github.com/sadlil/go-trigger"
 )
 
@@ -77,20 +77,51 @@ const testSchemas = `Tables:
       - Name: title
         DataType: varchar(100)
         ColumnType: label
+  - TableName: table10cols
+    Columns:
+      - Name: col1
+        DataType: varchar(100)
+        ColumnType: label
+      - Name: col2
+        DataType: varchar(20)
+        ColumnType: label
+        IsIndexed: true
+      - Name: col3
+        DataType: varchar(100)
+        ColumnType: label
+      - Name: col4
+        DataType: bool
+        ColumnType: truefalse
+      - Name: col5
+        DataType: int(4)
+        ColumnType: measurement
+      - Name: col6
+        DataType: int(11)
+        ColumnType: measurement
+      - Name: col7
+        DataType: content
+        ColumnType: text
+      - Name: col8
+        DataType: content
+        ColumnType: json
+      - Name: col9
+        DataType: datetime
+        ColumnType: date
 Imports:
   - FilePath: initial_data.json
     Entity: site
     FileType: json`
 
-func TestServer(t *testing.T) {
+func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore,
+	*resource.CertificateManager, *server2.FtpServer, *ImapServer.Server, *olric.Olric) {
 
+	log.SetOutput(ioutil.Discard)
 	dir := os.TempDir()
 	if dir[len(dir)-1] != os.PathSeparator {
 		dir = dir + string(os.PathSeparator)
 	}
 	tempDir := dir + "daptintest" + string(os.PathSeparator)
 	_ = os.Mkdir(tempDir, 0777)
-	t.Logf("Test directory: %v", tempDir)
 
 	schema := strings.Replace(testSchemas, "${imagePath}", tempDir, -1)
 	schema = strings.Replace(schema, "${rootPath}", tempDir, -1)
@@ -101,12 +132,10 @@ func TestServer(t *testing.T) {
 	m := make(map[string]interface{})
 	err := json.Unmarshal([]byte(data), &m)
 	log.Printf("Failed to unmarshal JSON data as map: %v, **%v**", err, data)
-	t.Logf("Test directory: %v", tempDir)
 
 	if err != nil {
 		fmt.Printf("Update path for windows")
 		tempDir = strings.ReplaceAll(tempDir, string(os.PathSeparator), string(os.PathSeparator)+string(os.PathSeparator))
-		t.Logf("Test directory: %v", tempDir)
 		data = strings.Replace(testData, "${rootPath}", tempDir, -1)
 		fmt.Println(data)
 	}
@@ -135,6 +164,7 @@ func TestServer(t *testing.T) {
 	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: debug, test, release")
 
 	gin.SetMode(*runtimeMode)
+	gin.LoggerWithWriter(ioutil.Discard)
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
@@ -230,8 +260,14 @@ func TestServer(t *testing.T) {
 		srv.ListenAndServe()
 	}()
 	time.Sleep(5 * time.Second)
+	return hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb
+}
 
-	err = RunTests(t, hostSwitch, mailDaemon, db, taskScheduler, configStore)
+func TestServer(t *testing.T) {
+
+	createServer()
+	//_, _, _, _, _, _, _, _ := createServer()
+	err := runTests(t)
 	log.Printf("Test ended")
 	if err != nil {
 		t.Errorf("test failed %v", err)
@@ -242,7 +278,7 @@ func TestServer(t *testing.T) {
 
 }
 
-func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daemon, db *sqlx.DB, scheduler resource.TaskScheduler, configStore *resource.ConfigStore) error {
+func runTests(t *testing.T) error {
 
 	const baseAddress = "http://localhost:6337"
 
@@ -725,6 +761,158 @@ func RunTests(t *testing.T, hostSwitch server.HostSwitch, daemon *guerrilla.Daem
 	t.Logf("File import response: [%v]", importResponse)
 
 	return nil
+
+}
+
+// from fib_test.go
+func BenchmarkCreate(m *testing.B) {
+	// run the Fib function b.N times
+
+	m.StopTimer()
+	const baseAddress = "http://localhost:6337"
+	createServer()
+
+	requestClient := req.New()
+
+	resp, err := requestClient.Post(baseAddress+"/action/user_account/signup", req.BodyJSON(map[string]interface{}{
+		"attributes": map[string]interface{}{
+			"email":           "test@gmail.com",
+			"name":            "name",
+			"password":        "tester123",
+			"passwordConfirm": "tester123",
+		},
+	}))
+
+	if err != nil {
+		panic(err)
+	}
+	var signUpResponse interface{}
+
+	resp.ToJSON(&signUpResponse)
+
+	if signUpResponse.([]interface{})[0].(map[string]interface{})["ResponseType"] != "client.notify" {
+		m.Errorf("Unexpected response type from sign up")
+	}
+
+	resp, err = requestClient.Post(baseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
+		"attributes": map[string]interface{}{
+			"email":    "test@gmail.com",
+			"password": "tester123",
+		},
+	}))
+
+	if err != nil {
+		panic(err)
+	}
+
+	var token string
+	var signInResponse interface{}
+
+	resp.ToJSON(&signInResponse)
+
+	responseAttr := signInResponse.([]interface{})[0].(map[string]interface{})
+	if responseAttr["ResponseType"] != "client.store.set" {
+		m.Errorf("Unexpected response type from sign up")
+	}
+
+	token = responseAttr["Attributes"].(map[string]interface{})["value"].(string)
+	authTokenHeader := req.Header{
+		"Authorization": "Bearer " + token,
+	}
+
+
+	createPayload := req.BodyJSON(map[string]interface{}{
+		"data": map[string]interface{}{
+			"type": "table10cols",
+			"attributes": req.Param{
+				"col1": "value 1 value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1",
+				"col2": "value 1 value 1value 1value 1value 1value 1",
+				"col3": "value value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1 1",
+				"col4": "true",
+				"col5": 64,
+				"col6": 12731273,
+				"col7": "value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 v",
+				"col8": "{\"hello1\":\"world\",\"hello2\":\"world\",\"hello3\":\"world\",\"hello4\":\"world\",\"hello5\":\"world\",\"hello6\":\"world\"}",
+				"col9": time.Now().String(),
+			},
+		},
+	})
+
+	m.StartTimer()
+
+	m.Run("GET", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			requestClient.Get(baseAddress+"/api/world", req.QueryParam{
+				"page[size]":   100,
+				"page[number]": 1,
+				"sort":         "-table_name",
+			}, authTokenHeader)
+		}
+	})
+	ids := make([]string, 0)
+
+	m.Run("POST", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			res, err := requestClient.Post(baseAddress+"/api/table10cols", createPayload, authTokenHeader)
+			if err != nil {
+				b.Errorf("failed too create - %v", err)
+			}
+			b.StopTimer()
+			resMap := make(map[string]interface{})
+			res.ToJSON(&resMap)
+			ids = append(ids, resMap["data"].(map[string]interface{})["id"].(string))
+			b.StartTimer()
+		}
+	})
+	m.Logf("Created %d objects", len(ids))
+
+	m.Run("PUT", func(b *testing.B) {
+		randomstring := random.String(10)
+		for n := 0; n < b.N; n++ {
+			id := ids[n%len(ids)]
+			updatePayload := req.BodyJSON(map[string]interface{}{
+				"data": map[string]interface{}{
+					"type": "table10cols",
+					"attributes": req.Param{
+						"col1": "value 1 value 1value 1valuealue 1value 1value 1value 1" + randomstring,
+						"col2": "value 1 value 1value 1value 1value 1value 1" + randomstring,
+						"col3": "value value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1 1" + randomstring,
+						"col4": "false",
+						"col5": 12333,
+						"col6": 127273,
+						"col7": "value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 v" + randomstring,
+						"col8": "{\"hello1\":\"world\",\"hello2\":\"world\",\"hello3\":\"world\",\"hello4\":\"world\",\"hello5\":\"world\",\"hello6\":\"world\"}",
+						"col9": time.Now().String(),
+					},
+				},
+			})
+
+			_, err := requestClient.Put(baseAddress+"/api/table10cols/"+id, updatePayload, authTokenHeader)
+			if err != nil {
+				b.Errorf("Failed to update %v - %v", id, err)
+			}
+		}
+	})
+
+	m.Run("Get By Id", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			id := ids[n%len(ids)]
+			_, err := requestClient.Get(baseAddress + "/api/table10cols/" + id, authTokenHeader)
+			if err != nil {
+				b.Errorf("Failed to get by id %v - %v", id, err)
+			}
+		}
+	})
+
+	m.Run("DELETE", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			id := ids[n%len(ids)]
+			_, err := requestClient.Delete(baseAddress + "/api/table10cols/" + id, authTokenHeader)
+			if err != nil {
+				b.Errorf("Failed to delete %v - %v", id, err)
+			}
+		}
+	})
 
 }
 

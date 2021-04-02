@@ -5,9 +5,9 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -53,8 +53,9 @@ func NewDaptinFtpDriver(cruds map[string]*resource.DbResource, certManager *reso
 		siteMap[site.Hostname] = site
 	}
 
+	ftpLogger := log.New()
 	drv := &DaptinFtpDriver{
-		Logger:      log.New(os.Stdout, "[FTP] ", 1),
+		Logger:      ftpLogger,
 		BaseDir:     "/",
 		Sites:       siteMap,
 		CertManager: certManager,

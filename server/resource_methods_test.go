@@ -11,7 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/oauth2"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"testing"
 )

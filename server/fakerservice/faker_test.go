@@ -3,7 +3,7 @@ package fakerservice
 import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"testing"
 )
 

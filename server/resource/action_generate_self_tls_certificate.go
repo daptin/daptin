@@ -2,7 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type selfTlsCertificateGenerateActionPerformer struct {

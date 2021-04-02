@@ -6,7 +6,7 @@ import (
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/daptin/daptin/server/resource"
 	"io/ioutil"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strconv"

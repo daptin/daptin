@@ -11,7 +11,7 @@ import (
 	"errors"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"math/big"
 	"net"
 	"net/http"

@@ -3,7 +3,7 @@ package server
 import (
 	"github.com/artpar/go-guerrilla"
 	"github.com/daptin/daptin/server/resource"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore,

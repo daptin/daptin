@@ -4,7 +4,7 @@ import (
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 

@@ -5,7 +5,7 @@ package server
 import (
 	"database/sql"
 	"github.com/jmoiron/sqlx"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
