@@ -1551,7 +1551,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						).
 						Where(goqu.Ex{
 							relation.Subject + ".reference_id": row["reference_id"],
-						}).Limit(50).ToSQL()
+						}).Order(goqu.I(relation.GetJoinTableName() + ".created_at").Desc()).Limit(50).ToSQL()
 					if err != nil {
 						log.Printf("Failed to build query 1474: %v", err)
 					}
@@ -1601,7 +1601,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						).
 						Where(goqu.Ex{
 							relation.Object + ".reference_id": row["reference_id"],
-						}).Limit(50).ToSQL()
+						}).Order(goqu.I(relation.GetSubjectName() + ".created_at").Desc()).Limit(50).ToSQL()
 
 					if err != nil {
 						log.Printf("Failed to build query 1533: %v", err)
@@ -1630,24 +1630,30 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					fallthrough
 				case "has_many_and_belongs_to_many":
 					query, args, err := statementbuilder.Squirrel.
-						Select(goqu.I(relation.GetSubjectName()+".*")).
+						Select(goqu.I(relation.GetSubjectName()+".id")).
 						From(goqu.T(relation.GetObject())).
+						Join(
+							goqu.T(relation.GetJoinTableName()).As(relation.GetJoinTableName()),
+							goqu.On(goqu.Ex{
+								relation.GetJoinTableName() + "." + relation.GetObjectName(): goqu.I(relation.GetObject() + ".id"),
+							}),
+						).
 						Join(
 							goqu.T(relation.GetSubject()).As(relation.GetSubjectName()),
 							goqu.On(goqu.Ex{
-								fmt.Sprintf("%v.%v", relation.GetSubjectName(), relation.GetObjectName()): goqu.I(relation.GetObject() + ".id"),
+								fmt.Sprintf("%v.%v", relation.GetJoinTableName(), relation.GetSubjectName()): goqu.I(relation.GetSubjectName() + ".id"),
 							}),
 						).
 						Where(goqu.Ex{
 							relation.Subject + ".reference_id": row["reference_id"],
-						}).Limit(50).ToSQL()
+						}).Order(goqu.I(relation.GetJoinTableName() + ".created_at").Desc()).Limit(50).ToSQL()
 					if err != nil {
-						log.Printf("Failed to build query 1526: %v", err)
+						log.Printf("Failed to build query 1474: %v", err)
 					}
 
 					rows, err := dr.connection.Queryx(query, args...)
 					if err != nil {
-						log.Printf("Failed to query 1531: %v", err)
+						log.Printf("Failed to query 1482: %v", err)
 					}
 
 					ids := make([]int64, 0)
@@ -1662,10 +1668,10 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						ids = append(ids, includeRow["id"].(int64))
 					}
 
-					includes, err := dr.Cruds[relation.GetSubject()].GetAllObjectsWithWhere(relation.GetSubject(), goqu.Ex{
+					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetObject(), goqu.Ex{
 						"id": ids,
 					})
-					localInclude = append(localInclude, includes...)
+					localInclude = append(localInclude, includes1...)
 
 					break
 				}
