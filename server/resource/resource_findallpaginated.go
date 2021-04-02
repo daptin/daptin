@@ -188,6 +188,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		sortOrder = req.QueryParams["sort"]
 	} else if dr.tableInfo.DefaultOrder != "" {
 		sortOrder = strings.Split(dr.tableInfo.DefaultOrder, ",")
+	} else {
+		sortOrder = []string{"-created_at"}
 	}
 
 	var filters []string

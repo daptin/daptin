@@ -2356,6 +2356,7 @@ var StandardTables = []TableInfo{
 				Name:       "name",
 				ColumnName: "name",
 				ColumnType: "label",
+				IsUnique:   true,
 				DataType:   "varchar(200)",
 				IsIndexed:  true,
 			},
