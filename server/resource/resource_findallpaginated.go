@@ -318,7 +318,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	queryBuilder := statementbuilder.Squirrel.Select(idQueryCols...).From(tableModel.GetTableName())
 	//queryBuilder = queryBuilder.From(tableModel.GetTableName())
 	var countQueryBuilder *goqu.SelectDataset
-	countQueryBuilder = statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(tableModel.GetTableName()).Offset(0).Limit(1)
+	countQueryBuilder = statementbuilder.Squirrel.Select(goqu.L(fmt.Sprintf("count(distinct(%v.id))", tableModel.GetTableName()))).From(tableModel.GetTableName()).Offset(0).Limit(1)
 
 	joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", tableModel.GetTableName(), tableModel.GetTableName())
 	if !isRelatedGroupRequest && tableModel.GetTableName() != "usergroup" {
