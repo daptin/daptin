@@ -31,7 +31,6 @@ type ExchangeContract struct {
 	SourceType       string                 `db:"source_type"`
 	TargetAttributes map[string]interface{} `db:"target_attributes"`
 	TargetType       string                 `db:"target_type"`
-	Attributes       []ColumnMap            `db:"attributes"`
 	User             auth.SessionUser
 	Options          map[string]interface{}
 	ReferenceId      string `db:"reference_id"`

@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"errors"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/doug-martin/goqu/v9"
@@ -37,7 +38,7 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) error 
 
 	userRow, _, err := g.cruds[USER_ACCOUNT_TABLE_NAME].GetSingleRowById(USER_ACCOUNT_TABLE_NAME, g.exchangeContract.AsUserId, nil)
 	if err != nil {
-		return err
+		return errors.New("user account not found to execute data exchange with action")
 	}
 	userReferenceId := userRow["reference_id"].(string)
 
@@ -72,7 +73,8 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) error 
 
 	req.PlainRequest = req.PlainRequest.WithContext(context.WithValue(context.Background(), "user", &sessionUser))
 
-	request.Attributes["data"] = row
+	request.Attributes["subject"] = row
+	request.Attributes[tableName + "_id"] = row["reference_id"]
 	response, err := g.cruds[tableName].HandleActionRequest(request, req)
 
 	log.Infof("Response from action exchange execution: %v", response)

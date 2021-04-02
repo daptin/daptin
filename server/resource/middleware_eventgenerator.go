@@ -56,7 +56,6 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 
 		}()
 		break
-	case "update":
 	case "patch":
 		go func() {
 			err := topic.Publish(EventMessage{
@@ -84,8 +83,6 @@ func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Re
 	case "GET":
 		break
 	case "POST":
-		break
-	case "UPDATE":
 		break
 	case "DELETE":
 		break

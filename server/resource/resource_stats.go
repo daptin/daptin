@@ -39,6 +39,16 @@ func InArray(val []interface{}, ar interface{}) (exists bool) {
 	}
 	return false
 }
+func InStringArray(val []string, ar string) (exists bool) {
+	exists = false
+
+	for _, v := range val {
+		if v == ar {
+			return true
+		}
+	}
+	return false
+}
 
 func ToInterfaceArray(s []string) []interface{} {
 	r := make([]interface{}, len(s))

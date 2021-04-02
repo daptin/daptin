@@ -4,6 +4,7 @@ package server
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"
 	"github.com/daptin/daptin/server/resource"
@@ -46,7 +47,13 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 
 	dtopicMap := make(map[string]*olric.DTopic)
 
-	ms := BuildMiddlewareSet(&initConfig, &cruds, &dtopicMap)
+	documentProvider := ydb.NewDiskDocumentProvider("/tmp", 10000, ydb.DocumentListener{
+		GetDocumentInitialContent: func(string) []byte {
+			return []byte{}
+		},
+		SetDocumentInitialContent: func(string, []byte){},
+	})
+	ms := BuildMiddlewareSet(&initConfig, &cruds, documentProvider, &dtopicMap)
 	for _, table := range initConfig.Tables {
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
 		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, olricDb, table)

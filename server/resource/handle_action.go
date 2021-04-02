@@ -395,7 +395,7 @@ OutFields:
 				actionResponse = NewActionResponse(actionRequest.Type, responseObjects)
 			}
 			actionResponses = append(actionResponses, actionResponse)
-		case "UPDATE":
+		case "PATCH":
 			responseObjects, err = dbResource.UpdateWithoutFilters(model, request)
 			CheckErr(err, "Failed to update inside action")
 			if err != nil {

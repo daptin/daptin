@@ -852,9 +852,9 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 		resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
 	}
 
+	resource.UpdateExchanges(initConfig, db)
 	go func() {
 		resource.UpdateStateMachineDescriptions(initConfig, db)
-		resource.UpdateExchanges(initConfig, db)
 		resource.UpdateStreams(initConfig, db)
 		//resource.UpdateMarketplaces(initConfig, db)
 		err := resource.UpdateTasksData(initConfig, db)

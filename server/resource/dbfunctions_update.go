@@ -334,9 +334,6 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 		if err == nil {
 
-			attrsJson, err := json.Marshal(exchange.Attributes)
-			CheckErr(err, "Failed to marshal attributes to json: %v")
-
 			optionsJson, err := json.Marshal(exchange.Options)
 
 			CheckErr(err, "Failed to marshal options to json: %v")
@@ -352,7 +349,6 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 					"source_type":          exchange.SourceType,
 					"target_attributes":    targetAttrsJson,
 					"target_type":          exchange.TargetType,
-					"attributes":           attrsJson,
 					"options":              optionsJson,
 					"updated_at":           time.Now(),
 					USER_ACCOUNT_ID_COLUMN: adminId,
@@ -365,9 +361,6 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 			CheckErr(err, "Failed to update exchange row")
 
 		} else {
-			attrsJson, err := json.Marshal(exchange.Attributes)
-			CheckErr(err, "Failed to marshal attributes to json")
-
 			optionsJson, err := json.Marshal(exchange.Options)
 			CheckErr(err, "Failed to marshal options to json")
 			sourceAttrsJson, err := json.Marshal(exchange.SourceAttributes)
@@ -380,11 +373,11 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 				Insert("data_exchange").
 				Cols("permission", "name", "source_attributes",
 					"source_type", "target_attributes", "target_type",
-					"attributes", "options", "created_at", USER_ACCOUNT_ID_COLUMN, "reference_id").
+					"options", "created_at", USER_ACCOUNT_ID_COLUMN, "reference_id").
 				Vals([]interface{}{
 					auth.DEFAULT_PERMISSION, exchange.Name,
 					sourceAttrsJson, exchange.SourceType, targetAttrsJson,
-					exchange.TargetType, attrsJson, optionsJson,
+					exchange.TargetType, optionsJson,
 					time.Now(), adminId, u.String()}).
 				ToSQL()
 
@@ -401,7 +394,7 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 	s, v, err := statementbuilder.Squirrel.Select(
 		"name", "source_attributes",
 		"source_type", "target_attributes",
-		"target_type", "attributes", "options", "as_user_id").
+		"target_type", "options", "as_user_id").
 		From("data_exchange").ToSQL()
 
 	rows, err := db.Queryx(s, v...)
@@ -417,11 +410,11 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 		for rows.Next() {
 
 			var name, source_type, target_type string
-			var attributes, source_attributes, target_attributes, options []byte
+			var source_attributes, target_attributes, options []byte
 			var user_account_id int64
 
 			var ec ExchangeContract
-			err = rows.Scan(&name, &source_attributes, &source_type, &target_attributes, &target_type, &attributes, &options, &user_account_id)
+			err = rows.Scan(&name, &source_attributes, &source_type, &target_attributes, &target_type, &options, &user_account_id)
 			CheckErr(err, "Failed to Scan existing exchanges")
 
 			m := make(map[string]interface{})
@@ -438,11 +431,7 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 			ec.SourceType = source_type
 			ec.TargetType = target_type
 
-			var columnMapping []ColumnMap
-			err = json.Unmarshal(attributes, &columnMapping)
-			CheckErr(err, "Failed to unmarshal column mapping")
 
-			ec.Attributes = columnMapping
 			err = json.Unmarshal(options, &ec.Options)
 			CheckErr(err, "Failed to unmarshal exchange options")
 

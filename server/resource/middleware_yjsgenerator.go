@@ -43,8 +43,6 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 	case "post":
 		break
 
-	case "update":
-		fallthrough
 	case "patch":
 
 		for _, obj := range objects {

@@ -39,8 +39,6 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 		break
 	case "post":
 		fallthrough
-	case "update":
-		fallthrough
 	case "patch":
 		validations := dvm.tableInfoMap[dr.model.GetName()].Validations
 		conformations := dvm.tableInfoMap[dr.model.GetName()].Conformations

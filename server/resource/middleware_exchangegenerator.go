@@ -4,6 +4,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 type exchangeMiddleware struct {
@@ -22,7 +23,14 @@ func NewExchangeMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) 
 
 	exchangeMap := make(map[string][]ExchangeContract)
 
-	for _, exc := range cmsConfig.ExchangeContracts {
+	hasExchange := make(map[string]bool)
+
+	for i := range cmsConfig.ExchangeContracts {
+		exc := cmsConfig.ExchangeContracts[len(cmsConfig.ExchangeContracts)-i-1]
+
+		if hasExchange[exc.Name] {
+			continue
+		}
 
 		if exc.SourceType == "self" {
 
@@ -37,6 +45,7 @@ func NewExchangeMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) 
 
 			m = append(m, exc)
 			exchangeMap[exc.SourceAttributes["name"].(string)] = m
+			hasExchange[exc.Name] = true
 		} else if exc.TargetType == "self" {
 			m, ok := exchangeMap[exc.TargetAttributes["name"].(string)]
 			if !ok {
@@ -45,6 +54,7 @@ func NewExchangeMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) 
 
 			m = append(m, exc)
 			exchangeMap[exc.TargetAttributes["name"].(string)] = m
+			hasExchange[exc.Name] = true
 		}
 
 	}
@@ -88,9 +98,16 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 
 				if ok {
 					log.Infof("Got %d exchanges for [%v]", len(exchanges), resultType)
+				} else {
+					continue
 				}
 
 				for _, exchange := range exchanges {
+
+					methods := exchange.SourceAttributes["methods"].([]interface{})
+					if !InArray(methods, strings.ToLower(reqmethod)) {
+						continue
+					}
 
 					//client := oauthDesc.Client(ctx, token)
 
@@ -110,8 +127,6 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 		}
 
 		break
-	case "UPDATE":
-		fallthrough
 	case "PATCH":
 		break
 	case "DELETE":
