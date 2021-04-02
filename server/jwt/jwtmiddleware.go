@@ -3,15 +3,19 @@ package jwtmiddleware
 import (
 	"errors"
 	"fmt"
+	"github.com/buraksezer/olric"
 	"github.com/dgrijalva/jwt-go"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"time"
 
 	"strings"
 )
 
 // A function called whenever an error is encountered
 type errorHandler func(w http.ResponseWriter, r *http.Request, err string)
+
+var TokenCache *olric.DMap
 
 // TokenExtractor is a function that takes a request as input and returns
 // either a token or an error.  An error should only be returned if an attempt
@@ -170,6 +174,15 @@ func (m *JWTMiddleware) CheckJWT(w http.ResponseWriter, r *http.Request) (*jwt.T
 	// Use the specified token extractor to extract a token from the request
 	token, err := m.Options.Extractor(r)
 
+	k := fmt.Sprintf("jwt-%v", token)
+	if TokenCache != nil {
+		tok, err := TokenCache.Get(k)
+		if err == nil {
+			cachedToken := tok.(jwt.Token)
+			return &cachedToken, nil
+		}
+	}
+
 	// If debugging is turned on, log the outcome
 	if err != nil {
 		m.logf("Error extracting JWT: %v", err)
@@ -231,6 +244,9 @@ func (m *JWTMiddleware) CheckJWT(w http.ResponseWriter, r *http.Request) (*jwt.T
 
 	m.logf("JWT: %v", parsedToken)
 
+	if TokenCache != nil {
+		_ = TokenCache.PutEx(k, *parsedToken, 5*time.Minute)
+	}
 	// If we get here, everything worked and we can set the
 	// user property in context.
 	return parsedToken, nil

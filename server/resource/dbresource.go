@@ -134,6 +134,10 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
 	ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore,
 	olricDb *olric.Olric, tableInfo TableInfo) *DbResource {
+	if OlricCache == nil {
+		OlricCache, _ = olricDb.NewDMap("default-cache")
+	}
+
 	//log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
 	return &DbResource{
 		model:              model,

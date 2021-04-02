@@ -97,7 +97,10 @@ func (a *AuthMiddleware) SetUserUserGroupCrud(curd ResourceAdapter) {
 
 var jwtMiddleware *jwtmiddleware.JWTMiddleware
 
-func InitJwtMiddleware(secret []byte, issuer string) {
+func InitJwtMiddleware(secret []byte, issuer string, db *olric.Olric) {
+	if jwtmiddleware.TokenCache == nil {
+		jwtmiddleware.TokenCache, _ = db.NewDMap("token-cache")
+	}
 	jwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
 		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
 			return secret, nil
@@ -226,6 +229,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 	}
 
 	hasUser := false
+
 	user, err := jwtMiddleware.CheckJWT(writer, req)
 
 	if err != nil {

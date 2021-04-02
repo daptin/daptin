@@ -268,7 +268,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
 	}
 	authMiddleware := auth.NewAuthMiddlewareBuilder(db, jwtTokenIssuer, olricDb)
-	auth.InitJwtMiddleware([]byte(jwtSecret), jwtTokenIssuer)
+	auth.InitJwtMiddleware([]byte(jwtSecret), jwtTokenIssuer, olricDb)
 	defaultRouter.Use(authMiddleware.AuthCheckMiddleware)
 
 	cruds := make(map[string]*resource.DbResource)

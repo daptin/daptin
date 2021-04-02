@@ -285,8 +285,8 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	cacheKey := ""
 	if OlricCache != nil {
 		cacheKey = fmt.Sprintf("%s_%s_%s", objectType, colName, colValue)
-		cachedPermission, _ := OlricCache.Get(cacheKey)
-		if cachedPermission != nil {
+		cachedPermission, err := OlricCache.Get(cacheKey)
+		if cachedPermission != nil && err == nil {
 			return cachedPermission.(PermissionInstance)
 		}
 	}
@@ -742,6 +742,14 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations ma
 
 func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 
+	k := fmt.Sprintf("ugbui-%v", userId)
+	if OlricCache != nil {
+		tok, err := OlricCache.Get(k)
+		if err == nil {
+			return tok.(uint64)
+		}
+	}
+
 	s, q, err := statementbuilder.Squirrel.Select("usergroup_id").From("user_account_user_account_id_has_usergroup_usergroup_id").
 		Where(goqu.Ex{"usergroup_id": goqu.Op{"neq": 1}}).Where(goqu.Ex{"user_account_id": userId}).Order(goqu.C("created_at").Asc()).Limit(1).ToSQL()
 	if err != nil {
@@ -754,6 +762,9 @@ func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 	err = dr.db.QueryRowx(s, q...).Scan(&refId)
 	if err != nil {
 		log.Warnf("Failed to scan user group id from the result 1: %v", err)
+	}
+	if OlricCache != nil {
+		_ = OlricCache.PutEx(k, refId, 1 * time.Second)
 	}
 
 	return refId
@@ -1112,6 +1123,15 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 // Load an object of type `typeName` using a reference_id
 // Used internally, can be used by actions
 func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string) (map[string]interface{}, error) {
+
+	k := fmt.Sprintf("rio-%v-%v", typeName, referenceId)
+	if OlricCache != nil {
+		v, err := OlricCache.Get(k)
+		if err == nil {
+			return v.(map[string]interface{}), nil
+		}
+	}
+
 	//log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
 	if err != nil {
@@ -1137,6 +1157,9 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	//log.Infof("Have to return first of %d results", len(results))
 	if len(results) == 0 {
 		return nil, fmt.Errorf("no such object [%v][%v]", typeName, referenceId)
+	}
+	if OlricCache != nil {
+		_ = OlricCache.PutEx(k, results[0], 5*time.Second)
 	}
 
 	return results[0], err
@@ -1248,6 +1271,14 @@ func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...goqu.Ex) ([
 // Lookup an integer id and return a string reference id of an object of type `typeName`
 func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, error) {
 
+	k := fmt.Sprintf("itr-%v-%v", typeName, id)
+	if OlricCache != nil {
+		v, err := OlricCache.Get(k)
+		if err == nil {
+			return v.(string), nil
+		}
+	}
+
 	s, q, err := statementbuilder.Squirrel.Select("reference_id").From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
 		return "", err
@@ -1256,6 +1287,9 @@ func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, err
 	var str string
 	row := dr.db.QueryRowx(s, q...)
 	err = row.Scan(&str)
+	if OlricCache != nil {
+		OlricCache.PutEx(k, str, 1*time.Minute)
+	}
 	return str, err
 
 }
@@ -1433,7 +1467,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				refId, ok := referenceIdCache[idCacheKey]
 				if !ok && OlricCache != nil {
 					cachedId, err := OlricCache.Get(idCacheKey)
-					if err != nil && cachedId != nil {
+					if err == nil && cachedId != nil {
 						refId = cachedId.(string)
 						referenceIdCache[idCacheKey] = refId
 						ok = true
