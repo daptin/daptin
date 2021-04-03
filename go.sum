@@ -258,8 +258,8 @@ github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtE
 github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46fmI40EZs=
 github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72 h1:fUmDBbSvv1uOzo/t8WaxZMVb7BxJ8JECo5lGoR9c5bA=
 github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72/go.mod h1:OEE5igu/CDjGegM1Jn6ZMo7R6LlV/JChAkjfQQIRLpg=
-github.com/buraksezer/olric v0.3.0 h1:hrjRK2lb9XdJyJpdzL4ucfHXUFVQXg1u4LsOHdvhr9M=
-github.com/buraksezer/olric v0.3.0/go.mod h1:KKNx5Uqu07ZY4+IDugCuplDK5Yah6YD6ftA1wHlj+BM=
+github.com/buraksezer/olric v0.3.6 h1:gd4W1pKkaGKxtUep1hota4erZsLJZihfhlQgvSAB/UQ=
+github.com/buraksezer/olric v0.3.6/go.mod h1:KKNx5Uqu07ZY4+IDugCuplDK5Yah6YD6ftA1wHlj+BM=
 github.com/buraksezer/pool v3.0.0+incompatible h1:MXcI3YkBnElnbJ8ZPIYqa0dia3qqHDNto1E004YxseA=
 github.com/buraksezer/pool v3.0.0+incompatible/go.mod h1:zxtCo9iWArq14Yd5u1nvAr95d4wyp0YSkKGOF89BGr8=
 github.com/calebcase/tmpfile v1.0.1/go.mod h1:iErLeG/iqJr8LaQ/gYRv4GXdqssi3jg4iSzvrA06/lw=

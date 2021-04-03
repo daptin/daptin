@@ -29,7 +29,7 @@ require (
 	//github.com/artpar/ydb v0.0.5
 	github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
-	github.com/buraksezer/olric v0.3.0
+	github.com/buraksezer/olric v0.3.6
 	github.com/corpix/uarand v0.0.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/gift v1.2.1
