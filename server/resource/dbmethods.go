@@ -761,7 +761,7 @@ func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 
 	err = dr.db.QueryRowx(s, q...).Scan(&refId)
 	if err != nil {
-		log.Warnf("Failed to scan user group id from the result 1: %v", err)
+		log.Warnf("Failed to scan user group id from the result 764: %v", err)
 	}
 	if OlricCache != nil {
 		_ = OlricCache.PutEx(k, refId, 1 * time.Second)
@@ -827,7 +827,7 @@ func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 	err = dr.db.QueryRowx(s, q...).Scan(&email)
 	if err != nil {
 		log.Warnf("Failed to execute query 789: %v == %v", s, q)
-		log.Warnf("Failed to scan user group id from the result 3: %v", err)
+		log.Warnf("Failed to scan user group id from the result 830: %v", err)
 	}
 
 	return email

@@ -332,7 +332,7 @@ OutFields:
 		//log.Infof("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
 		switch outcome.Method {
 		case "POST":
-			responseObjects, err = dbResource.CreateWithoutFilter(model, request)
+			responseObjects, err = dbResource.Create(model, request)
 			CheckErr(err, "Failed to post from action")
 			if err != nil {
 
@@ -396,7 +396,7 @@ OutFields:
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "PATCH":
-			responseObjects, err = dbResource.UpdateWithoutFilters(model, request)
+			responseObjects, err = dbResource.Update(model, request)
 			CheckErr(err, "Failed to update inside action")
 			if err != nil {
 				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName()+". "+err.Error(), "Failed"))
@@ -837,6 +837,15 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 	if fieldString[0] == '!' {
 
 		res, err := runUnsafeJavascript(fieldString[1:], inFieldMap)
+		if err != nil {
+			return nil, err
+		}
+		val = res
+
+	} else if len(fieldString) > 3 && BeginsWith(fieldString, "{{") && EndsWithCheck(fieldString, "}}") {
+
+		jsString := fieldString[2 : len(fieldString)-2]
+		res, err := runUnsafeJavascript(jsString, inFieldMap)
 		if err != nil {
 			return nil, err
 		}
