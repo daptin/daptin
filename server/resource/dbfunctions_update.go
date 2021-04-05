@@ -13,6 +13,7 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/ghodss/yaml"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -706,6 +707,31 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 
 			jsonData := make(map[string][]map[string]interface{}, 0)
 			err := json.Unmarshal(fileBytes, &jsonData)
+			if err != nil {
+				log.Errorf("Failed to read content as json to import: %v", err)
+				continue
+			}
+
+			//cruds["world"].db.Exec("PRAGMA foreign_keys = OFF")
+			for typeName, data := range jsonData {
+				crud := cruds[typeName]
+				if crud == nil {
+					log.Errorf("%s is not a defined entity", typeName)
+					continue
+				}
+				errs := ImportDataMapArray(data, crud, req)
+				if len(errs) > 0 {
+					for _, err := range errs {
+						log.Warnf("Warning while importing json data in update 701: %v", err)
+					}
+				}
+			}
+			//cruds["world"].db.Exec("PRAGMA foreign_keys = ON")
+
+		case "yaml":
+
+			jsonData := make(map[string][]map[string]interface{}, 0)
+			err := yaml.Unmarshal(fileBytes, &jsonData)
 			if err != nil {
 				log.Errorf("Failed to read content as json to import: %v", err)
 				continue
