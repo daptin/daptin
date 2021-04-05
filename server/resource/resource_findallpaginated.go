@@ -270,10 +270,12 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				},
 			)
 		} else {
+
 			finalCols = append(finalCols, column{
-				originalvalue: goqu.I("usergroup_id.permission"),
-				reference:     "usergroup_id.permission",
+				originalvalue: goqu.I(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName)),
+				reference:     fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName),
 			})
+
 			finalCols = append(finalCols, column{
 				originalvalue: goqu.I(fmt.Sprintf("%s.reference_id", relatedTableName)).As("relation_reference_id"),
 				reference:     fmt.Sprintf("%s.reference_id", relatedTableName),

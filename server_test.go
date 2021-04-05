@@ -263,7 +263,7 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 	return hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb
 }
 
-func TestServer(t *testing.T) {
+func TestServerApis(t *testing.T) {
 
 	createServer()
 	//_, _, _, _, _, _, _, _ := createServer()
@@ -277,6 +277,27 @@ func TestServer(t *testing.T) {
 	log.Printf("Shutdown now")
 
 }
+
+func TestAuth(t *testing.T) {
+
+	createServer()
+	//_, _, _, _, _, _, _, _ := createServer()
+	err := runAauthTests(t)
+	log.Printf("Auth Test ended")
+	if err != nil {
+		t.Errorf("test failed %v", err)
+	}
+	//log.Printf("it never started in test: %v %v", imapServer, ftpServer)
+
+	log.Printf("Shutdown now")
+
+}
+
+func runAauthTests(t *testing.T) error {
+
+	return nil
+}
+
 
 func runTests(t *testing.T) error {
 

@@ -52,10 +52,10 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 
 		cruds[table.TableName] = res
 
-		if table.IsJoinTable {
-			// we do not expose join table as web api
-			continue
-		}
+		//if table.IsJoinTable {
+		//	we do expose join table as web api
+		//continue
+		//}
 
 		func() {
 			defer func() {
