@@ -447,7 +447,6 @@ jobs:
           files: |
             ./build/github.com/daptin/daptin-linux-amd64
             ./build/github.com/daptin/daptin-darwin-10.6-amd64
-            ./build/github.com/daptin/daptin-linux-386
             ./build/github.com/daptin/daptin-linux-arm-5
             ./build/github.com/daptin/daptin-linux-arm-6
             ./build/github.com/daptin/daptin-linux-arm-7
