@@ -73,7 +73,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 	reqmethod = strings.ToLower(reqmethod)
 	//log.Infof("Request to intercept in middleware exchange: %v", reqmethod)
 
-	for _, resultRow := range results {
+	for i, resultRow := range results {
 
 		typ, ok := resultRow["__type"]
 
@@ -125,13 +125,14 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 							exchangeResult[key] = val
 						}
 					}
+					results[i] = exchangeResult
 				}
 
 			}
 		}
 	}
 
-	return nil, nil
+	return results, nil
 }
 
 // Called after the data changes are complete, resposible for calling the external api.

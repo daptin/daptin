@@ -597,7 +597,7 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 			return nil, err
 		}
 		if responseData == nil {
-			return nil, errors.New("No object to act upon")
+			return nil, errors.New(fmt.Sprintf("No object to act upon after %v", bf.String()))
 		}
 	}
 
