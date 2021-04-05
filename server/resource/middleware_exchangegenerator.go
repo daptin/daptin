@@ -85,7 +85,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 		exchanges, ok := em.exchangeMap[resultType]
 
 		if ok {
-			log.Infof("Got %d exchanges for [%v]", len(exchanges), resultType)
+			//log.Infof("Got %d exchanges for [%v]", len(exchanges), resultType)
 		} else {
 			continue
 		}
@@ -156,14 +156,20 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 		exchanges, ok := em.exchangeMap[resultType]
 
 		if ok {
-			log.Infof("Got %d exchanges for [%v]", len(exchanges), resultType)
+			//log.Infof("Got %d exchanges for [%v]", len(exchanges), resultType)
 		} else {
 			continue
 		}
 
 		for _, exchange := range exchanges {
 
-			hookEvent := exchange.Attributes["hook"].(string)
+			hook, ok := exchange.Attributes["hook"]
+			if !ok || hook == "" || hook == nil {
+				log.Warnf("hook value not present in exchange: %v", exchange.Name)
+				continue
+			}
+
+			hookEvent := hook.(string)
 			if hookEvent != "after" {
 				continue
 			}
