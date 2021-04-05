@@ -161,8 +161,6 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int6
 		return []int64{}
 	}
 
-	var retArray []int64
-
 	query, args, err := statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"name": goqu.Op{"in": groupsName}}).ToSQL()
 	CheckErr(err, "Failed to convert usergroup names to ids")
 	query = db.Rebind(query)
@@ -180,7 +178,7 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int6
 		retInt = append(retInt, id)
 	}
 
-	return retArray
+	return retInt
 
 }
 
