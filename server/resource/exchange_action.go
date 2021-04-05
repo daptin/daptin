@@ -18,11 +18,11 @@ type ActionExchangeHandler struct {
 
 func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[string]interface{}, error) {
 
-	log.Infof("Execute action exchange")
+	log.Infof("Execute action exchange on: %v - %v", row["__type"], row["reference_id"])
 
 	targetType, ok := g.exchangeContract.TargetAttributes["type"]
 	if !ok {
-		log.Warnf("target type value not present in action exchange")
+		log.Warnf("target type value not present in action exchange: %v", g.exchangeContract.Name)
 	}
 	tableName := targetType.(string)
 	targetAttributes := g.exchangeContract.TargetAttributes["attributes"]
