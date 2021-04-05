@@ -2,20 +2,22 @@ package resource
 
 import (
 	"encoding/base64"
+	"strings"
+
 	"github.com/artpar/api2go"
 	uuid "github.com/artpar/go.uuid"
-	"github.com/daptin/daptin/server/columntypes"
+	fieldtypes "github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
 	log "github.com/sirupsen/logrus"
-	"strings"
 
 	//"reflect"
 	"errors"
 	"fmt"
-	"github.com/daptin/daptin/server/auth"
 	"net/http"
 	"time"
+
+	"github.com/daptin/daptin/server/auth"
 )
 
 // Update an object
@@ -586,9 +588,10 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				//intId := updatedResource["id"].(int64)
 				//log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
 
-				valMapList := val.([]map[string]interface{})
+				valMapList := val.([]interface{})
 
-				for _, valMap := range valMapList {
+				for _, valMapInterface := range valMapList {
+					valMap := valMapInterface.(map[string]interface{})
 
 					updateForeignRow := make(map[string]interface{})
 
@@ -624,9 +627,10 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				//intId := updatedResource["id"].(int64)
 				//log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
 
-				valMapList := val.([]map[string]interface{})
+				valMapList := val.([]interface{})
 
-				for _, valMap := range valMapList {
+				for _, valMapInterface := range valMapList {
+					valMap := valMapInterface.(map[string]interface{})
 					updateForeignRow := make(map[string]interface{})
 					updateForeignRow, err = dr.GetReferenceIdToObject(rel.GetSubject(), valMap[rel.GetSubjectName()].(string))
 					if err != nil {
@@ -646,10 +650,10 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				break
 
 			case "has_many":
-				values := val.([]map[string]interface{})
+				values := val.([]interface{})
 
-				for _, obj := range values {
-
+				for _, objInterfacce := range values {
+					obj := objInterfacce.(map[string]interface{})
 					updateObject := make(map[string]interface{})
 					updateObject[rel.GetSubjectName()] = obj[rel.GetSubjectName()]
 					updateObject[rel.GetObjectName()] = updatedResource["reference_id"].(string)
