@@ -13,8 +13,8 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"io/ioutil"
 	log "github.com/sirupsen/logrus"
+	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
@@ -167,15 +167,18 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int6
 	CheckErr(err, "Failed to convert usergroup names to ids")
 	query = db.Rebind(query)
 
-	err = db.Select(&retArray, query, args...)
+
+	rows, err := db.Queryx(query, args...)
 	CheckErr(err, "Failed to query user-group names to ids")
 
-	//retInt := make([]int64, 0)
+	retInt := make([]int64, 0)
 
-	//for _, val := range retArray {
-	//	iVal, _ := strconv.ParseInt(val, 10, 64)
-	//	retInt = append(retInt, iVal)
-	//}
+	for rows.Next() {
+		//iVal, _ := strconv.ParseInt(val, 10, 64)
+		var id int64
+		rows.Scan(&id)
+		retInt = append(retInt, id)
+	}
 
 	return retArray
 
