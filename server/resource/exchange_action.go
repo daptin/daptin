@@ -20,11 +20,19 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[s
 
 	log.Infof("Execute action exchange")
 
-	tableName := g.exchangeContract.TargetAttributes["type"].(string)
+	targetType, ok := g.exchangeContract.TargetAttributes["type"]
+	if !ok {
+		log.Warnf("target type value not present in action exchange")
+	}
+	tableName := targetType.(string)
+	targetAttributes := g.exchangeContract.TargetAttributes["attributes"]
+	if targetAttributes == nil {
+		targetAttributes = make(map[string]interface{})
+	}
 	request := ActionRequest{
 		Type:       tableName,
 		Action:     g.exchangeContract.TargetAttributes["action"].(string),
-		Attributes: g.exchangeContract.TargetAttributes["attributes"].(map[string]interface{}),
+		Attributes: targetAttributes.(map[string]interface{}),
 	}
 	//
 	//if g.exchangeContract.SourceType == row["__type"] {

@@ -185,11 +185,13 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 
 	ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
+		exchangeMiddleware,
 		objectPermissionChecker,
 	}
 
 	ms.AfterFindAll = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
+		exchangeMiddleware,
 		objectPermissionChecker,
 	}
 
@@ -198,6 +200,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		objectPermissionChecker,
 		dataValidationMiddleware,
 		createEventHandler,
+		exchangeMiddleware,
 	}
 	ms.AfterCreate = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
@@ -210,11 +213,13 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		tablePermissionChecker,
 		objectPermissionChecker,
 		deleteEventHandler,
+		exchangeMiddleware,
 	}
 	ms.AfterDelete = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
 		deleteEventHandler,
+		exchangeMiddleware,
 	}
 
 	ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
@@ -223,20 +228,24 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		dataValidationMiddleware,
 		yhsHandler,
 		updateEventHandler,
+		exchangeMiddleware,
 	}
 	ms.AfterUpdate = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
 		updateEventHandler,
+		exchangeMiddleware,
 	}
 
 	ms.BeforeFindOne = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
+		exchangeMiddleware,
 	}
 	ms.AfterFindOne = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
+		exchangeMiddleware,
 	}
 	return ms
 }

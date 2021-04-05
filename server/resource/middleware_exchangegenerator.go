@@ -92,11 +92,16 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 
 		for _, exchange := range exchanges {
 
-			hookEvent := exchange.Attributes["hook"].(string)
+			hook, ok := exchange.Attributes["hook"]
+			if !ok || hook == "" {
+				log.Warnf("hook value not present in exchange: %v", exchange.Name)
+				continue
+			}
+			hookEvent := hook.(string)
 			if hookEvent != "before" {
 				continue
 			}
- 			methods := exchange.Attributes["methods"].([]interface{})
+			methods := exchange.Attributes["methods"].([]interface{})
 			if !InArray(methods, reqmethod) {
 				continue
 			}

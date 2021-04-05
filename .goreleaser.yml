@@ -1,0 +1,202 @@
+# This is an example goreleaser.yaml file with some sane defaults.
+# Make sure to check the documentation at http://goreleaser.com
+project_name: daptin
+env:
+  - GO111MODULE=on
+  # - GOPROXY=https://goproxy.cn
+before:
+  hooks:
+    # - go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+    # you may remove this if you don't use vgo
+    - go mod download
+    # you may remove this if you don't need go generate
+    # - go generate ./..
+builds:
+  # Mainnet
+  - id: daptin-darwin
+    ldflags: -X github.com/daptin/daptin/chain/version.Version={{ .Version }} -X github.com/daptin/daptin/chain/version.GitRev={{ .ShortCommit }} -X github.com/daptin/daptin/chain/version.BuildTime={{ .Date }} -X github.com/daptin/daptin/chain/version.Mode=MainNet
+    binary: daptin
+    env:
+      - CGO_ENABLED=1
+      - CC=o64-clang
+      - CXX=o64-clang++
+    main: ./main.go
+    goos:
+      - darwin
+    goarch:
+      - amd64
+  - id: daptin-linux
+    ldflags: -X github.com/daptin/daptin/chain/version.Version={{ .Version }} -X github.com/daptin/daptin/chain/version.GitRev={{ .ShortCommit }} -X github.com/daptin/daptin/chain/version.BuildTime={{ .Date }} -X github.com/daptin/daptin/chain/version.Mode=MainNet
+    binary: daptin
+    env:
+      - CGO_ENABLED=1
+    main: ./main.go
+    goos:
+      - linux
+    goarch:
+      - amd64
+  - id: daptin-windows-x64
+    ldflags: -X github.com/daptin/daptin/chain/version.Version={{ .Version }} -X github.com/daptin/daptin/chain/version.GitRev={{ .ShortCommit }} -X github.com/daptin/daptin/chain/version.BuildTime={{ .Date }} -X github.com/daptin/daptin/chain/version.Mode=MainNet -buildmode=exe
+    binary: daptin
+    env:
+      - CGO_ENABLED=1
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+    main: ./main.go
+    goos:
+      - windows
+    goarch:
+      - amd64
+  - id: daptin-windows-i386
+    ldflags: -X github.com/daptin/daptin/chain/version.Version={{ .Version }} -X github.com/daptin/daptin/chain/version.GitRev={{ .ShortCommit }} -X github.com/daptin/daptin/chain/version.BuildTime={{ .Date }} -X github.com/daptin/daptin/chain/version.Mode=MainNet -buildmode=exe
+    binary: daptin
+    env:
+      - CGO_ENABLED=1
+      - CC=i686-w64-mingw32-gcc-posix
+      - CXX=i686-w64-mingw32-g++-posix
+    main: ./main.go
+    goos:
+      - windows
+    goarch:
+      - 386
+  - id: daptin-confidant
+    flags:
+      - -tags=confidant
+    ldflags: -X github.com/daptin/daptin/chain/version.Version={{ .Version }} -X github.com/daptin/daptin/chain/version.GitRev={{ .ShortCommit }} -X github.com/daptin/daptin/chain/version.BuildTime={{ .Date }} -X github.com/daptin/daptin/chain/version.Mode=MainNet
+    binary: daptin
+    env:
+      - CGO_ENABLED=1
+      - CC=arm-linux-gnueabihf-gcc
+      - CXX=arm-linux-gnueabihf-g++
+    main: ./main.go
+    goos:
+      - linux
+    goarch:
+      - arm
+    goarm:
+      - 7
+
+  # Test net
+  - id: daptin-darwin-enterprise
+    flags:
+      - -tags=testnet
+    ldflags: -X github.com/daptin/daptin/chain/version.Version={{ .Version }} -X github.com/daptin/daptin/chain/version.GitRev={{ .ShortCommit }} -X github.com/daptin/daptin/chain/version.BuildTime={{ .Date }} -X github.com/daptin/daptin/chain/version.Mode=TestNet
+    binary: daptine
+    env:
+      - CGO_ENABLED=1
+      - CC=o64-clang
+      - CXX=o64-clang++
+    main: ./main.go
+    goos:
+      - darwin
+    goarch:
+      - amd64
+  - id: daptin-linux-enterprise
+    flags:
+      - -tags=testnet
+    ldflags: -X github.com/daptin/daptin/chain/version.Version={{ .Version }} -X github.com/daptin/daptin/chain/version.GitRev={{ .ShortCommit }} -X github.com/daptin/daptin/chain/version.BuildTime={{ .Date }} -X github.com/daptin/daptin/chain/version.Mode=TestNet
+    binary: daptine
+    env:
+      - CGO_ENABLED=1
+    main: ./main.go
+    goos:
+      - linux
+    goarch:
+      - amd64
+  - id: daptin-windows-enterprise
+    flags:
+      - -tags=testnet
+    ldflags: -X github.com/daptin/daptin/chain/version.Version={{ .Version }} -X github.com/daptin/daptin/chain/version.GitRev={{ .ShortCommit }} -X github.com/daptin/daptin/chain/version.BuildTime={{ .Date }} -X github.com/daptin/daptin/chain/version.Mode=TestNet -buildmode=exe
+    binary: daptine
+    env:
+      - CGO_ENABLED=1
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+    main: ./main.go
+    goos:
+      - windows
+    goarch:
+      - amd64
+      # - 386
+  - id: daptin-confidant-enterprise
+    flags:
+      - -tags="confidant testnet"
+    ldflags: -X github.com/daptin/daptin/chain/version.Version={{ .Version }} -X github.com/daptin/daptin/chain/version.GitRev={{ .ShortCommit }} -X github.com/daptin/daptin/chain/version.BuildTime={{ .Date }} -X github.com/daptin/daptin/chain/version.Mode=TestNet
+    binary: daptine
+    env:
+      - CGO_ENABLED=1
+      - CC=arm-linux-gnueabihf-gcc
+      - CXX=arm-linux-gnueabihf-g++
+    main: ./main.go
+    goos:
+      - linux
+    goarch:
+      - arm
+    goarm:
+      - 7
+
+archives:
+  - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: "{{ .Binary }}-v{{ .Version }}-{{ .ShortCommit }}-{{ .Os }}-{{ .Arch }}"
+    replacements:
+      amd64: x64
+      386: i386
+      arm: Confidant
+      arm64: ARM64
+      darwin: macOS
+      linux: Linux
+      windows: Windows
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "{{ .ProjectName }}_checksums.txt"
+
+snapshot:
+  name_template: SNAPSHOT-{{.ShortCommit}}
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - Merge pull request
+      - Merge branch
+
+signs:
+  -
+    # name of the signature file.
+    # '${artifact}' is the path to the artifact that should be signed.
+    #
+    # defaults to `${artifact}.sig`
+    # signature: "${artifact}_sig"
+
+    # command line arguments for the command
+    #
+    # to sign with a specific key use
+    # args: ["-u", "<key id, fingerprint, email, ..>", "--output", "${signature}", "--detach-sign", "${artifact}"]
+    #
+    # defaults to `["--output", "${signature}", "--detach-sign", "${artifact}"]`
+    args: ["-u", "Parth Mudgal (Daptin) <artpar@gmail.com>", "--output", "${signature}", "--detach-sign", "${artifact}"]
+
+    # which artifacts to sign
+    #
+    #   checksum: only checksum file(s)
+    #   all:      all artifacts
+    #   none:     no signing
+    #
+    # defaults to `none`
+    artifacts: all
+
+release:
+  github:
+    owner: daptin
+    name: daptin
+
+  prerelease: auto
