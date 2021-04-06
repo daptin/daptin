@@ -54,7 +54,21 @@ func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[str
 
 	rows := make([]map[string]interface{}, 0)
 	for i := 0; i < count; i++ {
-		row := GetFakeRow(d.tableMap[tableName])
+		columns := d.tableMap[tableName]
+		row := GetFakeRow(columns)
+		for _, column := range columns {
+			if column.IsForeignKey {
+				if column.ForeignKeyData.DataSource == "self" {
+					foreignRow, err := d.cruds[column.ForeignKeyData.Namespace].GetRandomRow(column.ForeignKeyData.Namespace, 1)
+					if len(foreignRow) < 1 || err != nil {
+						log.Printf("no rows to select from for type %v", column.ForeignKeyData.Namespace)
+						continue
+					}
+					row[column.ColumnName] = foreignRow[0]["reference_id"].(string)
+				}
+			}
+		}
+
 		u, _ := uuid.NewV4()
 		row["reference_id"] = u.String()
 		row["permission"] = auth.DEFAULT_PERMISSION

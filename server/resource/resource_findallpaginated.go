@@ -1230,10 +1230,10 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		resultObj = result[0]
 	}
 	return uint(pagination.TotalCount), NewResponse(nil, resultObj, 200, &api2go.Pagination{
-		Next:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageSize+pagination.PageNumber)},
-		Prev:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageNumber-pagination.PageSize)},
-		First:       map[string]string{},
-		Last:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.TotalCount-pagination.PageSize)},
+		//Next:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageSize+pagination.PageNumber)},
+		//Prev:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageNumber-pagination.PageSize)},
+		//First:       map[string]string{},
+		//Last:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.TotalCount-pagination.PageSize)},
 		Total:       pagination.TotalCount,
 		PerPage:     pagination.PageSize,
 		CurrentPage: 1 + (pagination.PageNumber / pagination.PageSize),

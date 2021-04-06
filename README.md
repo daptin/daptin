@@ -40,7 +40,6 @@ Daptin is a server exposing HTTP APIs for web and application developers providi
 - Dadadash : https://github.com/daptin/dadadash/
   - `docker run -p 8080:8080 daptin/dadadash`
 
-Go down if you are looking for headless CMS
 
 
 |      |    |
@@ -62,11 +61,11 @@ Go down if you are looking for headless CMS
 The most powerful ready to use data and services API server.
 
 
-- **Define data tables and relations from YAML or Web dashboard UI**
+- **Define data tables and relations from config files or API calls**
   - Middleware for handling data normalizations and conformations 
   - Create indexes, constraints on columns
   - Column can be have images/video/audio/blobs attachments, stored appropriately in #cloudstore
-- **Authentication and Authorization on APIs**
+- **Authentication and Authorization on APIs, define auth using APIs**
   - Add users and user groups
   - RWX based permission system for rows and tables
   - JWT token with configurable expiry time
@@ -76,7 +75,7 @@ The most powerful ready to use data and services API server.
   - GraphQL endpoint with Data/Query and Mutations available
   - Pagination and filtering using page number or cursor based
   - Fetch relationships in a single call
-- **Cloud storage**
+- **Cloud storage, create storage using API**
   - Connect to [over 30 storage providers](https://rclone.org/overview/) (localhost/HTTP/FTP/GDrive/Dropbox/S3 and many more)
   - Manage files using daptin actions
   - Automated 1 hour sync scheduled
@@ -84,7 +83,7 @@ The most powerful ready to use data and services API server.
   - Host site on multiple domains
   - Inbuilt HTTPS certificate generation with lets-encrypt
   - Web file browser and FTP access (disabled by default)
-- **Action workflows & 3rd party API integration**
+- **Action workflows & 3rd party API integration, create new integration using API calls**
   - Supports v2/v3 openapi in yaml or json format
   - Call any 3rd party API by importing OpenAPI Spec
 - **Email server**
@@ -97,16 +96,8 @@ The most powerful ready to use data and services API server.
 
 
 
+## Overview
 
-<p align="center">
-  <a href="#why-use-daptin">Features</a> •
-  <a href="#getting-started">Getting Started</a>
-</p>
-
-
-## Why use daptin
-
-Easily consume the following features on any device
 
 - [Database backed](https://daptin.github.io/daptin/setting-up/installation/#database-configuration) persistence, 3NF normalized tables
 - [JSON API](https://daptin.github.io/daptin/apis/overview/)/[GraphQL](https://daptin.github.io/daptin/features/enable-graphql/) for CRUD apis
@@ -175,40 +166,6 @@ Get Started
 * [Docker image](https://daptin.github.io/daptin/setting-up/installation/#docker-image)
 * [Kubernetes YAML](https://daptin.github.io/daptin/setting-up/installation/#kubernetes-deployment)
 
-## Features
-
-* Declarative Data Modeling system
-  - Unique/Primary keys
-  - Single/Multiple Relation
-  - Normalizations and conformations
-  - Scripting using JS
-* CRUD JSON APIs' for all tables
-  - Create, Read, Update, Delete
-  - Sort, filter, search, group by single/multiple columns
-  - Authentication and Group based authorization
-  - Pluggable middleware, conformations and normalizations
-  - Trigger actions/pipelines
-* GraphQL APIs
-  - Read and Mutations APIs for all tables
-  - One level of relationship fetching
-* Client SDK libraries for all platforms
-* Rich data types
-  - Column types ranging from number to json to file/image assets
-* Sub sites hosting
-  - Expose multiple websites from a single instance
-  - Connect multiple domains/sub-domains
-* Pluggable Social Auth, Basic Auth or Username/Password Auth
-* Cloud storage
-  - Connect to external cloud storage services seamlessly
-  - Pull data/Push data
-* Action APIs
-  - Define work-flows
-  - Expose custom endpoints for other services
-* Ready to use web dashboard
-  - Responsive to desktop, mobile and table
-* Cross platform
-  - Windows, Mac, Linux and more
-
 
 ### APIs
 
@@ -232,7 +189,7 @@ Get Started
 
 - [Guests](https://daptin.github.io/daptin/setting-up/access/#guests)
 - [Adding users](https://daptin.github.io/daptin/setting-up/access/#signup-api)
-- [Usergroups](https://daptin.github.io/daptin/setting-up/access/#user-groups)
+- [User groups](https://daptin.github.io/daptin/setting-up/access/#user-groups)
 - [Data access permission](https://daptin.github.io/daptin/setting-up/access/#authorization)
 - [Social login](https://daptin.github.io/daptin/setting-up/access/#social-login)
 
@@ -243,8 +200,7 @@ Get Started
 
 ### Sub-sites
 
-- [Creating a subsite](https://daptin.github.io/daptin/subsite/subsite)
-
+- [Create a subsite](https://daptin.github.io/daptin/subsite/subsite)
 
 
 ## Client library
@@ -263,78 +219,6 @@ OpenAPI V3 spec is auto generated for each endpoint exposed. This can be use to 
 ![YAML API documentation](docs_markdown/docs/images/api-documentation.png)
 
 ```curl http://localhost/apispec.yaml```
-
-```
-{
-    "data": [
-        {
-            "type": "tableName",
-            "attributes": {
-                "col1": "",
-                "col2": "",
-            },
-            "id": "",
-        }
-    ],
-    "included": [
-        {
-            "type": "tableName",
-            "attributes": {},
-            "id": "",
-        },
-        .
-        .
-    ],
-    "links": {
-        "current_page": 1,
-        "from": 0,
-        "last_page": 100,
-        "per_page": 50,
-        "to": 50,
-        "total": 5000
-    }
-}
-```
-
-## Web Dashboard
-
-![Sign up and Sign in](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/signup_and_signin.gif)
-![Create entity and add item](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/create_entity_and_add.gif)
-![Generate random data to show tables](https://raw.githubusercontent.com/daptin/daptin/master/docs_markdown/docs/gifs/generate_random_show_tables.gif)
-
-
-## Why Daptin?
-
-
-Daptin was to help build faster, more capable APIs over your data that worked across for all types of frontend.
-
-While Daptin primarily targeted Web apps, the emergence of Android and iOS Apps as a rapidly growing target for developers demanded a different approach for building the backend. With developers classic use of traditional frameworks and bundling techniques, we struggle to invest enough time in the business and frontend demands for all sorts of Apps that provide consistent and predictable APIs which perform equally well on fast and slow load, across a diversity of platforms and devices.
-
-Additionally, framework fragmentation had created a APIs development interoperability nightmare, where backend built for one purpose needs a lot of boilerplate and integration with the rest of the system, in a consistent way.
-
-A component system around JSON APIs offered a solution to both problems, allowing more time available to be invested into frontend and business building, and targeting a standards-based JSON/Entity models that all frontends can use.
-
-However, JSON APIs for data manipulation by themselves weren't enough. Building apps required a lot of custom actions, workflows, data integrity, event subscription, integration with external services that were previously locked up inside of traditional web frameworks. Daptin was built to pull these features out of traditional frameworks and bring them to the fast emerging JSON API standard in an automated way.
-
-
-## Getting started
-
-
-- Deploy instance of Daptin on a server
-- Upload JSON/YAML/TOML/HCL file which describe your entities (or use marketplace to get started)
-- or upload XLS file to create entities and upload data
-- Become Admin of the instance (until then its a open for access, that's why you were able to create an account)
-
-
-## Tech Goals
-
-- Zero config start (sqlite db for no-config install, mysql/postgres is recommended for serious use)
-- A closely knit set of functionality which work together
-- Completely configurable at runtime
-- Stateless (Horizontally scalable)
-- Piggyback on used/known standards
-- Runnable on all types on devices
-- Cross platform app using [qt](https://github.com/therecipe/qt) (very long term goal. A responsive website for now.)
 
 
 ## Road Map
@@ -359,45 +243,4 @@ However, JSON APIs for data manipulation by themselves weren't enough. Building 
 * [x] Online entity designer
 * [x] Excel to entity identification
 * [x] CSV to entity identification
-
-### Documentation
-
-- Checkout the [documentation for daptin](https://daptin.github.io/daptin/)
-
-
-### Golang Dependencies list
-
-
-|                  DEPENDENCY                   |                        REPOURL                        |   LICENSE    |
-|-----------------------------------------------|-------------------------------------------------------|--------------|
-| github.com/GeertJohan/go.rice                 | https://github.com/GeertJohan/go.rice                 | bsd-2-clause |
-| github.com/artpar/go-guerrilla                | https://github.com/artpar/go-guerrilla                | MIT          |
-| github.com/gin-gonic/gin                      | https://github.com/gin-gonic/gin                      | MIT          |
-| github.com/sirupsen/logrus                    | https://github.com/sirupsen/logrus                    | MIT          |
-| github.com/Masterminds/squirrel               | https://github.com/Masterminds/squirrel               | Other        |
-| github.com/PuerkitoBio/goquery                | https://github.com/PuerkitoBio/goquery                | bsd-3-clause |
-| github.com/anthonynsimon/bild                 | https://github.com/anthonynsimon/bild                 | MIT          |
-| github.com/artpar/api2go                      | https://github.com/artpar/api2go                      | MIT          |
-| github.com/artpar/api2go-adapter              | https://github.com/artpar/api2go-adapter              | MIT          |
-| github.com/artpar/go-imap                     | https://github.com/artpar/go-imap                     | MIT          |
-| github.com/artpar/go.uuid                     | https://github.com/artpar/go.uuid                     | MIT          |
-| github.com/artpar/parsemail                   | https://github.com/artpar/parsemail                   | MIT          |
-| github.com/artpar/rclone                      | https://github.com/artpar/rclone                      | MIT          |
-| github.com/artpar/stats                       | https://github.com/artpar/stats                       | MIT          |
-| github.com/bjarneh/latinx                     | https://github.com/bjarneh/latinx                     | bsd-3-clause |
-| github.com/emersion/go-sasl                   | https://github.com/emersion/go-sasl                   | MIT          |
-| github.com/julienschmidt/httprouter           | https://github.com/julienschmidt/httprouter           | bsd-3-clause |
-| golang.org/x/net/context                      | https://go.googlesource.com/net                       |              |
-| github.com/advance512/yaml                    | https://github.com/advance512/yaml                    | Other        |
-| golang.org/x/crypto/bcrypt                    | https://go.googlesource.com/crypto                    |              |
-| github.com/alexeyco/simpletable               | https://github.com/alexeyco/simpletable               | MIT          |
-| github.com/araddon/dateparse                  | https://github.com/araddon/dateparse                  | MIT          |
-| github.com/artpar/conform                     | https://github.com/artpar/conform                     | Other        |
-| github.com/artpar/resty                       | https://github.com/artpar/resty                       | MIT          |
-| github.com/emersion/go-message                | https://github.com/emersion/go-message                | MIT          |
-| github.com/go-playground/locales              | https://github.com/go-playground/locales              | MIT          |
-| github.com/go-playground/universal-translator | https://github.com/go-playground/universal-translator | MIT          |
-| golang.org/x/oauth2                           | https://go.googlesource.com/oauth2                    |              |
-| gopkg.in/go-playground/validator.v9           | https://github.com/go-playground/validator            | MIT          |
-| golang.org/x/net/websocket                    | https://go.googlesource.com/net                       |              |
 

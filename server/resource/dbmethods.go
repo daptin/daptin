@@ -740,6 +740,34 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations ma
 	return m1, include, err
 
 }
+func (dr *DbResource) GetRandomRow(typeName string, count uint) ([]map[string]interface{}, error) {
+
+	randomFunc := "RANDOM() * "
+
+	if dr.connection.DriverName() == "mysql" {
+		randomFunc = "RAND() * "
+	}
+
+	// select id from world where id > RANDOM() * (SELECT MAX(id) FROM world) limit 15;
+	maxSql, _, _ := goqu.Select(goqu.L("max(id)")).From(typeName).ToSQL()
+	stmt := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{
+		"id": goqu.Op{"gte": goqu.L(randomFunc + " ( " + maxSql + " ) ")},
+	}).Limit(count)
+
+	s, q, err := stmt.ToSQL()
+
+	//log.Infof("Select query: %v == [%v]", s, q)
+	rows, err := dr.db.Queryx(s, q...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	m1, _, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), nil)
+
+	return m1, err
+
+}
 
 func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 
