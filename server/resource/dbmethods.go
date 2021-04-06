@@ -4,12 +4,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/doug-martin/goqu/v9"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/doug-martin/goqu/v9"
 
 	"github.com/araddon/dateparse"
 	"github.com/artpar/api2go"
@@ -716,7 +717,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 	return perm
 }
 
-func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations map[string]bool, where ...goqu.Ex, ) (
+func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations map[string]bool, where ...goqu.Ex) (
 	[]map[string]interface{}, [][]map[string]interface{}, error) {
 
 	stmt := statementbuilder.Squirrel.Select("*").From(typeName)
@@ -742,32 +743,33 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations ma
 
 func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
 
-	k := fmt.Sprintf("ugbui-%v", userId)
-	if OlricCache != nil {
-		tok, err := OlricCache.Get(k)
-		if err == nil {
-			return tok.(uint64)
-		}
-	}
+	return 0
+	// k := fmt.Sprintf("ugbui-%v", userId)
+	// if OlricCache != nil {
+	// 	tok, err := OlricCache.Get(k)
+	// 	if err == nil {
+	// 		return tok.(uint64)
+	// 	}
+	// }
 
-	s, q, err := statementbuilder.Squirrel.Select("usergroup_id").From("user_account_user_account_id_has_usergroup_usergroup_id").
-		Where(goqu.Ex{"usergroup_id": goqu.Op{"neq": 1}}).Where(goqu.Ex{"user_account_id": userId}).Order(goqu.C("created_at").Asc()).Limit(1).ToSQL()
-	if err != nil {
-		log.Errorf("Failed to create sql query 719: %v", err)
-		return 0
-	}
+	// s, q, err := statementbuilder.Squirrel.Select("usergroup_id").From("user_account_user_account_id_has_usergroup_usergroup_id").
+	// 	Where(goqu.Ex{"usergroup_id": goqu.Op{"neq": 1}}).Where(goqu.Ex{"user_account_id": userId}).Order(goqu.C("created_at").Asc()).Limit(1).ToSQL()
+	// if err != nil {
+	// 	log.Errorf("Failed to create sql query 719: %v", err)
+	// 	return 0
+	// }
 
-	var refId uint64
+	// var refId uint64
 
-	err = dr.db.QueryRowx(s, q...).Scan(&refId)
-	if err != nil {
-		log.Warnf("Failed to scan user group id from the result 764: %v", err)
-	}
-	if OlricCache != nil {
-		_ = OlricCache.PutEx(k, refId, 1 * time.Second)
-	}
+	// err = dr.db.QueryRowx(s, q...).Scan(&refId)
+	// if err != nil {
+	// 	log.Warnf("Failed to scan user group id from the result 764: %v", err)
+	// }
+	// if OlricCache != nil {
+	// 	_ = OlricCache.PutEx(k, refId, 1 * time.Second)
+	// }
 
-	return refId
+	// return refId
 
 }
 func (dr *DbResource) GetUserMembersByGroupName(groupName string) []string {

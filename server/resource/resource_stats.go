@@ -1,12 +1,13 @@
 package resource
 
 import (
-	"github.com/daptin/daptin/server/statementbuilder"
-	"github.com/doug-martin/goqu/v9"
-	"github.com/pkg/errors"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/doug-martin/goqu/v9"
+	"github.com/pkg/errors"
 )
 
 type TimeStamp string
@@ -57,6 +58,15 @@ func ToInterfaceArray(s []string) []interface{} {
 	}
 	return r
 }
+
+func MapArrayToInterfaceArray(s []map[string]interface{}) []interface{} {
+	r := make([]interface{}, len(s))
+	for i, e := range s {
+		r[i] = e
+	}
+	return r
+}
+
 func ColumnToInterfaceArray(s []column) []interface{} {
 	r := make([]interface{}, len(s))
 	for i, e := range s {

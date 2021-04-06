@@ -588,7 +588,16 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				//intId := updatedResource["id"].(int64)
 				//log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
 
-				valMapList := val.([]interface{})
+				valMapList, ok := val.([]interface{})
+
+				if !ok {
+					valMap, ok := val.([]map[string]interface{})
+					if ok {
+						valMapList = MapArrayToInterfaceArray(valMap)
+					} else {
+						log.Warnf("invalid value type for column [%v] = %v", rel.GetSubjectName(), val)
+					}
+				}
 
 				for _, valMapInterface := range valMapList {
 					valMap := valMapInterface.(map[string]interface{})
@@ -627,7 +636,16 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				//intId := updatedResource["id"].(int64)
 				//log.Infof("Converted ids for [%v]: %v", rel.GetObject(), intId)
 
-				valMapList := val.([]interface{})
+				valMapList, ok := val.([]interface{})
+
+				if !ok {
+					valMap, ok := val.([]map[string]interface{})
+					if ok {
+						valMapList = MapArrayToInterfaceArray(valMap)
+					} else {
+						log.Warnf("invalid value type for column [%v] = %v", rel.GetSubjectName(), val)
+					}
+				}
 
 				for _, valMapInterface := range valMapList {
 					valMap := valMapInterface.(map[string]interface{})
@@ -650,7 +668,15 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 				break
 
 			case "has_many":
-				values := val.([]interface{})
+				values, ok := val.([]interface{})
+				if !ok {
+					valMap, ok := val.([]map[string]interface{})
+					if ok {
+						values = MapArrayToInterfaceArray(valMap)
+					} else {
+						log.Warnf("invalid value type for column [%v] = %v", rel.GetSubjectName(), val)
+					}
+				}
 
 				for _, objInterfacce := range values {
 					obj := objInterfacce.(map[string]interface{})

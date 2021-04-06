@@ -2,13 +2,15 @@ package resource
 
 import (
 	"fmt"
-	"github.com/daptin/daptin/server/auth"
-	"github.com/doug-martin/goqu/v9"
-	"github.com/doug-martin/goqu/v9/exp"
 	"strconv"
 	"strings"
 
+	"github.com/daptin/daptin/server/auth"
+	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/exp"
+
 	"encoding/base64"
+
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
@@ -430,7 +432,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			query := queries[0]
 			queryParts := strings.Split(query, ",")
 			queries = queryParts
-			log.Infof("Forward Relation %v", rel.String())
+			// log.Infof("Forward Relation %v", rel.String())
 
 			objectNameList, ok := req.QueryParams[rel.GetObject()+"Name"]
 
