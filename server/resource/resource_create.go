@@ -3,20 +3,24 @@ package resource
 import (
 	"crypto/md5"
 	"encoding/base64"
+	"strconv"
+
 	"github.com/artpar/api2go"
+	uuid "github.com/artpar/go.uuid"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 
 	//"reflect"
-	"github.com/artpar/go.uuid"
+
 	//"strconv"
 	"fmt"
+
 	"github.com/araddon/dateparse"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/pkg/errors"
+
 	//"strconv"
 	"strings"
 	"time"
@@ -482,7 +486,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		u, _ := uuid.NewV4()
 		nuuid := u.String()
 
-		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
+		belogsToUserGroupSql, q, _ := statementbuilder.Squirrel.
 			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
 			Cols(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Vals([]interface{}{createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
@@ -501,7 +505,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		u, _ := uuid.NewV4()
 		nuuid := u.String()
 
-		belogsToUserGroupSql, q, err := statementbuilder.Squirrel.
+		belogsToUserGroupSql, q, _ := statementbuilder.Squirrel.
 			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
 			Cols(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Vals([]interface{}{createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()

@@ -1158,7 +1158,7 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 
 	//log.Infof("Have to return first of %d results", len(results))
 	if len(results) == 0 {
-		return nil, fmt.Errorf("no such object [%v][%v]", typeName, referenceId)
+		return nil, fmt.Errorf("no such object 1161 [%v][%v]", typeName, referenceId)
 	}
 	if OlricCache != nil {
 		_ = OlricCache.PutEx(k, results[0], 5*time.Second)
@@ -1194,7 +1194,7 @@ func (dr *DbResource) GetReferenceIdToObjectColumn(typeName string, referenceId 
 
 	//log.Infof("Have to return first of %d results", len(results))
 	if len(results) == 0 {
-		return nil, fmt.Errorf("no such object [%v][%v]", typeName, referenceId)
+		return nil, fmt.Errorf("no such object 1197 [%v][%v]", typeName, referenceId)
 	}
 
 	return results[0][columnToSelect], err

@@ -1,8 +1,9 @@
 package resource
 
 import (
-	"github.com/artpar/api2go"
 	"strings"
+
+	"github.com/artpar/api2go"
 
 	//"github.com/Masterminds/squirrel"
 

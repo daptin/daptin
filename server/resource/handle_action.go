@@ -5,11 +5,14 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+
 	"github.com/artpar/api2go"
+	uuid "github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/dop251/goja"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+
 	//"io"
 	"crypto/md5"
 	"encoding/hex"
@@ -19,12 +22,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/artpar/conform"
-	"github.com/artpar/go.uuid"
-	"gopkg.in/go-playground/validator.v9"
 	"io"
 	"net/url"
 	"strconv"
+
+	"github.com/artpar/conform"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 var guestActions = map[string]Action{}
@@ -175,6 +178,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		req.PlainRequest.Method = "GET"
 		referencedObject, err := db.FindOne(subjectInstanceReferenceId.(string), req)
 		if err != nil {
+			log.Warnf("failed to load subject for action: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
 			return nil, api2go.NewHTTPError(err, "failed to load subject", 400)
 		}
 		subjectInstance = referencedObject.Result().(*api2go.Api2GoModel)
@@ -182,6 +186,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		subjectInstanceMap = subjectInstance.Data
 
 		if subjectInstanceMap == nil {
+			log.Warnf("subject is empty: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
 			return nil, api2go.NewHTTPError(errors.New("subject not found"), "subject not found", 400)
 		}
 
@@ -189,11 +194,13 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		permission := db.GetRowPermission(subjectInstanceMap)
 
 		if !permission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
+			log.Warnf("user not allowed action on this object: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
 			return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 		}
 	}
 
 	if !isAdmin && !db.IsUserActionAllowed(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action) {
+		log.Warnf("user not allowed action: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
 		return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 	}
 
@@ -202,10 +209,12 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	action, err := db.GetActionByName(actionRequest.Type, actionRequest.Action)
 	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
 	if err != nil {
+		log.Warnf("invalid action: %v - %v", actionRequest.Action, actionRequest.Type)
 		return nil, api2go.NewHTTPError(err, "no such action", 400)
 	}
 
 	if !action.InstanceOptional && (subjectInstanceReferenceId == "" || subjectInstance == nil) {
+		log.Warnf("subject is unidentified: %v - %v", actionRequest.Action, actionRequest.Type)
 		return nil, api2go.NewHTTPError(errors.New("required reference id not provided or incorrect"), "no reference id", 400)
 	}
 
@@ -223,6 +232,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	for _, validation := range action.Validations {
 		errs := ValidatorInstance.VarWithValue(actionRequest.Attributes[validation.ColumnName], actionRequest.Attributes, validation.Tags)
 		if errs != nil {
+			log.Warnf("validation on input fields failed: %v - %v", actionRequest.Action, actionRequest.Type)
 			validationErrors := errs.(validator.ValidationErrors)
 			firstError := validationErrors[0]
 			return nil, api2go.NewHTTPError(errors.New(fmt.Sprintf("invalid value for %s", validation.ColumnName)), firstError.Tag(), 400)
@@ -273,6 +283,8 @@ OutFields:
 		var errors1 []error
 		var actionResponse ActionResponse
 
+		log.Printf("Action [%v] => Outcome [%v][%v] ", actionRequest.Action, outcome.Type, outcome.Method)
+
 		if len(outcome.Condition) > 0 {
 			outcomeResult, err := evaluateString(outcome.Condition, inFieldMap)
 			CheckErr(err, "Failed to evaluate condition, assuming false by default")
@@ -320,7 +332,7 @@ OutFields:
 
 		requestContext := req.PlainRequest.Context()
 		adminUserReferenceId := db.GetAdminReferenceId()
-		if adminUserReferenceId != nil && len(adminUserReferenceId) > 0 {
+		if len(adminUserReferenceId) > 0 {
 			requestContext = context.WithValue(requestContext, "user", &auth.SessionUser{
 				UserReferenceId: adminUserReferenceId[0],
 			})
@@ -430,7 +442,7 @@ OutFields:
 				outcome.Attributes["user"] = sessionUser
 				responder, responses1, errors1 = performer.DoAction(outcome, model.Data)
 				actionResponses = append(actionResponses, responses1...)
-				if errors1 != nil && len(errors1) > 0 {
+				if len(errors1) > 0 {
 					err = errors1[0]
 				}
 				if responder != nil {
@@ -448,7 +460,7 @@ OutFields:
 			handler, ok := db.ActionHandlerMap[outcome.Type]
 
 			if !ok {
-				log.Errorf("Unknown method invoked: %v", outcome.Type)
+				log.Errorf("Unknown method invoked onn %v: %v", outcome.Type, outcome.Method)
 				continue
 			}
 			responder, responses1, err1 := handler.DoAction(outcome, model.Data)
@@ -475,6 +487,11 @@ OutFields:
 		}
 
 		if responseObjects != nil && outcome.Reference != "" {
+
+			api2goModel, ok := responseObjects.(api2go.Response)
+			if ok {
+				responseObjects = api2goModel.Result().(*api2go.Api2GoModel).Data
+			}
 
 			singleResult, isSingleResult := responseObjects.(map[string]interface{})
 
@@ -600,9 +617,9 @@ func NewActionResponse(responseType string, attrs interface{}) ActionResponse {
 func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.Api2GoModel, api2go.Request, error) {
 
 	attrInterface, err := BuildActionContext(outcome.Attributes, inFieldMap)
-	if err != nil {
-		return nil, api2go.Request{}, err
-	}
+	// if err != nil {
+	// return nil, api2go.Request{}, err
+	// }
 	attrs := attrInterface.(map[string]interface{})
 
 	switch outcome.Type {
@@ -616,12 +633,12 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 
 		files1, ok := attrs["json_schema"]
 		if !ok {
-			return nil, returnRequest, errors.New("No files uploaded")
+			return nil, returnRequest, errors.New("no files uploaded")
 		}
 		log.Infof("Files [%v]: %v", attrs, files1)
 		files, ok := files1.([]interface{})
 		if !ok || len(files) < 1 {
-			return nil, returnRequest, errors.New("No files uploaded")
+			return nil, returnRequest, errors.New("no files uploaded")
 		}
 		for _, file := range files {
 			f := file.(map[string]interface{})
@@ -690,7 +707,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 		}
 		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
 
-		return model, returnRequest, nil
+		return model, returnRequest, err
 
 	default:
 
@@ -701,7 +718,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 				Method: outcome.Method,
 			},
 		}
-		return model, req, nil
+		return model, req, err
 
 	}
 
@@ -758,7 +775,7 @@ func BuildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 				val, err := evaluateString(fieldString, inFieldMap)
 				//log.Infof("Value of [%v] == [%v]", key, val)
 				if err != nil {
-					return nil, err
+					return data, err
 				}
 				if val != nil {
 					dataMap[key] = val
@@ -768,7 +785,7 @@ func BuildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 
 				val, err := BuildActionContext(field, inFieldMap)
 				if err != nil {
-					return nil, err
+					return data, err
 				}
 				if val != nil {
 					dataMap[key] = val

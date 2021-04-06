@@ -128,7 +128,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 							val = foreignObject["id"]
 						} else {
-							return nil, errors.New(fmt.Sprintf("No write permission on object [%v][%v]", col.ForeignKeyData.Namespace, valString))
+							return nil, errors.New(fmt.Sprintf("no refer permission on object [%v][%v]", col.ForeignKeyData.Namespace, valString))
 						}
 					} else {
 						ok = true
@@ -526,19 +526,24 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 			if !ok {
 				continue
 			}
-			mapList, ok := val11.([]map[string]interface{})
-			if !ok {
-				log.Infof("parameter [%s] is not of type Array Of Map", rel.GetObjectName())
-				continue
+			var valueList []interface{}
+			valueListMap, ok := val11.([]map[string]interface{})
+			if ok {
+				valueList = MapArrayToInterfaceArray(valueListMap)
+			} else {
+				valueList, ok = val11.([]interface{})
+				if !ok {
+					log.Warnf("invalue value for column [%v]", rel.GetObjectName())
+					continue
+				}
 			}
 
-			if len(mapList) < 1 {
+			if len(valueList) < 1 {
 				continue
 			}
 
 			log.Infof("Update object for relation on [%v] : [%v]", rel.GetObjectName(), val11)
 
-			valueList := val11.([]map[string]interface{})
 			switch relationName {
 			case "has_one":
 			case "belongs_to":
@@ -547,7 +552,8 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 			case "has_many_and_belongs_to_many":
 			case "has_many":
 
-				for _, item := range valueList {
+				for _, itemInterface := range valueList {
+					item := itemInterface.(map[string]interface{})
 					obj := make(map[string]interface{})
 					obj[rel.GetObjectName()] = item[rel.GetObjectName()]
 					obj[rel.GetSubjectName()] = updatedResource["reference_id"]
