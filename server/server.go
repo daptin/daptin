@@ -19,7 +19,6 @@ import (
 	"github.com/artpar/go-imap/server"
 	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/fs"
-	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/stats"
 	"github.com/artpar/ydb"
 	"github.com/aviddiviner/gin-limit"
@@ -80,10 +79,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	initConfig.Tables = allTables
 
 	// rclone config load
-	config.LoadConfig()
-	fs.Config.DryRun = false
-	fs.Config.LogLevel = fs.LogLevelDebug
-	fs.Config.StatsLogLevel = fs.LogLevelDebug
+	defaultConfig := fs.GetConfig(nil)
+	defaultConfig.DryRun = false
+	defaultConfig.LogLevel = fs.LogLevelDebug
+	defaultConfig.StatsLogLevel = fs.LogLevelDebug
 
 	initialiseResources(&initConfig, db)
 
@@ -320,7 +319,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		},
 		SetDocumentInitialContent: nil,
 	})
-
 
 	ms := BuildMiddlewareSet(&initConfig, &cruds, documentProvider, &dtopicMap)
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)

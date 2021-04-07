@@ -125,7 +125,8 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
 	}
-	fs.Config.LogLevel = fs.LogLevelNotice
+	defaultConfig := fs.GetConfig(nil)
+	defaultConfig.LogLevel = fs.LogLevelNotice
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {

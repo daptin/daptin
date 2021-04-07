@@ -207,7 +207,9 @@ func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
 	}
-	fs.Config.LogLevel = fs.LogLevelNotice
+	defaultConfig := fs.GetConfig(nil)
+
+	defaultConfig.LogLevel = fs.LogLevelNotice
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
@@ -217,7 +219,7 @@ func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 
 		ctx := context.Background()
 
-		fs.Config.DeleteMode = fs.DeleteModeOff
+		defaultConfig.DeleteMode = fs.DeleteModeOff
 		err := sync.CopyDir(ctx, fdst, fsrc, true)
 		InfoErr(err, "Failed to sync files for upload to cloud")
 

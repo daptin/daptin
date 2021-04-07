@@ -73,7 +73,8 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Delete file action at [%v]", atPath),
 	}
-	fs.Config.LogLevel = fs.LogLevelNotice
+	defaultConfig := fs.GetConfig(nil)
+	defaultConfig.LogLevel = fs.LogLevelNotice
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil {

@@ -54,7 +54,8 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tem
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync cloud store [%v] to path [%v]", cloudStore.Name, tempDirectoryPath),
 	}
-	fs.Config.LogLevel = fs.LogLevelNotice
+	defaultConfig := fs.GetConfig(nil)
+	defaultConfig.LogLevel = fs.LogLevelNotice
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {

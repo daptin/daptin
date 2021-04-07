@@ -89,7 +89,8 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync site storage [%v]", cloudStoreId),
 	}
-	fs.Config.LogLevel = fs.LogLevelNotice
+	defaultConfig := fs.GetConfig(nil)
+	defaultConfig.LogLevel = fs.LogLevelNotice
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
@@ -104,9 +105,10 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 			return nil
 		}
 
-		fs.Config.DeleteMode = fs.DeleteModeBefore
-		fs.Config.AutoConfirm = true
-		fs.Config.LogLevel = fs.LogLevelDebug
+		defaultConfig := fs.GetConfig(nil)
+		defaultConfig.LogLevel = fs.LogLevelNotice
+		defaultConfig.DeleteMode = fs.DeleteModeBefore
+		defaultConfig.AutoConfirm = true
 
 		if srcFileName == "" {
 			err = sync.Sync(ctx, fdst, fsrc, true)

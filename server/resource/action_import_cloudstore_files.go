@@ -95,7 +95,8 @@ func (d *importCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[
 		cobraCommand := &cobra.Command{
 			Use: fmt.Sprintf("list files from from [%v] %v", cacheFolder.CloudStore.StoreProvider, fsrc),
 		}
-		fs.Config.LogLevel = fs.LogLevelNotice
+		defaultConfig := fs.GetConfig(nil)
+		defaultConfig.LogLevel = fs.LogLevelNotice
 
 		cmd.Run(true, false, cobraCommand, func() error {
 			if fsrc == nil {
