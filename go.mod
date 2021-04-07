@@ -10,6 +10,7 @@ require (
 	github.com/alexeyco/simpletable v0.0.0-20180729223640-1fa9009f1080
 	github.com/anthonynsimon/bild v0.10.0
 	github.com/araddon/dateparse v0.0.0-20181123171228-21df004e09ca
+	github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6 // indirect
 	github.com/artpar/api2go v2.4.7+incompatible
 	github.com/artpar/api2go-adapter v1.0.1
 	github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6
@@ -21,7 +22,7 @@ require (
 	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
-	github.com/artpar/rclone v1.50.21
+	github.com/artpar/rclone v1.55.2
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
 	github.com/artpar/xlsx/v2 v2.0.5
@@ -35,6 +36,7 @@ require (
 	github.com/disintegration/gift v1.2.1
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
 	github.com/doug-martin/goqu/v9 v9.11.0
+	github.com/dropbox/dropbox-sdk-go-unofficial v5.6.0+incompatible // indirect
 	github.com/emersion/go-message v0.11.1
 	github.com/emersion/go-msgauth v0.4.0
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
@@ -63,6 +65,7 @@ require (
 	github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9 // indirect
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f // indirect
+	github.com/goreleaser/goreleaser v0.162.0 // indirect
 	github.com/gorilla/feeds v1.1.1
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
@@ -72,33 +75,39 @@ require (
 	github.com/imroc/req v0.2.4
 	github.com/jamiealquiza/envy v1.1.0
 	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
-	github.com/jlaffaye/ftp v0.0.0-20200720194710-13949d38913e
+	github.com/jlaffaye/ftp v0.0.0-20210302195756-c3c8c7ac6590
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
 	github.com/json-iterator/go v1.1.10
-	github.com/julienschmidt/httprouter v1.2.0
+	github.com/julienschmidt/httprouter v1.3.0
+	github.com/karalabe/xgo v0.0.0-20191115072854-c5ccff8648a7 // indirect
 	github.com/kniren/gota v0.10.1 // indirect
+	github.com/koofr/go-httpclient v0.0.0-20200420163713-93aa7c75b348 // indirect
+	github.com/koofr/go-koofrclient v0.0.0-20190724113126-8e5366da203a // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/gommon v0.2.8 // indirect
-	github.com/lib/pq v1.2.0
+	github.com/lib/pq v1.9.0
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/naoina/toml v0.1.1
+	github.com/ncw/swift v1.0.52 // indirect
+	github.com/okzk/sdnotify v0.0.0-20180710141335-d9becc38acbd // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.2.0
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
 	github.com/siebenmann/smtpd v0.0.0-20170816215504-b93303610bbe // indirect
 	github.com/simplereach/timeutils v1.2.0 // indirect
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.7.0
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
-	github.com/spf13/cobra v1.1.1
+	github.com/spf13/cobra v1.1.3
+	github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77 // indirect
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
-	golang.org/x/crypto v0.0.0-20201001193750-eb9a90e9f9cb
-	golang.org/x/net v0.0.0-20200930145003-4acb6c075d10
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/text v0.3.4
-	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
+	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
+	golang.org/x/oauth2 v0.0.0-20210201163806-010130855d6c
+	golang.org/x/text v0.3.5
+	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
 	gonum.org/v1/gonum v0.6.2 // indirect
 	gopkg.in/go-playground/validator.v9 v9.30.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
