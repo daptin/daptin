@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/artpar/rclone/fs/config/configfile"
 	"github.com/buraksezer/olric"
 	"github.com/sadlil/go-trigger"
 	"io"
@@ -79,6 +80,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	initConfig.Tables = allTables
 
 	// rclone config load
+	configfile.LoadConfig(context.Background())
 	defaultConfig := fs.GetConfig(nil)
 	defaultConfig.DryRun = false
 	defaultConfig.LogLevel = fs.LogLevelDebug
