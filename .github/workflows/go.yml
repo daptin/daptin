@@ -374,74 +374,74 @@ jobs:
       - uses: actions/upload-artifact@v1
         with:
           name: daptin-linux-amd64
-          path: daptin-linux-amd64
+          path: build/github.com/daptin/daptin-linux-amd64
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
           name: daptin-darwin-10.6-amd64
-          path: daptin-darwin-10.6-amd64
+          path: build/github.com/daptin/daptin-darwin-10.6-amd64
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
           name: daptin-linux-386
-          path: daptin-linux-386
+          path: build/github.com/daptin/daptin-linux-386
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
           name: daptin-linux-arm-5
-          path: daptin-linux-arm-5
+          path: build/github.com/daptin/daptin-linux-arm-5
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
           name: daptin-linux-arm-6
-          path: daptin-linux-arm-6
+          path: build/github.com/daptin/daptin-linux-arm-6
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
           name: daptin-linux-arm-7
-          path: daptin-linux-arm-7
+          path: build/github.com/daptin/daptin-linux-arm-7
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
           name: daptin-linux-mips
-          path: daptin-linux-mips
+          path: build/github.com/daptin/daptin-linux-mips
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
           name: daptin-linux-mipsle
-          path: daptin-linux-mipsle
+          path: build/github.com/daptin/daptin-linux-mipsle
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
           name: daptin-linux-mips64
-          path: daptin-linux-mips64
+          path: build/github.com/daptin/daptin-linux-mips64
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
           name: daptin-linux-mips64le
-          path: daptin-linux-mips64le
+          path: build/github.com/daptin/daptin-linux-mips64le
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
 
       - uses: actions/upload-artifact@v1
         with:
           name: daptin-windows-4.0-amd64.exe
-          path: daptin-windows-4.0-amd64.exe
+          path: build/github.com/daptin/daptin-windows-4.0-amd64.exe
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
         with:
           name: daptin-windows-4.0-386.exe
-          path: daptin-windows-4.0-386.exe
+          path: build/github.com/daptin/daptin-windows-4.0-386.exe
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
 
@@ -451,17 +451,17 @@ jobs:
         with:
           draft: true
           files: |
-            ./daptin-linux-amd64
-            ./daptin-darwin-10.6-amd64
-            ./daptin-linux-arm-5
-            ./daptin-linux-arm-6
-            ./daptin-linux-arm-7
-            ./daptin-linux-mips
-            ./daptin-linux-mipsle
-            ./daptin-linux-mips64
-            ./daptin-linux-mips64le
-            ./daptin-windows-4.0-amd64.exe
-            ./daptin-windows-4.0-386.exe
+            ./build/github.com/daptin/daptin-linux-amd64
+            ./build/github.com/daptin/daptin-darwin-10.6-amd64
+            ./build/github.com/daptin/daptin-linux-arm-5
+            ./build/github.com/daptin/daptin-linux-arm-6
+            ./build/github.com/daptin/daptin-linux-arm-7
+            ./build/github.com/daptin/daptin-linux-mips
+            ./build/github.com/daptin/daptin-linux-mipsle
+            ./build/github.com/daptin/daptin-linux-mips64
+            ./build/github.com/daptin/daptin-linux-mips64le
+            ./build/github.com/daptin/daptin-windows-4.0-amd64.exe
+            ./build/github.com/daptin/daptin-windows-4.0-386.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
