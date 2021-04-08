@@ -89,6 +89,7 @@ require (
 	github.com/lib/pq v1.9.0
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
 	github.com/mattn/go-sqlite3 v1.11.0
+	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/naoina/toml v0.1.1
 	github.com/ncw/swift v1.0.52 // indirect
 	github.com/okzk/sdnotify v0.0.0-20180710141335-d9becc38acbd // indirect
