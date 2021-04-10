@@ -289,7 +289,7 @@ jobs:
       - name: Go module cache
         uses: actions/cache@v2
         with:
-          path: ~/go/pkg/mod
+          path: /tmp/xgo-cache
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
