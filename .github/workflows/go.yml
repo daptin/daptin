@@ -286,6 +286,14 @@ jobs:
           echo "${{ runner.workspace }}/bin" >> $GITHUB_PATH
 
 
+      - name: Go module cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
       - name: Copy Code
         shell: bash
         run: go get github.com/daptin/daptin
