@@ -94,7 +94,7 @@ func main() {
 		"\tMySql: <username>:<password>@tcp(<hostname>:<port>)/<db_name>\n"+
 		"\tPostgres: host=<hostname> port=<port> user=<username> password=<password> dbname=<db_name> sslmode=enable/disable")
 
-	var webDashboardSource = flag.String("dashboard", strings.ReplaceAll("daptinweb/dist/spa/", "/", string(os.PathSeparator)), "path to dist folder for daptin web dashboard")
+	var webDashboardSource = flag.String("dashboard", strings.ReplaceAll("daptinweb", "/", string(os.PathSeparator)), "path to dist folder for daptin web dashboard")
 	//var assetsSource = flag.String("assets", "assets", "path to folder for assets")
 	var port_variable = flag.String("port_variable", "DAPTIN_PORT", "ENV port variable name to look for port")
 	var database_url_variable = flag.String("database_url_variable", "DAPTIN_DB_CONNECTION_STRING", "ENV port variable name to look for port")
@@ -127,11 +127,12 @@ func main() {
 	stream.AddSink(&health.WriterSink{
 		Writer: os.Stdout,
 	})
-	boxRoot1, err := rice.FindBox("daptinweb/dist/spa/")
+
+	boxRoot1, err := rice.FindBox("daptinweb")
 
 	var boxRoot http.FileSystem
-	if err != nil || (webDashboardSource != nil && *webDashboardSource != "daptinweb/dist/spa/") {
-		log.Errorf("Dashboard not loading from default path: daptinweb/dist/spa/: %v == %v", err, boxRoot1)
+	if err != nil || (webDashboardSource != nil && *webDashboardSource != "daptinweb") {
+		log.Errorf("Dashboard not loading from default path: %v == %v", err, boxRoot1)
 		log.Printf("Try loading web dashboard from: %v", *webDashboardSource)
 		boxRoot = http.Dir(*webDashboardSource)
 	} else {
@@ -209,7 +210,6 @@ func main() {
 		}
 	}
 
-
 	olricConfig1 := olricConfig.New("wan")
 	olricConfig1.LogLevel = "ERROR"
 	olricConfig1.LogVerbosity = 1
@@ -232,7 +232,7 @@ func main() {
 	}
 
 	err = trigger.On("restart", func() {
-		log.Printf("Trigger restart");
+		log.Printf("Trigger restart")
 		restartLock.Lock()
 		defer restartLock.Unlock()
 		restart_count += 1
@@ -252,7 +252,6 @@ func main() {
 		}
 
 		startTime := time.Now()
-
 
 		log.Printf("Close down services and db connection")
 		taskScheduler.StopTasks()
