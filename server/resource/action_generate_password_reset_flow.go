@@ -57,7 +57,6 @@ func (d *generatePasswordResetActionPerformer) DoAction(request Outcome, inField
 			"nbf":     time.Now().Unix(),
 			"exp":     time.Now().Add(30 * time.Minute).Unix(),
 			"iss":     d.jwtTokenIssuer,
-			"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5Hash([]byte(strings.ToLower(email)))),
 			"iat":     time.Now(),
 			"jti":     u.String(),
 		})
