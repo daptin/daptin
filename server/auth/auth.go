@@ -171,6 +171,7 @@ func (a *AuthMiddleware) BasicAuthCheckMiddlewareWithHttp(req *http.Request, wri
 			Claims: jwt.MapClaims{
 				"name":  strings.Split(username, "@")[0],
 				"email": username,
+				"sub": username,
 			},
 		}
 	}

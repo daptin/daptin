@@ -65,14 +65,14 @@ func (d *generateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap m
 			// you would like it to contain.
 			u, _ := uuid.NewV4()
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-				"email":   existingUser["email"],
-				"name":    existingUser["name"],
-				"nbf":     time.Now().Unix(),
-				"exp":     time.Now().Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),
-				"iss":     d.jwtTokenIssuer,
-				"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5Hash([]byte(strings.ToLower(existingUser["email"].(string))))),
-				"iat":     time.Now(),
-				"jti":     u.String(),
+				"email": existingUser["email"],
+				"sub":   existingUser["email"],
+				"name":  existingUser["name"],
+				"nbf":   time.Now().Unix(),
+				"exp":   time.Now().Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),
+				"iss":   d.jwtTokenIssuer,
+				"iat":   time.Now(),
+				"jti":   u.String(),
 			})
 
 			// Sign and get the complete encoded token as a string using the secret
