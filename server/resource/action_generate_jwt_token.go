@@ -7,7 +7,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/doug-martin/goqu/v9"
 	log "github.com/sirupsen/logrus"
-	"strings"
 	"time"
 )
 
