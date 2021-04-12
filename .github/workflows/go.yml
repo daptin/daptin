@@ -127,14 +127,27 @@ jobs:
         shell: bash
         run: |
           printf "npm and qusar to build dashboard in ./daptinweb"
-          git clone https://github.com/daptin/dadadash daptinweb && cd daptinweb
-          npm install -g @quasar/cli
+          git clone https://github.com/daptin/dadadash builddaptinweb && cd builddaptinweb
+          npm install @quasar/cli
           npm install
           npm run build
           ls -lah dist/spa
           printf "Dashboard build complete"
           cd ..
+          mv builddaptinweb/dist/spa ./daptinweb
+          rm -rf builddaptinweb
+          ls -lah ./daptinweb
 
+
+
+      - name: Installl gorice on linux
+        shell: bash
+        run: |
+          go get github.com/GeertJohan/go.rice
+          go get github.com/GeertJohan/go.rice/rice
+          go install github.com/GeertJohan/go.rice/rice
+          $GOPATH/bin/rice embed-go
+          ls -lah
 
       - name: Run quick tests
         shell: bash
