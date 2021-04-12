@@ -173,9 +173,6 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then make release_dep ; fi
-          ls -lah
-          ls -lah daptinweb/dist
-          mv daptinweb/dist/spa daptinweb/dist/spa1
           make travis_beta
           ls -lah build/
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
