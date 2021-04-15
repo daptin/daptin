@@ -7,12 +7,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	ImapServer "github.com/artpar/go-imap/server"
 	"github.com/artpar/rclone/lib/random"
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"
 	server2 "github.com/fclairamb/ftpserver/server"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/jlaffaye/ftp"
 	"io/ioutil"
@@ -293,7 +293,7 @@ func TestServerApis(t *testing.T) {
 //
 //}
 
-func runAauthTests(t *testing.T) error {
+func runAuthTests(t *testing.T) error {
 
 	return nil
 }

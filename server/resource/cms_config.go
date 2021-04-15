@@ -26,7 +26,7 @@ type CmsConfig struct {
 	ActionPerformers         []ActionPerformerInterface
 }
 
-var ValidatorInstance *validator.Validate = validator.New()
+var ValidatorInstance = validator.New()
 
 func (ti *CmsConfig) AddRelations(relations ...api2go.TableRelation) {
 	if ti.Relations == nil {

@@ -311,6 +311,12 @@ github.com/armon/go-radix v1.0.0/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgI
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/artpar/api2go v2.4.7+incompatible h1:1N+Ab64S8iGgcP9jbVwIEPwMwO7G780isPhzCdOTOnQ=
 github.com/artpar/api2go v2.4.7+incompatible/go.mod h1:BLL0RmcYCr2iBhgc9ikF7UiIrKcK39hcovb6T4RBLCg=
+github.com/artpar/api2go v2.4.8+incompatible h1:tm1dn3yJg+q7NoMD2NCIqdRZ1qayCoSUsqhZIgJT5k4=
+github.com/artpar/api2go v2.4.8+incompatible/go.mod h1:BLL0RmcYCr2iBhgc9ikF7UiIrKcK39hcovb6T4RBLCg=
+github.com/artpar/api2go v2.4.9+incompatible h1:WibWUIUGRpAQksWYZq8a/BOgv01E/qQDxxqdINE6jpU=
+github.com/artpar/api2go v2.4.9+incompatible/go.mod h1:BLL0RmcYCr2iBhgc9ikF7UiIrKcK39hcovb6T4RBLCg=
+github.com/artpar/api2go v2.4.10+incompatible h1:YlUQMbJiYCCV6jKaz8wKoCOIDAoQFvf8H75QC3mC8Bc=
+github.com/artpar/api2go v2.4.10+incompatible/go.mod h1:BLL0RmcYCr2iBhgc9ikF7UiIrKcK39hcovb6T4RBLCg=
 github.com/artpar/api2go-adapter v1.0.1 h1:fxFFpFviAOy6lS1mHHBmNTBANQwAqnjvHyT39JktC2M=
 github.com/artpar/api2go-adapter v1.0.1/go.mod h1:h4OpxkcLLUP7ceSoz1sI8BCZKlz6PZdjG7EtMtwiJVI=
 github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6 h1:1Mh42T2/N38Z7SLYs1YcoSORPo4jYxgCXkaEgWCKs3U=

@@ -171,7 +171,7 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		},
 		"to": map[string]interface{}{
 			"type":        "number",
-			"description": "Index of the last record feched in this result",
+			"description": "Index of the last record fetched in this result",
 		},
 		"total": map[string]interface{}{
 			"type":        "number",

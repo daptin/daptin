@@ -506,6 +506,19 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 						).Where(wh)
 					joins = append(joins, GetJoins(rel)...)
 					joinFilters = append(joinFilters, wh)
+
+
+					if len(rel.Columns) > 0 {
+						for _, col := range rel.Columns {
+							joinColumn := fmt.Sprintf("%v.%v", rel.GetJoinTableName(), col.ColumnName)
+							finalCols = append(finalCols, column{
+								originalvalue: goqu.I(joinColumn),
+								reference:     joinColumn,
+							})
+						}
+					}
+
+
 				}
 			}
 		}
@@ -621,6 +634,16 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 						})).Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
 				joins = append(joins, GetReverseJoins(rel)...)
 				joinFilters = append(joinFilters, goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
+
+				if len(rel.Columns) > 0 {
+					for _, col := range rel.Columns {
+						joinColumn := fmt.Sprintf("%v.%v", rel.GetJoinTableName(), col.ColumnName)
+						finalCols = append(finalCols, column{
+							originalvalue: goqu.I(joinColumn),
+							reference:     joinColumn,
+						})
+					}
+				}
 
 			}
 

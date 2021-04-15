@@ -554,11 +554,12 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 				for _, itemInterface := range valueList {
 					item := itemInterface.(map[string]interface{})
-					obj := make(map[string]interface{})
-					obj[rel.GetObjectName()] = item[rel.GetObjectName()]
-					obj[rel.GetSubjectName()] = updatedResource["reference_id"]
+					//obj := make(map[string]interface{})
+					item[rel.GetObjectName()] = item["id"]
+					item[rel.GetSubjectName()] = updatedResource["reference_id"]
+					delete(item, "id")
 
-					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, obj)
+					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, item)
 					pr := &http.Request{
 						Method: "POST",
 					}
@@ -684,13 +685,14 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					}
 				}
 
-				for _, objInterfacce := range values {
-					obj := objInterfacce.(map[string]interface{})
-					updateObject := make(map[string]interface{})
-					updateObject[rel.GetSubjectName()] = obj[rel.GetSubjectName()]
-					updateObject[rel.GetObjectName()] = updatedResource["reference_id"].(string)
+				for _, objInterface := range values {
+					obj := objInterface.(map[string]interface{})
+					//updateObject := make(map[string]interface{})
+					obj[rel.GetSubjectName()] = obj["id"]
+					obj[rel.GetObjectName()] = updatedResource["reference_id"].(string)
+					delete(obj, "id")
 
-					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, updateObject)
+					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, obj)
 
 					pre := &http.Request{
 						Method: "POST",
@@ -899,6 +901,7 @@ func (dr *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Respon
 		}, []map[string]interface{}{updatedResource})
 		if len(results) != 0 {
 			updatedResource = results[0]
+
 		} else {
 			updatedResource = nil
 		}
