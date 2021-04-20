@@ -558,6 +558,22 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					item[rel.GetObjectName()] = item["id"]
 					item[rel.GetSubjectName()] = updatedResource["reference_id"]
 					delete(item, "id")
+					delete(item, "meta")
+					delete(item, "type")
+
+					attributes, ok := item["attributes"]
+					if ok {
+						attributesMap, mapOk := attributes.(map[string]interface{})
+						if mapOk {
+							for key, val := range attributesMap {
+								if val == nil {
+									continue
+								}
+								item[key] = val
+							}
+						}
+						delete(item, "attributes")
+					}
 
 					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, item)
 					pr := &http.Request{
@@ -691,6 +707,22 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					obj[rel.GetSubjectName()] = obj["id"]
 					obj[rel.GetObjectName()] = updatedResource["reference_id"].(string)
 					delete(obj, "id")
+					delete(obj, "meta")
+					delete(obj, "type")
+
+					attributes, ok := obj["attributes"]
+					if ok {
+						attributesMap, mapOk := attributes.(map[string]interface{})
+						if mapOk {
+							for key, val := range attributesMap {
+								if val == nil {
+									continue
+								}
+								obj[key] = val
+							}
+						}
+						delete(obj, "attributes")
+					}
 
 					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, obj)
 
