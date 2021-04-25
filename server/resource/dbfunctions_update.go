@@ -820,6 +820,7 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 
 	}
 
+	log.Infof("Process [%d] row import for table %v", len(data), crud.tableInfo.TableName)
 	for _, row := range data {
 
 		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, int64(crud.TableInfo().DefaultPermission), nil, row)
