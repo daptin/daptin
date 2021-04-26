@@ -560,13 +560,14 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					delete(item, "id")
 					delete(item, "meta")
 					delete(item, "type")
+					delete(item, "reference_id")
 
 					attributes, ok := item["attributes"]
 					if ok {
 						attributesMap, mapOk := attributes.(map[string]interface{})
 						if mapOk {
 							for key, val := range attributesMap {
-								if val == nil {
+								if val == nil || key == "reference_id" {
 									continue
 								}
 								item[key] = val
@@ -584,6 +585,19 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						PlainRequest: pr,
 					})
 					if err != nil {
+
+						subjectId, err := dr.GetReferenceIdToId(rel.GetSubject(), item[rel.GetSubjectName()].(string))
+						objectId, err := dr.GetReferenceIdToId(rel.GetObject(), item[rel.GetObjectName()].(string))
+
+						joinReferenceId, err := dr.GetReferenceIdByWhereClause(rel.GetJoinTableName(), goqu.Ex{
+							rel.GetObjectName():  objectId,
+							rel.GetSubjectName(): subjectId,
+						})
+						modl.Data["reference_id"] = joinReferenceId[0]
+
+						_, err = dr.Cruds[rel.GetJoinTableName()].Update(modl, api2go.Request{
+							PlainRequest: pr,
+						})
 						log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
 						continue
 					}
@@ -709,13 +723,14 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					delete(obj, "id")
 					delete(obj, "meta")
 					delete(obj, "type")
+					delete(obj, "reference_id")
 
 					attributes, ok := obj["attributes"]
 					if ok {
 						attributesMap, mapOk := attributes.(map[string]interface{})
 						if mapOk {
 							for key, val := range attributesMap {
-								if val == nil {
+								if val == nil || key == "reference_id" {
 									continue
 								}
 								obj[key] = val
@@ -726,17 +741,32 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, obj)
 
-					pre := &http.Request{
+					plainRequest := &http.Request{
 						Method: "POST",
 					}
-					pre = pre.WithContext(req.PlainRequest.Context())
+					plainRequest = plainRequest.WithContext(req.PlainRequest.Context())
 					req1 := api2go.Request{
-						PlainRequest: pre,
+						PlainRequest: plainRequest,
 					}
 
 					_, err := dr.Cruds[rel.GetJoinTableName()].Create(modl, req1)
 
 					if err != nil {
+
+
+						subjectId, err := dr.GetReferenceIdToId(rel.GetSubject(), obj[rel.GetSubjectName()].(string))
+						objectId, err := dr.GetReferenceIdToId(rel.GetObject(), obj[rel.GetObjectName()].(string))
+
+						joinReferenceId, err := dr.GetReferenceIdByWhereClause(rel.GetJoinTableName(), goqu.Ex{
+							rel.GetObjectName():  objectId,
+							rel.GetSubjectName(): subjectId,
+						})
+						modl.Data["reference_id"] = joinReferenceId[0]
+
+						_, err = dr.Cruds[rel.GetJoinTableName()].Update(modl, api2go.Request{
+							PlainRequest: plainRequest,
+						})
+
 						log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
 						continue
 					}
