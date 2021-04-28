@@ -1600,11 +1600,11 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				case "has_many_and_belongs_to_many":
 					query, args, err := statementbuilder.Squirrel.
 						Select(goqu.I(relation.GetObjectName()+".id")).
-						From(goqu.T(relation.GetSubject())).
+						From(goqu.T(relation.GetSubject()).As(relation.GetSubjectName())).
 						Join(
 							goqu.T(relation.GetJoinTableName()).As(relation.GetJoinTableName()),
 							goqu.On(goqu.Ex{
-								relation.GetJoinTableName() + "." + relation.GetSubjectName(): goqu.I(relation.GetSubject() + ".id"),
+								relation.GetJoinTableName() + "." + relation.GetSubjectName(): goqu.I(relation.GetSubjectName() + ".id"),
 							}),
 						).
 						Join(
@@ -1614,7 +1614,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 							}),
 						).
 						Where(goqu.Ex{
-							relation.Subject + ".reference_id": row["reference_id"],
+							relation.GetSubjectName() + ".reference_id": row["reference_id"],
 						}).Order(goqu.I(relation.GetJoinTableName() + ".created_at").Desc()).Limit(50).ToSQL()
 					if err != nil {
 						log.Printf("Failed to build query 1474: %v", err)
@@ -1640,6 +1640,16 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetObject(), goqu.Ex{
 						"id": ids,
 					})
+
+					_, ok := row[relation.GetObjectName()]
+					if !ok {
+						row[relation.GetObjectName()] = make([]string, 0)
+					}
+
+					for _, incl := range includes1 {
+						row[relation.GetObjectName()] = append(row[relation.GetObjectName()].([]string), incl["reference_id"].(string))
+					}
+
 					localInclude = append(localInclude, includes1...)
 
 					break
@@ -1656,7 +1666,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 					query, args, err := statementbuilder.Squirrel.
 						Select(goqu.I(relation.GetSubjectName()+".id")).
-						From(goqu.T(relation.GetObject())).
+						From(goqu.T(relation.GetObject()).As(relation)).
 						Join(
 							goqu.T(relation.GetSubject()).As(relation.GetSubjectName()),
 							goqu.On(goqu.Ex{
@@ -1695,11 +1705,11 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				case "has_many_and_belongs_to_many":
 					query, args, err := statementbuilder.Squirrel.
 						Select(goqu.I(relation.GetSubjectName()+".id")).
-						From(goqu.T(relation.GetObject())).
+						From(goqu.T(relation.GetObject()).As(relation.GetObjectName())).
 						Join(
 							goqu.T(relation.GetJoinTableName()).As(relation.GetJoinTableName()),
 							goqu.On(goqu.Ex{
-								relation.GetJoinTableName() + "." + relation.GetObjectName(): goqu.I(relation.GetObject() + ".id"),
+								relation.GetJoinTableName() + "." + relation.GetObjectName(): goqu.I(relation.GetObjectName() + ".id"),
 							}),
 						).
 						Join(
@@ -1709,7 +1719,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 							}),
 						).
 						Where(goqu.Ex{
-							relation.Subject + ".reference_id": row["reference_id"],
+							relation.GetObjectName() + ".reference_id": row["reference_id"],
 						}).Order(goqu.I(relation.GetJoinTableName() + ".created_at").Desc()).Limit(50).ToSQL()
 					if err != nil {
 						log.Printf("Failed to build query 1474: %v", err)
@@ -1718,6 +1728,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					rows, err := dr.connection.Queryx(query, args...)
 					if err != nil {
 						log.Printf("Failed to query 1482: %v", err)
+						continue
 					}
 
 					ids := make([]int64, 0)
@@ -1732,9 +1743,19 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						ids = append(ids, includeRow)
 					}
 
-					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetObject(), goqu.Ex{
+					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetSubject(), goqu.Ex{
 						"id": ids,
 					})
+
+					_, ok := row[relation.GetSubjectName()]
+					if !ok {
+						row[relation.GetSubjectName()] = make([]string, 0)
+					}
+
+					for _, incl := range includes1 {
+						row[relation.GetSubjectName()] = append(row[relation.GetSubjectName()].([]string), incl["reference_id"].(string))
+					}
+
 					localInclude = append(localInclude, includes1...)
 
 					break
