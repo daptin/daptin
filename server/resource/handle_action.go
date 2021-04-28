@@ -171,11 +171,20 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	var subjectInstance *api2go.Api2GoModel
 	var subjectInstanceMap map[string]interface{}
 
+	action, err := db.GetActionByName(actionRequest.Type, actionRequest.Action)
+	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
+	if err != nil {
+		log.Warnf("invalid action: %v - %v", actionRequest.Action, actionRequest.Type)
+		return nil, api2go.NewHTTPError(err, "no such action", 400)
+	}
+
 	isAdmin := db.IsAdmin(sessionUser.UserReferenceId)
 
 	subjectInstanceReferenceId, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
 	if ok {
 		req.PlainRequest.Method = "GET"
+		req.QueryParams = make(map[string][]string)
+		req.QueryParams["included_relations"] = action.RequestSubjectRelations
 		referencedObject, err := db.FindOne(subjectInstanceReferenceId.(string), req)
 		if err != nil {
 			log.Warnf("failed to load subject for action: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
@@ -205,13 +214,6 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	}
 
 	//log.Infof("Handle event for action [%v]", actionRequest.Action)
-
-	action, err := db.GetActionByName(actionRequest.Type, actionRequest.Action)
-	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
-	if err != nil {
-		log.Warnf("invalid action: %v - %v", actionRequest.Action, actionRequest.Type)
-		return nil, api2go.NewHTTPError(err, "no such action", 400)
-	}
 
 	if !action.InstanceOptional && (subjectInstanceReferenceId == "" || subjectInstance == nil) {
 		log.Warnf("subject is unidentified: %v - %v", actionRequest.Action, actionRequest.Type)
@@ -283,7 +285,7 @@ OutFields:
 		var errors1 []error
 		var actionResponse ActionResponse
 
-		log.Printf("Action [%v] => Outcome [%v][%v] ", actionRequest.Action, outcome.Type, outcome.Method)
+		log.Printf("Action [%v][%v] => Outcome [%v][%v] ", actionRequest.Action, subjectInstanceReferenceId, outcome.Type, outcome.Method)
 
 		if len(outcome.Condition) > 0 {
 			outcomeResult, err := evaluateString(outcome.Condition, inFieldMap)
@@ -617,9 +619,9 @@ func NewActionResponse(responseType string, attrs interface{}) ActionResponse {
 func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.Api2GoModel, api2go.Request, error) {
 
 	attrInterface, err := BuildActionContext(outcome.Attributes, inFieldMap)
-	// if err != nil {
-	// return nil, api2go.Request{}, err
-	// }
+	if err != nil {
+		return nil, api2go.Request{}, err
+	}
 	attrs := attrInterface.(map[string]interface{})
 
 	switch outcome.Type {
@@ -855,7 +857,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 
 		res, err := runUnsafeJavascript(fieldString[1:], inFieldMap)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to evaluate JS in outcome attribute for key %s: %v", fieldString, err)
 		}
 		val = res
 
@@ -864,7 +866,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 		jsString := fieldString[2 : len(fieldString)-2]
 		res, err := runUnsafeJavascript(jsString, inFieldMap)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to evaluate JS in outcome attribute for key %s: %v", fieldString, err)
 		}
 		val = res
 
@@ -872,7 +874,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 
 		res, err := runUnsafeJavascript(fieldString[1:], inFieldMap)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to evaluate JS in outcome attribute for key %s: %v", fieldString, err)
 		}
 		val = res
 
@@ -943,8 +945,8 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 							}
 						}
 
-						if int(index) >= len(mapPartArray) {
-							return nil, errors.New("index out of range")
+						if int(index) >= len(mapPartArray)-1 {
+							return nil, fmt.Errorf("failed to evaluate value from array in outcome attribute for key %s, index [%d] is out of range [%d values]: %v", fieldString, index, len(mapPartArray), err)
 						}
 						finalValue = mapPartArray[index]
 					} else {
@@ -954,7 +956,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 					var ok bool
 					finalValue, ok = finalValue.(map[string]interface{})[fieldPart]
 					if !ok {
-						return nil, errors.New(fmt.Sprintf("value is nil for key [%v]", fieldString))
+						return nil, fmt.Errorf("failed to evaluate value from array in outcome attribute for key %s, value is nil", fieldString)
 					}
 
 				}

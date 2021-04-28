@@ -27,15 +27,16 @@ type Outcome struct {
 // New actions can be defined and added using JSON or YAML files
 // Actions are stored and reloaded from the `action` table of the storage
 type Action struct {
-	Name             string // Name of the action
-	Label            string
-	OnType           string
-	InstanceOptional bool
-	ReferenceId      string
-	InFields         []api2go.ColumnInfo
-	OutFields        []Outcome
-	Validations      []ColumnTag
-	Conformations    []ColumnTag
+	Name                    string // Name of the action
+	Label                   string
+	OnType                  string
+	InstanceOptional        bool
+	RequestSubjectRelations []string
+	ReferenceId             string
+	InFields                []api2go.ColumnInfo
+	OutFields               []Outcome
+	Validations             []ColumnTag
+	Conformations           []ColumnTag
 }
 
 // ActionRow represents an action instance on the database
