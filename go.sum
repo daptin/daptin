@@ -319,6 +319,8 @@ github.com/artpar/api2go v2.4.10+incompatible h1:YlUQMbJiYCCV6jKaz8wKoCOIDAoQFvf
 github.com/artpar/api2go v2.4.10+incompatible/go.mod h1:BLL0RmcYCr2iBhgc9ikF7UiIrKcK39hcovb6T4RBLCg=
 github.com/artpar/api2go v2.4.11+incompatible h1:7BSYJ5FZSZLrhhjXWphRcM+yHhB3IiSK0PgvwDXMrGo=
 github.com/artpar/api2go v2.4.11+incompatible/go.mod h1:BLL0RmcYCr2iBhgc9ikF7UiIrKcK39hcovb6T4RBLCg=
+github.com/artpar/api2go v2.4.12+incompatible h1:fqRGorP5s2kfctkoSva2SG8fA8Y88luJCgM4Audr7ck=
+github.com/artpar/api2go v2.4.12+incompatible/go.mod h1:BLL0RmcYCr2iBhgc9ikF7UiIrKcK39hcovb6T4RBLCg=
 github.com/artpar/api2go-adapter v1.0.1 h1:fxFFpFviAOy6lS1mHHBmNTBANQwAqnjvHyT39JktC2M=
 github.com/artpar/api2go-adapter v1.0.1/go.mod h1:h4OpxkcLLUP7ceSoz1sI8BCZKlz6PZdjG7EtMtwiJVI=
 github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6 h1:1Mh42T2/N38Z7SLYs1YcoSORPo4jYxgCXkaEgWCKs3U=
