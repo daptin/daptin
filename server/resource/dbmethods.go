@@ -1628,13 +1628,13 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					ids := make([]int64, 0)
 
 					for rows.Next() {
-						includeRow := map[string]interface{}{}
-						err = rows.StructScan(&includeRow)
+						includeRow := int64(0)
+						err = rows.Scan(&includeRow)
 						if err != nil {
 							log.Printf("Failed to scan include row 1489: %v", err)
 							continue
 						}
-						ids = append(ids, includeRow["id"].(int64))
+						ids = append(ids, includeRow)
 					}
 
 					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetObject(), goqu.Ex{
@@ -1723,13 +1723,13 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					ids := make([]int64, 0)
 
 					for rows.Next() {
-						includeRow := map[string]interface{}{}
-						err = rows.StructScan(&includeRow)
+						includeRow := int64(0)
+						err = rows.Scan(&includeRow)
 						if err != nil {
 							log.Printf("Failed to scan include row 1489: %v", err)
 							continue
 						}
-						ids = append(ids, includeRow["id"].(int64))
+						ids = append(ids, includeRow)
 					}
 
 					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetObject(), goqu.Ex{
