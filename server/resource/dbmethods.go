@@ -1666,15 +1666,15 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 					query, args, err := statementbuilder.Squirrel.
 						Select(goqu.I(relation.GetSubjectName()+".id")).
-						From(goqu.T(relation.GetObject()).As(relation)).
+						From(goqu.T(relation.GetObject()).As(relation.GetObjectName())).
 						Join(
 							goqu.T(relation.GetSubject()).As(relation.GetSubjectName()),
 							goqu.On(goqu.Ex{
-								fmt.Sprintf("%v.%v", relation.GetSubjectName(), relation.GetObjectName()): goqu.I(relation.GetObject() + ".id"),
+								fmt.Sprintf("%v.%v", relation.GetSubjectName(), relation.GetObjectName()): goqu.I(relation.GetObjectName() + ".id"),
 							}),
 						).
 						Where(goqu.Ex{
-							relation.Object + ".reference_id": row["reference_id"],
+							relation.GetObjectName() + ".reference_id": row["reference_id"],
 						}).Order(goqu.I(relation.GetSubjectName() + ".created_at").Desc()).Limit(50).ToSQL()
 
 					if err != nil {

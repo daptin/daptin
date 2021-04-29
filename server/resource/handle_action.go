@@ -945,7 +945,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 							}
 						}
 
-						if int(index) >= len(mapPartArray)-1 {
+						if int(index) > len(mapPartArray)-1 {
 							return nil, fmt.Errorf("failed to evaluate value from array in outcome attribute for key %s, index [%d] is out of range [%d values]: %v", fieldString, index, len(mapPartArray), err)
 						}
 						finalValue = mapPartArray[index]
