@@ -373,7 +373,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		colsToAdd := make([]string, 0)
 
 		for _, col := range infos {
-			if col.IsIndexed && col.ColumnType == "name" || col.ColumnType == "label" || col.ColumnType == "email" {
+			if col.IsIndexed && (col.ColumnType == "name" || col.ColumnType == "label" || col.ColumnType == "email") {
 				colsToAdd = append(colsToAdd, col.ColumnName)
 			}
 		}
@@ -507,7 +507,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 					joins = append(joins, GetJoins(rel)...)
 					joinFilters = append(joinFilters, wh)
 
-
 					if len(rel.Columns) > 0 {
 						for _, col := range rel.Columns {
 							joinColumn := fmt.Sprintf("%v.%v", rel.GetJoinTableName(), col.ColumnName)
@@ -517,7 +516,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 							})
 						}
 					}
-
 
 				}
 			}
@@ -736,13 +734,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	log.Debugf("Id query args: %v", args)
 	stmt, err := dr.connection.Preparex(idsListQuery)
 	if err != nil {
-		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
+		log.Infof("Findall select query sql 738: %v == %v", idsListQuery, args)
 		log.Errorf("Failed to prepare sql 674: %v", err)
 		return nil, nil, nil, false, err
 	}
 	idsRow, err := stmt.Queryx(args...)
 	if err != nil {
-		log.Infof("Findall select query sql: %v == %v", idsListQuery, args)
+		log.Infof("Findall select query sql 745: %v == %v", idsListQuery, args)
 		log.Errorf("Failed to prepare sql 680: %v", err)
 		return nil, nil, nil, false, err
 	}

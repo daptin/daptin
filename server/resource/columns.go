@@ -530,14 +530,19 @@ var SystemActions = []Action{
 		Label:            "Export data for backup",
 		OnType:           "world",
 		InstanceOptional: true,
-		InFields:         []api2go.ColumnInfo{},
+		InFields: []api2go.ColumnInfo{
+			{
+				ColumnName: "table_name",
+				Name:       "table_name",
+				ColumnType: "label",
+			},
+		},
 		OutFields: []Outcome{
 			{
 				Type:   "__data_export",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"world_reference_id": "$.reference_id",
-					"table_name":         "$.table_name",
+					"table_name": "~table_name",
 				},
 			},
 		},
@@ -547,14 +552,19 @@ var SystemActions = []Action{
 		Label:            "Export CSV data",
 		OnType:           "world",
 		InstanceOptional: true,
-		InFields:         []api2go.ColumnInfo{},
+		InFields: []api2go.ColumnInfo{
+			{
+				ColumnName: "table_name",
+				Name:       "table_name",
+				ColumnType: "label",
+			},
+		},
 		OutFields: []Outcome{
 			{
 				Type:   "__csv_data_export",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"world_reference_id": "$.reference_id",
-					"table_name":         "$.table_name",
+					"table_name": "~table_name",
 				},
 			},
 		},
