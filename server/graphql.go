@@ -372,7 +372,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					_, responder, err := resources[table.TableName].PaginatedFindAll(req)
 
 					if err != nil {
-						return nil, errors.New("no such entity")
+						return nil, fmt.Errorf("no such entity - [%v]", table.TableName)
 					}
 					items := make([]map[string]interface{}, 0)
 					results := responder.Result().([]*api2go.Api2GoModel)

@@ -894,7 +894,7 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 	}
 
 	if len(resultRows) < 1 {
-		return nil, nil, errors.New("no such entity 867")
+		return nil, nil, fmt.Errorf("897 no such entity [%v][%v]", typeName, referenceId)
 	}
 
 	m := resultRows[0]
@@ -920,7 +920,7 @@ func (dr *DbResource) GetSingleRowById(typeName string, id int64, includedRelati
 	}
 
 	if len(resultRows) < 1 {
-		return nil, nil, errors.New("No such entity 893")
+		return nil, nil, fmt.Errorf("923 no such entity [%v][%v]", typeName, id)
 	}
 
 	m := resultRows[0]
