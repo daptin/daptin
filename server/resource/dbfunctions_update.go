@@ -139,11 +139,13 @@ func UpdateTasksData(initConfig *CmsConfig, db database.DatabaseConnection) erro
 		}
 
 		if err != nil {
+			log.Errorf("Failed SQL: {}", s)
 			return err
 		}
 
 		_, err = db.Exec(s, v...)
 		if err != nil {
+			log.Errorf("Failed SQL: {}", s)
 			return err
 		}
 
