@@ -1248,7 +1248,11 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	var resultObj interface{}
 	resultObj = result
 	if finalResponseIsSingleObject {
-		resultObj = result[0]
+		if len(result) > 0 {
+			resultObj = result[0]
+		} else {
+			resultObj = nil
+		}
 	}
 	return uint(pagination.TotalCount), NewResponse(nil, resultObj, 200, &api2go.Pagination{
 		//Next:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageSize+pagination.PageNumber)},
