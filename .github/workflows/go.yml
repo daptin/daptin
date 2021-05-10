@@ -145,6 +145,7 @@ jobs:
         run: |
           go get github.com/GeertJohan/go.rice
           go get github.com/GeertJohan/go.rice/rice
+          go get github.com/ahmetb/govvv
           go install github.com/GeertJohan/go.rice/rice
           $GOPATH/bin/rice embed-go
           ls -lah
@@ -377,6 +378,7 @@ jobs:
         run: |
           docker pull artpar/xgo
           go get github.com/crazy-max/xgo
+          go get github.com/ahmetb/govvv
           pwd
           ls -lah /home/runner/work/daptin
           pwd
@@ -384,7 +386,7 @@ jobs:
           ls -lah
           xgo --docker-image=artpar/xgo \
               -targets=darwin/amd64,linux/amd64,linux/arm-5,linux/arm-6,linux/arm-7,linux/mips,linux/mips64,linux/mips64le,linux/mipsle,windows/amd64 \
-              --tags netgo -ldflags='-linkmode external' -dest build .
+              --tags netgo -ldflags='-linkmode external $(govvv -flags)' -dest build .
 
 
       - name: List built artifacts
