@@ -273,7 +273,7 @@ jobs:
 
 
   xgo:
-    timeout-minutes: 60
+    timeout-minutes: 90
     name: "xgo cross compile"
     runs-on: ubuntu-latest
 
