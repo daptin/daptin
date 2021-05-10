@@ -188,6 +188,7 @@ jobs:
 
 
       - uses: actions/upload-artifact@v1
+        name: Upload freebsd 386 artifact
         continue-on-error: true
         with:
           name: daptin-beta-latest-freebsd-386.zip
@@ -195,6 +196,7 @@ jobs:
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
+        name: Upload freebsd amd64 artifact
         continue-on-error: true
         with:
           name: daptin-beta-latest-freebsd-amd64.zip
@@ -202,6 +204,7 @@ jobs:
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
+        name: Upload freebsd arm artifact
         continue-on-error: true
         with:
           name: daptin-beta-latest-freebsd-arm.zip
@@ -210,6 +213,7 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
+        name: Upload windows amd64 artifact
         with:
           name: daptin-beta-latest-windows-amd64.zip
           path: build/daptin-beta-latest-windows-amd64.zip
@@ -217,6 +221,7 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
+        name: Upload netbsd 386 artifact
         with:
           name: daptin-beta-latest-netbsd-386.zip
           path: build/daptin-beta-latest-netbsd-386.zip
@@ -224,6 +229,7 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
+        name: Upload netbsd amd64 artifact
         with:
           name: daptin-beta-latest-netbsd-amd64.zip
           path: build/daptin-beta-latest-netbsd-amd64.zip
@@ -231,6 +237,7 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
+        name: Upload netbsd armartifact
         with:
           name: daptin-beta-latest-netbsd-arm.zip
           path: build/daptin-beta-latest-netbsd-arm.zip
@@ -238,6 +245,7 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
+        name: Upload openbsd 386 artifact
         with:
           name: daptin-beta-latest-openbsd-386.zip
           path: build/daptin-beta-latest-openbsd-386.zip
@@ -245,6 +253,7 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
+        name: Upload openbsd amd64 artifact
         with:
           name: daptin-beta-latest-openbsd-amd64.zip
           path: build/daptin-beta-latest-openbsd-amd64.zip
@@ -252,6 +261,7 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
+        name: Upload osx 386 artifact
         with:
           name: daptin-beta-latest-osx-386.zip
           path: build/daptin-beta-latest-osx-386.zip
@@ -259,6 +269,7 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
+        name: Upload osx amd64 artifact
         with:
           name: daptin-beta-latest-osx-amd64.zip
           path: build/daptin-beta-latest-osx-amd64.zip
@@ -266,6 +277,7 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
+        name: Upload solaris amd64 artifact
         with:
           name: daptin-beta-latest-solaris-amd64.zip
           path: build/daptin-beta-latest-solaris-amd64.zip
@@ -382,54 +394,63 @@ jobs:
           find build
 
       - uses: actions/upload-artifact@v1
+        name: Upload linux amd64 artifact
         with:
           name: daptin-linux-amd64
           path: build/github.com/daptin/daptin-linux-amd64
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
+        name: Upload darwin amd64 artifact
         with:
           name: daptin-darwin-10.12-amd64
           path: build/github.com/daptin/daptin-darwin-10.12-amd64
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
+        name: Upload arm-5 artifact
         with:
           name: daptin-linux-arm-5
           path: build/github.com/daptin/daptin-linux-arm-5
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
+        name: Upload arm-6 artifact
         with:
           name: daptin-linux-arm-6
           path: build/github.com/daptin/daptin-linux-arm-6
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
+        name: Upload arm-7 artifact
         with:
           name: daptin-linux-arm-7
           path: build/github.com/daptin/daptin-linux-arm-7
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
+        name: Upload linux mips artifact
         with:
           name: daptin-linux-mips
           path: build/github.com/daptin/daptin-linux-mips
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
+        name: Upload linux mips le artifact
         with:
           name: daptin-linux-mipsle
           path: build/github.com/daptin/daptin-linux-mipsle
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
+        name: Upload linux mips 64 artifact
         with:
           name: daptin-linux-mips64
           path: build/github.com/daptin/daptin-linux-mips64
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
+        name: Upload linux mips 64 lee artifact
         with:
           name: daptin-linux-mips64le
           path: build/github.com/daptin/daptin-linux-mips64le
@@ -437,6 +458,7 @@ jobs:
 
 
       - uses: actions/upload-artifact@v1
+        name: Upload windows 64 artifact
         with:
           name: daptin-windows-4.0-amd64.exe
           path: build/github.com/daptin/daptin-windows-4.0-amd64.exe
