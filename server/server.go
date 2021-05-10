@@ -496,7 +496,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	handler := CreateJsModelHandler(&initConfig, cruds)
 	metaHandler := CreateMetaHandler(&initConfig)
 	blueprintHandler := CreateApiBlueprintHandler(&initConfig, cruds)
-	modelHandler := CreateReclineModelHandler()
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
 	resource.InitialiseColumnManager()
 
@@ -550,16 +549,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	defaultRouter.GET("/jsmodel/:typename", handler)
-	defaultRouter.GET("/stats/:typename", statsHandler)
+	defaultRouter.GET("/aggregate/:typename", statsHandler)
 	defaultRouter.GET("/meta", metaHandler)
 	defaultRouter.GET("/openapi.yaml", blueprintHandler)
-	defaultRouter.GET("/recline_model", modelHandler)
 	defaultRouter.OPTIONS("/jsmodel/:typename", handler)
 	defaultRouter.OPTIONS("/openapi.yaml", blueprintHandler)
-	defaultRouter.OPTIONS("/recline_model", modelHandler)
-	defaultRouter.GET("/system", func(c *gin.Context) {
-		c.AbortWithStatusJSON(200, Stats.Data())
-	})
 
 	actionHandler := resource.CreatePostActionHandler(&initConfig, cruds, actionPerformers)
 	defaultRouter.POST("/action/:typename/:actionName", actionHandler)

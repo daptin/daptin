@@ -1339,27 +1339,51 @@ func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (i
 }
 
 // Lookup an string reference id and return a internal integer id of an object of type `typeName`
-func (dr *DbResource) GetReferenceIdListToIdList(typeName string, referenceId []string) ([]int64, error) {
+func (dr *DbResource) GetReferenceIdListToIdList(typeName string, referenceId []string) (map[string]int64, error) {
 
-	id := make([]int64, 0)
-	s, q, err := statementbuilder.Squirrel.Select("id").
+	idMap := make(map[string]int64)
+	s, q, err := statementbuilder.Squirrel.Select("id", "reference_id").
 		From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
 	if err != nil {
-		return id, err
+		return idMap, err
 	}
 
 	rows, err := dr.db.Queryx(s, q...)
 	if err != nil {
-		return id, err
+		return idMap, err
 	}
 	for rows.Next() {
 		var id1 int64
-		err = rows.Scan(&id1)
-		id = append(id, id1)
+		var id2 string
+		err = rows.Scan(&id1, &id2)
+		idMap[id2] = id1
 	}
 
-	return id, err
+	return idMap, err
+}
 
+// Lookup an string internal integer id and return a reference id of an object of type `typeName`
+func (dr *DbResource) GetIdListToReferenceIdList(typeName string, ids []int64) (map[int64]string, error) {
+
+	idMap := make(map[int64]string)
+	s, q, err := statementbuilder.Squirrel.Select("reference_id", "id").
+		From(typeName).Where(goqu.Ex{"id": ids}).ToSQL()
+	if err != nil {
+		return idMap, err
+	}
+
+	rows, err := dr.db.Queryx(s, q...)
+	if err != nil {
+		return idMap, err
+	}
+	for rows.Next() {
+		var id1 string
+		var id2 int64
+		err = rows.Scan(&id1, &id2)
+		idMap[id2] = id1
+	}
+
+	return idMap, err
 }
 
 // select "column" from "typeName" where matchColumn in (values)

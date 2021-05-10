@@ -512,6 +512,12 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				"group": &graphql.ArgumentConfig{
 					Type: graphql.NewList(graphql.String),
 				},
+				"having": &graphql.ArgumentConfig{
+					Type: graphql.NewList(graphql.String),
+				},
+				"filter": &graphql.ArgumentConfig{
+					Type: graphql.NewList(graphql.String),
+				},
 				"join": &graphql.ArgumentConfig{
 					Type: graphql.NewList(graphql.String),
 				},
@@ -549,6 +555,23 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 							aggReq.GroupBy = append(aggReq.GroupBy, grp.(string))
 						}
 					}
+
+					if params.Args["filter"] != nil {
+						filters := params.Args["filter"].([]interface{})
+						aggReq.Filter = make([]string, 0)
+						for _, grp := range filters {
+							aggReq.Filter = append(aggReq.GroupBy, grp.(string))
+						}
+					}
+
+					if params.Args["having"] != nil {
+						havingClauseList := params.Args["having"].([]interface{})
+						aggReq.Having = make([]string, 0)
+						for _, grp := range havingClauseList {
+							aggReq.Having = append(aggReq.GroupBy, grp.(string))
+						}
+					}
+
 					if params.Args["join"] != nil {
 						groupBys := params.Args["join"].([]interface{})
 						aggReq.Join = make([]string, 0)

@@ -63,6 +63,7 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 
 		aggReq.RootEntity = typeName
 		aggReq.Filter = c.QueryArray("filter")
+		aggReq.Having = c.QueryArray("having")
 		aggReq.GroupBy = c.QueryArray("group")
 		aggReq.Join = c.QueryArray("join")
 		aggReq.ProjectColumn = c.QueryArray("column")
@@ -74,7 +75,7 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 		aggResponse, err := cruds[typeName].DataStats(aggReq)
 
 		if err != nil {
-			c.JSON(500, resource.NewDaptinError("Failed to query stats", "query failed"))
+			c.JSON(500, resource.NewDaptinError("Failed to query stats", "query failed - " + err.Error()))
 			return
 		}
 
@@ -84,19 +85,6 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 
 }
 
-func CreateReclineModelHandler() func(*gin.Context) {
-
-	reclineColumnMap := make(map[string]string)
-
-	for _, column := range resource.ColumnTypes {
-		reclineColumnMap[column.Name] = column.ReclineType
-	}
-
-	return func(c *gin.Context) {
-		c.JSON(200, reclineColumnMap)
-	}
-
-}
 
 func CreateMetaHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 

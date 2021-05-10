@@ -102,6 +102,7 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/cobra v1.1.3
+	github.com/timsolov/rest-query-parser v1.9.5 // indirect
 	github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77 // indirect
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83

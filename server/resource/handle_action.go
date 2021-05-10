@@ -324,6 +324,7 @@ OutFields:
 		model, request, err := BuildOutcome(inFieldMap, outcome)
 		if err != nil {
 			log.Errorf("Failed to build outcome: %v", err)
+			log.Errorf("Infields - {}", toJson(inFieldMap))
 			responses = append(responses, NewActionResponse("error", "Failed to build outcome "+outcome.Type))
 			if outcome.ContinueOnError {
 				continue

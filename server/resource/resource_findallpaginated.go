@@ -681,7 +681,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	if !isAdmin && tableModel.GetTableName() != "usergroup" {
 
 		groupReferenceIds := make([]string, 0)
-		groupIds := make([]int64, 0)
+		groupIds := make(map[string]int64)
 		for _, group := range sessionUser.Groups {
 			groupReferenceIds = append(groupReferenceIds, group.GroupReferenceId)
 		}
@@ -1017,7 +1017,7 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 				valuesArray = append(valuesArray, valueString)
 			}
 
-			valueIds := make([]int64, len(valuesArray))
+			valueIds := make(map[string]int64, len(valuesArray))
 
 			valueIds, err := dr.GetReferenceIdListToIdList(colInfo.ForeignKeyData.Namespace, valuesArray)
 			if err != nil {
@@ -1027,7 +1027,7 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 
 			values = valueIds
 			if isString {
-				values = valueIds[0]
+				values = valueIds[valuesArray[0]]
 			}
 			filterQuery.Value = values
 
@@ -1090,72 +1090,6 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 
 		}
 
-		//switch filterQuery.Operator {
-		//case "contains":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v%%", filterQuery.Value))
-		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v%%", filterQuery.Value))
-		//case "like":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v", filterQuery.Value))
-		//	countQueryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v", filterQuery.Value))
-		//case "begins with":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v%%", filterQuery.Value))
-		//	queryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%v%%", filterQuery.Value))
-		//case "ends with":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v", filterQuery.Value))
-		//	queryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s like ?", prefix+filterQuery.ColumnName), fmt.Sprintf("%%%v", filterQuery.Value))
-		//case "not contains":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
-		//case "not like":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
-		//	queryBuilder = countQueryBuilder.Where(fmt.Sprintf("(%s not like ? or %s is null)", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName), "%"+fmt.Sprintf("%v", filterQuery.Value)+"%")
-		//case "is":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s = ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//case "in":
-		//	//queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (?)", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//	queryBuilder = queryBuilder.Where(goqu.Ex{prefix + filterQuery.ColumnName: filterQuery.Value.([]string)})
-		//	countQueryBuilder = countQueryBuilder.Where(goqu.Ex{prefix + filterQuery.ColumnName: filterQuery.Value.([]string)})
-		//case "is not":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s != ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//case "before":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//case "after":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//case "more then":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s > ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//case "any of":
-		//	vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
-		//	valsInterface := make([]interface{}, len(vals))
-		//	for i, v := range vals {
-		//		valsInterface[i] = v
-		//	}
-		//	questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
-		//	countQueryBuilder = queryBuilder.Where(fmt.Sprintf("%s in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
-		//case "none of":
-		//	vals := strings.Split(fmt.Sprintf("%v", filterQuery.Value), ",")
-		//	valsInterface := make([]interface{}, len(vals))
-		//	for i, v := range vals {
-		//		valsInterface[i] = v
-		//	}
-		//	questions := strings.Join(strings.Split(strings.Repeat("?", len(vals)), ""), ", ")
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s not in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
-		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s not in (%s)", prefix+filterQuery.ColumnName, questions), valsInterface...)
-		//case "less then":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s < ?", prefix+filterQuery.ColumnName), filterQuery.Value)
-		//case "is empty":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
-		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s is null or %s = ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
-		//case "is not empty":
-		//	queryBuilder = queryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
-		//	countQueryBuilder = countQueryBuilder.Where(fmt.Sprintf("%s is not null and %s != ''", prefix+filterQuery.ColumnName, prefix+filterQuery.ColumnName))
-		//}
 	}
 
 	return queryBuilder, countQueryBuilder
