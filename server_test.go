@@ -384,7 +384,7 @@ func runTests(t *testing.T) error {
 		t.Errorf("label not found")
 	}
 
-	resp, err = requestClient.Get(baseAddress + "/stats/world?group=date(created_at),column=date(created_at),count")
+	resp, err = requestClient.Get(baseAddress + "/aggregate/world?group=date(created_at)&column=date(created_at),count")
 	if err != nil {
 		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
 		return err
@@ -440,7 +440,7 @@ func runTests(t *testing.T) error {
 	}
 	t.Logf("Token: %v", token)
 
-	resp, err = requestClient.Get(baseAddress+"/stats/world?group=date(created_at)&column=date(created_at),count(*)", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/aggregate/world?group=date(created_at)&column=date(created_at),count(*)", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
 		return err
