@@ -312,7 +312,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 	defer func(res *sqlx.Rows) {
 		err := res.Close()
 		if err != nil {
-			log.Errorf("failed to close aggregate query result - {}", err)
+			log.Errorf("failed to close aggregate query result - %v", err)
 		}
 	}(res)
 
