@@ -447,21 +447,6 @@ func runTests(t *testing.T) error {
 	}
 	log.Printf("Aggregation response: %v", resp.String())
 
-	resp, err = requestClient.Get(baseAddress + "/recline_model")
-	if err != nil {
-		log.Printf("Failed to get %s %s", "recline_model", err)
-		return err
-	}
-	reclineModelMap := make(map[string]interface{})
-	err = resp.ToJSON(&reclineModelMap)
-	if err != nil {
-		log.Printf("Failed to get %s %s", "json recline model", err)
-		return err
-	}
-
-	if reclineModelMap["alias"] != "string" {
-		return errors.New("unexpected recline model response")
-	}
 
 	resp, err = requestClient.Get(baseAddress + "/jsmodel/world.js")
 	if err != nil {
