@@ -371,7 +371,7 @@ jobs:
           go env
           ls -lah
           xgo --docker-image=artpar/xgo \
-              -targets=linux/386,darwin/amd64,linux/amd64,linux/arm-5,linux/arm-6,linux/arm-7,linux/mips,linux/mips64,linux/mips64le,linux/mipsle,windows/386,windows/amd64 \
+              -targets=darwin/amd64,linux/amd64,linux/arm-5,linux/arm-6,linux/arm-7,linux/mips,linux/mips64,linux/mips64le,linux/mipsle,windows/amd64 \
               --tags netgo -ldflags='-linkmode external' -dest build .
 
 
@@ -391,12 +391,6 @@ jobs:
         with:
           name: daptin-darwin-10.12-amd64
           path: build/github.com/daptin/daptin-darwin-10.12-amd64
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v1
-        with:
-          name: daptin-linux-386
-          path: build/github.com/daptin/daptin-linux-386
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
@@ -448,12 +442,6 @@ jobs:
           path: build/github.com/daptin/daptin-windows-4.0-amd64.exe
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
-      - uses: actions/upload-artifact@v1
-        with:
-          name: daptin-windows-4.0-386.exe
-          path: build/github.com/daptin/daptin-windows-4.0-386.exe
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
-
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -471,7 +459,6 @@ jobs:
             ./build/github.com/daptin/daptin-linux-mips64
             ./build/github.com/daptin/daptin-linux-mips64le
             ./build/github.com/daptin/daptin-windows-4.0-amd64.exe
-            ./build/github.com/daptin/daptin-windows-4.0-386.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
