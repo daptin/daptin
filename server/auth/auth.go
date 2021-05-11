@@ -16,6 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -171,7 +172,7 @@ func (a *AuthMiddleware) BasicAuthCheckMiddlewareWithHttp(req *http.Request, wri
 			Claims: jwt.MapClaims{
 				"name":  strings.Split(username, "@")[0],
 				"email": username,
-				"sub": username,
+				"sub":   username,
 			},
 		}
 	}
@@ -220,6 +221,15 @@ func PrepareAuthQueries() {
 
 }
 
+type CachedUserAccount struct {
+	Account SessionUser
+	Expiry  time.Time
+}
+
+var LocalUserCacheMap = make(map[string]CachedUserAccount)
+var LocalUserCacheLock = sync.Mutex{}
+var olricCache *olric.DMap
+
 func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer http.ResponseWriter, doBasicAuthCheck bool) (okToContinue, abortRequest bool, returnRequest *http.Request) {
 	okToContinue = true
 	abortRequest = false
@@ -229,14 +239,18 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 		return okToContinue, abortRequest, req
 	}
 
+	if olricCache == nil {
+		olricCache, _ = a.olricDb.NewDMap("default-cache")
+	}
+
 	hasUser := false
 
-	user, err := jwtMiddleware.CheckJWT(writer, req)
+	userJwtToken, err := jwtMiddleware.CheckJWT(writer, req)
 
 	if err != nil {
 		if doBasicAuthCheck {
-			user, err = a.BasicAuthCheckMiddlewareWithHttp(req, writer)
-			if err != nil || user == nil {
+			userJwtToken, err = a.BasicAuthCheckMiddlewareWithHttp(req, writer)
+			if err != nil || userJwtToken == nil {
 				CheckErr(err, "JWT middleware auth check failed")
 				CheckErr(err, "BASIC middleware auth check failed")
 			} else {
@@ -252,9 +266,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 	if hasUser {
 
-		cache, _ := a.olricDb.NewDMap("default-cache")
-		//log.Infof("Set user: %v", user)
-		if user == nil {
+		if userJwtToken == nil {
 
 			newRequest := req.WithContext(context.WithValue(req.Context(), "user_id", ""))
 			newRequest = newRequest.WithContext(context.WithValue(newRequest.Context(), "usergroup_id", []GroupPermission{}))
@@ -262,124 +274,155 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			okToContinue = true
 		} else {
 
-			userToken := user
+			userToken := userJwtToken
 			email := userToken.Claims.(jwt.MapClaims)["email"].(string)
 			name := userToken.Claims.(jwt.MapClaims)["name"].(string)
 			//log.Infof("User is not nil: %v", email  )
 
+			var sessionUser *SessionUser
 			var cachedUser interface{}
-			if cache != nil {
-				cachedUser, err = cache.Get(email)
+
+			LocalUserCacheLock.Lock()
+			localCachedUser, ok := LocalUserCacheMap[email]
+			LocalUserCacheLock.Unlock()
+
+			if ok && time.Now().After(localCachedUser.Expiry) {
+				LocalUserCacheLock.Lock()
+				delete(LocalUserCacheMap, email)
+				LocalUserCacheLock.Unlock()
+				ok = false
 			}
-			var user *SessionUser
-			var referenceId string
-			var userId int64
-			var userGroups []GroupPermission
-			if err != nil || cachedUser == nil {
 
-				sql, args, err := statementbuilder.Squirrel.Select(goqu.I("u.id"),
-					goqu.I("u.reference_id")).
-					From(goqu.T("user_account").As("u")).Where(
-					goqu.Ex{"email": email}).ToSQL()
-				if err != nil {
-					log.Errorf("Failed to create select query for user table")
-					return false, true, req
+			if !ok {
+
+				if olricCache != nil {
+					cachedUser, err = olricCache.Get(email)
 				}
+				var referenceId string
+				var userId int64
+				var userGroups []GroupPermission
+				if err != nil || cachedUser == nil {
 
-				rowx := a.db.QueryRowx(sql, args...)
-				err = rowx.Scan(&userId, &referenceId)
-
-				if err != nil {
-					// if a user logged in from third party oauth login
-					log.Errorf("Failed to scan user from db: %v", err)
-
-					mapData := make(map[string]interface{})
-					mapData["name"] = name
-					mapData["email"] = email
-
-					newUser := api2go.NewApi2GoModelWithData("user_account", nil, int64(DEFAULT_PERMISSION), nil, mapData)
-
-					req1 := api2go.Request{
-						PlainRequest: &http.Request{
-							Method: "POST",
-						},
+					sql, args, err := statementbuilder.Squirrel.Select(goqu.I("u.id"),
+						goqu.I("u.reference_id")).
+						From(goqu.T("user_account").As("u")).Where(
+						goqu.Ex{"email": email}).ToSQL()
+					if err != nil {
+						log.Errorf("Failed to create select query for user table")
+						return false, true, req
 					}
 
-					resp, err := a.userCrud.Create(newUser, req1)
-					if err != nil {
-						log.Errorf("Failed to create new user: %v", err)
-						abortRequest = true
-						return okToContinue, abortRequest, req
-					}
-					referenceId = resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
-
-					mapData = make(map[string]interface{})
-					mapData["name"] = "Home group of " + name
-
-					newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, int64(DEFAULT_PERMISSION), nil, mapData)
-
-					resp, err = a.userGroupCrud.Create(newUserGroup, req1)
-					if err != nil {
-						log.Errorf("Failed to create new user group: %v", err)
-					}
-					userGroupId := resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
-
-					userGroups = make([]GroupPermission, 0)
-					mapData = make(map[string]interface{})
-					mapData["user_account_id"] = referenceId
-					mapData["usergroup_id"] = userGroupId
-
-					newUserUserGroup := api2go.NewApi2GoModelWithData("user_account_user_account_id_has_usergroup_usergroup_id", nil, int64(DEFAULT_PERMISSION), nil, mapData)
-
-					uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req1)
-					if err != nil {
-						log.Errorf("Failed to create user-usergroup relation: %v", err)
-					}
-					log.Infof("User ug: %v", uug)
-
-				} else {
-
-					query, args1, err := UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": userId}).ToSQL()
-					rows, err := a.db.Queryx(query, args1...)
+					rowx := a.db.QueryRowx(sql, args...)
+					err = rowx.Scan(&userId, &referenceId)
 
 					if err != nil {
-						log.Errorf("Failed to get user group permissions: %v", err)
-					} else {
-						defer rows.Close()
-						//cols, _ := rows.Columns()
-						//log.Infof("Columns: %v", cols)
-						for rows.Next() {
-							var p GroupPermission
-							err = rows.StructScan(&p)
-							p.ObjectReferenceId = referenceId
-							if err != nil {
-								log.Errorf("failed to scan group permission struct: %v", err)
-								continue
-							}
-							userGroups = append(userGroups, p)
+						// if a user logged in from third party oauth login
+						log.Errorf("Failed to scan user from db: %v", err)
+
+						mapData := make(map[string]interface{})
+						mapData["name"] = name
+						mapData["email"] = email
+
+						newUser := api2go.NewApi2GoModelWithData("user_account", nil, int64(DEFAULT_PERMISSION), nil, mapData)
+
+						req1 := api2go.Request{
+							PlainRequest: &http.Request{
+								Method: "POST",
+							},
 						}
 
+						resp, err := a.userCrud.Create(newUser, req1)
+						if err != nil {
+							log.Errorf("Failed to create new user: %v", err)
+							abortRequest = true
+							return okToContinue, abortRequest, req
+						}
+						referenceId = resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
+
+						mapData = make(map[string]interface{})
+						mapData["name"] = "Home group of " + name
+
+						newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, int64(DEFAULT_PERMISSION), nil, mapData)
+
+						resp, err = a.userGroupCrud.Create(newUserGroup, req1)
+						if err != nil {
+							log.Errorf("Failed to create new user group: %v", err)
+						}
+						userGroupId := resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
+
+						userGroups = make([]GroupPermission, 0)
+						mapData = make(map[string]interface{})
+						mapData["user_account_id"] = referenceId
+						mapData["usergroup_id"] = userGroupId
+
+						newUserUserGroup := api2go.NewApi2GoModelWithData("user_account_user_account_id_has_usergroup_usergroup_id", nil, int64(DEFAULT_PERMISSION), nil, mapData)
+
+						uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req1)
+						if err != nil {
+							log.Errorf("Failed to create user-usergroup relation: %v", err)
+						}
+						log.Infof("User ug: %v", uug)
+
+					} else {
+
+						query, args1, err := UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": userId}).ToSQL()
+						rows, err := a.db.Queryx(query, args1...)
+
+						if err != nil {
+							log.Errorf("Failed to get user group permissions: %v", err)
+						} else {
+							defer rows.Close()
+							//cols, _ := rows.Columns()
+							//log.Infof("Columns: %v", cols)
+							for rows.Next() {
+								var p GroupPermission
+								err = rows.StructScan(&p)
+								p.ObjectReferenceId = referenceId
+								if err != nil {
+									log.Errorf("failed to scan group permission struct: %v", err)
+									continue
+								}
+								userGroups = append(userGroups, p)
+							}
+
+						}
 					}
-				}
 
-				//log.Infof("Group permissions :%v", userGroups)
+					//log.Infof("Group permissions :%v", userGroups)
 
-				user = &SessionUser{
-					UserId:          userId,
-					UserReferenceId: referenceId,
-					Groups:          userGroups,
-				}
+					sessionUser = &SessionUser{
+						UserId:          userId,
+						UserReferenceId: referenceId,
+						Groups:          userGroups,
+					}
 
-				if cache != nil {
-					err = cache.PutEx(email, user, 1*time.Minute)
-					CheckErr(err, "Failed to put user in cache")
+					LocalUserCacheLock.Lock()
+					LocalUserCacheMap[email] = CachedUserAccount{
+						Account: *sessionUser,
+						Expiry:  time.Now().Add(2 * time.Minute),
+					}
+					LocalUserCacheLock.Unlock()
+
+					if olricCache != nil {
+						err = olricCache.PutEx(email, sessionUser, 1*time.Minute)
+						CheckErr(err, "Failed to put user in cache")
+					}
+
+				} else {
+					sessionUser = cachedUser.(*SessionUser)
+					LocalUserCacheLock.Lock()
+					LocalUserCacheMap[email] = CachedUserAccount{
+						Account: *sessionUser,
+						Expiry:  time.Now().Add(2 * time.Minute),
+					}
+					LocalUserCacheLock.Unlock()
 				}
 			} else {
-				user = cachedUser.(*SessionUser)
+				sessionUser = &localCachedUser.Account
 			}
 
 			ct := req.Context()
-			ct = context.WithValue(ct, "user", user)
+			ct = context.WithValue(ct, "user", sessionUser)
 			newRequest := req.WithContext(ct)
 			req = newRequest
 			okToContinue = true

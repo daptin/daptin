@@ -112,14 +112,18 @@ func main() {
 		gin.SetMode("release")
 
 		cpuprofile := fmt.Sprintf("daptin_cpu_profile_%v.prof", restart_count)
-		f, err := os.Create(cpuprofile)
-		if err != nil {
-			log.Errorf("Failed to create file for profile dump: %v", err)
+		heapprofile := fmt.Sprintf("daptin_heap_profile_%v.prof", restart_count)
+		cpuFile, err1 := os.Create(cpuprofile)
+		heapFile, err2 := os.Create(heapprofile)
+		if err1 != nil || err2 != nil {
+			log.Errorf("Failed to create file for profile dump: %v - %v", err1, err2)
 		} else {
-			err = pprof.StartCPUProfile(f)
+			var err error
+			err = pprof.StartCPUProfile(cpuFile)
 			auth.CheckErr(err, "Failed to start CPU profile: %v", err)
+			err = pprof.WriteHeapProfile(heapFile)
+			auth.CheckErr(err, "Failed to start HEAP profile: %v", err)
 		}
-
 	} else {
 		gin.SetMode(*runtimeMode)
 	}
@@ -241,12 +245,17 @@ func main() {
 			pprof.StopCPUProfile()
 
 			cpuprofile := fmt.Sprintf("daptin_cpu_profile_%v.prof", restart_count)
-			f, err := os.Create(cpuprofile)
+			heapprofile := fmt.Sprintf("daptin_heap_profile_%v.prof", restart_count)
+
+			cpuFile, err := os.Create(cpuprofile)
+			heapFile, err := os.Create(heapprofile)
 			if err != nil {
 				log.Errorf("Failed to create file [%v] for profile dump: %v", cpuprofile, err)
 			} else {
-				err = pprof.StartCPUProfile(f)
+				err = pprof.StartCPUProfile(cpuFile)
 				auth.CheckErr(err, "Failed to start CPU profile: %v", err)
+				err = pprof.WriteHeapProfile(heapFile)
+				auth.CheckErr(err, "Failed to start HEAP profile: %v", err)
 			}
 
 		}
