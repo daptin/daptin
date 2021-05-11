@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	uuid "github.com/artpar/go.uuid"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -30,9 +31,15 @@ type AggregationRequest struct {
 	TimeTo        string
 }
 
+type AggregateRow struct {
+	Type       string                 `json:"type"`
+	Id         string                 `json:"id"`
+	Attributes map[string]interface{} `json:"attributes"`
+}
+
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
 type AggregateData struct {
-	Data []map[string]interface{} `json:"data"`
+	Data []AggregateRow `json:"data"`
 }
 
 func InArray(val []interface{}, ar interface{}) (exists bool) {
@@ -143,86 +150,29 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 
 			parts := querySyntax.FindStringSubmatch(filter)
 
+			var rightVal interface{}
 			functionName := strings.TrimSpace(parts[1])
 			leftVal := strings.TrimSpace(parts[2])
-			rightVal := strings.TrimSpace(parts[3])
+			rightVal = strings.TrimSpace(parts[3])
+
+			if strings.Index(rightVal.(string), "@") > -1 {
+				rightValParts := strings.Split(rightVal.(string), "@")
+				entityName := rightValParts[0]
+				entityReferenceId := rightValParts[1]
+				entityId, err := dr.GetReferenceIdToId(entityName, entityReferenceId)
+				if err != nil {
+					return nil, fmt.Errorf("referenced entity in where clause not found - [%v][%v] -%v", entityName, entityReferenceId, err)
+				}
+				rightVal = entityId
+
+			}
 
 			//function := builder.Where
-
-			var rightValInterface interface{}
-			rightValInterface = rightVal
-			if rightValInterface == "null" {
-				rightValInterface = nil
-
-				switch functionName {
-				case "is":
-					whereExpressions = append(whereExpressions, goqu.C(leftVal).IsNull())
-
-				case "not":
-					whereExpressions = append(whereExpressions, goqu.C(leftVal).IsNotNull())
-
-				default:
-					return nil, fmt.Errorf("invalid function name for null rhs - " + functionName)
-
-				}
-				continue
-
+			whereClause, err := BuildWhereClause(functionName, leftVal, rightVal)
+			if err != nil {
+				return nil, err
 			}
-			if rightValInterface == "true" {
-				rightValInterface = nil
-
-				switch functionName {
-				case "is":
-					whereExpressions = append(whereExpressions, goqu.C(leftVal).IsTrue())
-
-				case "not":
-					whereExpressions = append(whereExpressions, goqu.C(leftVal).IsNotTrue())
-
-				default:
-					return nil, fmt.Errorf("invalid function name for true rhs - " + functionName)
-
-				}
-				continue
-
-			}
-			if rightValInterface == "false" {
-				rightValInterface = nil
-
-				switch functionName {
-				case "is":
-					whereExpressions = append(whereExpressions, goqu.C(leftVal).IsFalse())
-
-				case "not":
-					whereExpressions = append(whereExpressions, goqu.C(leftVal).IsNotFalse())
-
-				default:
-					return nil, fmt.Errorf("invalid function name for false rhs - " + functionName)
-
-				}
-				continue
-
-			}
-
-			if functionName == "in" || functionName == "notin" {
-				rightValInterface = strings.Split(rightVal, ",")
-			}
-
-			if functionName == "in" || functionName == "notin" {
-				rightValInterface = strings.Split(rightVal, ",")
-				whereExpressions = append(whereExpressions, goqu.Ex{
-					leftVal: rightValInterface,
-				})
-			} else if functionName == "=" {
-				whereExpressions = append(whereExpressions, goqu.Ex{
-					leftVal: rightValInterface,
-				})
-			} else {
-				whereExpressions = append(whereExpressions, goqu.Ex{
-					leftVal: goqu.Op{
-						functionName: goqu.V(rightValInterface),
-					},
-				})
-			}
+			whereExpressions = append(whereExpressions, whereClause)
 
 		}
 	}
@@ -297,6 +247,22 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 	}
 	builder = builder.Having(havingExpressions...)
 
+	for _, join := range req.Join {
+		joinParts := strings.Split(join, "@")
+		if !querySyntax.MatchString(joinParts[1]) {
+			return nil, fmt.Errorf("invalid join condition format: " + joinParts[1])
+		} else {
+			parts := querySyntax.FindStringSubmatch(joinParts[1])
+
+			joinWhere, err := BuildWhereClause(parts[1], parts[2], goqu.I(parts[3]))
+			if err != nil {
+				return nil, err
+			}
+			builder = builder.Join(goqu.T(joinParts[0]), goqu.On(joinWhere))
+
+		}
+	}
+
 	sql, args, err := builder.ToSQL()
 	CheckErr(err, "Failed to generate stats sql: [%v]")
 	if err != nil {
@@ -316,7 +282,8 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 		}
 	}(res)
 
-	rows, err := RowsToMap(res, "aggregate_"+req.RootEntity)
+	returnModelName := "aggregate_" + req.RootEntity
+	rows, err := RowsToMap(res, returnModelName)
 	CheckErr(err, "Failed to scan ")
 
 	for _, groupedColumn := range req.GroupBy {
@@ -330,6 +297,9 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 			for _, row := range rows {
 				idsToConvert = append(idsToConvert, row[groupedColumn].(int64))
 			}
+			if len(idsToConvert) == 0 {
+				continue
+			}
 			referenceIds, err := dr.Cruds[entityName].GetIdListToReferenceIdList(entityName, idsToConvert)
 			if err != nil {
 				return nil, err
@@ -340,8 +310,93 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 		}
 	}
 
+	returnRows := make([]AggregateRow, 0)
+	for _, row := range rows {
+		newId, _ := uuid.NewV4()
+		returnRows = append(returnRows, AggregateRow{
+			Type:       returnModelName,
+			Id:         newId.String(),
+			Attributes: row,
+		})
+	}
+
 	return &AggregateData{
-		Data: rows,
+		Data: returnRows,
 	}, err
 
+}
+
+func BuildWhereClause(functionName string, leftVal string, rightVal interface{}) (goqu.Expression, error) {
+
+	var rightValInterface interface{}
+	rightValInterface = rightVal
+	if rightValInterface == "null" {
+		rightValInterface = nil
+
+		switch functionName {
+		case "is":
+			return goqu.C(leftVal).IsNull(), nil
+
+		case "not":
+			return goqu.C(leftVal).IsNotNull(), nil
+
+		default:
+			return nil, fmt.Errorf("invalid function name for null rhs - " + functionName)
+
+		}
+
+	}
+	if rightValInterface == "true" {
+		rightValInterface = nil
+
+		switch functionName {
+		case "is":
+			return goqu.C(leftVal).IsTrue(), nil
+
+		case "not":
+			return goqu.C(leftVal).IsNotTrue(), nil
+
+		default:
+			return nil, fmt.Errorf("invalid function name for true rhs - " + functionName)
+
+		}
+
+	}
+	if rightValInterface == "false" {
+		rightValInterface = nil
+
+		switch functionName {
+		case "is":
+			return goqu.C(leftVal).IsFalse(), nil
+
+		case "not":
+			return goqu.C(leftVal).IsNotFalse(), nil
+
+		default:
+			return nil, fmt.Errorf("invalid function name for false rhs - " + functionName)
+
+		}
+
+	}
+
+	if functionName == "in" || functionName == "notin" {
+		rightValInterface = strings.Split(rightVal.(string), ",")
+	}
+
+	if functionName == "in" || functionName == "notin" {
+		rightValInterface = strings.Split(rightVal.(string), ",")
+		return goqu.Ex{
+			leftVal: rightValInterface,
+		}, nil
+	} else if functionName == "=" {
+		return goqu.Ex{
+			leftVal: rightValInterface,
+		}, nil
+	} else {
+		return goqu.Ex{
+			leftVal: goqu.Op{
+				functionName: goqu.V(rightValInterface),
+			},
+		}, nil
+	}
 }

@@ -75,6 +75,7 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 		aggResponse, err := cruds[typeName].DataStats(aggReq)
 
 		if err != nil {
+			log.Errorf("failed to execute aggregation [%v] - %v", typeName, err)
 			c.JSON(500, resource.NewDaptinError("Failed to query stats", "query failed - " + err.Error()))
 			return
 		}

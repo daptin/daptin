@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/artpar/rclone/fs/config/configfile"
 	"github.com/buraksezer/olric"
-	"github.com/getkin/kin-openapi/pathpattern"
 	"github.com/sadlil/go-trigger"
 	"io"
 	"os"
@@ -595,7 +594,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 			}
 
 			path := fmt.Sprintf("/live/%v/:referenceId/%v/yjs", typename, columnInfo.ColumnName)
-			log.Infof("Createe YJS websocket endpoint for %v[%v] at: %v", typename, columnInfo.ColumnName, pathpattern.Node{})
+			log.Infof("[%v] YJS websocket endpoint for %v[%v]", path, typename, columnInfo.ColumnName)
 			defaultRouter.GET(path, func(typename string, columnInfo api2go.ColumnInfo) func(ginContext *gin.Context) {
 
 				dtopicMap[typename].AddListener(func(message olric.DTopicMessage) {
