@@ -294,6 +294,10 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 		var columnInfo *api2go.ColumnInfo
 		var ok bool
 
+		if strings.Index(groupedColumn, ".") > -1 {
+			groupedColumn = strings.Split(groupedColumn, ".")[1]
+		}
+
 		for _, tableName := range joinedTables {
 			columnInfo, ok = dr.Cruds[tableName].TableInfo().GetColumnByName(groupedColumn)
 			if !ok {
