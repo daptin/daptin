@@ -243,24 +243,28 @@ func main() {
 
 		go func() {
 
-			time.Sleep(time.Duration(*profileDumpPeriod) * time.Minute)
-			log.Infof("Dumping cpu and heap profile at %s", *profileDumpPath)
-			profileDumpCount += 1
-			pprof.StopCPUProfile()
+			for {
+				time.Sleep(time.Duration(*profileDumpPeriod) * time.Minute)
+				log.Infof("Dumping cpu and heap profile at %s", *profileDumpPath)
+				profileDumpCount += 1
+				pprof.StopCPUProfile()
 
-			cpuprofile := fmt.Sprintf("%sdaptin_cpu_profile_%v.prof", *profileDumpPath, profileDumpCount)
-			heapprofile := fmt.Sprintf("%sdaptin_heap_profile_%v.prof", *profileDumpPath, profileDumpCount)
+				cpuprofile := fmt.Sprintf("%sdaptin_cpu_profile_%v.prof", *profileDumpPath, profileDumpCount)
+				heapprofile := fmt.Sprintf("%sdaptin_heap_profile_%v.prof", *profileDumpPath, profileDumpCount)
 
-			cpuFile, err := os.Create(cpuprofile)
-			heapFile, err := os.Create(heapprofile)
-			if err != nil {
-				log.Errorf("Failed to create file [%v] for profile dump: %v", cpuprofile, err)
-			} else {
-				err = pprof.StartCPUProfile(cpuFile)
-				auth.CheckErr(err, "Failed to start CPU profile: %v", err)
-				err = pprof.WriteHeapProfile(heapFile)
-				auth.CheckErr(err, "Failed to start HEAP profile: %v", err)
+				cpuFile, err := os.Create(cpuprofile)
+				heapFile, err := os.Create(heapprofile)
+				if err != nil {
+					log.Errorf("Failed to create file [%v] for profile dump: %v", cpuprofile, err)
+				} else {
+					err = pprof.StartCPUProfile(cpuFile)
+					auth.CheckErr(err, "Failed to start CPU profile: %v", err)
+					err = pprof.WriteHeapProfile(heapFile)
+					auth.CheckErr(err, "Failed to start HEAP profile: %v", err)
+				}
 			}
+
+
 		}()
 
 	}
