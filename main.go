@@ -101,18 +101,20 @@ func main() {
 	var port = flag.String("port", ":6336", "daptin port")
 	var httpsPort = flag.String("https_port", ":6443", "daptin https port")
 	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: profile, debug, test, release")
+	var profileDumpPath = flag.String("profile_dump_path", "./", "location for dumping cpu/heap data in profile mode")
+	var profileDumpPeriod = flag.Int("profile_dump_period", 5, "time period in minutes for triggering profile dump")
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
 
 	printVersion()
 
-	restart_count := 0
+	profileDumpCount := 0
 	if *runtimeMode == "profile" {
 		gin.SetMode("release")
 
-		cpuprofile := fmt.Sprintf("daptin_cpu_profile_%v.prof", restart_count)
-		heapprofile := fmt.Sprintf("daptin_heap_profile_%v.prof", restart_count)
+		cpuprofile := fmt.Sprintf("%sdaptin_cpu_profile_%v.prof", *profileDumpPath, profileDumpCount)
+		heapprofile := fmt.Sprintf("%sdaptin_heap_profile_%v.prof", *profileDumpPath, profileDumpCount)
 		cpuFile, err1 := os.Create(cpuprofile)
 		heapFile, err2 := os.Create(heapprofile)
 		if err1 != nil || err2 != nil {
@@ -235,17 +237,17 @@ func main() {
 		HostSwitch: &hostSwitch,
 	}
 
-	err = trigger.On("restart", func() {
-		log.Printf("Trigger restart")
-		restartLock.Lock()
-		defer restartLock.Unlock()
-		restart_count += 1
+	if *runtimeMode == "profile" {
 
-		if *runtimeMode == "profile" {
+		go func() {
+
+			time.Sleep(time.Duration(*profileDumpPeriod) * time.Minute)
+			log.Infof("Dumping cpu and heap profile at %s", *profileDumpPath)
+			profileDumpCount += 1
 			pprof.StopCPUProfile()
 
-			cpuprofile := fmt.Sprintf("daptin_cpu_profile_%v.prof", restart_count)
-			heapprofile := fmt.Sprintf("daptin_heap_profile_%v.prof", restart_count)
+			cpuprofile := fmt.Sprintf("%sdaptin_cpu_profile_%v.prof", *profileDumpPath, profileDumpCount)
+			heapprofile := fmt.Sprintf("%sdaptin_heap_profile_%v.prof", *profileDumpPath, profileDumpCount)
 
 			cpuFile, err := os.Create(cpuprofile)
 			heapFile, err := os.Create(heapprofile)
@@ -257,8 +259,14 @@ func main() {
 				err = pprof.WriteHeapProfile(heapFile)
 				auth.CheckErr(err, "Failed to start HEAP profile: %v", err)
 			}
+		}()
 
-		}
+	}
+
+	err = trigger.On("restart", func() {
+		log.Printf("Trigger restart")
+		restartLock.Lock()
+		defer restartLock.Unlock()
 
 		startTime := time.Now()
 
