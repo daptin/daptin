@@ -124,7 +124,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 
 	for _, group := range req.GroupBy {
 		projections = append(projections, group)
-		projectionsAdded = append(projectionsAdded, goqu.C(group))
+		projectionsAdded = append(projectionsAdded, goqu.I(group))
 	}
 
 	if len(projections) == 0 {
