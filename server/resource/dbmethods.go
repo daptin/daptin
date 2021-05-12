@@ -325,7 +325,7 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	//log.Infof("PermissionInstance for [%v]: %v", typeName, perm)
 
 	if OlricCache != nil {
-		_ = OlricCache.PutEx(cacheKey, perm, 10*time.Second)
+		_ = OlricCache.PutIfEx(cacheKey, perm, 10*time.Second, olric.IfNotFound)
 	}
 	return perm
 }
@@ -1189,7 +1189,7 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 		return nil, fmt.Errorf("no such object 1161 [%v][%v]", typeName, referenceId)
 	}
 	if OlricCache != nil {
-		_ = OlricCache.PutEx(k, results[0], 5*time.Second)
+		_ = OlricCache.PutIfEx(k, results[0], 5*time.Second, olric.IfNotFound)
 	}
 
 	return results[0], err
@@ -1318,7 +1318,7 @@ func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, err
 	row := dr.db.QueryRowx(s, q...)
 	err = row.Scan(&str)
 	if OlricCache != nil {
-		OlricCache.PutEx(k, str, 1*time.Minute)
+		OlricCache.PutIfEx(k, str, 1*time.Minute, olric.IfNotFound)
 	}
 	return str, err
 

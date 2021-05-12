@@ -245,7 +245,7 @@ func (m *JWTMiddleware) CheckJWT(w http.ResponseWriter, r *http.Request) (*jwt.T
 	m.logf("JWT: %v", parsedToken)
 
 	if TokenCache != nil {
-		_ = TokenCache.PutEx(k, *parsedToken, 5*time.Minute)
+		_ = TokenCache.PutIfEx(k, *parsedToken, 5*time.Minute, olric.IfNotFound)
 	}
 	// If we get here, everything worked and we can set the
 	// user property in context.

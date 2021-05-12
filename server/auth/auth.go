@@ -12,6 +12,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
@@ -284,14 +285,12 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 			LocalUserCacheLock.Lock()
 			localCachedUser, ok := LocalUserCacheMap[email]
-			LocalUserCacheLock.Unlock()
 
 			if ok && time.Now().After(localCachedUser.Expiry) {
-				LocalUserCacheLock.Lock()
 				delete(LocalUserCacheMap, email)
-				LocalUserCacheLock.Unlock()
 				ok = false
 			}
+			LocalUserCacheLock.Unlock()
 
 			if !ok {
 
@@ -371,7 +370,12 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						if err != nil {
 							log.Errorf("Failed to get user group permissions: %v", err)
 						} else {
-							defer rows.Close()
+							defer func(rows *sqlx.Rows) {
+								err := rows.Close()
+								if err != nil {
+									log.Errorf("failed to close result after fetching user in auth")
+								}
+							}(rows)
 							//cols, _ := rows.Columns()
 							//log.Infof("Columns: %v", cols)
 							for rows.Next() {
@@ -401,12 +405,12 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						Account: *sessionUser,
 						Expiry:  time.Now().Add(2 * time.Minute),
 					}
-					LocalUserCacheLock.Unlock()
 
 					if olricCache != nil {
-						err = olricCache.PutEx(email, sessionUser, 1*time.Minute)
+						err = olricCache.PutIfEx(email, sessionUser, 1*time.Minute, olric.IfNotFound)
 						CheckErr(err, "Failed to put user in cache")
 					}
+					LocalUserCacheLock.Unlock()
 
 				} else {
 					sessionUser = cachedUser.(*SessionUser)
