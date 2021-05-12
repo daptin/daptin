@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	"github.com/artpar/api2go"
 	uuid "github.com/artpar/go.uuid"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/jmoiron/sqlx"
@@ -111,6 +112,8 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 
 	sort.Strings(req.GroupBy)
 	projections := req.ProjectColumn
+
+	joinedTables := make([]string, 0)
 
 	projectionsAdded := make([]interface{}, 0)
 	for i, project := range projections {
@@ -258,6 +261,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 			if err != nil {
 				return nil, err
 			}
+			joinedTables = append(joinedTables, joinParts[0])
 			builder = builder.LeftJoin(goqu.T(joinParts[0]), goqu.On(joinWhere))
 
 		}
@@ -287,14 +291,30 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 	CheckErr(err, "Failed to scan ")
 
 	for _, groupedColumn := range req.GroupBy {
-		columnInfo, ok := dr.tableInfo.GetColumnByName(groupedColumn)
-		if !ok {
+		var columnInfo *api2go.ColumnInfo
+		var ok bool
+
+		for _, tableName := range joinedTables {
+			columnInfo, ok = dr.Cruds[tableName].TableInfo().GetColumnByName(groupedColumn)
+			if !ok {
+				continue
+			} else {
+				break
+			}
+		}
+		if columnInfo == nil {
+			log.Infof("column info not found for %v", groupedColumn)
 			continue
 		}
+
 		if columnInfo.IsForeignKey && columnInfo.ForeignKeyData.DataSource == "self" {
 			entityName := columnInfo.ForeignKeyData.Namespace
 			idsToConvert := make([]int64, 0)
 			for _, row := range rows {
+				value := row[groupedColumn]
+				if value == nil {
+					continue
+				}
 				idsToConvert = append(idsToConvert, row[groupedColumn].(int64))
 			}
 			if len(idsToConvert) == 0 {
@@ -305,6 +325,9 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 				return nil, err
 			}
 			for _, row := range rows {
+				if row[groupedColumn] == nil {
+					continue
+				}
 				row[groupedColumn] = referenceIds[row[groupedColumn].(int64)]
 			}
 		}
