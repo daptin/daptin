@@ -109,10 +109,10 @@ func main() {
 
 	printVersion()
 
+	log.Infof("Runtime is %s", *runtimeMode)
 	profileDumpCount := 0
 	if *runtimeMode == "profile" {
 		gin.SetMode("release")
-		log.Infof("Runtime is profile")
 		log.Infof("Dumping CPU/Heap Profile at %s every %s Minutes", *profileDumpPath, *profileDumpPeriod)
 
 		cpuprofile := fmt.Sprintf("%sdaptin_cpu_profile_%v.prof", *profileDumpPath, profileDumpCount)
