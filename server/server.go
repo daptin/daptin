@@ -113,8 +113,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	defaultRouter.Use(func() gin.HandlerFunc {
 		return func(c *gin.Context) {
 			beginning, recorder := Stats.Begin(c.Writer)
-			defer Stats.End(beginning, stats.WithRecorder(recorder))
 			c.Next()
+			Stats.End(beginning, stats.WithRecorder(recorder))
 		}
 	}())
 

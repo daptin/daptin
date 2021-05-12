@@ -604,7 +604,9 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						_, err = dr.Cruds[rel.GetJoinTableName()].Update(modl, api2go.Request{
 							PlainRequest: pr,
 						})
-						log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
+						if err != nil {
+							log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
+						}
 						continue
 					}
 
