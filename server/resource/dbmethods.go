@@ -325,7 +325,7 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	//log.Infof("PermissionInstance for [%v]: %v", typeName, perm)
 
 	if OlricCache != nil {
-		_ = OlricCache.PutEx(cacheKey, perm, 5*time.Minute)
+		_ = OlricCache.PutEx(cacheKey, perm, 10*time.Second)
 	}
 	return perm
 }
@@ -1519,22 +1519,10 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 				idCacheKey := fmt.Sprintf("%s_%d", namespace, referenceIdInt)
 				refId, ok := referenceIdCache[idCacheKey]
-				if !ok && OlricCache != nil {
-					cachedId, err := OlricCache.Get(idCacheKey)
-					if err == nil && cachedId != nil {
-						refId = cachedId.(string)
-						referenceIdCache[idCacheKey] = refId
-						ok = true
-					}
-				}
 
 				if !ok {
 					refId, err = dr.GetIdToReferenceId(namespace, referenceIdInt)
 					referenceIdCache[idCacheKey] = refId
-					if OlricCache != nil {
-						_ = OlricCache.PutEx(cacheKey, refId, 5*time.Minute)
-					}
-
 				}
 
 				if err != nil {
