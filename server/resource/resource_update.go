@@ -593,6 +593,12 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 							rel.GetObjectName():  objectId,
 							rel.GetSubjectName(): subjectId,
 						})
+						if len(joinReferenceId) < 1 {
+							log.Errorf("[%v] FAIL to fetch join reference id for %s[%v] - %s[%v]",
+								rel.GetJoinTableName(),
+								rel.GetObjectName(), objectId, rel.GetSubjectName(), subjectId)
+							continue
+						}
 						modl.Data["reference_id"] = joinReferenceId[0]
 
 						_, err = dr.Cruds[rel.GetJoinTableName()].Update(modl, api2go.Request{
@@ -752,7 +758,6 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					_, err := dr.Cruds[rel.GetJoinTableName()].Create(modl, req1)
 
 					if err != nil {
-
 
 						subjectId, err := dr.GetReferenceIdToId(rel.GetSubject(), obj[rel.GetSubjectName()].(string))
 						objectId, err := dr.GetReferenceIdToId(rel.GetObject(), obj[rel.GetObjectName()].(string))
