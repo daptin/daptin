@@ -258,7 +258,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 			if err != nil {
 				return nil, err
 			}
-			builder = builder.Join(goqu.T(joinParts[0]), goqu.On(joinWhere))
+			builder = builder.LeftJoin(goqu.T(joinParts[0]), goqu.On(joinWhere))
 
 		}
 	}
