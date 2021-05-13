@@ -60,8 +60,8 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Printf("Recovered in adding routes for table [%v]", table.TableName)
-					log.Printf("Error was: %v", r)
+					log.Errorf("Recovered in adding routes for table [%v]", table.TableName)
+					log.Errorf("Error was: %v", r)
 				}
 			}()
 			api.AddResource(model, res)

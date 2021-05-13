@@ -377,7 +377,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 								}
 							}(rows)
 							//cols, _ := rows.Columns()
-							//log.Infof("Columns: %v", cols)
+							log.Debugf("Usergroup selection query for user [%v] : [%v]", email, query)
 							for rows.Next() {
 								var p GroupPermission
 								err = rows.StructScan(&p)

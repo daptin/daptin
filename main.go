@@ -101,6 +101,7 @@ func main() {
 	var port = flag.String("port", ":6336", "daptin port")
 	var httpsPort = flag.String("https_port", ":6443", "daptin https port")
 	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: profile, debug, test, release")
+	var logLevel = flag.String("log_level", "warn", "Runtime for Gin: profile, debug, test, release")
 	var profileDumpPath = flag.String("profile_dump_path", "./", "location for dumping cpu/heap data in profile mode")
 	var profileDumpPeriod = flag.Int("profile_dump_period", 5, "time period in minutes for triggering profile dump")
 
@@ -110,6 +111,12 @@ func main() {
 	printVersion()
 
 	log.Infof("Runtime is %s", *runtimeMode)
+	logLevelParsed, err := log.ParseLevel(*logLevel)
+	if err != nil {
+		log.Errorf("invalid log level: %s, setting to info", logLevel)
+		logLevelParsed = log.InfoLevel
+	}
+	log.SetLevel(logLevelParsed)
 	profileDumpCount := 0
 	if *runtimeMode == "profile" {
 		gin.SetMode("release")
@@ -263,7 +270,6 @@ func main() {
 					auth.CheckErr(err, "Failed to start HEAP profile: %v", err)
 				}
 			}
-
 
 		}()
 
