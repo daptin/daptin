@@ -454,16 +454,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetObject(), []interface{}{"id"}, "reference_id", queries)
 				//log.Printf("Converted ids: %v", ids)
-				if err != nil {
+				if err != nil || len(ids) < 1 {
 					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
 					return nil, nil, nil, false, err
 				}
 				switch rel.Relation {
 				case "has_one":
 					finalResponseIsSingleObject = false
-					if len(ids) < 1 {
-						continue
-					}
 					queryBuilder = queryBuilder.Where(goqu.Ex{rel.GetObjectName(): ids})
 					countQueryBuilder = countQueryBuilder.Where(goqu.Ex{rel.GetObjectName(): ids})
 					break
@@ -577,7 +574,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 					continue
 				}
 				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), []interface{}{"id"}, "reference_id", queries)
-				if err != nil {
+				if err != nil || len(ids) < 1 {
 					log.Errorf("Failed to convert [%v]refids to ids[%v]: %v", rel.GetSubject(), queries, err)
 					return nil, nil, nil, false, err
 				}
