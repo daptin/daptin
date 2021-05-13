@@ -78,7 +78,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, objects []map[string]interface{}) ([]map[string]interface{}, error) {
 
 	reqmethod := req.PlainRequest.Method
-	//log.Infof("Generate events for objects", reqmethod)
+	//log.Printf("Generate events for objects", reqmethod)
 	switch reqmethod {
 	case "GET":
 		break

@@ -53,7 +53,7 @@ func (d *importDataPerformer) DoAction(request Outcome, inFields map[string]inte
 			continue
 		}
 
-		log.Infof("Processing file: %v", fileName)
+		log.Printf("Processing file: %v", fileName)
 
 		var jsonData map[string]interface{}
 
@@ -64,7 +64,7 @@ func (d *importDataPerformer) DoAction(request Outcome, inFields map[string]inte
 		}
 
 		if isSubjected {
-			//log.Infof("Subject isntance: %v", subjectInstance)
+			//log.Printf("Subject isntance: %v", subjectInstance)
 			//subjectInstanceMap := subjectInstance.(map[string]interface{})
 			subjectTableName := tableName.(string)
 
@@ -97,7 +97,7 @@ func (d *importDataPerformer) DoAction(request Outcome, inFields map[string]inte
 			instance, ok := d.cruds[tableName]
 
 			if !ok {
-				log.Infof("Wanted to truncate table, but no instance yet: %v", tableName)
+				log.Printf("Wanted to truncate table, but no instance yet: %v", tableName)
 				d.cruds["world"].TruncateTable(tableName, false)
 				continue
 			}

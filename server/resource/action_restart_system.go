@@ -51,10 +51,10 @@ func NewRestarSystemPerformer(initConfig *CmsConfig) (ActionPerformerInterface, 
 }
 
 func restart() {
-	log.Infof("Sleeping for 3 seconds before restart")
+	log.Printf("Sleeping for 3 seconds before restart")
 	time.Sleep(10 * time.Millisecond)
-	log.Infof("Kill")
-	//log.Infof("Sending %v to %v", syscall.SIGUSR2, syscall.Getpid())
+	log.Printf("Kill")
+	//log.Printf("Sending %v to %v", syscall.SIGUSR2, syscall.Getpid())
 
 	//exec.Command("kill", "-12", fmt.Sprint(syscall.Getpid())).Output()
 	_, err := trigger.Fire("restart")

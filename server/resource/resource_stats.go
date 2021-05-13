@@ -273,7 +273,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 		return nil, err
 	}
 
-	log.Infof("Aggregation query: %v", sql)
+	log.Printf("Aggregation query: %v", sql)
 	res, err := dr.db.Queryx(sql, args...)
 	CheckErr(err, "Failed to query stats: %v", sql)
 	if err != nil {
@@ -307,7 +307,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 			}
 		}
 		if columnInfo == nil {
-			log.Infof("column info not found for %v", groupedColumn)
+			log.Printf("column info not found for %v", groupedColumn)
 			continue
 		}
 

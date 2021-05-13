@@ -93,7 +93,7 @@ var EntityTypeToColumnTypeMap = map[fieldtypes.EntityType]string{
 func (d *uploadXlsFileToEntityPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	//actions := make([]ActionResponse, 0)
-	log.Infof("Do action: %v", d.Name())
+	log.Printf("Do action: %v", d.Name())
 	schemaFolderDefinedByEnv, _ := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
 
 	files := inFields["data_xls_file"].([]interface{})
@@ -129,14 +129,14 @@ nextFile:
 		fileName := "_uploaded_" + file["name"].(string)
 		fileContentsBase64 := file["file"].(string)
 		fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
-		log.Infof("Processing file: %v", fileName)
+		log.Printf("Processing file: %v", fileName)
 
 		xlsFile, err := xlsx.OpenBinary(fileBytes)
 		CheckErr(err, "Uploaded file is not a valid xls file")
 		if err != nil {
 			return nil, nil, []error{fmt.Errorf("Failed to read file: %v", err)}
 		}
-		log.Infof("File has %d sheets", len(xlsFile.Sheets))
+		log.Printf("File has %d sheets", len(xlsFile.Sheets))
 		err = ioutil.WriteFile(schemaFolderDefinedByEnv+string(os.PathSeparator)+fileName, fileBytes, 0644)
 		if err != nil {
 			log.Errorf("Failed to write xls file to disk: %v", err)
@@ -201,11 +201,11 @@ nextFile:
 
 				eType, _, err := fieldtypes.DetectType(datas)
 				if err != nil {
-					log.Infof("Unable to identify column type for %v", colName)
+					log.Printf("Unable to identify column type for %v", colName)
 					column.ColumnType = "label"
 					column.DataType = fmt.Sprintf("varchar(%v)", maxLen)
 				} else {
-					log.Infof("Column %v was identified as %v", colName, eType)
+					log.Printf("Column %v was identified as %v", colName, eType)
 					column.ColumnType = EntityTypeToColumnTypeMap[eType]
 
 					dbDataType := entityTypeToDataTypeMap[eType]
@@ -320,8 +320,8 @@ func GetDataArray(sheet *xlsx.Sheet) (dataMap []map[string]interface{}, columnNa
 	rowCount := sheet.MaxRow
 	columnCount := sheet.MaxCol
 
-	log.Infof("Sheet has %d rows", rowCount)
-	log.Infof("Sheet has %d cols", columnCount)
+	log.Printf("Sheet has %d rows", rowCount)
+	log.Printf("Sheet has %d cols", columnCount)
 
 	if columnCount < 1 {
 		err = errors.New("Sheet has 0 columns")

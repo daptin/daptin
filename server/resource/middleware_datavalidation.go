@@ -43,7 +43,7 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 		validations := dvm.tableInfoMap[dr.model.GetName()].Validations
 		conformations := dvm.tableInfoMap[dr.model.GetName()].Conformations
 
-		//log.Infof("We have %d objects to validate", len(objects))
+		//log.Printf("We have %d objects to validate", len(objects))
 
 		for i, obj := range objects {
 

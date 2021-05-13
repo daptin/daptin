@@ -104,7 +104,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 	tableMap := make(map[string]resource.TableInfo)
 	for _, table := range initConfig.Tables {
 
-		//log.Infof("Default permission for [%v]: [%v]", table.TableName, table.Columns)
+		//log.Printf("Default permission for [%v]: [%v]", table.TableName, table.Columns)
 
 		tableMap[table.TableName] = table
 	}
@@ -130,7 +130,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		selectedTable, isTable := tableMap[typeName]
 
 		if !isTable {
-			log.Infof("%v is not a table", typeName)
+			log.Printf("%v is not a table", typeName)
 			selectedStream, isStream := streamMap[typeName]
 
 			if !isStream {
@@ -149,7 +149,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 
 		cols := selectedTable.Columns
 
-		//log.Infof("data: %v", selectedTable.Relations)
+		//log.Printf("data: %v", selectedTable.Relations)
 		actions, err := cruds["world"].GetActionsByType(typeName)
 
 		if err != nil {
@@ -178,7 +178,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		_, result, err := cruds["smd"].PaginatedFindAll(req)
 
 		if err != nil {
-			log.Infof("Failed to get world SMD: %v", err)
+			log.Printf("Failed to get world SMD: %v", err)
 		} else {
 			models := result.Result().([]*api2go.Api2GoModel)
 			for _, m := range models {
@@ -192,7 +192,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		res := map[string]interface{}{}
 
 		for _, col := range cols {
-			//log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue, col.IsForeignKey, col.ForeignKeyData)
+			//log.Printf("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue, col.IsForeignKey, col.ForeignKeyData)
 			if col.ExcludeFromApi {
 				continue
 			}
@@ -208,7 +208,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		}
 
 		for _, rel := range selectedTable.Relations {
-			//log.Infof("Relation [%v][%v]", selectedTable.TableName, rel.String())
+			//log.Printf("Relation [%v][%v]", selectedTable.TableName, rel.String())
 
 			if rel.GetSubject() == selectedTable.TableName {
 				r := "hasMany"
@@ -228,7 +228,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		}
 
 		for _, col := range cols {
-			//log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue)
+			//log.Printf("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue)
 			if col.ExcludeFromApi {
 				continue
 			}

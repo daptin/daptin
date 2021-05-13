@@ -33,7 +33,7 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFiel
 	u, _ := uuid.NewV4()
 	sourceDirectoryName := "upload-" + u.String()[0:8]
 	tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
-	log.Infof("Temp directory for this upload cloudStoreFolderCreateActionPerformer: %v", tempDirectoryPath)
+	log.Printf("Temp directory for this upload cloudStoreFolderCreateActionPerformer: %v", tempDirectoryPath)
 
 	//defer os.RemoveAll(tempDirectoryPath) // clean up
 
@@ -50,13 +50,13 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFiel
 	args := []string{
 		rootPath,
 	}
-	log.Infof("Create folder target %v", folderPath)
+	log.Printf("Create folder target %v", folderPath)
 
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}
 	oauthTokenId1 := inFields["oauth_token_id"]
 	if oauthTokenId1 == nil {
-		log.Infof("No oauth token set for target store")
+		log.Printf("No oauth token set for target store")
 	} else {
 		oauthTokenId := oauthTokenId1.(string)
 		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)

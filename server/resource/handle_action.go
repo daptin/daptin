@@ -99,7 +99,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 			ginContext.Error(err)
 			return
 		}
-		//log.Infof("Action Request body: %v", actionRequest)
+		//log.Printf("Action Request body: %v", actionRequest)
 
 		req := api2go.Request{
 			PlainRequest: &http.Request{
@@ -152,7 +152,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 			return
 		}
 
-		//log.Infof("Final responses: %v", responses)
+		//log.Printf("Final responses: %v", responses)
 
 		ginContext.JSON(200, responses)
 
@@ -213,7 +213,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 	}
 
-	//log.Infof("Handle event for action [%v]", actionRequest.Action)
+	//log.Printf("Handle event for action [%v]", actionRequest.Action)
 
 	if !action.InstanceOptional && (subjectInstanceReferenceId == "" || subjectInstance == nil) {
 		log.Warnf("subject is unidentified: %v - %v", actionRequest.Action, actionRequest.Type)
@@ -316,7 +316,7 @@ OutFields:
 				}
 
 			} else if !boolValue {
-				log.Infof("Outcome [%v][%v] skipped because condition failed [%v]", outcome.Method, outcome.Type, outcome.Condition)
+				log.Printf("Outcome [%v][%v] skipped because condition failed [%v]", outcome.Method, outcome.Type, outcome.Condition)
 				continue
 			}
 		}
@@ -344,7 +344,7 @@ OutFields:
 		dbResource, _ := db.Cruds[outcome.Type]
 
 		actionResponses := make([]ActionResponse, 0)
-		//log.Infof("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
+		//log.Printf("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
 		switch outcome.Method {
 		case "POST":
 			responseObjects, err = dbResource.Create(model, request)
@@ -455,7 +455,7 @@ OutFields:
 
 		case "ACTIONRESPONSE":
 			//res, err = Cruds[outcome.Type].Create(model, actionRequest)
-			log.Infof("Create action response: %v", model.GetName())
+			log.Printf("Create action response: %v", model.GetName())
 			var actionResponse ActionResponse
 			actionResponse = NewActionResponse(model.GetName(), model.Data)
 			actionResponses = append(actionResponses, actionResponse)
@@ -638,7 +638,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 		if !ok {
 			return nil, returnRequest, errors.New("no files uploaded")
 		}
-		log.Infof("Files [%v]: %v", attrs, files1)
+		log.Printf("Files [%v]: %v", attrs, files1)
 		files, ok := files1.([]interface{})
 		if !ok || len(files) < 1 {
 			return nil, returnRequest, errors.New("no files uploaded")
@@ -646,7 +646,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 		for _, file := range files {
 			f := file.(map[string]interface{})
 			fileName := f["name"].(string)
-			log.Infof("File name: %v", fileName)
+			log.Printf("File name: %v", fileName)
 			fileNameParts := strings.Split(fileName, ".")
 			fileFormat := fileNameParts[len(fileNameParts)-1]
 			contents := f["file"]
@@ -678,7 +678,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 
 		}
 
-		log.Infof("Written all json files. Attempting restart")
+		log.Printf("Written all json files. Attempting restart")
 
 		return responseModel, returnRequest, nil
 
@@ -769,14 +769,14 @@ func BuildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 		for key, field := range outcomeMap {
 
 			typeOfField := reflect.TypeOf(field).Kind()
-			//log.Infof("Outcome attribute [%v] == %v [%v]", key, field, typeOfField)
+			//log.Printf("Outcome attribute [%v] == %v [%v]", key, field, typeOfField)
 
 			if typeOfField == reflect.String {
 
 				fieldString := field.(string)
 
 				val, err := evaluateString(fieldString, inFieldMap)
-				//log.Infof("Value of [%v] == [%v]", key, val)
+				//log.Printf("Value of [%v] == [%v]", key, val)
 				if err != nil {
 					return data, err
 				}
@@ -831,7 +831,7 @@ func BuildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 
 			} else if outcomeKind == reflect.Map || outcomeKind == reflect.Array || outcomeKind == reflect.Slice {
 				outc, err := BuildActionContext(outcome, inFieldMap)
-				//log.Infof("Outcome is: %v", outc)
+				//log.Printf("Outcome is: %v", outc)
 				if err != nil {
 					return data, err
 				}

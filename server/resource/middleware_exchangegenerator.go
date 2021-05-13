@@ -71,7 +71,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 
 	reqmethod := req.PlainRequest.Method
 	reqmethod = strings.ToLower(reqmethod)
-	//log.Infof("Request to intercept in middleware exchange: %v", reqmethod)
+	//log.Printf("Request to intercept in middleware exchange: %v", reqmethod)
 
 	for i, resultRow := range results {
 
@@ -85,7 +85,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 		exchanges, ok := em.exchangeMap[resultType]
 
 		if ok {
-			//log.Infof("Got %d exchanges for [%v]", len(exchanges), resultType)
+			//log.Printf("Got %d exchanges for [%v]", len(exchanges), resultType)
 		} else {
 			continue
 		}
@@ -142,7 +142,7 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 
 	reqmethod := req.PlainRequest.Method
 	reqmethod = strings.ToLower(reqmethod)
-	//log.Infof("Request to intercept in middleware exchange: %v", reqmethod)
+	//log.Printf("Request to intercept in middleware exchange: %v", reqmethod)
 
 	for _, resultRow := range results {
 
@@ -156,7 +156,7 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 		exchanges, ok := em.exchangeMap[resultType]
 
 		if ok {
-			//log.Infof("Got %d exchanges for [%v]", len(exchanges), resultType)
+			//log.Printf("Got %d exchanges for [%v]", len(exchanges), resultType)
 		} else {
 			continue
 		}

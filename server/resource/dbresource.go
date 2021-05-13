@@ -138,7 +138,7 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
 		OlricCache, _ = olricDb.NewDMap("default-cache")
 	}
 
-	//log.Infof("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
+	//log.Printf("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
 	return &DbResource{
 		model:              model,
 		db:                 db,

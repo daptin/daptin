@@ -18,7 +18,7 @@ type ActionExchangeHandler struct {
 
 func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[string]interface{}, error) {
 
-	log.Infof("Execute action exchange on: %v - %v", row["__type"], row["reference_id"])
+	log.Printf("Execute action exchange on: %v - %v", row["__type"], row["reference_id"])
 
 	targetType, ok := g.exchangeContract.TargetAttributes["type"]
 	if !ok {
@@ -60,7 +60,7 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[s
 	} else {
 		defer rows.Close()
 		//cols, _ := rows.Columns()
-		//log.Infof("Columns: %v", cols)
+		//log.Printf("Columns: %v", cols)
 		for rows.Next() {
 			var p auth.GroupPermission
 			err = rows.StructScan(&p)
@@ -86,7 +86,7 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[s
 	request.Attributes[tableName+"_id"] = row["reference_id"]
 	response, err := g.cruds[tableName].HandleActionRequest(request, req)
 
-	log.Infof("Response from action exchange execution: %v", response)
+	log.Printf("Response from action exchange execution: %v", response)
 	CheckErr(err, "Error from action exchange execution: %v")
 
 	res := make(map[string]interface{})

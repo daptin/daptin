@@ -40,7 +40,7 @@ func (ti *CmsConfig) AddRelations(relations ...api2go.TableRelation) {
 		for _, existingRelation := range ti.Relations {
 			if existingRelation.Hash() == hash {
 				exists = true
-				log.Infof("Relation already exists: %v", relation)
+				log.Printf("Relation already exists: %v", relation)
 				break
 			}
 		}
@@ -181,7 +181,7 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 
 	err = c.db.QueryRowx(s, v...).Scan(&val)
 	if err != nil {
-		log.Infof("No config value set for [%v]: %v", key, err)
+		log.Printf("No config value set for [%v]: %v", key, err)
 	}
 	return fmt.Sprintf("%s", val), err
 }
@@ -200,7 +200,7 @@ func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, 
 
 	err = c.db.QueryRowx(s, v...).Scan(&val)
 	if err != nil {
-		log.Infof("No config value set for [%v]: %v", key, err)
+		log.Printf("No config value set for [%v]: %v", key, err)
 	}
 	return val, err
 }
@@ -356,7 +356,7 @@ func NewConfigStore(db database.DatabaseConnection) (*ConfigStore, error) {
 	var cou int
 	err = db.QueryRowx(s, v...).Scan(&cou)
 	if err != nil {
-		//log.Infof("Count query failed. Creating table: %v", err)
+		//log.Printf("Count query failed. Creating table: %v", err)
 
 		createTableQuery := MakeCreateTableQuery(&ConfigTableStructure, db.DriverName())
 

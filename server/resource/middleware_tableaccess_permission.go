@@ -53,7 +53,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 			return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
 		}
 	} else if tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
-		//log.Infof("[TableAccessPermissionChecker] Result not to be included: %v", result["reference_id"])
+		//log.Printf("[TableAccessPermissionChecker] Result not to be included: %v", result["reference_id"])
 		//returnMap = append(returnMap, result)
 		//includedMapCache[referenceId] = true
 		return results, nil
@@ -71,7 +71,7 @@ var (
 func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
 
 	//var err error
-	//log.Infof("context: %v", context.GetAll(req.PlainRequest))
+	//log.Printf("context: %v", context.GetAll(req.PlainRequest))
 
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}

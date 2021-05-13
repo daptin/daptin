@@ -263,11 +263,11 @@ func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 		existingStreams[i] = stream
 	}
 
-	log.Infof("We have %d existing streams", len(existingStreams))
+	log.Printf("We have %d existing streams", len(existingStreams))
 
 	for _, stream := range initConfig.Streams {
 
-		log.Infof("Process stream [%v]", stream.StreamName)
+		log.Printf("Process stream [%v]", stream.StreamName)
 
 		schema, err := json.Marshal(stream)
 		CheckErr(err, "Failed to marshal stream contract")
@@ -276,7 +276,7 @@ func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 		if ok {
 
-			log.Infof("Stream [%v] already present in db, updating db values", stream.StreamName)
+			log.Printf("Stream [%v] already present in db, updating db values", stream.StreamName)
 
 			s, v, err := statementbuilder.Squirrel.Update("stream").
 				Set(goqu.Record{"stream_contract": schema}).
@@ -286,7 +286,7 @@ func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 			CheckErr(err, "Failed to update table for stream contract")
 
 		} else {
-			log.Infof("We have a new stream contract: %v", stream.StreamName)
+			log.Printf("We have a new stream contract: %v", stream.StreamName)
 
 			existingStreams[stream.StreamName] = stream
 
@@ -315,7 +315,7 @@ func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
-	log.Infof("We have %d data exchange updates", len(initConfig.ExchangeContracts))
+	log.Printf("We have %d data exchange updates", len(initConfig.ExchangeContracts))
 
 	adminId, _ := GetAdminUserIdAndUserGroupId(db)
 
@@ -335,7 +335,7 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 		err = db.QueryRowx(s, v...).Scan(&referenceId)
 
 		if err != nil {
-			log.Infof("No existing data exchange for  [%v]", exchange.Name)
+			log.Printf("No existing data exchange for  [%v]", exchange.Name)
 		}
 
 		if err == nil {
@@ -466,7 +466,7 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 func UpdateStateMachineDescriptions(initConfig *CmsConfig, db database.DatabaseConnection) {
 
-	log.Infof("We have %d state machine descriptions", len(initConfig.StateMachineDescriptions))
+	log.Printf("We have %d state machine descriptions", len(initConfig.StateMachineDescriptions))
 
 	adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
 
@@ -583,7 +583,7 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 		}
 		_, ok = currentActions[worldIdString][action.Name]
 		if ok {
-			//log.Infof("Action [%v] on [%v] already present in database", action.Name, action.OnType)
+			//log.Printf("Action [%v] on [%v] already present in database", action.Name, action.OnType)
 
 			actionJson, err := json.Marshal(action)
 			CheckErr(err, "Failed to marshal action infields")
@@ -600,7 +600,7 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 				log.Errorf("Failed to insert action [%v]: %v", action.Name, err)
 			}
 		} else {
-			log.Infof("Action [%v] is new, adding action: @%v", action.Name, action.OnType)
+			log.Printf("Action [%v] is new, adding action: @%v", action.Name, action.OnType)
 
 			actionSchema, _ := json.Marshal(action)
 
@@ -629,7 +629,7 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 			}
 		}
 	}
-	log.Infof("Checked %d actions", actionCheckCount)
+	log.Printf("Checked %d actions", actionCheckCount)
 
 	return nil
 }
@@ -680,7 +680,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 
 	for _, importFile := range imports {
 
-		log.Infof("Process import file %v", importFile.String())
+		log.Printf("Process import file %v", importFile.String())
 		filePath := importFile.FilePath
 		if strings.Index(filePath, ":") == -1 {
 			if filePath[0] != '/' {
@@ -822,7 +822,7 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 
 	}
 
-	log.Infof("Process [%d] row import for table %v", len(data), crud.tableInfo.TableName)
+	log.Printf("Process [%d] row import for table %v", len(data), crud.tableInfo.TableName)
 	for _, row := range data {
 
 		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, int64(crud.TableInfo().DefaultPermission), nil, row)
@@ -833,7 +833,7 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 
 			if len(uniqueColumns) > 0 {
 				for _, uniqueCol := range uniqueColumns {
-					log.Infof("Try to update data by unique column: %v", uniqueCol.ColumnName)
+					log.Printf("Try to update data by unique column: %v", uniqueCol.ColumnName)
 					uniqueColumnValue, ok := row[uniqueCol.ColumnName]
 					if !ok || uniqueColumnValue == nil {
 						continue
@@ -846,7 +846,7 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 					if err != nil {
 						continue
 					}
-					log.Infof("Existing [%v] found by unique column: %v = %v", crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
+					log.Printf("Existing [%v] found by unique column: %v = %v", crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
 
 					//for key, val := range row {
 					//	existingRow[key] = val
@@ -901,7 +901,7 @@ func ImportDataStringArray(data [][]string, headers []string, entityName string,
 
 			if len(uniqueColumns) > 0 {
 				for _, uniqueCol := range uniqueColumns {
-					log.Infof("Try to update data by unique column: %v", uniqueCol.ColumnName)
+					log.Printf("Try to update data by unique column: %v", uniqueCol.ColumnName)
 					uniqueColumnValue, ok := rowMap[uniqueCol.ColumnName]
 					if !ok || uniqueColumnValue == nil {
 						continue
@@ -939,7 +939,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 
 	tx := db
 	var err error
-	log.Infof("Start table check")
+	log.Printf("Start table check")
 
 	//tx.Queryx("SET FOREIGN_KEY_CHECKS=0;")
 
@@ -950,7 +950,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(USER_ACCOUNT_TABLE_NAME).ToSQL()
 	err = tx.QueryRowx(s, v...).Scan(&userCount)
 	CheckErr(err, "Failed to get user count 900")
-	//log.Infof("Current user group")
+	//log.Printf("Current user group")
 	if userCount < 1 {
 		systemHasNoAdmin = true
 		u, _ := uuid.NewV4()
@@ -1097,7 +1097,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 
 			//s, v, err = statementbuilder.Squirrel.Select("default_permission").From("world").Where(goqu.Ex{"table_name": table.TableName}).ToSQL()
 			//CheckErr(err, "Failed to create select default permission sql")
-			//log.Infof("Update table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)
+			//log.Printf("Update table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)
 
 			s, v, err = statementbuilder.Squirrel.Update("world").
 				Set(goqu.Record{
@@ -1126,7 +1126,7 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 				table.DefaultPermission = defaultWorldPermission
 			}
 
-			log.Infof("Insert table data (IsTopLevel[%v], IsHidden[%v]) [%v]", table.IsTopLevel, table.IsHidden, table.TableName)
+			log.Printf("Insert table data (IsTopLevel[%v], IsHidden[%v]) [%v]", table.IsTopLevel, table.IsHidden, table.TableName)
 
 			s, v, err = statementbuilder.Squirrel.Insert("world").
 				Cols("table_name", "world_schema_json", "permission", "reference_id", "default_permission", USER_ACCOUNT_ID_COLUMN, "is_top_level", "is_hidden", "default_order", "is_join_table").

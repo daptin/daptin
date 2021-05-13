@@ -59,10 +59,10 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 				if BeginsWith(column.ColumnType, "file.") {
 					fileColumnValue, ok := obj[column.ColumnName]
 					if !ok || fileColumnValue == nil {
-						log.Infof("File column value missing [%v]", column.ColumnName)
+						log.Printf("File column value missing [%v]", column.ColumnName)
 						continue
 					}
-					log.Infof("Process file column with YJS [%s]", column.ColumnName)
+					log.Printf("Process file column with YJS [%s]", column.ColumnName)
 					fileColumnValueArray := fileColumnValue.([]interface{})
 					log.Printf("yjs middleware for column [%v][%v]", dr.tableInfo.TableName, column.ColumnName)
 

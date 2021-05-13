@@ -190,7 +190,7 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 	if err != nil {
 		log.Errorf("Failed to scan permission 1 [%v]: %v", referenceId, err)
 	}
-	//log.Infof("permi map: %v", resultObject)
+	//log.Printf("permi map: %v", resultObject)
 	var perm PermissionInstance
 	if resultObject[USER_ACCOUNT_ID_COLUMN] != nil {
 
@@ -212,7 +212,7 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 		log.Errorf("Failed to scan permission 2: %v", err)
 	}
 
-	//log.Infof("PermissionInstance for [%v]: %v", typeName, perm)
+	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
 	return perm
 }
 
@@ -250,7 +250,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 	if err != nil {
 		log.Errorf("Failed to scan permission 3 [%v]: %v", id, err)
 	}
-	//log.Infof("permi map: %v", resultObject)
+	//log.Printf("permi map: %v", resultObject)
 	var perm PermissionInstance
 	if resultObject[USER_ACCOUNT_ID_COLUMN] != nil {
 
@@ -267,7 +267,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 		log.Errorf("Failed to scan permission 2: %v", err)
 	}
 
-	//log.Infof("PermissionInstance for [%v]: %v", typeName, perm)
+	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
 	return perm
 }
 
@@ -308,7 +308,7 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 		return perm
 	}
 
-	//log.Infof("permi map: %v", m)
+	//log.Printf("permi map: %v", m)
 	if m["user_account_id"] != nil {
 
 		user, err := dr.GetIdToReferenceId(USER_ACCOUNT_TABLE_NAME, m[USER_ACCOUNT_ID_COLUMN].(int64))
@@ -322,7 +322,7 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 
 	perm.Permission = auth.AuthPermission(m["permission"].(int64))
 
-	//log.Infof("PermissionInstance for [%v]: %v", typeName, perm)
+	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
 
 	if OlricCache != nil {
 		_ = OlricCache.PutIfEx(cacheKey, perm, 10*time.Second, olric.IfNotFound)
@@ -344,7 +344,7 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 	rel.ObjectName = "usergroup_id"
 	rel.Relation = "has_many_and_belongs_to_many"
 
-	//log.Infof("Join string: %v: ", rel.GetJoinString())
+	//log.Printf("Join string: %v: ", rel.GetJoinString())
 
 	sql, args, err := statementbuilder.Squirrel.Select(
 		goqu.I("usergroup_id.reference_id").As("groupreferenceid"),
@@ -369,7 +369,7 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 	}
 
 	res, err := dr.db.Queryx(sql, args...)
-	//log.Infof("Group select sql: %v", sql)
+	//log.Printf("Group select sql: %v", sql)
 	if err != nil {
 
 		log.Errorf("Failed to get object groups by where clause: %v", err)
@@ -397,7 +397,7 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 	if objType == "usergroup" {
 
 		if err != nil {
-			log.Infof("Failed to get id to reference id [%v][%v] == %v", objType, objectId, err)
+			log.Printf("Failed to get id to reference id [%v][%v] == %v", objType, objectId, err)
 			return s
 		}
 		s = append(s, auth.GroupPermission{
@@ -645,7 +645,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 	}
 
 	loc := strings.Index(rowType, "_has_")
-	//log.Infof("Location [%v]: %v", dr.model.GetName(), loc)
+	//log.Printf("Location [%v]: %v", dr.model.GetName(), loc)
 
 	if BeginsWith(rowType, "file.") || rowType == "none" {
 		perm.UserGroupId = []auth.GroupPermission{
@@ -713,7 +713,7 @@ func (dr *DbResource) GetRowPermission(row map[string]interface{}) PermissionIns
 		pe := dr.GetObjectPermissionByReferenceId(rowType, refId.(string))
 		perm.Permission = pe.Permission
 	}
-	//log.Infof("Row permission: %v  ---------------- %v", perm, row)
+	//log.Printf("Row permission: %v  ---------------- %v", perm, row)
 	return perm
 }
 
@@ -728,7 +728,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations ma
 
 	s, q, err := stmt.ToSQL()
 
-	//log.Infof("GetRowsByWhereClause: %v == [%v]", s)
+	//log.Printf("GetRowsByWhereClause: %v == [%v]", s)
 	rows, err := dr.db.Queryx(s, q...)
 	if err != nil {
 		return nil, nil, err
@@ -756,7 +756,7 @@ func (dr *DbResource) GetRandomRow(typeName string, count uint) ([]map[string]in
 
 	s, q, err := stmt.ToSQL()
 
-	//log.Infof("Select query: %v == [%v]", s, q)
+	//log.Printf("Select query: %v == [%v]", s, q)
 	rows, err := dr.db.Queryx(s, q...)
 	if err != nil {
 		return nil, err
@@ -865,7 +865,7 @@ func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 }
 
 func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId string, includedRelations map[string]bool) (map[string]interface{}, []map[string]interface{}, error) {
-	//log.Infof("Get single row by id: [%v][%v]", typeName, referenceId)
+	//log.Printf("Get single row by id: [%v][%v]", typeName, referenceId)
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
 	if err != nil {
 		log.Errorf("failed to create select query by ref id: %v", referenceId)
@@ -905,7 +905,7 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 }
 
 func (dr *DbResource) GetSingleRowById(typeName string, id int64, includedRelations map[string]bool) (map[string]interface{}, []map[string]interface{}, error) {
-	//log.Infof("Get single row by id: [%v][%v]", typeName, referenceId)
+	//log.Printf("Get single row by id: [%v][%v]", typeName, referenceId)
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to create select query by id: %v", id)
@@ -946,7 +946,7 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 
 	if len(m) == 0 {
-		log.Infof("No result found for [%v] [%v][%v]", typeName, column, val)
+		log.Printf("No result found for [%v] [%v][%v]", typeName, column, val)
 		return nil, errors.New(fmt.Sprintf("no [%s=%s] object found", column, val))
 	}
 
@@ -969,7 +969,7 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 
 	if len(m) == 0 {
-		log.Infof("No result found for [%v][%v]", typeName, id)
+		log.Printf("No result found for [%v][%v]", typeName, id)
 		return nil, err
 	}
 
@@ -1034,7 +1034,7 @@ func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{})
 	for columnName := range columnMap {
 		colInfo, ok := dr.tableInfo.GetColumnByName(columnName)
 		if !ok {
-			log.Infof("No column named [%v]", columnName)
+			log.Printf("No column named [%v]", columnName)
 			continue
 		}
 		value := data[columnName]
@@ -1162,13 +1162,13 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 		}
 	}
 
-	//log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
+	//log.Printf("Get Object by reference id [%v][%v]", typeName, referenceId)
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
 
-	//log.Infof("Get object by reference id sql: %v", s)
+	//log.Printf("Get object by reference id sql: %v", s)
 	row, err := dr.db.Queryx(s, q...)
 
 	if err != nil {
@@ -1184,7 +1184,7 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 		return nil, err
 	}
 
-	//log.Infof("Have to return first of %d results", len(results))
+	//log.Printf("Have to return first of %d results", len(results))
 	if len(results) == 0 {
 		return nil, fmt.Errorf("no such object 1161 [%v][%v]", typeName, referenceId)
 	}
@@ -1198,13 +1198,13 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 // Load an object of type `typeName` using a reference_id
 // Used internally, can be used by actions
 func (dr *DbResource) GetReferenceIdToObjectColumn(typeName string, referenceId string, columnToSelect string) (interface{}, error) {
-	//log.Infof("Get Object by reference id [%v][%v]", typeName, referenceId)
+	//log.Printf("Get Object by reference id [%v][%v]", typeName, referenceId)
 	s, q, err := statementbuilder.Squirrel.Select(columnToSelect).From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
 
-	//log.Infof("Get object by reference id sql: %v", s)
+	//log.Printf("Get object by reference id sql: %v", s)
 	row, err := dr.db.Queryx(s, q...)
 
 	if err != nil {
@@ -1220,7 +1220,7 @@ func (dr *DbResource) GetReferenceIdToObjectColumn(typeName string, referenceId 
 		return nil, err
 	}
 
-	//log.Infof("Have to return first of %d results", len(results))
+	//log.Printf("Have to return first of %d results", len(results))
 	if len(results) == 0 {
 		return nil, fmt.Errorf("no such object 1197 [%v][%v]", typeName, referenceId)
 	}
@@ -1239,7 +1239,7 @@ func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...go
 	}
 
 	s, q, err := builder.ToSQL()
-	log.Debugf("reference id by where query: %v", s)
+	//log.Debugf("reference id by where query: %v", s)
 
 	if err != nil {
 		return nil, err
@@ -1274,7 +1274,7 @@ func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...goqu.Ex) ([
 	}
 
 	s, q, err := builder.ToSQL()
-	log.Debugf("reference id by where query: %v", s)
+	//log.Debugf("reference id by where query: %v", s)
 
 	if err != nil {
 		return nil, err
@@ -1467,7 +1467,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 		localInclude := make([]map[string]interface{}, 0)
 
 		for key, val := range row {
-			//log.Infof("Key: [%v] == %v", key, val)
+			//log.Printf("Key: [%v] == %v", key, val)
 
 			columnInfo, ok := columnMap[key]
 			if !ok {
@@ -1500,7 +1500,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 			}
 
 			namespace := columnInfo.ForeignKeyData.Namespace
-			//log.Infof("Resolve foreign key from [%v][%v][%v]", columnInfo.ForeignKeyData.DataSource, namespace, val)
+			//log.Printf("Resolve foreign key from [%v][%v][%v]", columnInfo.ForeignKeyData.DataSource, namespace, val)
 			switch columnInfo.ForeignKeyData.DataSource {
 			case "self":
 
@@ -1544,7 +1544,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 			case "cloud_store":
 				referenceStorageInformation := val.(string)
-				//log.Infof("Resolve files from cloud store: %v", referenceStorageInformation)
+				//log.Printf("Resolve files from cloud store: %v", referenceStorageInformation)
 				foreignFilesList := make([]map[string]interface{}, 0)
 				err := json.Unmarshal([]byte(referenceStorageInformation), &foreignFilesList)
 				CheckErr(err, "Failed to obtain list of file information")
@@ -1571,7 +1571,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				}
 
 				row[key] = returnFileList
-				//log.Infof("set row[%v]  == %v", key, foreignFilesList)
+				//log.Printf("set row[%v]  == %v", key, foreignFilesList)
 				if includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"] {
 
 					resolvedFilesList, err := dr.GetFileFromLocalCloudStore(dr.TableInfo().TableName, columnInfo.ColumnName, returnFileList)

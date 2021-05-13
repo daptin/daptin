@@ -23,7 +23,7 @@ func (d *ouathProfileExchangePerformer) Name() string {
 
 func GetTokensScope(tokUrl string, scope string, clientId string, clientSecret string, token string) (map[string]interface{}, error) {
 
-	log.Infof("Profile url for token exchange: %v", tokUrl)
+	log.Printf("Profile url for token exchange: %v", tokUrl)
 	urlParams := ""
 	dat := map[string]interface{}{}
 
@@ -63,7 +63,7 @@ func GetTokensScope(tokUrl string, scope string, clientId string, clientSecret s
 	defer resp.Body.Close()
 	rsBody, err := ioutil.ReadAll(resp.Body)
 	bstr := string(rsBody)
-	log.Infof("oauth token exchange response: %v", bstr)
+	log.Printf("oauth token exchange response: %v", bstr)
 	err = json.Unmarshal(rsBody, &dat)
 	if err != nil {
 		return dat, err
@@ -101,7 +101,7 @@ func (d *ouathProfileExchangePerformer) DoAction(request Outcome, inFieldMap map
 			log.Errorf("Failed to exchange code for token during profile exchange: %v", err)
 			return nil, nil, []error{err}
 		}
-		log.Infof("token response: %v", tokenResponse)
+		log.Printf("token response: %v", tokenResponse)
 
 		if token_type != nil {
 			oauthToken, err = d.cruds["oauth_token"].GetTokenByTokenName(token_type.(string))

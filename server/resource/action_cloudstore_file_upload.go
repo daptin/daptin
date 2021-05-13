@@ -111,7 +111,7 @@ func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 	u, _ := uuid.NewV4()
 	sourceDirectoryName := "upload-" + u.String()[0:8]
 	tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
-	log.Infof("Temp directory for this upload fileUploadActionPerformer: %v", tempDirectoryPath)
+	log.Printf("Temp directory for this upload fileUploadActionPerformer: %v", tempDirectoryPath)
 
 	//defer os.RemoveAll(tempDirectoryPath) // clean up
 
@@ -142,7 +142,7 @@ func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 				encodedPart = splitParts[1]
 			}
 			fileBytes, err := base64.StdEncoding.DecodeString(encodedPart)
-			log.Infof("Write file [%v] for upload", temproryFilePath)
+			log.Printf("Write file [%v] for upload", temproryFilePath)
 			CheckErr(err, "Failed to convert base64 to []bytes")
 
 			os.MkdirAll(tempDirectoryPath, 0600)
@@ -179,13 +179,13 @@ func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 		tempDirectoryPath,
 		rootPath,
 	}
-	log.Infof("Upload source target %v %v", tempDirectoryPath, rootPath)
+	log.Printf("Upload source target %v %v", tempDirectoryPath, rootPath)
 
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}
 	oauthTokenId1 := inFields["oauth_token_id"]
 	if oauthTokenId1 == nil {
-		log.Infof("No oauth token set for target store")
+		log.Printf("No oauth token set for target store")
 	} else {
 		oauthTokenId := oauthTokenId1.(string)
 		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)

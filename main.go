@@ -113,7 +113,7 @@ func main() {
 	log.Infof("Runtime is %s", *runtimeMode)
 	logLevelParsed, err := log.ParseLevel(*logLevel)
 	if err != nil {
-		log.Errorf("invalid log level: %s, setting to info", logLevel)
+		log.Errorf("invalid log level: %s, setting to info", *logLevel)
 		logLevelParsed = log.InfoLevel
 	}
 	log.SetLevel(logLevelParsed)

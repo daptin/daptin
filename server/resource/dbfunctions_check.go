@@ -17,7 +17,7 @@ func InfoErr(err error, message ...interface{}) bool {
 			args = message[1:]
 		}
 		args = append(args, err)
-		log.Infof(fmtString+": %v", args...)
+		log.Printf(fmtString+": %v", args...)
 		return true
 	}
 	return false
@@ -47,7 +47,7 @@ func CheckInfo(err error, message ...interface{}) bool {
 			args = message[1:]
 		}
 		args = append(args, err)
-		log.Infof(fmtString+": %v", args...)
+		log.Printf(fmtString+": %v", args...)
 		return true
 	}
 	return false
@@ -111,7 +111,7 @@ func CheckRelations(config *CmsConfig) {
 		userGroupRelation := api2go.NewTableRelation(table.TableName+"_state", "has_many", "usergroup")
 
 		if len(existingRelations) > 0 {
-			//log.Infof("Found existing %d relations from db for [%v]", len(existingRelations), config.Tables[i].TableName)
+			//log.Printf("Found existing %d relations from db for [%v]", len(existingRelations), config.Tables[i].TableName)
 			for _, rel := range existingRelations {
 
 				relhash := relationHash(rel)
@@ -218,7 +218,7 @@ func CheckRelations(config *CmsConfig) {
 		config.Tables[i] = table
 	}
 
-	log.Infof("%d state tables on base entities", len(newTables))
+	log.Printf("%d state tables on base entities", len(newTables))
 	config.Tables = append(config.Tables, newTables...)
 
 	//newRelations := make([]api2go.TableRelation, 0)
@@ -228,7 +228,7 @@ func CheckRelations(config *CmsConfig) {
 	//config.Tables[stateMachineDescriptionTableIndex] = stateMachineDescriptionTable
 
 	//for _, relation := range finalRelations {
-	//	log.Infof("All relations: %v", relation.String())
+	//	log.Printf("All relations: %v", relation.String())
 	//}
 	PrintRelations(finalRelations)
 }
@@ -296,7 +296,7 @@ func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection) 
 		}
 
 		if !tableCreatedMap[table.TableName] {
-			//log.Infof("Check table %v", table.TableName)
+			//log.Printf("Check table %v", table.TableName)
 			tx, err := db.Beginx()
 			if err != nil {
 				CheckErr(err, "Failed to start txn for create table", table.TableName)
@@ -329,7 +329,7 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
 	for _, sCol := range StandardColumns {
 		_, ok := colInfoMap[sCol.ColumnName]
 		if ok {
-			//log.Infof("Column [%v] already present in config for table [%v]", sCol.ColumnName, tableInfo.TableName)
+			//log.Printf("Column [%v] already present in config for table [%v]", sCol.ColumnName, tableInfo.TableName)
 		} else {
 			colInfoMap[sCol.Name] = sCol
 			columnsWeWant[sCol.Name] = false
@@ -370,12 +370,12 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 	columnsWeWant, colInfoMap := CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo)
 
 	s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
-	//log.Infof("Sql: %v", s)
+	//log.Printf("Sql: %v", s)
 	rowx := db.QueryRowx(s)
 	columns, err := rowx.Columns()
 	if err != nil {
 		// expected error, no need to log
-		//log.Infof("Failed to select * from %v: %v", tableInfo.TableName, err)
+		//log.Printf("Failed to select * from %v: %v", tableInfo.TableName, err)
 		err = CreateTable(tableInfo, tx)
 		return err
 	} else {
@@ -390,9 +390,9 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 	for _, col := range columns {
 		_, ok := columnsWeWant[col]
 		if !ok {
-			log.Infof("extra column [%v] found in table [%v]", col, tableInfo.TableName)
+			log.Printf("extra column [%v] found in table [%v]", col, tableInfo.TableName)
 		} else {
-			//log.Infof("Column [%v] already present in table [%v]", col, tableInfo.TableName)
+			//log.Printf("Column [%v] already present in table [%v]", col, tableInfo.TableName)
 			columnsWeWant[col] = true
 		}
 	}
@@ -400,17 +400,17 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 	for col, present := range columnsWeWant {
 
 		if !present {
-			log.Infof("Column [%v] is not present in table [%v]", col, tableInfo.TableName)
+			log.Printf("Column [%v] is not present in table [%v]", col, tableInfo.TableName)
 			info := colInfoMap[col]
 
 			if info.DataType == "" {
-				log.Infof("No column type known for column: %v", info)
+				log.Printf("No column type known for column: %v", info)
 				info.DataType = "varchar(50)"
 				//continue
 			}
 
 			query := alterTableAddColumn(tableInfo.TableName, &info, tx.DriverName())
-			log.Infof("Alter query: %v", query)
+			log.Printf("Alter query: %v", query)
 			_, err := tx.Exec(query)
 			if err != nil {
 				log.Errorf("Failed to add column [%s] to table [%v]: %v", col, tableInfo.TableName, err)

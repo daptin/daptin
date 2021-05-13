@@ -49,7 +49,7 @@ func GetOauthConnectionDescription(authenticator string, dbResource *DbResource)
 	}
 
 	conf, err := mapToOauthConfig(rows[0], secret)
-	log.Infof("[%v] oauth config: %v", authenticator, conf)
+	log.Printf("[%v] oauth config: %v", authenticator, conf)
 	return conf, rows[0]["reference_id"].(string), err
 
 }

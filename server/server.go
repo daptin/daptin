@@ -65,7 +65,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 `)
 
 	/// Start system initialise
-	log.Infof("Load config files")
+	log.Printf("Load config files")
 	initConfig, errs := LoadConfigFiles()
 	if errs != nil {
 		for _, err := range errs {
@@ -105,10 +105,20 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	initConfig.Hostname = hostname
 
 	defaultRouter := gin.Default()
-	defaultRouter.Use(gzip.Gzip(gzip.DefaultCompression,
-		gzip.WithExcludedExtensions([]string{".pdf", ".mp4", ".jpg", ".png", ".wav", ".gif", ".mp3"}),
-		gzip.WithExcludedPaths([]string{"/asset/"})),
-	)
+
+	enableGzip, err := configStore.GetConfigValueFor("gzip.enable", "backend")
+	if err != nil {
+		enableGzip = "true"
+		err = configStore.SetConfigValueFor("gzip.enable", enableGzip, "backend")
+		resource.CheckErr(err, "Failed to store gzip.enable in _config")
+	}
+
+	if enableGzip == "true" {
+		defaultRouter.Use(gzip.Gzip(gzip.DefaultCompression,
+			gzip.WithExcludedExtensions([]string{".pdf", ".mp4", ".jpg", ".png", ".wav", ".gif", ".mp3"}),
+			gzip.WithExcludedPaths([]string{"/asset/"})),
+		)
+	}
 
 	defaultRouter.Use(func() gin.HandlerFunc {
 		return func(c *gin.Context) {
@@ -172,7 +182,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
 	}
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
-	log.Infof("Limiting max connections per IP: %v", maxConnections)
+	log.Printf("Limiting max connections per IP: %v", maxConnections)
 
 	rate1, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 	if err != nil {
@@ -182,7 +192,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	microSecondRateGap := int(1000000 / rate1)
-	log.Infof("Limiting request per second by IP/URL: %v RPS", rate1)
+	log.Printf("Limiting request per second by IP/URL: %v RPS", rate1)
 
 	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
 		return c.ClientIP() + strings.Split(c.Request.RequestURI, "?")[0] // limit rate by client ip
@@ -238,7 +248,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 				mwriter := io.MultiWriter(f, os.Stdout)
 
 				log.SetOutput(mwriter)
-				log.Infof("Truncated log file, cleaned %d MB", fileMbs)
+				log.Printf("Truncated log file, cleaned %d MB", fileMbs)
 
 			}
 			time.Sleep(30 * time.Minute)
@@ -351,7 +361,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		if err != nil {
 			log.Errorf("Failed to mail daemon start: %s", err)
 		} else {
-			log.Infof("Started mail server")
+			log.Printf("Started mail server")
 		}
 	} else {
 		log.Errorf("Failed to start mail daemon: %s", err)
@@ -594,7 +604,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 			}
 
 			path := fmt.Sprintf("/live/%v/:referenceId/%v/yjs", typename, columnInfo.ColumnName)
-			log.Infof("[%v] YJS websocket endpoint for %v[%v]", path, typename, columnInfo.ColumnName)
+			log.Printf("[%v] YJS websocket endpoint for %v[%v]", path, typename, columnInfo.ColumnName)
 			defaultRouter.GET(path, func(typename string, columnInfo api2go.ColumnInfo) func(ginContext *gin.Context) {
 
 				dtopicMap[typename].AddListener(func(message olric.DTopicMessage) {
@@ -900,16 +910,16 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 					columnAlreadyExist := false
 					colIndex := -1
 					for i, existingColumn := range existableTable.Columns {
-						//log.Infof("Table column old/new [%v][%v] == [%v][%v] @ %v", tableBeingModified.TableName, newColumnDef.Name, existableTable.TableName, existingColumn.Name, i)
+						//log.Printf("Table column old/new [%v][%v] == [%v][%v] @ %v", tableBeingModified.TableName, newColumnDef.Name, existableTable.TableName, existingColumn.Name, i)
 						if existingColumn.ColumnName == newColumnDef.ColumnName {
 							columnAlreadyExist = true
 							colIndex = i
 							break
 						}
 					}
-					//log.Infof("Decide for table column [%v][%v] @ index: %v [%v]", tableBeingModified.TableName, newColumnDef.Name, colIndex, columnAlreadyExist)
+					//log.Printf("Decide for table column [%v][%v] @ index: %v [%v]", tableBeingModified.TableName, newColumnDef.Name, colIndex, columnAlreadyExist)
 					if columnAlreadyExist {
-						//log.Infof("Modifying existing columns[%v][%v] is not supported at present. not sure what would break. and alter query isnt being run currently.", existableTable.Columns[colIndex], newColumnDef);
+						//log.Printf("Modifying existing columns[%v][%v] is not supported at present. not sure what would break. and alter query isnt being run currently.", existableTable.Columns[colIndex], newColumnDef);
 
 						existableTable.Columns[colIndex].DefaultValue = newColumnDef.DefaultValue
 						existableTable.Columns[colIndex].ExcludeFromApi = newColumnDef.ExcludeFromApi
@@ -948,7 +958,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 			existableTable.Validations = tableBeingModified.Validations
 			existingTables[j] = existableTable
 		} else {
-			//log.Infof("Table %s is not being modified", existableTable.TableName)
+			//log.Printf("Table %s is not being modified", existableTable.TableName)
 		}
 		allTables = append(allTables, existableTable)
 	}
@@ -974,7 +984,7 @@ type SubPathFs struct {
 }
 
 func (spf *SubPathFs) Open(name string) (http.File, error) {
-	//log.Infof("Service file from static path: %s/%s", spf.subPath, name)
+	//log.Printf("Service file from static path: %s/%s", spf.subPath, name)
 	return spf.system.Open(spf.subPath + name)
 }
 

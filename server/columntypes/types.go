@@ -159,19 +159,19 @@ func IsNumber(d string) (bool, interface{}) {
 	d = strings.ToLower(d)
 	in := sort.SearchStrings(unknownNumbers, d)
 	if in < len(unknownNumbers) && unknownNumbers[in] == d {
-		log.Infof("One of the unknowns - %v : %d", d, sort.SearchStrings(unknownNumbers, strings.ToLower(d)))
+		log.Printf("One of the unknowns - %v : %d", d, sort.SearchStrings(unknownNumbers, strings.ToLower(d)))
 		return true, 0
 	}
 	v, err := strconv.ParseFloat(d, 64)
 	if err == nil {
 		return true, v
 	}
-	//log.Infof("Parse %v as float failed - %v", d, err)
+	//log.Printf("Parse %v as float failed - %v", d, err)
 	v1, err := strconv.ParseInt(d, 10, 64)
 	if err == nil {
 		return true, v1
 	}
-	//log.Infof("Parse %v as int failed - %v", d, err)
+	//log.Printf("Parse %v as int failed - %v", d, err)
 	return false, 0
 }
 
@@ -179,14 +179,14 @@ func IsFloat(d string) (bool, interface{}) {
 	d = strings.ToLower(d)
 	in := sort.SearchStrings(unknownNumbers, d)
 	if in < len(unknownNumbers) && unknownNumbers[in] == d {
-		log.Infof("One of the unknowns - %v : %d", d, sort.SearchStrings(unknownNumbers, strings.ToLower(d)))
+		log.Printf("One of the unknowns - %v : %d", d, sort.SearchStrings(unknownNumbers, strings.ToLower(d)))
 		return true, 0
 	}
 	v, err := strconv.ParseFloat(d, 64)
 	if err == nil {
 		return true, v
 	}
-	//log.Infof("Parse %v as int failed - %v", d, err)
+	//log.Printf("Parse %v as int failed - %v", d, err)
 	return false, 0
 }
 
@@ -204,16 +204,16 @@ func IsInt(d string) (bool, interface{}) {
 
 	in := sort.SearchStrings(unknownNumbers, d)
 	if in < len(unknownNumbers) && unknownNumbers[in] == d {
-		log.Infof("One of the unknowns - %v : %d", d, sort.SearchStrings(unknownNumbers, strings.ToLower(d)))
+		log.Printf("One of the unknowns - %v : %d", d, sort.SearchStrings(unknownNumbers, strings.ToLower(d)))
 		return true, 0
 	}
 
-	//log.Infof("Parse %v as float failed - %v", d, err)
+	//log.Printf("Parse %v as float failed - %v", d, err)
 	v1, err := strconv.ParseInt(d, 10, 64)
 	if err == nil {
 		return true, v1
 	}
-	//log.Infof("Parse %v as int failed - %v", d, err)
+	//log.Printf("Parse %v as int failed - %v", d, err)
 	return false, 0
 }
 
@@ -539,13 +539,13 @@ func ConvertValues(d []string, typ EntityType) ([]interface{}, error) {
 	converted := make([]interface{}, len(d))
 	converter, ok := detectorMap[typ]
 	if !ok {
-		log.Infof("Converter not found for %v", typ)
+		log.Printf("Converter not found for %v", typ)
 		return converted, errors.New("Converter not found for " + typ.String())
 	}
 	for i, v := range d {
 		ok, val := converter.DetectorFunction(v)
 		if !ok {
-			// log.Infof("Conversion of %s as %v failed", v, typ)
+			// log.Printf("Conversion of %s as %v failed", v, typ)
 			continue
 		}
 		converted[i] = val
@@ -629,17 +629,17 @@ func DetectType(d []string) (entityType EntityType, hasHeaders bool, err error) 
 	for _, typeInfo := range order {
 		detect, ok := detectorMap[typeInfo]
 		if !ok {
-			//log.Infof("No detectorMap for type [%v]", typeInfo)
+			//log.Printf("No detectorMap for type [%v]", typeInfo)
 			continue
 		}
 
-		//log.Infof("Detector for type [%v]", typeInfo)
+		//log.Printf("Detector for type [%v]", typeInfo)
 		ok, unidentified = checkStringsAgainstDetector(d, detect)
 
 		if ok {
 			return typeInfo, false, nil
 		} else {
-			//log.Infof("Column was not identified: %v", typeInfo)
+			//log.Printf("Column was not identified: %v", typeInfo)
 		}
 	}
 
@@ -655,16 +655,16 @@ func DetectType(d []string) (entityType EntityType, hasHeaders bool, err error) 
 		for _, typeInfo := range order {
 			detect, ok := detectorMap[typeInfo]
 			if !ok {
-				//log.Infof("No detectorMap for type [%v]", typeInfo)
+				//log.Printf("No detectorMap for type [%v]", typeInfo)
 				continue
 			}
 
-			//log.Infof("Detector for type [%v]", typeInfo)
+			//log.Printf("Detector for type [%v]", typeInfo)
 			ok, unidentified = checkStringsAgainstDetector(d[1:], detect)
 			if ok {
 				return typeInfo, hasHeaders, nil
 			} else {
-				//log.Infof("Column was not identified: %v", typeInfo)
+				//log.Printf("Column was not identified: %v", typeInfo)
 			}
 		}
 	}
@@ -693,16 +693,16 @@ func columnTypeFromName(name string) EntityType {
 	for typ, names := range nameMap {
 		for _, n := range names {
 			if strings.HasSuffix(name, n) {
-				log.Infof("Selecting type %s because of Suffix %s in %s", typ.String(), n, name)
+				log.Printf("Selecting type %s because of Suffix %s in %s", typ.String(), n, name)
 				return typ
 			}
 			if strings.HasPrefix(name, n) {
-				log.Infof("Selecting type %s because of Prefix %s in %s", typ.String(), n, name)
+				log.Printf("Selecting type %s because of Prefix %s in %s", typ.String(), n, name)
 				return typ
 			}
 
 			if len(n) > 5 && strings.Index(name, n) > -1 {
-				log.Infof("Selecting type %s because of Prefix %s in %s", typ.String(), n, name)
+				log.Printf("Selecting type %s because of Prefix %s in %s", typ.String(), n, name)
 				return typ
 			}
 		}

@@ -47,19 +47,19 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 	includedMapCache := make(map[string]bool)
 
 	for _, result := range results {
-		//log.Infof("Result: %v", result)
+		//log.Printf("Result: %v", result)
 
 		if result == nil {
 			continue
 		}
 
 		if strings.Index(result["__type"].(string), ".") > -1 {
-			//log.Infof("Included object is an file")
+			//log.Printf("Included object is an file")
 			returnMap = append(returnMap, result)
 			continue
 		}
 
-		//log.Infof("Check permission for : %v", result)
+		//log.Printf("Check permission for : %v", result)
 
 		referenceId := result["reference_id"].(string)
 		_, ok := notIncludedMapCache[referenceId]
@@ -74,7 +74,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 
 		permission := dr.GetRowPermission(result)
 
-		//log.Infof("Row Permission for [%v] for [%v]", permission, result)
+		//log.Printf("Row Permission for [%v] for [%v]", permission, result)
 
 		if req.PlainRequest.Method == "GET" {
 			if permission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
@@ -87,7 +87,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 			returnMap = append(returnMap, result)
 			includedMapCache[referenceId] = true
 		} else {
-			//log.Infof("[ObjectAccessPermissionChecker] Result not to be included: %v", result["reference_id"])
+			//log.Printf("[ObjectAccessPermissionChecker] Result not to be included: %v", result["reference_id"])
 			notIncludedMapCache[referenceId] = true
 		}
 	}
@@ -113,7 +113,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 	//}
 
 	//var err error
-	//log.Infof("context: %v", context.GetAll(req.PlainRequest))
+	//log.Printf("context: %v", context.GetAll(req.PlainRequest))
 
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -132,7 +132,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 	includedMapCache := make(map[string]bool)
 
 	for _, result := range results {
-		//log.Infof("Result: %v", result)
+		//log.Printf("Result: %v", result)
 		refIdInterface := result["reference_id"]
 
 		if strings.Index(result["__type"].(string), "_has_") > -1 {
@@ -162,15 +162,15 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 			"relation_reference_id": result["relation_reference_id"],
 		}
 		permission := dr.GetRowPermission(originalRowReference)
-		//log.Infof("[ObjectAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.PermissionInstance)
-		//log.Infof("Row Permission for [%v] for [%v]", permission, result)
+		//log.Printf("[ObjectAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.PermissionInstance)
+		//log.Printf("Row Permission for [%v] for [%v]", permission, result)
 
 		if req.PlainRequest.Method == "GET" {
 			if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {
-				//log.Infof("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
+				//log.Printf("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
 				notIncludedMapCache[referenceId] = true
 
 			}
@@ -179,7 +179,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {
-				//log.Infof("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
+				//log.Printf("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
 				notIncludedMapCache[referenceId] = true
 			}
 		} else if req.PlainRequest.Method == "DELETE" {
@@ -187,7 +187,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {
-				//log.Infof("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
+				//log.Printf("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
 				notIncludedMapCache[referenceId] = true
 			}
 		} else {

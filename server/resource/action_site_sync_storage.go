@@ -41,7 +41,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	oauthTokenId := cloudStore.OAutoTokenId
 	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[siteId]
 	if siteCacheFolder == nil {
-		log.Infof("No sub-site cache found on local")
+		log.Printf("No sub-site cache found on local")
 		return nil, nil, []error{errors.New("no site found here")}
 	}
 
@@ -85,7 +85,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	}
 
 	fsrc, srcFileName, fdst := cmd.NewFsSrcFileDst(args)
-	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
+	log.Printf("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync site storage [%v]", cloudStoreId),
 	}
@@ -99,7 +99,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 		}
 
 		ctx := context.Background()
-		//log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
+		//log.Printf("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil
@@ -117,9 +117,9 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 		}
 
 		if is_hugo_site && err == nil {
-			log.Infof("Starting hugo build for %v", tempDirectoryPath)
+			log.Printf("Starting hugo build for %v", tempDirectoryPath)
 			hugoCommandResponse := hugoCommand.Execute([]string{"--source", tempDirectoryPath, "--destination", tempDirectoryPath + "/" + "public", "--verbose", "--verboseLog"})
-			log.Infof("Hugo command response for [%v] [%v]: %v", tempDirectoryPath, tempDirectoryPath+"/"+"public", hugoCommandResponse)
+			log.Printf("Hugo command response for [%v] [%v]: %v", tempDirectoryPath, tempDirectoryPath+"/"+"public", hugoCommandResponse)
 		}
 
 		return err

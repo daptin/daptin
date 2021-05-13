@@ -109,7 +109,7 @@ func InitJwtMiddleware(secret []byte, issuer string, db *olric.Olric) {
 		},
 		Issuer: issuer,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err string) {
-			//log.Infof("Guest request [%v]: %v", err, r.Header)
+			//log.Printf("Guest request [%v]: %v", err, r.Header)
 		},
 		Debug: false,
 		// When set, the middleware verifies that tokens are signed with the specific signing algorithm
@@ -259,7 +259,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			}
 		} else {
 			//hasUser = true
-			//log.Infof("JWT auth failed: %v", err)
+			//log.Printf("JWT auth failed: %v", err)
 		}
 	} else {
 		hasUser = true
@@ -278,7 +278,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			userToken := userJwtToken
 			email := userToken.Claims.(jwt.MapClaims)["email"].(string)
 			name := userToken.Claims.(jwt.MapClaims)["name"].(string)
-			//log.Infof("User is not nil: %v", email  )
+			//log.Printf("User is not nil: %v", email  )
 
 			var sessionUser *SessionUser
 			var cachedUser interface{}
@@ -360,7 +360,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						if err != nil {
 							log.Errorf("Failed to create user-usergroup relation: %v", err)
 						}
-						log.Infof("User ug: %v", uug)
+						log.Printf("User ug: %v", uug)
 
 					} else {
 
@@ -377,7 +377,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 								}
 							}(rows)
 							//cols, _ := rows.Columns()
-							log.Debugf("Usergroup selection query for user [%v] : [%v]", email, query)
+							//log.Debugf("Usergroup selection query for user [%v] : [%v]", email, query)
 							for rows.Next() {
 								var p GroupPermission
 								err = rows.StructScan(&p)
@@ -392,7 +392,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						}
 					}
 
-					//log.Infof("Group permissions :%v", userGroups)
+					//log.Printf("Group permissions :%v", userGroups)
 
 					sessionUser = &SessionUser{
 						UserId:          userId,
@@ -424,6 +424,8 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			} else {
 				sessionUser = &localCachedUser.Account
 			}
+
+			log.Tracef("User cache map size: %v", len(LocalUserCacheMap))
 
 			ct := req.Context()
 			ct = context.WithValue(ct, "user", sessionUser)

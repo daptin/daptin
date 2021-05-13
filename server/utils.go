@@ -101,7 +101,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 	res, err := db.Queryx(sql, args...)
 	if err != nil {
-		log.Infof("Failed to select from world table: %v", err)
+		log.Printf("Failed to select from world table: %v", err)
 		return ts, err
 	}
 	defer func() {
@@ -158,7 +158,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 	}
 
-	log.Infof("Loaded %d tables from world table", len(ts))
+	log.Printf("Loaded %d tables from world table", len(ts))
 
 	return ts, nil
 
@@ -253,7 +253,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 func CleanUpConfigFiles() {
 
 	files, _ := filepath.Glob("*_uploaded_*")
-	log.Infof("Clean up uploaded config files: %v", files)
+	log.Printf("Clean up uploaded config files: %v", files)
 
 	for _, fileName := range files {
 		err := os.Remove(fileName)
@@ -265,7 +265,7 @@ func CleanUpConfigFiles() {
 
 	for _, fileName := range files {
 		err := os.Remove(fileName)
-		log.Infof("Deleted config files: %v", fileName)
+		log.Printf("Deleted config files: %v", fileName)
 		resource.CheckErr(err, "Failed to delete uploaded schema file: %s", fileName)
 	}
 

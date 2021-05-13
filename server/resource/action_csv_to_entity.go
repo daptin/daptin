@@ -27,7 +27,7 @@ func (d *uploadCsvFileToEntityPerformer) Name() string {
 func (d *uploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
 
 	//actions := make([]ActionResponse, 0)
-	log.Infof("Do action: %v", d.Name())
+	log.Printf("Do action: %v", d.Name())
 
 	files := inFields["data_csv_file"].([]interface{})
 
@@ -72,7 +72,7 @@ func (d *uploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[
 		fileName := "_uploaded_" + file["name"].(string)
 		fileContentsBase64 := file["file"].(string)
 		fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
-		log.Infof("Processing file: %v", fileName)
+		log.Printf("Processing file: %v", fileName)
 
 		CheckErr(err, "Uploaded file is not a valid csv file")
 		if err != nil {
