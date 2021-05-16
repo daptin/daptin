@@ -30,7 +30,7 @@ func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[str
 	userReferenceId := ""
 	//userIdInt := uint64(1)
 	var err error
-	log.Infof("%v", inFields)
+	log.Printf("%v", inFields)
 
 	if inFields["user_reference_id"] != nil {
 		userReferenceId = inFields["user_reference_id"].(string)

@@ -58,7 +58,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 	files, err := filepath.Glob("schema_*.*")
 	files = append(files, files1...)
-	log.Infof("Found files to load: %v", files)
+	log.Printf("Found files to load: %v", files)
 
 	if err != nil {
 		errs = append(errs, err)
@@ -66,7 +66,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 	}
 
 	for _, fileName := range files {
-		log.Infof("Process file: %v", fileName)
+		log.Printf("Process file: %v", fileName)
 
 		fileBytes, err := ioutil.ReadFile(fileName)
 		if err != nil {
@@ -140,7 +140,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
 
 		for _, action := range initConfig.Actions {
-			log.Infof("Action [%v][%v]", fileName, action.Name)
+			log.Printf("Action [%v][%v]", fileName, action.Name)
 		}
 
 		for _, table := range initConfig.Tables {
@@ -157,18 +157,18 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		}
 
 		//for _, marketplace := range initConfig.Marketplaces {
-		//	log.Infof("Marketplace [%v][%v]", fileName, marketplace.Endpoint)
+		//	log.Printf("Marketplace [%v][%v]", fileName, marketplace.Endpoint)
 		//}
 
 		for _, smd := range initConfig.StateMachineDescriptions {
-			log.Infof("SMD  [%v][%v][%v]", fileName, smd.Name, smd.InitialState)
+			log.Printf("SMD  [%v][%v][%v]", fileName, smd.Name, smd.InitialState)
 		}
 
 		if initConfig.EnableGraphQL {
 			globalInitConfig.EnableGraphQL = true
 		}
 
-		//log.Infof("File added to config, deleting %v", fileName)
+		//log.Printf("File added to config, deleting %v", fileName)
 
 	}
 

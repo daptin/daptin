@@ -12,7 +12,7 @@ import (
 )
 
 func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
-	log.Infof("Create constraints and indexes")
+	log.Printf("Create constraints and indexes")
 
 	existingIndexes := GetExistingIndexes(db)
 
@@ -23,10 +23,10 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 		//	if column.IsUnique {
 		//		indexName := "i" + GetMD5Hash(table.TableName+"_"+column.ColumnName+"_unique")
 		//		alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + column.ColumnName + ")"
-		//		//log.Infof("Create unique index sql: %v", alterTable)
+		//		//log.Printf("Create unique index sql: %v", alterTable)
 		//		_, err := db.Exec(alterTable)
 		//		if err != nil {
-		//			log.Infof("Table[%v] Column[%v]: Failed to create unique index: %v", table.TableName, column.ColumnName, err)
+		//			log.Printf("Table[%v] Column[%v]: Failed to create unique index: %v", table.TableName, column.ColumnName, err)
 		//		}
 		//	}
 		//}
@@ -39,7 +39,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 					continue
 				}
 				alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + strings.Join(compositeKeyCols, ",") + ")"
-				//log.Infof("Create unique index sql: %v", alterTable)
+				//log.Printf("Create unique index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
 					log.Errorf("Table[%v] Column[%v]: Failed to create unique composite key index: %v", table.TableName, compositeKeyCols, err)
@@ -60,7 +60,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 			}
 
 			if len(cols) < 1 {
-				log.Infof("No foreign keys in %v", table.TableName)
+				log.Printf("No foreign keys in %v", table.TableName)
 				continue
 			}
 
@@ -70,7 +70,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 			}
 
 			alterTable := "create unique index " + indexName + " on " + table.TableName + "(" + strings.Join(cols, ", ") + ")"
-			//log.Infof("Create unique index sql: %v", alterTable)
+			//log.Printf("Create unique index sql: %v", alterTable)
 			_, err := db.Exec(alterTable)
 			if err != nil {
 				log.Warnf("Table[%v] Column[%v]: Failed to create unique join index: %v", table.TableName, cols, err)
@@ -81,7 +81,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 }
 
 func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
-	log.Infof("Create indexes")
+	log.Printf("Create indexes")
 
 	tx := db.MustBegin()
 	existingIndexes := GetExistingIndexes(tx)
@@ -95,10 +95,10 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 					continue
 				}
 				alterTable := "create unique index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
-				//log.Infof("Create index sql: %v", alterTable)
+				//log.Printf("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
-					log.Infof("Failed to create index on Table[%v][%v]: %v", table.TableName, column.ColumnName, err)
+					log.Printf("Failed to create index on Table[%v][%v]: %v", table.TableName, column.ColumnName, err)
 				}
 			} else if column.IsIndexed {
 				indexName := "i" + GetMD5HashString("index_"+table.TableName+"_"+column.ColumnName+"_index")
@@ -107,10 +107,10 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 				}
 
 				alterTable := "create index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
-				//log.Infof("Create index sql: %v", alterTable)
+				//log.Printf("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
-					log.Infof("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
+					log.Printf("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
 				}
 			}
 		}
@@ -153,7 +153,7 @@ WHERE
 }
 
 func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
-	log.Infof("Create relations")
+	log.Printf("Create relations")
 
 	existingIndexes := GetExistingIndexes(db)
 
@@ -174,12 +174,12 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 				}
 
 				alterSql := "alter table " + table.TableName + " add constraint " + keyName + " foreign key (" + column.ColumnName + ") references " + column.ForeignKeyData.String()
-				//log.Infof("Alter table add constraint sql: %v", alterSql)
+				//log.Printf("Alter table add constraint sql: %v", alterSql)
 				_, err := db.Exec(alterSql)
 				if err != nil {
-					log.Infof("Failed to create foreign key [%v],  %v on column [%v][%v]", err, keyName, table.TableName, column.ColumnName)
+					log.Printf("Failed to create foreign key [%v],  %v on column [%v][%v]", err, keyName, table.TableName, column.ColumnName)
 				} else {
-					log.Infof("Key created [%v][%v]", keyName, table.TableName)
+					log.Printf("Key created [%v][%v]", keyName, table.TableName)
 				}
 			}
 		}
@@ -214,12 +214,12 @@ func CheckTranslationTables(config *CmsConfig) {
 	for _, table := range config.Tables {
 
 		if api2go.EndsWithCheck(table.TableName, "_audit") {
-			log.Infof("[%v] is an audit table", table.TableName)
+			log.Printf("[%v] is an audit table", table.TableName)
 			continue
 		}
 
 		if api2go.EndsWithCheck(table.TableName, "_i18n") {
-			log.Infof("[%v] is an audit table", table.TableName)
+			log.Printf("[%v] is an audit table", table.TableName)
 			continue
 		}
 
@@ -231,7 +231,7 @@ func CheckTranslationTables(config *CmsConfig) {
 			}
 		} else {
 			if len(table.Columns) > len(existingTranslationTable.Columns) {
-				log.Infof("New columns added to the table, translation table need to be updated")
+				log.Printf("New columns added to the table, translation table need to be updated")
 				updateTranslationTableFor = append(updateTranslationTableFor, table.TableName)
 			}
 		}
@@ -243,7 +243,7 @@ func CheckTranslationTables(config *CmsConfig) {
 		table := tableMap[tableName]
 		columnsCopy := make([]api2go.ColumnInfo, 0)
 		translationTableName := tableName + "_i18n"
-		log.Infof("Create translation table [%s] for table [%v]", table.TableName, translationTableName)
+		log.Printf("Create translation table [%s] for table [%v]", table.TableName, translationTableName)
 
 		for _, col := range table.Columns {
 
@@ -269,7 +269,7 @@ func CheckTranslationTables(config *CmsConfig) {
 			c.IsPrimaryKey = false
 			c.IsAutoIncrement = false
 
-			//log.Infof("Add column to table [%v] == [%v]", translationTableName, c)
+			//log.Printf("Add column to table [%v] == [%v]", translationTableName, c)
 			columnsCopy = append(columnsCopy, c)
 
 		}
@@ -301,8 +301,8 @@ func CheckTranslationTables(config *CmsConfig) {
 		config.Tables = append(config.Tables, newTable)
 	}
 
-	log.Infof("%d Translation tables are new", len(createTranslationTableFor))
-	log.Infof("%d Translation tables are updated", len(updateTranslationTableFor))
+	log.Printf("%d Translation tables are new", len(createTranslationTableFor))
+	log.Printf("%d Translation tables are updated", len(updateTranslationTableFor))
 
 	for _, tableName := range updateTranslationTableFor {
 
@@ -367,7 +367,7 @@ func CheckAuditTables(config *CmsConfig) {
 	for _, table := range config.Tables {
 
 		if api2go.EndsWithCheck(table.TableName, "_audit") {
-			log.Infof("[%v] is an audit table", table.TableName)
+			log.Printf("[%v] is an audit table", table.TableName)
 			continue
 		}
 
@@ -379,7 +379,7 @@ func CheckAuditTables(config *CmsConfig) {
 			}
 		} else {
 			if len(table.Columns) > len(existingAuditTable.Columns) {
-				log.Infof("New columns added to the table, audit table need to be updated")
+				log.Printf("New columns added to the table, audit table need to be updated")
 				updateAuditTableFor = append(updateAuditTableFor, table.TableName)
 			}
 		}
@@ -391,7 +391,7 @@ func CheckAuditTables(config *CmsConfig) {
 		table := tableMap[tableName]
 		columnsCopy := make([]api2go.ColumnInfo, 0)
 		auditTableName := tableName + "_audit"
-		log.Infof("Create audit table [%s] for table [%v]", table.TableName, auditTableName)
+		log.Printf("Create audit table [%s] for table [%v]", table.TableName, auditTableName)
 
 		for _, col := range table.Columns {
 
@@ -419,7 +419,7 @@ func CheckAuditTables(config *CmsConfig) {
 			c.IsPrimaryKey = false
 			c.IsAutoIncrement = false
 
-			//log.Infof("Add column to table [%v] == [%v]", auditTableName, c)
+			//log.Printf("Add column to table [%v] == [%v]", auditTableName, c)
 			columnsCopy = append(columnsCopy, c)
 
 		}
@@ -452,8 +452,8 @@ func CheckAuditTables(config *CmsConfig) {
 		config.Tables = append(config.Tables, newTable)
 	}
 
-	log.Infof("%d Audit tables are new", len(createAuditTableFor))
-	log.Infof("%d Audit tables are updated", len(updateAuditTableFor))
+	log.Printf("%d Audit tables are new", len(createAuditTableFor))
+	log.Printf("%d Audit tables are updated", len(updateAuditTableFor))
 
 	for _, tableName := range updateAuditTableFor {
 
@@ -511,21 +511,21 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 	for _, relation := range relations {
 
 		if existingRelationMap[relation.Hash()] {
-			//log.Infof("Relation [%v] is already registered", relation.String())
+			//log.Printf("Relation [%v] is already registered", relation.String())
 			continue
 		}
-		//log.Infof("Register relation [%v]", relation.String())
+		//log.Printf("Register relation [%v]", relation.String())
 		//config.Relations = append(config.Relations, relation)
 		config.AddRelations(relation)
 		existingRelationMap[relation.Hash()] = true
 
 		relation2 := relation.GetRelation()
-		//log.Infof("Relation to table [%v]", relation.String())
+		//log.Printf("Relation to table [%v]", relation.String())
 		if relation2 == "belongs_to" || relation2 == "has_one" {
 			fromTable := relation.Subject
 			targetTable := relation.Object
 
-			//log.Infof("From table [%v] to table [%v]", fromTable, targetTable)
+			//log.Printf("From table [%v] to table [%v]", fromTable, targetTable)
 			isNullable := false
 			if targetTable == USER_ACCOUNT_TABLE_NAME || targetTable == "usergroup" || relation2 == "has_one" {
 				isNullable = true
@@ -568,10 +568,10 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 						config.Tables[i].Columns = append(config.Tables[i].Columns, relation.Columns...)
 					}
 
-					//log.Infof("Add column [%v] to table [%v]", col.ColumnName, t.TableName)
+					//log.Printf("Add column [%v] to table [%v]", col.ColumnName, t.TableName)
 					if targetTable != USER_ACCOUNT_TABLE_NAME && relation.GetRelation() == "belongs_to" {
 						config.Tables[i].IsTopLevel = false
-						//log.Infof("Table [%v] is not top level == %v", t.TableName, targetTable)
+						//log.Printf("Table [%v] is not top level == %v", t.TableName, targetTable)
 					}
 				}
 
@@ -629,8 +629,8 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			newTable.Columns = append(newTable.Columns, relation.Columns...)
 			newTable.AddRelation(relation)
 			//newTable.Relations = append(newTable.Relations, relation)
-			//log.Infof("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
-			//log.Infof("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
+			//log.Printf("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
+			//log.Printf("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
 
 			config.Tables = append(config.Tables, newTable)
 
@@ -676,8 +676,8 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			newTable.Columns = append(newTable.Columns, relation.Columns...)
 			newTable.AddRelation(relation)
 			//newTable.Relations = append(newTable.Relations, relation)
-			//log.Infof("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
-			//log.Infof("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
+			//log.Printf("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
+			//log.Printf("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
 
 			config.Tables = append(config.Tables, newTable)
 
@@ -699,7 +699,7 @@ func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) error {
 
 	createTableQuery := MakeCreateTableQuery(tableInfo, db.DriverName())
 
-	log.Infof("Create table query: %v", tableInfo.TableName)
+	log.Printf("Create table query: %v", tableInfo.TableName)
 	if len(tableInfo.TableName) < 2 {
 		log.Printf("Table name less than two characters is unacceptable [%v]", tableInfo.TableName)
 		return nil

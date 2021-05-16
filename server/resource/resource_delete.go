@@ -37,11 +37,11 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 	isAdmin := dr.IsAdmin(sessionUser.UserReferenceId)
 
 	m := dr.model
-	//log.Infof("Get all resource type: %v\n", m)
+	//log.Printf("Get all resource type: %v\n", m)
 
 	if !EndsWithCheck(apiModel.GetTableName(), "_audit") && dr.tableInfo.IsAuditEnabled {
 		auditModel := apiModel.GetAuditModel()
-		log.Infof("Object [%v][%v] has been changed, trying to audit in %v", apiModel.GetTableName(), apiModel.GetID(), auditModel.GetTableName())
+		log.Printf("Object [%v][%v] has been changed, trying to audit in %v", apiModel.GetTableName(), apiModel.GetID(), auditModel.GetTableName())
 		if auditModel.GetTableName() != "" {
 			//auditModel.Data["deleted_at"] = time.Now()
 			creator, ok := dr.Cruds[auditModel.GetTableName()]
@@ -59,8 +59,8 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 				if err != nil {
 					log.Errorf("Failed to create audit entry: %v", err)
 				} else {
-					log.Infof("[%v][%v] Created audit record", auditModel.GetTableName(), apiModel.GetID())
-					//log.Infof("ReferenceId for change: %v", resp.Result())
+					log.Printf("[%v][%v] Created audit record", auditModel.GetTableName(), apiModel.GetID())
+					//log.Printf("ReferenceId for change: %v", resp.Result())
 				}
 			}
 		}
@@ -80,7 +80,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 			deleteFileActionPerformer, err := NewCloudStoreFileDeleteActionPerformer(dr.Cruds)
 			CheckErr(err, "Failed to create upload action performer")
-			log.Infof("created upload action performer")
+			log.Printf("created upload action performer")
 
 			fileListJson, ok := data[column.ColumnName].([]map[string]interface{})
 			if !ok {
@@ -166,7 +166,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 						if canDeleteAllIds {
 							for relationId := range ids {
-								//log.Infof("Delete relation with [%v][%v]", joinTableName, relationId)
+								//log.Printf("Delete relation with [%v][%v]", joinTableName, relationId)
 								err = dr.Cruds[joinTableName].DeleteWithoutFilters(relationId, req)
 								CheckErr(err, "Failed to delete join 1")
 							}
@@ -218,7 +218,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 						if canDeleteAllIds {
 							for _, id := range ids {
-								//log.Infof("Delete relation with [%v][%v]", joinTableName, id)
+								//log.Printf("Delete relation with [%v][%v]", joinTableName, id)
 								err = dr.Cruds[joinTableName].DeleteWithoutFilters(id, req)
 								CheckErr(err, "Failed to delete join 2")
 							}
@@ -374,11 +374,11 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 			sql1, args, err := queryBuilder.ToSQL()
 			if err != nil {
-				log.Infof("Error: %v", err)
+				log.Printf("Error: %v", err)
 				return err
 			}
 
-			log.Infof("Delete Sql: %v\n", sql1)
+			log.Printf("Delete Sql: %v\n", sql1)
 
 			_, err = dr.db.Exec(sql1, args...)
 
@@ -390,11 +390,11 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 		sql1, args, err := queryBuilder.ToSQL()
 		if err != nil {
-			log.Infof("Error: %v", err)
+			log.Printf("Error: %v", err)
 			return err
 		}
 
-		log.Infof("Delete Sql: %v\n", sql1)
+		log.Printf("Delete Sql: %v\n", sql1)
 
 		_, err = dr.db.Exec(sql1, args...)
 		return err
@@ -406,9 +406,9 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, error) {
 
-	log.Infof("Delete [%v][%v]", dr.model.GetTableName(), id)
+	log.Printf("Delete [%v][%v]", dr.model.GetTableName(), id)
 	for _, bf := range dr.ms.BeforeDelete {
-		//log.Infof("[Before][%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Printf("[Before][%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
 			{
 				"reference_id": id,
@@ -430,7 +430,7 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 	}
 
 	for _, bf := range dr.ms.AfterDelete {
-		//log.Infof("Invoke AfterDelete [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Printf("Invoke AfterDelete [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		_, err = bf.InterceptAfter(dr, &req, []map[string]interface{}{
 			{
 				"reference_id": id,
@@ -442,7 +442,7 @@ func (dr *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, e
 	}
 
 	if err != nil {
-		log.Infof("Error: %v", err)
+		log.Printf("Error: %v", err)
 		return nil, err
 	}
 

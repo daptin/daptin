@@ -63,6 +63,7 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 
 		aggReq.RootEntity = typeName
 		aggReq.Filter = c.QueryArray("filter")
+		aggReq.Having = c.QueryArray("having")
 		aggReq.GroupBy = c.QueryArray("group")
 		aggReq.Join = c.QueryArray("join")
 		aggReq.ProjectColumn = c.QueryArray("column")
@@ -74,7 +75,8 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 		aggResponse, err := cruds[typeName].DataStats(aggReq)
 
 		if err != nil {
-			c.JSON(500, resource.NewDaptinError("Failed to query stats", "query failed"))
+			log.Errorf("failed to execute aggregation [%v] - %v", typeName, err)
+			c.JSON(500, resource.NewDaptinError("Failed to query stats", "query failed - " + err.Error()))
 			return
 		}
 
@@ -84,19 +86,6 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 
 }
 
-func CreateReclineModelHandler() func(*gin.Context) {
-
-	reclineColumnMap := make(map[string]string)
-
-	for _, column := range resource.ColumnTypes {
-		reclineColumnMap[column.Name] = column.ReclineType
-	}
-
-	return func(c *gin.Context) {
-		c.JSON(200, reclineColumnMap)
-	}
-
-}
 
 func CreateMetaHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 
@@ -115,7 +104,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 	tableMap := make(map[string]resource.TableInfo)
 	for _, table := range initConfig.Tables {
 
-		//log.Infof("Default permission for [%v]: [%v]", table.TableName, table.Columns)
+		//log.Printf("Default permission for [%v]: [%v]", table.TableName, table.Columns)
 
 		tableMap[table.TableName] = table
 	}
@@ -141,7 +130,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		selectedTable, isTable := tableMap[typeName]
 
 		if !isTable {
-			log.Infof("%v is not a table", typeName)
+			log.Printf("%v is not a table", typeName)
 			selectedStream, isStream := streamMap[typeName]
 
 			if !isStream {
@@ -160,7 +149,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 
 		cols := selectedTable.Columns
 
-		//log.Infof("data: %v", selectedTable.Relations)
+		//log.Printf("data: %v", selectedTable.Relations)
 		actions, err := cruds["world"].GetActionsByType(typeName)
 
 		if err != nil {
@@ -189,7 +178,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		_, result, err := cruds["smd"].PaginatedFindAll(req)
 
 		if err != nil {
-			log.Infof("Failed to get world SMD: %v", err)
+			log.Printf("Failed to get world SMD: %v", err)
 		} else {
 			models := result.Result().([]*api2go.Api2GoModel)
 			for _, m := range models {
@@ -203,7 +192,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		res := map[string]interface{}{}
 
 		for _, col := range cols {
-			//log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue, col.IsForeignKey, col.ForeignKeyData)
+			//log.Printf("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue, col.IsForeignKey, col.ForeignKeyData)
 			if col.ExcludeFromApi {
 				continue
 			}
@@ -219,7 +208,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		}
 
 		for _, rel := range selectedTable.Relations {
-			//log.Infof("Relation [%v][%v]", selectedTable.TableName, rel.String())
+			//log.Printf("Relation [%v][%v]", selectedTable.TableName, rel.String())
 
 			if rel.GetSubject() == selectedTable.TableName {
 				r := "hasMany"
@@ -239,7 +228,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		}
 
 		for _, col := range cols {
-			//log.Infof("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue)
+			//log.Printf("Column [%v] default value [%v]", col.ColumnName, col.DefaultValue)
 			if col.ExcludeFromApi {
 				continue
 			}

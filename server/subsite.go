@@ -155,7 +155,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		subSiteInformation.SubSite = site
 
 		if site.CloudStoreId == nil {
-			log.Infof("Site [%v] does not have a associated storage", site.Name)
+			log.Printf("Site [%v] does not have a associated storage", site.Name)
 			continue
 		}
 
@@ -169,7 +169,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		cloudStore, ok := cloudStoreMap[*site.CloudStoreId]
 		subSiteInformation.CloudStore = cloudStore
 		if !ok {
-			log.Infof("Site [%v] does not have a associated storage", site.Name)
+			log.Printf("Site [%v] does not have a associated storage", site.Name)
 			continue
 		}
 
@@ -276,7 +276,7 @@ type StaticFsWithDefaultIndex struct {
 }
 
 func (spf *StaticFsWithDefaultIndex) Open(name string) (http.File, error) {
-	//log.Infof("Service file from static path: %s/%s", spf.subPath, name)
+	//log.Printf("Service file from static path: %s/%s", spf.subPath, name)
 
 	f, err := spf.system.Open(name)
 	if err != nil {
@@ -384,7 +384,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		//log.Infof("Serving from dashboard")
+		//log.Printf("Serving from dashboard")
 		handler, ok := hs.handlerMap["dashboard"]
 		if !ok {
 			log.Errorf("Failed to find dashboard route")
@@ -414,7 +414,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //		//if err != nil {
 //		//	log.Errorf("Failed to create html document from html string: %v", err)
 //		//}
-//		//log.Infof("%s",string(s))
+//		//log.Printf("%s",string(s))
 //
 //		requestJson := make(map[string]interface{})
 //		err := json.Unmarshal(s, &requestJson)
@@ -511,7 +511,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //			return
 //		}
 //
-//		log.Infof("Writing contents to file: %v", fullpath)
+//		log.Printf("Writing contents to file: %v", fullpath)
 //		err = ioutil.WriteFile(fullpath, []byte(htmlString.(string)), 0644)
 //		if !ok {
 //			log.Errorf("Invalid subsite: %v", context.GetHeader("Referer"))
@@ -521,7 +521,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //		//
 //		//} else if action == "load" {
 //		//	keys := strings.Split(context.Request.FormValue("keys"), ",")
-//		//	log.Infof("Keys to load", keys)
+//		//	log.Printf("Keys to load", keys)
 //		//
 //		//	responseMap := make(map[string]interface{})
 //		//	for _, key := range keys {
@@ -596,8 +596,8 @@ func exists(path string) (Exists bool, IsDir bool) {
 //		keys, _ := context.GetQueryArray("keys[]")
 //		path, _ := context.GetQuery("path")
 //
-//		log.Infof("Keys: %v", keys)
-//		log.Infof("Path: %v", path)
+//		log.Printf("Keys: %v", keys)
+//		log.Printf("Path: %v", path)
 //
 //		subsite, ok := GetSubSiteFromContext(context, siteMap)
 //		if !ok {
@@ -738,11 +738,11 @@ func exists(path string) (Exists bool, IsDir bool) {
 
 //func GetSubSiteFromContext(context *gin.Context, siteMap map[string]resource.SubSiteInformation) (resource.SubSiteInformation, bool) {
 //	referrer := context.GetHeader("Referer")
-//	log.Infof("Referrer: %v", referrer)
+//	log.Printf("Referrer: %v", referrer)
 //
 //	parsed, err := url.Parse(referrer)
 //	if err != nil {
-//		log.Infof("Failed to parse referrer as url: %v", err)
+//		log.Printf("Failed to parse referrer as url: %v", err)
 //	}
 //
 //	subsite, ok := siteMap[strings.Split(parsed.Host, ":")[0]]

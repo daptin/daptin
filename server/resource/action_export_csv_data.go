@@ -33,7 +33,7 @@ func (d *exportCsvDataPerformer) DoAction(request Outcome, inFields map[string]i
 	if ok && tableName != nil {
 
 		tableNameStr := tableName.(string)
-		log.Infof("Export data for table: %v", tableNameStr)
+		log.Printf("Export data for table: %v", tableNameStr)
 
 		objects, err := d.cruds[tableNameStr].GetAllRawObjects(tableNameStr)
 		if err != nil {

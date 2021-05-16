@@ -49,7 +49,7 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tem
 	fsrc, fdst := cmd.NewFsSrcDst(args)
 	pacer1 := pacer.Pacer{}
 	pacer1.SetRetries(3)
-	log.Infof("Temp dir for path [%v]%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
+	log.Printf("Temp dir for path [%v]%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
 
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync cloud store [%v] to path [%v]", cloudStore.Name, tempDirectoryPath),
@@ -63,7 +63,7 @@ func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tem
 			return nil
 		}
 		ctx := context.Background()
-		log.Infof("Starting to copy drive for path base from [%v] to [%v]", fsrc.String(), fdst.String())
+		log.Printf("Starting to copy drive for path base from [%v] to [%v]", fsrc.String(), fdst.String())
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil

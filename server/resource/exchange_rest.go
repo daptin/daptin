@@ -46,7 +46,7 @@ type RestExternalExchange struct {
 
 func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}) (map[string]interface{}, error) {
 
-	log.Infof("Execute rest external exchange")
+	log.Printf("Execute rest external exchange")
 
 	headersMap := make(map[string]string)
 
@@ -141,8 +141,8 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}) (map[st
 		break
 
 	}
-	log.Infof("Response from exchange execution: %v", response.String())
-	log.Infof("Error from exchange execution: %v", err)
+	log.Printf("Response from exchange execution: %v", response.String())
+	log.Printf("Error from exchange execution: %v", err)
 
 	res := make(map[string]interface{})
 	res["headers"] = response.Header()

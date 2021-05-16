@@ -72,7 +72,7 @@ func GetActionMapByTypeName(db database.DatabaseConnection) (map[string]map[stri
 
 		_, ok = typeActionMap[worldIdString][actioName]
 		if ok {
-			log.Infof("Action [%v][%v] already exists", worldIdString, actioName)
+			log.Printf("Action [%v][%v] already exists", worldIdString, actioName)
 		}
 		typeActionMap[worldIdString][actioName] = action
 	}
@@ -175,7 +175,7 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 
 		tokenId := storeMap["oauth_token_id"]
 		if tokenId == nil {
-			log.Infof("Token id for store [%v] is empty", storeMap["name"])
+			log.Printf("Token id for store [%v] is empty", storeMap["name"])
 		} else {
 			cloudStore.OAutoTokenId = tokenId.(string)
 		}
@@ -547,7 +547,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 	// check validity and refresh if required
 	oauthConf, err = resource.GetOauthDescriptionByTokenReferenceId(referenceId)
 	if err != nil {
-		log.Infof("Failed to get oauth token configuration for token refresh: %v", err)
+		log.Printf("Failed to get oauth token configuration for token refresh: %v", err)
 	} else {
 		if !token.Valid() {
 			ctx := context.Background()

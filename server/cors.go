@@ -66,7 +66,7 @@ func NewCorsMiddleware() *CorsMiddleware {
 }
 
 func (cm *CorsMiddleware) CorsMiddlewareFunc(c *gin.Context) {
-	//log.Infof("middleware ")
+	//log.Printf("middleware ")
 
 	c.Header("Access-Control-Allow-Origin", c.Request.Header.Get("Origin"))
 	c.Header("Access-Control-Allow-Methods", "*")

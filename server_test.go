@@ -384,7 +384,7 @@ func runTests(t *testing.T) error {
 		t.Errorf("label not found")
 	}
 
-	resp, err = requestClient.Get(baseAddress + "/stats/world?group=date(created_at),column=date(created_at),count")
+	resp, err = requestClient.Get(baseAddress + "/aggregate/world?group=date(created_at)&column=date(created_at),count")
 	if err != nil {
 		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
 		return err
@@ -440,28 +440,13 @@ func runTests(t *testing.T) error {
 	}
 	t.Logf("Token: %v", token)
 
-	resp, err = requestClient.Get(baseAddress+"/stats/world?group=date(created_at)&column=date(created_at),count(*)", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/aggregate/world?group=date(created_at)&column=date(created_at),count(*)", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
 		return err
 	}
 	log.Printf("Aggregation response: %v", resp.String())
 
-	resp, err = requestClient.Get(baseAddress + "/recline_model")
-	if err != nil {
-		log.Printf("Failed to get %s %s", "recline_model", err)
-		return err
-	}
-	reclineModelMap := make(map[string]interface{})
-	err = resp.ToJSON(&reclineModelMap)
-	if err != nil {
-		log.Printf("Failed to get %s %s", "json recline model", err)
-		return err
-	}
-
-	if reclineModelMap["alias"] != "string" {
-		return errors.New("unexpected recline model response")
-	}
 
 	resp, err = requestClient.Get(baseAddress + "/jsmodel/world.js")
 	if err != nil {

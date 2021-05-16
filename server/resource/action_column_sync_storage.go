@@ -78,7 +78,7 @@ func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 	}
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
-	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, args[0], cacheFolder.LocalSyncPath)
+	log.Printf("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, args[0], cacheFolder.LocalSyncPath)
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync column storage [%v]", columnName),
 	}
@@ -91,7 +91,7 @@ func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 		}
 
 		ctx := context.Background()
-		//log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
+		//log.Printf("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil

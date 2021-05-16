@@ -16,17 +16,17 @@ import (
 func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Responder, error) {
 
 	if referenceId == "mine" && dr.tableInfo.TableName == "user_account" {
-		log.Printf("Request for mine")
+		//log.Debugf("Request for mine")
 		sessionUser := req.PlainRequest.Context().Value("user")
 		if sessionUser != nil {
 			authUser := sessionUser.(*auth.SessionUser)
-			log.Printf("Overrider reference id mine with %v", authUser.UserReferenceId)
+			//log.Debugf("Overrider reference id mine with %v", authUser.UserReferenceId)
 			referenceId = authUser.UserReferenceId
 		}
 	}
 
 	for _, bf := range dr.ms.BeforeFindOne {
-		//log.Printf("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		//log.Debugf("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
 			{
 				"reference_id": referenceId,
@@ -34,7 +34,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 			},
 		})
 		if err != nil {
-			log.Printf("Error from BeforeFindOne[%s][%s] middleware: %v", bf.String(), dr.model.GetName(), err)
+			log.Warnf("Error from BeforeFindOne[%s][%s] middleware: %v", bf.String(), dr.model.GetName(), err)
 			return nil, err
 		}
 		if r == nil {
@@ -43,7 +43,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	}
 
 	modelName := dr.model.GetName()
-	log.Printf("Find [%s] by id [%s]", modelName, referenceId)
+	//log.Debugf("Find [%s] by id [%s]", modelName, referenceId)
 
 	languagePreferences := make([]string, 0)
 	if dr.tableInfo.TranslationsEnabled {
@@ -94,24 +94,24 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		}
 	}
 
-	//log.Printf("Single row result: %v", data)
+	log.Tracef("Single row result: %v", data)
 	for _, bf := range dr.ms.AfterFindOne {
-		//log.Printf("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), modelName)
+		//log.Debugf("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), modelName)
 
 		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{data})
 		if len(results) != 0 {
 			data = results[0]
 		} else {
-			log.Printf("No results after executing: [%v]", bf.String())
+			//log.Debugf("No results after executing: [%v]", bf.String())
 			data = nil
 		}
 		if err != nil {
-			log.Printf("Error from AfterFindOne middleware: %v", err)
+			log.Warnf("Error from AfterFindOne middleware: %v", err)
 		}
 		include, err = bf.InterceptAfter(dr, &req, include)
 
 		if err != nil {
-			log.Printf("Error from AfterFindOne middleware: %v", err)
+			log.Warnf("Error from AfterFindOne middleware: %v", err)
 		}
 	}
 
@@ -129,7 +129,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		} else {
 			p, ok := inc["permission"].(int64)
 			if !ok {
-				log.Printf("Failed to convert [%v] to permission: %v", inc["permission"], inc["__type"])
+				log.Warnf("Failed to convert [%v] to permission: %v", inc["permission"], inc["__type"])
 				p = 0
 			}
 

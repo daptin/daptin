@@ -29,7 +29,7 @@ func NewLanguageMiddleware(configStore *resource.ConfigStore) *LanguageMiddlewar
 }
 
 func (lm *LanguageMiddleware) LanguageMiddlewareFunc(c *gin.Context) {
-	//log.Infof("middleware ")
+	//log.Printf("middleware ")
 
 	pref := GetLanguagePreference(c.GetHeader("Accept-Language"), lm.defaultLanguage)
 

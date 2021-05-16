@@ -54,7 +54,7 @@ func (s *Server) Add(c *Client) {
 	//token, _, ok := c.ws.Request().BasicAuth()
 	//token  := c.ws.Request().FormValue("token")
 	//if ok {
-	//	log.Infof("New web socket connection token: %v", token)
+	//	log.Printf("New web socket connection token: %v", token)
 	//}
 	s.addCh <- c
 }
