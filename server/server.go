@@ -45,7 +45,7 @@ var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.Olric) (HostSwitch, *guerrilla.Daemon,
-	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server, *olric.Olric) {
+	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server,*http.Server, *olric.Olric) {
 
 	fmt.Print(`                                                                           
                               
@@ -414,6 +414,53 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		}
 	}
 
+	var calDavServer *http.Server
+	calDavServer = nil
+	//Config CalDav
+	//Get calDav Config Values.
+	enableCaldavServer, err := configStore.GetConfigValueFor("caldav.enabled", "backend")
+	if err == nil && enableCaldavServer == "true" {
+		CaldavListenInterface, err := configStore.GetConfigValueFor("caldav.listen_interface", "backend")
+		if err != nil {
+			err = configStore.SetConfigValueFor("caldav.listen_interface", ":8443", "backend")
+			resource.CheckErr(err, "Failed to store default caldav listen interface in config")
+			CaldavListenInterface = ":8008"
+		}
+
+		hostname, err := configStore.GetConfigValueFor("hostname", "backend")
+		hostname = "caldav." + hostname
+
+		// Create a new server
+
+		calDavServer := resource.NewCaldavServer(CaldavListenInterface)
+
+		tlsConfig, _, _, _, _, err := certificateManager.GetTLSConfig(hostname, true)
+		resource.CheckErr(err, "Failed to get certificate for CalDav [%v]", hostname)
+		calDavServer.TLSConfig = tlsConfig
+
+		log.Printf("Starting CalDav server at %s: %v\n", CaldavListenInterface, hostname)
+
+		go func() {
+			if EndsWithCheck(CaldavListenInterface, ":8443") {
+				if err := calDavServer.ListenAndServeTLS("", ""); err != nil {
+					resource.CheckErr(err, "CalDav SSL server is not listening anymore 1")
+				}
+			} else {
+				if err := calDavServer.ListenAndServe(); err != nil {
+					resource.CheckErr(err, "CalDav server is not listening anymore 2")
+				}
+			}
+		}()
+
+	} else {
+		if err != nil {
+			err = configStore.SetConfigValueFor("caldav.enabled", "false", "backend")
+			resource.CheckErr(err, "Failed to set default value for caldav.enabled")
+		}
+	}
+
+
+
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
 	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware, configStore)
@@ -716,7 +763,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 	log.Printf("Our admin is [%v]", adminEmail)
 
-	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer, imapServer, olricDb
+	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer, imapServer,calDavServer, olricDb
 
 }
 

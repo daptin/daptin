@@ -202,6 +202,7 @@ func main() {
 	var configStore *resource.ConfigStore
 	var ftpServer *server2.FtpServer
 	var imapServerInstance *imapServer.Server
+	var calDavServerInstance *http.Server
 	var olricDb *olric.Olric
 
 	if localStoragePath != nil && *localStoragePath != "" {
@@ -226,7 +227,7 @@ func main() {
 	}()
 
 	hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-		ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb)
+		ftpServer, imapServerInstance, calDavServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -270,6 +271,13 @@ func main() {
 			}
 		}
 
+		if calDavServerInstance != nil{
+			err = calDavServerInstance.Close()
+			if err != nil {
+				log.Printf("Failed to close calDav server connections: %v", err)
+			}
+		}
+
 		log.Printf("All connections closed")
 		log.Printf("Create new connections")
 		db1, err := server.GetDbConnection(*dbType, *connectionString)
@@ -279,7 +287,7 @@ func main() {
 		}
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-			ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db1, *localStoragePath, olricDb)
+			ftpServer, imapServerInstance,calDavServerInstance, olricDb = server.Main(boxRoot, db1, *localStoragePath, olricDb)
 		rhs.HostSwitch = &hostSwitch
 		err = db.Close()
 		auth.CheckErr(err, "Failed to close old db connection")
