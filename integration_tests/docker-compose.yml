@@ -2,7 +2,7 @@ version: '2'
 
 services:
   daptin:
-    image: daptin/daptin
+    image: daptin/daptin:travis
     container_name: daptin
     restart: always
     ports:
@@ -29,7 +29,7 @@ services:
       - MYSQL_ROOT_PASSWORD=devrootsupport
       - MYSQL_USER=devsuser
       - MYSQL_PASSWORD=devspassword
-    networks:
+    networks: 
       - my_net
 networks:
   my_net:

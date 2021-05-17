@@ -77,6 +77,12 @@ const testSchemas = `Tables:
       - Name: title
         DataType: varchar(100)
         ColumnType: label
+  - TableName: table3
+    IsStateTrackingEnabled: true
+    Columns:
+      - Name: title
+        DataType: varchar(100)
+        ColumnType: label
   - TableName: table10cols
     Columns:
       - Name: col1
@@ -107,6 +113,11 @@ const testSchemas = `Tables:
       - Name: col9
         DataType: datetime
         ColumnType: date
+Relations:
+  - Subject: table2
+    SubjectName: table2_id
+    Relation: has_many
+    Object
 Imports:
   - FilePath: initial_data.json
     Entity: site
