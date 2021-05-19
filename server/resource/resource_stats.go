@@ -121,6 +121,8 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 		if strings.Index(project, ",") > -1 {
 			parts := strings.Split(project, ",")
 			updatedProjections = append(updatedProjections, parts...)
+		} else {
+			updatedProjections = append(updatedProjections, project)
 		}
 	}
 	projections = updatedProjections
