@@ -438,7 +438,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 	_, err = dr.db.Exec(query, vals...)
 	if err != nil {
-		log.Printf("Insert query 437: %v", query)
+		log.Errorf("Insert query 437: %v", query)
 		//log.Printf("Insert values: %v", vals)
 		log.Errorf("Failed to execute insert query 439: %v", err)
 		//log.Errorf("%v", vals)
