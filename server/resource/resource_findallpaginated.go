@@ -514,6 +514,19 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 						}
 					}
 
+					createdAtJoinColumn := fmt.Sprintf("%v.%v", rel.GetJoinTableName(), "created_at")
+					finalCols = append(finalCols, column{
+						originalvalue: goqu.I(createdAtJoinColumn).As("relation_created_at"),
+						reference:     createdAtJoinColumn,
+					})
+
+					updatedAtJoinColumn := fmt.Sprintf("%v.%v", rel.GetJoinTableName(), "updated_at")
+					finalCols = append(finalCols, column{
+						originalvalue: goqu.I(updatedAtJoinColumn).As("relation_updated_at"),
+						reference:     updatedAtJoinColumn,
+					})
+
+
 				}
 			}
 		}
@@ -639,6 +652,19 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 						})
 					}
 				}
+
+				createdAtJoinColumn := fmt.Sprintf("%v.%v", rel.GetJoinTableName(), "created_at")
+				finalCols = append(finalCols, column{
+					originalvalue: goqu.I(createdAtJoinColumn).As("relation_created_at"),
+					reference:     createdAtJoinColumn,
+				})
+
+				updatedAtJoinColumn := fmt.Sprintf("%v.%v", rel.GetJoinTableName(), "updated_at")
+				finalCols = append(finalCols, column{
+					originalvalue: goqu.I(updatedAtJoinColumn).As("relation_updated_at"),
+					reference:     updatedAtJoinColumn,
+				})
+
 
 			}
 
