@@ -621,7 +621,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 						if colValue == nil {
 							return
 						}
-						columnValueArray := colValue.([]map[string]interface{})
+						columnValueArray, ok := colValue.([]map[string]interface{})
+						if !ok {
+							log.Warnf("value is not of type array - %v", colValue)
+							return
+						}
 
 						fileContentsJson := []byte{}
 						for _, file := range columnValueArray {

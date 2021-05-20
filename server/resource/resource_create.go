@@ -191,7 +191,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 						file["md5"] = filemd5
 						file["size"] = len(fileBytes)
 						path, ok := file["path"]
-						if ok {
+						if ok && path != nil {
 							uploadPath = path.(string)
 						} else {
 							file["path"] = ""

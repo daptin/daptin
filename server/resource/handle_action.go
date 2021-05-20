@@ -355,7 +355,8 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+				createdRow := responseObjects.(api2go.Response).Result().(*api2go.Api2GoModel).Data
+				actionResponse = NewActionResponse(createdRow["__type"].(string), createdRow)
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "GET":
@@ -373,7 +374,8 @@ OutFields:
 			responseObjects, _, _, _, err = dbResource.PaginatedFindAllWithoutFilters(request)
 			CheckErr(err, "Failed to get inside action")
 			if err != nil {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to get "+model.GetName()+". "+err.Error(), "Failed"))
+				actionResponse = NewActionResponse("client.notify",
+					NewClientNotification("error", "Failed to get "+model.GetName()+". "+err.Error(), "Failed"))
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
@@ -403,7 +405,8 @@ OutFields:
 			CheckErr(err, "Failed to get by id")
 
 			if err != nil {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
+				actionResponse = NewActionResponse("client.notify",
+					NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
@@ -418,7 +421,8 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				actionResponse = NewActionResponse(actionRequest.Type, responseObjects)
+				createdRow := responseObjects.(api2go.Response).Result().(*api2go.Api2GoModel).Data
+				actionResponse = NewActionResponse(createdRow["__type"].(string), createdRow)
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "DELETE":
@@ -471,7 +475,7 @@ OutFields:
 				err = err1[0]
 			} else {
 				actionResponses = append(actionResponses, responses1...)
-				responseObjects = responder.Result()
+				responseObjects = responder
 			}
 
 		}

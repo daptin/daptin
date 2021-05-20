@@ -1560,8 +1560,8 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						continue
 					}
 
-					if file["path"] != nil && file["name"] != nil {
-						file["src"] = file["path"].(string) + string(os.PathSeparator) + file["name"].(string)
+					if file["path"] != nil && file["name"] != nil && len(file["path"].(string)) > 0 {
+						file["src"] = file["path"].(string) + "/" + file["name"].(string)
 					} else if file["name"] != nil {
 						file["src"] = file["name"].(string)
 					} else {
