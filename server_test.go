@@ -416,7 +416,7 @@ func runTests(t *testing.T) error {
 	resp.ToJSON(&signUpResponse)
 
 	if signUpResponse.([]interface{})[0].(map[string]interface{})["ResponseType"] != "client.notify" {
-		t.Errorf("Unexpected response type from sign up")
+		t.Errorf("419 Unexpected response type from sign up - %v", signUpResponse)
 	}
 
 	resp, err = requestClient.Post(baseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
@@ -437,7 +437,7 @@ func runTests(t *testing.T) error {
 
 	responseAttr := signInResponse.([]interface{})[0].(map[string]interface{})
 	if responseAttr["ResponseType"] != "client.store.set" {
-		t.Errorf("Unexpected response type from sign up")
+		t.Errorf("440 Unexpected response type from sign up - %v", responseAttr)
 	}
 
 	token = responseAttr["Attributes"].(map[string]interface{})["value"].(string)
@@ -806,7 +806,7 @@ func BenchmarkCreate(m *testing.B) {
 	resp.ToJSON(&signUpResponse)
 
 	if signUpResponse.([]interface{})[0].(map[string]interface{})["ResponseType"] != "client.notify" {
-		m.Errorf("Unexpected response type from sign up")
+		m.Errorf("809 Unexpected response type from sign up - %v", signUpResponse)
 	}
 
 	resp, err = requestClient.Post(baseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
@@ -827,7 +827,7 @@ func BenchmarkCreate(m *testing.B) {
 
 	responseAttr := signInResponse.([]interface{})[0].(map[string]interface{})
 	if responseAttr["ResponseType"] != "client.store.set" {
-		m.Errorf("Unexpected response type from sign up - %v", responseAttr)
+		m.Errorf("830 Unexpected response type from sign up - %v", responseAttr)
 	}
 
 	token = responseAttr["Attributes"].(map[string]interface{})["value"].(string)
