@@ -423,6 +423,9 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	colsList = append(colsList, "created_at")
 	valsList = append(valsList, time.Now())
 
+	colsList = append(colsList, "updated_at")
+	valsList = append(valsList, time.Now())
+
 	if sessionUser.UserId != 0 && dr.model.HasColumn(USER_ACCOUNT_ID_COLUMN) && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
 
 		colsList = append(colsList, USER_ACCOUNT_ID_COLUMN)
