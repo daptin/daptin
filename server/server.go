@@ -66,6 +66,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	/// Start system initialise
 	log.Printf("Load config files")
+
 	initConfig, errs := LoadConfigFiles()
 	if errs != nil {
 		for _, err := range errs {
@@ -929,11 +930,14 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 						existableTable.Columns[colIndex].ExcludeFromApi = newColumnDef.ExcludeFromApi
 						existableTable.Columns[colIndex].IsIndexed = newColumnDef.IsIndexed
 						existableTable.Columns[colIndex].IsNullable = newColumnDef.IsNullable
+						existableTable.Columns[colIndex].IsUnique = newColumnDef.IsUnique
 						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
 						existableTable.Columns[colIndex].Options = newColumnDef.Options
 						existableTable.Columns[colIndex].DataType = newColumnDef.DataType
-						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
+						existableTable.Columns[colIndex].ColumnDescription = newColumnDef.ColumnDescription
 						existableTable.Columns[colIndex].ForeignKeyData = newColumnDef.ForeignKeyData
+						existableTable.Columns[colIndex].IsForeignKey = newColumnDef.IsForeignKey
+						existableTable.Columns[colIndex].IsPrimaryKey = newColumnDef.IsPrimaryKey
 
 					} else {
 						existableTable.Columns = append(existableTable.Columns, newColumnDef)

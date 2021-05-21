@@ -435,7 +435,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName()).Cols(colsList...).Vals(valsList).ToSQL()
 
 	if err != nil {
-		log.Errorf("Failed to create insert query: %v", err)
+		log.Errorf("438 Failed to create insert query: %v", err)
 		return nil, err
 	}
 
@@ -466,7 +466,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 			query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n").Cols(colsList...).Vals(valsList).ToSQL()
 			if err != nil {
-				log.Errorf("Failed to create insert query: %v", err)
+				log.Errorf("469 Failed to create insert query: %v", err)
 				return nil, err
 			}
 
