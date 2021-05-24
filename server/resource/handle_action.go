@@ -115,6 +115,16 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 		}
 
 		responses, err := actionCrudResource.HandleActionRequest(actionRequest, req)
+
+		for _, response := range responses {
+			if response.ResponseType == "client.header.set" {
+				attrs := response.Attributes.(map[string]string)
+				key := attrs["key"]
+				value := attrs["value"]
+				ginContext.Header(key, value)
+			}
+		}
+
 		if err != nil {
 			if httpErr, ok := err.(api2go.HTTPError); ok {
 				if len(responses) > 0 {
