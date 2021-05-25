@@ -120,17 +120,18 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 		for _, response := range responses {
 			if response.ResponseType == "client.header.set" {
 				attrs := response.Attributes.(map[string]string)
-				key := attrs["key"]
-				value := attrs["value"]
-				if strings.ToLower(key) == "status" {
-					responseStatusCode, err := strconv.ParseInt(value, 10, 32)
-					if err != nil {
-						log.Errorf("invalid status code value set in response: %v", value)
+
+				for key, value := range attrs {
+					if strings.ToLower(key) == "status" {
+						responseStatusCode, err := strconv.ParseInt(value, 10, 32)
+						if err != nil {
+							log.Errorf("invalid status code value set in response: %v", value)
+						} else {
+							responseStatus = int(responseStatusCode)
+						}
 					} else {
-						responseStatus = int(responseStatusCode)
+						ginContext.Header(key, value)
 					}
-				} else {
-					ginContext.Header(key, value)
 				}
 			}
 		}
