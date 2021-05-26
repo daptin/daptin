@@ -93,7 +93,8 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 		actionName := ginContext.Param("actionName")
 		actionType := ginContext.Param("typename")
 
-		actionRequest, err := BuildActionRequest(ginContext.Request.Body, actionType, actionName, ginContext.Params, ginContext.Request.URL.Query())
+		actionRequest, err := BuildActionRequest(ginContext.Request.Body, actionType, actionName,
+			ginContext.Params, ginContext.Request.URL.Query())
 
 		if err != nil {
 			ginContext.Error(err)
@@ -548,7 +549,8 @@ OutFields:
 	return responses, nil
 }
 
-func BuildActionRequest(closer io.ReadCloser, actionType, actionName string, params gin.Params, queryParams url.Values) (ActionRequest, error) {
+func BuildActionRequest(closer io.ReadCloser, actionType, actionName string,
+	params gin.Params, queryParams url.Values) (ActionRequest, error) {
 	bytes, err := ioutil.ReadAll(closer)
 	actionRequest := ActionRequest{}
 	if err != nil {
