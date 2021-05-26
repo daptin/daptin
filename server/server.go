@@ -867,7 +867,7 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 		resource.UpdateStreams(initConfig, db)
 		//resource.UpdateMarketplaces(initConfig, db)
 		err := resource.UpdateTasksData(initConfig, db)
-		resource.CheckErr(err, "Failed to update cron jobs")
+		resource.CheckErr(err, "[870] Failed to update cron jobs")
 		resource.UpdateStandardData(initConfig, db)
 
 		err = resource.UpdateActionTable(initConfig, db)

@@ -172,7 +172,7 @@ func GetTasks(connection database.DatabaseConnection) ([]Task, error) {
 		"active",
 		goqu.C("attributes").As("attributes"),
 		goqu.C("as_user_id").As("AsUserEmail"),
-	).From("task").Where(goqu.Ex{"active": 1}).ToSQL()
+	).From("task").Where(goqu.Ex{"active": true}).ToSQL()
 
 	if err != nil {
 		return nil, err
@@ -426,11 +426,15 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 			var name, source_type, target_type string
 			var source_attributes, target_attributes, options, attrsJson []byte
-			var user_account_id int64
+			var user_account_id *int64
 
 			var ec ExchangeContract
 			err = rows.Scan(&name, &source_attributes, &source_type, &target_attributes, &attrsJson, &target_type, &options, &user_account_id)
-			CheckErr(err, "Failed to Scan existing exchanges")
+			CheckErr(err, "[433] Failed to Scan existing exchange contract")
+			if user_account_id == nil {
+				log.Errorf("as_user_id is not set for data exchange setup [%v], skipping", name)
+				continue
+			}
 
 			m := make(map[string]interface{})
 			err = json.Unmarshal(source_attributes, &m)
@@ -454,7 +458,7 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 			err = json.Unmarshal(options, &ec.Options)
 			CheckErr(err, "Failed to unmarshal exchange options")
 
-			ec.AsUserId = user_account_id
+			ec.AsUserId = *user_account_id
 
 			allExchanges = append(allExchanges, ec)
 		}
@@ -710,7 +714,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 			jsonData := make(map[string][]map[string]interface{}, 0)
 			err := json.Unmarshal(fileBytes, &jsonData)
 			if err != nil {
-				log.Errorf("Failed to read content as json to import: %v", err)
+				log.Errorf("[713] Failed to read content as json to import: %v", err)
 				continue
 			}
 
@@ -735,7 +739,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 			jsonData := make(map[string][]map[string]interface{}, 0)
 			err := yaml.Unmarshal(fileBytes, &jsonData)
 			if err != nil {
-				log.Errorf("Failed to read content as json to import: %v", err)
+				log.Errorf("[738] Failed to read content as json to import: %v", err)
 				continue
 			}
 
