@@ -77,6 +77,12 @@ const testSchemas = `Tables:
       - Name: title
         DataType: varchar(100)
         ColumnType: label
+  - TableName: table3
+    IsStateTrackingEnabled: true
+    Columns:
+      - Name: title
+        DataType: varchar(100)
+        ColumnType: label
   - TableName: table10cols
     Columns:
       - Name: col1
@@ -314,7 +320,7 @@ func runTests(t *testing.T) error {
 	})
 	if err != nil {
 		log.Printf("Failed to get %s %s", "world", err)
-		return err
+		return fmt.Errorf("failed to get world %v", err)
 	}
 
 	responseMap = make(map[string]interface{})
@@ -326,7 +332,7 @@ func runTests(t *testing.T) error {
 	})
 	if err != nil {
 		log.Printf("Failed to get %s %s", "world", err)
-		return err
+		return fmt.Errorf("340 failed to get world %v", err)
 	}
 
 	resp.ToJSON(&responseMap)
@@ -348,7 +354,7 @@ func runTests(t *testing.T) error {
 	resp, err = requestClient.Get(baseAddress + "/actions")
 
 	if err != nil {
-		return err
+		return fmt.Errorf("362 failed to get actions %v", err)
 	}
 
 	actionMap := make(map[string]interface{})
@@ -384,7 +390,7 @@ func runTests(t *testing.T) error {
 		t.Errorf("label not found")
 	}
 
-	resp, err = requestClient.Get(baseAddress + "/aggregate/world?group=date(created_at)&column=date(created_at),count")
+	resp, err = requestClient.Get(baseAddress + "/aggregate/world?group=id&column=id,count")
 	if err != nil {
 		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
 		return err
@@ -403,14 +409,14 @@ func runTests(t *testing.T) error {
 	}))
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get signup %v", err)
 	}
 	var signUpResponse interface{}
 
 	resp.ToJSON(&signUpResponse)
 
 	if signUpResponse.([]interface{})[0].(map[string]interface{})["ResponseType"] != "client.notify" {
-		t.Errorf("Unexpected response type from sign up")
+		t.Errorf("419 Unexpected response type from sign up - %v", signUpResponse)
 	}
 
 	resp, err = requestClient.Post(baseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
@@ -421,7 +427,7 @@ func runTests(t *testing.T) error {
 	}))
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get signin %v", err)
 	}
 
 	var token string
@@ -431,7 +437,7 @@ func runTests(t *testing.T) error {
 
 	responseAttr := signInResponse.([]interface{})[0].(map[string]interface{})
 	if responseAttr["ResponseType"] != "client.store.set" {
-		t.Errorf("Unexpected response type from sign up")
+		t.Errorf("440 Unexpected response type from sign up - %v", responseAttr)
 	}
 
 	token = responseAttr["Attributes"].(map[string]interface{})["value"].(string)
@@ -443,9 +449,9 @@ func runTests(t *testing.T) error {
 	resp, err = requestClient.Get(baseAddress+"/aggregate/world?group=date(created_at)&column=date(created_at),count(*)", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
-		return err
+		return fmt.Errorf("failed to query aggregate endpoint - %v", err)
 	}
-	log.Printf("Aggregation response: %v", resp.String())
+	t.Logf("Aggregation response: %v", resp.String())
 
 
 	resp, err = requestClient.Get(baseAddress + "/jsmodel/world.js")
@@ -511,7 +517,9 @@ func runTests(t *testing.T) error {
 		return err
 	}
 
-	resp, err = requestClient.Post(baseAddress+"/api/gallery_image", req.BodyJSON(OneImage))
+	var x interface{}
+	json.Unmarshal([]byte(OneImage), &x)
+	resp, err = requestClient.Post(baseAddress+"/api/gallery_image",  req.BodyJSON(x))
 	if err != nil {
 		log.Printf("Failed to create %s %s", "gallery image post", err)
 		return err
@@ -521,7 +529,7 @@ func runTests(t *testing.T) error {
 	err = resp.ToJSON(&createImageResp)
 	if err != nil {
 		log.Printf("Failed to get %s %s", "unmarshal gallery image post", err)
-		return err
+		//return fmt.Errorf("failed to unmarshal gallery image post response %v", err)
 	}
 
 	var createdID string
@@ -533,6 +541,7 @@ func runTests(t *testing.T) error {
 	readImageResp := make(map[string]interface{})
 	err = resp.ToJSON(&readImageResp)
 	if err != nil {
+
 		log.Printf("Failed to get %s %s", "unmarshal gallery image get", err)
 		return err
 	}
@@ -797,7 +806,7 @@ func BenchmarkCreate(m *testing.B) {
 	resp.ToJSON(&signUpResponse)
 
 	if signUpResponse.([]interface{})[0].(map[string]interface{})["ResponseType"] != "client.notify" {
-		m.Errorf("Unexpected response type from sign up")
+		m.Errorf("809 Unexpected response type from sign up - %v", signUpResponse)
 	}
 
 	resp, err = requestClient.Post(baseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
@@ -818,7 +827,7 @@ func BenchmarkCreate(m *testing.B) {
 
 	responseAttr := signInResponse.([]interface{})[0].(map[string]interface{})
 	if responseAttr["ResponseType"] != "client.store.set" {
-		m.Errorf("Unexpected response type from sign up")
+		m.Errorf("830 Unexpected response type from sign up - %v", responseAttr)
 	}
 
 	token = responseAttr["Attributes"].(map[string]interface{})["value"].(string)

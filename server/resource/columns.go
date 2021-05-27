@@ -1073,6 +1073,7 @@ var SystemActions = []Action{
 				Type:      USER_ACCOUNT_TABLE_NAME,
 				Method:    "POST",
 				Reference: "user",
+				SkipInResponse: true,
 				Attributes: map[string]interface{}{
 					"name":      "~name",
 					"email":     "~email",
@@ -1084,6 +1085,7 @@ var SystemActions = []Action{
 				Type:      "otp.generate",
 				Method:    "EXECUTE",
 				Reference: "otp",
+				SkipInResponse: true,
 				Condition: "!mobile != null && mobile != undefined && mobile != ''",
 				Attributes: map[string]interface{}{
 					"mobile": "~mobile",

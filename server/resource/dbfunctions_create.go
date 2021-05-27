@@ -708,6 +708,7 @@ func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) error {
 	_, err := db.Exec(createTableQuery)
 	//db.Exec("COMMIT ")
 	if err != nil {
+		log.Errorf("create table sql: %v", createTableQuery)
 		log.Errorf("Failed to create table: %v", err)
 		return fmt.Errorf("failed to create table: %v", err)
 	}

@@ -408,7 +408,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 					if olricCache != nil {
 						err = olricCache.PutIfEx(email, sessionUser, 1*time.Minute, olric.IfNotFound)
-						CheckErr(err, "Failed to put user in cache")
+						CheckErr(err, "Failed to put user in cache -- " + email)
 					}
 					LocalUserCacheLock.Unlock()
 

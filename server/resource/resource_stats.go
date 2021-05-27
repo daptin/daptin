@@ -116,12 +116,23 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 	joinedTables := make([]string, 0)
 
 	projectionsAdded := make([]interface{}, 0)
+	updatedProjections := make([]string, 0)
+	for _, project := range projections {
+		if strings.Index(project, ",") > -1 {
+			parts := strings.Split(project, ",")
+			updatedProjections = append(updatedProjections, parts...)
+		} else {
+			updatedProjections = append(updatedProjections, project)
+		}
+	}
+	projections = updatedProjections
+
 	for i, project := range projections {
 		if project == "count" {
 			projections[i] = "count(*) as count"
 			projectionsAdded = append(projectionsAdded, goqu.L("count(*)").As("count"))
 		} else {
-			projectionsAdded = append(projectionsAdded, goqu.I(project))
+			projectionsAdded = append(projectionsAdded, goqu.L(project))
 		}
 	}
 

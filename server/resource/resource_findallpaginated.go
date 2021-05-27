@@ -188,7 +188,12 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	var sortOrder []string
 	if len(req.QueryParams["sort"]) > 0 {
 		sortOrder = req.QueryParams["sort"]
-	} else if dr.tableInfo.DefaultOrder != "" {
+	} else if dr.tableInfo.DefaultOrder != "" && len(dr.tableInfo.DefaultOrder) > 2 {
+		if dr.tableInfo.DefaultOrder[0] == '\'' || dr.tableInfo.DefaultOrder[0] == '"' {
+			rep := strings.ReplaceAll(dr.tableInfo.DefaultOrder, "'", "\"")
+			unquotedOrder, _ := strconv.Unquote(rep)
+			dr.tableInfo.DefaultOrder = unquotedOrder
+		}
 		sortOrder = strings.Split(dr.tableInfo.DefaultOrder, ",")
 	} else {
 		sortOrder = []string{"-created_at"}
@@ -304,6 +309,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 
 	idQueryCols := []interface{}{distinctIdColumn}
+
 	for _, sort := range sortOrder {
 
 		if len(sort) == 0 {
@@ -317,7 +323,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		if strings.Index(sort, "(") == -1 {
 			sort = prefix + sort
 		}
-		idQueryCols = append(idQueryCols, goqu.I(sort))
+		idQueryCols = append(idQueryCols, goqu.I(sort).As(strings.ReplaceAll(sort, ".", "_")))
 	}
 	queryBuilder := statementbuilder.Squirrel.Select(idQueryCols...).From(tableModel.GetTableName())
 	//queryBuilder = queryBuilder.From(tableModel.GetTableName())
@@ -514,6 +520,18 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 						}
 					}
 
+					createdAtJoinColumn := fmt.Sprintf("%v.%v", rel.GetJoinTableName(), "created_at")
+					finalCols = append(finalCols, column{
+						originalvalue: goqu.I(createdAtJoinColumn).As("relation_created_at"),
+						reference:     createdAtJoinColumn,
+					})
+
+					updatedAtJoinColumn := fmt.Sprintf("%v.%v", rel.GetJoinTableName(), "updated_at")
+					finalCols = append(finalCols, column{
+						originalvalue: goqu.I(updatedAtJoinColumn).As("relation_updated_at"),
+						reference:     updatedAtJoinColumn,
+					})
+
 				}
 			}
 		}
@@ -535,12 +553,18 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				continue
 			}
 
+			queries, ok := req.QueryParams[rel.GetSubject()+"_id"]
+			//log.Printf("%d Values as RefIds for relation [%v]", len(filters), rel.String())
+			if !ok || len(queries) < 1 {
+				continue
+			}
+			ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), []interface{}{"id"}, "reference_id", queries)
+
 			switch rel.Relation {
 			case "has_one":
 
 				finalResponseIsSingleObject = true
-				subjectId := req.QueryParams[rel.GetSubject()+"_id"]
-				if len(subjectId) < 1 {
+				if len(ids) < 1 {
 					continue
 				}
 
@@ -551,7 +575,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 							fmt.Sprintf("%v.%v", rel.GetSubjectName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetObject())),
 						}),
 					).
-					Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
+					Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": ids})
 
 				countQueryBuilder = countQueryBuilder.Join(
 					goqu.T(rel.GetSubject()).As(rel.GetSubjectName()),
@@ -559,21 +583,16 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 						fmt.Sprintf("%v.%v", rel.GetSubjectName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetObject())),
 					}),
 				).
-					Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
+					Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": ids})
 
 				joins = append(joins, GetReverseJoins(rel)...)
-				joinFilters = append(joinFilters, goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
+				joinFilters = append(joinFilters, goqu.Ex{rel.GetSubjectName() + ".reference_id": ids})
 				break
 
 			case "belongs_to":
 
 				finalResponseIsSingleObject = true
-				queries, ok := req.QueryParams[rel.GetSubject()+"_id"]
-				//log.Printf("%d Values as RefIds for relation [%v]", len(filters), rel.String())
-				if !ok || len(queries) < 1 {
-					continue
-				}
-				ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), []interface{}{"id"}, "reference_id", queries)
+
 				if err != nil || len(ids) < 1 {
 					log.Errorf("Failed to convert [%v]refids to ids[%v]: %v", rel.GetSubject(), queries, err)
 					return nil, nil, nil, false, err
@@ -597,10 +616,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				joinFilters = append(joinFilters, goqu.Ex{rel.GetSubjectName() + ".id": ids})
 				break
 			case "has_many":
-				subjectId := req.QueryParams[rel.GetSubject()+"_id"]
-				if len(subjectId) < 1 {
-					continue
-				}
 				//log.Printf("Has many [%v] : [%v] === %v", dr.model.GetName(), subjectId, req.QueryParams)
 				queryBuilder = queryBuilder.
 					Join(
@@ -615,7 +630,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 							fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetSubjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetSubjectName())),
 						}),
 					).
-					Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
+					Where(goqu.Ex{rel.GetSubjectName() + ".id": ids})
 				countQueryBuilder = countQueryBuilder.
 					Join(
 						goqu.T(rel.GetJoinTableName()).As(rel.GetJoinTableName()),
@@ -626,9 +641,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 						goqu.T(rel.GetSubject()).As(rel.GetSubjectName()),
 						goqu.On(goqu.Ex{
 							fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetSubjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetSubjectName())),
-						})).Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
+						})).Where(goqu.Ex{rel.GetSubjectName() + ".id": ids})
 				joins = append(joins, GetReverseJoins(rel)...)
-				joinFilters = append(joinFilters, goqu.Ex{rel.GetSubjectName() + ".reference_id": subjectId})
+				joinFilters = append(joinFilters, goqu.Ex{rel.GetSubjectName() + ".id": ids})
 
 				if len(rel.Columns) > 0 {
 					for _, col := range rel.Columns {
@@ -639,6 +654,18 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 						})
 					}
 				}
+
+				createdAtJoinColumn := fmt.Sprintf("%v.%v", rel.GetJoinTableName(), "created_at")
+				finalCols = append(finalCols, column{
+					originalvalue: goqu.I(createdAtJoinColumn).As("relation_created_at"),
+					reference:     createdAtJoinColumn,
+				})
+
+				updatedAtJoinColumn := fmt.Sprintf("%v.%v", rel.GetJoinTableName(), "updated_at")
+				finalCols = append(finalCols, column{
+					originalvalue: goqu.I(updatedAtJoinColumn).As("relation_updated_at"),
+					reference:     updatedAtJoinColumn,
+				})
 
 			}
 
@@ -731,13 +758,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	//log.Debugf("Id query args: %v", args)
 	stmt, err := dr.connection.Preparex(idsListQuery)
 	if err != nil {
-		log.Printf("Findall select query sql 738: %v == %v", idsListQuery, args)
+		log.Errorf("Findall select query sql 738: %v == %v", idsListQuery, args)
 		log.Errorf("Failed to prepare sql 674: %v", err)
 		return nil, nil, nil, false, err
 	}
 	idsRow, err := stmt.Queryx(args...)
 	if err != nil {
-		log.Printf("Findall select query sql 745: %v == %v", idsListQuery, args)
+		log.Errorf("Findall select query sql 745: %v == %v", idsListQuery, args)
 		log.Errorf("Failed to prepare sql 680: %v", err)
 		return nil, nil, nil, false, err
 	}

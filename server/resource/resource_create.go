@@ -191,7 +191,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 						file["md5"] = filemd5
 						file["size"] = len(fileBytes)
 						path, ok := file["path"]
-						if ok {
+						if ok && path != nil {
 							uploadPath = path.(string)
 						} else {
 							file["path"] = ""
@@ -423,6 +423,9 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	colsList = append(colsList, "created_at")
 	valsList = append(valsList, time.Now())
 
+	colsList = append(colsList, "updated_at")
+	valsList = append(valsList, time.Now())
+
 	if sessionUser.UserId != 0 && dr.model.HasColumn(USER_ACCOUNT_ID_COLUMN) && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
 
 		colsList = append(colsList, USER_ACCOUNT_ID_COLUMN)
@@ -432,13 +435,13 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName()).Cols(colsList...).Vals(valsList).ToSQL()
 
 	if err != nil {
-		log.Errorf("Failed to create insert query: %v", err)
+		log.Errorf("438 Failed to create insert query: %v", err)
 		return nil, err
 	}
 
 	_, err = dr.db.Exec(query, vals...)
 	if err != nil {
-		log.Printf("Insert query 437: %v", query)
+		log.Errorf("Insert query 437: %v", query)
 		//log.Printf("Insert values: %v", vals)
 		log.Errorf("Failed to execute insert query 439: %v", err)
 		//log.Errorf("%v", vals)
@@ -463,7 +466,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 			query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n").Cols(colsList...).Vals(valsList).ToSQL()
 			if err != nil {
-				log.Errorf("Failed to create insert query: %v", err)
+				log.Errorf("469 Failed to create insert query: %v", err)
 				return nil, err
 			}
 

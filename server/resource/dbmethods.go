@@ -167,6 +167,7 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 	var selectQuery string
 	var queryParameters []interface{}
 	var err error
+	var perm PermissionInstance
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
 			Select("permission", "id").
@@ -180,18 +181,20 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
-		return PermissionInstance{
-			"", []auth.GroupPermission{}, auth.AuthPermission(0),
-		}
+		return perm
 	}
 
+	stmt , err := dr.connection.Preparex(selectQuery)
+	if err != nil {
+		log.Errorf("failed to prepare statment for permission select: %v", err)
+		return perm
+	}
 	resultObject := make(map[string]interface{})
-	err = dr.db.QueryRowx(selectQuery, queryParameters...).MapScan(resultObject)
+	err = stmt.QueryRowx(queryParameters...).MapScan(resultObject)
 	if err != nil {
 		log.Errorf("Failed to scan permission 1 [%v]: %v", referenceId, err)
 	}
 	//log.Printf("permi map: %v", resultObject)
-	var perm PermissionInstance
 	if resultObject[USER_ACCOUNT_ID_COLUMN] != nil {
 
 		user, err := dr.GetIdToReferenceId(USER_ACCOUNT_TABLE_NAME, resultObject[USER_ACCOUNT_ID_COLUMN].(int64))
@@ -1560,8 +1563,8 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						continue
 					}
 
-					if file["path"] != nil && file["name"] != nil {
-						file["src"] = file["path"].(string) + string(os.PathSeparator) + file["name"].(string)
+					if file["path"] != nil && file["name"] != nil && len(file["path"].(string)) > 0 {
+						file["src"] = file["path"].(string) + "/" + file["name"].(string)
 					} else if file["name"] != nil {
 						file["src"] = file["name"].(string)
 					} else {
