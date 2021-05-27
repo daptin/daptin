@@ -432,34 +432,6 @@ jobs:
           path: build/github.com/daptin/daptin-linux-arm-7
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
-#      - uses: actions/upload-artifact@v1
-#        name: Upload linux mips artifact
-#        with:
-#          name: daptin-linux-mips
-#          path: build/github.com/daptin/daptin-linux-mips
-#        if: github.head_ref == '' && github.repository == 'daptin/daptin'
-#
-#      - uses: actions/upload-artifact@v1
-#        name: Upload linux mips le artifact
-#        with:
-#          name: daptin-linux-mipsle
-#          path: build/github.com/daptin/daptin-linux-mipsle
-#        if: github.head_ref == '' && github.repository == 'daptin/daptin'
-#
-#      - uses: actions/upload-artifact@v1
-#        name: Upload linux mips 64 artifact
-#        with:
-#          name: daptin-linux-mips64
-#          path: build/github.com/daptin/daptin-linux-mips64
-#        if: github.head_ref == '' && github.repository == 'daptin/daptin'
-#
-#      - uses: actions/upload-artifact@v1
-#        name: Upload linux mips 64 lee artifact
-#        with:
-#          name: daptin-linux-mips64le
-#          path: build/github.com/daptin/daptin-linux-mips64le
-#        if: github.head_ref == '' && github.repository == 'daptin/daptin'
-
 
       - uses: actions/upload-artifact@v1
         name: Upload windows 64 artifact
@@ -480,10 +452,6 @@ jobs:
             ./build/github.com/daptin/daptin-linux-arm-5
             ./build/github.com/daptin/daptin-linux-arm-6
             ./build/github.com/daptin/daptin-linux-arm-7
-#            ./build/github.com/daptin/daptin-linux-mips
-#            ./build/github.com/daptin/daptin-linux-mipsle
-#            ./build/github.com/daptin/daptin-linux-mips64
-#            ./build/github.com/daptin/daptin-linux-mips64le
             ./build/github.com/daptin/daptin-windows-4.0-amd64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
