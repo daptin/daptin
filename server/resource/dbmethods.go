@@ -302,8 +302,14 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 		return perm
 	}
 
+	stmt , err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("failed to prepare statment for permission select: %v", err)
+		return perm
+	}
+
 	m := make(map[string]interface{})
-	err = dr.db.QueryRowx(s, q...).MapScan(m)
+	err = stmt.QueryRowx(q...).MapScan(m)
 
 	if err != nil {
 
@@ -371,7 +377,13 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 		return s
 	}
 
-	res, err := dr.db.Queryx(sql, args...)
+	stmt , err := dr.connection.Preparex(sql)
+	if err != nil {
+		log.Errorf("failed to prepare statment for permission select: %v", err)
+		return nil
+	}
+
+	res, err := stmt.Queryx(args...)
 	//log.Printf("Group select sql: %v", sql)
 	if err != nil {
 
@@ -424,7 +436,12 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 			fmt.Sprintf("uug.%s_id", objType): objectId,
 		}).ToSQL()
 
-	res, err := dr.db.Queryx(sql, args...)
+	stmt , err := dr.connection.Preparex(sql)
+	if err != nil {
+		log.Errorf("failed to prepare statment for permission select: %v", err)
+		return nil
+	}
+	res, err := stmt.Queryx(args...)
 
 	if err != nil {
 		log.Errorf("Failed to query object group by object id 403 [%v][%v] == %v", objType, objectId, err)
@@ -492,13 +509,18 @@ func (d *DbResource) GetUserPassword(email string) (string, error) {
 // Convert group name to the internal integer id
 // should not be used since group names are not unique
 // deprecated
-func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
+func (dr *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
 
 	query, arg, err := statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"name": groupName}).ToSQL()
 	if err != nil {
 		return 0, err
 	}
-	res := dbResource.db.QueryRowx(query, arg...)
+	stmt , err := dr.connection.Preparex(query)
+	if err != nil {
+		log.Errorf("failed to prepare statment for permission select: %v", err)
+		return 0, err
+	}
+	res := stmt.QueryRowx(arg...)
 	if res.Err() != nil {
 		return 0, res.Err()
 	}
