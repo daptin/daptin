@@ -128,6 +128,7 @@ jobs:
         run: |
           printf "npm and qusar to build dashboard in ./daptinweb"
           git clone https://github.com/daptin/dadadash builddaptinweb && cd builddaptinweb
+          ls -lah 
           npm install @quasar/cli
           npm install
           npm run build
