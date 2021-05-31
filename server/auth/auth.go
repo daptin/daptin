@@ -228,7 +228,7 @@ type CachedUserAccount struct {
 
 //var LocalUserCacheMap = make(map[string]CachedUserAccount)
 //var LocalUserCacheLock = sync.Mutex{}
-//var olricCache *olric.DMap
+var olricCache *olric.DMap
 
 func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer http.ResponseWriter, doBasicAuthCheck bool) (okToContinue, abortRequest bool, returnRequest *http.Request) {
 	okToContinue = true
@@ -239,10 +239,10 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 		return okToContinue, abortRequest, req
 	}
 
-	//if olricCache == nil {
-	//	log.Infof("Create olric default-cache for auth")
-	//	olricCache, _ = a.olricDb.NewDMap("default-cache")
-	//}
+	if olricCache == nil {
+		log.Infof("Create olric default-cache for auth")
+		olricCache, _ = a.olricDb.NewDMap("auth-cache")
+	}
 
 	hasUser := false
 
@@ -295,9 +295,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 			if !ok {
 
-				//if olricCache != nil {
-				//	cachedUser, err = olricCache.Get(email)
-				//}
+				cachedUser, err = olricCache.Get(email)
 				var referenceId string
 				var userId int64
 				var userGroups []GroupPermission
@@ -323,7 +321,6 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 							log.Errorf("failed to close prepared statement: %v", err)
 						}
 					}(stmt1)
-
 
 					rowx := stmt1.QueryRowx(args...)
 					err = rowx.Scan(&userId, &referenceId)
@@ -392,7 +389,6 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 							}
 						}(stmt1)
 
-
 						rows, err := stmt1.Queryx(args1...)
 
 						if err != nil {
@@ -434,10 +430,8 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					//	Expiry:  time.Now().Add(2 * time.Minute),
 					//}
 
-					//if olricCache != nil {
-					//	err = olricCache.PutIfEx(email, sessionUser, 1*time.Minute, olric.IfNotFound)
-					//	CheckErr(err, "Failed to put user in cache %s", email)
-					//}
+					err = olricCache.PutIfEx(email, sessionUser, 2*time.Minute, olric.IfNotFound)
+					CheckErr(err, "Failed to put user in cache %s", email)
 					//LocalUserCacheLock.Unlock()
 
 				} else {
