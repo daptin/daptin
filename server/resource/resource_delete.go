@@ -138,13 +138,15 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 					if err != nil {
 						log.Errorf("[410] failed to prepare statment: %v", err)
 					}
+					defer func(stmt1 *sqlx.Stmt) {
+						err := stmt1.Close()
+						if err != nil {
+							log.Errorf("failed to close prepared statement: %v", err)
+						}
+					}(stmt1)
 
 					res, err := stmt1.Queryx(vals...)
 					CheckErr(err, "Failed to query for join ids")
-					defer func() {
-						err = res.Close()
-						CheckErr(err, "Failed to close result after join id query")
-					}()
 					if err == nil {
 
 						ids := map[string]int64{}
@@ -155,6 +157,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 							CheckErr(err, "Failed to scan relation reference id")
 							ids[relationReferenceId] = objectReferenceId
 						}
+						err = res.Close()
 
 						canDeleteAllIds := true
 
@@ -197,6 +200,13 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 					if err != nil {
 						log.Errorf("[410] failed to prepare statment: %v", err)
 					}
+					defer func(stmt1 *sqlx.Stmt) {
+						err := stmt1.Close()
+						if err != nil {
+							log.Errorf("failed to close prepared statement: %v", err)
+						}
+					}(stmt1)
+
 
 
 					res, err := stmt1.Queryx(vals...)
@@ -217,6 +227,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 							CheckErr(err, "Failed to scan value in delete")
 							ids = append(ids, s)
 						}
+
 
 						canDeleteAllIds := true
 
@@ -320,6 +331,13 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 					if err != nil {
 						log.Errorf("[410] failed to prepare statment: %v", err)
 					}
+					defer func(stmt1 *sqlx.Stmt) {
+						err := stmt1.Close()
+						if err != nil {
+							log.Errorf("failed to close prepared statement: %v", err)
+						}
+					}(stmt1)
+
 
 					res, err := stmt1.Queryx(vals...)
 					CheckErr(err, "Failed to query for join ids")

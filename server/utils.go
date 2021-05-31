@@ -10,6 +10,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
@@ -106,6 +107,12 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 		return nil, err
 	}
 
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 
 

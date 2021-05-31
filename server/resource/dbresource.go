@@ -170,6 +170,12 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int6
 		log.Errorf("[877] failed to prepare statment: %v", err)
 		return []int64{}
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	rows, err := stmt1.Queryx(args...)
 	CheckErr(err, "[176] failed to query user-group names to ids")
@@ -186,6 +192,7 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int6
 		}
 		retInt = append(retInt, id)
 	}
+	rows.Close()
 
 	return retInt
 
@@ -267,14 +274,21 @@ func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, sto
 	if err != nil {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
 	row, err := stmt1.Queryx(args...)
 
 	if err != nil {
 		return nil, err
 	}
-	defer row.Close()
 
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds["mail"].model.GetColumnMap(), nil)
+	row.Close()
 
 	return m, err
 
@@ -307,15 +321,21 @@ func (dr *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32
 	if err != nil {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	row, err := stmt1.Queryx(args...)
 
 	if err != nil {
 		return nil, err
 	}
-	defer row.Close()
 
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds["mail"].model.GetColumnMap(), nil)
+	row.Close()
 
 	return m, err
 
@@ -342,8 +362,13 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
 
+
 	r4 := stmt1.QueryRowx(v4...)
 	r4.Scan(&messgeCount)
+	err = stmt1.Close()
+	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
 
 	q1, v1, e1 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
@@ -361,6 +386,10 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 
 	r := stmt1.QueryRowx(v1...)
 	r.Scan(&unseenCount)
+	err = stmt1.Close()
+	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
 
 	q2, v2, e2 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
@@ -378,6 +407,10 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 
 	r2 := stmt1.QueryRowx(v2...)
 	r2.Scan(&recentCount)
+	err = stmt1.Close()
+	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
 
 	q3, v3, e3 := statementbuilder.Squirrel.Select("uidvalidity").From("mail_box").Where(goqu.Ex{
 		"id": mailBoxId,
@@ -394,6 +427,10 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 
 	r3 := stmt1.QueryRowx(v3...)
 	r3.Scan(&uidValidity)
+	err = stmt1.Close()
+	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
 
 	uidNext, _ = dr.GetMailboxNextUid(mailBoxId)
 
@@ -427,6 +464,12 @@ func (dr *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
 	if err != nil {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	row := stmt1.QueryRowx(args...)
 	if row.Err() != nil {
@@ -500,6 +543,12 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 	if err != nil {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	rows, err := stmt1.Queryx(args...)
 	if err != nil {
@@ -513,6 +562,7 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		rows.Scan(&id)
 		ids = append(ids, id)
 	}
+	rows.Close()
 
 	if len(ids) < 1 {
 		return 0, nil
@@ -565,6 +615,12 @@ func (dr *DbResource) GetMailboxNextUid(mailBoxId int64) (uint32, error) {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 		return 0, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	r5 := stmt1.QueryRowx(v5...)
 	err = r5.Scan(&uidNext)

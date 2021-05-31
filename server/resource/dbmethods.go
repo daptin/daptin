@@ -72,6 +72,12 @@ func (dr *DbResource) GetActionByName(typeName string, actionName string) (Actio
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return action, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
 
 	err = stmt.QueryRowx(args...).StructScan(&a)
 
@@ -118,6 +124,12 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
 
 	rows, err := stmt.Queryx(args...)
 	if err != nil {
@@ -207,6 +219,13 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return perm
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
 	resultObject := make(map[string]interface{})
 	err = stmt.QueryRowx(queryParameters...).MapScan(resultObject)
 	if err != nil {
@@ -270,6 +289,13 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return perm
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
 
 	resultObject := make(map[string]interface{})
 	err = stmt.QueryRowx(queryParameters...).MapScan(resultObject)
@@ -329,6 +355,12 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return perm
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
 
 	m := make(map[string]interface{})
 	err = stmt.QueryRowx(q...).MapScan(m)
@@ -404,6 +436,12 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return nil
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
 
 	res, err := stmt.Queryx(args...)
 	//log.Printf("Group select sql: %v", sql)
@@ -463,6 +501,13 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return nil
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
 	res, err := stmt.Queryx(args...)
 
 	if err != nil {
@@ -547,6 +592,13 @@ func (dr *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return 0, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
 	res := stmt.QueryRowx(arg...)
 	if res.Err() != nil {
 		return 0, res.Err()
@@ -787,6 +839,12 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations ma
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return nil, nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	rows, err := stmt1.Queryx(q...)
 	if err != nil {
@@ -827,6 +885,12 @@ func (dr *DbResource) GetRandomRow(typeName string, count uint) ([]map[string]in
 		log.Errorf("[831] failed to prepare statment for permission select: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	rows, err := stmt1.Queryx(q...)
 	if err != nil {
@@ -872,6 +936,12 @@ func (dr *DbResource) GetUserMembersByGroupName(groupName string) []string {
 		log.Errorf("[877] failed to prepare statment: %v", err)
 		return nil
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	rows, err := stmt1.Queryx(q...)
 	if err != nil {
@@ -911,6 +981,12 @@ func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 		log.Errorf("[877] failed to prepare statment: %v", err)
 		return ""
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	err = stmt1.QueryRowx(q...).Scan(&email)
 	if err != nil {
@@ -935,6 +1011,12 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 		log.Errorf("[877] failed to prepare statment: %v", err)
 		return nil, nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	rows, err := stmt1.Queryx(q...)
 	if err != nil {
@@ -982,6 +1064,14 @@ func (dr *DbResource) GetSingleRowById(typeName string, id int64, includedRelati
 		return nil, nil, err
 	}
 
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+
 	rows, err := stmt1.Queryx(q...)
 	defer func(rows *sqlx.Rows) {
 		err := rows.Close()
@@ -1016,6 +1106,12 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 		log.Errorf("[877] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	row, err := stmt1.Queryx(q...)
 
@@ -1050,6 +1146,12 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 		log.Errorf("[877] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	row, err := stmt1.Queryx(q...)
 
@@ -1189,6 +1291,12 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 		log.Errorf("[877] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	row, err := stmt1.Queryx(q...)
 
@@ -1228,6 +1336,12 @@ func (dr *DbResource) GetAllObjectsWithWhere(typeName string, where ...goqu.Ex) 
 		log.Errorf("[877] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	row, err := stmt1.Queryx(q...)
 
@@ -1262,6 +1376,12 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 		log.Errorf("[877] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	row, err := stmt1.Queryx(q...)
 
@@ -1303,6 +1423,12 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 		log.Errorf("[877] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	//log.Printf("Get object by reference id sql: %v", s)
 	row, err := stmt1.Queryx(q...)
@@ -1347,6 +1473,12 @@ func (dr *DbResource) GetReferenceIdToObjectColumn(typeName string, referenceId 
 		log.Errorf("failed to prepare statment for get object by reference id: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
 
 	row, err := stmt.Queryx(q...)
 
@@ -1393,6 +1525,12 @@ func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...go
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
 
 	res, err := stmt.Queryx(q...)
 
@@ -1443,6 +1581,12 @@ func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...goqu.Ex) ([
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
 
 	res, err := stmt.Queryx(q...)
 
@@ -1492,6 +1636,12 @@ func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, err
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return "", err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
 
 	var str string
 	row := stmt.QueryRowx(q...)
@@ -1503,7 +1653,7 @@ func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, err
 
 }
 
-// Lookup an string reference id and return a internal integer id of an object of type `typeName`
+// GetReferenceIdToId Lookup an string reference id and return a internal integer id of an object of type `typeName`
 func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (int64, error) {
 
 	var id int64
@@ -1516,6 +1666,12 @@ func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (i
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return 0, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
 
 	err = stmt.QueryRowx(q...).Scan(&id)
 	return id, err
@@ -1539,6 +1695,12 @@ func (dr *DbResource) GetReferenceIdListToIdList(typeName string, referenceId []
 		return nil, err
 	}
 
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	rows, err := stmt1.Queryx(q...)
 	if err != nil {
@@ -1570,6 +1732,12 @@ func (dr *DbResource) GetIdListToReferenceIdList(typeName string, ids []int64) (
 		return nil, err
 	}
 
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	rows, err := stmt1.Queryx(q...)
 	if err != nil {
@@ -1600,6 +1768,12 @@ func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectC
 		log.Errorf("failed to prepare statment for permission select: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
 
 	rows, err := stmt.Queryx(q...)
 	if err != nil {
@@ -1848,6 +2022,12 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					if err != nil {
 						log.Errorf("[410] failed to prepare statment: %v", err)
 					}
+					defer func(stmt1 *sqlx.Stmt) {
+						err := stmt1.Close()
+						if err != nil {
+							log.Errorf("failed to close prepared statement: %v", err)
+						}
+					}(stmt1)
 
 					rows, err := stmt1.Queryx(args...)
 					if err != nil {
@@ -1865,6 +2045,8 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						}
 						ids = append(ids, includeRow)
 					}
+
+					rows.Close()
 
 					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetObject(), goqu.Ex{
 						"id": ids,
@@ -1914,6 +2096,12 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					if err != nil {
 						log.Errorf("[410] failed to prepare statment: %v", err)
 					}
+					defer func(stmt1 *sqlx.Stmt) {
+						err := stmt1.Close()
+						if err != nil {
+							log.Errorf("failed to close prepared statement: %v", err)
+						}
+					}(stmt1)
 
 					includedSubject := stmt1.QueryRowx(args...)
 					if includedSubject.Err() != nil {
@@ -1966,6 +2154,13 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					if err != nil {
 						log.Errorf("[410] failed to prepare statment: %v", err)
 					}
+					defer func(stmt1 *sqlx.Stmt) {
+						err := stmt1.Close()
+						if err != nil {
+							log.Errorf("failed to close prepared statement: %v", err)
+						}
+					}(stmt1)
+
 					rows, err := stmt1.Queryx(args...)
 
 					if err != nil {
@@ -1984,6 +2179,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						}
 						ids = append(ids, includeRow)
 					}
+					rows.Close()
 
 					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetSubject(), goqu.Ex{
 						"id": ids,

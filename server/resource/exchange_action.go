@@ -7,6 +7,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -58,6 +59,12 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[s
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
 
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	rows, err := stmt1.Queryx(args1...)
 	userGroups := make([]auth.GroupPermission, 0)

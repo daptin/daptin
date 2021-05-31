@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"strconv"
 	"strings"
 
@@ -29,6 +30,13 @@ func (dr *DbResource) GetTotalCount() uint64 {
 	if err != nil {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
 
 
 	err = stmt1.QueryRowx(v...).Scan(&count)
@@ -52,6 +60,13 @@ func (dr *DbResource) GetTotalCountBySelectBuilder(builder *goqu.SelectDataset) 
 	if err != nil {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
 
 
 	err = stmt1.QueryRowx(v...).Scan(&count)
@@ -776,6 +791,16 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		log.Errorf("Failed to prepare sql 674: %v", err)
 		return nil, nil, nil, false, err
 	}
+
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+
+
 	idsRow, err := stmt.Queryx(args...)
 	if err != nil {
 		log.Errorf("Findall select query sql 745: %v == %v", idsListQuery, args)
@@ -792,6 +817,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 		ids = append(ids, row["id"].(int64))
 	}
+	idsRow.Close()
 
 	if len(languagePreferences) == 0 {
 

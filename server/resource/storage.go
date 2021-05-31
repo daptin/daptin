@@ -7,6 +7,7 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,6 +25,13 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 	if err != nil {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
 
 
 	res := stmt1.QueryRow(vars...)
@@ -58,6 +66,13 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 			if err != nil {
 				log.Errorf("[410] failed to prepare statment: %v", err)
 			}
+			defer func(stmt1 *sqlx.Stmt) {
+				err := stmt1.Close()
+				if err != nil {
+					log.Errorf("failed to close prepared statement: %v", err)
+				}
+			}(stmt1)
+
 
 			row := stmt1.QueryRowx(vars...)
 			if row.Err() != nil {

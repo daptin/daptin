@@ -291,6 +291,14 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 		log.Errorf("[410] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+
 	res, err := stmt1.Queryx(args...)
 	CheckErr(err, "Failed to query stats: %v", sql)
 	if err != nil {

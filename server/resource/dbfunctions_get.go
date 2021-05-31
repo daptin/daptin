@@ -37,6 +37,14 @@ func GetObjectByWhereClause(objType string, db database.DatabaseConnection, quer
 	} else {
 		return nil, err
 	}
+
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
 	rows, err := stmt.Queryx(v...)
 
 	if err != nil {
@@ -359,6 +367,12 @@ func (resource *DbResource) GetAllTasks() ([]Task, error) {
 		log.Errorf("[359] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 
 	rows, err := stmt1.Queryx(v...)
@@ -410,6 +424,12 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 
 	rows, err := stmt1.Queryx(v...)
@@ -458,6 +478,12 @@ func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Conf
 		log.Errorf("[410] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 
 	err = stmt1.QueryRowx(v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl, &scope)
@@ -512,6 +538,12 @@ func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId st
 		log.Errorf("[410] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	err = stmt1.QueryRowx(v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl, &scope)
 
@@ -562,6 +594,12 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 		log.Errorf("[410] failed to prepare statment: %v", err)
 		return nil, nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	err = stmt1.QueryRowx(v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
 
@@ -625,6 +663,12 @@ func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	err = stmt1.QueryRowx(v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
 
@@ -667,6 +711,12 @@ func (resource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, err
 		log.Errorf("[410] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	err = stmt1.QueryRowx(v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
 

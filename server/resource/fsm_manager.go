@@ -5,6 +5,7 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
 	loopfsm "github.com/looplab/fsm"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -40,6 +41,12 @@ func (fsm *fsmManager) getStateMachineInstance(objType string, objId int64, mach
 	if err != nil {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	err = stmt1.QueryRowx(v...).MapScan(responseMap)
 
@@ -96,6 +103,12 @@ func (fsm *fsmManager) stateMachineRunnerFor(currentState string, typeName strin
 	if err != nil {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	err = stmt1.QueryRowx(v...).Scan(&initialState, &jsonValue)
 
@@ -176,6 +189,12 @@ func ReferenceIdToIntegerId(typeName string, referenceId string, db database.Dat
 	if err != nil {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	err = stmt1.QueryRowx(v...).Scan(&intId)
 	return intId, err

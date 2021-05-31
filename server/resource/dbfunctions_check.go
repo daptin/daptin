@@ -379,6 +379,13 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 		err = CreateTable(tableInfo, tx)
 		return err
 	} else {
+		defer func(stmt1 *sqlx.Stmt) {
+			err := stmt1.Close()
+			if err != nil {
+				log.Errorf("failed to close prepared statement: %v", err)
+			}
+		}(stmt1)
+
 		rowx := stmt1.QueryRowx()
 		columns, err = rowx.Columns()
 

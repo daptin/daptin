@@ -6,6 +6,7 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v9"
 	"time"
@@ -184,6 +185,12 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 		log.Errorf("[184] failed to prepare statment: %v", err)
 		return "", err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	err = stmt1.QueryRowx(v...).Scan(&val)
 	if err != nil {
@@ -209,6 +216,12 @@ func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, 
 		log.Errorf("[209] failed to prepare statment: %v", err)
 		return 0, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	err = stmt1.QueryRowx(v...).Scan(&val)
 	if err != nil {
@@ -233,11 +246,23 @@ func (c *ConfigStore) GetAllConfig() map[string]string {
 		log.Errorf("[233] failed to prepare statment: %v", err)
 		return nil
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
 	res, err := stmt1.Queryx(v...)
 	if err != nil {
 		log.Errorf("Failed to get web config map: %v", err)
 	}
-	defer res.Close()
+	defer func(res *sqlx.Rows) {
+		err := res.Close()
+		if err != nil {
+			log.Errorf("failed to close rows after value scan: %v", err)
+		}
+	}(res)
 
 	for res.Next() {
 		var name, val string
@@ -280,6 +305,12 @@ func (c *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype 
 		log.Errorf("[280] failed to prepare statment: %v", err)
 		return nil
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	err = stmt1.QueryRowx(v...).Scan(&previousValue)
 
@@ -336,6 +367,13 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 		log.Errorf("[336] failed to prepare statment: %v", err)
 		return nil
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
 
 	err = stmt1.QueryRowx(v...).Scan(&previousValue)
 

@@ -183,6 +183,13 @@ func GetTasks(connection database.DatabaseConnection) ([]Task, error) {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 		return nil, err
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
 	rows, err := stmt1.Queryx(v...)
 	if err != nil {
 		return nil, err
@@ -223,6 +230,12 @@ func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 		return
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	res, err := stmt1.Queryx(v...)
 	CheckErr(err, "[228] failed to query streams")
@@ -348,6 +361,12 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 			log.Errorf("[410] failed to prepare statment: %v", err)
 			continue
 		}
+		defer func(stmt1 *sqlx.Stmt) {
+			err := stmt1.Close()
+			if err != nil {
+				log.Errorf("failed to close prepared statement: %v", err)
+			}
+		}(stmt1)
 
 		err = stmt1.QueryRowx(v...).Scan(&referenceId)
 
@@ -433,6 +452,12 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 	if err != nil {
 		log.Errorf("[410] failed to prepare statment: %v", err)
 	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
 
 	rows, err := stmt1.Queryx(v...)
 	CheckErr(err, "Failed to query existing exchanges")
@@ -515,6 +540,12 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db database.DatabaseC
 		if err != nil {
 			log.Errorf("[410] failed to prepare statment: %v", err)
 		}
+		defer func(stmt1 *sqlx.Stmt) {
+			err := stmt1.Close()
+			if err != nil {
+				log.Errorf("failed to close prepared statement: %v", err)
+			}
+		}(stmt1)
 
 		err = stmt1.QueryRowx(v...).Scan(&refId)
 		if err != nil {
