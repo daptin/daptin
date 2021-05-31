@@ -482,8 +482,6 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 	//log.Printf("Created entry: %v", createdResource)
 
-	userGroupId := dr.GetUserGroupIdByUserId(sessionUser.UserId)
-
 	groupsToAdd := dr.defaultGroups
 	for _, groupId := range groupsToAdd {
 		u, _ := uuid.NewV4()
@@ -502,25 +500,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		}
 	}
 
-	if userGroupId != 0 && dr.model.HasMany("usergroup") {
-
-		//log.Printf("Associate new entity [%v][%v] with usergroup: %v", dr.model.GetTableName(), createdResource["reference_id"], userGroupId)
-		u, _ := uuid.NewV4()
-		nuuid := u.String()
-
-		belogsToUserGroupSql, q, _ := statementbuilder.Squirrel.
-			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
-			Cols(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
-			Vals([]interface{}{createdResource["id"], userGroupId, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
-
-		//log.Printf("Query: %v", belogsToUserGroupSql)
-		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
-
-		if err != nil {
-			log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
-		}
-
-	} else if dr.model.GetName() == "usergroup" && sessionUser.UserId != 0 {
+	if dr.model.GetName() == "usergroup" && sessionUser.UserId != 0 {
 
 		log.Printf("Associate new usergroup with user: %v", sessionUser.UserId)
 		u, _ := uuid.NewV4()

@@ -135,7 +135,13 @@ WHERE
 		return existingIndexes
 	}
 
-	rows, err := db.Queryx(indexQuery)
+	stmt1, err := db.Preparex(indexQuery)
+	if err != nil {
+		log.Errorf("[877] failed to prepare statment: %v", err)
+		return nil
+	}
+
+	rows, err := stmt1.Queryx(indexQuery)
 	CheckErr(err, "Failed to check existing indexes")
 	if err == nil {
 		for rows.Next() {

@@ -187,6 +187,8 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 	} else {
 		boxRoot = boxRoot1.HTTPBox()
 	}
+
+
 	statementbuilder.InitialiseStatementBuilder(*dbType)
 
 	db, err := server.GetDbConnection(*dbType, *connectionString)
@@ -220,7 +222,8 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 		resource.CheckErr(err, "failed to start cache server")
 	}()
 
-	configStore, _ = resource.NewConfigStore(db)
+	configStore, err = resource.NewConfigStore(db)
+	resource.CheckErr(err, "failed to create config store")
 	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
 	configStore.SetConfigValueFor("ftp.enable", "true", "backend")
 	configStore.SetConfigValueFor("ftp.listen_interface", "0.0.0.0:2121", "backend")

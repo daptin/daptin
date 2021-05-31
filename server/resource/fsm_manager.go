@@ -35,7 +35,13 @@ func (fsm *fsmManager) getStateMachineInstance(objType string, objId int64, mach
 	}
 
 	responseMap := make(map[string]interface{})
-	err = fsm.db.QueryRowx(s, v...).MapScan(responseMap)
+
+	stmt1, err := fsm.db.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+	}
+
+	err = stmt1.QueryRowx(v...).MapScan(responseMap)
 
 	if err != nil {
 		log.Errorf("Failed to map scan state row: %v", err)
@@ -85,7 +91,13 @@ func (fsm *fsmManager) stateMachineRunnerFor(currentState string, typeName strin
 
 	var jsonValue string
 	var initialState string
-	err = fsm.db.QueryRowx(s, v...).Scan(&initialState, &jsonValue)
+
+	stmt1, err := fsm.db.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+	}
+
+	err = stmt1.QueryRowx(v...).Scan(&initialState, &jsonValue)
 
 	if currentState == "" {
 
@@ -160,7 +172,12 @@ func ReferenceIdToIntegerId(typeName string, referenceId string, db database.Dat
 
 	var intId int64
 
-	err = db.QueryRowx(s, v...).Scan(&intId)
+	stmt1, err := db.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+	}
+
+	err = stmt1.QueryRowx(v...).Scan(&intId)
 	return intId, err
 
 }

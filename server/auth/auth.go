@@ -311,7 +311,13 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						return false, true, req
 					}
 
-					rowx := a.db.QueryRowx(sql, args...)
+					stmt1, err := a.db.Preparex(sql)
+					if err != nil {
+						log.Errorf("[316] failed to prepare statment: %v", err)
+						return false, true, req
+					}
+
+					rowx := stmt1.QueryRowx(args...)
 					err = rowx.Scan(&userId, &referenceId)
 
 					if err != nil {
@@ -365,7 +371,14 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					} else {
 
 						query, args1, err := UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": userId}).ToSQL()
-						rows, err := a.db.Queryx(query, args1...)
+
+						stmt1, err := a.db.Preparex(query)
+						if err != nil {
+							log.Errorf("[877] failed to prepare statment: %v", err)
+							return false, true, nil
+						}
+
+						rows, err := stmt1.Queryx(args1...)
 
 						if err != nil {
 							log.Errorf("Failed to get user group permissions: %v", err)
@@ -408,7 +421,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 					if olricCache != nil {
 						err = olricCache.PutIfEx(email, sessionUser, 1*time.Minute, olric.IfNotFound)
-						CheckErr(err, "Failed to put user in cache -- " + email)
+						CheckErr(err, "Failed to put user in cache -- "+email)
 					}
 					LocalUserCacheLock.Unlock()
 

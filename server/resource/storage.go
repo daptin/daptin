@@ -7,6 +7,7 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	log "github.com/sirupsen/logrus"
 )
 
 func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath string) error {
@@ -19,7 +20,13 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 		return err
 	}
 
-	res := db.QueryRow(query, vars...)
+	stmt1, err := db.Preparex(query)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+	}
+
+
+	res := stmt1.QueryRow(vars...)
 	var storageReferenceId string
 	err = res.Scan(&storageReferenceId)
 	if err != nil {
@@ -47,7 +54,12 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 				return err
 			}
 
-			row := db.QueryRowx(query, vars...)
+			stmt1, err := db.Preparex(query)
+			if err != nil {
+				log.Errorf("[410] failed to prepare statment: %v", err)
+			}
+
+			row := stmt1.QueryRowx(vars...)
 			if row.Err() != nil {
 				return row.Err()
 			}

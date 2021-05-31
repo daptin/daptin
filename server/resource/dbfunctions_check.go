@@ -371,14 +371,17 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 
 	s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
 	//log.Printf("Sql: %v", s)
-	rowx := db.QueryRowx(s)
-	columns, err := rowx.Columns()
+	stmt1, err := db.Preparex(s)
+	var columns []string
 	if err != nil {
 		// expected error, no need to log
 		//log.Printf("Failed to select * from %v: %v", tableInfo.TableName, err)
 		err = CreateTable(tableInfo, tx)
 		return err
 	} else {
+		rowx := stmt1.QueryRowx()
+		columns, err = rowx.Columns()
+
 		// this is required
 		// dont remove this
 		// else p

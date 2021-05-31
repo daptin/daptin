@@ -24,7 +24,14 @@ func (dr *DbResource) GetTotalCount() uint64 {
 	}
 
 	var count uint64
-	err = dr.db.QueryRowx(s, v...).Scan(&count)
+
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+	}
+
+
+	err = stmt1.QueryRowx(v...).Scan(&count)
 	CheckErr(err, "Failed to execute total count query [%s] [%v]", s, v)
 	//log.Printf("Count: [%v] %v", dr.model.GetTableName(), count)
 	return count
@@ -40,7 +47,14 @@ func (dr *DbResource) GetTotalCountBySelectBuilder(builder *goqu.SelectDataset) 
 	}
 
 	var count uint64
-	err = dr.db.QueryRowx(s, v...).Scan(&count)
+
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+	}
+
+
+	err = stmt1.QueryRowx(v...).Scan(&count)
 	if err != nil {
 		log.Errorf("Failed to execute count query [%v] %v", s, err)
 	}

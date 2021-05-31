@@ -134,7 +134,12 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 				if err == nil {
 
-					res, err := dr.db.Queryx(joinIdQuery, vals...)
+					stmt1, err := dr.connection.Preparex(joinIdQuery)
+					if err != nil {
+						log.Errorf("[410] failed to prepare statment: %v", err)
+					}
+
+					res, err := stmt1.Queryx(vals...)
 					CheckErr(err, "Failed to query for join ids")
 					defer func() {
 						err = res.Close()
@@ -188,10 +193,20 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 				if err == nil {
 
-					res, err := dr.db.Queryx(joinIdQuery, vals...)
+					stmt1, err := dr.connection.Preparex(joinIdQuery)
+					if err != nil {
+						log.Errorf("[410] failed to prepare statment: %v", err)
+					}
+
+
+					res, err := stmt1.Queryx(vals...)
 					CheckErr(err, "Failed to query for join ids")
 					defer func(r *sqlx.Rows) {
-						r.Close()
+						err := r.Close()
+						if err != nil {
+							log.Errorf("failed to close rows after value scan in defer")
+							return
+						}
 					}(res)
 					if err == nil {
 
@@ -301,9 +316,19 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 				if err == nil {
 
-					res, err := dr.db.Queryx(joinIdQuery, vals...)
+					stmt1, err := dr.connection.Preparex(joinIdQuery)
+					if err != nil {
+						log.Errorf("[410] failed to prepare statment: %v", err)
+					}
+
+					res, err := stmt1.Queryx(vals...)
 					CheckErr(err, "Failed to query for join ids")
-					defer res.Close()
+					defer func(res *sqlx.Rows) {
+						err := res.Close()
+						if err != nil {
+							log.Errorf("failed to close result after value scan in defer")
+						}
+					}(res)
 					if err == nil {
 
 						var ids []string

@@ -178,7 +178,12 @@ func GetTasks(connection database.DatabaseConnection) ([]Task, error) {
 		return nil, err
 	}
 
-	rows, err := connection.Queryx(s, v...)
+	stmt1, err := connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	rows, err := stmt1.Queryx(v...)
 	if err != nil {
 		return nil, err
 	}
@@ -213,8 +218,14 @@ func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	CheckErr(err, "Failed to create query for stream select")
 
-	res, err := db.Queryx(s, v...)
-	CheckErr(err, "Failed to query streams")
+	stmt1, err := db.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+		return
+	}
+
+	res, err := stmt1.Queryx(v...)
+	CheckErr(err, "[228] failed to query streams")
 	if err != nil {
 		return
 	}
@@ -332,10 +343,16 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 		}
 
 		var referenceId string
-		err = db.QueryRowx(s, v...).Scan(&referenceId)
+		stmt1, err := db.Preparex(s)
+		if err != nil {
+			log.Errorf("[410] failed to prepare statment: %v", err)
+			continue
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&referenceId)
 
 		if err != nil {
-			log.Printf("No existing data exchange for  [%v]", exchange.Name)
+			log.Printf("no existing data exchange for  [%v]", exchange.Name)
 		}
 
 		if err == nil {
@@ -412,7 +429,12 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 		"target_type", "options", "as_user_id").
 		From("data_exchange").ToSQL()
 
-	rows, err := db.Queryx(s, v...)
+	stmt1, err := db.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+	}
+
+	rows, err := stmt1.Queryx(v...)
 	CheckErr(err, "Failed to query existing exchanges")
 	if rows != nil {
 		defer func() {
@@ -488,7 +510,13 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db database.DatabaseC
 		}
 
 		var refId string
-		err = db.QueryRowx(s, v...).Scan(&refId)
+
+		stmt1, err := db.Preparex(s)
+		if err != nil {
+			log.Errorf("[410] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&refId)
 		if err != nil {
 
 			// no existing row
@@ -952,7 +980,13 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 	var systemHasNoAdmin = false
 	var userCount int
 	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(USER_ACCOUNT_TABLE_NAME).ToSQL()
-	err = tx.QueryRowx(s, v...).Scan(&userCount)
+	stmt1, err := tx.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+	}
+
+	err = stmt1.QueryRowx(v...).Scan(&userCount)
+
 	CheckErr(err, "Failed to get user count 900")
 	//log.Printf("Current user group")
 	if userCount < 1 {
@@ -970,7 +1004,13 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 
 		s, v, err = statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).Where(goqu.Ex{"reference_id": u2}).ToSQL()
 		CheckErr(err, "Failed to create select user sql ")
-		err = tx.QueryRowx(s, v...).Scan(&userId)
+
+		stmt1, err := tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[410] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&userId)
 		CheckErr(err, "Failed to select user for world update: %v", s)
 
 		u, _ = uuid.NewV4()
@@ -1003,7 +1043,13 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 
 		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"reference_id": u1}).ToSQL()
 		CheckErr(err, "Failed to create select usergroup sql")
-		err = tx.QueryRowx(s, v...).Scan(&userGroupId)
+		stmt1, err = tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[410] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&userGroupId)
+
 		CheckErr(err, "Failed to user group")
 		u, _ = uuid.NewV4()
 		refIf := u.String()
@@ -1020,22 +1066,42 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 		systemHasNoAdmin = true
 		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).Order(goqu.C("id").Asc()).Limit(1).ToSQL()
 		CheckErr(err, "Failed to create select user sql")
-		err = tx.QueryRowx(s, v...).Scan(&userId)
+		stmt1, err := tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[410] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
 		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSQL()
 		CheckErr(err, "Failed to create user group sql")
-		err = tx.QueryRowx(s, v...).Scan(&userGroupId)
+		stmt1, err = tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[410] failed to prepare statment: %v", err)
+		}
+		err = stmt1.QueryRowx(v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
 	} else {
 
 		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).
 			Where(goqu.Ex{"email": goqu.Op{"neq": "guest@cms.go"}}).Order(goqu.C("id").Asc()).Limit(1).ToSQL()
 		CheckErr(err, "Failed to create select user sql")
-		err = tx.QueryRowx(s, v...).Scan(&userId)
+		stmt1, err := tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[410] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
 		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSQL()
 		CheckErr(err, "Failed to create user group sql")
-		err = tx.QueryRowx(s, v...).Scan(&userGroupId)
+
+		stmt1, err = tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[410] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
 	}
 
@@ -1079,7 +1145,12 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 
 		var cou int
 		s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("world").Where(goqu.Ex{"table_name": table.TableName}).ToSQL()
-		err = tx.QueryRowx(s, v...).Scan(&cou)
+		stmt1, err := tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[410] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&cou)
 		CheckErr(err, "Failed to scan row after query 1027 [%v]", s)
 
 		stBody.Cells = append(stBody.Cells, []*simpletable.Cell{
@@ -1152,7 +1223,12 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 
 	CheckErr(err, "Failed to create query for scan world table")
 
-	res, err := tx.Queryx(s, v...)
+	stmt1, err = tx.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+	}
+
+	res, err := stmt1.Queryx(v...)
 	CheckErr(err, "Failed to scan world tables")
 	if err != nil {
 		return err

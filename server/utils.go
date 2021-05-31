@@ -99,7 +99,17 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 		return nil, err
 	}
 
-	res, err := db.Queryx(sql, args...)
+
+	stmt1, err := db.Preparex(sql)
+	if err != nil {
+		log.Errorf("[877] failed to prepare statment: %v", err)
+		return nil, err
+	}
+
+
+
+
+	res, err := stmt1.Queryx(args...)
 	if err != nil {
 		log.Printf("Failed to select from world table: %v", err)
 		return ts, err

@@ -100,6 +100,7 @@ func GetWorldTableMapBy(col string, db database.DatabaseConnection) (map[string]
 func GetAdminUserIdAndUserGroupId(db sqlx.Ext) (int64, int64) {
 	var userCount int
 	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(USER_ACCOUNT_TABLE_NAME).ToSQL()
+
 	err = db.QueryRowx(s, v...).Scan(&userCount)
 	CheckErr(err, "Failed to get user count 104")
 
@@ -353,21 +354,33 @@ func (resource *DbResource) GetAllTasks() ([]Task, error) {
 		return tasks, err
 	}
 
-	rows, err := resource.db.Queryx(s, v...)
+	stmt1, err := resource.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[359] failed to prepare statment: %v", err)
+		return nil, err
+	}
+
+
+	rows, err := stmt1.Queryx(v...)
 	if err != nil {
 		return tasks, err
 	}
-	defer rows.Close()
+	defer func(rows *sqlx.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Errorf("[371] failed to close result after value scan in defer")
+		}
+	}(rows)
 
 	for rows.Next() {
 		var task Task
 		err = rows.Scan(&task.Name, &task.ActionName, &task.EntityName, &task.Schedule, &task.Active, &task.AttributesJson, &task.AsUserEmail)
 		if err != nil {
-			log.Errorf("Failed to scan task from db to struct: %v", err)
+			log.Errorf("failed to scan task from db to struct: %v", err)
 			continue
 		}
 		err = json.Unmarshal([]byte(task.AttributesJson), &task.Attributes)
-		if CheckErr(err, "Failed to unmarshal attributes for task") {
+		if CheckErr(err, "failed to unmarshal attributes for task") {
 			continue
 		}
 		tasks = append(tasks, task)
@@ -392,7 +405,14 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 		return sites, err
 	}
 
-	rows, err := resource.db.Queryx(s, v...)
+	stmt1, err := resource.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+		return nil, err
+	}
+
+
+	rows, err := stmt1.Queryx(v...)
 	if err != nil {
 		return sites, err
 	}
@@ -433,7 +453,14 @@ func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Conf
 		return nil, err
 	}
 
-	err = resource.db.QueryRowx(s, v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl, &scope)
+	stmt1, err := resource.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+		return nil, err
+	}
+
+
+	err = stmt1.QueryRowx(v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl, &scope)
 
 	if err != nil {
 		return nil, err
@@ -480,7 +507,13 @@ func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId st
 		return nil, err
 	}
 
-	err = resource.db.QueryRowx(s, v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl, &scope)
+	stmt1, err := resource.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+		return nil, err
+	}
+
+	err = stmt1.QueryRowx(v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl, &scope)
 
 	if err != nil {
 		return nil, err
@@ -524,7 +557,13 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 		return nil, oauthConf, err
 	}
 
-	err = resource.db.QueryRowx(s, v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
+	stmt1, err := resource.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+		return nil, nil, err
+	}
+
+	err = stmt1.QueryRowx(v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
 
 	if err != nil {
 		return nil, oauthConf, err
@@ -581,7 +620,13 @@ func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 		return nil, err
 	}
 
-	err = resource.db.QueryRowx(s, v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
+	stmt1, err := resource.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+		return nil, err
+	}
+
+	err = stmt1.QueryRowx(v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
 
 	if err != nil {
 		return nil, err
@@ -617,7 +662,13 @@ func (resource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, err
 		return nil, err
 	}
 
-	err = resource.db.QueryRowx(s, v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
+	stmt1, err := resource.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+		return nil, err
+	}
+
+	err = stmt1.QueryRowx(v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
 
 	if err != nil {
 		return nil, err

@@ -177,9 +177,15 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 		Where(goqu.Ex{"configenv": c.defaultEnv}).
 		Where(goqu.Ex{"configtype": configtype}).ToSQL()
 
-	CheckErr(err, "Failed to create config select query")
+	CheckErr(err, "[180] failed to create config select query")
 
-	err = c.db.QueryRowx(s, v...).Scan(&val)
+	stmt1, err := c.db.Preparex(s)
+	if err != nil {
+		log.Errorf("[184] failed to prepare statment: %v", err)
+		return "", err
+	}
+
+	err = stmt1.QueryRowx(v...).Scan(&val)
 	if err != nil {
 		log.Printf("No config value set for [%v]: %v", key, err)
 	}
@@ -198,7 +204,13 @@ func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, 
 
 	CheckErr(err, "Failed to create config select query")
 
-	err = c.db.QueryRowx(s, v...).Scan(&val)
+	stmt1, err := c.db.Preparex(s)
+	if err != nil {
+		log.Errorf("[209] failed to prepare statment: %v", err)
+		return 0, err
+	}
+
+	err = stmt1.QueryRowx(v...).Scan(&val)
 	if err != nil {
 		log.Printf("No config value set for [%v]: %v", key, err)
 	}
@@ -215,7 +227,13 @@ func (c *ConfigStore) GetAllConfig() map[string]string {
 	CheckErr(err, "Failed to create config select query")
 
 	retMap := make(map[string]string)
-	res, err := c.db.Queryx(s, v...)
+
+	stmt1, err := c.db.Preparex(s)
+	if err != nil {
+		log.Errorf("[233] failed to prepare statment: %v", err)
+		return nil
+	}
+	res, err := stmt1.Queryx(v...)
 	if err != nil {
 		log.Errorf("Failed to get web config map: %v", err)
 	}
@@ -257,7 +275,13 @@ func (c *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype 
 
 	CheckErr(err, "Failed to create config select query")
 
-	err = c.db.QueryRowx(s, v...).Scan(&previousValue)
+	stmt1, err := c.db.Preparex(s)
+	if err != nil {
+		log.Errorf("[280] failed to prepare statment: %v", err)
+		return nil
+	}
+
+	err = stmt1.QueryRowx(v...).Scan(&previousValue)
 
 	if err != nil {
 
@@ -266,7 +290,7 @@ func (c *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype 
 			Insert(settingsTableName).Cols("name", "configstate", "configtype", "configenv", "value").
 			Vals([]interface{}{key, "enabled", configtype, c.defaultEnv, val}).ToSQL()
 
-		CheckErr(err, "Failed to create config insert query")
+		CheckErr(err, "failed to create config insert query")
 
 		_, err = c.db.Exec(s, v...)
 		CheckErr(err, "Failed to execute config insert query")
@@ -307,7 +331,13 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 
 	CheckErr(err, "Failed to create config select query")
 
-	err = c.db.QueryRowx(s, v...).Scan(&previousValue)
+	stmt1, err := c.db.Preparex(s)
+	if err != nil {
+		log.Errorf("[336] failed to prepare statment: %v", err)
+		return nil
+	}
+
+	err = stmt1.QueryRowx(v...).Scan(&previousValue)
 
 	if err != nil {
 
@@ -347,14 +377,14 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 
 func NewConfigStore(db database.DatabaseConnection) (*ConfigStore, error) {
 	var cs ConfigStore
-	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(settingsTableName).ToSQL()
+	s, _, err := statementbuilder.Squirrel.Select(goqu.COUNT("*")).From(settingsTableName).ToSQL()
 	CheckErr(err, "Failed to create sql for config check table")
 	if err != nil {
 		return &cs, err
 	}
 
-	var cou int
-	err = db.QueryRowx(s, v...).Scan(&cou)
+	stmt1, err := db.Preparex(s)
+
 	if err != nil {
 		//log.Printf("Count query failed. Creating table: %v", err)
 
@@ -367,7 +397,8 @@ func NewConfigStore(db database.DatabaseConnection) (*ConfigStore, error) {
 		}
 
 	} else {
-		log.Printf("Failed to query config table: %v", err)
+		stmt1.Close()
+		log.Printf("Config table alreasy exists")
 	}
 
 	return &ConfigStore{

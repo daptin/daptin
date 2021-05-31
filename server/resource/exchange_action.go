@@ -52,7 +52,14 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[s
 	userReferenceId := userRow["reference_id"].(string)
 
 	query, args1, err := auth.UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": g.exchangeContract.AsUserId}).ToSQL()
-	rows, err := g.cruds[USER_ACCOUNT_TABLE_NAME].db.Queryx(query, args1...)
+
+	stmt1, err := g.cruds[USER_ACCOUNT_TABLE_NAME].connection.Preparex(query)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+	}
+
+
+	rows, err := stmt1.Queryx(args1...)
 	userGroups := make([]auth.GroupPermission, 0)
 
 	if err != nil {

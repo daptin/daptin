@@ -138,7 +138,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 
 	for _, group := range req.GroupBy {
 		projections = append(projections, group)
-		projectionsAdded = append(projectionsAdded, goqu.I(group))
+		projectionsAdded = append(projectionsAdded, goqu.L(group))
 	}
 
 	if len(projections) == 0 {
@@ -285,7 +285,13 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 	}
 
 	log.Printf("Aggregation query: %v", sql)
-	res, err := dr.db.Queryx(sql, args...)
+
+	stmt1, err := dr.connection.Preparex(sql)
+	if err != nil {
+		log.Errorf("[410] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	res, err := stmt1.Queryx(args...)
 	CheckErr(err, "Failed to query stats: %v", sql)
 	if err != nil {
 		return nil, err
