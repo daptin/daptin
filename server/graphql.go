@@ -271,7 +271,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			case "has_many":
 				listType, ok := inputTypesMap[targetObject]
 				if !ok {
-					log.Errorf("target object has no proper input type: %v", targetObject)
+					log.Errorf("[247] target object has no proper input type: %v", targetObject)
 				}
 				fields[targetName] = &graphql.Field{
 					Type:        graphql.NewList(listType),
