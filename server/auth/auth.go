@@ -17,7 +17,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -227,8 +226,8 @@ type CachedUserAccount struct {
 	Expiry  time.Time
 }
 
-var LocalUserCacheMap = make(map[string]CachedUserAccount)
-var LocalUserCacheLock = sync.Mutex{}
+//var LocalUserCacheMap = make(map[string]CachedUserAccount)
+//var LocalUserCacheLock = sync.Mutex{}
 var olricCache *olric.DMap
 
 func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer http.ResponseWriter, doBasicAuthCheck bool) (okToContinue, abortRequest bool, returnRequest *http.Request) {
@@ -241,6 +240,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 	}
 
 	if olricCache == nil {
+		log.Infof("Create olric default-cache for auth")
 		olricCache, _ = a.olricDb.NewDMap("default-cache")
 	}
 
@@ -283,14 +283,15 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			var sessionUser *SessionUser
 			var cachedUser interface{}
 
-			LocalUserCacheLock.Lock()
-			localCachedUser, ok := LocalUserCacheMap[email]
-
-			if ok && time.Now().After(localCachedUser.Expiry) {
-				delete(LocalUserCacheMap, email)
-				ok = false
-			}
-			LocalUserCacheLock.Unlock()
+			ok := false
+			//LocalUserCacheLock.Lock()
+			//localCachedUser, ok := LocalUserCacheMap[email]
+			//
+			//if ok && time.Now().After(localCachedUser.Expiry) {
+			//	delete(LocalUserCacheMap, email)
+			//	ok = false
+			//}
+			//LocalUserCacheLock.Unlock()
 
 			if !ok {
 
@@ -412,33 +413,33 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						UserReferenceId: referenceId,
 						Groups:          userGroups,
 					}
-
-					LocalUserCacheLock.Lock()
-					LocalUserCacheMap[email] = CachedUserAccount{
-						Account: *sessionUser,
-						Expiry:  time.Now().Add(2 * time.Minute),
-					}
+					//
+					//LocalUserCacheLock.Lock()
+					//LocalUserCacheMap[email] = CachedUserAccount{
+					//	Account: *sessionUser,
+					//	Expiry:  time.Now().Add(2 * time.Minute),
+					//}
 
 					if olricCache != nil {
 						err = olricCache.PutIfEx(email, sessionUser, 1*time.Minute, olric.IfNotFound)
-						CheckErr(err, "Failed to put user in cache -- "+email)
+						CheckErr(err, "Failed to put user in cache %s", email)
 					}
-					LocalUserCacheLock.Unlock()
+					//LocalUserCacheLock.Unlock()
 
 				} else {
 					sessionUser = cachedUser.(*SessionUser)
-					LocalUserCacheLock.Lock()
-					LocalUserCacheMap[email] = CachedUserAccount{
-						Account: *sessionUser,
-						Expiry:  time.Now().Add(2 * time.Minute),
-					}
-					LocalUserCacheLock.Unlock()
+					//LocalUserCacheLock.Lock()
+					//LocalUserCacheMap[email] = CachedUserAccount{
+					//	Account: *sessionUser,
+					//	Expiry:  time.Now().Add(2 * time.Minute),
+					//}
+					//LocalUserCacheLock.Unlock()
 				}
 			} else {
-				sessionUser = &localCachedUser.Account
+				//sessionUser = &localCachedUser.Account
 			}
 
-			log.Tracef("User cache map size: %v", len(LocalUserCacheMap))
+			//log.Tracef("User cache map size: %v", len(LocalUserCacheMap))
 
 			ct := req.Context()
 			ct = context.WithValue(ct, "user", sessionUser)

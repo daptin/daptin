@@ -298,7 +298,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 
 var OlricCache *olric.DMap
 
-// Get permission of an GetObjectPermissionByReferenceId by typeName and string referenceId with a simple where clause colName = colValue
+// GetObjectPermissionByWhereClause Get permission of an Object by typeName and string referenceId with a simple where clause colName = colValue
 // Use carefully
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
