@@ -103,7 +103,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 
 	stmt1, err := db.Preparex(sql)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[106] failed to prepare statment: %v", err)
 		return nil, err
 	}
 

@@ -312,7 +312,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 					stmt1, err := a.db.Preparex(sql)
 					if err != nil {
-						log.Errorf("[316] failed to prepare statment: %v", err)
+						log.Errorf("[315] failed to prepare statment: %v", err)
 						return false, true, req
 					}
 					defer func(stmt1 *sqlx.Stmt) {
@@ -379,7 +379,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 						stmt1, err := a.db.Preparex(query)
 						if err != nil {
-							log.Errorf("[877] failed to prepare statment: %v", err)
+							log.Errorf("[382] failed to prepare statment: %v", err)
 							return false, true, nil
 						}
 						defer func(stmt1 *sqlx.Stmt) {

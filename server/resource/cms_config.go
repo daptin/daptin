@@ -182,7 +182,7 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 
 	stmt1, err := c.db.Preparex(s)
 	if err != nil {
-		log.Errorf("[184] failed to prepare statment: %v", err)
+		log.Errorf("[185] failed to prepare statment: %v", err)
 		return "", err
 	}
 	defer func(stmt1 *sqlx.Stmt) {

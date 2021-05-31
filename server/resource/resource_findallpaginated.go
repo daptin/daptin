@@ -28,7 +28,7 @@ func (dr *DbResource) GetTotalCount() uint64 {
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[31] failed to prepare statment: %v", err)
 	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
@@ -58,7 +58,7 @@ func (dr *DbResource) GetTotalCountBySelectBuilder(builder *goqu.SelectDataset) 
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[61] failed to prepare statment: %v", err)
 	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()

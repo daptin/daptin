@@ -421,7 +421,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	stmt1, err := resource.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[424] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -475,7 +475,7 @@ func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Conf
 
 	stmt1, err := resource.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[478] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -535,7 +535,7 @@ func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId st
 
 	stmt1, err := resource.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[538] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -591,7 +591,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 
 	stmt1, err := resource.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[594] failed to prepare statment: %v", err)
 		return nil, nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -660,7 +660,7 @@ func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 
 	stmt1, err := resource.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[663] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -708,7 +708,7 @@ func (resource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, err
 
 	stmt1, err := resource.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[711] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {

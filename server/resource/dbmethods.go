@@ -69,7 +69,7 @@ func (dr *DbResource) GetActionByName(typeName string, actionName string) (Actio
 
 	stmt, err := dr.connection.Preparex(sql)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[72] failed to prepare statment: %v", err)
 		return action, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -121,7 +121,7 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 
 	stmt, err := dr.connection.Preparex(sql)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[124] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -216,7 +216,7 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 
 	stmt, err := dr.connection.Preparex(selectQuery)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[219] failed to prepare statment: %v", err)
 		return perm
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -286,7 +286,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 
 	stmt, err := dr.connection.Preparex(selectQuery)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[289] failed to prepare statment: %v", err)
 		return perm
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -352,7 +352,7 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 
 	stmt, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[355] failed to prepare statment: %v", err)
 		return perm
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -433,7 +433,7 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 
 	stmt, err := dr.connection.Preparex(sql)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[436] failed to prepare statment: %v", err)
 		return nil
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -498,7 +498,7 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 
 	stmt, err := dr.connection.Preparex(sql)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[501] failed to prepare statment: %v", err)
 		return nil
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -589,7 +589,7 @@ func (dr *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
 	}
 	stmt, err := dr.connection.Preparex(query)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[592] failed to prepare statment: %v", err)
 		return 0, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -836,7 +836,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations ma
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[839] failed to prepare statment: %v", err)
 		return nil, nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -882,7 +882,7 @@ func (dr *DbResource) GetRandomRow(typeName string, count uint) ([]map[string]in
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[831] failed to prepare statment for permission select: %v", err)
+		log.Errorf("[885] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -933,7 +933,7 @@ func (dr *DbResource) GetUserMembersByGroupName(groupName string) []string {
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[936] failed to prepare statment: %v", err)
 		return nil
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -978,7 +978,7 @@ func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[981] failed to prepare statment: %v", err)
 		return ""
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1008,7 +1008,7 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[1011] failed to prepare statment: %v", err)
 		return nil, nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1060,7 +1060,7 @@ func (dr *DbResource) GetSingleRowById(typeName string, id int64, includedRelati
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[1063] failed to prepare statment: %v", err)
 		return nil, nil, err
 	}
 
@@ -1103,7 +1103,7 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[1106] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1143,7 +1143,7 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[1146] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1288,7 +1288,7 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[1291] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1333,7 +1333,7 @@ func (dr *DbResource) GetAllObjectsWithWhere(typeName string, where ...goqu.Ex) 
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[1336] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1373,7 +1373,7 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[1376] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1420,7 +1420,7 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[1423] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1470,7 +1470,7 @@ func (dr *DbResource) GetReferenceIdToObjectColumn(typeName string, referenceId 
 
 	stmt, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("failed to prepare statment for get object by reference id: %v", err)
+		log.Errorf("[1473] failed to prepare statment for get object by reference id: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1522,7 +1522,7 @@ func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...go
 
 	stmt, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[1525] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1578,7 +1578,7 @@ func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...goqu.Ex) ([
 
 	stmt, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[1581] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1633,7 +1633,7 @@ func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, err
 
 	stmt, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[1636] failed to prepare statment: %v", err)
 		return "", err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1663,7 +1663,7 @@ func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (i
 	}
 	stmt, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[1666] failed to prepare statment: %v", err)
 		return 0, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -1691,7 +1691,7 @@ func (dr *DbResource) GetReferenceIdListToIdList(typeName string, referenceId []
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[1694] failed to prepare statment: %v", err)
 		return nil, err
 	}
 
@@ -1728,7 +1728,7 @@ func (dr *DbResource) GetIdListToReferenceIdList(typeName string, ids []int64) (
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[877] failed to prepare statment: %v", err)
+		log.Errorf("[1731] failed to prepare statment: %v", err)
 		return nil, err
 	}
 
@@ -1765,7 +1765,7 @@ func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectC
 
 	stmt, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("failed to prepare statment for permission select: %v", err)
+		log.Errorf("[1768] failed to prepare statment for permission select: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -2020,7 +2020,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 					stmt1, err := dr.connection.Preparex(query)
 					if err != nil {
-						log.Errorf("[410] failed to prepare statment: %v", err)
+						log.Errorf("[2023] failed to prepare statment: %v", err)
 					}
 					defer func(stmt1 *sqlx.Stmt) {
 						err := stmt1.Close()
@@ -2094,7 +2094,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 					stmt1, err := dr.connection.Preparex(query)
 					if err != nil {
-						log.Errorf("[410] failed to prepare statment: %v", err)
+						log.Errorf("[2097] failed to prepare statment: %v", err)
 					}
 					defer func(stmt1 *sqlx.Stmt) {
 						err := stmt1.Close()
@@ -2152,7 +2152,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 					stmt1, err := dr.connection.Preparex(query)
 					if err != nil {
-						log.Errorf("[410] failed to prepare statment: %v", err)
+						log.Errorf("[2155] failed to prepare statment: %v", err)
 					}
 					defer func(stmt1 *sqlx.Stmt) {
 						err := stmt1.Close()

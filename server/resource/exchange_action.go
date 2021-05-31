@@ -56,7 +56,7 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[s
 
 	stmt1, err := g.cruds[USER_ACCOUNT_TABLE_NAME].connection.Preparex(query)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[59] failed to prepare statment: %v", err)
 	}
 
 	defer func(stmt1 *sqlx.Stmt) {

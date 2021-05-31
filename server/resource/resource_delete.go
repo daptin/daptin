@@ -136,7 +136,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 					stmt1, err := dr.connection.Preparex(joinIdQuery)
 					if err != nil {
-						log.Errorf("[410] failed to prepare statment: %v", err)
+						log.Errorf("[139] failed to prepare statment: %v", err)
 					}
 					defer func(stmt1 *sqlx.Stmt) {
 						err := stmt1.Close()
@@ -198,7 +198,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 					stmt1, err := dr.connection.Preparex(joinIdQuery)
 					if err != nil {
-						log.Errorf("[410] failed to prepare statment: %v", err)
+						log.Errorf("[201] failed to prepare statment: %v", err)
 					}
 					defer func(stmt1 *sqlx.Stmt) {
 						err := stmt1.Close()
@@ -329,7 +329,7 @@ func (dr *DbResource) DeleteWithoutFilters(id string, req api2go.Request) error 
 
 					stmt1, err := dr.connection.Preparex(joinIdQuery)
 					if err != nil {
-						log.Errorf("[410] failed to prepare statment: %v", err)
+						log.Errorf("[322] failed to prepare statment: %v", err)
 					}
 					defer func(stmt1 *sqlx.Stmt) {
 						err := stmt1.Close()

@@ -288,7 +288,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 
 	stmt1, err := dr.connection.Preparex(sql)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[291] failed to prepare statment: %v", err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {

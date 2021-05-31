@@ -39,7 +39,7 @@ func (fsm *fsmManager) getStateMachineInstance(objType string, objId int64, mach
 
 	stmt1, err := fsm.db.Preparex(s)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[42] failed to prepare statment: %v", err)
 	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
@@ -101,7 +101,7 @@ func (fsm *fsmManager) stateMachineRunnerFor(currentState string, typeName strin
 
 	stmt1, err := fsm.db.Preparex(s)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[104] failed to prepare statment: %v", err)
 	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
@@ -187,7 +187,7 @@ func ReferenceIdToIntegerId(typeName string, referenceId string, db database.Dat
 
 	stmt1, err := db.Preparex(s)
 	if err != nil {
-		log.Errorf("[410] failed to prepare statment: %v", err)
+		log.Errorf("[190] failed to prepare statment: %v", err)
 	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
