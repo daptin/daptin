@@ -256,8 +256,8 @@ func main() {
 				profileDumpCount += 1
 				pprof.StopCPUProfile()
 
-				cpuprofile := fmt.Sprintf("%sdaptin_cpu_profile_%v.prof", *profileDumpPath, profileDumpCount)
-				heapprofile := fmt.Sprintf("%sdaptin_heap_profile_%v.prof", *profileDumpPath, profileDumpCount)
+				cpuprofile := fmt.Sprintf("%sdaptin_profile_cpu.%v", *profileDumpPath, profileDumpCount)
+				heapprofile := fmt.Sprintf("%sdaptin_profile_heap.%v", *profileDumpPath, profileDumpCount)
 
 				cpuFile, err := os.Create(cpuprofile)
 				heapFile, err := os.Create(heapprofile)
