@@ -604,7 +604,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 							fmt.Sprintf("%v.%v", rel.GetSubjectName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetObject())),
 						}),
 					).
-					Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": ids})
+					Where(goqu.Ex{rel.GetSubjectName() + ".id": ids})
 
 				countQueryBuilder = countQueryBuilder.Join(
 					goqu.T(rel.GetSubject()).As(rel.GetSubjectName()),
@@ -612,10 +612,10 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 						fmt.Sprintf("%v.%v", rel.GetSubjectName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", rel.GetObject())),
 					}),
 				).
-					Where(goqu.Ex{rel.GetSubjectName() + ".reference_id": ids})
+					Where(goqu.Ex{rel.GetSubjectName() + ".id": ids})
 
 				joins = append(joins, GetReverseJoins(rel)...)
-				joinFilters = append(joinFilters, goqu.Ex{rel.GetSubjectName() + ".reference_id": ids})
+				joinFilters = append(joinFilters, goqu.Ex{rel.GetSubjectName() + ".id": ids})
 				break
 
 			case "belongs_to":
