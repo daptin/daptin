@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/buraksezer/olric"
@@ -433,7 +434,8 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					//}
 
 					//if rand.Int() % 10 == 0 {
-					log.Errorf("cache user account auth [%v]", email)
+					j, _ := json.Marshal(*sessionUser)
+					log.Errorf("cache user account auth [%v] -> %v", email, j)
 					repeatCheck, err := olricCache.Get(email)
 					if err != nil || repeatCheck == nil {
 						err = olricCache.PutIfEx(email, *sessionUser, 2*time.Minute, olric.IfNotFound)
