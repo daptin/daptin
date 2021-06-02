@@ -15,6 +15,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
+	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -431,8 +432,11 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					//	Expiry:  time.Now().Add(2 * time.Minute),
 					//}
 
-					err = olricCache.PutIfEx(email, sessionUser, 2*time.Minute, olric.IfNotFound)
-					CheckErr(err, "Failed to put user in cache %s", email)
+					if rand.Int() % 10 == 0 {
+						log.Errorf("cache user account auth [%v]", email)
+						err = olricCache.PutIfEx(email, sessionUser, 2*time.Minute, olric.IfNotFound)
+						CheckErr(err, "failed to put user in cache %s", email)
+					}
 					//LocalUserCacheLock.Unlock()
 
 				} else {
