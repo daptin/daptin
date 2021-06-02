@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -119,7 +118,8 @@ Imports:
     Entity: site
     FileType: json`
 
-func TestMain(m1 *testing.M) {
+func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore,
+	*resource.CertificateManager, *server2.FtpServer, *ImapServer.Server, *olric.Olric) {
 
 	log.SetOutput(ioutil.Discard)
 	dir := os.TempDir()
@@ -187,6 +187,7 @@ func TestMain(m1 *testing.M) {
 	} else {
 		boxRoot = boxRoot1.HTTPBox()
 	}
+
 
 	statementbuilder.InitialiseStatementBuilder(*dbType)
 
@@ -268,29 +269,23 @@ func TestMain(m1 *testing.M) {
 		srv.ListenAndServe()
 	}()
 	time.Sleep(5 * time.Second)
-
-	m1.Run()
-	mailDaemon.Shutdown()
-	taskScheduler.StopTasks()
-	ftpServer.Stop()
-	imapServer.Close()
-	olricDb.Shutdown(context.Background())
+	return hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb
 }
 
-//func TestServerApis(t *testing.T) {
-//
-//	//createServer()
-//	//_, _, _, _, _, _, _, _ := createServer()
-//	err := runTests(t)
-//	log.Printf("Test ended")
-//	if err != nil {
-//		t.Errorf("test failed %v", err)
-//	}
-//	//log.Printf("it never started in test: %v %v", imapServer, ftpServer)
-//
-//	log.Printf("Shutdown now")
-//
-//}
+func TestServerApis(t *testing.T) {
+
+	createServer()
+	//_, _, _, _, _, _, _, _ := createServer()
+	err := runTests(t)
+	log.Printf("Test ended")
+	if err != nil {
+		t.Errorf("test failed %v", err)
+	}
+	//log.Printf("it never started in test: %v %v", imapServer, ftpServer)
+
+	log.Printf("Shutdown now")
+
+}
 
 //func TestAuth(t *testing.T) {
 //
@@ -312,43 +307,40 @@ func runAuthTests(t *testing.T) error {
 	return nil
 }
 
-const BaseAddress = "http://localhost:6337"
 
-var RequestClient = req.New()
-var responseMap = make(map[string]interface{})
-var tableNameToIdMap = map[string]string{}
-var authTokenHeader map[string]string
-var createdID string
+func runTests(t *testing.T) error {
 
-func TestWorldApi(t *testing.T) {
+	const baseAddress = "http://localhost:6337"
 
 	requestClient := req.New()
 
-	_, err := requestClient.Get(BaseAddress+"/api/world", req.QueryParam{
+	responseMap := make(map[string]interface{})
+
+	resp, err := requestClient.Get(baseAddress+"/api/world", req.QueryParam{
 		"page[size]":   100,
 		"page[number]": 1,
 		"sort":         "",
 	})
 	if err != nil {
 		log.Printf("Failed to get %s %s", "world", err)
-		t.Errorf("failed to get world %v", err)
+		return fmt.Errorf("failed to get world %v", err)
 	}
-}
 
-func TestWorldApiSorted(t *testing.T) {
 	responseMap = make(map[string]interface{})
 
-	resp, err := RequestClient.Get(BaseAddress+"/api/world", req.QueryParam{
+	resp, err = requestClient.Get(baseAddress+"/api/world", req.QueryParam{
 		"page[size]":   100,
 		"page[number]": 1,
 		"sort":         "-reference_id",
 	})
 	if err != nil {
 		log.Printf("Failed to get %s %s", "world", err)
-		t.Errorf("340 failed to get world %v", err)
+		return fmt.Errorf("340 failed to get world %v", err)
 	}
 
 	resp.ToJSON(&responseMap)
+
+	tableNameToIdMap := map[string]string{}
 
 	data := responseMap["data"].([]interface{})
 	for _, row := range data {
@@ -361,13 +353,11 @@ func TestWorldApiSorted(t *testing.T) {
 	if firstRow["type"] != "world" {
 		t.Errorf("world type mismatch")
 	}
-}
 
-func TestActionApi(t *testing.T) {
-	resp, err := RequestClient.Get(BaseAddress + "/actions")
+	resp, err = requestClient.Get(baseAddress + "/actions")
 
 	if err != nil {
-		t.Errorf("362 failed to get actions %v", err)
+		return fmt.Errorf("362 failed to get actions %v", err)
 	}
 
 	actionMap := make(map[string]interface{})
@@ -389,13 +379,11 @@ func TestActionApi(t *testing.T) {
 	if signUpAction["OnType"] != "user_account" {
 		t.Errorf("Unexpected on type")
 	}
-}
 
-func TestMetaAPI(t *testing.T) {
-	resp, err := RequestClient.Get(BaseAddress + "/meta?query=column_types")
+	resp, err = requestClient.Get(baseAddress + "/meta?query=column_types")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "meta", err)
-		t.Errorf("%v", err)
+		return err
 	}
 
 	cols := make(map[string]interface{})
@@ -405,22 +393,16 @@ func TestMetaAPI(t *testing.T) {
 		t.Errorf("label not found")
 	}
 
-}
-func TestAggregateWithoutAuth(t *testing.T) {
-
-	resp, err := RequestClient.Get(BaseAddress + "/aggregate/world?group=id&column=id,count")
+	resp, err = requestClient.Get(baseAddress + "/aggregate/world?group=id&column=id,count")
 	if err != nil {
 		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
-		t.Errorf("%v", err)
+		return err
 	}
 	if resp.Response().StatusCode != 403 {
 		t.Errorf("Was able to get aggreagte without auth token")
 	}
 
-}
-func TestSignupApi(t *testing.T) {
-
-	resp, err := RequestClient.Post(BaseAddress+"/action/user_account/signup", req.BodyJSON(map[string]interface{}{
+	resp, err = requestClient.Post(baseAddress+"/action/user_account/signup", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{
 			"email":           "test@gmail.com",
 			"name":            "name",
@@ -430,7 +412,7 @@ func TestSignupApi(t *testing.T) {
 	}))
 
 	if err != nil {
-		t.Errorf("%v", err)
+		return fmt.Errorf("failed to get signup %v", err)
 	}
 	var signUpResponse interface{}
 
@@ -440,11 +422,7 @@ func TestSignupApi(t *testing.T) {
 		t.Errorf("419 Unexpected response type from sign up - %v", signUpResponse)
 	}
 
-}
-
-func TestSigninApi(t *testing.T) {
-
-	resp, err := RequestClient.Post(BaseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
+	resp, err = requestClient.Post(baseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{
 			"email":    "test@gmail.com",
 			"password": "tester123",
@@ -452,7 +430,7 @@ func TestSigninApi(t *testing.T) {
 	}))
 
 	if err != nil {
-		t.Errorf("%v", err)
+		return fmt.Errorf("failed to get signin %v", err)
 	}
 
 	var token string
@@ -466,119 +444,88 @@ func TestSigninApi(t *testing.T) {
 	}
 
 	token = responseAttr["Attributes"].(map[string]interface{})["value"].(string)
-	authTokenHeader = req.Header{
+	authTokenHeader := req.Header{
 		"Authorization": "Bearer " + token,
 	}
 	t.Logf("Token: %v", token)
 
-}
-
-func TestAggregateWithAuth(t *testing.T) {
-
-	resp, err := RequestClient.Get(BaseAddress+"/aggregate/world?group=date(created_at)&column=date(created_at),count(*)", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/aggregate/world?group=date(created_at)&column=date(created_at),count(*)", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
-		t.Errorf("%v", err)
+		return fmt.Errorf("failed to query aggregate endpoint - %v", err)
 	}
 	t.Logf("Aggregation response: %v", resp.String())
 
-}
 
-func TestJSModelApi(t *testing.T) {
-
-	resp, err := RequestClient.Get(BaseAddress + "/jsmodel/world.js")
+	resp, err = requestClient.Get(baseAddress + "/jsmodel/world.js")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "jsmodel world", err)
-		t.Errorf("%v", err)
+		return err
 	}
 	jsModelMap := make(map[string]interface{})
 	err = resp.ToJSON(&jsModelMap)
 	if err != nil {
 		log.Printf("Failed to get %s %s", "unmarshal jsmomdel world", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 
 	if jsModelMap["ColumnModel"] == nil {
-		t.Errorf("%v", errors.New("unexpected model map response"))
+		return errors.New("unexpected model map response")
 	}
-}
 
-func TestFavicon(t *testing.T) {
-
-	_, err := RequestClient.Get(BaseAddress + "/favicon.ico")
+	_, err = requestClient.Get(baseAddress + "/favicon.ico")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "favicon.ico", err)
-		t.Errorf("%v", err)
+		return err
 	}
 
-	_, err = RequestClient.Get(BaseAddress + "/favicon.png")
+	_, err = requestClient.Get(baseAddress + "/favicon.png")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "favicon.png", err)
-		t.Errorf("%v", err)
+		return err
 	}
-}
-func TestStatsApi(t *testing.T) {
 
-	_, err := RequestClient.Get(BaseAddress + "/statistics")
+	resp, err = requestClient.Get(baseAddress + "/statistics")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "statistics", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 
-}
-func TestApiSpecEndpoint(t *testing.T) {
-
-	_, err := RequestClient.Get(BaseAddress + "/openapi.yaml")
+	resp, err = requestClient.Get(baseAddress + "/openapi.yaml")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "openapi.yaml", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 
-}
-
-func TestWorldApiWithAuth(t *testing.T) {
-
 	// check user flow
-	resp, err := RequestClient.Get(BaseAddress+"/api/world", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/api/world", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get %s %s", "world with token ", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 
 	resp.ToJSON(&responseMap)
 
-	data := responseMap["data"].([]interface{})
-	firstRow := data[0].(map[string]interface{})
+	data = responseMap["data"].([]interface{})
+	firstRow = data[0].(map[string]interface{})
 
 	if firstRow["type"] != "world" {
 		t.Errorf("world type mismatch")
 	}
 
-}
-func TestGetGalleryImageApi(t *testing.T) {
-
-	_, err := RequestClient.Get(BaseAddress+"/api/gallery_image?sort=reference_id,-created_at", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/api/gallery_image?sort=reference_id,-created_at", authTokenHeader)
 
 	if err != nil {
 		log.Printf("Failed to get %s %s", "gallerty image get", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
-}
-
-func TestPostGalleryImageApi(t *testing.T) {
 
 	var x interface{}
 	json.Unmarshal([]byte(OneImage), &x)
-	resp, err := RequestClient.Post(BaseAddress+"/api/gallery_image", req.BodyJSON(x))
+	resp, err = requestClient.Post(baseAddress+"/api/gallery_image",  req.BodyJSON(x))
 	if err != nil {
 		log.Printf("Failed to create %s %s", "gallery image post", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 
 	createImageResp := make(map[string]interface{})
@@ -588,43 +535,32 @@ func TestPostGalleryImageApi(t *testing.T) {
 		//return fmt.Errorf("failed to unmarshal gallery image post response %v", err)
 	}
 
+	var createdID string
 	createdID = createImageResp["data"].(map[string]interface{})["attributes"].(map[string]interface{})["reference_id"].(string)
 
 	t.Logf("Image create response id: %v", createdID)
 
-	t.Run("Fetch Image", testFetchImageApi)
-	t.Run("Fetch Image file", testFetchImageFileApi)
-
-}
-
-func testFetchImageApi(t *testing.T) {
-
-	resp, err := RequestClient.Get(BaseAddress + "/api/gallery_image/" + createdID)
+	resp, err = requestClient.Get(baseAddress + "/api/gallery_image/" + createdID)
 	readImageResp := make(map[string]interface{})
 	err = resp.ToJSON(&readImageResp)
 	if err != nil {
 
 		log.Printf("Failed to get %s %s", "unmarshal gallery image get", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
-}
-func testFetchImageFileApi(t *testing.T) {
 
 	//t.Logf("Image read response id: %v", readImageResp)
 
-	resp, err := RequestClient.Get(BaseAddress + "/asset/gallery_image/" + createdID + "/file.png")
+	resp, err = requestClient.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "gallery image get by id", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 
 	imbBody, err := ioutil.ReadAll(resp.Response().Body)
 	if err != nil {
 		log.Printf("Failed to get %s %s", "read image body gallery image get by id", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 	imgLen := len(imbBody)
 	t.Logf("Image length: %v", imgLen)
@@ -675,35 +611,29 @@ func testFetchImageFileApi(t *testing.T) {
 	}
 
 	for _, param := range Params {
-		resp, err = RequestClient.Get(BaseAddress + "/asset/gallery_image/" + createdID + "/file.png?" + param)
+		resp, err = requestClient.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png?" + param)
 		if err != nil {
 			log.Printf("Failed to get %s %s", param, err)
-			t.Errorf("%v", err)
-
+			return err
 		}
 
 		imbBody, err := ioutil.ReadAll(resp.Response().Body)
 		if err != nil {
 			log.Printf("Failed to get read image %s %s", param, err)
-			t.Errorf("%v", err)
-
+			return err
 		}
 		t.Logf("Image length [%v]: %v", param, len(imbBody))
 
 	}
 
-}
-func TestBecomeAdmin(t *testing.T) {
-
 	// do a sign in
-	resp, err := RequestClient.Post(BaseAddress+"/action/world/become_an_administrator", req.BodyJSON(map[string]interface{}{
+	resp, err = requestClient.Post(baseAddress+"/action/world/become_an_administrator", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{},
 	}), authTokenHeader)
 
 	if err != nil {
 		log.Printf("Failed to get read response %s %s", "become admin", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 
 	becomeAdminResponse := resp.String()
@@ -712,26 +642,19 @@ func TestBecomeAdmin(t *testing.T) {
 	t.Logf("Sleeping for 5 seconds waiting for restart")
 	time.Sleep(5 * time.Second)
 	t.Logf("Wake up after sleep")
-}
 
-func TestGetHostnameInConfig(t *testing.T) {
-
-	resp, err := RequestClient.Get(BaseAddress+"/_config/backend/hostname", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get read image %s %s", "config hostname get", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 
 	t.Logf("Hostname from config: %v", resp.String())
-}
-func TestSetHostnameInConfig(t *testing.T) {
 
-	resp, err := RequestClient.Post(BaseAddress+"/_config/backend/hostname", authTokenHeader, "test")
+	resp, err = requestClient.Post(baseAddress+"/_config/backend/hostname", authTokenHeader, "test")
 	if err != nil {
 		log.Printf("Failed to get read image %s %s", "config hostname post", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 
 	time.Sleep(5 * time.Second)
@@ -741,67 +664,51 @@ func TestSetHostnameInConfig(t *testing.T) {
 	time.Sleep(5 * time.Second)
 	t.Logf("Wake up after sleep")
 
-	resp, err = RequestClient.Get(BaseAddress+"/_config/backend/hostname", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to read %s %s", "config hostname get", err)
-		t.Errorf("%v", err)
+		return err
 	}
 	t.Logf("Hostname from config: %v", resp.String())
 
-}
-
-func TestGetByGraphqlWithAuth(t *testing.T) {
-
-	graphqlResponse, err := RequestClient.Post(BaseAddress+"/graphql",
+	graphqlResponse, err := requestClient.Post(baseAddress+"/graphql",
 		`{"query":"query {\n  action (filter:\"become_an_administrator\")  {\n    action_name\n  }\n}","variables":null}`,
 		authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get graphql response for graphql query %s", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"action_name": "become_an_administrator"`) == -1 {
 		t.Errorf("Expected action name not found in response from graphql [%v]", graphqlResponse.String())
 	}
-}
 
-func TestGetByGraphqlNoAuth(t *testing.T) {
-
-	graphqlResponse, err := RequestClient.Post(BaseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		`{"query":"query {\n  action {\n    action_name\n  }\n}","variables":null}`)
 	if err != nil {
 		log.Printf("Failed to get action name from graphl query %s", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"action_name": "generate_acme_certificate"`) > -1 {
 		t.Errorf("Unexpected action name found in response from graphql [%v] without auth token", graphqlResponse.String())
 	}
-}
 
-func TestCreateByGraphqlNoAuth(t *testing.T) {
-
-	graphqlResponse, err := RequestClient.Post(BaseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		`{"query":"mutation {\n  addCertificate (hostname: \"test\", generated_at: \"2020-10-09T00:00:00Z\", issuer:\"localhost\", private_key_pem:\"\") {\n    created_at\n    reference_id\n  }\n  \n}","variables":{}}`)
 	if err != nil {
 		log.Printf("Success in add graphql endpoint without token %s %s", "addCertificate", err)
 		log.Printf("body %v", graphqlResponse.String())
-		t.Errorf("%v", err)
+		return errors.New("auth failure")
 	}
 	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
 		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token", graphqlResponse.String())
 	}
-}
 
-func TestCreateByGraphqlAuth(t *testing.T) {
-
-	graphqlResponse, err := RequestClient.Post(BaseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		`{"query":"mutation {\n  addCertificate (hostname: \"test\", issuer:\"localhost\", private_key_pem:\"\") {\n    created_at\n    reference_id\n  }\n  \n}","variables":{}}`,
 		authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to query graphql endpoint 2 %s %s", "addCertificate", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"reference_id": "`) == -1 {
 		t.Errorf("Expected 'reference_id' not found in response from graphql [%v] with auth token on certificate create", graphqlResponse.String())
@@ -810,56 +717,55 @@ func TestCreateByGraphqlAuth(t *testing.T) {
 	certReferenceId := strings.Split(strings.Split(graphqlResponse.String(), `"reference_id": "`)[1], "\"")[0]
 	t.Logf("reference id from certificate: %v", certReferenceId)
 
-	graphqlResponse, err = RequestClient.Post(BaseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (reference_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
 	if err != nil {
 		log.Printf("Success in  query graphql endpoint without auth token %s %s", "updateCertificate", err)
-		t.Errorf("%v", err)
+		return errors.New("auth failure")
 	}
 	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
 		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
 	}
 
 	graphqlRequest := fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (reference_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId)
-	graphqlResponse, err = RequestClient.Post(BaseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		graphqlRequest,
 		authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to query graphql endpoint %s %s", "updateCertificate", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"hostname": "hello"`) == -1 {
 		t.Errorf("[hostname=hello]Expected string not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
 		t.Errorf("graphql request was: %v", graphqlRequest)
 	}
 
-	graphqlResponse, err = RequestClient.Post(BaseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (reference_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
 	if err != nil {
 		log.Printf("Success in delete graphql endpoint without auth token %s %s", "deleteCertificate", err)
-		t.Errorf("%v", err)
+		return errors.New("auth failure")
 	}
 	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
 		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
 	}
 
-	graphqlResponse, err = RequestClient.Post(BaseAddress+"/graphql",
+	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
 		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (reference_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId),
 		authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to delete graphql endpoint %s %s", "deleteCertificate", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"hostname": null`) == -1 {
 		t.Errorf("hostname=null] Expected string not found in response from graphql [%v] "+
 			"without auth token on certificate delete", graphqlResponse.String())
 	}
 
-	//TestFtpServer(t)
+	FtpTest(t)
 
-	resp, err := RequestClient.Post(BaseAddress+"/action/world/import_files_from_store", req.BodyJSON(map[string]interface{}{
+	// do a sign in
+	resp, err = requestClient.Post(baseAddress+"/action/world/import_files_from_store", req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{
 			"world_id": tableNameToIdMap["gallery_image"],
 		},
@@ -867,11 +773,12 @@ func TestCreateByGraphqlAuth(t *testing.T) {
 
 	if err != nil {
 		log.Printf("Failed to get read response %s %s", "become admin", err)
-		t.Errorf("%v", err)
-
+		return err
 	}
 	importResponse := resp.String()
 	t.Logf("File import response: [%v]", importResponse)
+
+	return nil
 
 }
 
@@ -881,7 +788,7 @@ func BenchmarkCreate(m *testing.B) {
 
 	m.StopTimer()
 	const baseAddress = "http://localhost:6337"
-	//createServer()
+	createServer()
 
 	requestClient := req.New()
 
@@ -930,6 +837,7 @@ func BenchmarkCreate(m *testing.B) {
 	authTokenHeader := req.Header{
 		"Authorization": "Bearer " + token,
 	}
+
 
 	createPayload := req.BodyJSON(map[string]interface{}{
 		"data": map[string]interface{}{
@@ -1007,7 +915,7 @@ func BenchmarkCreate(m *testing.B) {
 	m.Run("Get By Id", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
 			id := ids[n%len(ids)]
-			_, err := requestClient.Get(baseAddress+"/api/table10cols/"+id, authTokenHeader)
+			_, err := requestClient.Get(baseAddress + "/api/table10cols/" + id, authTokenHeader)
 			if err != nil {
 				b.Errorf("Failed to get by id %v - %v", id, err)
 			}
@@ -1017,7 +925,7 @@ func BenchmarkCreate(m *testing.B) {
 	m.Run("DELETE", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
 			id := ids[n%len(ids)]
-			_, err := requestClient.Delete(baseAddress+"/api/table10cols/"+id, authTokenHeader)
+			_, err := requestClient.Delete(baseAddress + "/api/table10cols/" + id, authTokenHeader)
 			if err != nil {
 				b.Errorf("Failed to delete %v - %v", id, err)
 			}
@@ -1026,7 +934,7 @@ func BenchmarkCreate(m *testing.B) {
 
 }
 
-func TestFtpServer(t *testing.T) {
+func FtpTest(t *testing.T) {
 
 	c, err := ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second), ftp.DialWithDebugOutput(os.Stdout))
 
