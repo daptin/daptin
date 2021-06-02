@@ -17,6 +17,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -227,7 +228,7 @@ type CachedUserAccount struct {
 }
 
 //var LocalUserCacheMap = make(map[string]CachedUserAccount)
-//var LocalUserCacheLock = sync.Mutex{}
+var LocalUserCacheLock = sync.Mutex{}
 var olricCache *olric.DMap
 
 func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer http.ResponseWriter, doBasicAuthCheck bool) (okToContinue, abortRequest bool, returnRequest *http.Request) {
@@ -278,7 +279,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			userToken := userJwtToken
 			email := userToken.Claims.(jwt.MapClaims)["email"].(string)
 			name := userToken.Claims.(jwt.MapClaims)["name"].(string)
-			log.Printf("User is not nil: %v", email  )
+			log.Printf("User is not nil: %v", email)
 
 			var sessionUser *SessionUser
 			var cachedUser interface{}
@@ -425,7 +426,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						Groups:          userGroups,
 					}
 					//
-					//LocalUserCacheLock.Lock()
+					LocalUserCacheLock.Lock()
 					//LocalUserCacheMap[email] = CachedUserAccount{
 					//	Account: *sessionUser,
 					//	Expiry:  time.Now().Add(2 * time.Minute),
@@ -433,10 +434,13 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 					//if rand.Int() % 10 == 0 {
 					log.Errorf("cache user account auth [%v]", email)
-					err = olricCache.PutIfEx(email, *sessionUser, 2*time.Minute, olric.IfNotFound)
-					CheckErr(err, "failed to put user in cache %s", email)
+					repeatCheck, err := olricCache.Get(email)
+					if err != nil || repeatCheck == nil {
+						err = olricCache.PutIfEx(email, *sessionUser, 2*time.Minute, olric.IfNotFound)
+						CheckErr(err, "failed to put user in cache %s", email)
+					}
 					//}
-					//LocalUserCacheLock.Unlock()
+					LocalUserCacheLock.Unlock()
 
 				} else {
 					sessionUserValue := cachedUser.(SessionUser)
