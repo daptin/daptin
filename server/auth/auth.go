@@ -439,7 +439,8 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					//LocalUserCacheLock.Unlock()
 
 				} else {
-					sessionUser = cachedUser.(*SessionUser)
+					sessionUserValue := cachedUser.(SessionUser)
+					sessionUser = &sessionUserValue
 					//LocalUserCacheLock.Lock()
 					//LocalUserCacheMap[email] = CachedUserAccount{
 					//	Account: *sessionUser,
