@@ -278,7 +278,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			userToken := userJwtToken
 			email := userToken.Claims.(jwt.MapClaims)["email"].(string)
 			name := userToken.Claims.(jwt.MapClaims)["name"].(string)
-			//log.Printf("User is not nil: %v", email  )
+			log.Printf("User is not nil: %v", email  )
 
 			var sessionUser *SessionUser
 			var cachedUser interface{}
@@ -300,6 +300,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				var userId int64
 				var userGroups []GroupPermission
 				if err != nil || cachedUser == nil {
+					log.Errorf("cached user [%v] is nil", email)
 
 					sql, args, err := statementbuilder.Squirrel.Select(goqu.I("u.id"),
 						goqu.I("u.reference_id")).
@@ -327,7 +328,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 					if err != nil {
 						// if a user logged in from third party oauth login
-						log.Errorf("Failed to scan user from db: %v", err)
+						log.Errorf("Failed to scan user [%v] from db: %v", email, err)
 
 						mapData := make(map[string]interface{})
 						mapData["name"] = name
@@ -390,18 +391,18 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						}(stmt1)
 
 						rows, err := stmt1.Queryx(args1...)
+						defer func(rows *sqlx.Rows) {
+							err := rows.Close()
+							if err != nil {
+								log.Errorf("failed to close result after fetching user in auth")
+							}
+						}(rows)
 
 						if err != nil {
 							log.Errorf("Failed to get user group permissions: %v", err)
 						} else {
-							defer func(rows *sqlx.Rows) {
-								err := rows.Close()
-								if err != nil {
-									log.Errorf("failed to close result after fetching user in auth")
-								}
-							}(rows)
 							//cols, _ := rows.Columns()
-							//log.Debugf("Usergroup selection query for user [%v] : [%v]", email, query)
+							log.Errorf("Usergroup selection query for user [%v] : [%v]", email, query)
 							for rows.Next() {
 								var p GroupPermission
 								err = rows.StructScan(&p)
