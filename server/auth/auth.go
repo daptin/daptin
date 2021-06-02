@@ -435,7 +435,8 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 					//if rand.Int() % 10 == 0 {
 					j, _ := json.Marshal(*sessionUser)
-					log.Errorf("cache user account auth [%v] -> %v", email, string(j))
+					strJ := string(j)
+					log.Errorf("cache user account auth [%v] -> %v", len(strJ), strJ)
 					repeatCheck, err := olricCache.Get(email)
 					if err != nil || repeatCheck == nil {
 						err = olricCache.PutIfEx(email, *sessionUser, 2*time.Minute, olric.IfNotFound)
