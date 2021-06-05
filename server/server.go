@@ -439,10 +439,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 		hostname, err := configStore.GetConfigValueFor("hostname", "backend")
 		hostname = "caldav." + hostname
-
 		// Create a new server
-
-		calDavServer := resource.NewCaldavServer(CaldavListenInterface)
+		calDavServer := resource.NewCaldavServer(CaldavListenInterface, db)
 
 		tlsConfig, _, _, _, _, err := certificateManager.GetTLSConfig(hostname, true)
 		resource.CheckErr(err, "Failed to get certificate for CalDav [%v]", hostname)
