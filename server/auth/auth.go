@@ -280,7 +280,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			userToken := userJwtToken
 			email := userToken.Claims.(jwt.MapClaims)["email"].(string)
 			name := userToken.Claims.(jwt.MapClaims)["name"].(string)
-			log.Printf("User is not nil: %v", email)
+			//log.Printf("User is not nil: %v", email)
 
 			var sessionUser *SessionUser
 			var cachedUser interface{}
