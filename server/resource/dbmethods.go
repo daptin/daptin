@@ -296,7 +296,6 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 		}
 	}(stmt)
 
-
 	resultObject := make(map[string]interface{})
 	err = stmt.QueryRowx(queryParameters...).MapScan(resultObject)
 	if err != nil {
@@ -324,7 +323,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 
 var OlricCache *olric.DMap
 
-// GetObjectPermissionByWhereClause Get permission of an Object by typeName and string referenceId with a simple where clause colName = colValue
+// GetObjectPermissionByWhereClause Gets permission of an Object by typeName and string referenceId with a simple where clause colName = colValue
 // Use carefully
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
@@ -393,16 +392,29 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	return perm
 }
 
-// Get list of group permissions for objects of typeName where colName=colValue
+// GetObjectUserGroupsByWhere Get list of group permissions for objects of typeName where colName=colValue
 // Utility method which makes a join query to load a lot of permissions quickly
 // Used by GetRowPermission
-func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string, colvalue interface{}) []auth.GroupPermission {
+func (dr *DbResource) GetObjectUserGroupsByWhere(objectType string, colName string, colValue interface{}) []auth.GroupPermission {
+
+	//if OlricCache == nil {
+	//	OlricCache, _ = dr.OlricDb.NewDMap("default-cache")
+	//}
+	//
+	//cacheKey := ""
+	//if OlricCache != nil {
+	//	cacheKey = fmt.Sprintf("groups-%s_%s_%s", objectType, colName, colValue)
+	//	cachedPermission, err := OlricCache.Get(cacheKey)
+	//	if cachedPermission != nil && err == nil {
+	//		return cachedPermission.([]auth.GroupPermission)
+	//	}
+	//}
 
 	s := make([]auth.GroupPermission, 0)
 
 	rel := api2go.TableRelation{}
-	rel.Subject = objType
-	rel.SubjectName = objType + "_id"
+	rel.Subject = objectType
+	rel.SubjectName = objectType + "_id"
 	rel.Object = "usergroup"
 	rel.ObjectName = "usergroup_id"
 	rel.Relation = "has_many_and_belongs_to_many"
@@ -424,7 +436,7 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 				fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.%v", rel.GetObjectName(), "id")),
 			})).
 		Where(goqu.Ex{
-			fmt.Sprintf("%s.%s", rel.Subject, colName): colvalue,
+			fmt.Sprintf("%s.%s", rel.Subject, colName): colValue,
 		}).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to create permission select query: %v", err)
@@ -461,6 +473,11 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 		}
 		s = append(s, g)
 	}
+
+	//if OlricCache != nil {
+	//	_ = OlricCache.PutIfEx(cacheKey, s, 10*time.Second, olric.IfNotFound)
+	//}
+
 	return s
 
 }
@@ -1071,7 +1088,6 @@ func (dr *DbResource) GetSingleRowById(typeName string, id int64, includedRelati
 		}
 	}(stmt1)
 
-
 	rows, err := stmt1.Queryx(q...)
 	defer func(rows *sqlx.Rows) {
 		err := rows.Close()
@@ -1615,7 +1631,7 @@ func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...goqu.Ex) ([
 
 }
 
-// Lookup an integer id and return a string reference id of an object of type `typeName`
+// GetIdToReferenceId Looks up an integer id and return a string reference id of an object of type `typeName`
 func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, error) {
 
 	k := fmt.Sprintf("itr-%v-%v", typeName, id)
@@ -1687,7 +1703,6 @@ func (dr *DbResource) GetReferenceIdListToIdList(typeName string, referenceId []
 	if err != nil {
 		return idMap, err
 	}
-
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
