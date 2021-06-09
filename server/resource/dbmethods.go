@@ -2136,7 +2136,17 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					})
 					CheckErr(err, "[1923] failed to get object by od")
 
-					localInclude = append(localInclude, localSubjectInclude[0])
+					_, ok := row[relation.GetSubjectName()]
+					if !ok {
+						row[relation.GetSubjectName()] = make([]string, 0)
+					}
+
+					for _, incl := range localSubjectInclude {
+						row[relation.GetSubjectName()] = append(row[relation.GetSubjectName()].([]string), incl["reference_id"].(string))
+					}
+
+
+					localInclude = append(localInclude, localSubjectInclude...)
 
 					break
 				case "has_many":
