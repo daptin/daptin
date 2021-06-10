@@ -2127,12 +2127,13 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 					for includedSubject.Next() {
 						var subId int64
-						includedSubject.Scan(&subId)
+						err = includedSubject.Scan(&subId)
 						includedSubjectId = append(includedSubjectId, subId)
 					}
-					includedSubject.Close()
+					CheckErr(err, "[2133] failed to scan included subject id")
+					err = includedSubject.Close()
+					CheckErr(err, "[2135] failed to close rows")
 
-					CheckErr(err, "[1914] failed to scan included subject id")
 
 					if len(includedSubjectId) < 1 {
 						continue
