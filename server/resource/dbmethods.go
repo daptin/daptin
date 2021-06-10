@@ -2118,16 +2118,22 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						}
 					}(stmt1)
 
-					includedSubject := stmt1.QueryRowx(args...)
-					if includedSubject.Err() != nil {
+					includedSubject, err := stmt1.Queryx(args...)
+					if err != nil {
 						log.Printf("Failed to query 1538: %v", includedSubject.Err())
 						continue
 					}
-					includedSubjectId := int64(0)
+					includedSubjectId := []int64{}
+
+					for includedSubject.Next() {
+						var subId int64
+						includedSubject.Scan(&subId)
+						includedSubjectId = append(includedSubjectId, subId)
+					}
 					err = includedSubject.Scan(&includedSubjectId)
 					CheckErr(err, "[1914] failed to scan included subject id")
 
-					if includedSubjectId < 1 {
+					if len(includedSubjectId) < 1 {
 						continue
 					}
 
