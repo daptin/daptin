@@ -486,6 +486,7 @@ func (d *DbResource) GetUserPassword(email string) (string, error) {
 	return passwordHash, err
 }
 
+
 // Convert group name to the internal integer id
 // should not be used since group names are not unique
 // deprecated
@@ -861,6 +862,40 @@ func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 	}
 
 	return email
+
+}
+
+func (dr *DbResource) GetUserById(userId int64) (map[string]interface{}, error) {
+
+	user, _, err := dr.Cruds[USER_ACCOUNT_TABLE_NAME].GetSingleRowById("user_account", userId, nil)
+
+	if len(user) > 0 {
+		return nil, err
+	}
+
+	return nil, errors.New("no such user")
+
+	//type myStruct struct {
+	//	UserName string
+	//	EmailAddress string `db:"d"`
+	//}
+	//var email string
+	//ds := statementbuilder.Squirrel.Select("email").From(goqu.T("user_account")).Where(goqu.Ex{"id": userId})
+	//sql, args,err := ds.ToSQL()
+	//
+	//if err != nil {
+	//	log.Errorf("Failed to create sql query 872: %v", err)
+	//	return ""
+	//}
+	//
+	//
+	//rowx := dr.db.QueryRowx(sql, args...)
+	//err = rowx.Scan(&email)
+	//if err != nil {
+	//	log.Errorf("Failed to create sql query 872: %v", err)
+	//	return ""
+	//}
+	//return email
 
 }
 
