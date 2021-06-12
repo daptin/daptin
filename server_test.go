@@ -224,7 +224,7 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 	configStore.SetConfigValueFor("limit.max_connectioins", "5000", "backend")
 	configStore.SetConfigValueFor("limit.rate", "5000", "backend")
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, _, olricDb = server.Main(boxRoot, db, "./local", olricDb)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer,olricDb = server.Main(boxRoot, db, "./local", olricDb)
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -245,7 +245,7 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 
 		db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer,_, olricDb = server.Main(boxRoot, db, "./local", olricDb)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer,olricDb = server.Main(boxRoot, db, "./local", olricDb)
 		rhs.HostSwitch = &hostSwitch
 	})
 
