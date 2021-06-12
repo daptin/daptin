@@ -1771,7 +1771,8 @@ func (dr *DbResource) GetIdListToReferenceIdList(typeName string, ids []int64) (
 
 // GetSingleColumnValueByReferenceId select "column" from "typeName" where matchColumn in (values)
 // returns list of values of the column
-func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectColumn []interface{}, matchColumn string, values []string) ([]interface{}, error) {
+func (dr *DbResource) GetSingleColumnValueByReferenceId(
+	typeName string, selectColumn []interface{}, matchColumn string, values []string) ([]interface{}, error) {
 
 	s, q, err := statementbuilder.Squirrel.Select(selectColumn...).From(typeName).Where(goqu.Ex{matchColumn: values}).ToSQL()
 	if err != nil {
@@ -1816,7 +1817,7 @@ func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectC
 	return returnValues, nil
 }
 
-// convert the result of db.QueryRowx => rows to array of data
+// RowsToMap converts the result of db.QueryRowx => rows to array of data
 // can be used on any *sqlx.Rows and assign a typeName
 func RowsToMap(rows *sqlx.Rows, typeName string) ([]map[string]interface{}, error) {
 
