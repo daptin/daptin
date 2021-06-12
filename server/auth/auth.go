@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/buraksezer/olric"
@@ -227,7 +228,7 @@ type CachedUserAccount struct {
 	Expiry  time.Time
 }
 
-var LocalUserCacheMap = make(map[string]CachedUserAccount)
+//var LocalUserCacheMap = make(map[string]CachedUserAccount)
 var LocalUserCacheLock = sync.Mutex{}
 var olricCache *olric.DMap
 
@@ -241,7 +242,8 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 	}
 
 	if olricCache == nil {
-		olricCache, _ = a.olricDb.NewDMap("default-cache")
+		log.Infof("Create olric default-cache for auth")
+		olricCache, _ = a.olricDb.NewDMap("auth-cache")
 	}
 
 	hasUser := false
@@ -278,29 +280,29 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			userToken := userJwtToken
 			email := userToken.Claims.(jwt.MapClaims)["email"].(string)
 			name := userToken.Claims.(jwt.MapClaims)["name"].(string)
-			//log.Printf("User is not nil: %v", email  )
+			//log.Printf("User is not nil: %v", email)
 
 			var sessionUser *SessionUser
 			var cachedUser interface{}
 
-			LocalUserCacheLock.Lock()
-			localCachedUser, ok := LocalUserCacheMap[email]
-
-			if ok && time.Now().After(localCachedUser.Expiry) {
-				delete(LocalUserCacheMap, email)
-				ok = false
-			}
-			LocalUserCacheLock.Unlock()
+			ok := false
+			//LocalUserCacheLock.Lock()
+			//localCachedUser, ok := LocalUserCacheMap[email]
+			//
+			//if ok && time.Now().After(localCachedUser.Expiry) {
+			//	delete(LocalUserCacheMap, email)
+			//	ok = false
+			//}
+			//LocalUserCacheLock.Unlock()
 
 			if !ok {
 
-				if olricCache != nil {
-					cachedUser, err = olricCache.Get(email)
-				}
+				cachedUser, err = olricCache.Get(email)
 				var referenceId string
 				var userId int64
 				var userGroups []GroupPermission
 				if err != nil || cachedUser == nil {
+					log.Errorf("cached user [%v] is nil", email)
 
 					sql, args, err := statementbuilder.Squirrel.Select(goqu.I("u.id"),
 						goqu.I("u.reference_id")).
@@ -311,12 +313,24 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						return false, true, req
 					}
 
-					rowx := a.db.QueryRowx(sql, args...)
+					stmt1, err := a.db.Preparex(sql)
+					if err != nil {
+						log.Errorf("[315] failed to prepare statment: %v", err)
+						return false, true, req
+					}
+					defer func(stmt1 *sqlx.Stmt) {
+						err := stmt1.Close()
+						if err != nil {
+							log.Errorf("failed to close prepared statement: %v", err)
+						}
+					}(stmt1)
+
+					rowx := stmt1.QueryRowx(args...)
 					err = rowx.Scan(&userId, &referenceId)
 
 					if err != nil {
 						// if a user logged in from third party oauth login
-						log.Errorf("Failed to scan user from db: %v", err)
+						log.Errorf("Failed to scan user [%v] from db: %v", email, err)
 
 						mapData := make(map[string]interface{})
 						mapData["name"] = name
@@ -365,19 +379,32 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					} else {
 
 						query, args1, err := UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": userId}).ToSQL()
-						rows, err := a.db.Queryx(query, args1...)
+
+						stmt1, err := a.db.Preparex(query)
+						if err != nil {
+							log.Errorf("[382] failed to prepare statment: %v", err)
+							return false, true, nil
+						}
+						defer func(stmt1 *sqlx.Stmt) {
+							err := stmt1.Close()
+							if err != nil {
+								log.Errorf("failed to close prepared statement: %v", err)
+							}
+						}(stmt1)
+
+						rows, err := stmt1.Queryx(args1...)
+						defer func(rows *sqlx.Rows) {
+							err := rows.Close()
+							if err != nil {
+								log.Errorf("failed to close result after fetching user in auth")
+							}
+						}(rows)
 
 						if err != nil {
 							log.Errorf("Failed to get user group permissions: %v", err)
 						} else {
-							defer func(rows *sqlx.Rows) {
-								err := rows.Close()
-								if err != nil {
-									log.Errorf("failed to close result after fetching user in auth")
-								}
-							}(rows)
 							//cols, _ := rows.Columns()
-							//log.Debugf("Usergroup selection query for user [%v] : [%v]", email, query)
+							log.Errorf("Usergroup selection query for user [%v] : [%v]", email, query)
 							for rows.Next() {
 								var p GroupPermission
 								err = rows.StructScan(&p)
@@ -399,33 +426,40 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						UserReferenceId: referenceId,
 						Groups:          userGroups,
 					}
-
+					//
 					LocalUserCacheLock.Lock()
-					LocalUserCacheMap[email] = CachedUserAccount{
-						Account: *sessionUser,
-						Expiry:  time.Now().Add(2 * time.Minute),
-					}
+					//LocalUserCacheMap[email] = CachedUserAccount{
+					//	Account: *sessionUser,
+					//	Expiry:  time.Now().Add(2 * time.Minute),
+					//}
 
-					if olricCache != nil {
-						err = olricCache.PutIfEx(email, sessionUser, 1*time.Minute, olric.IfNotFound)
-						CheckErr(err, "Failed to put user in cache")
+					//if rand.Int() % 10 == 0 {
+					j, _ := json.Marshal(*sessionUser)
+					strJ := string(j)
+					log.Errorf("cache user account auth [%v] -> %v", len(strJ), strJ)
+					repeatCheck, err := olricCache.Get(email)
+					if err != nil || repeatCheck == nil {
+						err = olricCache.PutIfEx(email, *sessionUser, 2*time.Minute, olric.IfNotFound)
+						CheckErr(err, "failed to put user in cache %s", email)
 					}
+					//}
 					LocalUserCacheLock.Unlock()
 
 				} else {
-					sessionUser = cachedUser.(*SessionUser)
-					LocalUserCacheLock.Lock()
-					LocalUserCacheMap[email] = CachedUserAccount{
-						Account: *sessionUser,
-						Expiry:  time.Now().Add(2 * time.Minute),
-					}
-					LocalUserCacheLock.Unlock()
+					sessionUserValue := cachedUser.(SessionUser)
+					sessionUser = &sessionUserValue
+					//LocalUserCacheLock.Lock()
+					//LocalUserCacheMap[email] = CachedUserAccount{
+					//	Account: *sessionUser,
+					//	Expiry:  time.Now().Add(2 * time.Minute),
+					//}
+					//LocalUserCacheLock.Unlock()
 				}
 			} else {
-				sessionUser = &localCachedUser.Account
+				//sessionUser = &localCachedUser.Account
 			}
 
-			log.Tracef("User cache map size: %v", len(LocalUserCacheMap))
+			//log.Tracef("User cache map size: %v", len(LocalUserCacheMap))
 
 			ct := req.Context()
 			ct = context.WithValue(ct, "user", sessionUser)

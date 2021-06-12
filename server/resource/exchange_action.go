@@ -7,6 +7,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -52,7 +53,20 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[s
 	userReferenceId := userRow["reference_id"].(string)
 
 	query, args1, err := auth.UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": g.exchangeContract.AsUserId}).ToSQL()
-	rows, err := g.cruds[USER_ACCOUNT_TABLE_NAME].db.Queryx(query, args1...)
+
+	stmt1, err := g.cruds[USER_ACCOUNT_TABLE_NAME].connection.Preparex(query)
+	if err != nil {
+		log.Errorf("[59] failed to prepare statment: %v", err)
+	}
+
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	rows, err := stmt1.Queryx(args1...)
 	userGroups := make([]auth.GroupPermission, 0)
 
 	if err != nil {

@@ -66,6 +66,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	/// Start system initialise
 	log.Printf("Load config files")
+
 	initConfig, errs := LoadConfigFiles()
 	if errs != nil {
 		for _, err := range errs {
@@ -631,7 +632,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 						if colValue == nil {
 							return
 						}
-						columnValueArray := colValue.([]map[string]interface{})
+						columnValueArray, ok := colValue.([]map[string]interface{})
+						if !ok {
+							log.Warnf("value is not of type array - %v", colValue)
+							return
+						}
 
 						fileContentsJson := []byte{}
 						for _, file := range columnValueArray {
@@ -872,7 +877,7 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 		resource.UpdateStreams(initConfig, db)
 		//resource.UpdateMarketplaces(initConfig, db)
 		err := resource.UpdateTasksData(initConfig, db)
-		resource.CheckErr(err, "Failed to update cron jobs")
+		resource.CheckErr(err, "[870] Failed to update cron jobs")
 		resource.UpdateStandardData(initConfig, db)
 
 		err = resource.UpdateActionTable(initConfig, db)
@@ -935,11 +940,14 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 						existableTable.Columns[colIndex].ExcludeFromApi = newColumnDef.ExcludeFromApi
 						existableTable.Columns[colIndex].IsIndexed = newColumnDef.IsIndexed
 						existableTable.Columns[colIndex].IsNullable = newColumnDef.IsNullable
+						existableTable.Columns[colIndex].IsUnique = newColumnDef.IsUnique
 						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
 						existableTable.Columns[colIndex].Options = newColumnDef.Options
 						existableTable.Columns[colIndex].DataType = newColumnDef.DataType
-						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
+						existableTable.Columns[colIndex].ColumnDescription = newColumnDef.ColumnDescription
 						existableTable.Columns[colIndex].ForeignKeyData = newColumnDef.ForeignKeyData
+						existableTable.Columns[colIndex].IsForeignKey = newColumnDef.IsForeignKey
+						existableTable.Columns[colIndex].IsPrimaryKey = newColumnDef.IsPrimaryKey
 
 					} else {
 						existableTable.Columns = append(existableTable.Columns, newColumnDef)
