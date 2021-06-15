@@ -458,7 +458,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			if !ok {
 				queries, ok = req.QueryParams[rel.GetObject()+"_id"]
 			}
-			if !ok || len(queries) < 1 {
+			if !ok || len(queries) < 1 || (len(queries) == 1 && queries[0] == "") {
 				continue
 			}
 
@@ -505,9 +505,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				refIdsToIdMap, err := dr.GetReferenceIdListToIdList(rel.GetObject(), queries)
 
 				//log.Printf("Converted ids: %v", ids)
-				if err != nil || len(refIdsToIdMap) < 1 {
+				if err != nil {
 					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
 					return nil, nil, nil, false, err
+				}
+
+				if len(refIdsToIdMap) < 1 {
+					continue
 				}
 
 				intIdList := ValuesOf(refIdsToIdMap)
