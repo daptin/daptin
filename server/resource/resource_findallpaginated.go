@@ -474,7 +474,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 					joinWhere := goqu.Ex{}
 					for _, joinQueryPart := range joinQueryParts {
 						parts := strings.Split(joinQueryPart, ":")
-						joinWhere[parts[0]] = parts[1]
+						joinWhere[parts[0]] = strings.Split(parts[1], "|")
 					}
 					//matches := joinTableFilterRegex.FindAllStringSubmatch(joinQuery, -1)
 					joinTableFilters[joinId] = joinWhere
@@ -532,7 +532,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 						k := 0
 						for refId, joinFilter := range joinTableFilters {
-							k = k+1
+							k = k + 1
 							intId := refIdsToIdMap[refId]
 							joinTableAs := fmt.Sprintf("%v%v", rel.GetJoinTableName(), k)
 							objectTableAs := fmt.Sprintf("%v%v", rel.GetObjectName(), k)
@@ -545,7 +545,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 								joinTableJoinClause[fmt.Sprintf("%v.%v", joinTableAs, key)] = val
 							}
 							joinTableJoinClause[fmt.Sprintf("%v.%v", joinTableAs, rel.GetObjectName())] = intId
-
 
 							objectTableJoinClause := goqu.Ex{
 								fmt.Sprintf("%v.%v", joinTableAs, rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", objectTableAs)),
@@ -610,7 +609,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 							).Where(wh)
 
 					}
-
 
 					joins = append(joins, GetJoins(rel)...)
 					joinFilters = append(joinFilters, wh)
