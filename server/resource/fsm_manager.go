@@ -5,6 +5,7 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
 	loopfsm "github.com/looplab/fsm"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -35,7 +36,19 @@ func (fsm *fsmManager) getStateMachineInstance(objType string, objId int64, mach
 	}
 
 	responseMap := make(map[string]interface{})
-	err = fsm.db.QueryRowx(s, v...).MapScan(responseMap)
+
+	stmt1, err := fsm.db.Preparex(s)
+	if err != nil {
+		log.Errorf("[42] failed to prepare statment: %v", err)
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	err = stmt1.QueryRowx(v...).MapScan(responseMap)
 
 	if err != nil {
 		log.Errorf("Failed to map scan state row: %v", err)
@@ -85,7 +98,19 @@ func (fsm *fsmManager) stateMachineRunnerFor(currentState string, typeName strin
 
 	var jsonValue string
 	var initialState string
-	err = fsm.db.QueryRowx(s, v...).Scan(&initialState, &jsonValue)
+
+	stmt1, err := fsm.db.Preparex(s)
+	if err != nil {
+		log.Errorf("[104] failed to prepare statment: %v", err)
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	err = stmt1.QueryRowx(v...).Scan(&initialState, &jsonValue)
 
 	if currentState == "" {
 
@@ -160,7 +185,18 @@ func ReferenceIdToIntegerId(typeName string, referenceId string, db database.Dat
 
 	var intId int64
 
-	err = db.QueryRowx(s, v...).Scan(&intId)
+	stmt1, err := db.Preparex(s)
+	if err != nil {
+		log.Errorf("[190] failed to prepare statment: %v", err)
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	err = stmt1.QueryRowx(v...).Scan(&intId)
 	return intId, err
 
 }

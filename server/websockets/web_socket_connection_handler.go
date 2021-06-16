@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// Each websocket connection has its own handler
+// WebSocketConnectionHandlerImpl : Each websocket connection has its own handler
 type WebSocketConnectionHandlerImpl struct {
 	DtopicMap        *map[string]*olric.DTopic
 	subscribedTopics map[string]uint64

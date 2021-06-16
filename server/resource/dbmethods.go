@@ -25,7 +25,7 @@ import (
 
 const DATE_LAYOUT = "2006-01-02 15:04:05"
 
-// Check if a user identified by userReferenceId and belonging to userGroups is allowed to invoke an action `actionName` on type `typeName`
+// IsUserActionAllowed Checks if a user identified by userReferenceId and belonging to userGroups is allowed to invoke an action `actionName` on type `typeName`
 // Called before invoking an action from the /action/** api
 // Checks EXECUTE on both the type and action for this user
 // The permissions can come from different groups
@@ -42,7 +42,7 @@ func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []a
 
 }
 
-// Get an Action instance by `typeName` and `actionName`
+// GetActionByName Gets an Action instance by `typeName` and `actionName`
 // Check Action instance for usage
 func (dr *DbResource) GetActionByName(typeName string, actionName string) (Action, error) {
 	var a ActionRow
@@ -67,7 +67,20 @@ func (dr *DbResource) GetActionByName(typeName string, actionName string) (Actio
 		return action, err
 	}
 
-	err = dr.db.QueryRowx(sql, args...).StructScan(&a)
+	stmt, err := dr.connection.Preparex(sql)
+	if err != nil {
+		log.Errorf("[72] failed to prepare statment: %v", err)
+		return action, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	err = stmt.QueryRowx(args...).StructScan(&a)
+
 	if err != nil {
 		log.Errorf("sql: %v", sql)
 		log.Errorf("Failed to scan action 66: %v", err)
@@ -85,7 +98,7 @@ func (dr *DbResource) GetActionByName(typeName string, actionName string) (Actio
 	return action, nil
 }
 
-// Get list of all actions defined on type `typeName`
+// GetActionsByType Gets the list of all actions defined on type `typeName`
 // Returns list of `Action`
 func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 	action := make([]Action, 0)
@@ -106,12 +119,29 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 		return nil, err
 	}
 
-	rows, err := dr.db.Queryx(sql, args...)
+	stmt, err := dr.connection.Preparex(sql)
 	if err != nil {
-		log.Errorf("Failed to scan action 99: %v", err)
+		log.Errorf("[124] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	rows, err := stmt.Queryx(args...)
+	if err != nil {
+		log.Errorf("[126] Failed to scan action: %v", err)
 		return action, err
 	}
-	defer rows.Close()
+	defer func(rows *sqlx.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Errorf("[132] failed to close row after value scan")
+		}
+	}(rows)
 
 	for rows.Next() {
 
@@ -139,7 +169,7 @@ func (dr *DbResource) GetActionsByType(typeName string) ([]Action, error) {
 	return action, nil
 }
 
-// Get permission of an action by typeId and actionName
+// GetActionPermissionByName Gets permission of an action by typeId and actionName
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Special utility function for actions, for other objects use GetObjectPermissionByReferenceId
@@ -158,7 +188,7 @@ func (dr *DbResource) GetActionPermissionByName(worldId int64, actionName string
 	return permissions, nil
 }
 
-// Get permission of an GetObjectPermissionByReferenceId by typeName and string referenceId
+// GetObjectPermissionByReferenceId Gets permission of an Object by typeName and string referenceId
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
@@ -167,6 +197,7 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 	var selectQuery string
 	var queryParameters []interface{}
 	var err error
+	var perm PermissionInstance
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
 			Select("permission", "id").
@@ -180,18 +211,27 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
-		return PermissionInstance{
-			"", []auth.GroupPermission{}, auth.AuthPermission(0),
-		}
+		return perm
 	}
 
+	stmt, err := dr.connection.Preparex(selectQuery)
+	if err != nil {
+		log.Errorf("[219] failed to prepare statment: %v", err)
+		return perm
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
 	resultObject := make(map[string]interface{})
-	err = dr.db.QueryRowx(selectQuery, queryParameters...).MapScan(resultObject)
+	err = stmt.QueryRowx(queryParameters...).MapScan(resultObject)
 	if err != nil {
 		log.Errorf("Failed to scan permission 1 [%v]: %v", referenceId, err)
 	}
 	//log.Printf("permi map: %v", resultObject)
-	var perm PermissionInstance
 	if resultObject[USER_ACCOUNT_ID_COLUMN] != nil {
 
 		user, err := dr.GetIdToReferenceId(USER_ACCOUNT_TABLE_NAME, resultObject[USER_ACCOUNT_ID_COLUMN].(int64))
@@ -216,6 +256,7 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 	return perm
 }
 
+
 // Get permission of an Object by typeName and string referenceId
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
@@ -225,6 +266,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 	var selectQuery string
 	var queryParameters []interface{}
 	var err error
+	var perm PermissionInstance
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
 			Select("permission", "id").
@@ -240,18 +282,27 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
-		return PermissionInstance{
-			"", []auth.GroupPermission{}, auth.AuthPermission(0),
-		}
+		return perm
 	}
 
+	stmt, err := dr.connection.Preparex(selectQuery)
+	if err != nil {
+		log.Errorf("[289] failed to prepare statment: %v", err)
+		return perm
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
 	resultObject := make(map[string]interface{})
-	err = dr.db.QueryRowx(selectQuery, queryParameters...).MapScan(resultObject)
+	err = stmt.QueryRowx(queryParameters...).MapScan(resultObject)
 	if err != nil {
 		log.Errorf("Failed to scan permission 3 [%v]: %v", id, err)
 	}
 	//log.Printf("permi map: %v", resultObject)
-	var perm PermissionInstance
 	if resultObject[USER_ACCOUNT_ID_COLUMN] != nil {
 
 		user, err := dr.GetIdToReferenceId(USER_ACCOUNT_TABLE_NAME, resultObject["user_account_id"].(int64))
@@ -273,7 +324,7 @@ func (dr *DbResource) GetObjectPermissionById(objectType string, id int64) Permi
 
 var OlricCache *olric.DMap
 
-// Get permission of an GetObjectPermissionByReferenceId by typeName and string referenceId with a simple where clause colName = colValue
+// GetObjectPermissionByWhereClause Gets permission of an Object by typeName and string referenceId with a simple where clause colName = colValue
 // Use carefully
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
@@ -299,8 +350,20 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 		return perm
 	}
 
+	stmt, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[355] failed to prepare statment: %v", err)
+		return perm
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
 	m := make(map[string]interface{})
-	err = dr.db.QueryRowx(s, q...).MapScan(m)
+	err = stmt.QueryRowx(q...).MapScan(m)
 
 	if err != nil {
 
@@ -330,16 +393,29 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	return perm
 }
 
-// Get list of group permissions for objects of typeName where colName=colValue
+// GetObjectUserGroupsByWhere Get list of group permissions for objects of typeName where colName=colValue
 // Utility method which makes a join query to load a lot of permissions quickly
 // Used by GetRowPermission
-func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string, colvalue interface{}) []auth.GroupPermission {
+func (dr *DbResource) GetObjectUserGroupsByWhere(objectType string, colName string, colValue interface{}) []auth.GroupPermission {
+
+	//if OlricCache == nil {
+	//	OlricCache, _ = dr.OlricDb.NewDMap("default-cache")
+	//}
+	//
+	//cacheKey := ""
+	//if OlricCache != nil {
+	//	cacheKey = fmt.Sprintf("groups-%s_%s_%s", objectType, colName, colValue)
+	//	cachedPermission, err := OlricCache.Get(cacheKey)
+	//	if cachedPermission != nil && err == nil {
+	//		return cachedPermission.([]auth.GroupPermission)
+	//	}
+	//}
 
 	s := make([]auth.GroupPermission, 0)
 
 	rel := api2go.TableRelation{}
-	rel.Subject = objType
-	rel.SubjectName = objType + "_id"
+	rel.Subject = objectType
+	rel.SubjectName = objectType + "_id"
 	rel.Object = "usergroup"
 	rel.ObjectName = "usergroup_id"
 	rel.Relation = "has_many_and_belongs_to_many"
@@ -361,14 +437,26 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 				fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.%v", rel.GetObjectName(), "id")),
 			})).
 		Where(goqu.Ex{
-			fmt.Sprintf("%s.%s", rel.Subject, colName): colvalue,
+			fmt.Sprintf("%s.%s", rel.Subject, colName): colValue,
 		}).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to create permission select query: %v", err)
 		return s
 	}
 
-	res, err := dr.db.Queryx(sql, args...)
+	stmt, err := dr.connection.Preparex(sql)
+	if err != nil {
+		log.Errorf("[436] failed to prepare statment: %v", err)
+		return nil
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	res, err := stmt.Queryx(args...)
 	//log.Printf("Group select sql: %v", sql)
 	if err != nil {
 
@@ -386,6 +474,11 @@ func (dr *DbResource) GetObjectUserGroupsByWhere(objType string, colName string,
 		}
 		s = append(s, g)
 	}
+
+	//if OlricCache != nil {
+	//	_ = OlricCache.PutIfEx(cacheKey, s, 10*time.Second, olric.IfNotFound)
+	//}
+
 	return s
 
 }
@@ -421,13 +514,30 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 			fmt.Sprintf("uug.%s_id", objType): objectId,
 		}).ToSQL()
 
-	res, err := dr.db.Queryx(sql, args...)
+	stmt, err := dr.connection.Preparex(sql)
+	if err != nil {
+		log.Errorf("[501] failed to prepare statment: %v", err)
+		return nil
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	res, err := stmt.Queryx(args...)
 
 	if err != nil {
 		log.Errorf("Failed to query object group by object id 403 [%v][%v] == %v", objType, objectId, err)
 		return s
 	}
-	defer res.Close()
+	defer func(res *sqlx.Rows) {
+		err := res.Close()
+		if err != nil {
+			log.Errorf("[478] failed to close result after value scan in defer")
+		}
+	}(res)
 
 	for res.Next() {
 		var g auth.GroupPermission
@@ -442,7 +552,7 @@ func (dr *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) 
 
 }
 
-// Check if someone can invoke the become admin action
+// CanBecomeAdmin Checks if the context user can invoke the become admin action
 // checks if there is only 1 real user in the system
 // No one can become admin once we have an adminstrator
 func (dbResource *DbResource) CanBecomeAdmin() bool {
@@ -456,7 +566,7 @@ func (dbResource *DbResource) CanBecomeAdmin() bool {
 
 }
 
-// Returns the user account row of a user by looking up on email
+// GetUserAccountRowByEmail Returns the user account row of a user by looking up on email
 func (d *DbResource) GetUserAccountRowByEmail(email string) (map[string]interface{}, error) {
 
 	user, _, err := d.Cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", nil, goqu.Ex{"email": email})
@@ -486,17 +596,29 @@ func (d *DbResource) GetUserPassword(email string) (string, error) {
 	return passwordHash, err
 }
 
+// UserGroupNameToId Converts group name to the internal integer id
 
-// Convert group name to the internal integer id
 // should not be used since group names are not unique
 // deprecated
-func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
+func (dr *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
 
 	query, arg, err := statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"name": groupName}).ToSQL()
 	if err != nil {
 		return 0, err
 	}
-	res := dbResource.db.QueryRowx(query, arg...)
+	stmt, err := dr.connection.Preparex(query)
+	if err != nil {
+		log.Errorf("[592] failed to prepare statment: %v", err)
+		return 0, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	res := stmt.QueryRowx(arg...)
 	if res.Err() != nil {
 		return 0, res.Err()
 	}
@@ -507,7 +629,7 @@ func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error
 	return id, err
 }
 
-// make user by integer `userId` int the administrator and owner of everything
+// BecomeAdmin make user the administrator and owner of everything
 // Check CanBecomeAdmin before invoking this
 func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 	log.Printf("User: %d is going to become admin", userId)
@@ -730,11 +852,29 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations ma
 	s, q, err := stmt.ToSQL()
 
 	//log.Printf("GetRowsByWhereClause: %v == [%v]", s)
-	rows, err := dr.db.Queryx(s, q...)
+
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[839] failed to prepare statment: %v", err)
+		return nil, nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	rows, err := stmt1.Queryx(q...)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sqlx.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Errorf("[802] failed to close rows after scanning values in defer")
+		}
+	}(rows)
 
 	m1, include, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), includedRelations)
 
@@ -758,11 +898,29 @@ func (dr *DbResource) GetRandomRow(typeName string, count uint) ([]map[string]in
 	s, q, err := stmt.ToSQL()
 
 	//log.Printf("Select query: %v == [%v]", s, q)
-	rows, err := dr.db.Queryx(s, q...)
+
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[885] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	rows, err := stmt1.Queryx(q...)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sqlx.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Errorf("[843] failed to close rows after value scan in defer")
+		}
+	}(rows)
 
 	m1, _, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), nil)
 
@@ -770,37 +928,6 @@ func (dr *DbResource) GetRandomRow(typeName string, count uint) ([]map[string]in
 
 }
 
-func (dr *DbResource) GetUserGroupIdByUserId(userId int64) uint64 {
-
-	return 0
-	// k := fmt.Sprintf("ugbui-%v", userId)
-	// if OlricCache != nil {
-	// 	tok, err := OlricCache.Get(k)
-	// 	if err == nil {
-	// 		return tok.(uint64)
-	// 	}
-	// }
-
-	// s, q, err := statementbuilder.Squirrel.Select("usergroup_id").From("user_account_user_account_id_has_usergroup_usergroup_id").
-	// 	Where(goqu.Ex{"usergroup_id": goqu.Op{"neq": 1}}).Where(goqu.Ex{"user_account_id": userId}).Order(goqu.C("created_at").Asc()).Limit(1).ToSQL()
-	// if err != nil {
-	// 	log.Errorf("Failed to create sql query 719: %v", err)
-	// 	return 0
-	// }
-
-	// var refId uint64
-
-	// err = dr.db.QueryRowx(s, q...).Scan(&refId)
-	// if err != nil {
-	// 	log.Warnf("Failed to scan user group id from the result 764: %v", err)
-	// }
-	// if OlricCache != nil {
-	// 	_ = OlricCache.PutEx(k, refId, 1 * time.Second)
-	// }
-
-	// return refId
-
-}
 func (dr *DbResource) GetUserMembersByGroupName(groupName string) []string {
 
 	s, q, err := statementbuilder.Squirrel.
@@ -823,7 +950,19 @@ func (dr *DbResource) GetUserMembersByGroupName(groupName string) []string {
 
 	refIds := make([]string, 0)
 
-	rows, err := dr.db.Queryx(s, q...)
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[936] failed to prepare statment: %v", err)
+		return nil
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	rows, err := stmt1.Queryx(q...)
 	if err != nil {
 		log.Errorf("Failed to create sql query 757: %v", err)
 		return []string{}
@@ -831,6 +970,7 @@ func (dr *DbResource) GetUserMembersByGroupName(groupName string) []string {
 	for rows.Next() {
 		var refId string
 		err = rows.Scan(&refId)
+		CheckErr(err, "failed to scan ref id")
 		refIds = append(refIds, refId)
 	}
 
@@ -855,7 +995,19 @@ func (dr *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64) string {
 
 	var email string
 
-	err = dr.db.QueryRowx(s, q...).Scan(&email)
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[981] failed to prepare statment: %v", err)
+		return ""
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	err = stmt1.QueryRowx(q...).Scan(&email)
 	if err != nil {
 		log.Warnf("Failed to execute query 789: %v == %v", s, q)
 		log.Warnf("Failed to scan user group id from the result 830: %v", err)
@@ -907,9 +1059,21 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 		return nil, nil, err
 	}
 
-	rows, err := dr.db.Queryx(s, q...)
+	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("Failed to query single row by ref id: %v", err)
+		log.Errorf("[1011] failed to prepare statment: %v", err)
+		return nil, nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	rows, err := stmt1.Queryx(q...)
+	if err != nil {
+		log.Errorf("[940] failed to query single row by ref id: %v", err)
 		return nil, nil, err
 	}
 
@@ -947,8 +1111,26 @@ func (dr *DbResource) GetSingleRowById(typeName string, id int64, includedRelati
 		return nil, nil, err
 	}
 
-	rows, err := dr.db.Queryx(s, q...)
-	defer rows.Close()
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1063] failed to prepare statment: %v", err)
+		return nil, nil, err
+	}
+
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	rows, err := stmt1.Queryx(q...)
+	defer func(rows *sqlx.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Errorf("[989] failed to close rows after value scan in defer")
+		}
+	}(rows)
 	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), includedRelations)
 	if err != nil {
 		return nil, nil, err
@@ -971,12 +1153,29 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 		return nil, err
 	}
 
-	row, err := dr.db.Queryx(s, q...)
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1106] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	row, err := stmt1.Queryx(q...)
 
 	if err != nil {
 		return nil, err
 	}
-	defer row.Close()
+	defer func(row *sqlx.Rows) {
+		err := row.Close()
+		if err != nil {
+			log.Errorf("[1029] failed to close result after value scan in defer")
+		}
+	}(row)
 
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 
@@ -994,12 +1193,29 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 		return nil, err
 	}
 
-	row, err := dr.db.Queryx(s, q...)
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1146] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	row, err := stmt1.Queryx(q...)
 
 	if err != nil {
 		return nil, err
 	}
-	defer row.Close()
+	defer func(row *sqlx.Rows) {
+		err := row.Close()
+		if err != nil {
+			log.Errorf("[1064] failed to close result after value scan in defer")
+		}
+	}(row)
 
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 
@@ -1112,7 +1328,7 @@ func (dr *DbResource) DirectInsert(typeName string, data map[string]interface{})
 	return err
 }
 
-// Get all rows from the table `typeName`
+// GetAllObjects Gets all rows from the table `typeName`
 // Returns an array of Map object, each object has the column name to value mapping
 // Utility method for loading all objects having low count
 // Can be used by actions
@@ -1122,19 +1338,36 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 		return nil, err
 	}
 
-	row, err := dr.db.Queryx(s, q...)
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1291] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	row, err := stmt1.Queryx(q...)
 
 	if err != nil {
 		return nil, err
 	}
-	defer row.Close()
+	defer func(row *sqlx.Rows) {
+		err := row.Close()
+		if err != nil {
+			log.Errorf("[1204] failed to close result after value scan in defer")
+		}
+	}(row)
 
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 
 	return m, err
 }
 
-// Get all rows from the table `typeName`
+// GetAllObjectsWithWhere Get all rows from the table `typeName`
 // Returns an array of Map object, each object has the column name to value mapping
 // Utility method for loading all objects having low count
 // Can be used by actions
@@ -1150,19 +1383,36 @@ func (dr *DbResource) GetAllObjectsWithWhere(typeName string, where ...goqu.Ex) 
 		return nil, err
 	}
 
-	row, err := dr.db.Queryx(s, q...)
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1336] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	row, err := stmt1.Queryx(q...)
 
 	if err != nil {
 		return nil, err
 	}
-	defer row.Close()
+	defer func(row *sqlx.Rows) {
+		err := row.Close()
+		if err != nil {
+			log.Errorf("[1244] failed to close result after value scan in defer")
+		}
+	}(row)
 
 	m, _, err := dr.Cruds[typeName].ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
 
 	return m, err
 }
 
-// Get all rows from the table `typeName` without any processing of the response
+// GetAllRawObjects Get all rows from the table `typeName` without any processing of the response
 // expect no "__type" column on the returned instances
 // Returns an array of Map object, each object has the column name to value mapping
 // Utility method for loading all objects having low count
@@ -1173,19 +1423,36 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 		return nil, err
 	}
 
-	row, err := dr.db.Queryx(s, q...)
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1376] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	row, err := stmt1.Queryx(q...)
 
 	if err != nil {
 		return nil, err
 	}
-	defer row.Close()
+	defer func(row *sqlx.Rows) {
+		err := row.Close()
+		if err != nil {
+			log.Errorf("[1279] failed to close result after value scan in defer")
+		}
+	}(row)
 
 	m, err := RowsToMap(row, typeName)
 
 	return m, err
 }
 
-// Load an object of type `typeName` using a reference_id
+// GetReferenceIdToObject Loads an object of type `typeName` using a reference_id
 // Used internally, can be used by actions
 func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string) (map[string]interface{}, error) {
 
@@ -1203,15 +1470,27 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 		return nil, err
 	}
 
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1423] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
 	//log.Printf("Get object by reference id sql: %v", s)
-	row, err := dr.db.Queryx(s, q...)
+	row, err := stmt1.Queryx(q...)
 
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		err = row.Close()
-		CheckErr(err, "Failed to close row after querying single row")
+		CheckErr(err, "[1314] Failed to close row after querying single row")
 	}()
 
 	results, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
@@ -1230,7 +1509,7 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	return results[0], err
 }
 
-// Load an object of type `typeName` using a reference_id
+// GetReferenceIdToObjectColumn Loads an object of type `typeName` using a reference_id
 // Used internally, can be used by actions
 func (dr *DbResource) GetReferenceIdToObjectColumn(typeName string, referenceId string, columnToSelect string) (interface{}, error) {
 	//log.Printf("Get Object by reference id [%v][%v]", typeName, referenceId)
@@ -1240,7 +1519,20 @@ func (dr *DbResource) GetReferenceIdToObjectColumn(typeName string, referenceId 
 	}
 
 	//log.Printf("Get object by reference id sql: %v", s)
-	row, err := dr.db.Queryx(s, q...)
+
+	stmt, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1473] failed to prepare statment for get object by reference id: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	row, err := stmt.Queryx(q...)
 
 	if err != nil {
 		return nil, err
@@ -1280,17 +1572,38 @@ func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...go
 		return nil, err
 	}
 
-	res, err := dr.db.Queryx(s, q...)
+	stmt, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1525] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	res, err := stmt.Queryx(q...)
 
 	if err != nil {
 		return nil, err
 	}
-	defer res.Close()
+	defer func(res *sqlx.Rows) {
+		err := res.Close()
+		if err != nil {
+			log.Errorf("[1296] Failed to close rows after query")
+		}
+	}(res)
 
 	ret := make([]string, 0)
 	for res.Next() {
 		var s string
-		res.Scan(&s)
+		err := res.Scan(&s)
+		if err != nil {
+			log.Errorf("[1305] failed to scan result into variable")
+			return nil, err
+		}
 		ret = append(ret, s)
 	}
 
@@ -1298,7 +1611,7 @@ func (dr *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...go
 
 }
 
-// Load rows from the database of `typeName` with a where clause to filter rows
+// GetIdByWhereClause Loads rows from the database of `typeName` with a where clause to filter rows
 // Converts the queries to sql and run query with where clause
 // Returns  list of internal database integer ids
 func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...goqu.Ex) ([]int64, error) {
@@ -1315,17 +1628,38 @@ func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...goqu.Ex) ([
 		return nil, err
 	}
 
-	res, err := dr.db.Queryx(s, q...)
+	stmt, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1581] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	res, err := stmt.Queryx(q...)
 
 	if err != nil {
 		return nil, err
 	}
-	defer res.Close()
+	defer func(res *sqlx.Rows) {
+		err := res.Close()
+		if err != nil {
+			log.Errorf("[1454] failed to close rows after value scan in defer")
+		}
+	}(res)
 
 	ret := make([]int64, 0)
 	for res.Next() {
 		var s int64
-		res.Scan(&s)
+		err := res.Scan(&s)
+		if err != nil {
+			log.Errorf("[1463] failed to scan value after query")
+			return nil, err
+		}
 		ret = append(ret, s)
 	}
 
@@ -1333,7 +1667,7 @@ func (dr *DbResource) GetIdByWhereClause(typeName string, queries ...goqu.Ex) ([
 
 }
 
-// Lookup an integer id and return a string reference id of an object of type `typeName`
+// GetIdToReferenceId Looks up an integer id and return a string reference id of an object of type `typeName`
 func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, error) {
 
 	k := fmt.Sprintf("itr-%v-%v", typeName, id)
@@ -1349,8 +1683,20 @@ func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, err
 		return "", err
 	}
 
+	stmt, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1636] failed to prepare statment: %v", err)
+		return "", err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
 	var str string
-	row := dr.db.QueryRowx(s, q...)
+	row := stmt.QueryRowx(q...)
 	err = row.Scan(&str)
 	if OlricCache != nil {
 		OlricCache.PutIfEx(k, str, 1*time.Minute, olric.IfNotFound)
@@ -1392,8 +1738,19 @@ func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (i
 	if err != nil {
 		return 0, err
 	}
+	stmt, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1666] failed to prepare statment: %v", err)
+		return 0, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
 
-	err = dr.db.QueryRowx(s, q...).Scan(&id)
+	err = stmt.QueryRowx(q...).Scan(&id)
 	return id, err
 
 }
@@ -1408,7 +1765,20 @@ func (dr *DbResource) GetReferenceIdListToIdList(typeName string, referenceId []
 		return idMap, err
 	}
 
-	rows, err := dr.db.Queryx(s, q...)
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1694] failed to prepare statment: %v", err)
+		return nil, err
+	}
+
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	rows, err := stmt1.Queryx(q...)
 	if err != nil {
 		return idMap, err
 	}
@@ -1422,7 +1792,7 @@ func (dr *DbResource) GetReferenceIdListToIdList(typeName string, referenceId []
 	return idMap, err
 }
 
-// Lookup an string internal integer id and return a reference id of an object of type `typeName`
+// GetIdListToReferenceIdList Lookups an string internal integer id and return a reference id of an object of type `typeName`
 func (dr *DbResource) GetIdListToReferenceIdList(typeName string, ids []int64) (map[int64]string, error) {
 
 	idMap := make(map[int64]string)
@@ -1432,7 +1802,20 @@ func (dr *DbResource) GetIdListToReferenceIdList(typeName string, ids []int64) (
 		return idMap, err
 	}
 
-	rows, err := dr.db.Queryx(s, q...)
+	stmt1, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1731] failed to prepare statment: %v", err)
+		return nil, err
+	}
+
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	rows, err := stmt1.Queryx(q...)
 	if err != nil {
 		return idMap, err
 	}
@@ -1440,33 +1823,53 @@ func (dr *DbResource) GetIdListToReferenceIdList(typeName string, ids []int64) (
 		var id1 string
 		var id2 int64
 		err = rows.Scan(&id1, &id2)
+		log.Errorf("[1581] failed to scan value after query")
 		idMap[id2] = id1
 	}
 
 	return idMap, err
 }
 
-// select "column" from "typeName" where matchColumn in (values)
+// GetSingleColumnValueByReferenceId select "column" from "typeName" where matchColumn in (values)
 // returns list of values of the column
-func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectColumn []interface{}, matchColumn string, values []string) ([]interface{}, error) {
+func (dr *DbResource) GetSingleColumnValueByReferenceId(
+	typeName string, selectColumn []interface{}, matchColumn string, values []string) ([]interface{}, error) {
 
 	s, q, err := statementbuilder.Squirrel.Select(selectColumn...).From(typeName).Where(goqu.Ex{matchColumn: values}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := dr.db.Queryx(s, q...)
+	stmt, err := dr.connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1768] failed to prepare statment for permission select: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	rows, err := stmt.Queryx(q...)
 	if err != nil {
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer func(rows *sqlx.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Errorf("[1483] failed to close result after value scan")
+		}
+	}(rows)
 	returnValues := make([]interface{}, 0)
 
 	for rows.Next() {
 		var val interface{}
 		err = rows.Scan(&val)
 		if err != nil {
+			log.Errorf("[1620] failed to scan value after query")
 			break
 		}
 		returnValues = append(returnValues, val)
@@ -1475,7 +1878,7 @@ func (dr *DbResource) GetSingleColumnValueByReferenceId(typeName string, selectC
 	return returnValues, nil
 }
 
-// convert the result of db.QueryRowx => rows to array of data
+// RowsToMap converts the result of db.QueryRowx => rows to array of data
 // can be used on any *sqlx.Rows and assign a typeName
 func RowsToMap(rows *sqlx.Rows, typeName string) ([]map[string]interface{}, error) {
 
@@ -1501,7 +1904,7 @@ func RowsToMap(rows *sqlx.Rows, typeName string) ([]map[string]interface{}, erro
 	return responseArray, nil
 }
 
-// convert the result of db.QueryRowx => rows to array of data
+// ResultToArrayOfMap converts the result of db.QueryRowx => rows to array of data
 // fetches the related objects also
 // expects columnMap to be fetched from rows
 // check usage in exiting source for example
@@ -1620,8 +2023,8 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						continue
 					}
 
-					if file["path"] != nil && file["name"] != nil {
-						file["src"] = file["path"].(string) + string(os.PathSeparator) + file["name"].(string)
+					if file["path"] != nil && file["name"] != nil && len(file["path"].(string)) > 0 {
+						file["src"] = file["path"].(string) + "/" + file["name"].(string)
 					} else if file["name"] != nil {
 						file["src"] = file["name"].(string)
 					} else {
@@ -1692,7 +2095,18 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						log.Printf("Failed to build query 1474: %v", err)
 					}
 
-					rows, err := dr.connection.Queryx(query, args...)
+					stmt1, err := dr.connection.Preparex(query)
+					if err != nil {
+						log.Errorf("[2023] failed to prepare statment: %v", err)
+					}
+					defer func(stmt1 *sqlx.Stmt) {
+						err := stmt1.Close()
+						if err != nil {
+							log.Errorf("failed to close prepared statement: %v", err)
+						}
+					}(stmt1)
+
+					rows, err := stmt1.Queryx(args...)
 					if err != nil {
 						log.Printf("Failed to query 1482: %v", err)
 					}
@@ -1703,11 +2117,13 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						includeRow := int64(0)
 						err = rows.Scan(&includeRow)
 						if err != nil {
-							log.Printf("Failed to scan include row 1489: %v", err)
+							log.Printf("[1857] failed to scan include row: %v", err)
 							continue
 						}
 						ids = append(ids, includeRow)
 					}
+
+					rows.Close()
 
 					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetObject(), goqu.Ex{
 						"id": ids,
@@ -1753,22 +2169,54 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						log.Printf("Failed to build query 1533: %v", err)
 					}
 
-					includedSubject := dr.connection.QueryRowx(query, args...)
-					if includedSubject.Err() != nil {
+					stmt1, err := dr.connection.Preparex(query)
+					if err != nil {
+						log.Errorf("[2097] failed to prepare statment: %v", err)
+					}
+					defer func(stmt1 *sqlx.Stmt) {
+						err := stmt1.Close()
+						if err != nil {
+							log.Errorf("failed to close prepared statement: %v", err)
+						}
+					}(stmt1)
+
+					includedSubject, err := stmt1.Queryx(args...)
+					if err != nil {
 						log.Printf("Failed to query 1538: %v", includedSubject.Err())
 						continue
 					}
-					includedSubjectId := int64(0)
-					err = includedSubject.Scan(&includedSubjectId)
-					if includedSubjectId < 1 {
+					includedSubjectId := []int64{}
+
+					for includedSubject.Next() {
+						var subId int64
+						err = includedSubject.Scan(&subId)
+						includedSubjectId = append(includedSubjectId, subId)
+					}
+					CheckErr(err, "[2133] failed to scan included subject id")
+					err = includedSubject.Close()
+					CheckErr(err, "[2135] failed to close rows")
+
+
+					if len(includedSubjectId) < 1 {
 						continue
 					}
 
 					localSubjectInclude, err := dr.Cruds[relation.GetSubject()].GetAllObjectsWithWhere(relation.GetSubject(), goqu.Ex{
 						"id": includedSubjectId,
 					})
+					CheckErr(err, "[1923] failed to get object by od")
 
-					localInclude = append(localInclude, localSubjectInclude[0])
+					_, ok := row[relation.GetSubjectName()]
+					if !ok {
+						row[relation.GetSubjectName()] = make([]string, 0)
+					}
+
+					for _, incl := range localSubjectInclude {
+						row[relation.GetSubjectName()] = append(row[relation.GetSubjectName()].([]string), incl["reference_id"].(string))
+					}
+
+
+					localInclude = append(localInclude, localSubjectInclude...)
 
 					break
 				case "has_many":
@@ -1797,7 +2245,19 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						log.Printf("Failed to build query 1474: %v", err)
 					}
 
-					rows, err := dr.connection.Queryx(query, args...)
+					stmt1, err := dr.connection.Preparex(query)
+					if err != nil {
+						log.Errorf("[2155] failed to prepare statment: %v", err)
+					}
+					defer func(stmt1 *sqlx.Stmt) {
+						err := stmt1.Close()
+						if err != nil {
+							log.Errorf("failed to close prepared statement: %v", err)
+						}
+					}(stmt1)
+
+					rows, err := stmt1.Queryx(args...)
+
 					if err != nil {
 						log.Printf("Failed to query 1482: %v", err)
 						continue
@@ -1809,11 +2269,12 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						includeRow := int64(0)
 						err = rows.Scan(&includeRow)
 						if err != nil {
-							log.Printf("Failed to scan include row 1489: %v", err)
+							log.Printf("[1966] failed to scan include row: %v", err)
 							continue
 						}
 						ids = append(ids, includeRow)
 					}
+					rows.Close()
 
 					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetSubject(), goqu.Ex{
 						"id": ids,

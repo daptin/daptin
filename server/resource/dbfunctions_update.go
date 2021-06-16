@@ -172,13 +172,25 @@ func GetTasks(connection database.DatabaseConnection) ([]Task, error) {
 		"active",
 		goqu.C("attributes").As("attributes"),
 		goqu.C("as_user_id").As("AsUserEmail"),
-	).From("task").Where(goqu.Ex{"active": 1}).ToSQL()
+	).From("task").Where(goqu.Ex{"active": true}).ToSQL()
 
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := connection.Queryx(s, v...)
+	stmt1, err := connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[183] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	rows, err := stmt1.Queryx(v...)
 	if err != nil {
 		return nil, err
 	}
@@ -213,8 +225,20 @@ func UpdateStreams(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	CheckErr(err, "Failed to create query for stream select")
 
-	res, err := db.Queryx(s, v...)
-	CheckErr(err, "Failed to query streams")
+	stmt1, err := db.Preparex(s)
+	if err != nil {
+		log.Errorf("[230] failed to prepare statment: %v", err)
+		return
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	res, err := stmt1.Queryx(v...)
+	CheckErr(err, "[228] failed to query streams")
 	if err != nil {
 		return
 	}
@@ -332,10 +356,22 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 		}
 
 		var referenceId string
-		err = db.QueryRowx(s, v...).Scan(&referenceId)
+		stmt1, err := db.Preparex(s)
+		if err != nil {
+			log.Errorf("[361] failed to prepare statment: %v", err)
+			continue
+		}
+		defer func(stmt1 *sqlx.Stmt) {
+			err := stmt1.Close()
+			if err != nil {
+				log.Errorf("failed to close prepared statement: %v", err)
+			}
+		}(stmt1)
+
+		err = stmt1.QueryRowx(v...).Scan(&referenceId)
 
 		if err != nil {
-			log.Printf("No existing data exchange for  [%v]", exchange.Name)
+			log.Printf("no existing data exchange for  [%v]", exchange.Name)
 		}
 
 		if err == nil {
@@ -412,7 +448,18 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 		"target_type", "options", "as_user_id").
 		From("data_exchange").ToSQL()
 
-	rows, err := db.Queryx(s, v...)
+	stmt1, err := db.Preparex(s)
+	if err != nil {
+		log.Errorf("[453] failed to prepare statment: %v", err)
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	rows, err := stmt1.Queryx(v...)
 	CheckErr(err, "Failed to query existing exchanges")
 	if rows != nil {
 		defer func() {
@@ -426,11 +473,15 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 			var name, source_type, target_type string
 			var source_attributes, target_attributes, options, attrsJson []byte
-			var user_account_id int64
+			var user_account_id *int64
 
 			var ec ExchangeContract
 			err = rows.Scan(&name, &source_attributes, &source_type, &target_attributes, &attrsJson, &target_type, &options, &user_account_id)
-			CheckErr(err, "Failed to Scan existing exchanges")
+			CheckErr(err, "[433] Failed to Scan existing exchange contract")
+			if user_account_id == nil {
+				log.Errorf("as_user_id is not set for data exchange setup [%v], skipping", name)
+				continue
+			}
 
 			m := make(map[string]interface{})
 			err = json.Unmarshal(source_attributes, &m)
@@ -454,7 +505,7 @@ func UpdateExchanges(initConfig *CmsConfig, db database.DatabaseConnection) {
 			err = json.Unmarshal(options, &ec.Options)
 			CheckErr(err, "Failed to unmarshal exchange options")
 
-			ec.AsUserId = user_account_id
+			ec.AsUserId = *user_account_id
 
 			allExchanges = append(allExchanges, ec)
 		}
@@ -484,7 +535,19 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db database.DatabaseC
 		}
 
 		var refId string
-		err = db.QueryRowx(s, v...).Scan(&refId)
+
+		stmt1, err := db.Preparex(s)
+		if err != nil {
+			log.Errorf("[541] failed to prepare statment: %v", err)
+		}
+		defer func(stmt1 *sqlx.Stmt) {
+			err := stmt1.Close()
+			if err != nil {
+				log.Errorf("failed to close prepared statement: %v", err)
+			}
+		}(stmt1)
+
+		err = stmt1.QueryRowx(v...).Scan(&refId)
 		if err != nil {
 
 			// no existing row
@@ -710,7 +773,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 			jsonData := make(map[string][]map[string]interface{}, 0)
 			err := json.Unmarshal(fileBytes, &jsonData)
 			if err != nil {
-				log.Errorf("Failed to read content as json to import: %v", err)
+				log.Errorf("[713] Failed to read content as json to import: %v", err)
 				continue
 			}
 
@@ -735,7 +798,7 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 			jsonData := make(map[string][]map[string]interface{}, 0)
 			err := yaml.Unmarshal(fileBytes, &jsonData)
 			if err != nil {
-				log.Errorf("Failed to read content as json to import: %v", err)
+				log.Errorf("[738] Failed to read content as json to import: %v", err)
 				continue
 			}
 
@@ -948,7 +1011,13 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 	var systemHasNoAdmin = false
 	var userCount int
 	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(USER_ACCOUNT_TABLE_NAME).ToSQL()
-	err = tx.QueryRowx(s, v...).Scan(&userCount)
+	stmt1, err := tx.Preparex(s)
+	if err != nil {
+		log.Errorf("[1016] failed to prepare statment: %v", err)
+	}
+
+	err = stmt1.QueryRowx(v...).Scan(&userCount)
+
 	CheckErr(err, "Failed to get user count 900")
 	//log.Printf("Current user group")
 	if userCount < 1 {
@@ -966,7 +1035,13 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 
 		s, v, err = statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).Where(goqu.Ex{"reference_id": u2}).ToSQL()
 		CheckErr(err, "Failed to create select user sql ")
-		err = tx.QueryRowx(s, v...).Scan(&userId)
+
+		stmt1, err := tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[1041] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&userId)
 		CheckErr(err, "Failed to select user for world update: %v", s)
 
 		u, _ = uuid.NewV4()
@@ -999,7 +1074,13 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 
 		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"reference_id": u1}).ToSQL()
 		CheckErr(err, "Failed to create select usergroup sql")
-		err = tx.QueryRowx(s, v...).Scan(&userGroupId)
+		stmt1, err = tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[1079] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&userGroupId)
+
 		CheckErr(err, "Failed to user group")
 		u, _ = uuid.NewV4()
 		refIf := u.String()
@@ -1016,22 +1097,42 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 		systemHasNoAdmin = true
 		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).Order(goqu.C("id").Asc()).Limit(1).ToSQL()
 		CheckErr(err, "Failed to create select user sql")
-		err = tx.QueryRowx(s, v...).Scan(&userId)
+		stmt1, err := tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[1102] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
 		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSQL()
 		CheckErr(err, "Failed to create user group sql")
-		err = tx.QueryRowx(s, v...).Scan(&userGroupId)
+		stmt1, err = tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[1111] failed to prepare statment: %v", err)
+		}
+		err = stmt1.QueryRowx(v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
 	} else {
 
 		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).
 			Where(goqu.Ex{"email": goqu.Op{"neq": "guest@cms.go"}}).Order(goqu.C("id").Asc()).Limit(1).ToSQL()
 		CheckErr(err, "Failed to create select user sql")
-		err = tx.QueryRowx(s, v...).Scan(&userId)
+		stmt1, err := tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[1122] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
 		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSQL()
 		CheckErr(err, "Failed to create user group sql")
-		err = tx.QueryRowx(s, v...).Scan(&userGroupId)
+
+		stmt1, err = tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[1132] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
 	}
 
@@ -1075,7 +1176,12 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 
 		var cou int
 		s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("world").Where(goqu.Ex{"table_name": table.TableName}).ToSQL()
-		err = tx.QueryRowx(s, v...).Scan(&cou)
+		stmt1, err := tx.Preparex(s)
+		if err != nil {
+			log.Errorf("[1181] failed to prepare statment: %v", err)
+		}
+
+		err = stmt1.QueryRowx(v...).Scan(&cou)
 		CheckErr(err, "Failed to scan row after query 1027 [%v]", s)
 
 		stBody.Cells = append(stBody.Cells, []*simpletable.Cell{
@@ -1148,7 +1254,12 @@ func UpdateWorldTable(initConfig *CmsConfig, db *sqlx.Tx) error {
 
 	CheckErr(err, "Failed to create query for scan world table")
 
-	res, err := tx.Queryx(s, v...)
+	stmt1, err = tx.Preparex(s)
+	if err != nil {
+		log.Errorf("[1259] failed to prepare statment: %v", err)
+	}
+
+	res, err := stmt1.Queryx(v...)
 	CheckErr(err, "Failed to scan world tables")
 	if err != nil {
 		return err

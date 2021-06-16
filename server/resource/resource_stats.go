@@ -116,18 +116,29 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 	joinedTables := make([]string, 0)
 
 	projectionsAdded := make([]interface{}, 0)
+	updatedProjections := make([]string, 0)
+	for _, project := range projections {
+		if strings.Index(project, ",") > -1 {
+			parts := strings.Split(project, ",")
+			updatedProjections = append(updatedProjections, parts...)
+		} else {
+			updatedProjections = append(updatedProjections, project)
+		}
+	}
+	projections = updatedProjections
+
 	for i, project := range projections {
 		if project == "count" {
 			projections[i] = "count(*) as count"
 			projectionsAdded = append(projectionsAdded, goqu.L("count(*)").As("count"))
 		} else {
-			projectionsAdded = append(projectionsAdded, goqu.I(project))
+			projectionsAdded = append(projectionsAdded, goqu.L(project))
 		}
 	}
 
 	for _, group := range req.GroupBy {
 		projections = append(projections, group)
-		projectionsAdded = append(projectionsAdded, goqu.I(group))
+		projectionsAdded = append(projectionsAdded, goqu.L(group))
 	}
 
 	if len(projections) == 0 {
@@ -274,7 +285,21 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 	}
 
 	log.Printf("Aggregation query: %v", sql)
-	res, err := dr.db.Queryx(sql, args...)
+
+	stmt1, err := dr.connection.Preparex(sql)
+	if err != nil {
+		log.Errorf("[291] failed to prepare statment: %v", err)
+		return nil, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+
+	res, err := stmt1.Queryx(args...)
 	CheckErr(err, "Failed to query stats: %v", sql)
 	if err != nil {
 		return nil, err

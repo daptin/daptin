@@ -93,7 +93,8 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 		actionName := ginContext.Param("actionName")
 		actionType := ginContext.Param("typename")
 
-		actionRequest, err := BuildActionRequest(ginContext.Request.Body, actionType, actionName, ginContext.Params)
+		actionRequest, err := BuildActionRequest(ginContext.Request.Body, actionType, actionName,
+			ginContext.Params, ginContext.Request.URL.Query())
 
 		if err != nil {
 			ginContext.Error(err)
@@ -115,6 +116,27 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 		}
 
 		responses, err := actionCrudResource.HandleActionRequest(actionRequest, req)
+
+		responseStatus := 200
+		for _, response := range responses {
+			if response.ResponseType == "client.header.set" {
+				attrs := response.Attributes.(map[string]string)
+
+				for key, value := range attrs {
+					if strings.ToLower(key) == "status" {
+						responseStatusCode, err := strconv.ParseInt(value, 10, 32)
+						if err != nil {
+							log.Errorf("invalid status code value set in response: %v", value)
+						} else {
+							responseStatus = int(responseStatusCode)
+						}
+					} else {
+						ginContext.Header(key, value)
+					}
+				}
+			}
+		}
+
 		if err != nil {
 			if httpErr, ok := err.(api2go.HTTPError); ok {
 				if len(responses) > 0 {
@@ -154,7 +176,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 
 		//log.Printf("Final responses: %v", responses)
 
-		ginContext.JSON(200, responses)
+		ginContext.JSON(responseStatus, responses)
 
 	}
 }
@@ -355,7 +377,8 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Created "+model.GetName(), "Success"))
+				createdRow := responseObjects.(api2go.Response).Result().(*api2go.Api2GoModel).Data
+				actionResponse = NewActionResponse(createdRow["__type"].(string), createdRow)
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "GET":
@@ -373,7 +396,8 @@ OutFields:
 			responseObjects, _, _, _, err = dbResource.PaginatedFindAllWithoutFilters(request)
 			CheckErr(err, "Failed to get inside action")
 			if err != nil {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to get "+model.GetName()+". "+err.Error(), "Failed"))
+				actionResponse = NewActionResponse("client.notify",
+					NewClientNotification("error", "Failed to get "+model.GetName()+". "+err.Error(), "Failed"))
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
@@ -403,7 +427,8 @@ OutFields:
 			CheckErr(err, "Failed to get by id")
 
 			if err != nil {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
+				actionResponse = NewActionResponse("client.notify",
+					NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
@@ -418,7 +443,8 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				actionResponse = NewActionResponse(actionRequest.Type, responseObjects)
+				createdRow := responseObjects.(api2go.Response).Result().(*api2go.Api2GoModel).Data
+				actionResponse = NewActionResponse(createdRow["__type"].(string), createdRow)
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "DELETE":
@@ -471,7 +497,7 @@ OutFields:
 				err = err1[0]
 			} else {
 				actionResponses = append(actionResponses, responses1...)
-				responseObjects = responder.Result()
+				responseObjects = responder
 			}
 
 		}
@@ -523,7 +549,8 @@ OutFields:
 	return responses, nil
 }
 
-func BuildActionRequest(closer io.ReadCloser, actionType, actionName string, params gin.Params) (ActionRequest, error) {
+func BuildActionRequest(closer io.ReadCloser, actionType, actionName string,
+	params gin.Params, queryParams url.Values) (ActionRequest, error) {
 	bytes, err := ioutil.ReadAll(closer)
 	actionRequest := ActionRequest{}
 	if err != nil {
@@ -575,6 +602,14 @@ func BuildActionRequest(closer io.ReadCloser, actionType, actionName string, par
 	}
 	for _, param := range params {
 		actionRequest.Attributes[param.Key] = param.Value
+	}
+	for key, valueArray := range queryParams {
+
+		if len(valueArray) == 1 {
+			actionRequest.Attributes[key] = valueArray[0]
+		} else {
+			actionRequest.Attributes[key] = valueArray
+		}
 	}
 
 	return actionRequest, nil

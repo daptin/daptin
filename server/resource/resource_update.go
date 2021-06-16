@@ -869,6 +869,10 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						log.Errorf("Referenced relation not found: %v", err)
 						continue
 					}
+					if len(joinReference) < 1 {
+						log.Errorf("failed to find the relation row to delete - %v[%v] - %v[%v]", relationName, otherObjectId, hostRelationName, idInt)
+						continue
+					}
 
 					joinReferenceObject := joinReference[0]
 					err = dr.Cruds[referencedRelation.GetJoinTableName()].DeleteWithoutFilters(joinReferenceObject["reference_id"].(string), req)

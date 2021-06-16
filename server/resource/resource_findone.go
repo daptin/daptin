@@ -94,7 +94,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		}
 	}
 
-	log.Tracef("Single row result: %v", data)
+	//log.Tracef("Single row result: %v", data)
 	for _, bf := range dr.ms.AfterFindOne {
 		//log.Debugf("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), modelName)
 
