@@ -145,8 +145,14 @@ func (cs *CalDavStorage) GetResources(rpath string, withChildren bool) ([]data.R
 func (cs *CalDavStorage) haveAccess(rpath string, perm string) (bool, error) {
 
 	rowPermission := make(map[string]interface{})
+
+	calRefId, err := cs.cruds["calendar"].GetReferenceIdByAccountId("calendar", cs.UserID)
+	if err != nil {
+		return false, err
+	}
+
 	rowPermission["__type"] = "calendar"
-	rowPermission["reference_id"] = cs.UserReferenceID
+	rowPermission["reference_id"] = calRefId
 	rowPermission["id"] = cs.UserID
 
 	permInst := cs.cruds["calendar"].GetRowPermission(rowPermission)
@@ -348,10 +354,20 @@ func (pa *PGResourceAdapter) CalculateEtag() string {
 }
 
 func (pa *PGResourceAdapter) haveAccess(perm string) (bool, error) {
-	permInst := pa.db[USER_ACCOUNT_TABLE_NAME].GetObjectPermissionById("calendar", pa.UserID)
+	calRefId, err := pa.db["calendar"].GetReferenceIdByAccountId("calendar", pa.UserID)
+	if err != nil {
+		return false, err
+	}
+
+	IntcalRefId, err := strconv.ParseInt(calRefId, 10, 6)
+	if err != nil {
+		log.Error(err, pa.resourcePath)
+		return false, err
+	}
+	permInst := pa.db[USER_ACCOUNT_TABLE_NAME].GetObjectPermissionById("calendar", IntcalRefId)
 	uGroupId := permInst.UserGroupId
 
-	refId, err := pa.db[USER_ACCOUNT_TABLE_NAME].GetIdToReferenceId("calendar", pa.UserID)
+	userRefId, err := pa.db[USER_ACCOUNT_TABLE_NAME].GetIdToReferenceId(USER_ACCOUNT_TABLE_NAME, pa.UserID)
 	if err != nil {
 		return false, err
 	}
@@ -365,7 +381,7 @@ func (pa *PGResourceAdapter) haveAccess(perm string) (bool, error) {
 	}
 
 	if perm == "admin"{
-		return pa.db[USER_ACCOUNT_TABLE_NAME].IsAdmin(refId), nil
+		return pa.db[USER_ACCOUNT_TABLE_NAME].IsAdmin(userRefId), nil
 	}
 
 	return false, nil
@@ -388,16 +404,19 @@ func (pa *PGResourceAdapter) GetContent() string {
 		log.Error(err, "failed to fetch content ", pa.resourcePath)
 		return ""
 	}
-	ret, err := base64.StdEncoding.DecodeString(content)
-	if err != nil {
-		log.Error(err, "decode error ", pa.resourcePath)
-		return ""
-	}
-	return string(ret)
+
+	return content
+	//ret, err := base64.StdEncoding.DecodeString(content)
+	//if err != nil {
+	//	log.Error(err, "decode error ", pa.resourcePath)
+	//	return ""
+	//}
+	//return string(ret)
 }
 
 func (pa *PGResourceAdapter) GetContentSize() int64 {
 	return int64(len(pa.GetContent()))
+
 }
 
 func (pa *PGResourceAdapter) IsCollection() bool {

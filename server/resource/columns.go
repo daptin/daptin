@@ -83,8 +83,6 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("mail_box", "belongs_to", "mail_account"),
 	api2go.NewTableRelation("mail", "belongs_to", "mail_box"),
 	api2go.NewTableRelationWithNames("task", "task_executed", "has_one", USER_ACCOUNT_TABLE_NAME, "as_user_id"),
-	api2go.NewTableRelationWithNames("calendar", "calendar", "has_one", USER_ACCOUNT_TABLE_NAME, "as_owner_id"),
-	api2go.NewTableRelationWithNames("collection", "collection", "has_one", USER_ACCOUNT_TABLE_NAME, "as_owner_id"),
 	api2go.NewTableRelation("calendar", "has_one", "collection"),
 	api2go.NewTableRelationWithNames("user_otp_account", "primary_user_otp", "belongs_to", "user_account", "otp_of_account"),
 }
@@ -1534,14 +1532,14 @@ var StandardTables = []TableInfo{
 				Name:       "rPath",
 				ColumnType: "label",
 				DataType:   "varchar(500)",
-				IsNullable: true,
+				IsNullable: false,
 			},
 			{
 				ColumnName: "content",
 				Name:       "content",
 				ColumnType: "label",
 				DataType:   "text",
-				IsNullable: true,
+				IsNullable: false,
 			},
 			//{
 			//	ColumnName: "event_title",

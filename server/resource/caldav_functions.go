@@ -11,7 +11,7 @@ func(dr *DbResource) GetRpath(userId int64)(string,error){
 
 	rPath := ""
 
-	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"owner_id": userId})
+	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"user_account_id": userId})
 	if err != nil {
 		return rPath, err
 	}
@@ -28,7 +28,7 @@ func (dr *DbResource) DeleteCalendarEvent(UserId int64, rPath string) error {
 
 	cal, err := dr.Cruds["calendar"].GetAllObjectsWithWhere("calendar",
 		goqu.Ex{
-			"owner_id": UserId,
+			"user_account_id": UserId,
 			"rPath": rPath,
 		},
 	)
@@ -55,7 +55,7 @@ func (dr *DbResource) DeleteCalendarEvent(UserId int64, rPath string) error {
 func(dr *DbResource) GetModTime(rPath string, userId int64)(time.Time,error){
 	modified := time.Now()
 
-	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"owner_id": userId},goqu.Ex{"rPath": rPath})
+	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"user_account_id": userId},goqu.Ex{"rPath": rPath})
 	if err != nil {
 		return modified, err
 	}
@@ -72,7 +72,7 @@ func(dr *DbResource) GetModTime(rPath string, userId int64)(time.Time,error){
 func(dr *DbResource) GetContent(rPath string, userId int64)(string,error){
 	content := ""
 
-	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"owner_id": userId},goqu.Ex{"rPath": rPath})
+	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"user_account_id": userId},goqu.Ex{"rPath": rPath})
 	if err != nil {
 		return content, err
 	}
@@ -114,7 +114,7 @@ func (d *DbResource) UpdateResource(rPath, newContent string) error {
 func (dr *DbResource) InsertResource(rPath, content string, userId int64) error{
 
 	query, args, err := statementbuilder.Squirrel.Insert("calendar").
-		Cols("rPath", "content", "owner_id").
+		Cols("rPath", "content", "user_account_id").
 		Vals([]interface{}{rPath, content, userId}).
 		ToSQL()
 

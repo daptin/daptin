@@ -216,7 +216,7 @@ func (dr *DbResource) GetObjectPermissionByReferenceId(objectType string, refere
 	return perm
 }
 
-// Get permission of an GetObjectPermissionById by typeName and string referenceId
+// Get permission of an Object by typeName and string referenceId
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
@@ -870,7 +870,7 @@ func (dr *DbResource) GetUserById(userId int64) (map[string]interface{}, error) 
 	user, _, err := dr.Cruds[USER_ACCOUNT_TABLE_NAME].GetSingleRowById("user_account", userId, nil)
 
 	if len(user) > 0 {
-		return nil, err
+		return user, err
 	}
 
 	return nil, errors.New("no such user")
@@ -1345,6 +1345,31 @@ func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, err
 	}
 
 	s, q, err := statementbuilder.Squirrel.Select("reference_id").From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
+	if err != nil {
+		return "", err
+	}
+
+	var str string
+	row := dr.db.QueryRowx(s, q...)
+	err = row.Scan(&str)
+	if OlricCache != nil {
+		OlricCache.PutIfEx(k, str, 1*time.Minute, olric.IfNotFound)
+	}
+	return str, err
+
+}
+
+func (dr *DbResource) GetReferenceIdByAccountId(typeName string, id int64) (string, error) {
+
+	k := fmt.Sprintf("itr-%v-%v", typeName, id)
+	if OlricCache != nil {
+		v, err := OlricCache.Get(k)
+		if err == nil {
+			return v.(string), nil
+		}
+	}
+
+	s, q, err := statementbuilder.Squirrel.Select("reference_id").From(typeName).Where(goqu.Ex{"user_account_id": id}).ToSQL()
 	if err != nil {
 		return "", err
 	}
