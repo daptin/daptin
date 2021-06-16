@@ -1707,14 +1707,6 @@ func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, err
 
 func (dr *DbResource) GetReferenceIdByAccountId(typeName string, id int64) (string, error) {
 
-	k := fmt.Sprintf("itr-%v-%v", typeName, id)
-	if OlricCache != nil {
-		v, err := OlricCache.Get(k)
-		if err == nil {
-			return v.(string), nil
-		}
-	}
-
 	s, q, err := statementbuilder.Squirrel.Select("reference_id").From(typeName).Where(goqu.Ex{"user_account_id": id}).ToSQL()
 	if err != nil {
 		return "", err
@@ -1723,9 +1715,6 @@ func (dr *DbResource) GetReferenceIdByAccountId(typeName string, id int64) (stri
 	var str string
 	row := dr.db.QueryRowx(s, q...)
 	err = row.Scan(&str)
-	if OlricCache != nil {
-		OlricCache.PutIfEx(k, str, 1*time.Minute, olric.IfNotFound)
-	}
 	return str, err
 
 }
