@@ -397,6 +397,7 @@ jobs:
         run: |
           ls build
           find build
+          file build/*
 
       - uses: actions/upload-artifact@v1
         name: Upload linux amd64 artifact
