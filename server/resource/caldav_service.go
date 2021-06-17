@@ -75,6 +75,7 @@ func (c *CalDavStorage) CalDavHandler() http.Handler{
 		caldav.SetupStorage(stg)
 
 		response := caldav.HandleRequest(request)
+		response.Body = "response"
 		response.Write(writer)
 
 	})
