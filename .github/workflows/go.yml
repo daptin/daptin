@@ -388,7 +388,7 @@ jobs:
           go env
           ls -lah
           xgo --docker-image=artpar/xgo \
-              -targets=darwin/amd64,linux/amd64,linux/arm-5,linux/arm-6,linux/arm-7,windows/amd64 \
+              -targets=darwin/amd64,linux/amd64,linux/arm-5,linux/arm-6,linux/arm64,linux/arm-7,windows/amd64 \
               --tags netgo -ldflags="-linkmode external $(govvv -flags)" -dest build .
 
 
