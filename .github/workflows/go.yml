@@ -460,9 +460,6 @@ jobs:
           files: |
             ./build/github.com/daptin/daptin-linux-amd64
             ./build/github.com/daptin/daptin-darwin-10.12-amd64
-#            ./build/github.com/daptin/daptin-linux-arm-5
-#            ./build/github.com/daptin/daptin-linux-arm-6
-#            ./build/github.com/daptin/daptin-linux-arm-7
             ./build/github.com/daptin/daptin-linux-arm64
             ./build/github.com/daptin/daptin-windows-4.0-amd64.exe
         env:
