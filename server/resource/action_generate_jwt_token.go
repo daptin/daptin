@@ -65,7 +65,7 @@ func (d *generateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap m
 			u, _ := uuid.NewV4()
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 				"email": existingUser["email"],
-				"sub":   existingUser["email"],
+				"sub":   existingUser["reference_id"],
 				"name":  existingUser["name"],
 				"nbf":   time.Now().Unix(),
 				"exp":   time.Now().Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),

@@ -19,7 +19,7 @@ There is a strong belief within us that the license we have chosen provides not 
 Our interpretation of the GNU Affero General Public License version 3: (Quoted words are words in which there exists a definition within the license to avoid ambiguity.)
   1. You must always provide the source code, copyright and license information of Daptin whenever you "convey" any part of Daptin;
      be it a verbatim copy or a modified copy.
-  2. Daptin was developed as a library and has therefore been designed without knowledge of your work; as such the following should be implied:
+  2. Daptin was developed as a serveer and has therefore been designed without knowledge of your work; as such the following should be implied:
      a) Daptin was developed without knowledge of your work; as such the following should be implied:
         i)  Daptin should not fall under a work which is "based on" your work.
         ii) You should be free to use Daptin in a work covered by the:

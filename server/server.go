@@ -45,7 +45,7 @@ var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.Olric) (HostSwitch, *guerrilla.Daemon,
-	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server,*http.Server, *olric.Olric) {
+	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server, *olric.Olric) {
 
 	fmt.Print(`                                                                           
                               
@@ -66,6 +66,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	/// Start system initialise
 	log.Printf("Load config files")
+
 	initConfig, errs := LoadConfigFiles()
 	if errs != nil {
 		for _, err := range errs {
@@ -127,6 +128,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 			Stats.End(beginning, stats.WithRecorder(recorder))
 		}
 	}())
+
 
 	defaultRouter.GET("/statistics", func(c *gin.Context) {
 		c.JSON(http.StatusOK, Stats.Data())
@@ -210,6 +212,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to store secret in database")
 		jwtSecret = newSecret
 	}
+
 
 	//enablelogs, err := configStore.GetConfigValueFor("logs.enable", "backend")
 	//if err != nil {
@@ -424,52 +427,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		}
 	}
 
-	var calDavServer *http.Server
-	calDavServer = nil
-	//Config CalDav
-	//Get calDav Config Values.
-	enableCaldavServer, err := configStore.GetConfigValueFor("caldav.enabled", "backend")
-	if err == nil && enableCaldavServer == "true" {
-		CaldavListenInterface, err := configStore.GetConfigValueFor("caldav.listen_interface", "backend")
-		if err != nil {
-			err = configStore.SetConfigValueFor("caldav.listen_interface", ":8443", "backend")
-			resource.CheckErr(err, "Failed to store default caldav listen interface in config")
-			CaldavListenInterface = ":8008"
-		}
-
-		hostname, err := configStore.GetConfigValueFor("hostname", "backend")
-		hostname = "caldav." + hostname
-
-		// Create a new server
-
-		calDavServer := resource.NewCaldavServer(CaldavListenInterface)
-
-		tlsConfig, _, _, _, _, err := certificateManager.GetTLSConfig(hostname, true)
-		resource.CheckErr(err, "Failed to get certificate for CalDav [%v]", hostname)
-		calDavServer.TLSConfig = tlsConfig
-
-		log.Printf("Starting CalDav server at %s: %v\n", CaldavListenInterface, hostname)
-
-		go func() {
-			if EndsWithCheck(CaldavListenInterface, ":8443") {
-				if err := calDavServer.ListenAndServeTLS("", ""); err != nil {
-					resource.CheckErr(err, "CalDav SSL server is not listening anymore 1")
-				}
-			} else {
-				if err := calDavServer.ListenAndServe(); err != nil {
-					resource.CheckErr(err, "CalDav server is not listening anymore 2")
-				}
-			}
-		}()
-
-	} else {
-		if err != nil {
-			err = configStore.SetConfigValueFor("caldav.enabled", "false", "backend")
-			resource.CheckErr(err, "Failed to set default value for caldav.enabled")
-		}
+	ch, err := resource.NewCaldavStorage(cruds, certificateManager)
+	if err != nil {
+		resource.CheckErr(err, "Unable To Configure Caldav")
 	}
 
-
+	caldavHandler := ch.CalDavHandler()
+	defaultRouter.Any("/caldav", gin.WrapH(caldavHandler))
 
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
@@ -668,7 +632,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 						if colValue == nil {
 							return
 						}
-						columnValueArray := colValue.([]map[string]interface{})
+						columnValueArray, ok := colValue.([]map[string]interface{})
+						if !ok {
+							log.Warnf("value is not of type array - %v", colValue)
+							return
+						}
 
 						fileContentsJson := []byte{}
 						for _, file := range columnValueArray {
@@ -767,7 +735,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 	log.Printf("Our admin is [%v]", adminEmail)
 
-	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer, imapServer,calDavServer, olricDb
+	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer, imapServer, olricDb
 
 }
 
@@ -909,7 +877,7 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 		resource.UpdateStreams(initConfig, db)
 		//resource.UpdateMarketplaces(initConfig, db)
 		err := resource.UpdateTasksData(initConfig, db)
-		resource.CheckErr(err, "Failed to update cron jobs")
+		resource.CheckErr(err, "[870] Failed to update cron jobs")
 		resource.UpdateStandardData(initConfig, db)
 
 		err = resource.UpdateActionTable(initConfig, db)
@@ -972,11 +940,14 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 						existableTable.Columns[colIndex].ExcludeFromApi = newColumnDef.ExcludeFromApi
 						existableTable.Columns[colIndex].IsIndexed = newColumnDef.IsIndexed
 						existableTable.Columns[colIndex].IsNullable = newColumnDef.IsNullable
+						existableTable.Columns[colIndex].IsUnique = newColumnDef.IsUnique
 						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
 						existableTable.Columns[colIndex].Options = newColumnDef.Options
 						existableTable.Columns[colIndex].DataType = newColumnDef.DataType
-						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
+						existableTable.Columns[colIndex].ColumnDescription = newColumnDef.ColumnDescription
 						existableTable.Columns[colIndex].ForeignKeyData = newColumnDef.ForeignKeyData
+						existableTable.Columns[colIndex].IsForeignKey = newColumnDef.IsForeignKey
+						existableTable.Columns[colIndex].IsPrimaryKey = newColumnDef.IsPrimaryKey
 
 					} else {
 						existableTable.Columns = append(existableTable.Columns, newColumnDef)

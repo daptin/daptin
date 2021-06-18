@@ -217,7 +217,6 @@ func main() {
 	var configStore *resource.ConfigStore
 	var ftpServer *server2.FtpServer
 	var imapServerInstance *imapServer.Server
-	var calDavServerInstance *http.Server
 	var olricDb *olric.Olric
 
 	if localStoragePath != nil && *localStoragePath != "" {
@@ -242,7 +241,7 @@ func main() {
 	}()
 
 	hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-		ftpServer, imapServerInstance, calDavServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb)
+		ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -257,8 +256,8 @@ func main() {
 				profileDumpCount += 1
 				pprof.StopCPUProfile()
 
-				cpuprofile := fmt.Sprintf("%sdaptin_cpu_profile_%v.prof", *profileDumpPath, profileDumpCount)
-				heapprofile := fmt.Sprintf("%sdaptin_heap_profile_%v.prof", *profileDumpPath, profileDumpCount)
+				cpuprofile := fmt.Sprintf("%sdaptin_profile_cpu.%v", *profileDumpPath, profileDumpCount)
+				heapprofile := fmt.Sprintf("%sdaptin_profile_heap.%v", *profileDumpPath, profileDumpCount)
 
 				cpuFile, err := os.Create(cpuprofile)
 				heapFile, err := os.Create(heapprofile)
@@ -299,14 +298,6 @@ func main() {
 				log.Printf("Failed to close imap server connections: %v", err)
 			}
 		}
-
-		if calDavServerInstance != nil{
-			err = calDavServerInstance.Close()
-			if err != nil {
-				log.Printf("Failed to close calDav server connections: %v", err)
-			}
-		}
-
 		log.Printf("All connections closed")
 		log.Printf("Create new connections")
 		db1, err := server.GetDbConnection(*dbType, *connectionString)
@@ -316,7 +307,7 @@ func main() {
 		}
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-			ftpServer, imapServerInstance,calDavServerInstance, olricDb = server.Main(boxRoot, db1, *localStoragePath, olricDb)
+			ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db1, *localStoragePath, olricDb)
 		rhs.HostSwitch = &hostSwitch
 		err = db.Close()
 		auth.CheckErr(err, "Failed to close old db connection")
@@ -406,6 +397,7 @@ func main() {
 	log.Printf("Why quit now ?")
 }
 
+//eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRoZXRlY2h0ZWtrZXJAZ21haWwuY29tIiwiZXhwIjoxNjI0MTg4NDIwLCJpYXQiOiIyMDIxLTA2LTE3VDExOjI3OjAwLjUxMDU1ODMwM1oiLCJpc3MiOiJkYXB0aW4tZGEzYmIwIiwianRpIjoiYWIyNzQwMTgtYjZkYi00ZjY4LWFkNDktNjgyMDJkY2U5NDExIiwibmFtZSI6IlRvYnkiLCJuYmYiOjE2MjM5MjkyMjAsInN1YiI6InRoZXRlY2h0ZWtrZXJAZ21haWwuY29tIn0.6hmw3Iz3oaArIO93VXNyQDvy6NA9rNZFlu0g_mGR6Oc
 // RestartHandlerServer helps in switching the new router with old router with restart is triggered
 type RestartHandlerServer struct {
 	HostSwitch *server.HostSwitch

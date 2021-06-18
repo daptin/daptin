@@ -135,7 +135,13 @@ WHERE
 		return existingIndexes
 	}
 
-	rows, err := db.Queryx(indexQuery)
+	stmt1, err := db.Preparex(indexQuery)
+	if err != nil {
+		log.Errorf("[877] failed to prepare statment: %v", err)
+		return nil
+	}
+
+	rows, err := stmt1.Queryx(indexQuery)
 	CheckErr(err, "Failed to check existing indexes")
 	if err == nil {
 		for rows.Next() {
@@ -708,8 +714,9 @@ func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) error {
 	_, err := db.Exec(createTableQuery)
 	//db.Exec("COMMIT ")
 	if err != nil {
-		log.Errorf("Failed to create table: %v", err)
-		return fmt.Errorf("failed to create table: %v", err)
+		log.Errorf("create table sql: %v", createTableQuery)
+		log.Errorf("[718] Failed to create table [%v]: %v", tableInfo.TableName, err)
+		return fmt.Errorf("failed to create table [%v]: %v", tableInfo.TableName, err)
 	}
 	return nil
 }
