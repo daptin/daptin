@@ -668,7 +668,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 			queries, ok := req.QueryParams[rel.GetSubject()+"_id"]
 			//log.Printf("%d Values as RefIds for relation [%v]", len(filters), rel.String())
-			if !ok || len(queries) < 1 {
+			if !ok || len(queries) < 1 || queries[0] == "" {
 				continue
 			}
 			ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), []interface{}{"id"}, "reference_id", queries)
