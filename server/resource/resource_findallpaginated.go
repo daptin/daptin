@@ -502,6 +502,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 				//ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetObject(), []interface{}{"id"}, "reference_id", queries)
 
+				if len(queries) == 0 || queries[0] == "" {
+					log.Warnf("queries for %s is empty, skipping", rel.GetObjectName())
+					continue
+				}
+
 				refIdsToIdMap, err := dr.GetReferenceIdListToIdList(rel.GetObject(), queries)
 
 				//log.Printf("Converted ids: %v", ids)
