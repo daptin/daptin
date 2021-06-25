@@ -516,7 +516,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				}
 
 				if len(refIdsToIdMap) < 1 {
-					continue
+					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
+					return nil, nil, nil, false, err
 				}
 
 				intIdList := ValuesOf(refIdsToIdMap)
