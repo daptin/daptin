@@ -172,7 +172,7 @@ jobs:
           docker push daptin/daptin:travis
           docker tag daptin/daptin:travis daptin/daptin:$CI_VERSION
           docker push daptin/daptin:$CI_VERSION
-        if: matrix.os == 'ubuntu-latest' && matrix.job_name == 'linux' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'ubuntu-latest' && matrix.job_name == 'linux'
 
 
       - name: Compile all architectures test
