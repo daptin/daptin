@@ -1194,7 +1194,7 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 			opValue = filterQuery.Operator
 		}
 
-		if BeginsWith(opValue, "is") {
+		if BeginsWith(opValue, "is") || BeginsWith(opValue, "not") {
 			parts := strings.Split(opValue, " ")
 			if len(parts) > 1 {
 				switch parts[1] {
@@ -1204,6 +1204,8 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 					actualvalue = false
 				case "empty":
 					actualvalue = nil
+				case "null":
+					fallthrough
 				case "nil":
 					actualvalue = nil
 				}
