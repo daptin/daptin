@@ -166,12 +166,13 @@ jobs:
 
       - name: Build and push docker image
         run: |
+          export
           GOOS=linux go build  -a -ldflags "$(govvv -flags) -extldflags '-static'" -o main
           docker build -t daptin/daptin:travis .
           docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
           docker push daptin/daptin:travis
           docker tag daptin/daptin:travis daptin/daptin:$CI_VERSION
-          docker push daptin/daptin:$CI_VERSION
+          docker push daptin/daptin:travis
         if: matrix.os == 'ubuntu-latest' && matrix.job_name == 'linux'
 
 
