@@ -171,7 +171,7 @@ jobs:
           docker build -t daptin/daptin:travis .
           docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
           docker push daptin/daptin:travis
-          docker tag daptin/daptin:travis daptin/daptin:$CI_VERSION
+          docker tag daptin/daptin:travis daptin/daptin:travis
           docker push daptin/daptin:travis
         if: matrix.os == 'ubuntu-latest' && matrix.job_name == 'linux'
 
