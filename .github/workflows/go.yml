@@ -170,11 +170,11 @@ jobs:
         run: |
           echo ${{ steps.get_version.outputs.version }}
           GOOS=linux go build  -a -ldflags "$(govvv -flags) -extldflags '-static'" -o main
-          docker build -t daptin/daptin:travis .
+          docker build -t daptin/daptin:${{ steps.get_version.outputs.version }} .
           docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
-          docker push daptin/daptin:travis
-          docker tag daptin/daptin:travis daptin/daptin:travis
-          docker push daptin/daptin:travis
+          docker push daptin/daptin:${{ steps.get_version.outputs.version }}
+          docker tag daptin/daptin:${{ steps.get_version.outputs.version }} daptin/daptin:${{ steps.get_version.outputs.version }}
+          docker push daptin/daptin:${{ steps.get_version.outputs.version }}
         if: matrix.os == 'ubuntu-latest' && matrix.job_name == 'linux'
 
 
