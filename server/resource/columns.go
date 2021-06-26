@@ -1539,7 +1539,7 @@ var StandardTables = []TableInfo{
 			{
 				ColumnName: "content",
 				Name:       "content",
-				ColumnType: "label",
+				ColumnType: "content",
 				DataType:   "text",
 				IsNullable: false,
 			},

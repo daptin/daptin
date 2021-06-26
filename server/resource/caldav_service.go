@@ -40,52 +40,72 @@ func NewCaldavStorage(cruds map[string]*DbResource,certificateManager *Certifica
 	}, nil
 }
 
-func (c *CalDavStorage) CalDavHandler() http.Handler{
+
+func (cs *CalDavStorage) CalDavHandler() http.Handler{
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		var username, email string
-		user := request.Context().Value("user")
-		sessionUser := user.(auth.SessionUser)
 
-		if user == nil {
-			http.Error(writer, "Unauthorised User", 401)
+		writer.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+
+		str := strings.SplitN(request.Header.Get("Authorization"), " ", 2)
+		if len(str) != 2 {
+			http.Error(writer, "Not authorized", 401)
+			return
 		}
 
-		if sessionUser.UserId == 0 {
-			http.Error(writer, "Unauthorised User", 401)
+		b, err := base64.StdEncoding.DecodeString(str[1])
+		if err != nil {
+			http.Error(writer, err.Error(), 401)
+			return
 		}
 
-		retrievedUser,err:= c.cruds["user_account"].GetUserById(sessionUser.UserId)
+		pair := strings.SplitN(string(b), ":", 2)
+		if len(pair) != 2 {
+			http.Error(writer, "Not authorized", 401)
+			return
+		}
+
+		pword, err := cs.cruds["user_account"].GetUserPassword(pair[0])
+		if err != nil {
+			http.Error(writer, "User Not Found!", http.StatusUnauthorized)
+		}
+
+
+		if !BcryptCheckStringHash(pair[1], pword){
+			http.Error(writer, "Unauthorized access", http.StatusUnauthorized)
+		}
+
+		retrievedUser,err:= cs.cruds["user_account"].GetUserAccountRowByEmail(pair[0])
 		if err != nil {
 			http.Error(writer, "Unable To Retrieve User", 401)
 		}
 
-		username = retrievedUser["name"].(string)
-		email = retrievedUser["email"].(string)
+		userReferenceId := retrievedUser["reference_id"].(string)
+		userId := retrievedUser["id"].(int64)
 
+
+		userGroup, err := cs.cruds[USER_ACCOUNT_TABLE_NAME].GetUserGroupById(USER_ACCOUNT_TABLE_NAME, userId,userReferenceId)
+		if err != nil {
+			http.Error(writer, "Unable To Retrieve User", 401)
+			log.Error("Unable To Retrieve User Group", err)
+		}
 
 		stg := new(CalDavStorage)
-		stg.cruds    = c.cruds
-		stg.Mailer   = c.Mailer
-		stg.UserID = sessionUser.UserId
-		stg.Email  = email
-		stg.Username = username
-		stg.UserReferenceID = sessionUser.UserReferenceId
-		stg.GroupID = sessionUser.Groups
+		stg.cruds    = cs.cruds
+		stg.Mailer   = cs.Mailer
+		stg.UserID = userId
+		stg.Email  = retrievedUser["email"].(string)
+		stg.Username = retrievedUser["name"].(string)
+		stg.UserReferenceID = userReferenceId
+		stg.GroupID = userGroup
 
-		caldav.SetupStorage(stg)
-
-		response := caldav.HandleRequest(request)
-		response.Body = "response"
+		response := caldav.HandleRequestWithStorage(request, stg)
 		response.Write(writer)
-
 	})
 }
 
 
-
-
 func (cs *CalDavStorage) GetResourcesByList(rpaths []string) ([]data.Resource, error) {
-	results := []data.Resource{}
+	var results []data.Resource
 
 	for _, rpath := range rpaths {
 		resource, found, err := cs.GetShallowResource(rpath)
@@ -119,8 +139,8 @@ func (cs *CalDavStorage) GetShallowResource(rpath string) (*data.Resource, bool,
 
 func (cs *CalDavStorage) GetResources(rpath string, withChildren bool) ([]data.Resource, error) {
 	var result []data.Resource
-
 	a, err := cs.haveAccess(rpath, "read")
+
 	if err != nil {
 		log.Error(err, "failed to get Access [" + rpath + "]")
 		return nil, err
@@ -136,38 +156,42 @@ func (cs *CalDavStorage) GetResources(rpath string, withChildren bool) ([]data.R
 		return nil, nil
 	}
 
-	res := data.NewResource(rpath, &PGResourceAdapter{db: cs.cruds, resourcePath: rpath, UserID: cs.UserID})
+	res := data.NewResource(rpath, &PGResourceAdapter{db: cs.cruds, resourcePath: rpath, UserID: cs.UserID, UserReferenceId: cs.UserReferenceID})
 	result = append(result, res)
-
 
 	return result, nil
 }
 
 func (cs *CalDavStorage) haveAccess(rpath string, perm string) (bool, error) {
+	if perm == "admin"{
+		return cs.cruds[USER_ACCOUNT_TABLE_NAME].IsAdmin(cs.UserReferenceID), nil
+
+	}
+
+	if !cs.isResourcePresent(rpath){
+		return true, nil
+	}
 
 	rowPermission := make(map[string]interface{})
 
-	calRefId, err := cs.cruds["calendar"].GetReferenceIdByAccountId("calendar", cs.UserID)
+	calId, err := cs.cruds["calendar"].GetCalendarId(rpath, cs.UserID)
 	if err != nil {
 		return false, err
 	}
 
 	rowPermission["__type"] = "calendar"
-	rowPermission["reference_id"] = calRefId
-	rowPermission["id"] = cs.UserID
+	rowPermission["id"] = calId
 
 	permInst := cs.cruds["calendar"].GetRowPermission(rowPermission)
 
 	if perm == "read"{
-		return permInst.CanRead(strconv.FormatInt(cs.UserID, 10), cs.GroupID), nil
+		return permInst.CanRead(cs.UserReferenceID, cs.GroupID), nil
+
 	}
 
 	if perm == "write"{
-		return permInst.CanCreate(strconv.FormatInt(cs.UserID, 10), cs.GroupID), nil
-	}
+		return permInst.CanCreate(cs.UserReferenceID, cs.GroupID), nil
 
-	if perm == "admin"{
-		return cs.cruds[USER_ACCOUNT_TABLE_NAME].IsAdmin(cs.UserReferenceID), nil
 	}
 
 	return false, nil
@@ -183,19 +207,14 @@ func isCollection(rpath string) bool {
 	return false
 }
 
-
-
-
 var regex = regexp.MustCompile(`/[A-Za-z0-9-%@\.]*\.ics`)
 func getCollection(rpath string) string {
 	replace := regex.ReplaceAll([]byte(rpath), []byte("/"))
 	return string(replace)
 }
 
-
-
 func (cs *CalDavStorage) GetResourcesByFilters(rpath string, filters *data.ResourceFilter) ([]data.Resource, error) {
-	result := []data.Resource{}
+	var result []data.Resource
 
 	res, err := cs.GetResources(rpath, true)
 	if err != nil {
@@ -214,18 +233,9 @@ func (cs *CalDavStorage) GetResource(rpath string) (*data.Resource, bool, error)
 	return cs.GetShallowResource(rpath)
 }
 
-func parseMail(m string) string {
-	s := strings.Split(m, ":")
-	if s[0] == "mailto" {
-		if len(s) > 1 {
-			return s[1]
-		}
-	}
-	return m
-}
-
 func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, error) {
 	a, err := cs.haveAccess(rpath, "write")
+
 	if err != nil {
 		log.Error(err, "failed to get Access [" + rpath + "]")
 		return nil, err
@@ -243,7 +253,7 @@ func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, 
 		return nil, err
 	}
 
-	res := data.NewResource(rpath, &PGResourceAdapter{db: cs.cruds, resourcePath: rpath, UserID: cs.UserID})
+	res := data.NewResource(rpath, &PGResourceAdapter{db: cs.cruds, resourcePath: rpath, UserID: cs.UserID, UserReferenceId: cs.UserReferenceID})
 	_ = res.GetPropertyValue("VEVENT", "ATTENDEE")
 	title     := res.GetPropertyValue("VEVENT", "SUMMARY")
 	start     := res.StartTimeUTC()
@@ -255,7 +265,6 @@ func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, 
 	actionRequestParameters["subject"] = subject
 	actionRequestParameters["from"] = "daptin.no-reply"
 	actionRequestParameters["body"] = content
-
 
 	_, _, mailerError := cs.Mailer.DoAction(Outcome{}, actionRequestParameters)
 	if mailerError  != nil{
@@ -283,7 +292,7 @@ func (cs *CalDavStorage) UpdateResource(rpath, content string) (*data.Resource, 
 		return nil, err
 	}
 
-	res := data.NewResource(rpath, &PGResourceAdapter{db: cs.cruds, resourcePath: rpath,  UserID: cs.UserID})
+	res := data.NewResource(rpath, &PGResourceAdapter{db: cs.cruds, resourcePath: rpath,  UserID: cs.UserID, UserReferenceId: cs.UserReferenceID})
 	_ = res.GetPropertyValue("VEVENT", "ATTENDEE")
 	title     := res.GetPropertyValue("VEVENT", "SUMMARY")
 	start     := res.StartTimeUTC()
@@ -343,7 +352,9 @@ func (cs *CalDavStorage) isResourcePresent(rpath string) bool {
 type PGResourceAdapter struct {
 	db map[string]*DbResource
 	resourcePath string
-	UserID       int64
+	UserReferenceId string
+	UserID int64
+
 }
 
 func (pa *PGResourceAdapter) CalculateEtag() string {
@@ -355,34 +366,29 @@ func (pa *PGResourceAdapter) CalculateEtag() string {
 }
 
 func (pa *PGResourceAdapter) haveAccess(perm string) (bool, error) {
-	calRefId, err := pa.db["calendar"].GetReferenceIdByAccountId("calendar", pa.UserID)
+	calId, err := pa.db["calendar"].GetCalendarIdByAccountId("calendar", pa.UserID)
 	if err != nil {
 		return false, err
 	}
 
-	IntcalRefId, err := strconv.ParseInt(calRefId, 10, 6)
-	if err != nil {
-		log.Error(err, pa.resourcePath)
-		return false, err
-	}
-	permInst := pa.db[USER_ACCOUNT_TABLE_NAME].GetObjectPermissionById("calendar", IntcalRefId)
+
+	permInst := pa.db["calendar"].GetObjectPermissionById("calendar", calId)
+	fmt.Println("permInst", permInst)
+
 	uGroupId := permInst.UserGroupId
 
-	userRefId, err := pa.db[USER_ACCOUNT_TABLE_NAME].GetIdToReferenceId(USER_ACCOUNT_TABLE_NAME, pa.UserID)
-	if err != nil {
-		return false, err
-	}
 
 	if perm == "read"{
-		return permInst.CanRead(strconv.FormatInt(pa.UserID, 10), uGroupId), nil
+		return permInst.CanRead(pa.UserReferenceId, uGroupId), nil
+
 	}
 
 	if perm == "write"{
-		return permInst.CanCreate(strconv.FormatInt(pa.UserID, 10), uGroupId), nil
+		return permInst.CanCreate(pa.UserReferenceId, uGroupId), nil
 	}
 
 	if perm == "admin"{
-		return pa.db[USER_ACCOUNT_TABLE_NAME].IsAdmin(userRefId), nil
+		return pa.db[USER_ACCOUNT_TABLE_NAME].IsAdmin(pa.UserReferenceId), nil
 	}
 
 	return false, nil
@@ -407,12 +413,6 @@ func (pa *PGResourceAdapter) GetContent() string {
 	}
 
 	return content
-	//ret, err := base64.StdEncoding.DecodeString(content)
-	//if err != nil {
-	//	log.Error(err, "decode error ", pa.resourcePath)
-	//	return ""
-	//}
-	//return string(ret)
 }
 
 func (pa *PGResourceAdapter) GetContentSize() int64 {
