@@ -71,6 +71,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
 
+      - id: get_version
+        uses: battila7/get-version-action@v2
 
       - name: Install Go
         uses: actions/setup-go@v1
@@ -166,7 +168,7 @@ jobs:
 
       - name: Build and push docker image
         run: |
-          export
+          echo ${{ steps.get_version.outputs.version }}
           GOOS=linux go build  -a -ldflags "$(govvv -flags) -extldflags '-static'" -o main
           docker build -t daptin/daptin:travis .
           docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
