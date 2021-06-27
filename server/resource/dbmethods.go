@@ -1705,19 +1705,8 @@ func (dr *DbResource) GetIdToReferenceId(typeName string, id int64) (string, err
 
 }
 
-func (dr *DbResource) GetReferenceIdByAccountId(typeName string, id int64) (string, error) {
 
-	s, q, err := statementbuilder.Squirrel.Select("reference_id").From(typeName).Where(goqu.Ex{"user_account_id": id}).ToSQL()
-	if err != nil {
-		return "", err
-	}
 
-	var str string
-	row := dr.db.QueryRowx(s, q...)
-	err = row.Scan(&str)
-	return str, err
-
-}
 
 // Lookup an string reference id and return a internal integer id of an object of type `typeName`
 func (dr *DbResource) GetReferenceIdToId(typeName string, referenceId string) (int64, error) {
