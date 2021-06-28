@@ -80,17 +80,6 @@ func (resource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId stri
 
 }
 
-func UpdateStandardData(initConfig *CmsConfig, db database.DatabaseConnection) {
-
-	//for _, row := range StandardData {
-	//
-	//
-	//	typeName := row.Data["__type"]
-	//
-	//}
-
-}
-
 func UpdateTasksData(initConfig *CmsConfig, db database.DatabaseConnection) error {
 
 	tasks, err := GetTasks(db)

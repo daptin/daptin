@@ -44,8 +44,9 @@ import (
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.Olric) (HostSwitch, *guerrilla.Daemon,
-	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server, *olric.Olric) {
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.Olric) (
+	HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager,
+	*server2.FtpServer, *server.Server, *olric.Olric) {
 
 	fmt.Print(`                                                                           
                               
@@ -74,11 +75,17 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		}
 	}
 
-	existingTables, _ := GetTablesFromWorld(db)
+	skipDbConfig, skipValueFound := os.LookupEnv("DAPTIN_SKIP_CONFIG_FROM_DATABASE")
 
-	allTables := MergeTables(existingTables, initConfig.Tables)
-
-	initConfig.Tables = allTables
+	var existingTables []resource.TableInfo
+	if skipValueFound && skipDbConfig == "true" {
+		log.Info("skip loading existing tables config from database")
+	} else {
+		log.Info("loading existing tables config from database")
+		existingTables, _ = GetTablesFromWorld(db)
+		allTables := MergeTables(existingTables, initConfig.Tables)
+		initConfig.Tables = allTables
+	}
 
 	// rclone config load
 	configfile.LoadConfig(context.Background())
@@ -445,7 +452,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		cruds[k].ActionHandlerMap = actionHandlerMap
 	}
 
-	resource.ImportDataFiles(initConfig.Imports, db, cruds)
+	skipImportData, skipImportValFound := os.LookupEnv("DAPTIN_SKIP_IMPORT_DATA")
+	if skipImportValFound && skipImportData == "true" {
+		log.Info("skipping importing data from files")
+	} else {
+		log.Info("importing data from files")
+		resource.ImportDataFiles(initConfig.Imports, db, cruds)
+	}
 
 	if localStoragePath != ";" {
 		err = resource.CreateDefaultLocalStorage(db, localStoragePath)
@@ -868,8 +881,6 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 		//resource.UpdateMarketplaces(initConfig, db)
 		err := resource.UpdateTasksData(initConfig, db)
 		resource.CheckErr(err, "[870] Failed to update cron jobs")
-		resource.UpdateStandardData(initConfig, db)
-
 		err = resource.UpdateActionTable(initConfig, db)
 		resource.CheckErr(err, "Failed to update action table")
 	}()
