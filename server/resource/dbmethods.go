@@ -1762,7 +1762,7 @@ func (dr *DbResource) GetIdListToReferenceIdList(typeName string, ids []int64) (
 		var id1 string
 		var id2 int64
 		err = rows.Scan(&id1, &id2)
-		log.Errorf("[1581] failed to scan value after query")
+		CheckErr(err, "[1581] failed to scan value after query: %v[%v]", typeName, ids)
 		idMap[id2] = id1
 	}
 
@@ -2135,7 +2135,6 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					err = includedSubject.Close()
 					CheckErr(err, "[2135] failed to close rows")
 
-
 					if len(includedSubjectId) < 1 {
 						continue
 					}
@@ -2153,7 +2152,6 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					for _, incl := range localSubjectInclude {
 						row[relation.GetSubjectName()] = append(row[relation.GetSubjectName()].([]string), incl["reference_id"].(string))
 					}
-
 
 					localInclude = append(localInclude, localSubjectInclude...)
 
