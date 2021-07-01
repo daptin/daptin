@@ -79,9 +79,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	var existingTables []resource.TableInfo
 	if skipValueFound && skipDbConfig == "true" {
-		log.Info("skip loading existing tables config from database")
+		log.Printf("skip loading existing tables config from database")
 	} else {
-		log.Info("loading existing tables config from database")
+		log.Printf("loading existing tables config from database")
 		existingTables, _ = GetTablesFromWorld(db)
 		allTables := MergeTables(existingTables, initConfig.Tables)
 		initConfig.Tables = allTables
@@ -973,8 +973,11 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 				}
 			}
 			existableTable.DefaultGroups = tableBeingModified.DefaultGroups
+			existableTable.DefaultOrder = tableBeingModified.DefaultOrder
 			existableTable.Conformations = tableBeingModified.Conformations
 			existableTable.Validations = tableBeingModified.Validations
+			existableTable.CompositeKeys = tableBeingModified.CompositeKeys
+			existableTable.Icon = tableBeingModified.Icon
 			existingTables[j] = existableTable
 		} else {
 			//log.Printf("Table %s is not being modified", existableTable.TableName)
