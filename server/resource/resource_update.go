@@ -417,7 +417,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 			log.Printf("Update query: %v", query)
 			_, err = dr.db.Exec(query, vals...)
 			if err != nil {
-				log.Errorf("Failed to execute update query 411: %v", err)
+				log.Errorf("Failed to execute update query [%s] [%v] 411: %v", query, vals, err)
 				return nil, err
 			}
 
