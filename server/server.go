@@ -835,20 +835,10 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 	resource.CheckAllTableStatus(initConfig, db)
 	resource.CheckErr(errc, "Failed to commit transaction after creating tables")
 
+	resource.CreateRelations(initConfig, db)
+	resource.CheckErr(errc, "Failed to commit transaction after creating relations")
+
 	tx, errb := db.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
-
-	tx, errb = db.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
-
-	if tx != nil {
-
-		resource.CreateRelations(initConfig, tx)
-		errc = tx.Commit()
-		resource.CheckErr(errc, "Failed to commit transaction after creating relations")
-	}
-
-	tx, errb = db.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction")
 	if tx != nil {
 		resource.CreateUniqueConstraints(initConfig, tx)

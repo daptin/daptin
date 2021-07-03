@@ -158,10 +158,13 @@ WHERE
 
 }
 
-func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
+func CreateRelations(initConfig *CmsConfig, db database.DatabaseConnection) {
 	log.Printf("Create relations")
 
-	existingIndexes := GetExistingIndexes(db)
+	tx, errb := db.Beginx()
+	CheckErr(errb, "Failed to begin transaction")
+
+	existingIndexes := GetExistingIndexes(tx)
 
 	for i, table := range initConfig.Tables {
 		if len(table.TableName) < 1 {
@@ -184,8 +187,10 @@ func CreateRelations(initConfig *CmsConfig, db *sqlx.Tx) {
 				_, err := db.Exec(alterSql)
 				if err != nil {
 					log.Printf("Failed to create foreign key [%v],  %v on column [%v][%v]", err, keyName, table.TableName, column.ColumnName)
+					tx.Rollback()
+					tx, errb = db.Beginx()
 				} else {
-					log.Printf("Key created [%v][%v]", keyName, table.TableName)
+					log.Infof("Key created [%v][%v]", keyName, table.TableName)
 				}
 			}
 		}
