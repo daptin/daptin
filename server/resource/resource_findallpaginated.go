@@ -3,7 +3,6 @@ package resource
 import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"regexp"
 	"strconv"
 	"strings"
 
