@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -468,7 +469,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				if strings.Index(query, "@") > -1 {
 					queryParts := strings.Split(query, "@")
 					joinId := queryParts[0]
-					joinQuery := queryParts[1]
+					joinQuery := strings.Join(queryParts[1:], "@")
 					joinQuery = joinQuery[1 : len(joinQuery)-1]
 					joinQueryParts := strings.Split(joinQuery, "&")
 					joinWhere := goqu.Ex{}
