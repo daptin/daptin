@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -51,13 +52,39 @@ func init() {
 	logFileLocation = strings.ReplaceAll(logFileLocation, "${HOSTNAME}", hostname)
 	logFileLocation = strings.ReplaceAll(logFileLocation, "${PID}", processId)
 
+	maxLogFileSize, ok := os.LookupEnv("DAPTIN_LOG_MAX_SIZE")
+	if !ok {
+		maxLogFileSize = "10"
+	}
+	maxLogFileBackups, ok := os.LookupEnv("DAPTIN_LOG_MAX_BACKUPS")
+	if !ok {
+		maxLogFileBackups = "10"
+	}
+	maxLogFileAge, ok := os.LookupEnv("DAPTIN_LOG_MAX_AGE")
+	if !ok {
+		maxLogFileAge = "7"
+	}
+
+	maxLogFileSizeInt, err := strconv.ParseInt(maxLogFileSize, 10, strconv.IntSize)
+	if err != nil {
+		log.Fatalf("invalid max log file size: %v => %v", maxLogFileSize, err)
+	}
+	maxLogFileBackupsInt, err := strconv.ParseInt(maxLogFileBackups, 10, strconv.IntSize)
+	if err != nil {
+		log.Fatalf("invalid max log file backups: %v => %v", maxLogFileBackups, err)
+	}
+	maxLogFileAgeInt, err := strconv.ParseInt(maxLogFileAge, 10, strconv.IntSize)
+	if err != nil {
+		log.Fatalf("invalid max log file age: %v => %v", maxLogFileAge, err)
+	}
+
 	lumberjackLogger := &lumberjack.Logger{
 		// Log file absolute path, os agnostic
 		Filename:   filepath.ToSlash(logFileLocation),
-		MaxSize:    1, // MB
+		MaxSize:    int(maxLogFileSizeInt), // MB
+		MaxBackups: int(maxLogFileBackupsInt),
+		MaxAge:     int(maxLogFileAgeInt), // days
 		LocalTime:  true,
-		MaxBackups: 10,
-		MaxAge:     7,     // days
 		Compress:   false, // disabled by default
 	}
 
