@@ -9,11 +9,11 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/disintegration/gift"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 	"image"
 	"image/jpeg"
 	"image/png"
 	"io"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"strconv"
@@ -49,6 +49,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 		table, ok := cruds[typeName]
 
 		if !ok || table == nil {
+			log.Errorf("table not found [%v]", typeName)
 			c.AbortWithStatus(404)
 			return
 		}
@@ -56,6 +57,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 		colInfo, ok := table.TableInfo().GetColumnByName(columnName)
 
 		if !ok || colInfo == nil || (!colInfo.IsForeignKey && colInfo.ColumnType != "markdown") {
+			log.Errorf("column [%v] info not found", columnName)
 			c.AbortWithStatus(404)
 			return
 		}
@@ -79,6 +81,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 		row := obj.Result().(*api2go.Api2GoModel)
 		colData := row.Data[columnName]
 		if colData == nil {
+			log.Errorf("column [%v] has no data ", columnName)
 			c.AbortWithStatus(404)
 			return
 		}
@@ -94,15 +97,17 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 			for _, fileData := range colData.([]map[string]interface{}) {
 				//fileData := fileInterface.(map[string]interface{})
 				fileName := fileData["name"].(string)
-				if c.Query(fileName) == fileName || fileToServe == "" {
+				if c.Query("file") == fileName && fileToServe == "" {
 					fileToServe = fileName
 					fileType = fileData["type"].(string)
+					break
 				}
 			}
 
 			file, err := cruds["world"].AssetFolderCache[typeName][columnName].GetFileByName(fileToServe)
 
 			if err != nil {
+				log.Errorf("failed to get file by name [%v] => %v", fileToServe, err)
 				c.AbortWithStatus(404)
 				return
 			}
