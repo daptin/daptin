@@ -66,7 +66,7 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 						continue
 					}
 				} else {
-					tempDirectoryPath = cloudStore.RootPath
+					tempDirectoryPath = cloudStore.RootPath + "/" + column.ForeignKeyData.KeyName
 				}
 
 				assetCacheFolder := &resource.AssetFolderCache{

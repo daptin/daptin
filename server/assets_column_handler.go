@@ -101,9 +101,9 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 					fileToServe = fileName
 
 					if fileData["path"] != nil && fileData["name"] != nil && len(fileData["path"].(string)) > 0 {
-						fileToServe = fileData["path"].(string) + "/" + fileData["name"].(string)
+						fileToServe = colInfo.ForeignKeyData.KeyName + "/" + fileData["path"].(string) + "/" + fileData["name"].(string)
 					} else if fileData["name"] != nil {
-						fileToServe = fileData["name"].(string)
+						fileToServe = colInfo.ForeignKeyData.KeyName + "/" + fileData["name"].(string)
 					} else {
 						log.Errorf("file name missing in metadata [%v][%v][%v]", typeName, columnName, resourceId)
 					}
