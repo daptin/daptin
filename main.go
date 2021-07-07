@@ -45,10 +45,13 @@ func init() {
 	// manually set time zone
 	if tz := os.Getenv("TZ"); tz != "" {
 		var err error
+		log.Infof("Setting timezone: %v", tz)
 		time.Local, err = time.LoadLocation(tz)
 		if err != nil {
 			log.Printf("error loading timezone location '%s': %v\n", tz, err)
 		}
+	} else {
+		log.Infof("Setting timezone to UTC since no TZ env variable set")
 	}
 
 	logFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
