@@ -97,7 +97,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 			for _, fileData := range colData.([]map[string]interface{}) {
 				//fileData := fileInterface.(map[string]interface{})
 				fileName := fileData["name"].(string)
-				if c.Query("file") == fileName && fileToServe == "" {
+				if c.Query("file") == fileName || c.Query("file") == "" {
 					fileToServe = fileName
 					fileType = fileData["type"].(string)
 					break
