@@ -141,7 +141,7 @@ WHERE
 		return nil
 	}
 
-	rows, err := stmt1.Queryx(indexQuery)
+	rows, err := stmt1.Queryx()
 	CheckErr(err, "Failed to check existing indexes")
 	if err == nil {
 		for rows.Next() {

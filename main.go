@@ -8,8 +8,11 @@ import (
 	olricConfig "github.com/buraksezer/olric/config"
 	"github.com/daptin/daptin/server/auth"
 	server2 "github.com/fclairamb/ftpserver/server"
+	"gopkg.in/natefinch/lumberjack.v2"
+	"io"
 	"io/ioutil"
 	"net/url"
+	"path/filepath"
 	"runtime/pprof"
 	"strings"
 	"sync"
@@ -38,18 +41,31 @@ var stream = health.NewStream()
 
 func init() {
 
-	//logFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
-	//if !ok || logFileLocation == "" {
-	//	logFileLocation = "daptin.log"
-	//}
-	//f, e := os.OpenFile(logFileLocation, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	//if e != nil {
-	//	log.Errorf("Failed to open logfile %v", e)
-	//}
-	//
-	//mwriter := io.MultiWriter(f, os.Stdout)
-	//
-	//log.SetOutput(mwriter)
+	logFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
+	if !ok || logFileLocation == "" {
+		return
+	}
+
+	hostname, _ := os.Hostname()
+	processId := fmt.Sprintf("%v", os.Getpid())
+	logFileLocation = strings.ReplaceAll(logFileLocation, "${HOSTNAME}", hostname)
+	logFileLocation = strings.ReplaceAll(logFileLocation, "${PID}", processId)
+
+	lumberjackLogger := &lumberjack.Logger{
+		// Log file absolute path, os agnostic
+		Filename:   filepath.ToSlash(logFileLocation),
+		MaxSize:    1, // MB
+		LocalTime:  true,
+		MaxBackups: 10,
+		MaxAge:     7,     // days
+		Compress:   false, // disabled by default
+	}
+
+	mwriter := io.MultiWriter(lumberjackLogger, os.Stdout)
+
+	log.SetOutput(mwriter)
+	gin.DefaultWriter = mwriter
+	gin.DefaultErrorWriter = mwriter
 }
 
 // Following variables will be statically linked at the time of compiling
