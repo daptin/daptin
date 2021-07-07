@@ -42,6 +42,15 @@ var stream = health.NewStream()
 
 func init() {
 
+	// manually set time zone
+	if tz := os.Getenv("TZ"); tz != "" {
+		var err error
+		time.Local, err = time.LoadLocation(tz)
+		if err != nil {
+			log.Printf("error loading timezone location '%s': %v\n", tz, err)
+		}
+	}
+
 	logFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
 	if !ok || logFileLocation == "" {
 		return
