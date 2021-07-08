@@ -468,6 +468,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	defaultRouter.GET("/ping", func(c *gin.Context) {
+		_, err := cruds["world"].GetObjectByWhereClause("world", "table_name", "world")
+		if err != nil {
+			c.AbortWithError(500, err)
+			return
+		}
 		c.String(200, "pong")
 	})
 
