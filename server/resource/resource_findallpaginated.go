@@ -865,6 +865,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	idsListQuery, args, err := queryBuilder.Order(orders...).ToSQL()
 	if err != nil {
+		log.Infof("Id query: [%s]", err)
 		return nil, nil, nil, false, err
 	}
 	log.Infof("Id query: [%s]", idsListQuery)
@@ -1183,15 +1184,19 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 
 			valueIds, err := dr.GetReferenceIdListToIdList(colInfo.ForeignKeyData.Namespace, valuesArray)
 			if err != nil {
-				log.Printf("failed to lookup foreign key value: %v, skipping column filter", err)
-				continue
+				log.Printf("failed to lookup foreign key value: %v => %v", values, err)
+			} else {
+				values = valueIds
+				if isString {
+					values, ok = valueIds[valuesArray[0]]
+					if !ok {
+						values = valuesArray[0]
+					}
+				}
+				filterQuery.Value = values
 			}
 
-			values = valueIds
-			if isString {
-				values = valueIds[valuesArray[0]]
-			}
-			filterQuery.Value = values
+
 
 		}
 
@@ -1224,7 +1229,8 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 			case "is":
 				opValue = "="
 			case "not":
-				query.IsNot(actualvalue)
+				opValue = "="
+				actualvalue = query.IsNot(actualvalue)
 			}
 		}
 
