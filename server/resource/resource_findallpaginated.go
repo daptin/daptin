@@ -1224,27 +1224,38 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 					actualvalue = nil
 				}
 			}
-			switch parts[0] {
-			case "is":
-				opValue = "#"
-				switch actualvalue {
-				case true:
-					actualvalue = query.IsTrue()
-				case false:
-					actualvalue = query.IsFalse()
-				case nil:
-					actualvalue = query.IsNull()
-				}
+			if len(parts) == 2 {
+				switch parts[0] {
+				case "is":
+					opValue = "#"
+					switch actualvalue {
+					case true:
+						actualvalue = query.IsTrue()
+					case false:
+						actualvalue = query.IsFalse()
+					case nil:
+						actualvalue = query.IsNull()
+					}
 
-			case "not":
-				opValue = "#"
-				switch actualvalue {
-				case true:
-					actualvalue = query.IsNotTrue()
-				case false:
-					actualvalue = query.IsNotFalse()
-				case nil:
-					actualvalue = query.IsNotNull()
+				case "not":
+					opValue = "#"
+					switch actualvalue {
+					case true:
+						actualvalue = query.IsNotTrue()
+					case false:
+						actualvalue = query.IsNotFalse()
+					case nil:
+						actualvalue = query.IsNotNull()
+
+					}
+				}
+			} else {
+				switch opValue {
+				case "is":
+					opValue = "="
+				case "not":
+					opValue = "neq"
+					//actualvalue = query.IsNot(actualvalue)
 				}
 			}
 		}
@@ -1262,7 +1273,7 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 		} else if opValue == "#" {
 			queryBuilder = queryBuilder.Where(actualvalue.(goqu.Expression))
 
-			countQueryBuilder = countQueryBuilder.Where(actualvalue.(goqu.Expression)	)
+			countQueryBuilder = countQueryBuilder.Where(actualvalue.(goqu.Expression))
 
 		} else {
 
