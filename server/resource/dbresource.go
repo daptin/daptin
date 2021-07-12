@@ -18,6 +18,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 )
 
 type DbResource struct {
@@ -214,14 +215,20 @@ func (dr *DbResource) GetContext(key string) interface{} {
 }
 
 func (dr *DbResource) GetAdminReferenceId() []string {
-	cacheVal := dr.GetContext("administrator_reference_id")
-	if cacheVal == nil || len(cacheVal.([]string)) == 0 {
-		userRefId := dr.GetUserMembersByGroupName("administrators")
-		dr.PutContext("administrator_reference_id", userRefId)
-		return userRefId
-	} else {
-		return cacheVal.([]string)
+	var err error
+	var cacheValue interface{}
+	if OlricCache != nil {
+		cacheValue, err = OlricCache.Get("administrator_reference_id")
+		if err != nil && len(cacheValue.([]string)) > 0 {
+			return cacheValue.([]string)
+		}
 	}
+	userRefId := dr.GetUserMembersByGroupName("administrators")
+	if OlricCache != nil {
+		err = OlricCache.PutEx("administrator_reference_id", userRefId, 1*time.Minute)
+		CheckErr(err, "Failed to cache admin reference ids")
+	}
+	return userRefId
 }
 
 func (dr *DbResource) IsAdmin(userReferenceId string) bool {
@@ -361,7 +368,6 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 	if err != nil {
 		log.Errorf("[362] failed to prepare statment: %v", err)
 	}
-
 
 	r4 := stmt1.QueryRowx(v4...)
 	r4.Scan(&messgeCount)
