@@ -36,7 +36,7 @@ func GetDbConnection(dbType string, connectionString string) (*sqlx.DB, error) {
 	db.SetMaxIdleConns(10)
 	db.SetMaxOpenConns(50)
 	db.SetConnMaxLifetime(5 * time.Minute)
-	//db.SetConnMaxIdleTime(1 * time.Minute)
+	db.SetConnMaxIdleTime(1 * time.Minute)
 	return db, e
 }
 
