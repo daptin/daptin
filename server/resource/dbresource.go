@@ -219,12 +219,12 @@ func (dr *DbResource) GetAdminReferenceId() []string {
 	var cacheValue interface{}
 	if OlricCache != nil {
 		cacheValue, err = OlricCache.Get("administrator_reference_id")
-		if err != nil && len(cacheValue.([]string)) > 0 {
+		if err != nil &&  cacheValue != nil && len(cacheValue.([]string)) > 0 {
 			return cacheValue.([]string)
 		}
 	}
 	userRefId := dr.GetUserMembersByGroupName("administrators")
-	if OlricCache != nil {
+	if OlricCache != nil && userRefId != nil {
 		err = OlricCache.PutEx("administrator_reference_id", userRefId, 1*time.Minute)
 		CheckErr(err, "Failed to cache admin reference ids")
 	}

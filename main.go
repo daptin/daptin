@@ -261,6 +261,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	db.Stats()
 	tx := db.MustBegin()
 	_ = tx.Rollback()
 	log.Printf("Connection acquired from database [%s]", *dbType)
