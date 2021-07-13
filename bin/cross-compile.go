@@ -168,7 +168,6 @@ func compileArch(version, goos, goarch, dir string) bool {
 	args := []string{
 		"go", "build",
 		"--ldflags", "-s -X github.com/daptin/daptin/fs.Version=" + version,
-		"-i",
 		"-o", output,
 		"-tags", *tags,
 		"..",
