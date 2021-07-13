@@ -194,16 +194,6 @@ jobs:
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
 
-
-
-      - uses: actions/upload-artifact@v1
-        name: Upload freebsd 386 artifact
-        continue-on-error: true
-        with:
-          name: daptin-beta-latest-freebsd-386.zip
-          path: build/daptin-beta-latest-freebsd-386.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
       - uses: actions/upload-artifact@v1
         name: Upload freebsd amd64 artifact
         continue-on-error: true
@@ -230,14 +220,6 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-        name: Upload netbsd 386 artifact
-        with:
-          name: daptin-beta-latest-netbsd-386.zip
-          path: build/daptin-beta-latest-netbsd-386.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v1
-        continue-on-error: true
         name: Upload netbsd amd64 artifact
         with:
           name: daptin-beta-latest-netbsd-amd64.zip
@@ -254,26 +236,10 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-        name: Upload openbsd 386 artifact
-        with:
-          name: daptin-beta-latest-openbsd-386.zip
-          path: build/daptin-beta-latest-openbsd-386.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v1
-        continue-on-error: true
         name: Upload openbsd amd64 artifact
         with:
           name: daptin-beta-latest-openbsd-amd64.zip
           path: build/daptin-beta-latest-openbsd-amd64.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v1
-        continue-on-error: true
-        name: Upload osx 386 artifact
-        with:
-          name: daptin-beta-latest-osx-386.zip
-          path: build/daptin-beta-latest-osx-386.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1

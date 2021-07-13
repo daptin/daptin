@@ -38,29 +38,21 @@ var (
 
 // GOOS/GOARCH pairs we build for
 var osarches = []string{
-	"windows/386",
 	"windows/amd64",
 	"darwin/amd64",
-	"linux/386",
 	"linux/amd64",
 	"linux/arm",
-	"linux/arm64",
-	"linux/mips",
-	"linux/mipsle",
-	"freebsd/386",
 	"freebsd/amd64",
 	"freebsd/arm",
-	"netbsd/386",
 	"netbsd/amd64",
 	"netbsd/arm",
-	"openbsd/386",
 	"openbsd/amd64",
 	"solaris/amd64",
 }
 
 // Special environment flags for a given arch
 var archFlags = map[string][]string{
-	"386":    {"GO386=387"},
+	"386":    {"GO386=softfloat"},
 	"mips":   {"GOMIPS=softfloat"},
 	"mipsle": {"GOMIPS=softfloat"},
 }
