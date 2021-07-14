@@ -42,6 +42,7 @@ var osarches = []string{
 	"darwin/amd64",
 	"linux/amd64",
 	"linux/arm",
+	"linux/arm64",
 	"freebsd/amd64",
 	"freebsd/arm",
 	"netbsd/amd64",
