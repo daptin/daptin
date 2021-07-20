@@ -576,30 +576,26 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						delete(item, "attributes")
 					}
 
+					subjectId, err := dr.GetReferenceIdToId(rel.GetSubject(), item[rel.GetSubjectName()].(string))
+					objectId, err := dr.GetReferenceIdToId(rel.GetObject(), item[rel.GetObjectName()].(string))
+
+					joinReferenceId, err := dr.GetReferenceIdByWhereClause(rel.GetJoinTableName(), goqu.Ex{
+						rel.GetObjectName():  objectId,
+						rel.GetSubjectName(): subjectId,
+					})
+
 					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, item)
+
 					pr := &http.Request{
 						Method: "POST",
 					}
 					pr = pr.WithContext(req.PlainRequest.Context())
-					_, err := dr.Cruds[rel.GetJoinTableName()].Create(modl, api2go.Request{
-						PlainRequest: pr,
-					})
-					if err != nil {
 
-						subjectId, err := dr.GetReferenceIdToId(rel.GetSubject(), item[rel.GetSubjectName()].(string))
-						objectId, err := dr.GetReferenceIdToId(rel.GetObject(), item[rel.GetObjectName()].(string))
+					if len(joinReferenceId) > 0 {
 
-						joinReferenceId, err := dr.GetReferenceIdByWhereClause(rel.GetJoinTableName(), goqu.Ex{
-							rel.GetObjectName():  objectId,
-							rel.GetSubjectName(): subjectId,
-						})
-						if len(joinReferenceId) < 1 {
-							log.Errorf("[%v] FAIL to fetch join reference id for %s[%v] - %s[%v]",
-								rel.GetJoinTableName(),
-								rel.GetObjectName(), objectId, rel.GetSubjectName(), subjectId)
-							continue
-						}
+						log.Infof("Updating existing join table row properties: %v", joinReferenceId[0])
 						modl.Data["reference_id"] = joinReferenceId[0]
+						pr.Method = "PATCH"
 
 						_, err = dr.Cruds[rel.GetJoinTableName()].Update(modl, api2go.Request{
 							PlainRequest: pr,
@@ -607,7 +603,15 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 						if err != nil {
 							log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
 						}
-						continue
+
+					} else {
+
+						log.Infof("Creating new join table row properties: %v", joinReferenceId[0])
+						_, err := dr.Cruds[rel.GetJoinTableName()].Create(modl, api2go.Request{
+							PlainRequest: pr,
+						})
+						CheckErr(err, "Failed to update and insert join table row")
+
 					}
 
 				}
