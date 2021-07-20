@@ -612,7 +612,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 					} else {
 
-						log.Infof("Creating new join table row properties: %v", joinReferenceId[0])
+						log.Infof("Creating new join table row properties: %v", rel.GetJoinTableName())
 						_, err := dr.Cruds[rel.GetJoinTableName()].Create(modl, api2go.Request{
 							PlainRequest: pr,
 						})
