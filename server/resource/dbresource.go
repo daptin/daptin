@@ -214,32 +214,33 @@ func (dr *DbResource) GetContext(key string) interface{} {
 	return dr.contextCache[key]
 }
 
-func (dr *DbResource) GetAdminReferenceId() []string {
+func (dr *DbResource) GetAdminReferenceId() map[string]bool {
 	var err error
 	var cacheValue interface{}
+	adminMap := make(map[string]bool)
 	if OlricCache != nil {
 		cacheValue, err = OlricCache.Get("administrator_reference_id")
-		if err != nil &&  cacheValue != nil && len(cacheValue.([]string)) > 0 {
-			return cacheValue.([]string)
+		if err != nil && cacheValue != nil && len(cacheValue.(map[string]bool)) > 0 {
+			return cacheValue.(map[string]bool)
 		}
 	}
 	userRefId := dr.GetUserMembersByGroupName("administrators")
+	for _, id := range userRefId {
+		adminMap[id] = true
+	}
+
 	if OlricCache != nil && userRefId != nil {
-		err = OlricCache.PutEx("administrator_reference_id", userRefId, 1*time.Minute)
+		err = OlricCache.PutEx("administrator_reference_id", adminMap, 60*time.Minute)
 		CheckErr(err, "Failed to cache admin reference ids")
 	}
-	return userRefId
+	return adminMap
 }
 
 func (dr *DbResource) IsAdmin(userReferenceId string) bool {
 	admins := dr.GetAdminReferenceId()
-	//if len(admins) < 1 {
-	//	return true
-	//}
-	for _, id := range admins {
-		if id == userReferenceId {
-			return true
-		}
+	_, ok := admins[userReferenceId]
+	if ok {
+		return true
 	}
 	return false
 
