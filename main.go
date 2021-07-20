@@ -177,8 +177,9 @@ func main() {
 		gin.SetMode("release")
 		log.Infof("Dumping CPU/Heap Profile at %s every %v Minutes", *profileDumpPath, *profileDumpPeriod)
 
-		cpuprofile := fmt.Sprintf("%sdaptin_cpu_profile_%v.prof", *profileDumpPath, profileDumpCount)
-		heapprofile := fmt.Sprintf("%sdaptin_heap_profile_%v.prof", *profileDumpPath, profileDumpCount)
+		hostname, _ := os.Hostname()
+		cpuprofile := fmt.Sprintf("%sdaptin_%s_cpu_profile_%v.prof", *profileDumpPath, hostname, profileDumpCount)
+		heapprofile := fmt.Sprintf("%sdaptin_%s_heap_profile_%v.prof", *profileDumpPath, hostname, profileDumpCount)
 		cpuFile, err1 := os.Create(cpuprofile)
 		heapFile, err2 := os.Create(heapprofile)
 		if err1 != nil || err2 != nil {
@@ -312,8 +313,9 @@ func main() {
 				profileDumpCount += 1
 				pprof.StopCPUProfile()
 
-				cpuprofile := fmt.Sprintf("%sdaptin_profile_cpu.%v", *profileDumpPath, profileDumpCount)
-				heapprofile := fmt.Sprintf("%sdaptin_profile_heap.%v", *profileDumpPath, profileDumpCount)
+				hostname, _ := os.Hostname()
+				cpuprofile := fmt.Sprintf("%sdaptin_%s_profile_cpu.%v", *profileDumpPath, hostname, profileDumpCount)
+				heapprofile := fmt.Sprintf("%sdaptin_%s_profile_heap.%v", *profileDumpPath, hostname, profileDumpCount)
 
 				cpuFile, err := os.Create(cpuprofile)
 				heapFile, err := os.Create(heapprofile)
