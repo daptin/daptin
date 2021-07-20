@@ -607,7 +607,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 								log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
 							}
 						} else {
-							log.Infof("Relation alredy present: %v, no columns to update", joinReferenceId[0])
+							log.Infof("Relation alredy present [%s]: %v, no columns to update", rel.GetJoinTableName(), joinReferenceId[0])
 						}
 
 					} else {
