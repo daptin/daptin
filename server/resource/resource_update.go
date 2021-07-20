@@ -563,6 +563,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					delete(item, "reference_id")
 
 					attributes, ok := item["attributes"]
+					hasColumns := false
 					if ok {
 						attributesMap, mapOk := attributes.(map[string]interface{})
 						if mapOk {
@@ -571,6 +572,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 									continue
 								}
 								item[key] = val
+								hasColumns = true
 							}
 						}
 						delete(item, "attributes")
@@ -593,15 +595,19 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 					if len(joinReferenceId) > 0 {
 
-						log.Infof("Updating existing join table row properties: %v", joinReferenceId[0])
-						modl.Data["reference_id"] = joinReferenceId[0]
-						pr.Method = "PATCH"
+						if hasColumns {
+							log.Infof("Updating existing join table row properties: %v", joinReferenceId[0])
+							modl.Data["reference_id"] = joinReferenceId[0]
+							pr.Method = "PATCH"
 
-						_, err = dr.Cruds[rel.GetJoinTableName()].Update(modl, api2go.Request{
-							PlainRequest: pr,
-						})
-						if err != nil {
-							log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
+							_, err = dr.Cruds[rel.GetJoinTableName()].Update(modl, api2go.Request{
+								PlainRequest: pr,
+							})
+							if err != nil {
+								log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
+							}
+						} else {
+							log.Infof("Relation alredy present: %v, no columns to update", joinReferenceId[0])
 						}
 
 					} else {
