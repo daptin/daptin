@@ -178,8 +178,8 @@ func main() {
 		log.Infof("Dumping CPU/Heap Profile at %s every %v Minutes", *profileDumpPath, *profileDumpPeriod)
 
 		hostname, _ := os.Hostname()
-		cpuprofile := fmt.Sprintf("%sdaptin_%s_cpu_profile_%v.prof", *profileDumpPath, hostname, profileDumpCount)
-		heapprofile := fmt.Sprintf("%sdaptin_%s_heap_profile_%v.prof", *profileDumpPath, hostname, profileDumpCount)
+		cpuprofile := fmt.Sprintf("%sdaptin_%s_cpu_profile.%v", *profileDumpPath, hostname, profileDumpCount)
+		heapprofile := fmt.Sprintf("%sdaptin_%s_heap_profile.%v", *profileDumpPath, hostname, profileDumpCount)
 		cpuFile, err1 := os.Create(cpuprofile)
 		heapFile, err2 := os.Create(heapprofile)
 		if err1 != nil || err2 != nil {

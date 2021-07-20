@@ -220,7 +220,7 @@ func (dr *DbResource) GetAdminReferenceId() map[string]bool {
 	adminMap := make(map[string]bool)
 	if OlricCache != nil {
 		cacheValue, err = OlricCache.Get("administrator_reference_id")
-		if err != nil && cacheValue != nil && len(cacheValue.(map[string]bool)) > 0 {
+		if err == nil && cacheValue != nil {
 			return cacheValue.(map[string]bool)
 		}
 	}
