@@ -16,7 +16,7 @@
     <a href='https://circleci.com/gh/daptin/daptin'> <img src='https://circleci.com/gh/daptin/daptin.svg?style=svg' alt='Build Status'></a>	
     <a href="https://app.wercker.com/project/byKey/4fe8e76660ff5cb02e502c4d9a221997"><img alt="Wercker status" src="https://app.wercker.com/status/4fe8e76660ff5cb02e502c4d9a221997/s/master"></a>
 <p align="center">
-    <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
+    <a href="/LICENSE"><img alt="Software License" src="https://img.shields.io/badge/LICENSE-LGPL%20v3-brightgreen.svg?style=flat-square"></a>
     <a href="https://goreportcard.com/report/github.com/daptin/daptin"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/daptin/daptin?style=flat-square"></a>
     <a href="http://godoc.org/github.com/daptin/daptin"><img alt="Go Doc" src="https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square"></a>
 </p>
