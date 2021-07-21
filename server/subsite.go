@@ -60,9 +60,13 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 				cloudStore := cloudStoreMap[column.ForeignKeyData.Namespace]
 				tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), tableName+"_"+columnName)
 
-				err = cruds["task"].SyncStorageToPath(cloudStore, column.ForeignKeyData.KeyName, tempDirectoryPath)
-				if resource.CheckErr(err, "Failed to setup sync to path for table column [%v][%v]", tableName, column.ColumnName) {
-					continue
+				if cloudStore.StoreProvider != "local" {
+					err = cruds["task"].SyncStorageToPath(cloudStore, column.ForeignKeyData.KeyName, tempDirectoryPath)
+					if resource.CheckErr(err, "Failed to setup sync to path for table column [%v][%v]", tableName, column.ColumnName) {
+						continue
+					}
+				} else {
+					tempDirectoryPath = cloudStore.RootPath + "/" + column.ForeignKeyData.KeyName
 				}
 
 				assetCacheFolder := &resource.AssetFolderCache{
@@ -72,18 +76,20 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 				}
 
 				colCache[columnName] = assetCacheFolder
-				log.Printf("Sync table columnd [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
+				log.Infof("Sync table columnd [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
 
-				err = TaskScheduler.AddTask(resource.Task{
-					EntityName: "world",
-					ActionName: "sync_column_storage",
-					Attributes: map[string]interface{}{
-						"table_name":  tableResource.TableInfo().TableName,
-						"column_name": columnName,
-					},
-					AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(),
-					Schedule:    "@every 30m",
-				})
+				if cloudStore.StoreProvider != "local" {
+					err = TaskScheduler.AddTask(resource.Task{
+						EntityName: "world",
+						ActionName: "sync_column_storage",
+						Attributes: map[string]interface{}{
+							"table_name":  tableResource.TableInfo().TableName,
+							"column_name": columnName,
+						},
+						AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(),
+						Schedule:    "@every 30m",
+					})
+				}
 
 			}
 

@@ -8,9 +8,13 @@ import (
 	olricConfig "github.com/buraksezer/olric/config"
 	"github.com/daptin/daptin/server/auth"
 	server2 "github.com/fclairamb/ftpserver/server"
+	"gopkg.in/natefinch/lumberjack.v2"
+	"io"
 	"io/ioutil"
 	"net/url"
+	"path/filepath"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -38,18 +42,69 @@ var stream = health.NewStream()
 
 func init() {
 
-	//logFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
-	//if !ok || logFileLocation == "" {
-	//	logFileLocation = "daptin.log"
-	//}
-	//f, e := os.OpenFile(logFileLocation, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	//if e != nil {
-	//	log.Errorf("Failed to open logfile %v", e)
-	//}
-	//
-	//mwriter := io.MultiWriter(f, os.Stdout)
-	//
-	//log.SetOutput(mwriter)
+	// manually set time zone
+	if tz := os.Getenv("TZ"); tz != "" {
+		var err error
+		log.Infof("Setting timezone: %v", tz)
+		time.Local, err = time.LoadLocation(tz)
+		if err != nil {
+			log.Printf("error loading timezone location '%s': %v\n", tz, err)
+		}
+	} else {
+		log.Infof("Setting timezone to UTC since no TZ env variable set")
+	}
+
+	logFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
+	if !ok || logFileLocation == "" {
+		return
+	}
+
+	hostname, _ := os.Hostname()
+	processId := fmt.Sprintf("%v", os.Getpid())
+	logFileLocation = strings.ReplaceAll(logFileLocation, "${HOSTNAME}", hostname)
+	logFileLocation = strings.ReplaceAll(logFileLocation, "${PID}", processId)
+
+	maxLogFileSize, ok := os.LookupEnv("DAPTIN_LOG_MAX_SIZE")
+	if !ok {
+		maxLogFileSize = "10"
+	}
+	maxLogFileBackups, ok := os.LookupEnv("DAPTIN_LOG_MAX_BACKUPS")
+	if !ok {
+		maxLogFileBackups = "10"
+	}
+	maxLogFileAge, ok := os.LookupEnv("DAPTIN_LOG_MAX_AGE")
+	if !ok {
+		maxLogFileAge = "7"
+	}
+
+	maxLogFileSizeInt, err := strconv.ParseInt(maxLogFileSize, 10, strconv.IntSize)
+	if err != nil {
+		log.Fatalf("invalid max log file size: %v => %v", maxLogFileSize, err)
+	}
+	maxLogFileBackupsInt, err := strconv.ParseInt(maxLogFileBackups, 10, strconv.IntSize)
+	if err != nil {
+		log.Fatalf("invalid max log file backups: %v => %v", maxLogFileBackups, err)
+	}
+	maxLogFileAgeInt, err := strconv.ParseInt(maxLogFileAge, 10, strconv.IntSize)
+	if err != nil {
+		log.Fatalf("invalid max log file age: %v => %v", maxLogFileAge, err)
+	}
+
+	lumberjackLogger := &lumberjack.Logger{
+		// Log file absolute path, os agnostic
+		Filename:   filepath.ToSlash(logFileLocation),
+		MaxSize:    int(maxLogFileSizeInt), // MB
+		MaxBackups: int(maxLogFileBackupsInt),
+		MaxAge:     int(maxLogFileAgeInt), // days
+		LocalTime:  true,
+		Compress:   false, // disabled by default
+	}
+
+	mwriter := io.MultiWriter(lumberjackLogger, os.Stdout)
+
+	log.SetOutput(mwriter)
+	gin.DefaultWriter = mwriter
+	gin.DefaultErrorWriter = mwriter
 }
 
 // Following variables will be statically linked at the time of compiling
@@ -101,7 +156,7 @@ func main() {
 	var port = flag.String("port", ":6336", "daptin port")
 	var httpsPort = flag.String("https_port", ":6443", "daptin https port")
 	var runtimeMode = flag.String("runtime", "release", "Runtime for Gin: profile, debug, test, release")
-	var logLevel = flag.String("log_level", "warn", "Runtime for Gin: profile, debug, test, release")
+	var logLevel = flag.String("log_level", "info", "log level : debug, trace, info, warn, error, fatal")
 	var profileDumpPath = flag.String("profile_dump_path", "./", "location for dumping cpu/heap data in profile mode")
 	var profileDumpPeriod = flag.Int("profile_dump_period", 5, "time period in minutes for triggering profile dump")
 
@@ -122,8 +177,9 @@ func main() {
 		gin.SetMode("release")
 		log.Infof("Dumping CPU/Heap Profile at %s every %v Minutes", *profileDumpPath, *profileDumpPeriod)
 
-		cpuprofile := fmt.Sprintf("%sdaptin_cpu_profile_%v.prof", *profileDumpPath, profileDumpCount)
-		heapprofile := fmt.Sprintf("%sdaptin_heap_profile_%v.prof", *profileDumpPath, profileDumpCount)
+		hostname, _ := os.Hostname()
+		cpuprofile := fmt.Sprintf("%sdaptin_%s_profile_cpu.%v", *profileDumpPath, hostname, profileDumpCount)
+		heapprofile := fmt.Sprintf("%sdaptin_%s_profile_heap.%v", *profileDumpPath, hostname, profileDumpCount)
 		cpuFile, err1 := os.Create(cpuprofile)
 		heapFile, err2 := os.Create(heapprofile)
 		if err1 != nil || err2 != nil {
@@ -206,6 +262,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	db.Stats()
 	tx := db.MustBegin()
 	_ = tx.Rollback()
 	log.Printf("Connection acquired from database [%s]", *dbType)
@@ -256,8 +313,9 @@ func main() {
 				profileDumpCount += 1
 				pprof.StopCPUProfile()
 
-				cpuprofile := fmt.Sprintf("%sdaptin_profile_cpu.%v", *profileDumpPath, profileDumpCount)
-				heapprofile := fmt.Sprintf("%sdaptin_profile_heap.%v", *profileDumpPath, profileDumpCount)
+				hostname, _ := os.Hostname()
+				cpuprofile := fmt.Sprintf("%sdaptin_%s_profile_cpu.%v", *profileDumpPath, hostname, profileDumpCount)
+				heapprofile := fmt.Sprintf("%sdaptin_%s_profile_heap.%v", *profileDumpPath, hostname, profileDumpCount)
 
 				cpuFile, err := os.Create(cpuprofile)
 				heapFile, err := os.Create(heapprofile)
@@ -388,7 +446,7 @@ func main() {
 		log.Errorf("Not starting HTTPS server: %v: %v", hostname, err)
 	}
 
-	log.Printf("Listening at: [%v]", portValue)
+	log.Infof("Listening at: [%v]", portValue)
 	err = http.ListenAndServe(portValue, &rhs)
 	if err != nil {
 		panic(err)

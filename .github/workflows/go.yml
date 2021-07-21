@@ -24,7 +24,7 @@ jobs:
         include:
           - job_name: linux
             os: ubuntu-latest
-            go: '1.14.x'
+            go: '1.16.x'
             modules: 'on'
             gotags: cmount
             build_flags: '-include "^linux/"'
@@ -34,7 +34,7 @@ jobs:
 
           - job_name: mac
             os: macOS-latest
-            go: '1.14.x'
+            go: '1.16.x'
             modules: 'on'
             gotags: ''  # cmount doesn't work on osx travis for some reason
             build_flags: '-include "^darwin/amd64" -cgo'
@@ -43,7 +43,7 @@ jobs:
 
           - job_name: windows_amd64
             os: windows-latest
-            go: '1.14.x'
+            go: '1.16.x'
             modules: 'on'
             gotags: cmount
             build_flags: '-include "^windows/amd64" -cgo'
@@ -51,7 +51,7 @@ jobs:
 
           - job_name: other_os
             os: ubuntu-latest
-            go: '1.14.x'
+            go: '1.16.x'
             modules: 'on'
             build_flags: "-exclude '^(windows/|darwin/amd64|linux/)'"
             compile_all: true
@@ -59,7 +59,7 @@ jobs:
 
           - job_name: modules_race
             os: ubuntu-latest
-            go: '1.14.x'
+            go: '1.16.x'
             modules: 'on'
             quicktest: true
 
@@ -71,6 +71,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
 
+      - id: get_version
+        uses: battila7/get-version-action@v2
 
       - name: Install Go
         uses: actions/setup-go@v1
@@ -166,10 +168,13 @@ jobs:
 
       - name: Build and push docker image
         run: |
+          echo ${{ steps.get_version.outputs.version }}
           GOOS=linux go build  -a -ldflags "$(govvv -flags) -extldflags '-static'" -o main
-          docker build -t daptin/daptin:travis .
+          docker build -t daptin/daptin:${{ steps.get_version.outputs.version }} .
           docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
-          docker push daptin/daptin:travis
+          docker push daptin/daptin:${{ steps.get_version.outputs.version }}
+          docker tag daptin/daptin:${{ steps.get_version.outputs.version }} daptin/daptin:${{ steps.get_version.outputs.version }}
+          docker push daptin/daptin:${{ steps.get_version.outputs.version }}
         if: matrix.os == 'ubuntu-latest' && matrix.job_name == 'linux'
 
 
@@ -189,22 +194,20 @@ jobs:
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
 
-
-
-      - uses: actions/upload-artifact@v1
-        name: Upload freebsd 386 artifact
-        continue-on-error: true
-        with:
-          name: daptin-beta-latest-freebsd-386.zip
-          path: build/daptin-beta-latest-freebsd-386.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
       - uses: actions/upload-artifact@v1
         name: Upload freebsd amd64 artifact
         continue-on-error: true
         with:
           name: daptin-beta-latest-freebsd-amd64.zip
           path: build/daptin-beta-latest-freebsd-amd64.zip
+        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        name: Upload linux arm64 artifact
+        continue-on-error: true
+        with:
+          name: daptin-beta-latest-linux-arm64.zip
+          path: build/daptin-beta-latest-linux-arm64.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
@@ -225,14 +228,6 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-        name: Upload netbsd 386 artifact
-        with:
-          name: daptin-beta-latest-netbsd-386.zip
-          path: build/daptin-beta-latest-netbsd-386.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v1
-        continue-on-error: true
         name: Upload netbsd amd64 artifact
         with:
           name: daptin-beta-latest-netbsd-amd64.zip
@@ -249,26 +244,10 @@ jobs:
 
       - uses: actions/upload-artifact@v1
         continue-on-error: true
-        name: Upload openbsd 386 artifact
-        with:
-          name: daptin-beta-latest-openbsd-386.zip
-          path: build/daptin-beta-latest-openbsd-386.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v1
-        continue-on-error: true
         name: Upload openbsd amd64 artifact
         with:
           name: daptin-beta-latest-openbsd-amd64.zip
           path: build/daptin-beta-latest-openbsd-amd64.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v1
-        continue-on-error: true
-        name: Upload osx 386 artifact
-        with:
-          name: daptin-beta-latest-osx-386.zip
-          path: build/daptin-beta-latest-osx-386.zip
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
@@ -388,7 +367,7 @@ jobs:
           go env
           ls -lah
           xgo --docker-image=artpar/xgo \
-              -targets=darwin/amd64,linux/amd64,linux/arm-5,linux/arm-6,linux/arm-7,windows/amd64 \
+              -targets=darwin/amd64,linux/amd64,linux/arm64,windows/amd64 \
               --tags netgo -ldflags="-linkmode external $(govvv -flags)" -dest build .
 
 
@@ -397,6 +376,7 @@ jobs:
         run: |
           ls build
           find build
+          file build/github.com/*
 
       - uses: actions/upload-artifact@v1
         name: Upload linux amd64 artifact
@@ -413,25 +393,32 @@ jobs:
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v1
-        name: Upload arm-5 artifact
+        name: Upload linux arm64 artifact
         with:
-          name: daptin-linux-arm-5
-          path: build/github.com/daptin/daptin-linux-arm-5
+          name: daptin-linux-arm64
+          path: build/github.com/daptin/daptin-linux-arm64
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
-      - uses: actions/upload-artifact@v1
-        name: Upload arm-6 artifact
-        with:
-          name: daptin-linux-arm-6
-          path: build/github.com/daptin/daptin-linux-arm-6
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v1
-        name: Upload arm-7 artifact
-        with:
-          name: daptin-linux-arm-7
-          path: build/github.com/daptin/daptin-linux-arm-7
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+#      - uses: actions/upload-artifact@v1
+#        name: Upload arm-5 artifact
+#        with:
+#          name: daptin-linux-arm-5
+#          path: build/github.com/daptin/daptin-linux-arm-5
+#        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+#
+#      - uses: actions/upload-artifact@v1
+#        name: Upload arm-6 artifact
+#        with:
+#          name: daptin-linux-arm-6
+#          path: build/github.com/daptin/daptin-linux-arm-6
+#        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+#
+#      - uses: actions/upload-artifact@v1
+#        name: Upload arm-7 artifact
+#        with:
+#          name: daptin-linux-arm-7
+#          path: build/github.com/daptin/daptin-linux-arm-7
+#        if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
 
       - uses: actions/upload-artifact@v1
@@ -450,9 +437,7 @@ jobs:
           files: |
             ./build/github.com/daptin/daptin-linux-amd64
             ./build/github.com/daptin/daptin-darwin-10.12-amd64
-            ./build/github.com/daptin/daptin-linux-arm-5
-            ./build/github.com/daptin/daptin-linux-arm-6
-            ./build/github.com/daptin/daptin-linux-arm-7
+            ./build/github.com/daptin/daptin-linux-arm64
             ./build/github.com/daptin/daptin-windows-4.0-amd64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

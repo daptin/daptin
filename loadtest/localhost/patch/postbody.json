@@ -1,0 +1,13 @@
+{
+  "data": {
+    "type": "property",
+    "attributes": {
+      "usergroup_id": [
+        {
+          "type": "usergroup",
+          "id": "a297fed9-a5ed-46c6-9ec2-daf0e6afe5ae"
+        }
+      ]
+    }
+  }
+}

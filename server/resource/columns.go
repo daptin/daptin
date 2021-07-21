@@ -1071,9 +1071,9 @@ var SystemActions = []Action{
 		},
 		OutFields: []Outcome{
 			{
-				Type:      USER_ACCOUNT_TABLE_NAME,
-				Method:    "POST",
-				Reference: "user",
+				Type:           USER_ACCOUNT_TABLE_NAME,
+				Method:         "POST",
+				Reference:      "user",
 				SkipInResponse: true,
 				Attributes: map[string]interface{}{
 					"name":      "~name",
@@ -1083,11 +1083,11 @@ var SystemActions = []Action{
 				},
 			},
 			{
-				Type:      "otp.generate",
-				Method:    "EXECUTE",
-				Reference: "otp",
+				Type:           "otp.generate",
+				Method:         "EXECUTE",
+				Reference:      "otp",
 				SkipInResponse: true,
-				Condition: "!mobile != null && mobile != undefined && mobile != ''",
+				Condition:      "!mobile != null && mobile != undefined && mobile != ''",
 				Attributes: map[string]interface{}{
 					"mobile": "~mobile",
 					"email":  "~email",
@@ -1472,9 +1472,6 @@ var StandardTables = []TableInfo{
 		IsHidden:      true,
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-file",
-		CompositeKeys: [][]string{
-			//{"document_name", "document_path"},
-		},
 		Columns: []api2go.ColumnInfo{
 			{
 				ColumnName: "document_name",

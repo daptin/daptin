@@ -417,7 +417,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 			log.Printf("Update query: %v", query)
 			_, err = dr.db.Exec(query, vals...)
 			if err != nil {
-				log.Errorf("Failed to execute update query 411: %v", err)
+				log.Errorf("Failed to execute update query [%s] [%v] 411: %v", query, vals, err)
 				return nil, err
 			}
 
@@ -563,6 +563,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					delete(item, "reference_id")
 
 					attributes, ok := item["attributes"]
+					hasColumns := false
 					if ok {
 						attributesMap, mapOk := attributes.(map[string]interface{})
 						if mapOk {
@@ -571,43 +572,52 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 									continue
 								}
 								item[key] = val
+								hasColumns = true
 							}
 						}
 						delete(item, "attributes")
 					}
 
+					subjectId, err := dr.GetReferenceIdToId(rel.GetSubject(), item[rel.GetSubjectName()].(string))
+					objectId, err := dr.GetReferenceIdToId(rel.GetObject(), item[rel.GetObjectName()].(string))
+
+					joinReferenceId, err := dr.GetReferenceIdByWhereClause(rel.GetJoinTableName(), goqu.Ex{
+						rel.GetObjectName():  objectId,
+						rel.GetSubjectName(): subjectId,
+					})
+
 					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, item)
+
 					pr := &http.Request{
 						Method: "POST",
 					}
 					pr = pr.WithContext(req.PlainRequest.Context())
-					_, err := dr.Cruds[rel.GetJoinTableName()].Create(modl, api2go.Request{
-						PlainRequest: pr,
-					})
-					if err != nil {
 
-						subjectId, err := dr.GetReferenceIdToId(rel.GetSubject(), item[rel.GetSubjectName()].(string))
-						objectId, err := dr.GetReferenceIdToId(rel.GetObject(), item[rel.GetObjectName()].(string))
+					if len(joinReferenceId) > 0 {
 
-						joinReferenceId, err := dr.GetReferenceIdByWhereClause(rel.GetJoinTableName(), goqu.Ex{
-							rel.GetObjectName():  objectId,
-							rel.GetSubjectName(): subjectId,
-						})
-						if len(joinReferenceId) < 1 {
-							log.Errorf("[%v] FAIL to fetch join reference id for %s[%v] - %s[%v]",
-								rel.GetJoinTableName(),
-								rel.GetObjectName(), objectId, rel.GetSubjectName(), subjectId)
-							continue
+						if hasColumns {
+							log.Infof("Updating existing join table row properties: %v", joinReferenceId[0])
+							modl.Data["reference_id"] = joinReferenceId[0]
+							pr.Method = "PATCH"
+
+							_, err = dr.Cruds[rel.GetJoinTableName()].Update(modl, api2go.Request{
+								PlainRequest: pr,
+							})
+							if err != nil {
+								log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
+							}
+						} else {
+							log.Infof("Relation alredy present [%s]: %v, no columns to update", rel.GetJoinTableName(), joinReferenceId[0])
 						}
-						modl.Data["reference_id"] = joinReferenceId[0]
 
-						_, err = dr.Cruds[rel.GetJoinTableName()].Update(modl, api2go.Request{
+					} else {
+
+						log.Infof("Creating new join table row properties: %v", rel.GetJoinTableName())
+						_, err := dr.Cruds[rel.GetJoinTableName()].Create(modl, api2go.Request{
 							PlainRequest: pr,
 						})
-						if err != nil {
-							log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
-						}
-						continue
+						CheckErr(err, "Failed to update and insert join table row")
+
 					}
 
 				}
@@ -867,17 +877,18 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 					)
 					if err != nil {
 						log.Errorf("Referenced relation not found: %v", err)
-						continue
+						return nil, err
 					}
 					if len(joinReference) < 1 {
 						log.Errorf("failed to find the relation row to delete - %v[%v] - %v[%v]", relationName, otherObjectId, hostRelationName, idInt)
-						continue
+						return nil, fmt.Errorf("failed to find the relation row to delete - %v[%v] - %v[%v]", relationName, otherObjectId, hostRelationName, idInt)
 					}
 
 					joinReferenceObject := joinReference[0]
 					err = dr.Cruds[referencedRelation.GetJoinTableName()].DeleteWithoutFilters(joinReferenceObject["reference_id"].(string), req)
 					if err != nil {
 						log.Errorf("Failed to delete relation [%v][%v]: %v", referencedRelation.GetSubject(), referencedRelation.GetObjectName(), err)
+						return nil, err
 					}
 				} else {
 					// has_one or belongs_to

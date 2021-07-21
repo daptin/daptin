@@ -155,7 +155,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			//log.Printf("Found query in request: %s", query[0])
 			err = json.Unmarshal([]byte(query[0]), &queries)
 			if CheckInfo(err, "Failed to unmarshal query as json, using as a filter instead") {
-				req.QueryParams["filter"] = query
+				return nil, nil, nil, false, fmt.Errorf("failed to unmarshal query as json: %v", err)
 			}
 			//log.Printf("Query: %v", queries)
 		}
@@ -458,7 +458,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			if !ok {
 				queries, ok = req.QueryParams[rel.GetObject()+"_id"]
 			}
-			if !ok || len(queries) < 1 {
+			if !ok || len(queries) < 1 || (len(queries) == 1 && queries[0] == "") {
 				continue
 			}
 
@@ -468,13 +468,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 				if strings.Index(query, "@") > -1 {
 					queryParts := strings.Split(query, "@")
 					joinId := queryParts[0]
-					joinQuery := queryParts[1]
+					joinQuery := strings.Join(queryParts[1:], "@")
 					joinQuery = joinQuery[1 : len(joinQuery)-1]
 					joinQueryParts := strings.Split(joinQuery, "&")
 					joinWhere := goqu.Ex{}
 					for _, joinQueryPart := range joinQueryParts {
 						parts := strings.Split(joinQueryPart, ":")
-						joinWhere[parts[0]] = parts[1]
+						joinWhere[parts[0]] = strings.Split(parts[1], "|")
 					}
 					//matches := joinTableFilterRegex.FindAllStringSubmatch(joinQuery, -1)
 					joinTableFilters[joinId] = joinWhere
@@ -502,10 +502,20 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 				//ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetObject(), []interface{}{"id"}, "reference_id", queries)
 
+				if len(queries) == 0 || queries[0] == "" {
+					log.Warnf("queries for %s is empty, skipping", rel.GetObjectName())
+					continue
+				}
+
 				refIdsToIdMap, err := dr.GetReferenceIdListToIdList(rel.GetObject(), queries)
 
 				//log.Printf("Converted ids: %v", ids)
-				if err != nil || len(refIdsToIdMap) < 1 {
+				if err != nil {
+					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
+					return nil, nil, nil, false, err
+				}
+
+				if len(refIdsToIdMap) < 1 {
 					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
 					return nil, nil, nil, false, err
 				}
@@ -532,7 +542,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 						k := 0
 						for refId, joinFilter := range joinTableFilters {
-							k = k+1
+							k = k + 1
 							intId := refIdsToIdMap[refId]
 							joinTableAs := fmt.Sprintf("%v%v", rel.GetJoinTableName(), k)
 							objectTableAs := fmt.Sprintf("%v%v", rel.GetObjectName(), k)
@@ -545,7 +555,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 								joinTableJoinClause[fmt.Sprintf("%v.%v", joinTableAs, key)] = val
 							}
 							joinTableJoinClause[fmt.Sprintf("%v.%v", joinTableAs, rel.GetObjectName())] = intId
-
 
 							objectTableJoinClause := goqu.Ex{
 								fmt.Sprintf("%v.%v", joinTableAs, rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.id", objectTableAs)),
@@ -611,7 +620,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 					}
 
-
 					joins = append(joins, GetJoins(rel)...)
 					joinFilters = append(joinFilters, wh)
 
@@ -660,7 +668,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 			queries, ok := req.QueryParams[rel.GetSubject()+"_id"]
 			//log.Printf("%d Values as RefIds for relation [%v]", len(filters), rel.String())
-			if !ok || len(queries) < 1 {
+			if !ok || len(queries) < 1 || queries[0] == "" {
 				continue
 			}
 			ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), []interface{}{"id"}, "reference_id", queries)
@@ -857,6 +865,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 
 	idsListQuery, args, err := queryBuilder.Order(orders...).ToSQL()
 	if err != nil {
+		log.Infof("Id query: [%s]", err)
 		return nil, nil, nil, false, err
 	}
 	log.Infof("Id query: [%s]", idsListQuery)
@@ -1115,13 +1124,17 @@ func GetReverseJoins(rel api2go.TableRelation) []join {
 var OperatorMap = map[string]string{
 	"contains":     "like",
 	"like":         "like",
+	"ilike":        "iLike",
 	"begins with":  "like",
 	"ends with":    "like",
-	"not contains": "notlike",
-	"not like":     "notlike",
+	"not contains": "notLike",
+	"not like":     "notLike",
+	"not ilike":    "notILike",
 	"is":           "is",
+	"eq":           "eq",
+	"neq":          "neq",
 	"in":           "in",
-	"is not":       "isnot",
+	"is not":       "isNot",
 	"before":       "lt",
 	"after":        "gt",
 	"more then":    "gt",
@@ -1171,28 +1184,31 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 
 			valueIds, err := dr.GetReferenceIdListToIdList(colInfo.ForeignKeyData.Namespace, valuesArray)
 			if err != nil {
-				log.Printf("failed to lookup foreign key value: %v, skipping column filter", err)
-				continue
+				log.Printf("failed to lookup foreign key value: %v => %v", values, err)
+			} else {
+				values = valueIds
+				if isString {
+					values, ok = valueIds[valuesArray[0]]
+					if !ok {
+						values = valuesArray[0]
+					}
+				}
+				filterQuery.Value = values
 			}
-
-			values = valueIds
-			if isString {
-				values = valueIds[valuesArray[0]]
-			}
-			filterQuery.Value = values
 
 		}
 
 		opValue, ok := OperatorMap[filterQuery.Operator]
-		var actualvalue interface{}
-		query := goqu.I(prefix + filterQuery.ColumnName)
-
-		actualvalue = filterQuery.Value
 		if !ok {
 			opValue = filterQuery.Operator
 		}
 
-		if BeginsWith(opValue, "is") {
+		var actualvalue interface{}
+		query := goqu.I(prefix + filterQuery.ColumnName)
+
+		actualvalue = filterQuery.Value
+
+		if BeginsWith(opValue, "is") || BeginsWith(opValue, "not") {
 			parts := strings.Split(opValue, " ")
 			if len(parts) > 1 {
 				switch parts[1] {
@@ -1202,15 +1218,45 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 					actualvalue = false
 				case "empty":
 					actualvalue = nil
+				case "null":
+					fallthrough
 				case "nil":
 					actualvalue = nil
 				}
 			}
-			switch parts[0] {
-			case "is":
-				opValue = "="
-			case "not":
-				query.IsNot(actualvalue)
+			if len(parts) == 2 {
+				switch parts[0] {
+				case "is":
+					opValue = "#"
+					switch actualvalue {
+					case true:
+						actualvalue = query.IsTrue()
+					case false:
+						actualvalue = query.IsFalse()
+					case nil:
+						actualvalue = query.IsNull()
+					}
+
+				case "not":
+					opValue = "#"
+					switch actualvalue {
+					case true:
+						actualvalue = query.IsNotTrue()
+					case false:
+						actualvalue = query.IsNotFalse()
+					case nil:
+						actualvalue = query.IsNotNull()
+
+					}
+				}
+			} else {
+				switch opValue {
+				case "is":
+					opValue = "="
+				case "not":
+					opValue = "neq"
+					//actualvalue = query.IsNot(actualvalue)
+				}
 			}
 		}
 
@@ -1223,6 +1269,11 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 			countQueryBuilder = countQueryBuilder.Where(goqu.Ex{
 				prefix + filterQuery.ColumnName: actualvalue,
 			})
+
+		} else if opValue == "#" {
+			queryBuilder = queryBuilder.Where(actualvalue.(goqu.Expression))
+
+			countQueryBuilder = countQueryBuilder.Where(actualvalue.(goqu.Expression))
 
 		} else {
 

@@ -116,6 +116,7 @@ require (
 	gonum.org/v1/gonum v0.6.2 // indirect
 	gopkg.in/go-playground/validator.v9 v9.30.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 )
 
 replace github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.0.0+incompatible

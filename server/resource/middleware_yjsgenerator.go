@@ -63,7 +63,11 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 						continue
 					}
 					log.Printf("Process file column with YJS [%s]", column.ColumnName)
-					fileColumnValueArray := fileColumnValue.([]interface{})
+					fileColumnValueArray, ok := fileColumnValue.([]interface{})
+					if !ok {
+						//log.Info("file column value not []interface{}: %s", fileColumnValue)
+						continue
+					}
 					log.Printf("yjs middleware for column [%v][%v]", dr.tableInfo.TableName, column.ColumnName)
 
 					existingYjsDocument := false

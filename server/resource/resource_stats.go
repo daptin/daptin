@@ -263,19 +263,31 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 
 	for _, join := range req.Join {
 		joinParts := strings.Split(join, "@")
-		if !querySyntax.MatchString(joinParts[1]) {
-			return nil, fmt.Errorf("invalid join condition format: " + joinParts[1])
-		} else {
-			parts := querySyntax.FindStringSubmatch(joinParts[1])
 
-			joinWhere, err := BuildWhereClause(parts[1], parts[2], goqu.I(parts[3]))
-			if err != nil {
-				return nil, err
+		joinClauseList := strings.Split(joinParts[1], "&")
+
+
+		joinedTables = append(joinedTables, joinParts[0])
+
+		joinWhereList := make([]goqu.Expression, 0)
+		for _, joinClause := range joinClauseList  {
+
+			if !querySyntax.MatchString(joinClause) {
+				return nil, fmt.Errorf("invalid join condition format: " + joinClause)
+			} else {
+				parts := querySyntax.FindStringSubmatch(joinClause)
+
+				joinWhere, err := BuildWhereClause(parts[1], parts[2], goqu.I(parts[3]))
+				if err != nil {
+					return nil, err
+				}
+				joinWhereList = append(joinWhereList, joinWhere)
 			}
-			joinedTables = append(joinedTables, joinParts[0])
-			builder = builder.LeftJoin(goqu.T(joinParts[0]), goqu.On(joinWhere))
 
 		}
+		builder = builder.LeftJoin(goqu.T(joinParts[0]), goqu.On(joinWhereList...))
+
+
 	}
 
 	sql, args, err := builder.ToSQL()

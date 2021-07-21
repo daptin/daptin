@@ -55,6 +55,7 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 
 		perm := cruds[typeName].GetObjectPermissionByWhereClause("world", "table_name", typeName)
 		if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
+			log.Infof("user [%v] not allowed to execute aggregate on [%v]", sessionUser, typeName)
 			c.AbortWithStatus(403)
 			return
 		}

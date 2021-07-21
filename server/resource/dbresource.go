@@ -18,6 +18,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 )
 
 type DbResource struct {
@@ -213,26 +214,33 @@ func (dr *DbResource) GetContext(key string) interface{} {
 	return dr.contextCache[key]
 }
 
-func (dr *DbResource) GetAdminReferenceId() []string {
-	cacheVal := dr.GetContext("administrator_reference_id")
-	if cacheVal == nil || len(cacheVal.([]string)) == 0 {
-		userRefId := dr.GetUserMembersByGroupName("administrators")
-		dr.PutContext("administrator_reference_id", userRefId)
-		return userRefId
-	} else {
-		return cacheVal.([]string)
+func (dr *DbResource) GetAdminReferenceId() map[string]bool {
+	var err error
+	var cacheValue interface{}
+	adminMap := make(map[string]bool)
+	if OlricCache != nil {
+		cacheValue, err = OlricCache.Get("administrator_reference_id")
+		if err == nil && cacheValue != nil {
+			return cacheValue.(map[string]bool)
+		}
 	}
+	userRefId := dr.GetUserMembersByGroupName("administrators")
+	for _, id := range userRefId {
+		adminMap[id] = true
+	}
+
+	if OlricCache != nil && userRefId != nil {
+		err = OlricCache.PutEx("administrator_reference_id", adminMap, 60*time.Minute)
+		CheckErr(err, "Failed to cache admin reference ids")
+	}
+	return adminMap
 }
 
 func (dr *DbResource) IsAdmin(userReferenceId string) bool {
 	admins := dr.GetAdminReferenceId()
-	//if len(admins) < 1 {
-	//	return true
-	//}
-	for _, id := range admins {
-		if id == userReferenceId {
-			return true
-		}
+	_, ok := admins[userReferenceId]
+	if ok {
+		return true
 	}
 	return false
 
@@ -361,7 +369,6 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 	if err != nil {
 		log.Errorf("[362] failed to prepare statment: %v", err)
 	}
-
 
 	r4 := stmt1.QueryRowx(v4...)
 	r4.Scan(&messgeCount)

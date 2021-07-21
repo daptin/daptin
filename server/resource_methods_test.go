@@ -10,8 +10,8 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
-	"golang.org/x/oauth2"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 	"net/http"
 	"testing"
 )
@@ -51,7 +51,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 		GetDocumentInitialContent: func(string) []byte {
 			return []byte{}
 		},
-		SetDocumentInitialContent: func(string, []byte){},
+		SetDocumentInitialContent: func(string, []byte) {},
 	})
 	ms := BuildMiddlewareSet(&initConfig, &cruds, documentProvider, &dtopicMap)
 	for _, table := range initConfig.Tables {
@@ -110,11 +110,11 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	err = resource.UpdateActionTable(&initConfig, wrapper)
 	resource.CheckErr(err, "Failed to update action table")
 
-	for _, table := range initConfig.Tables {
-		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
-		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, nil, table)
-		cruds[table.TableName] = res
-	}
+	//for _, table := range initConfig.Tables {
+	//	model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
+	//	res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, nil, table)
+	//	cruds[table.TableName] = res
+	//}
 
 	dbResource := resource.NewDbResource(nil, wrapper, &ms, cruds, configStore, nil, resource.TableInfo{})
 	return wrapper, dbResource

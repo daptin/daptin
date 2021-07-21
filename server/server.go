@@ -7,7 +7,6 @@ import (
 	"github.com/artpar/rclone/fs/config/configfile"
 	"github.com/buraksezer/olric"
 	"github.com/sadlil/go-trigger"
-	"io"
 	"os"
 	"strings"
 	//"sync"
@@ -44,8 +43,9 @@ import (
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.Olric) (HostSwitch, *guerrilla.Daemon,
-	resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *server.Server, *olric.Olric) {
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.Olric) (
+	HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager,
+	*server2.FtpServer, *server.Server, *olric.Olric) {
 
 	fmt.Print(`                                                                           
                               
@@ -74,11 +74,17 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		}
 	}
 
-	existingTables, _ := GetTablesFromWorld(db)
+	skipDbConfig, skipValueFound := os.LookupEnv("DAPTIN_SKIP_CONFIG_FROM_DATABASE")
 
-	allTables := MergeTables(existingTables, initConfig.Tables)
-
-	initConfig.Tables = allTables
+	var existingTables []resource.TableInfo
+	if skipValueFound && skipDbConfig == "true" {
+		log.Printf("skip loading existing tables config from database")
+	} else {
+		log.Printf("loading existing tables config from database")
+		existingTables, _ = GetTablesFromWorld(db)
+		allTables := MergeTables(existingTables, initConfig.Tables)
+		initConfig.Tables = allTables
+	}
 
 	// rclone config load
 	configfile.LoadConfig(context.Background())
@@ -132,7 +138,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 
 	defaultRouter.GET("/statistics", func(c *gin.Context) {
-		c.JSON(http.StatusOK, Stats.Data())
+		stats := make(map[string]interface{})
+		stats["web"] = Stats.Data()
+		stats["db"] = db.Stats()
+		c.JSON(http.StatusOK, stats)
 	})
 
 	defaultRouter.Use(NewCorsMiddleware().CorsMiddlewareFunc)
@@ -214,51 +223,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		jwtSecret = newSecret
 	}
 
-
-	//enablelogs, err := configStore.GetConfigValueFor("logs.enable", "backend")
-	//if err != nil {
-	//	err = configStore.SetConfigValueFor("logs.enable", "false", "backend")
-	//	resource.CheckErr(err, "Failed to store a default value for logs.enable")
-	//}
-
-	var ok bool
-	LogFileLocation, ok := os.LookupEnv("DAPTIN_LOG_LOCATION")
-	if !ok || LogFileLocation == "" {
-		LogFileLocation = "daptin.log"
-	}
-
-	go func() {
-		for {
-
-			fileInfo, err := os.Stat(LogFileLocation)
-			if err != nil {
-				//log.Errorf("Failed to stat log file: %v", err)
-				time.Sleep(30 * time.Minute)
-				continue
-			}
-
-			fileMbs := fileInfo.Size() / (1024 * 1024)
-			//log.Printf("Current log size: %d MB", fileMbs)
-			if fileMbs > 100 {
-				err = os.Remove(LogFileLocation)
-				resource.CheckErr(err, "Failed to remove log file [%v]", LogFileLocation)
-				_, err = os.Create(LogFileLocation)
-				resource.CheckErr(err, "Failed to create new log file after cleanup")
-				f, e := os.OpenFile(LogFileLocation, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-				if e != nil {
-					log.Errorf("Failed to open logfile %v", e)
-				}
-
-				mwriter := io.MultiWriter(f, os.Stdout)
-
-				log.SetOutput(mwriter)
-				log.Printf("Truncated log file, cleaned %d MB", fileMbs)
-
-			}
-			time.Sleep(30 * time.Minute)
-
-		}
-	}()
 
 	enableGraphql, err := configStore.GetConfigValueFor("graphql.enable", "backend")
 	if err != nil {
@@ -460,7 +424,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		cruds[k].ActionHandlerMap = actionHandlerMap
 	}
 
-	resource.ImportDataFiles(initConfig.Imports, db, cruds)
+	skipImportData, skipImportValFound := os.LookupEnv("DAPTIN_SKIP_IMPORT_DATA")
+	if skipImportValFound && skipImportData == "true" {
+		log.Info("skipping importing data from files")
+	} else {
+		log.Info("importing data from files")
+		resource.ImportDataFiles(initConfig.Imports, db, cruds)
+	}
 
 	if localStoragePath != ";" {
 		err = resource.CreateDefaultLocalStorage(db, localStoragePath)
@@ -516,6 +486,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	defaultRouter.GET("/ping", func(c *gin.Context) {
+		_, err := cruds["world"].GetObjectByWhereClause("world", "table_name", "world")
+		if err != nil {
+			c.AbortWithError(500, err)
+			return
+		}
 		c.String(200, "pong")
 	})
 
@@ -837,20 +812,10 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 	resource.CheckAllTableStatus(initConfig, db)
 	resource.CheckErr(errc, "Failed to commit transaction after creating tables")
 
+	resource.CreateRelations(initConfig, db)
+	resource.CheckErr(errc, "Failed to commit transaction after creating relations")
+
 	tx, errb := db.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
-
-	tx, errb = db.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
-
-	if tx != nil {
-
-		resource.CreateRelations(initConfig, tx)
-		errc = tx.Commit()
-		resource.CheckErr(errc, "Failed to commit transaction after creating relations")
-	}
-
-	tx, errb = db.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction")
 	if tx != nil {
 		resource.CreateUniqueConstraints(initConfig, tx)
@@ -883,8 +848,6 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 		//resource.UpdateMarketplaces(initConfig, db)
 		err := resource.UpdateTasksData(initConfig, db)
 		resource.CheckErr(err, "[870] Failed to update cron jobs")
-		resource.UpdateStandardData(initConfig, db)
-
 		err = resource.UpdateActionTable(initConfig, db)
 		resource.CheckErr(err, "Failed to update action table")
 	}()
@@ -977,8 +940,11 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 				}
 			}
 			existableTable.DefaultGroups = tableBeingModified.DefaultGroups
+			existableTable.DefaultOrder = tableBeingModified.DefaultOrder
 			existableTable.Conformations = tableBeingModified.Conformations
 			existableTable.Validations = tableBeingModified.Validations
+			existableTable.CompositeKeys = tableBeingModified.CompositeKeys
+			existableTable.Icon = tableBeingModified.Icon
 			existingTables[j] = existableTable
 		} else {
 			//log.Printf("Table %s is not being modified", existableTable.TableName)

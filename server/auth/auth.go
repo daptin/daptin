@@ -251,6 +251,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 	userJwtToken, err := jwtMiddleware.CheckJWT(writer, req)
 
 	if err != nil {
+		log.Warnf("failed to identify user in auth middleware: %v", err)
 		if doBasicAuthCheck {
 			userJwtToken, err = a.BasicAuthCheckMiddlewareWithHttp(req, writer)
 			if err != nil || userJwtToken == nil {

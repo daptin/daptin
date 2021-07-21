@@ -356,10 +356,16 @@ OutFields:
 		}
 
 		requestContext := req.PlainRequest.Context()
-		adminUserReferenceId := db.GetAdminReferenceId()
+		var adminUserReferenceId string
+		adminUserReferenceIds := db.GetAdminReferenceId()
+		for id, _ := range adminUserReferenceIds {
+			adminUserReferenceId = id
+			break
+		}
+
 		if len(adminUserReferenceId) > 0 {
 			requestContext = context.WithValue(requestContext, "user", &auth.SessionUser{
-				UserReferenceId: adminUserReferenceId[0],
+				UserReferenceId: adminUserReferenceId,
 			})
 		}
 		request.PlainRequest = request.PlainRequest.WithContext(requestContext)
