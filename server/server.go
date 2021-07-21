@@ -112,6 +112,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	initConfig.Hostname = hostname
 
 	defaultRouter := gin.Default()
+	calendar := defaultRouter.Group("/calendar")
 
 	enableGzip, err := configStore.GetConfigValueFor("gzip.enable", "backend")
 	if err != nil {
@@ -134,6 +135,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 			Stats.End(beginning, stats.WithRecorder(recorder))
 		}
 	}())
+
 
 	defaultRouter.GET("/statistics", func(c *gin.Context) {
 		stats := make(map[string]interface{})
@@ -220,6 +222,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to store secret in database")
 		jwtSecret = newSecret
 	}
+
 
 	enableGraphql, err := configStore.GetConfigValueFor("graphql.enable", "backend")
 	if err != nil {
@@ -388,6 +391,18 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 			resource.CheckErr(err, "Failed to set default value for imap.enabled")
 		}
 	}
+
+	ch, err := resource.NewCaldavStorage(cruds, certificateManager)
+	if err != nil {
+		resource.CheckErr(err, "Unable To Configure Caldav")
+	}
+
+	caldavHandler := ch.CalDavHandler()
+
+	caldavHandlerFunc := gin.WrapH(caldavHandler)
+
+	calendar.Handle("PROPFIND", "/:rpath", caldavHandlerFunc)
+	calendar.Any("/:rpath", caldavHandlerFunc)
 
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
