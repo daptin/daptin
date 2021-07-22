@@ -112,7 +112,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	initConfig.Hostname = hostname
 
 	defaultRouter := gin.Default()
-	calendar := defaultRouter.Group("/calendar")
 
 	enableGzip, err := configStore.GetConfigValueFor("gzip.enable", "backend")
 	if err != nil {
@@ -135,7 +134,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 			Stats.End(beginning, stats.WithRecorder(recorder))
 		}
 	}())
-
 
 	defaultRouter.GET("/statistics", func(c *gin.Context) {
 		stats := make(map[string]interface{})
@@ -222,7 +220,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to store secret in database")
 		jwtSecret = newSecret
 	}
-
 
 	enableGraphql, err := configStore.GetConfigValueFor("graphql.enable", "backend")
 	if err != nil {
@@ -392,17 +389,38 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		}
 	}
 
-	ch, err := resource.NewCaldavStorage(cruds, certificateManager)
+	enableCaldav, err := configStore.GetConfigValueFor("caldav.enable", "backend")
 	if err != nil {
-		resource.CheckErr(err, "Unable To Configure Caldav")
+		enableCaldav = "false"
+		err = configStore.SetConfigValueFor("caldav.enable", enableCaldav, "backend")
+		resource.CheckErr(err, "Failed to store caldav.enable in _config")
 	}
 
-	caldavHandler := ch.CalDavHandler()
+	if enableCaldav == "true" {
 
-	caldavHandlerFunc := gin.WrapH(caldavHandler)
+		caldavRouter := gin.Default()
 
-	calendar.Handle("PROPFIND", "/:rpath", caldavHandlerFunc)
-	calendar.Any("/:rpath", caldavHandlerFunc)
+		caldavStorage, err := resource.NewCaldavStorage(cruds, certificateManager)
+		if err != nil {
+			resource.CheckErr(err, "Unable To Configure Caldav")
+		} else {
+			caldavHandler := caldavStorage.CalDavHandler()
+			//caldavHandlerFunc := gin.WrapH(caldavHandler)
+
+			log.Infof("Enabling caldav at /calendars")
+
+			caldavRouter.GET("/.well-known/caldav", func(c *gin.Context) {
+				c.Redirect(301, "/calendars/users")
+			})
+			caldavRouter.NoRoute()
+
+			go func() {
+				log.Printf("Listening caldav at :8008")
+				http.Handle("/", caldavHandler)
+				http.ListenAndServe(":8008", nil)
+			}()
+		}
+	}
 
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 

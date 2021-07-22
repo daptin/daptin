@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/buraksezer/olric"
@@ -251,7 +250,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 	userJwtToken, err := jwtMiddleware.CheckJWT(writer, req)
 
 	if err != nil {
-		log.Warnf("failed to identify user in auth middleware: %v", err)
+		//log.Warnf("failed to identify user in auth middleware: %v", err)
 		if doBasicAuthCheck {
 			userJwtToken, err = a.BasicAuthCheckMiddlewareWithHttp(req, writer)
 			if err != nil || userJwtToken == nil {
@@ -405,7 +404,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 							log.Errorf("Failed to get user group permissions: %v", err)
 						} else {
 							//cols, _ := rows.Columns()
-							log.Errorf("Usergroup selection query for user [%v] : [%v]", email, query)
+							//log.Debugf("Usergroup selection query for user [%v] : [%v]", email, query)
 							for rows.Next() {
 								var p GroupPermission
 								err = rows.StructScan(&p)
@@ -435,9 +434,9 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					//}
 
 					//if rand.Int() % 10 == 0 {
-					j, _ := json.Marshal(*sessionUser)
-					strJ := string(j)
-					log.Errorf("cache user account auth [%v] -> %v", len(strJ), strJ)
+					//j, _ := json.Marshal(*sessionUser)
+					//strJ := string(j)
+					//log.Errorf("cache user account auth [%v] -> %v", len(strJ), strJ)
 					repeatCheck, err := olricCache.Get(email)
 					if err != nil || repeatCheck == nil {
 						err = olricCache.PutIfEx(email, *sessionUser, 2*time.Minute, olric.IfNotFound)

@@ -597,9 +597,6 @@ func (d *DbResource) GetUserPassword(email string) (string, error) {
 }
 
 // UserGroupNameToId Converts group name to the internal integer id
-
-// should not be used since group names are not unique
-// deprecated
 func (dr *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
 
 	query, arg, err := statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"name": groupName}).ToSQL()
