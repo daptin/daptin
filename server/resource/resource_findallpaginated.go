@@ -1297,7 +1297,14 @@ func (dr *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBui
 }
 
 func (dr *DbResource) FindAll(req api2go.Request) (response api2go.Responder, err error) {
-	req.QueryParams["page[size]"] = []string{"1000"}
+	_, ok := req.QueryParams["page[size]"]
+	if !ok {
+		req.QueryParams["page[size]"] = []string{"1000"}
+	}
+	_, ok = req.QueryParams["page[number]"]
+	if !ok {
+		req.QueryParams["page[number]"] = []string{"1"}
+	}
 	_, responder, e := dr.PaginatedFindAll(req)
 	return responder, e
 }
