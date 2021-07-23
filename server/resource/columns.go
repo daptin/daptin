@@ -1527,8 +1527,8 @@ var StandardTables = []TableInfo{
 		Icon:          "fa-calendar-alt",
 		Columns: []api2go.ColumnInfo{
 			{
-				ColumnName: "rPath",
-				Name:       "rPath",
+				ColumnName: "rpath",
+				Name:       "rpath",
 				ColumnType: "label",
 				DataType:   "varchar(500)",
 				IsNullable: false,

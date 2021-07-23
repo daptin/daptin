@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -256,7 +257,6 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 				havingExpressions = append(havingExpressions, finalExpr)
 
 			}
-
 		}
 	}
 	builder = builder.Having(havingExpressions...)
@@ -266,18 +266,24 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 
 		joinClauseList := strings.Split(joinParts[1], "&")
 
-
 		joinedTables = append(joinedTables, joinParts[0])
 
 		joinWhereList := make([]goqu.Expression, 0)
-		for _, joinClause := range joinClauseList  {
+		for _, joinClause := range joinClauseList {
 
 			if !querySyntax.MatchString(joinClause) {
 				return nil, fmt.Errorf("invalid join condition format: " + joinClause)
 			} else {
 				parts := querySyntax.FindStringSubmatch(joinClause)
 
-				joinWhere, err := BuildWhereClause(parts[1], parts[2], goqu.I(parts[3]))
+				var rightValue interface{}
+				if BeginsWith(parts[3], "\"") || BeginsWith(parts[3], "'") {
+					rightValue, _ = strconv.Unquote(parts[3])
+				} else {
+					rightValue = goqu.I(parts[3])
+				}
+
+				joinWhere, err := BuildWhereClause(parts[1], parts[2], rightValue)
 				if err != nil {
 					return nil, err
 				}
@@ -286,7 +292,6 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 
 		}
 		builder = builder.LeftJoin(goqu.T(joinParts[0]), goqu.On(joinWhereList...))
-
 
 	}
 
@@ -309,7 +314,6 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 			log.Errorf("failed to close prepared statement: %v", err)
 		}
 	}(stmt1)
-
 
 	res, err := stmt1.Queryx(args...)
 	CheckErr(err, "Failed to query stats: %v", sql)
@@ -447,20 +451,31 @@ func BuildWhereClause(functionName string, leftVal string, rightVal interface{})
 		rightValInterface = strings.Split(rightVal.(string), ",")
 	}
 
-	if functionName == "in" || functionName == "notin" {
+	switch functionName {
+	case "in":
+		fallthrough
+	case "notin":
 		rightValInterface = strings.Split(rightVal.(string), ",")
 		return goqu.Ex{
 			leftVal: rightValInterface,
 		}, nil
-	} else if functionName == "=" {
+	case "=":
 		return goqu.Ex{
 			leftVal: rightValInterface,
 		}, nil
-	} else {
+	case "not":
 		return goqu.Ex{
 			leftVal: goqu.Op{
-				functionName: goqu.V(rightValInterface),
+				"neq": rightValInterface,
 			},
 		}, nil
+	default:
+		return goqu.Ex{
+			leftVal: goqu.Op{
+				functionName: rightValInterface,
+			},
+		}, nil
+
+
 	}
 }
