@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	uuid "github.com/artpar/go.uuid"
@@ -8,11 +9,12 @@ import (
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
+	"github.com/samedi/caldav-go/errs"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
 
-func(dr *DbResource) GetRpath(userId int64)(string,error){
+func (dr *DbResource) GetRpath(userId int64) (string, error) {
 
 	rPath := ""
 
@@ -29,11 +31,11 @@ func(dr *DbResource) GetRpath(userId int64)(string,error){
 	return rPath, err
 }
 
-func(dr *DbResource) GetCalendarId(rPath string, userId int64)(string,error){
+func (dr *DbResource) GetCalendarId(rPath string, userId int64) (string, error) {
 
 	rowID := ""
 
-	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"user_account_id": userId},goqu.Ex{"rpath": rPath})
+	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"user_account_id": userId}, goqu.Ex{"rpath": rPath})
 	if err != nil {
 		return rowID, err
 	}
@@ -50,7 +52,7 @@ func (dr *DbResource) DeleteCalendarEvent(UserId int64, rPath string) error {
 
 	cal, err := dr.Cruds["calendar"].GetAllObjectsWithWhere("calendar",
 		goqu.Ex{
-			"id": UserId,
+			"id":    UserId,
 			"rpath": rPath,
 		},
 	)
@@ -69,15 +71,14 @@ func (dr *DbResource) DeleteCalendarEvent(UserId int64, rPath string) error {
 		return err
 	}
 
-
 	return err
 
 }
 
-func(dr *DbResource) GetModTime(rPath string, userId int64)(time.Time,error){
+func (dr *DbResource) GetModTime(rPath string, userId int64) (time.Time, error) {
 	modified := time.Now()
 
-	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"id": userId},goqu.Ex{"rpath": rPath})
+	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"id": userId}, goqu.Ex{"rpath": rPath})
 	if err != nil {
 		return modified, err
 	}
@@ -91,21 +92,18 @@ func(dr *DbResource) GetModTime(rPath string, userId int64)(time.Time,error){
 	return modified, err
 }
 
-func(dr *DbResource) GetContent(rPath string, userId int64)(string,error){
+func (dr *DbResource) GetContent(rPath string) (string, error) {
 	content := ""
 
-	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"id": userId},goqu.Ex{"rpath": rPath})
+	cal, err := dr.Cruds["calendar"].GetObjectByWhereClause("calendar", "rPath", rPath)
 	if err != nil {
-		return content, err
+		return content, errs.ResourceNotFoundError
 	}
 
-	if len(cal) < 1 {
-		return content, errors.New("content not found")
-	}
+	content = cal["content"].(map[string]interface{})["content"].(string)
+	decodedContent, err := base64.StdEncoding.DecodeString(content)
 
-	content = cal[0]["content"].(string)
-
-	return content, err
+	return string(decodedContent), err
 }
 
 func (d *DbResource) UpdateResource(rPath, newContent string) error {
@@ -133,7 +131,7 @@ func (d *DbResource) UpdateResource(rPath, newContent string) error {
 
 }
 
-func (dr *DbResource) InsertResource(rPath, content string, userId int64) error{
+func (dr *DbResource) InsertResource(rPath, content string, userId int64) error {
 	referenceId, _ := uuid.NewV4()
 	permission := dr.model.GetDefaultPermission()
 
@@ -171,7 +169,7 @@ func (dr *DbResource) GetCalendarIdByAccountId(typeName string, userId int64) (i
 
 }
 
-func(dr *DbResource) GetUserGroupById(typename string, userID int64, referenceId string)([]auth.GroupPermission, error){
+func (dr *DbResource) GetUserGroupById(typename string, userID int64, referenceId string) ([]auth.GroupPermission, error) {
 
 	query, args1, err := auth.UserGroupSelectQuery.Where(goqu.Ex{"uug.id": userID}).ToSQL()
 

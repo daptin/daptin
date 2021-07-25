@@ -1530,15 +1530,23 @@ var StandardTables = []TableInfo{
 				ColumnName: "rpath",
 				Name:       "rpath",
 				ColumnType: "label",
+				IsUnique:   true,
 				DataType:   "varchar(500)",
 				IsNullable: false,
 			},
 			{
 				ColumnName: "content",
 				Name:       "content",
-				ColumnType: "content",
-				DataType:   "text",
+				ColumnType: "file.ical",
+				DataType:   "longblob",
 				IsNullable: false,
+				IsForeignKey: true,
+				ForeignKeyData: api2go.ForeignKeyData{
+					DataSource: "cloud_store",
+					Namespace:  "localstore",
+					KeyName:    "calendars",
+				},
+
 			},
 			//{
 			//	ColumnName: "event_title",

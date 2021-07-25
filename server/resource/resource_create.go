@@ -538,14 +538,16 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 	for _, rel := range dr.tableInfo.Relations {
 		if rel.Relation == "has_one" && rel.Object == dr.tableInfo.TableName {
-			log.Printf("Need to update foreign key column in table %s", rel.SubjectName)
+			log.Printf("Updating foreign key column [%s] in table %s => %v", rel.ObjectName, rel.SubjectName, createdResource["id"])
 
 			foreignObjectId, ok := attrs[rel.SubjectName]
 			if !ok || foreignObjectId == nil {
 				continue
 			}
 
-			updateRelatedTable, args, err := statementbuilder.Squirrel.Update(rel.Subject).Set(goqu.Record{rel.ObjectName: createdResource["id"]}).Where(
+			updateRelatedTable, args, err := statementbuilder.Squirrel.Update(rel.Subject).Set(goqu.Record{
+				rel.ObjectName: createdResource["id"],
+			}).Where(
 				goqu.Ex{
 					"reference_id": foreignObjectId,
 				}).ToSQL()

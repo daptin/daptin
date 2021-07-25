@@ -348,8 +348,8 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 			}
 		}
 		if columnInfo == nil {
-			log.Printf("column info not found for %v", groupedColumn)
-			continue
+			log.Errorf("column info not found for %v", groupedColumn)
+			return nil, fmt.Errorf("column info not found for %v", groupedColumn)
 		}
 
 		if columnInfo.IsForeignKey && columnInfo.ForeignKeyData.DataSource == "self" {

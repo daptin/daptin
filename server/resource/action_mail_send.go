@@ -30,12 +30,11 @@ func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]
 	//log.Printf("Sync mail servers")
 	responses := make([]ActionResponse, 0)
 
-	mailTo := inFields["to"].(string)
+	mailTo := inFields["to"].([]string)
 	subject := inFields["subject"].(string)
 	mailFrom := inFields["from"].(string)
 	mailBody := inFields["body"].(string)
 	mailServer, useMailServer := inFields["mail_server_hostname"]
-
 
 	if !useMailServer {
 
@@ -46,7 +45,6 @@ func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]
 
 		body.Write([]byte(mailBody))
 
-
 		mailFromAddress, err := mail.NewAddress(mailFrom)
 		if err != nil {
 			log.Errorf("Mail from value is not a valid address [%v]: %v", mailFrom, err)
@@ -56,7 +54,7 @@ func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]
 			Hostname: mailFromAddress.Host,
 		}
 		bodyBytes := body.Bytes()
-		err = (&i2).Send(mailFrom, []string{mailTo}, bytes.NewReader(bodyBytes))
+		err = (&i2).Send(mailFrom, mailTo, bytes.NewReader(bodyBytes))
 		if err != nil {
 			log.Errorf("Failed to send mail to [%v]: %v", mailTo, err)
 			log.Errorf("Mail: %v", string(bodyBytes))
@@ -72,12 +70,18 @@ func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]
 		}
 
 		var emailEnvelope *mail.Envelope
-		mailFromAddress, err := mail.NewAddress(mailTo)
+		mailFromAddress, err := mail.NewAddress(mailFrom)
 		if err != nil {
 			log.Errorf("Invalid mail-to mailToAddress [%v]: %v", mailTo, err)
 			return nil, nil, []error{err}
 		}
-		mailToAddress, err := mail.NewAddress(mailTo)
+		toAddresses := make([]mail.Address, 0)
+		for _, adr := range mailTo {
+			mailToAddress, err := mail.NewAddress(adr)
+			CheckErr(err, "Failed to parse address: %v", adr)
+			toAddresses = append(toAddresses, *mailToAddress)
+
+		}
 		if err != nil {
 			log.Errorf("Invalid mail-to mailToAddress [%v]: %v", mailTo, err)
 			return nil, nil, []error{err}
@@ -85,7 +89,7 @@ func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]
 
 		emailEnvelope = &mail.Envelope{
 			MailFrom:       *mailFromAddress,
-			RcptTo:         []mail.Address{*mailToAddress},
+			RcptTo:         toAddresses,
 			Subject:        subject,
 			DeliveryHeader: "Return-PATH: admin@" + mailServerObj["hostname"].(string) + "\n",
 		}
@@ -118,7 +122,8 @@ func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]
 			Signer:                 privateKey,
 		}
 
-		newMailString := fmt.Sprintf("From: %s\r\nSubject: %s\r\nTo: %s\r\nDate: %s\r\n", emailEnvelope.MailFrom.String(), emailEnvelope.Subject, mailToAddress.String(), time.Now().Format(time.RFC822Z))
+		newMailString := fmt.Sprintf("From: %s\r\nSubject: %s\r\nTo: %s\r\nDate: %s\r\n",
+			emailEnvelope.MailFrom.String(), emailEnvelope.Subject, strings.Join(mailTo, ","), time.Now().Format(time.RFC822Z))
 
 		for headerName, headerValue := range emailEnvelope.Header {
 			headerNameSmall := strings.ToLower(headerName)
@@ -141,12 +146,12 @@ func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]
 
 		finalMail := b.Bytes()
 		fmt.Printf("Mail\n%s", string(finalMail))
-		log.Printf("Final Mail: From [%v] to [%v] [%v]", emailEnvelope.MailFrom.String(), mailToAddress.String(), string(finalMail))
+		//log.Printf("Final Mail: From [%v] to [%v] [%v]", emailEnvelope.MailFrom.String(), mailToAddress.String(), string(finalMail))
 
 		i2 := mta.Sender{
 			Hostname: emailEnvelope.MailFrom.Host,
 		}
-		err = (&i2).Send(emailEnvelope.MailFrom.String(), []string{mailToAddress.String()}, bytes.NewReader(finalMail))
+		err = (&i2).Send(emailEnvelope.MailFrom.String(), mailTo, bytes.NewReader(finalMail))
 
 		if err != nil {
 			log.Errorf("Failed to send mail: %v", err)

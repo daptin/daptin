@@ -1,14 +1,17 @@
 package resource
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/samedi/caldav-go"
 	"github.com/samedi/caldav-go/data"
 	"github.com/samedi/caldav-go/errs"
 	log "github.com/sirupsen/logrus"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -17,13 +20,10 @@ import (
 )
 
 type CalDavStorage struct {
-	cruds           map[string]*DbResource
-	Mailer          *mailSendActionPerformer
-	Username        string
-	Email           string
-	UserID          int64
-	UserReferenceID string
-	GroupID         []auth.GroupPermission
+	cruds       map[string]*DbResource
+	Mailer      *mailSendActionPerformer
+	Username    string
+	SessionUser *auth.SessionUser
 }
 
 func NewCaldavStorage(cruds map[string]*DbResource, certificateManager *CertificateManager) (*CalDavStorage, error) {
@@ -41,14 +41,17 @@ func NewCaldavStorage(cruds map[string]*DbResource, certificateManager *Certific
 func (cs *CalDavStorage) CalDavHandler() http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 
-
 		stg := new(CalDavStorage)
 		stg.cruds = cs.cruds
 		stg.Mailer = cs.Mailer
 
 		str := strings.SplitN(request.Header.Get("Authorization"), " ", 2)
 		if len(str) != 2 {
+			body, _ := ioutil.ReadAll(request.Body)
+			fmt.Println(string(body))
 			writer.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			http.Error(writer, "Not authorized", 401)
+			return
 		} else {
 
 			b, err := base64.StdEncoding.DecodeString(str[1])
@@ -88,12 +91,11 @@ func (cs *CalDavStorage) CalDavHandler() http.Handler {
 				http.Error(writer, "Unable To Retrieve User", 401)
 				log.Error("Unable To Retrieve User Group", err)
 			}
-			stg.UserID = userId
-			stg.Email = retrievedUser["email"].(string)
-			stg.Username = retrievedUser["name"].(string)
-			stg.UserReferenceID = userReferenceId
-			stg.GroupID = userGroup
-
+			stg.SessionUser = &auth.SessionUser{
+				UserId:          userId,
+				UserReferenceId: userReferenceId,
+				Groups:          userGroup,
+			}
 		}
 
 		response := caldav.HandleRequestWithStorage(request, stg)
@@ -136,24 +138,30 @@ func (cs *CalDavStorage) GetShallowResource(rpath string) (*data.Resource, bool,
 
 func (cs *CalDavStorage) GetResources(rpath string, withChildren bool) ([]data.Resource, error) {
 	var result []data.Resource
-	a, err := cs.haveAccess(rpath, "read")
+
+	log.Infof("Get resources: [%s] => %v", rpath, withChildren)
+
+	obj, err := cs.cruds["calendar"].GetObjectByWhereClause("calendar", "rpath", rpath)
 
 	if err != nil {
-		log.Error(err, "failed to get Access ["+rpath+"]")
-		return nil, err
+		return nil, errs.ResourceNotFoundError
 	}
 
-	if !a {
-		log.Info("no access to collection [" + rpath + "]")
-		return nil, nil
+	objPermission := cs.cruds["calendar"].GetRowPermission(obj)
+
+	if !objPermission.CanRead(cs.SessionUser.UserReferenceId, cs.SessionUser.Groups) {
+		return nil, fmt.Errorf("unauthorized")
 	}
 
-	if !cs.isResourcePresent(rpath) {
-		log.Info("no resource found for [" + rpath + "]")
-		return nil, nil
-	}
-
-	res := data.NewResource(rpath, &PGResourceAdapter{db: cs.cruds, resourcePath: rpath, UserID: cs.UserID, UserReferenceId: cs.UserReferenceID})
+	encodedContent := obj["content"].([]map[string]interface{})[0]["content"].(string)
+	decodedContent, _ := base64.StdEncoding.DecodeString(encodedContent)
+	res := data.NewResource(rpath, &PGResourceAdapter{
+		db:                  cs.cruds,
+		resourcePath:        rpath,
+		sessionUser:         cs.SessionUser,
+		data:                obj,
+		decodedCalendarData: string(decodedContent),
+	})
 	result = append(result, res)
 
 	return result, nil
@@ -161,36 +169,17 @@ func (cs *CalDavStorage) GetResources(rpath string, withChildren bool) ([]data.R
 
 func (cs *CalDavStorage) haveAccess(rpath string, perm string) (bool, error) {
 	if perm == "admin" {
-		return cs.cruds[USER_ACCOUNT_TABLE_NAME].IsAdmin(cs.UserReferenceID), nil
+		return cs.cruds[USER_ACCOUNT_TABLE_NAME].IsAdmin(cs.SessionUser.UserReferenceId), nil
 
 	}
+	permission := cs.cruds["calendar"].GetObjectPermissionByWhereClause("calendar", "rpath", rpath)
 
-	if !cs.isResourcePresent(rpath) {
-		return true, nil
+	switch perm {
+	case "read":
+		return permission.CanRead(cs.SessionUser.UserReferenceId, cs.SessionUser.Groups), nil
+	case "write":
+		return permission.CanCreate(cs.SessionUser.UserReferenceId, cs.SessionUser.Groups), nil
 	}
-
-	rowPermission := make(map[string]interface{})
-
-	calId, err := cs.cruds["calendar"].GetCalendarId(rpath, cs.UserID)
-	if err != nil {
-		return false, err
-	}
-
-	rowPermission["__type"] = "calendar"
-	rowPermission["id"] = calId
-
-	permInst := cs.cruds["calendar"].GetRowPermission(rowPermission)
-
-	if perm == "read" {
-		return permInst.CanRead(cs.UserReferenceID, cs.GroupID), nil
-
-	}
-
-	if perm == "write" {
-		return permInst.CanCreate(cs.UserReferenceID, cs.GroupID), nil
-
-	}
-
 	return false, nil
 }
 
@@ -232,37 +221,64 @@ func (cs *CalDavStorage) GetResource(rpath string) (*data.Resource, bool, error)
 }
 
 func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, error) {
-	a, err := cs.haveAccess(rpath, "write")
 
+	calendarTablePermission := cs.cruds["world"].GetObjectPermissionByWhereClause("world", "table_name", "calendar")
+
+	if !calendarTablePermission.CanCreate(cs.SessionUser.UserReferenceId, cs.SessionUser.Groups) {
+		return nil, errs.ForbiddenError
+	}
+
+	base64EncodedContent := base64.StdEncoding.EncodeToString([]byte(content))
+
+	calendarName := strings.Split(rpath, "/")
+	createObj := &api2go.Api2GoModel{
+		DeleteIncludes: nil,
+		Data: map[string]interface{}{
+			"rpath": rpath,
+			"content": []interface{}{
+				map[string]interface{}{
+					"name":    calendarName[len(calendarName)-1],
+					"content": base64EncodedContent,
+				},
+			}},
+		Includes: nil,
+	}
+	httpRequest := &http.Request{
+		Method: "POST",
+	}
+	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", cs.SessionUser))
+	apiRequest := api2go.Request{
+		PlainRequest: httpRequest,
+	}
+	createdObj, err := cs.cruds["calendar"].Create(createObj, apiRequest)
 	if err != nil {
-		log.Error(err, "failed to get Access ["+rpath+"]")
+		log.Errorf("failed to insert: %v", rpath)
 		return nil, err
 	}
-	if !a {
-		log.Info("no access to collection [" + rpath + "]")
-		return nil, nil
-	}
 
-	c := base64.StdEncoding.EncodeToString([]byte(content))
-	err = cs.cruds["calendar"].InsertResource(rpath, c, cs.UserID)
+	res := data.NewResource(rpath, &PGResourceAdapter{
+		db:                  cs.cruds,
+		resourcePath:        rpath,
+		sessionUser:         cs.SessionUser,
+		data:                createdObj.Result().(*api2go.Api2GoModel).Data,
+		decodedCalendarData: content,
+	})
 
-	if err != nil {
-		log.Error(err, "failed to insert ", rpath)
-		return nil, err
-	}
-
-	res := data.NewResource(rpath, &PGResourceAdapter{db: cs.cruds, resourcePath: rpath, UserID: cs.UserID, UserReferenceId: cs.UserReferenceID})
-	_ = res.GetPropertyValue("VEVENT", "ATTENDEE")
+	attendees := res.GetPropertyValue("VEVENT", "ATTENDEE")
 	title := res.GetPropertyValue("VEVENT", "SUMMARY")
 	start := res.StartTimeUTC()
 	end := res.EndTimeUTC()
-	subject := "Invitation: " + title + " @ " + start.Weekday().String() + " " + start.Month().String() + " " + strconv.Itoa(start.Day()) + ", " + strconv.Itoa(start.Year()) + " " + strconv.Itoa(start.Hour()) + " - " + strconv.Itoa(end.Hour()) + " (" + start.Location().String() + ") (" + cs.Email + ")"
+	subject := "Invitation: " + title + " @ " +
+		start.Weekday().String() + " " + start.Month().String() + " " +
+		strconv.Itoa(start.Day()) + ", " + strconv.Itoa(start.Year()) + " " +
+		strconv.Itoa(start.Hour()) + " - " + strconv.Itoa(end.Hour()) +
+		" (" + start.Location().String() + ")"
 
 	actionRequestParameters := make(map[string]interface{})
-	actionRequestParameters["to"] = cs.Email
+	actionRequestParameters["to"] = strings.Split(attendees, ",")
 	actionRequestParameters["subject"] = subject
 	actionRequestParameters["from"] = "daptin.no-reply"
-	actionRequestParameters["body"] = content
+	actionRequestParameters["body"] = "You are invited to a new event: " + subject
 
 	_, _, mailerError := cs.Mailer.DoAction(Outcome{}, actionRequestParameters)
 	if mailerError != nil {
@@ -274,31 +290,65 @@ func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, 
 }
 
 func (cs *CalDavStorage) UpdateResource(rpath, content string) (*data.Resource, error) {
-	a, err := cs.haveAccess(rpath, "write")
+
+	obj, err := cs.cruds["calendar"].GetObjectByWhereClause("calendar", "rpath", rpath)
 	if err != nil {
-		log.Error(err, "failed to get Access ["+rpath+"]")
-		return nil, err
+		return nil, errs.ResourceNotFoundError
 	}
-	if !a {
-		log.Info("no access to collection [" + rpath + "]")
-		return nil, nil
+
+	objPermission := cs.cruds["calendar"].GetRowPermission(obj)
+
+	if !objPermission.CanUpdate(cs.SessionUser.UserReferenceId, cs.SessionUser.Groups) {
+		return nil, errs.ForbiddenError
 	}
-	c := base64.StdEncoding.EncodeToString([]byte(content))
-	err = cs.cruds["calendar"].UpdateResource(rpath, c)
+
+	base64EncodedContent := base64.StdEncoding.EncodeToString([]byte(content))
+	calendarName := strings.Split(rpath, "/")
+	objectUpdate := &api2go.Api2GoModel{
+		DeleteIncludes: nil,
+		Data: map[string]interface{}{
+			"rpath": rpath,
+			"content": []interface{}{
+				map[string]interface{}{
+					"file":    calendarName[len(calendarName)-1],
+					"content": base64EncodedContent,
+				},
+			}},
+		Includes: nil,
+	}
+	httpRequest := &http.Request{
+		Method: "PATCH",
+	}
+	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", cs.SessionUser))
+	apiRequest := api2go.Request{
+		PlainRequest: httpRequest,
+	}
+
+	updatedObj, err := cs.cruds["calendar"].Update(objectUpdate, apiRequest)
 	if err != nil {
-		log.Error(err, "failed to update ", rpath)
+		log.Errorf("failed to update: %v", rpath)
 		return nil, err
 	}
 
-	res := data.NewResource(rpath, &PGResourceAdapter{db: cs.cruds, resourcePath: rpath, UserID: cs.UserID, UserReferenceId: cs.UserReferenceID})
-	_ = res.GetPropertyValue("VEVENT", "ATTENDEE")
+	res := data.NewResource(rpath, &PGResourceAdapter{
+		db:                  cs.cruds,
+		resourcePath:        rpath,
+		sessionUser:         cs.SessionUser,
+		data:                updatedObj.Result().(*api2go.Api2GoModel).Data,
+		decodedCalendarData: content,
+	})
+
+	attendees := res.GetPropertyValue("VEVENT", "ATTENDEE")
 	title := res.GetPropertyValue("VEVENT", "SUMMARY")
 	start := res.StartTimeUTC()
 	end := res.EndTimeUTC()
-	subject := "Updated invitation: " + title + " @ " + start.Weekday().String() + " " + start.Month().String() + " " + strconv.Itoa(start.Day()) + ", " + strconv.Itoa(start.Year()) + " " + strconv.Itoa(start.Hour()) + " - " + strconv.Itoa(end.Hour()) + " (" + start.Location().String() + ") (" + cs.Email + ")"
+	subject := "Updated invitation: " + title + " @ " + start.Weekday().String() + " " +
+		start.Month().String() + " " + strconv.Itoa(start.Day()) + ", " +
+		strconv.Itoa(start.Year()) + " " + strconv.Itoa(start.Hour()) +
+		" - " + strconv.Itoa(end.Hour()) + " (" + start.Location().String() + ")"
 
 	actionRequestParameters := make(map[string]interface{})
-	actionRequestParameters["to"] = cs.Email
+	actionRequestParameters["to"] = strings.Split(attendees, ",")
 	actionRequestParameters["subject"] = subject
 	actionRequestParameters["from"] = "daptin.no-reply"
 	actionRequestParameters["body"] = content
@@ -323,7 +373,7 @@ func (cs *CalDavStorage) DeleteResource(rpath string) error {
 		return nil
 	}
 
-	err = cs.cruds["calendar"].DeleteCalendarEvent(cs.UserID, rpath)
+	err = cs.cruds["calendar"].DeleteCalendarEvent(cs.SessionUser.UserId, rpath)
 	if err != nil {
 		log.Info("failed to delete resource ", rpath, " ", err.Error())
 		return err
@@ -333,36 +383,33 @@ func (cs *CalDavStorage) DeleteResource(rpath string) error {
 }
 
 func (cs *CalDavStorage) isResourcePresent(rpath string) bool {
-	rrpath, err := cs.cruds["calendar"].GetRpath(cs.UserID)
+	_, err := cs.cruds["calendar"].GetObjectByWhereClause("calendar", "rpath", rpath)
 
 	if err != nil {
 		return false
 	}
 
-	if rrpath == rpath {
-		return true
-	}
-
-	return false
+	return true
 }
 
 type PGResourceAdapter struct {
-	db              map[string]*DbResource
-	resourcePath    string
-	UserReferenceId string
-	UserID          int64
+	db                  map[string]*DbResource
+	resourcePath        string
+	data                map[string]interface{}
+	sessionUser         *auth.SessionUser
+	decodedCalendarData string
 }
 
 func (pa *PGResourceAdapter) CalculateEtag() string {
-	if pa.IsCollection() {
-		return ""
-	}
+	//if pa.IsCollection() {
+	//	return ""
+	//}
 
 	return fmt.Sprintf(`"%x%x"`, pa.GetContentSize(), pa.GetModTime().UnixNano())
 }
 
 func (pa *PGResourceAdapter) haveAccess(perm string) (bool, error) {
-	calId, err := pa.db["calendar"].GetCalendarIdByAccountId("calendar", pa.UserID)
+	calId, err := pa.db["calendar"].GetCalendarIdByAccountId("calendar", pa.sessionUser.UserId)
 	if err != nil {
 		return false, err
 	}
@@ -373,44 +420,27 @@ func (pa *PGResourceAdapter) haveAccess(perm string) (bool, error) {
 	uGroupId := permInst.UserGroupId
 
 	if perm == "read" {
-		return permInst.CanRead(pa.UserReferenceId, uGroupId), nil
+		return permInst.CanRead(pa.sessionUser.UserReferenceId, uGroupId), nil
 
 	}
 
 	if perm == "write" {
-		return permInst.CanCreate(pa.UserReferenceId, uGroupId), nil
+		return permInst.CanCreate(pa.sessionUser.UserReferenceId, uGroupId), nil
 	}
 
 	if perm == "admin" {
-		return pa.db[USER_ACCOUNT_TABLE_NAME].IsAdmin(pa.UserReferenceId), nil
+		return pa.db[USER_ACCOUNT_TABLE_NAME].IsAdmin(pa.sessionUser.UserReferenceId), nil
 	}
 
 	return false, nil
 }
 
 func (pa *PGResourceAdapter) GetContent() string {
-	if pa.IsCollection() {
-		return ""
-	}
-	a, err := pa.haveAccess("read")
-	if err != nil {
-		log.Error(err, "failed to get Access ", pa.resourcePath)
-		return ""
-	}
-	if !a {
-		return ""
-	}
-	content, err := pa.db["calendar"].GetContent(pa.resourcePath, pa.UserID)
-	if err != nil {
-		log.Error(err, "failed to fetch content ", pa.resourcePath)
-		return ""
-	}
-
-	return content
+	return pa.decodedCalendarData
 }
 
 func (pa *PGResourceAdapter) GetContentSize() int64 {
-	return int64(len(pa.GetContent()))
+	return int64(len(pa.decodedCalendarData))
 
 }
 
@@ -419,20 +449,5 @@ func (pa *PGResourceAdapter) IsCollection() bool {
 }
 
 func (pa *PGResourceAdapter) GetModTime() time.Time {
-	a, err := pa.haveAccess("read")
-	if err != nil {
-		log.Error(err, "failed to get Access ", pa.resourcePath)
-		return time.Unix(0, 0)
-	}
-	if !a {
-		log.Info("failed to get Access ", pa.resourcePath)
-		return time.Unix(0, 0)
-	}
-	var mod time.Time
-	mod, err = pa.db["calendar"].GetModTime(pa.resourcePath, pa.UserID)
-	if err != nil {
-		log.Error(err, "failed to fetch modTime ", pa.resourcePath)
-		return time.Unix(0, 0)
-	}
-	return mod
+	return pa.data["updated_at"].(time.Time)
 }
