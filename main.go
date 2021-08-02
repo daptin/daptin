@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"path/filepath"
+	"runtime"
 	"runtime/pprof"
 	"strconv"
 	"strings"
@@ -42,6 +43,17 @@ var stream = health.NewStream()
 
 func init() {
 
+	goMaxProcs, ok := os.LookupEnv("DAPTIN_GOMAXPROCS")
+	if !ok || goMaxProcs == "" {
+		goMaxProcs = "0"
+	}
+	goMaxProcsInt, err := strconv.ParseInt(goMaxProcs, 10, 64)
+	if err != nil {
+		goMaxProcsInt = 0
+	}
+	log.Printf("Go Max Procs: %v, Default value was [%v]", goMaxProcsInt, runtime.NumCPU())
+
+	runtime.GOMAXPROCS(int(goMaxProcsInt))
 	// manually set time zone
 	if tz := os.Getenv("TZ"); tz != "" {
 		var err error
