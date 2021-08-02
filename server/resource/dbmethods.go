@@ -1185,6 +1185,13 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 }
 
 func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]interface{}, error) {
+	key := fmt.Sprintf("ito-%s-%s", typeName, id)
+	if OlricCache != nil {
+		val, err := OlricCache.Get(key)
+		if err == nil && val != nil {
+			return val.(map[string]interface{}), nil
+		}
+	}
 	s, q, err := statementbuilder.Squirrel.Select(goqu.C("*")).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
 		return nil, err
@@ -1195,30 +1202,34 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 		log.Errorf("[1146] failed to prepare statment: %v", err)
 		return nil, err
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
 
 	row, err := stmt1.Queryx(q...)
-
 	if err != nil {
 		return nil, err
 	}
-	defer func(row *sqlx.Rows) {
-		err := row.Close()
-		if err != nil {
-			log.Errorf("[1064] failed to close result after value scan in defer")
-		}
-	}(row)
 
+
+	start := time.Now()
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
+	duration := time.Since(start)
+	log.Infof("GetIdToObject ResultToArray: %v", duration)
+
+	err = row.Close()
+	if err != nil {
+		log.Errorf("[1064] failed to close result after value scan in defer")
+	}
+	err = stmt1.Close()
+	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
+
 
 	if len(m) == 0 {
 		log.Printf("No result found for [%v][%v]", typeName, id)
 		return nil, err
+	}
+	if OlricCache != nil {
+		OlricCache.PutEx(key, m[0], 1 * time.Minute)
 	}
 
 	return m[0], err
