@@ -237,13 +237,18 @@ func (dr *DbResource) GetAdminReferenceId() map[string]bool {
 }
 
 func (dr *DbResource) IsAdmin(userReferenceId string) bool {
+	start := time.Now()
 	key := "admin." + userReferenceId
 	if OlricCache != nil {
 		value, err := OlricCache.Get(key)
 		if err == nil && value != nil {
 			if value.(bool) == true {
+				duration := time.Since(start)
+				log.Infof("IsAdmin Cached[true]: %v", duration)
 				return true
 			} else {
+				duration := time.Since(start)
+				log.Infof("IsAdmin Cached[false]: %v", duration)
 				return false
 			}
 		}
@@ -265,6 +270,8 @@ func (dr *DbResource) IsAdmin(userReferenceId string) bool {
 	if err != nil {
 		log.Errorf("Failed to cached admin value: %v", err)
 	}
+	duration := time.Since(start)
+	log.Infof("IsAdmin NotCached[true]: %v", duration)
 	return false
 
 }
