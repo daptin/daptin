@@ -240,7 +240,7 @@ func (dr *DbResource) IsAdmin(userReferenceId string) bool {
 	key := "admin." + userReferenceId
 	if OlricCache != nil {
 		value, err := OlricCache.Get(key)
-		if err != nil {
+		if err != nil && value != nil {
 			if value.(bool) == true {
 				return true
 			} else {
