@@ -51,7 +51,7 @@ func init() {
 	if err != nil {
 		goMaxProcsInt = 0
 	}
-	log.Printf("Go Max Procs: %v, Default value was [%v]", goMaxProcsInt, runtime.NumCPU())
+	log.Infof("Go Max Procs: %v, Default value was [%v]", goMaxProcsInt, runtime.NumCPU())
 
 	runtime.GOMAXPROCS(int(goMaxProcsInt))
 	// manually set time zone
