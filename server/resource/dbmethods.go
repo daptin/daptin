@@ -1178,14 +1178,14 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 
 	if len(m) == 0 {
 		log.Printf("No result found for [%v] [%v][%v]", typeName, column, val)
-		return nil, errors.New(fmt.Sprintf("no [%s=%s] object found", column, val))
+		return nil, errors.New(fmt.Sprintf("no [%v=%v] object found", column, val))
 	}
 
 	return m[0], err
 }
 
 func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]interface{}, error) {
-	key := fmt.Sprintf("ito-%s-%s", typeName, id)
+	key := fmt.Sprintf("ito-%v-%s", typeName, id)
 	if OlricCache != nil {
 		val, err := OlricCache.Get(key)
 		if err == nil && val != nil {
