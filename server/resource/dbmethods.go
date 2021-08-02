@@ -1185,7 +1185,7 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 }
 
 func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]interface{}, error) {
-	key := fmt.Sprintf("ito-%v-%s", typeName, id)
+	key := fmt.Sprintf("ito-%v-%v", typeName, id)
 	if OlricCache != nil {
 		val, err := OlricCache.Get(key)
 		if err == nil && val != nil {
