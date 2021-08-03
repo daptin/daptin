@@ -1426,6 +1426,10 @@ func (dr *DbResource) GetAllObjectsWithWhere(typeName string, where ...goqu.Ex) 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[1336] failed to prepare statment: %v", err)
+		if stmt1 != nil {
+			err = stmt1.Close()
+			CheckErr(err, "failed to close statement after prepare error")
+		}
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {

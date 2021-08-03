@@ -450,7 +450,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 	createdResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), newUuid)
 
 	if err != nil {
-		log.Errorf("Failed to select the newly created entry: %v", err)
+		log.Errorf("[453] Failed to select the newly created entry: %v", err)
 		return nil, err
 	}
 

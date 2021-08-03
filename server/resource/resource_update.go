@@ -508,7 +508,7 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request) 
 
 	updatedResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), id)
 	if err != nil {
-		log.Errorf("Failed to select the newly created entry: %v", err)
+		log.Errorf("[511] Failed to select the newly created entry: %v", err)
 		return nil, err
 	}
 
