@@ -339,14 +339,21 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 			groupedColumn = strings.Split(groupedColumn, ".")[1]
 		}
 
-		for _, tableName := range joinedTables {
-			columnInfo, ok = dr.Cruds[tableName].TableInfo().GetColumnByName(groupedColumn)
-			if !ok {
-				continue
-			} else {
-				break
+		if dr.Cruds[req.RootEntity] != nil {
+			columnInfo, ok = dr.Cruds[req.RootEntity].TableInfo().GetColumnByName(groupedColumn)
+		}
+
+		if columnInfo == nil {
+			for _, tableName := range joinedTables {
+				columnInfo, ok = dr.Cruds[tableName].TableInfo().GetColumnByName(groupedColumn)
+				if !ok {
+					continue
+				} else {
+					break
+				}
 			}
 		}
+
 		if columnInfo == nil {
 			log.Errorf("column info not found for %v", groupedColumn)
 			return nil, fmt.Errorf("column info not found for %v", groupedColumn)
@@ -475,7 +482,6 @@ func BuildWhereClause(functionName string, leftVal string, rightVal interface{})
 				functionName: rightValInterface,
 			},
 		}, nil
-
 
 	}
 }

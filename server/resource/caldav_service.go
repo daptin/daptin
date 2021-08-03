@@ -277,7 +277,7 @@ func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, 
 	actionRequestParameters := make(map[string]interface{})
 	actionRequestParameters["to"] = strings.Split(attendees, ",")
 	actionRequestParameters["subject"] = subject
-	actionRequestParameters["from"] = "daptin.no-reply"
+	actionRequestParameters["from"] = "daptin.no-reply@localhost"
 	actionRequestParameters["body"] = "You are invited to a new event: " + subject
 
 	_, _, mailerError := cs.Mailer.DoAction(Outcome{}, actionRequestParameters)
@@ -350,7 +350,7 @@ func (cs *CalDavStorage) UpdateResource(rpath, content string) (*data.Resource, 
 	actionRequestParameters := make(map[string]interface{})
 	actionRequestParameters["to"] = strings.Split(attendees, ",")
 	actionRequestParameters["subject"] = subject
-	actionRequestParameters["from"] = "daptin.no-reply"
+	actionRequestParameters["from"] = "daptin.no-reply@localhost"
 	actionRequestParameters["body"] = content
 
 	_, _, mailerError := cs.Mailer.DoAction(Outcome{}, actionRequestParameters)

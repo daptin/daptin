@@ -5,6 +5,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/daptin/daptin/server/auth"
 	"github.com/doug-martin/goqu/v9"
@@ -26,7 +27,10 @@ func (dr *DbResource) GetTotalCount() uint64 {
 
 	var count uint64
 
+	start := time.Now()
 	stmt1, err := dr.connection.Preparex(s)
+	duration := time.Since(start)
+	log.Infof("GetTotalCount PrepareX: %v", duration)
 	if err != nil {
 		log.Errorf("[31] failed to prepare statment: %v", err)
 	}
@@ -37,7 +41,11 @@ func (dr *DbResource) GetTotalCount() uint64 {
 		}
 	}(stmt1)
 
+	start = time.Now()
 	err = stmt1.QueryRowx(v...).Scan(&count)
+	duration = time.Since(start)
+	log.Infof("GetTotalCount Scan: %v", duration)
+
 	CheckErr(err, "Failed to execute total count query [%s] [%v]", s, v)
 	//log.Printf("Count: [%v] %v", dr.model.GetTableName(), count)
 	return count
@@ -54,7 +62,11 @@ func (dr *DbResource) GetTotalCountBySelectBuilder(builder *goqu.SelectDataset) 
 
 	var count uint64
 
+	start := time.Now()
 	stmt1, err := dr.connection.Preparex(s)
+	duration := time.Since(start)
+	log.Infof("GetTotalCountBySelectBuilder PrepareX: %v", duration)
+
 	if err != nil {
 		log.Errorf("[61] failed to prepare statment: %v", err)
 	}
@@ -65,7 +77,11 @@ func (dr *DbResource) GetTotalCountBySelectBuilder(builder *goqu.SelectDataset) 
 		}
 	}(stmt1)
 
+	start = time.Now()
 	err = stmt1.QueryRowx(v...).Scan(&count)
+	duration = time.Since(start)
+	log.Infof("GetTotalCountBySelectBuilder QueryRowx: %v", duration)
+
 	if err != nil {
 		log.Errorf("Failed to execute count query [%v] %v", s, err)
 	}
@@ -870,7 +886,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 	log.Infof("Id query: [%s]", idsListQuery)
 	//log.Debugf("Id query args: %v", args)
+	start := time.Now()
 	stmt, err := dr.connection.Preparex(idsListQuery)
+	duration := time.Since(start)
+	log.Infof("IdQuery Preparex: %v", duration)
+
 	if err != nil {
 		log.Errorf("Findall select query sql 738: %v == %v", idsListQuery, args)
 		log.Errorf("Failed to prepare sql 674: %v", err)
@@ -884,7 +904,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 	}(stmt)
 
+	start = time.Now()
 	idsRow, err := stmt.Queryx(args...)
+	duration = time.Since(start)
+	log.Infof("IdQuery Queryx: %v", duration)
+
 	if err != nil {
 		log.Errorf("Findall select query sql 745: %v == %v", idsListQuery, args)
 		log.Errorf("Failed to prepare sql 680: %v", err)
@@ -983,7 +1007,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			return nil, nil, nil, false, err
 		}
 
+		start = time.Now()
 		stmt, err = dr.connection.Preparex(sql1)
+		duration = time.Since(start)
+		log.Infof("IdQuery Select Preparex: %v", duration)
+
 		if err != nil {
 			log.Printf("Findall select query sql 762: %v == %v", sql1, args)
 			log.Errorf("Failed to prepare sql 763: %v", err)
@@ -993,7 +1021,11 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			err = stmt.Close()
 			CheckErr(err, "Failed to close statement")
 		}()
+		start = time.Now()
 		rows, err := stmt.Queryx(args...)
+		duration = time.Since(start)
+		log.Infof("IdQuery Select QueryX: %v", duration)
+
 
 		if err != nil {
 			log.Printf("Error: %v", err)
@@ -1004,10 +1036,16 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			CheckErr(err, "Failed to close rows")
 		}()
 
+		start = time.Now()
 		results, includes, err = dr.ResultToArrayOfMap(rows, dr.model.GetColumnMap(), includedRelations)
+		duration = time.Since(start)
+		log.Infof("FindAll ResultToArray: %v", duration)
 
 	}
+	start = time.Now()
 	total1 = dr.GetTotalCountBySelectBuilder(countQueryBuilder)
+	duration = time.Since(start)
+	log.Infof("GetTotalCountBySelectBuilder: %v", duration)
 
 	//log.Printf("Found: %d results", len(results))
 	//log.Printf("Results: %v", results)
@@ -1313,7 +1351,11 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 
 	for _, bf := range dr.ms.BeforeFindAll {
 		//log.Printf("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		start := time.Now()
 		_, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{})
+		duration := time.Since(start)
+		log.Infof("FindBeforeFilter %v: %v", bf.String(), duration)
+
 		if err != nil {
 			log.Printf("Error from BeforeFindAll middleware [%v]: %v", bf.String(), err)
 			return 0, NewResponse(nil, err, 400, nil), err
@@ -1321,12 +1363,20 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	}
 	//log.Printf("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
 
+	start := time.Now()
 	results, includes, pagination, finalResponseIsSingleObject, err := dr.PaginatedFindAllWithoutFilters(req)
+	duration := time.Since(start)
+	log.Infof("FindAllWithoutFilters %v", duration)
+
 
 	for _, bf := range dr.ms.AfterFindAll {
 		//log.Printf("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
+		start := time.Now()
 		results, err = bf.InterceptAfter(dr, &req, results)
+		duration := time.Since(start)
+		log.Infof("FindAfterFilter %v: %v", bf.String(), duration)
+
 		if err != nil {
 			//log.Errorf("Error from findall paginated create middleware: %v", err)
 			log.Errorf("Error from AfterFindAll[%v] middleware: %v", bf.String(), err)

@@ -873,7 +873,11 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations ma
 		}
 	}(rows)
 
+	start := time.Now()
 	m1, include, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), includedRelations)
+	duration := time.Since(start)
+	log.Infof("GetRowsByWhere ResultToArray: %v", duration)
+
 
 	return m1, include, err
 
@@ -919,7 +923,11 @@ func (dr *DbResource) GetRandomRow(typeName string, count uint) ([]map[string]in
 		}
 	}(rows)
 
+	start := time.Now()
 	m1, _, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), nil)
+	duration := time.Since(start)
+	log.Infof("GetRandomRow ResultToArray: %v", duration)
+
 
 	return m1, err
 
@@ -1056,7 +1064,12 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 		return nil, nil, err
 	}
 
+
+	start := time.Now()
 	stmt1, err := dr.connection.Preparex(s)
+	duration := time.Since(start)
+	log.Infof("SingleRowSelect Preparex: %v", duration)
+
 	if err != nil {
 		log.Errorf("[1011] failed to prepare statment: %v", err)
 		return nil, nil, err
@@ -1068,7 +1081,11 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 		}
 	}(stmt1)
 
+	start = time.Now()
 	rows, err := stmt1.Queryx(q...)
+	duration = time.Since(start)
+	log.Infof("SingleRowSelect Queryx: %v", duration)
+
 	if err != nil {
 		log.Errorf("[940] failed to query single row by ref id: %v", err)
 		return nil, nil, err
@@ -1083,7 +1100,11 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 		CheckErr(err, "Failed to close rows after db query [%v]", s)
 	}()
 
+	start = time.Now()
 	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), includedRelations)
+	duration = time.Since(start)
+	log.Infof("GetSingleRowByReferenceId ResultToArray: %v", duration)
+
 	if err != nil {
 		log.Printf("failed to ResultToArrayOfMap: %v", err)
 		return nil, nil, err
@@ -1128,7 +1149,11 @@ func (dr *DbResource) GetSingleRowById(typeName string, id int64, includedRelati
 			log.Errorf("[989] failed to close rows after value scan in defer")
 		}
 	}(rows)
+	start := time.Now()
 	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), includedRelations)
+	duration := time.Since(start)
+	log.Infof("GetSingleRowById ResultToArray: %v", duration)
+
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1174,7 +1199,11 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 		}
 	}(row)
 
+	start := time.Now()
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
+	duration := time.Since(start)
+	log.Infof("GetObjectByWhere ResultToArray: %v", duration)
+
 
 	if len(m) == 0 {
 		log.Printf("No result found for [%v] [%v][%v]", typeName, column, val)
@@ -1370,7 +1399,10 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 		}
 	}(row)
 
+	start := time.Now()
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
+	duration := time.Since(start)
+	log.Infof("GetAllObjects ResultToArray: %v", duration)
 
 	return m, err
 }
@@ -1415,7 +1447,10 @@ func (dr *DbResource) GetAllObjectsWithWhere(typeName string, where ...goqu.Ex) 
 		}
 	}(row)
 
+	start := time.Now()
 	m, _, err := dr.Cruds[typeName].ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
+	duration := time.Since(start)
+	log.Infof("GetAllObjectWhere ResultToArray: %v", duration)
 
 	return m, err
 }
@@ -1501,7 +1536,11 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 		CheckErr(err, "[1314] Failed to close row after querying single row")
 	}()
 
+	start := time.Now()
 	results, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
+	duration := time.Since(start)
+	log.Infof("GetReferenceIdToObject ResultToArray: %v", duration)
+
 	if err != nil {
 		return nil, err
 	}
@@ -1550,7 +1589,11 @@ func (dr *DbResource) GetReferenceIdToObjectColumn(typeName string, referenceId 
 		CheckErr(err, "Failed to close row after querying single row")
 	}()
 
+	start := time.Now()
 	results, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
+	duration := time.Since(start)
+	log.Infof("GetReferenceIdToColumn ResultToArray: %v", duration)
+
 	if err != nil {
 		return nil, err
 	}
@@ -1970,7 +2013,11 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				refId, ok := referenceIdCache[idCacheKey]
 
 				if !ok {
+					start := time.Now()
 					refId, err = dr.GetIdToReferenceId(namespace, referenceIdInt)
+					duration := time.Since(start)
+					log.Infof("RowsToMap IdToReferenceId: %v", duration)
+
 					referenceIdCache[idCacheKey] = refId
 				}
 
@@ -1981,7 +2028,14 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 				row[key] = refId
 
 				if includedRelationMap != nil && (includedRelationMap[namespace] || includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"]) {
+					start := time.Now()
 					obj, err := dr.GetIdToObject(namespace, referenceIdInt)
+					if err != nil {
+						return nil, nil, err
+					}
+					duration := time.Since(start)
+					log.Infof("RowsToMap IdToObject: %v", duration)
+
 					obj["__type"] = namespace
 
 					if err != nil {
@@ -2084,6 +2138,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					stmt1, err := dr.connection.Preparex(query)
 					if err != nil {
 						log.Errorf("[2023] failed to prepare statment: %v", err)
+						return nil, nil, err
 					}
 					defer func(stmt1 *sqlx.Stmt) {
 						err := stmt1.Close()
@@ -2095,6 +2150,7 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 					rows, err := stmt1.Queryx(args...)
 					if err != nil {
 						log.Printf("Failed to query 1482: %v", err)
+						return nil, nil, err
 					}
 
 					ids := make([]int64, 0)

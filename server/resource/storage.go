@@ -24,6 +24,7 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 	stmt1, err := db.Preparex(query)
 	if err != nil {
 		log.Errorf("[26] failed to prepare statment: %v", err)
+		return err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()

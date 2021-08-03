@@ -6,6 +6,7 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/pkg/errors"
 	"strings"
+	"time"
 
 	//"strings"
 	log "github.com/sirupsen/logrus"
@@ -27,12 +28,16 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 
 	for _, bf := range dr.ms.BeforeFindOne {
 		//log.Debugf("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		start := time.Now()
 		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
 			{
 				"reference_id": referenceId,
 				"__type":       dr.model.GetName(),
 			},
 		})
+		duration := time.Since(start)
+		log.Infof("FindOne BeforeFilter[%v]: %v", bf.String(), duration)
+
 		if err != nil {
 			log.Warnf("Error from BeforeFindOne[%s][%s] middleware: %v", bf.String(), dr.model.GetName(), err)
 			return nil, err
@@ -65,7 +70,11 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		includedRelations = nil
 	}
 
+
+	start := time.Now()
 	data, include, err := dr.GetSingleRowByReferenceId(modelName, referenceId, includedRelations)
+	duration := time.Since(start)
+	log.Infof("FindOne: %v", duration)
 
 	if len(languagePreferences) > 0 {
 		for _, lang := range languagePreferences {
@@ -98,7 +107,11 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 	for _, bf := range dr.ms.AfterFindOne {
 		//log.Debugf("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), modelName)
 
+		start := time.Now()
 		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{data})
+		duration := time.Since(start)
+		log.Infof("FindOne AfterFilter [%v]: %v", bf.String(), duration)
+
 		if len(results) != 0 {
 			data = results[0]
 		} else {
