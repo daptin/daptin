@@ -125,6 +125,21 @@ jobs:
           printf "\n\nSystem environment:\n\n"
           env
 
+      - name: Run quick tests
+        shell: bash
+        run: |
+          make
+          make quicktest
+        if: matrix.quicktest
+
+      - name: Run Race test
+        shell: bash
+        run: |
+          make racequicktest
+        if: matrix.racequicktest
+
+
+
       - name: Build dashboard
         shell: bash
         run: |
@@ -152,19 +167,6 @@ jobs:
           go install github.com/GeertJohan/go.rice/rice
           $GOPATH/bin/rice embed-go
           ls -lah
-
-      - name: Run quick tests
-        shell: bash
-        run: |
-          make
-          make quicktest
-        if: matrix.quicktest
-
-      - name: Run Race test
-        shell: bash
-        run: |
-          make racequicktest
-        if: matrix.racequicktest
 
       - name: Build and push docker image
         run: |
