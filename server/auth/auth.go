@@ -9,7 +9,7 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/jwt"
 	"github.com/daptin/daptin/server/statementbuilder"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"

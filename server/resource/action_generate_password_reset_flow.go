@@ -8,7 +8,7 @@ import (
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go.uuid"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"

@@ -33,7 +33,6 @@ require (
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/buraksezer/olric v0.3.6
 	github.com/corpix/uarand v0.0.0 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/gift v1.2.1
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
 	github.com/doug-martin/goqu/v9 v9.11.0
@@ -58,6 +57,7 @@ require (
 	github.com/gocarina/gocsv v0.0.0-20181213162136-af1d9380204a
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
 	github.com/gohugoio/hugo v0.79.0
+	github.com/golang-jwt/jwt/v4 v4.0.0 // indirect
 	github.com/gonum/blas v0.0.0-20181208220705-f22b278b28ac // indirect
 	github.com/gonum/floats v0.0.0-20181209220543-c233463c7e82 // indirect
 	github.com/gonum/integrate v0.0.0-20181209220457-a422b5c0fdf2 // indirect
@@ -66,7 +66,6 @@ require (
 	github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9 // indirect
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20190915194858-d3ddacdb130f // indirect
-	github.com/goreleaser/goreleaser v0.162.0 // indirect
 	github.com/gorilla/feeds v1.1.1
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
@@ -80,10 +79,7 @@ require (
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
 	github.com/json-iterator/go v1.1.10
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/karalabe/xgo v0.0.0-20191115072854-c5ccff8648a7 // indirect
 	github.com/kniren/gota v0.10.1 // indirect
-	github.com/koofr/go-httpclient v0.0.0-20200420163713-93aa7c75b348 // indirect
-	github.com/koofr/go-koofrclient v0.0.0-20190724113126-8e5366da203a // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/gommon v0.2.8 // indirect
@@ -91,10 +87,7 @@ require (
 	github.com/lib/pq v1.9.0
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
 	github.com/mattn/go-sqlite3 v1.11.0
-	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/naoina/toml v0.1.1
-	github.com/ncw/swift v1.0.52 // indirect
-	github.com/okzk/sdnotify v0.0.0-20180710141335-d9becc38acbd // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.2.0
 	github.com/robfig/cron/v3 v3.0.0
@@ -105,8 +98,6 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/cobra v1.1.3
-	github.com/timsolov/rest-query-parser v1.9.5 // indirect
-	github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77 // indirect
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
@@ -120,5 +111,3 @@ require (
 )
 
 replace github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.0.0+incompatible
-
-replace github.com/daptin/daptin v0.9.6 => github.com/Ghvstcode/daptin v0.9.6

@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 )
