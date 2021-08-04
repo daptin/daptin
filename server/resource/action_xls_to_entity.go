@@ -7,6 +7,7 @@ import (
 	"github.com/artpar/conform"
 	"github.com/artpar/xlsx/v2"
 	"github.com/daptin/daptin/server/columntypes"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
@@ -90,7 +91,7 @@ var EntityTypeToColumnTypeMap = map[fieldtypes.EntityType]string{
 	fieldtypes.Namespace:   "namespace",
 }
 
-func (d *uploadXlsFileToEntityPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *uploadXlsFileToEntityPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	//actions := make([]ActionResponse, 0)
 	log.Printf("Do action: %v", d.Name())

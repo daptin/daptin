@@ -3,6 +3,7 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -67,7 +68,7 @@ func NewExchangeMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) 
 }
 
 // Intercept before does nothing for exchange middleware and the calls are made only if data update was successful
-func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
+func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	reqmethod := req.PlainRequest.Method
 	reqmethod = strings.ToLower(reqmethod)
@@ -136,7 +137,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 }
 
 // Called after the data changes are complete, resposible for calling the external api.
-func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
+func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	//errors := []error{}
 

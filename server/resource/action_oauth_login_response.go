@@ -6,6 +6,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
@@ -32,12 +33,12 @@ func GetOauthConnectionDescription(authenticator string, dbResource *DbResource)
 	rows, _, err := dbResource.Cruds["oauth_connect"].GetRowsByWhereClause("oauth_connect", nil, goqu.Ex{"name": authenticator})
 
 	if err != nil {
-		log.Errorf("Failed to get oauth connection details for in response handler  [%v]", authenticator)
+		log.Errorf("Failed to get oauth Connection details for in response handler  [%v]", authenticator)
 		return nil, "", err
 	}
 
 	if len(rows) < 1 {
-		log.Errorf("Failed to get oauth connection details for  [%v]", authenticator)
+		log.Errorf("Failed to get oauth Connection details for  [%v]", authenticator)
 		err = errors.New(fmt.Sprintf("No such authenticator [%v]", authenticator))
 		return nil, "", err
 	}
@@ -59,7 +60,7 @@ func GetOauthConnectionById(authenticatorId int64, dbResource *DbResource) (*oau
 	connectDetails, err := dbResource.Cruds["oauth_connect"].GetIdToObject("oauth_connect", authenticatorId)
 
 	if err != nil {
-		log.Errorf("Failed to get oauth connection details for in response handler  [%v]", authenticatorId)
+		log.Errorf("Failed to get oauth Connection details for in response handler  [%v]", authenticatorId)
 		return nil, "", err
 	}
 
@@ -107,7 +108,9 @@ func mapToOauthConfig(authConnectorData map[string]interface{}, secret string) (
 	return conf, nil
 }
 
-func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_connect_reference_id string, user_reference_id string) error {
+func (dr *DbResource) StoreToken(token *oauth2.Token,
+	token_type string, oauth_connect_reference_id string,
+	user_reference_id string, transaction *sqlx.Tx) error {
 	storeToken := make(map[string]interface{})
 
 	storeToken["access_token"] = token.AccessToken
@@ -143,11 +146,11 @@ func (dr *DbResource) StoreToken(token *oauth2.Token, token_type string, oauth_c
 
 	model := api2go.NewApi2GoModelWithData("oauth_token", nil, int64(auth.DEFAULT_PERMISSION), nil, storeToken)
 
-	_, err = dr.Cruds["oauth_token"].CreateWithoutFilter(model, req)
+	_, err = dr.Cruds["oauth_token"].CreateWithoutFilter(model, req, transaction)
 	return err
 }
 
-func (d *oauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *oauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	state := inFieldMap["state"].(string)
 	//user := inFieldMap["user"].(map[string]interface{})
@@ -180,13 +183,16 @@ func (d *oauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap
 		return nil, nil, []error{err}
 	}
 
-	err = d.cruds["oauth_token"].StoreToken(token, authenticator, authReferenceId, user_reference_id)
+	err = d.cruds["oauth_token"].StoreToken(token, authenticator, authReferenceId, user_reference_id, transaction)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
 	CheckErr(err, "Failed to store new auth token")
 
 	responseAttrs := make(map[string]interface{})
 
 	responseAttrs["title"] = "Successfully connected"
-	responseAttrs["message"] = "You can use this connection now"
+	responseAttrs["message"] = "You can use this Connection now"
 	responseAttrs["type"] = "success"
 
 	actionResponse := NewActionResponse("client.notify", responseAttrs)

@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	//"context"
 	"bytes"
@@ -77,7 +78,7 @@ type TokenResponse struct {
 	Scope string
 }
 
-func (d *ouathProfileExchangePerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *ouathProfileExchangePerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	authenticator := inFieldMap["authenticator"].(string)
 	token := inFieldMap["token"].(string)

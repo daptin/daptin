@@ -12,6 +12,7 @@ import (
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/auth"
 	hugoCommand "github.com/gohugoio/hugo/commands"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
@@ -29,7 +30,7 @@ func (d *cloudStoreSiteCreateActionPerformer) Name() string {
 	return "cloudstore.site.create"
 }
 
-func (d *cloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *cloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -91,7 +92,7 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 		"name":           hostname,
 	}
 	newSite := api2go.NewApi2GoModelWithData("site", nil, 0, nil, newSiteData)
-	_, err = d.cruds["site"].CreateWithoutFilter(newSite, createRequest)
+	_, err = d.cruds["site"].CreateWithoutFilter(newSite, createRequest, transaction)
 	CheckErr(err, "Failed to create new site")
 	if err != nil {
 		return nil, nil, []error{err}

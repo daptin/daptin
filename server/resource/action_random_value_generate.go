@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 )
 
 // becomeAdminActionPerformer daptin action implementation
@@ -16,7 +17,7 @@ func (d *randomValueGeneratePerformerr) Name() string {
 
 // becomeAdminActionPerformer Perform action and try to make the current user the admin of the system
 // Checks CanBecomeAdmin and then invokes BecomeAdmin if true
-func (d *randomValueGeneratePerformerr) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *randomValueGeneratePerformerr) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responseAttrs := make(map[string]interface{})
 
@@ -34,8 +35,7 @@ func (d *randomValueGeneratePerformerr) DoAction(request Outcome, inFieldMap map
 // Create a new action performer for becoming administrator action
 func NewRandomValueGeneratePerformer() (ActionPerformerInterface, error) {
 
-	handler := randomValueGeneratePerformerr{
-	}
+	handler := randomValueGeneratePerformerr{}
 
 	return &handler, nil
 

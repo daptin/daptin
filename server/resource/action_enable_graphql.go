@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 )
 
 /**
@@ -18,7 +19,7 @@ func (d *graphqlEnableActionPerformer) Name() string {
 
 // Perform action and try to make the current user the admin of the system
 // Checks CanGraphqlEnable and then invokes GraphqlEnable if true
-func (d *graphqlEnableActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *graphqlEnableActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	err := d.cruds["world"].configStore.SetConfigValueFor("graphql.enable", "true", "backend")
 

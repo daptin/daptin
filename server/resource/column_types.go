@@ -27,6 +27,7 @@ type ColumnType struct {
 	DataTypes     []string
 	GraphqlType   graphql.Type
 }
+
 // generate random date between 1980 - 2050
 func randomDate() time.Time {
 	min := time.Date(1980, 1, 0, 0, 0, 0, 0, time.UTC).Unix()

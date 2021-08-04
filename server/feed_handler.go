@@ -83,7 +83,7 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 		req := api2go.Request{
 			PlainRequest: pr,
 			QueryParams: map[string][]string{
-				"page[size]": []string{pageSize},
+				"page[size]": {pageSize},
 			},
 		}
 

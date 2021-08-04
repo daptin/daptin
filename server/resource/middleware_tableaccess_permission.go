@@ -3,6 +3,8 @@ package resource
 import (
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
+
 	//log "github.com/sirupsen/logrus"
 	//"github.com/Masterminds/squirrel"
 	"errors"
@@ -21,7 +23,7 @@ func (pc *TableAccessPermissionChecker) String() string {
 var errorMsgFormat = "[%v] [%v] access not allowed for action [%v] to user [%v]"
 
 // Intercept after check implements if the data should be returned after the data change is complete
-func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
+func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	if results == nil || len(results) < 1 {
 		return results, nil
@@ -68,7 +70,7 @@ var (
 )
 
 // Intercept before implemetation for entity level authentication check
-func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
+func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	//var err error
 	//log.Printf("context: %v", context.GetAll(req.PlainRequest))

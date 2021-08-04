@@ -6,6 +6,7 @@ import (
 	"github.com/artpar/go.uuid"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
 )
 
 type generatePasswordResetVerifyActionPerformer struct {
@@ -19,7 +20,7 @@ func (d *generatePasswordResetVerifyActionPerformer) Name() string {
 	return "password.reset.verify"
 }
 
-func (d *generatePasswordResetVerifyActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *generatePasswordResetVerifyActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

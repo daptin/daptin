@@ -3,7 +3,6 @@ package resource
 import (
 	"context"
 	"fmt"
-	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
@@ -14,7 +13,7 @@ import (
 	"time"
 )
 
-func GetObjectByWhereClause(objType string, db database.DatabaseConnection, queries ...goqu.Ex) ([]map[string]interface{}, error) {
+func GetObjectByWhereClauseWithTransaction(objType string, transaction *sqlx.Tx, queries ...goqu.Ex) ([]map[string]interface{}, error) {
 	result := make([]map[string]interface{}, 0)
 
 	builder := statementbuilder.Squirrel.Select(goqu.L("*")).From(objType)
@@ -28,7 +27,7 @@ func GetObjectByWhereClause(objType string, db database.DatabaseConnection, quer
 		return result, err
 	}
 
-	stmt, err := db.Preparex(q)
+	stmt, err := transaction.Preparex(q)
 	if stmt != nil {
 		defer func() {
 			err = stmt.Close()
@@ -60,9 +59,9 @@ func GetObjectByWhereClause(objType string, db database.DatabaseConnection, quer
 	return RowsToMap(rows, objType)
 }
 
-func GetActionMapByTypeName(db database.DatabaseConnection) (map[string]map[string]interface{}, error) {
+func GetActionMapByTypeName(transaction *sqlx.Tx) (map[string]map[string]interface{}, error) {
 
-	allActions, err := GetObjectByWhereClause("action", db)
+	allActions, err := GetObjectByWhereClauseWithTransaction("action", transaction)
 	if err != nil {
 		return nil, err
 	}
@@ -89,9 +88,9 @@ func GetActionMapByTypeName(db database.DatabaseConnection) (map[string]map[stri
 
 }
 
-func GetWorldTableMapBy(col string, db database.DatabaseConnection) (map[string]map[string]interface{}, error) {
+func GetWorldTableMapBy(col string, transaction *sqlx.Tx) (map[string]map[string]interface{}, error) {
 
-	allWorlds, err := GetObjectByWhereClause("world", db)
+	allWorlds, err := GetObjectByWhereClauseWithTransaction("world", transaction)
 	if err != nil {
 		return nil, err
 	}
@@ -362,7 +361,7 @@ func (resource *DbResource) GetAllTasks() ([]Task, error) {
 		return tasks, err
 	}
 
-	stmt1, err := resource.connection.Preparex(s)
+	stmt1, err := resource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[359] failed to prepare statment: %v", err)
 		return nil, err
@@ -373,7 +372,6 @@ func (resource *DbResource) GetAllTasks() ([]Task, error) {
 			log.Errorf("failed to close prepared statement: %v", err)
 		}
 	}(stmt1)
-
 
 	rows, err := stmt1.Queryx(v...)
 	if err != nil {
@@ -419,7 +417,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 		return sites, err
 	}
 
-	stmt1, err := resource.connection.Preparex(s)
+	stmt1, err := resource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[424] failed to prepare statment: %v", err)
 		return nil, err
@@ -430,7 +428,6 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 			log.Errorf("failed to close prepared statement: %v", err)
 		}
 	}(stmt1)
-
 
 	rows, err := stmt1.Queryx(v...)
 	if err != nil {
@@ -473,7 +470,7 @@ func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Conf
 		return nil, err
 	}
 
-	stmt1, err := resource.connection.Preparex(s)
+	stmt1, err := resource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[478] failed to prepare statment: %v", err)
 		return nil, err
@@ -484,7 +481,6 @@ func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Conf
 			log.Errorf("failed to close prepared statement: %v", err)
 		}
 	}(stmt1)
-
 
 	err = stmt1.QueryRowx(v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl, &scope)
 
@@ -533,7 +529,7 @@ func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId st
 		return nil, err
 	}
 
-	stmt1, err := resource.connection.Preparex(s)
+	stmt1, err := resource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[538] failed to prepare statment: %v", err)
 		return nil, err
@@ -589,7 +585,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 		return nil, oauthConf, err
 	}
 
-	stmt1, err := resource.connection.Preparex(s)
+	stmt1, err := resource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[594] failed to prepare statment: %v", err)
 		return nil, nil, err
@@ -658,7 +654,7 @@ func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 		return nil, err
 	}
 
-	stmt1, err := resource.connection.Preparex(s)
+	stmt1, err := resource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[663] failed to prepare statment: %v", err)
 		return nil, err
@@ -706,7 +702,7 @@ func (resource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, err
 		return nil, err
 	}
 
-	stmt1, err := resource.connection.Preparex(s)
+	stmt1, err := resource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[711] failed to prepare statment: %v", err)
 		return nil, err

@@ -129,7 +129,7 @@ var ReservedWords = []string{
 	"condition",
 	"condition_number",
 	"connect",
-	"connection",
+	"Connection",
 	"connection_name",
 	"constraint",
 	"constraint_catalog",

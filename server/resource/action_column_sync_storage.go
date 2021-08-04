@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
@@ -24,7 +25,7 @@ func (d *syncColumnStorageActionPerformer) Name() string {
 	return "column.storage.sync"
 }
 
-func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

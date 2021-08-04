@@ -28,7 +28,7 @@ func (dr *DbResource) GetTotalCount() uint64 {
 	var count uint64
 
 	start := time.Now()
-	stmt1, err := dr.connection.Preparex(s)
+	stmt1, err := dr.Connection.Preparex(s)
 	duration := time.Since(start)
 	log.Infof("GetTotalCount PrepareX: %v", duration)
 	if err != nil {
@@ -63,7 +63,45 @@ func (dr *DbResource) GetTotalCountBySelectBuilder(builder *goqu.SelectDataset) 
 	var count uint64
 
 	start := time.Now()
-	stmt1, err := dr.connection.Preparex(s)
+	stmt1, err := dr.Connection.Preparex(s)
+	duration := time.Since(start)
+	log.Infof("GetTotalCountBySelectBuilder PrepareX: %v", duration)
+
+	if err != nil {
+		log.Errorf("[61] failed to prepare statment: %v", err)
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	start = time.Now()
+	err = stmt1.QueryRowx(v...).Scan(&count)
+	duration = time.Since(start)
+	log.Infof("GetTotalCountBySelectBuilder QueryRowx: %v", duration)
+
+	if err != nil {
+		log.Errorf("Failed to execute count query [%v] %v", s, err)
+	}
+	//log.Printf("Count: [%v] %v", dr.model.GetTableName(), count)
+	return count
+}
+
+func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, transaction *sqlx.Tx) uint64 {
+
+	s, v, err := builder.ToSQL()
+	//log.Printf("Count query: %v == %v", s, v)
+	if err != nil {
+		log.Errorf("Failed to generate count query: %v", err)
+		return 0
+	}
+
+	var count uint64
+
+	start := time.Now()
+	stmt1, err := transaction.Preparex(s)
 	duration := time.Since(start)
 	log.Infof("GetTotalCountBySelectBuilder PrepareX: %v", duration)
 
@@ -117,7 +155,8 @@ type column struct {
 }
 
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
-func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[string]interface{}, [][]map[string]interface{}, *PaginationData, bool, error) {
+func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request, transaction *sqlx.Tx) (
+	[]map[string]interface{}, [][]map[string]interface{}, *PaginationData, bool, error) {
 	//log.Printf("Find all row by params: [%v]: %v", dr.model.GetName(), req.QueryParams)
 	var err error
 
@@ -393,14 +432,14 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	}
 
 	if req.QueryParams["page[after]"] != nil && len(req.QueryParams["page[after]"]) > 0 {
-		id, err := dr.GetReferenceIdToId(dr.TableInfo().TableName, req.QueryParams["page[after]"][0])
+		id, err := GetReferenceIdToIdWithTransaction(dr.TableInfo().TableName, req.QueryParams["page[after]"][0], transaction)
 		if err != nil {
 			queryBuilder = queryBuilder.Where(goqu.Ex{
 				dr.TableInfo().TableName + ".id": goqu.Op{"gt": id},
 			}).Limit(uint(pageSize))
 		}
 	} else if req.QueryParams["page[before]"] != nil && len(req.QueryParams["page[before]"]) > 0 {
-		id, err := dr.GetReferenceIdToId(dr.TableInfo().TableName, req.QueryParams["page[before]"][0])
+		id, err := GetReferenceIdToIdWithTransaction(dr.TableInfo().TableName, req.QueryParams["page[before]"][0], transaction)
 		if err != nil {
 			queryBuilder = queryBuilder.Where(goqu.Ex{
 				dr.TableInfo().TableName + ".id": goqu.Op{"lt": id},
@@ -523,7 +562,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 					continue
 				}
 
-				refIdsToIdMap, err := dr.GetReferenceIdListToIdList(rel.GetObject(), queries)
+				refIdsToIdMap, err := GetReferenceIdListToIdListWithTransaction(rel.GetObject(), queries, transaction)
 
 				//log.Printf("Converted ids: %v", ids)
 				if err != nil {
@@ -687,7 +726,8 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 			if !ok || len(queries) < 1 || queries[0] == "" {
 				continue
 			}
-			ids, err := dr.GetSingleColumnValueByReferenceId(rel.GetSubject(), []interface{}{"id"}, "reference_id", queries)
+			ids, err := GetSingleColumnValueByReferenceIdWithTransaction(rel.GetSubject(), []interface{}{"id"},
+				"reference_id", queries, transaction)
 
 			switch rel.Relation {
 			case "has_one":
@@ -840,7 +880,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 		groupCount := len(groupReferenceIds)
 		if groupCount > 0 {
-			groupIds, err = dr.GetReferenceIdListToIdList("usergroup", groupReferenceIds)
+			groupIds, err = GetReferenceIdListToIdListWithTransaction("usergroup", groupReferenceIds, transaction)
 			CheckErr(err, "Failed to fetch group ids")
 		}
 		groupParameters := ""
@@ -887,7 +927,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 	log.Infof("Id query: [%s]", idsListQuery)
 	//log.Debugf("Id query args: %v", args)
 	start := time.Now()
-	stmt, err := dr.connection.Preparex(idsListQuery)
+	stmt, err := transaction.Preparex(idsListQuery)
 	duration := time.Since(start)
 	log.Infof("IdQuery Preparex: %v", duration)
 
@@ -946,9 +986,9 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		translateTableName := tableModel.GetTableName() + "_i18n"
 
 		ifNullFunctionName := "IFNULL"
-		if dr.connection.DriverName() == "postgres" {
+		if dr.Connection.DriverName() == "postgres" {
 			ifNullFunctionName = "COALESCE"
-		} else if dr.connection.DriverName() == "mssql" {
+		} else if dr.Connection.DriverName() == "mssql" {
 			ifNullFunctionName = "ISNULL"
 		}
 
@@ -1008,7 +1048,7 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}
 
 		start = time.Now()
-		stmt, err = dr.connection.Preparex(sql1)
+		stmt, err = transaction.Preparex(sql1)
 		duration = time.Since(start)
 		log.Infof("IdQuery Select Preparex: %v", duration)
 
@@ -1026,7 +1066,6 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		duration = time.Since(start)
 		log.Infof("IdQuery Select QueryX: %v", duration)
 
-
 		if err != nil {
 			log.Printf("Error: %v", err)
 			return nil, nil, nil, false, err
@@ -1037,13 +1076,13 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request) ([]map[
 		}()
 
 		start = time.Now()
-		results, includes, err = dr.ResultToArrayOfMap(rows, dr.model.GetColumnMap(), includedRelations)
+		results, includes, err = dr.ResultToArrayOfMapWithTransaction(rows, dr.model.GetColumnMap(), includedRelations, transaction)
 		duration = time.Since(start)
 		log.Infof("FindAll ResultToArray: %v", duration)
 
 	}
 	start = time.Now()
-	total1 = dr.GetTotalCountBySelectBuilder(countQueryBuilder)
+	total1 = GetTotalCountBySelectBuilderWithTransaction(countQueryBuilder, transaction)
 	duration = time.Since(start)
 	log.Infof("GetTotalCountBySelectBuilder: %v", duration)
 
@@ -1349,10 +1388,14 @@ func (dr *DbResource) FindAll(req api2go.Request) (response api2go.Responder, er
 
 func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, response api2go.Responder, err error) {
 
+	transaction, err := dr.Connection.Beginx()
+	if err != nil {
+		return 0, nil, err
+	}
 	for _, bf := range dr.ms.BeforeFindAll {
 		//log.Printf("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		start := time.Now()
-		_, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{})
+		_, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{}, transaction)
 		duration := time.Since(start)
 		log.Infof("FindBeforeFilter %v: %v", bf.String(), duration)
 
@@ -1364,16 +1407,144 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 	//log.Printf("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
 
 	start := time.Now()
-	results, includes, pagination, finalResponseIsSingleObject, err := dr.PaginatedFindAllWithoutFilters(req)
+	results, includes, pagination, finalResponseIsSingleObject, err := dr.PaginatedFindAllWithoutFilters(req, transaction)
+	if err != nil {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr, "failed to rollback")
+		return 0, nil, err
+	}
 	duration := time.Since(start)
 	log.Infof("FindAllWithoutFilters %v", duration)
-
 
 	for _, bf := range dr.ms.AfterFindAll {
 		//log.Printf("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
 		start := time.Now()
-		results, err = bf.InterceptAfter(dr, &req, results)
+		results, err = bf.InterceptAfter(dr, &req, results, transaction)
+		duration := time.Since(start)
+		log.Infof("FindAfterFilter %v: %v", bf.String(), duration)
+
+		if err != nil {
+			//log.Errorf("Error from findall paginated create middleware: %v", err)
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr, "failed to rollback")
+
+			log.Errorf("Error from AfterFindAll[%v] middleware: %v", bf.String(), err)
+			return 0, nil, err
+		}
+	}
+
+	includesNew := make([][]map[string]interface{}, 0)
+	for _, bf := range dr.ms.AfterFindAll {
+		//log.Printf("Invoke AfterFindAll Includes [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+
+		for _, include := range includes {
+			include, err = bf.InterceptAfter(dr, &req, include, transaction)
+			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "failed to rollback")
+				log.Errorf("Error from AfterFindAll[includes][%v] middleware: %v", bf.String(), err)
+				return 0, nil, err
+			}
+			includesNew = append(includesNew, include)
+		}
+
+	}
+	commitErr := transaction.Commit()
+	if commitErr != nil {
+		CheckErr(commitErr, "Failed to commit")
+		return 0, nil, commitErr
+	}
+
+	result := make([]*api2go.Api2GoModel, 0)
+	infos := dr.model.GetColumns()
+
+	for i, res := range results {
+		delete(res, "id")
+		includes := includesNew[i]
+		var a = api2go.NewApi2GoModel(dr.model.GetTableName(), infos, dr.model.GetDefaultPermission(), dr.model.GetRelations())
+		a.Data = res
+
+		for _, include := range includes {
+			delete(include, "id")
+			if BeginsWith(include["__type"].(string), "file.") {
+				continue
+			}
+			perm, ok := include["permission"].(int64)
+			if !ok {
+				log.Errorf("Failed to parse permission, skipping record: %v", err)
+				continue
+			}
+
+			incType := include["__type"].(string)
+			model := api2go.NewApi2GoModelWithData(incType, dr.Cruds[incType].model.GetColumns(), int64(perm), dr.Cruds[incType].model.GetRelations(), include)
+
+			a.Includes = append(a.Includes, model)
+		}
+
+		result = append(result, a)
+	}
+
+	//log.Printf("Offset, limit: %v, %v", pageNumber, pageSize)
+
+	if pagination == nil {
+		pagination = &PaginationData{
+			PageNumber: 1,
+			PageSize:   10,
+		}
+	}
+	//log.Printf("Pagination :%v", pagination)
+
+	var resultObj interface{}
+	resultObj = result
+	if finalResponseIsSingleObject {
+		if len(result) > 0 {
+			resultObj = result[0]
+		} else {
+			resultObj = nil
+		}
+	}
+	return uint(pagination.TotalCount), NewResponse(nil, resultObj, 200, &api2go.Pagination{
+		//Next:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageSize+pagination.PageNumber)},
+		//Prev:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.PageNumber-pagination.PageSize)},
+		//First:       map[string]string{},
+		//Last:        map[string]string{"limit": fmt.Sprintf("%v", pagination.PageSize), "offset": fmt.Sprintf("%v", pagination.TotalCount-pagination.PageSize)},
+		Total:       pagination.TotalCount,
+		PerPage:     pagination.PageSize,
+		CurrentPage: 1 + (pagination.PageNumber / pagination.PageSize),
+		LastPage:    1 + (pagination.TotalCount / pagination.PageSize),
+		From:        pagination.PageNumber + 1,
+		To:          pagination.PageSize,
+	}), nil
+
+}
+
+func (dr *DbResource) PaginatedFindAllWithTransaction(req api2go.Request, transaction *sqlx.Tx) (totalCount uint, response api2go.Responder, err error) {
+
+	for _, bf := range dr.ms.BeforeFindAll {
+		//log.Printf("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+		start := time.Now()
+		_, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{}, transaction)
+		duration := time.Since(start)
+		log.Infof("FindBeforeFilter %v: %v", bf.String(), duration)
+
+		if err != nil {
+			log.Printf("Error from BeforeFindAll middleware [%v]: %v", bf.String(), err)
+			return 0, NewResponse(nil, err, 400, nil), err
+		}
+	}
+	//log.Printf("Request [%v]: %v", dr.model.GetName(), req.QueryParams)
+
+	start := time.Now()
+	results, includes, pagination, finalResponseIsSingleObject, err := dr.PaginatedFindAllWithoutFilters(req, transaction)
+	duration := time.Since(start)
+	log.Infof("FindAllWithoutFilters %v", duration)
+
+	for _, bf := range dr.ms.AfterFindAll {
+		//log.Printf("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
+
+		start := time.Now()
+		results, err = bf.InterceptAfter(dr, &req, results, transaction)
 		duration := time.Since(start)
 		log.Infof("FindAfterFilter %v: %v", bf.String(), duration)
 
@@ -1388,7 +1559,7 @@ func (dr *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, res
 		//log.Printf("Invoke AfterFindAll Includes [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 
 		for _, include := range includes {
-			include, err = bf.InterceptAfter(dr, &req, include)
+			include, err = bf.InterceptAfter(dr, &req, include, transaction)
 			if err != nil {
 				log.Errorf("Error from AfterFindAll[includes][%v] middleware: %v", bf.String(), err)
 				continue

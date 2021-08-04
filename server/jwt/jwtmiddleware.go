@@ -254,7 +254,6 @@ func (m *JWTMiddleware) CheckJWT(w http.ResponseWriter, r *http.Request) (*jwt.T
 
 func (m *JWTMiddleware) CheckExtractedJWT(w http.ResponseWriter, token string) (*jwt.Token, error) {
 
-
 	k := fmt.Sprintf("jwt-%v", token)
 	if TokenCache != nil {
 		tok, err := TokenCache.Get(k)

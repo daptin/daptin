@@ -303,7 +303,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 
 	log.Printf("Aggregation query: %v", sql)
 
-	stmt1, err := dr.connection.Preparex(sql)
+	stmt1, err := dr.Connection.Preparex(sql)
 	if err != nil {
 		log.Errorf("[291] failed to prepare statment: %v", err)
 		return nil, err

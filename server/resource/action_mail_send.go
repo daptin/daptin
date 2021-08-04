@@ -10,6 +10,7 @@ import (
 	"github.com/artpar/go-guerrilla/mail"
 	mta "github.com/artpar/go-smtp-mta"
 	"github.com/emersion/go-msgauth/dkim"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
@@ -25,7 +26,7 @@ func (d *mailSendActionPerformer) Name() string {
 	return "mail.send"
 }
 
-func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	//log.Printf("Sync mail servers")
 	responses := make([]ActionResponse, 0)

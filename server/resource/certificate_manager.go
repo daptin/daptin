@@ -164,7 +164,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 		adminId := int64(1)
 
 		if len(adminList) > 0 {
-			for id, _ := range adminList {
+			for id := range adminList {
 				adminUserReferenceId = id
 				break
 			}
@@ -173,7 +173,6 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 				log.Printf("Failed to get admin id for user: %v == %v", adminUserReferenceId, err)
 			}
 		}
-
 
 		newCertificate := map[string]interface{}{
 			"hostname":         hostname,
@@ -200,16 +199,42 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 
 		if certMap != nil && certMap["reference_id"] != nil {
 			data.Data["reference_id"] = certMap["reference_id"]
-			_, err = cm.cruds["certificate"].UpdateWithoutFilters(data, req)
+			transaction, err := cm.cruds["certificate"].Connection.Beginx()
 			if err != nil {
-				log.Printf("Failed to store locally generated certificate: %v", err)
+				return nil, nil, nil, nil, nil, err
 			}
+			_, err = cm.cruds["certificate"].UpdateWithoutFilters(data, req, transaction)
+			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "Failed to rollback")
+				log.Printf("Failed to store locally generated certificate: %v", err)
+				return nil, nil, nil, nil, nil, err
+			} else {
+				commitErr := transaction.Commit()
+				CheckErr(commitErr, "Failed to commit")
+				if commitErr != nil {
+					return nil, nil, nil, nil, nil, commitErr
+				}
+			}
+
 		} else {
 			request.Method = "POST"
-			_, err = cm.cruds["certificate"].CreateWithoutFilter(data, req)
+			transaction, err := cm.cruds["certificate"].Connection.Beginx()
+			if err != nil {
+				return nil, nil, nil, nil, nil, err
+			}
+			_, err = cm.cruds["certificate"].CreateWithoutFilter(data, req, transaction)
 
 			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "Failed to rollback")
 				log.Printf("Failed to store locally generated certificate: %v", err)
+				return nil, nil, nil, nil, nil, err
+			}
+			commitErr := transaction.Commit()
+			CheckErr(commitErr, "failed to commit")
+			if commitErr != nil {
+				return nil, nil, nil, nil, nil, commitErr
 			}
 		}
 

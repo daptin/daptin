@@ -763,12 +763,19 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						PlainRequest: pr,
 					}
 
-					created, err := resources[table.TableName].Update(obj, req)
+					transaction, err := resources[table.TableName].Connection.Beginx()
+					if err != nil {
+						return nil, err
+					}
+					created, err := resources[table.TableName].UpdateWithTransaction(obj, req, transaction)
 
 					if err != nil {
+						rollbackErr := transaction.Rollback()
+						auth.CheckErr(rollbackErr, "Failed to rollback")
 						log.Printf("Failed to update resource: %v", err)
 						return nil, err
 					}
+					err = transaction.Commit()
 
 					return created.Result().(*api2go.Api2GoModel).Data, err
 				},

@@ -16,7 +16,7 @@ func CreateConfigHandler(initConfig *resource.CmsConfig, cruds map[string]*resou
 			sessionUser = user.(*auth.SessionUser)
 		}
 
-		if  !cruds[resource.USER_ACCOUNT_TABLE_NAME].IsAdmin(sessionUser.UserReferenceId) {
+		if !cruds[resource.USER_ACCOUNT_TABLE_NAME].IsAdmin(sessionUser.UserReferenceId) {
 			c.AbortWithStatus(403)
 			return
 		}

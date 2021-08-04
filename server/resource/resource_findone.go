@@ -26,6 +26,11 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		}
 	}
 
+	transaction, err := dr.Connection.Beginx()
+	if err != nil {
+		return nil, err
+	}
+
 	for _, bf := range dr.ms.BeforeFindOne {
 		//log.Debugf("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		start := time.Now()
@@ -34,15 +39,19 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 				"reference_id": referenceId,
 				"__type":       dr.model.GetName(),
 			},
-		})
+		}, transaction)
 		duration := time.Since(start)
 		log.Infof("FindOne BeforeFilter[%v]: %v", bf.String(), duration)
 
 		if err != nil {
-			log.Warnf("Error from BeforeFindOne[%s][%s] middleware: %v", bf.String(), dr.model.GetName(), err)
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr, "Failed to rollback")
+			log.Errorf("Error from BeforeFindOne[%s][%s] middleware: %v", bf.String(), dr.model.GetName(), err)
 			return nil, err
 		}
 		if r == nil {
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr, "Failed to rollback")
 			return nil, errors.New("Cannot find this object")
 		}
 	}
@@ -70,9 +79,13 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		includedRelations = nil
 	}
 
-
 	start := time.Now()
-	data, include, err := dr.GetSingleRowByReferenceId(modelName, referenceId, includedRelations)
+	data, include, err := dr.GetSingleRowByReferenceIdWithTransaction(modelName, referenceId, includedRelations, transaction)
+	if err != nil {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr, "Failed to rollback")
+		return nil, err
+	}
 	duration := time.Since(start)
 	log.Infof("FindOne: %v", duration)
 
@@ -84,8 +97,13 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 			})
 			if err == nil && len(data_i18n_id) > 0 {
 				for _, data_i18n := range data_i18n_id {
-					translatedObj, err := dr.GetIdToObject(modelName+"_i18n", data_i18n)
+					translatedObj, err := dr.GetIdToObjectWithTransaction(modelName+"_i18n", data_i18n, transaction)
 					CheckErr(err, "Failed to fetch translated object for [%v][%v][%v]", modelName, lang, data["id"])
+					if err != nil {
+						rollbackErr := transaction.Rollback()
+						CheckErr(rollbackErr, "Failed to rollback")
+						return nil, err
+					}
 					for colName, valName := range translatedObj {
 						if IsStandardColumn(colName) {
 							continue
@@ -108,7 +126,7 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 		//log.Debugf("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), modelName)
 
 		start := time.Now()
-		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{data})
+		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{data}, transaction)
 		duration := time.Since(start)
 		log.Infof("FindOne AfterFilter [%v]: %v", bf.String(), duration)
 
@@ -119,14 +137,22 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 			data = nil
 		}
 		if err != nil {
-			log.Warnf("Error from AfterFindOne middleware: %v", err)
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr, "Failed to rollback")
+			log.Errorf("Error from AfterFindOne middleware: %v", err)
+			return nil, err
 		}
-		include, err = bf.InterceptAfter(dr, &req, include)
+		include, err = bf.InterceptAfter(dr, &req, include, transaction)
 
 		if err != nil {
-			log.Warnf("Error from AfterFindOne middleware: %v", err)
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr, "Failed to rollback")
+			log.Errorf("Error from AfterFindOne middleware: %v", err)
 		}
 	}
+
+	commitErr := transaction.Commit()
+	CheckErr(commitErr, "failed to commit")
 
 	delete(data, "id")
 
@@ -151,5 +177,5 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 
 	}
 
-	return NewResponse(nil, a, 200, nil), err
+	return NewResponse(nil, a, 200, nil), commitErr
 }

@@ -299,7 +299,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	ms := BuildMiddlewareSet(&initConfig, &cruds, documentProvider, &dtopicMap)
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
-	for key, _ := range cruds {
+	for key := range cruds {
 		dtopicMap[key], err = cruds["world"].OlricDb.NewDTopic(key, 4, 1)
 		resource.CheckErr(err, "Failed to create topic for table: %v", key)
 		err = nil
@@ -313,6 +313,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	certificateManager, err := resource.NewCertificateManager(cruds, configStore)
 	resource.CheckErr(err, "Failed to create certificate manager")
+	if err != nil {
+		panic(err)
+	}
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
@@ -860,15 +863,15 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 	}
 
 	resource.UpdateExchanges(initConfig, db)
-	go func() {
-		resource.UpdateStateMachineDescriptions(initConfig, db)
-		resource.UpdateStreams(initConfig, db)
-		//resource.UpdateMarketplaces(initConfig, db)
-		err := resource.UpdateTasksData(initConfig, db)
-		resource.CheckErr(err, "[870] Failed to update cron jobs")
-		err = resource.UpdateActionTable(initConfig, db)
-		resource.CheckErr(err, "Failed to update action table")
-	}()
+	//go func() {
+	resource.UpdateStateMachineDescriptions(initConfig, db)
+	resource.UpdateStreams(initConfig, db)
+	//resource.UpdateMarketplaces(initConfig, db)
+	err := resource.UpdateTasksData(initConfig, db)
+	resource.CheckErr(err, "[870] Failed to update cron jobs")
+	err = resource.UpdateActionTable(initConfig, db)
+	resource.CheckErr(err, "Failed to update action table")
+	//}()
 
 }
 

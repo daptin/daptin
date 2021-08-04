@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/gocarina/gocsv"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"time"
@@ -20,7 +21,7 @@ func (d *exportCsvDataPerformer) Name() string {
 	return "__csv_data_export"
 }
 
-func (d *exportCsvDataPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *exportCsvDataPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

@@ -173,7 +173,7 @@ func (dr *DbResource) GetUserGroupById(typename string, userID int64, referenceI
 
 	query, args1, err := auth.UserGroupSelectQuery.Where(goqu.Ex{"uug.id": userID}).ToSQL()
 
-	stmt1, err := dr.Cruds[typename].connection.Preparex(query)
+	stmt1, err := dr.Cruds[typename].Connection.Preparex(query)
 	if err != nil {
 		log.Errorf("[143] failed to prepare statment: %v", err)
 	}

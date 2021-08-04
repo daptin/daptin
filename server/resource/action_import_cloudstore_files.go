@@ -10,6 +10,7 @@ import (
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/operations"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
@@ -28,7 +29,7 @@ func (d *importCloudStoreFilesPerformer) Name() string {
 }
 
 // importCloudStoreFilesPerformer Imports files metadata from a cloud store
-func (d *importCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *importCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	tableName := inFields["table_name"].(string)
 	//columnName := inFieldMap["column_name"].(string)

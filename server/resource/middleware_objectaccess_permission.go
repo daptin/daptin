@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"github.com/jmoiron/sqlx"
 	"strings"
 
 	"github.com/artpar/api2go"
@@ -19,7 +20,7 @@ func (pc *ObjectAccessPermissionChecker) String() string {
 	return "ObjectAccessPermissionChecker"
 }
 
-func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
+func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	if req.PlainRequest.Method == "DELETE" {
 		return results, nil
@@ -102,7 +103,7 @@ func BeginsWith(longerString string, smallerString string) bool {
 	return strings.ToLower(longerString)[0:len(smallerString)] == strings.ToLower(smallerString)
 }
 
-func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
+func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	if req.PlainRequest.Method == "POST" {
 		return results, nil

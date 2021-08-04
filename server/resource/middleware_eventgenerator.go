@@ -3,6 +3,7 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	"github.com/buraksezer/olric"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -23,7 +24,7 @@ type EventMessage struct {
 	EventData     map[string]interface{}
 }
 
-func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
+func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	topic := (*pc.dtopicMap)[dr.model.GetTableName()]
 	if topic == nil {
@@ -75,7 +76,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 
 }
 
-func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, objects []map[string]interface{}) ([]map[string]interface{}, error) {
+func (pc *eventHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, objects []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	reqmethod := req.PlainRequest.Method
 	//log.Printf("Generate events for objects", reqmethod)

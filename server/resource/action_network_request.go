@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/resty"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -27,7 +28,7 @@ func toJson(obj interface{}) string {
 	return string(r)
 }
 
-func (d *networkRequestActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *networkRequestActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	headers, isHeader := inFieldMap["Headers"]
 	headerMap := make(map[string]string)

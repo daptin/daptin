@@ -26,25 +26,6 @@ import (
 	"time"
 )
 
-const DEFAULT_LANGUAGE = "en"
-
-func NewFromDbResourceWithTransaction(resources *DbResource, tx *sqlx.Tx) *DbResource {
-
-	return &DbResource{
-		Cruds:            resources.Cruds,
-		configStore:      resources.configStore,
-		model:            resources.model,
-		db:               tx,
-		connection:       resources.connection,
-		ActionHandlerMap: resources.ActionHandlerMap,
-		contextCache:     resources.contextCache,
-		defaultGroups:    resources.defaultGroups,
-		ms:               resources.ms,
-		tableInfo:        resources.tableInfo,
-	}
-
-}
-
 // Create a new object. Newly created object/struct must be in Responder.
 // Possible Responder status codes are:
 // - 201 Created: Resource was created and needs to be returned
@@ -52,7 +33,7 @@ func NewFromDbResourceWithTransaction(resources *DbResource, tx *sqlx.Tx) *DbRes
 // - 204 No Content: Resource created with a client generated ID, and no fields were modified by
 //   the server
 
-func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (map[string]interface{}, error) {
+func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request, createTransaction *sqlx.Tx) (map[string]interface{}, error) {
 	//log.Printf("Create object of type [%v]", dr.model.GetName())
 	data := obj.(*api2go.Api2GoModel)
 	user := req.PlainRequest.Context().Value("user")
@@ -224,11 +205,11 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 					actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
 
 					log.Printf("Initiate file upload action")
-					_, _, errs := uploadActionPerformer.DoAction(Outcome{}, actionRequestParameters)
+					_, _, errs := uploadActionPerformer.DoAction(Outcome{}, actionRequestParameters, createTransaction)
 					if errs != nil && len(errs) > 0 {
 						log.Errorf("Failed to upload attachments: %v", errs)
 					}
-					for i, _ := range files {
+					for i := range files {
 						file := files[i].(map[string]interface{})
 						delete(file, "file")
 						delete(file, "contents")
@@ -439,7 +420,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		return nil, err
 	}
 
-	_, err = dr.db.Exec(query, vals...)
+	_, err = createTransaction.Exec(query, vals...)
 	if err != nil {
 		log.Errorf("Insert query 437: %v", query)
 		//log.Printf("Insert values: %v", vals)
@@ -447,7 +428,7 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 		//log.Errorf("%v", vals)
 		return nil, err
 	}
-	createdResource, err := dr.GetReferenceIdToObject(dr.model.GetName(), newUuid)
+	createdResource, err := dr.GetReferenceIdToObjectWithTransaction(dr.model.GetName(), newUuid, createTransaction)
 
 	if err != nil {
 		log.Errorf("[453] Failed to select the newly created entry: %v", err)
@@ -470,12 +451,13 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 				return nil, err
 			}
 
-			_, err = dr.db.Exec(query, vals...)
+			_, err = createTransaction.Exec(query, vals...)
 			if err != nil {
 				log.Printf("Insert query 468: %v", query)
 				log.Errorf("Failed to execute insert query 469: %v", err)
 				log.Errorf("%v", vals)
 				return nil, err
+
 			}
 		}
 	}
@@ -493,10 +475,12 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			Vals([]interface{}{createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
 
 		//log.Printf("Query for default group belonging: %v", belogsToUserGroupSql)
-		_, err = dr.db.Exec(belogsToUserGroupSql, q...)
+		_, err = createTransaction.Exec(belogsToUserGroupSql, q...)
 
 		if err != nil {
 			log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
+			return nil, err
+
 		}
 	}
 
@@ -528,10 +512,12 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 			Where(goqu.Ex{"id": createdResource["id"]}).ToSQL()
 
 		//log.Printf("Query: %v", belogsToUserGroupSql)
-		_, err = dr.db.Exec(belongsToUserGroupSql, q...)
+		_, err = createTransaction.Exec(belongsToUserGroupSql, q...)
 
 		if err != nil {
 			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
+			return nil, err
+
 		}
 
 	}
@@ -554,10 +540,10 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 			if err != nil {
 				log.Printf("Failed to create update foreign key sql: %s", err)
-				continue
+				return nil, err
 			}
 
-			_, err = dr.db.Exec(updateRelatedTable, args...)
+			_, err = createTransaction.Exec(updateRelatedTable, args...)
 
 			if err != nil {
 				log.Printf("Zero rows were affected: %v", err)
@@ -573,14 +559,14 @@ func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request) (
 
 }
 
-func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
+func (dr *DbResource) CreateWithTransaction(obj interface{}, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
 	data := obj.(*api2go.Api2GoModel)
 	//log.Printf("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
 
 	for _, bf := range dr.ms.BeforeCreate {
 		//log.Printf("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
 		data.Data["__type"] = dr.model.GetName()
-		responseData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{data.Data})
+		responseData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{data.Data}, transaction)
 		if err != nil {
 			log.Warnf("Error from BeforeCreate[%v]: %v", bf.String(), err)
 			return nil, err
@@ -590,16 +576,77 @@ func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Respon
 		}
 	}
 
-	createdResource, err := dr.CreateWithoutFilter(obj, req)
+	createdResource, err := dr.CreateWithoutFilter(obj, req, transaction)
 	if err != nil {
 		return NewResponse(nil, nil, 500, nil), err
 	}
 
 	for _, bf := range dr.ms.AfterCreate {
 		//log.Printf("Invoke AfterCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
-		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource})
+		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource}, transaction)
 		if err != nil {
 			log.Errorf("Error from AfterCreate[%v] middleware: %v", bf.String(), err)
+		}
+		if len(results) < 1 {
+			createdResource = nil
+		} else {
+			createdResource = results[0]
+		}
+	}
+
+	n1 := dr.model.GetName()
+	c1 := dr.model.GetColumns()
+	p1 := dr.model.GetDefaultPermission()
+	r1 := dr.model.GetRelations()
+	return NewResponse(nil,
+		api2go.NewApi2GoModelWithData(n1, c1, p1, r1, createdResource),
+		201, nil,
+	), nil
+
+}
+
+func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
+	data := obj.(*api2go.Api2GoModel)
+	//log.Printf("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
+
+	transaction, err := dr.Connection.Beginx()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, bf := range dr.ms.BeforeCreate {
+		//log.Printf("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
+		data.Data["__type"] = dr.model.GetName()
+		responseData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{data.Data}, transaction)
+		if err != nil {
+			log.Warnf("Error from BeforeCreate[%v]: %v", bf.String(), err)
+			return nil, err
+		}
+		if responseData == nil {
+			return nil, errors.New(fmt.Sprintf("No object to act upon after %v", bf.String()))
+		}
+	}
+
+	createdResource, err := dr.CreateWithoutFilter(obj, req, transaction)
+	if err != nil {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr, "failed to rollback")
+		return NewResponse(nil, nil, 500, nil), err
+	} else {
+		commitErr := transaction.Commit()
+		if commitErr != nil {
+			return nil, commitErr
+		}
+	}
+
+	for _, bf := range dr.ms.AfterCreate {
+		//log.Printf("Invoke AfterCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
+		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource}, transaction)
+		if err != nil {
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr, "failed to rollback")
+			log.Errorf("Error from AfterCreate[%v] middleware: %v", bf.String(), err)
+			return nil, err
 		}
 		if len(results) < 1 {
 			createdResource = nil

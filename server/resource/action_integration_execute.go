@@ -11,6 +11,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/ghodss/yaml"
 	"github.com/imroc/req"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"regexp"
 	"strconv"
@@ -47,7 +48,7 @@ func (d *integrationActionPerformer) Name() string {
 }
 
 // Perform integration api
-func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	operation, ok := d.commandMap[request.Method]
 	method := d.methodMap[request.Method]

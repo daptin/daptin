@@ -3,6 +3,7 @@ package resource
 import (
 	"encoding/base64"
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -16,7 +17,7 @@ func (d *importDataPerformer) Name() string {
 	return "__data_import"
 }
 
-func (d *importDataPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *importDataPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

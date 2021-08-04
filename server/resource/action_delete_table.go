@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -19,7 +20,7 @@ func (d *deleteWorldPerformer) Name() string {
 	return "world.delete"
 }
 
-func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	worldId := inFields["world_id"].(string)
 
@@ -55,6 +56,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 
 	var tablesToRemove []string
 	errorsList := make([]error, 0)
+
 	for _, relation := range relations {
 		switch relation.Relation {
 
@@ -135,24 +137,24 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 			"world_schema_json": updatedSchema,
 		})
 
-		_, err = d.cruds["world"].UpdateWithoutFilters(updatedObject, *req)
+		_, err = d.cruds["world"].UpdateWithoutFilters(updatedObject, *req, transaction)
 		if err != nil {
 			errorsList = append(errorsList, err)
-			continue
-
+			return nil, nil, errorsList
 		}
 
 	}
 
 	tablesToRemove = append(tablesToRemove, tableData.GetID())
 
-	_, err = d.cruds["world"].db.Exec("drop table " + tableData.Data["table_name"].(string))
+	_, err = transaction.Exec("drop table " + tableData.Data["table_name"].(string))
 	if err != nil {
 		errorsList = append(errorsList, err)
+		return nil, nil, errorsList
 	}
 
 	for _, table := range tablesToRemove {
-		err = d.cruds["world"].DeleteWithoutFilters(table, *req)
+		err = d.cruds["world"].DeleteWithoutFilters(table, *req, transaction)
 		if err != nil {
 			errorsList = append(errorsList, err)
 		}

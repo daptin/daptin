@@ -8,6 +8,7 @@ import (
 	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -104,7 +105,7 @@ func EndsWith(str string, endsWith string) (string, bool) {
 var cleanupmux = sync2.Mutex{}
 var cleanuppath = make(map[string]bool)
 
-func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

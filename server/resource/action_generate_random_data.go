@@ -6,6 +6,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
@@ -21,7 +22,7 @@ func (d *randomDataGeneratePerformer) Name() string {
 	return "generate.random.data"
 }
 
-func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

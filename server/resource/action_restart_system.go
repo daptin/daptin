@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	//"syscall"
 	"time"
@@ -18,7 +19,7 @@ func (d *restartSystemActionPerformer) Name() string {
 	return "__restart"
 }
 
-func (d *restartSystemActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *restartSystemActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

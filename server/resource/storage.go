@@ -33,8 +33,6 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 		}
 	}(stmt1)
 
-
-
 	res := stmt1.QueryRow(vars...)
 	var storageReferenceId string
 	err = res.Scan(&storageReferenceId)
@@ -73,7 +71,6 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 					log.Errorf("failed to close prepared statement: %v", err)
 				}
 			}(stmt1)
-
 
 			row := stmt1.QueryRowx(vars...)
 			if row.Err() != nil {

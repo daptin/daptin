@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,7 +18,7 @@ func (d *selfTlsCertificateGenerateActionPerformer) Name() string {
 	return "self.tls.generate"
 }
 
-func (d *selfTlsCertificateGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *selfTlsCertificateGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 	certificateSubject := inFieldMap["certificate"].(map[string]interface{})
 	log.Printf("Generate certificate for: %v", certificateSubject)
 

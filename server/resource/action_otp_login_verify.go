@@ -6,6 +6,7 @@ import (
 	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -34,7 +35,7 @@ func (d *otpLoginVerifyActionPerformer) Name() string {
 	return "otp.login.verify"
 }
 
-func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 	responses := make([]ActionResponse, 0)
 	var err error
 
@@ -103,9 +104,10 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 			PlainRequest: pr,
 		}
 
-		_, err := d.cruds["user_otp_account"].UpdateWithoutFilters(model, req)
+		_, err = d.cruds["user_otp_account"].UpdateWithoutFilters(model, req, transaction)
 		if err != nil {
 			log.Errorf("Failed to mark user otp account as verified: %v", err)
+			return nil, nil, []error{err}
 		}
 
 		//userModel := api2go.NewApi2GoModelWithData("user_account", nil, 0, nil, userAccount)

@@ -604,13 +604,22 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 
 	var err error
 
-	currentActions, err := GetActionMapByTypeName(db)
+	transaction, err := db.Beginx()
 	if err != nil {
 		return err
 	}
 
-	worldTableMap, err := GetWorldTableMapBy("table_name", db)
+	currentActions, err := GetActionMapByTypeName(transaction)
 	if err != nil {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr, "Failed to rollback")
+		return err
+	}
+
+	worldTableMap, err := GetWorldTableMapBy("table_name", transaction)
+	if err != nil {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr, "Failed to rollback")
 		return err
 	}
 	adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
@@ -647,9 +656,12 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 					"instance_optional": action.InstanceOptional,
 				}).Where(goqu.Ex{"action_name": action.Name}).ToSQL()
 
-			_, err = db.Exec(s, v...)
+			_, err = transaction.Exec(s, v...)
 			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "Failed to rollback")
 				log.Errorf("Failed to insert action [%v]: %v", action.Name, err)
+				return err
 			}
 		} else {
 			log.Printf("Action [%v] is new, adding action: @%v", action.Name, action.OnType)
@@ -675,15 +687,20 @@ func UpdateActionTable(initConfig *CmsConfig, db database.DatabaseConnection) er
 				u.String(),
 				auth.ALLOW_ALL_PERMISSIONS}).ToSQL()
 
-			_, err = db.Exec(s, v...)
+			_, err = transaction.Exec(s, v...)
 			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "Failed to rollback")
 				log.Errorf("Failed to insert action [%v]: %v", action.Name, err)
+				return err
 			}
 		}
 	}
+	commitErr := transaction.Commit()
+	CheckErr(commitErr, "failed to commit")
 	log.Printf("Checked %d actions", actionCheckCount)
 
-	return nil
+	return commitErr
 }
 
 func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*DbResource) {

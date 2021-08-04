@@ -7,6 +7,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/csvmap"
+	"github.com/jmoiron/sqlx"
 	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -24,7 +25,7 @@ func (d *uploadCsvFileToEntityPerformer) Name() string {
 	return "__upload_csv_file_to_entity"
 }
 
-func (d *uploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *uploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	//actions := make([]ActionResponse, 0)
 	log.Printf("Do action: %v", d.Name())

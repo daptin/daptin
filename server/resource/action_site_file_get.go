@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 	"io/ioutil"
 )
 
@@ -15,7 +16,7 @@ func (d *cloudStoreFileGetActionPerformer) Name() string {
 	return "site.file.get"
 }
 
-func (d *cloudStoreFileGetActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *cloudStoreFileGetActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

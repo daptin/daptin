@@ -54,7 +54,7 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[s
 
 	query, args1, err := auth.UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": g.exchangeContract.AsUserId}).ToSQL()
 
-	stmt1, err := g.cruds[USER_ACCOUNT_TABLE_NAME].connection.Preparex(query)
+	stmt1, err := g.cruds[USER_ACCOUNT_TABLE_NAME].Connection.Preparex(query)
 	if err != nil {
 		log.Errorf("[59] failed to prepare statment: %v", err)
 	}

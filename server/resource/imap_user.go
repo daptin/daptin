@@ -299,7 +299,7 @@ func (diu *DaptinImapUser) RenameMailbox(existingName, newName string) error {
 }
 
 // Logout is called when this User will no longer be used, likely because the
-// client closed the connection.
+// client closed the Connection.
 func (diu *DaptinImapUser) Logout() error {
 	return nil
 }

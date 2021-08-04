@@ -5,6 +5,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-guerrilla/backends"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
@@ -22,7 +23,7 @@ func (d *mailServersSyncActionPerformer) Name() string {
 	return "mail.servers.sync"
 }
 
-func (d *mailServersSyncActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *mailServersSyncActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	//log.Printf("Sync mail servers")
 	responses := make([]ActionResponse, 0)

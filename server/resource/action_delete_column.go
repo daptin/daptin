@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 	"github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"net/http"
@@ -19,7 +20,7 @@ func (d *deleteWorldColumnPerformer) Name() string {
 	return "world.column.delete"
 }
 
-func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	worldName := inFields["world_name"].(string)
 	columnToDelete := inFields["column_name"].(string)
@@ -79,9 +80,18 @@ func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 		"world_schema_json": schemaJson,
 	})
 
-	_, err = d.cruds["world"].UpdateWithoutFilters(updateObj, *req)
+	_, err = d.cruds["world"].UpdateWithoutFilters(updateObj, *req, transaction)
+
 	if err != nil {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr, "failed to rollback")
 		return nil, nil, []error{err}
+	} else {
+		commitErr := transaction.Commit()
+		CheckErr(commitErr, "Failed to commit")
+		if commitErr != nil {
+			return nil, nil, []error{commitErr}
+		}
 	}
 
 	restart()

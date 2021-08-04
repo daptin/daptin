@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/artpar/api2go"
 	uuid "github.com/artpar/go.uuid"
@@ -50,7 +51,7 @@ func CreateGuestActionListHandler(initConfig *CmsConfig) func(*gin.Context) {
 }
 
 type ActionPerformerInterface interface {
-	DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error)
+	DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error)
 	Name() string
 }
 
@@ -299,6 +300,11 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 
 	responses := make([]ActionResponse, 0)
 
+	transaction, err := db.Connection.Beginx()
+	if err != nil {
+		return nil, err
+	}
+
 OutFields:
 	for _, outcome := range action.OutFields {
 		var responseObjects interface{}
@@ -358,7 +364,7 @@ OutFields:
 		requestContext := req.PlainRequest.Context()
 		var adminUserReferenceId string
 		adminUserReferenceIds := db.GetAdminReferenceId()
-		for id, _ := range adminUserReferenceIds {
+		for id := range adminUserReferenceIds {
 			adminUserReferenceId = id
 			break
 		}
@@ -375,7 +381,7 @@ OutFields:
 		//log.Printf("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
 		switch outcome.Method {
 		case "POST":
-			responseObjects, err = dbResource.Create(model, request)
+			responseObjects, err = dbResource.CreateWithTransaction(model, request, transaction)
 			CheckErr(err, "Failed to post from action")
 			if err != nil {
 
@@ -399,7 +405,7 @@ OutFields:
 				}
 			}
 
-			responseObjects, _, _, _, err = dbResource.PaginatedFindAllWithoutFilters(request)
+			responseObjects, _, _, _, err = dbResource.PaginatedFindAllWithoutFilters(request, transaction)
 			CheckErr(err, "Failed to get inside action")
 			if err != nil {
 				actionResponse = NewActionResponse("client.notify",
@@ -429,7 +435,7 @@ OutFields:
 				includedRelations = nil
 			}
 
-			responseObjects, _, err = dbResource.GetSingleRowByReferenceId(outcome.Type, referenceId.(string), nil)
+			responseObjects, _, err = dbResource.GetSingleRowByReferenceIdWithTransaction(outcome.Type, referenceId.(string), nil, transaction)
 			CheckErr(err, "Failed to get by id")
 
 			if err != nil {
@@ -442,7 +448,7 @@ OutFields:
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "PATCH":
-			responseObjects, err = dbResource.Update(model, request)
+			responseObjects, err = dbResource.UpdateWithTransaction(model, request, transaction)
 			CheckErr(err, "Failed to update inside action")
 			if err != nil {
 				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName()+". "+err.Error(), "Failed"))
@@ -454,7 +460,7 @@ OutFields:
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "DELETE":
-			err = dbResource.DeleteWithoutFilters(model.Data["reference_id"].(string), request)
+			err = dbResource.DeleteWithoutFilters(model.Data["reference_id"].(string), request, transaction)
 			CheckErr(err, "Failed to delete inside action")
 			if err != nil {
 				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to delete "+model.GetName(), "Failed"))
@@ -475,7 +481,7 @@ OutFields:
 			} else {
 				var responder api2go.Responder
 				outcome.Attributes["user"] = sessionUser
-				responder, responses1, errors1 = performer.DoAction(outcome, model.Data)
+				responder, responses1, errors1 = performer.DoAction(outcome, model.Data, transaction)
 				actionResponses = append(actionResponses, responses1...)
 				if len(errors1) > 0 {
 					err = errors1[0]
@@ -498,7 +504,7 @@ OutFields:
 				log.Errorf("Unknown method invoked onn %v: %v", outcome.Type, outcome.Method)
 				continue
 			}
-			responder, responses1, err1 := handler.DoAction(outcome, model.Data)
+			responder, responses1, err1 := handler.DoAction(outcome, model.Data, transaction)
 			if err1 != nil {
 				err = err1[0]
 			} else {
@@ -506,6 +512,12 @@ OutFields:
 				responseObjects = responder
 			}
 
+		}
+		if err != nil {
+			log.Errorf("failed to execute outcome [%v] => %v", outcome.Type, err)
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr, "failed to rollback")
+			return nil, err
 		}
 
 		if !outcome.SkipInResponse {
@@ -547,12 +559,11 @@ OutFields:
 			}
 		}
 
-		if err != nil {
-			return responses, err
-		}
 	}
+	commitErr := transaction.Commit()
+	CheckErr(commitErr, "Failed to commit")
 
-	return responses, nil
+	return responses, commitErr
 }
 
 func BuildActionRequest(closer io.ReadCloser, actionType, actionName string,

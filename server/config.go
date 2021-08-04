@@ -128,7 +128,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			if importPath.FilePath[0] != '/' {
 				importPath.FilePath = schemaPath + importPath.FilePath
 				initConfig.Imports[i] = importPath
- 			}
+			}
 		}
 
 		globalInitConfig.Imports = append(globalInitConfig.Imports, initConfig.Imports...)

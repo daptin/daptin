@@ -195,6 +195,7 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 	err = stmt1.QueryRowx(v...).Scan(&val)
 	if err != nil {
 		log.Printf("No config value set for [%v]: %v", key, err)
+		return "", err
 	}
 	return fmt.Sprintf("%s", val), err
 }
@@ -373,7 +374,6 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 			log.Errorf("failed to close prepared statement: %v", err)
 		}
 	}(stmt1)
-
 
 	err = stmt1.QueryRowx(v...).Scan(&previousValue)
 

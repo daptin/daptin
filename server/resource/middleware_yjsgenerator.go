@@ -6,6 +6,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -28,13 +29,13 @@ func NewYJSHandlerMiddleware(documentProvider ydb.DocumentProvider) DatabaseRequ
 	}
 }
 
-func (pc *yjsHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}) ([]map[string]interface{}, error) {
+func (pc *yjsHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	return results, nil
 
 }
 
-func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, objects []map[string]interface{}) ([]map[string]interface{}, error) {
+func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request, objects []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	requestMethod := strings.ToLower(req.PlainRequest.Method)
 	switch requestMethod {

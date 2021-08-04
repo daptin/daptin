@@ -7,6 +7,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/samedi/caldav-go"
 	"github.com/samedi/caldav-go/data"
 	"github.com/samedi/caldav-go/errs"
@@ -222,6 +223,10 @@ func (cs *CalDavStorage) GetResource(rpath string) (*data.Resource, bool, error)
 
 func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, error) {
 
+	transaction, err := cs.cruds["calendar"].Connection.Beginx()
+	if err != nil {
+		return nil, err
+	}
 	calendarTablePermission := cs.cruds["world"].GetObjectPermissionByWhereClause("world", "table_name", "calendar")
 
 	if !calendarTablePermission.CanCreate(cs.SessionUser.UserReferenceId, cs.SessionUser.Groups) {
@@ -250,8 +255,10 @@ func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, 
 	apiRequest := api2go.Request{
 		PlainRequest: httpRequest,
 	}
-	createdObj, err := cs.cruds["calendar"].Create(createObj, apiRequest)
+	createdObj, err := cs.cruds["calendar"].CreateWithTransaction(createObj, apiRequest, transaction)
 	if err != nil {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr, "failed to rollback")
 		log.Errorf("failed to insert: %v", rpath)
 		return nil, err
 	}
@@ -280,9 +287,12 @@ func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, 
 	actionRequestParameters["from"] = "daptin.no-reply@localhost"
 	actionRequestParameters["body"] = "You are invited to a new event: " + subject
 
-	_, _, mailerError := cs.Mailer.DoAction(Outcome{}, actionRequestParameters)
-	if mailerError != nil {
+	_, _, mailerError := cs.Mailer.DoAction(Outcome{}, actionRequestParameters, transaction)
+	if mailerError != nil && len(mailerError) > 0 {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr, "Failed to rollback")
 		log.Error("Unable To Send mail", mailerError)
+		return nil, mailerError[0]
 	}
 
 	log.Info("resource created ", rpath)
@@ -291,12 +301,20 @@ func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, 
 
 func (cs *CalDavStorage) UpdateResource(rpath, content string) (*data.Resource, error) {
 
-	obj, err := cs.cruds["calendar"].GetObjectByWhereClause("calendar", "rpath", rpath)
+	transaction, err := cs.cruds["calendar"].Connection.Beginx()
 	if err != nil {
+		return nil, err
+	}
+	obj, err := GetObjectByWhereClauseWithTransaction("calendar", transaction, goqu.Ex{
+		"rpath": rpath,
+	})
+	if err != nil {
+		rollbackerr := transaction.Rollback()
+		CheckErr(rollbackerr, "Failed to rollback")
 		return nil, errs.ResourceNotFoundError
 	}
 
-	objPermission := cs.cruds["calendar"].GetRowPermission(obj)
+	objPermission := cs.cruds["calendar"].GetRowPermission(obj[0])
 
 	if !objPermission.CanUpdate(cs.SessionUser.UserReferenceId, cs.SessionUser.Groups) {
 		return nil, errs.ForbiddenError
@@ -324,8 +342,10 @@ func (cs *CalDavStorage) UpdateResource(rpath, content string) (*data.Resource, 
 		PlainRequest: httpRequest,
 	}
 
-	updatedObj, err := cs.cruds["calendar"].Update(objectUpdate, apiRequest)
+	updatedObj, err := cs.cruds["calendar"].UpdateWithTransaction(objectUpdate, apiRequest, transaction)
 	if err != nil {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr, "failed to rollback")
 		log.Errorf("failed to update: %v", rpath)
 		return nil, err
 	}
@@ -353,13 +373,19 @@ func (cs *CalDavStorage) UpdateResource(rpath, content string) (*data.Resource, 
 	actionRequestParameters["from"] = "daptin.no-reply@localhost"
 	actionRequestParameters["body"] = content
 
-	_, _, mailerError := cs.Mailer.DoAction(Outcome{}, actionRequestParameters)
-	if mailerError != nil {
+	_, _, mailerError := cs.Mailer.DoAction(Outcome{}, actionRequestParameters, transaction)
+	if mailerError != nil && len(mailerError) > 0 {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr, "failed to rollback")
+
 		log.Error("Unable To Send mail", mailerError)
+		return nil, mailerError[0]
 	}
+	commitErr := transaction.Commit()
+	CheckErr(commitErr, "Failed to commit")
 
 	log.Info("resource updated ", rpath)
-	return &res, nil
+	return &res, commitErr
 }
 
 func (cs *CalDavStorage) DeleteResource(rpath string) error {

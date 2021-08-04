@@ -9,6 +9,7 @@ import (
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/operations"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
@@ -23,11 +24,10 @@ func (d *cloudStoreFileDeleteActionPerformer) Name() string {
 	return "cloudstore.file.delete"
 }
 
-func (d *cloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *cloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 	var err error
-
 
 	atPath, ok := inFields["path"].(string)
 	if !ok {

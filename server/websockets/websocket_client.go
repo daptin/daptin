@@ -12,7 +12,7 @@ import (
 
 const channelBufSize = 100
 
-var maxId int = 0
+var maxId = 0
 
 type Client struct {
 	id                         int

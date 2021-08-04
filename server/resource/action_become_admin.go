@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +18,7 @@ func (d *becomeAdminActionPerformer) Name() string {
 
 // becomeAdminActionPerformer Perform action and try to make the current user the admin of the system
 // Checks CanBecomeAdmin and then invokes BecomeAdmin if true
-func (d *becomeAdminActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *becomeAdminActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	if !d.cruds["world"].CanBecomeAdmin() {
 		return nil, nil, []error{errors.New("Unauthorized")}

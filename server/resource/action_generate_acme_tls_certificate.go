@@ -15,6 +15,7 @@ import (
 	"github.com/go-acme/lego/v3/certificate"
 	"github.com/go-acme/lego/v3/lego"
 	"github.com/go-acme/lego/v3/registration"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"net"
 	"net/http"
@@ -63,7 +64,7 @@ func (d *acmeTlsCertificateGenerateActionPerformer) CleanUp(domain, token, keyAu
 	return nil
 }
 
-func (d *acmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *acmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	email, emailOk := inFieldMap["email"]
 	emailString, isEmailStr := email.(string)
@@ -247,9 +248,13 @@ func (d *acmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	}
 
 	data := api2go.NewApi2GoModelWithData("certificate", nil, 0, nil, newCertificate)
+
 	_, err = d.cruds["certificate"].UpdateWithoutFilters(data, api2go.Request{
 		PlainRequest: httpReq,
-	})
+	}, transaction)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
 
 	// Each certificate comes back with the cert bytes, the bytes of the client's
 	// private key, and a certificate URL. SAVE THESE TO DISK.

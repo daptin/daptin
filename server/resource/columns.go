@@ -1325,7 +1325,7 @@ var SystemActions = []Action{
 				Type:           "oauth_connect",
 				Method:         "GET",
 				SkipInResponse: true,
-				Reference:      "connection",
+				Reference:      "Connection",
 				Attributes: map[string]interface{}{
 					"filter":       "~authenticator",
 					"page[number]": "1",
@@ -1350,12 +1350,12 @@ var SystemActions = []Action{
 				Method:         "EXECUTE",
 				Reference:      "profile",
 				SkipInResponse: true,
-				Condition:      "$connection[0].allow_login",
+				Condition:      "$Connection[0].allow_login",
 				Attributes: map[string]interface{}{
 					"authenticator": "~authenticator",
 					"token":         "$auth.access_token",
-					"tokenInfoUrl":  "$connection[0].token_url",
-					"profileUrl":    "$connection[0].profile_url",
+					"tokenInfoUrl":  "$Connection[0].token_url",
+					"profileUrl":    "$Connection[0].profile_url",
 				},
 			},
 			{
@@ -1363,7 +1363,7 @@ var SystemActions = []Action{
 				Method:         "GET",
 				Reference:      "user",
 				SkipInResponse: true,
-				Condition:      "$connection[0].allow_login",
+				Condition:      "$Connection[0].allow_login",
 				Attributes: map[string]interface{}{
 					"filter": "!profile.email || profile.emailAddress",
 				},
@@ -1535,18 +1535,17 @@ var StandardTables = []TableInfo{
 				IsNullable: false,
 			},
 			{
-				ColumnName: "content",
-				Name:       "content",
-				ColumnType: "file.ical",
-				DataType:   "longblob",
-				IsNullable: false,
+				ColumnName:   "content",
+				Name:         "content",
+				ColumnType:   "file.ical",
+				DataType:     "longblob",
+				IsNullable:   false,
 				IsForeignKey: true,
 				ForeignKeyData: api2go.ForeignKeyData{
 					DataSource: "cloud_store",
 					Namespace:  "localstore",
 					KeyName:    "calendars",
 				},
-
 			},
 			//{
 			//	ColumnName: "event_title",

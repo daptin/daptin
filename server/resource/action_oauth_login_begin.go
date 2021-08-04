@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	//"golang.org/x/oauth2"
 	"github.com/artpar/api2go"
@@ -22,7 +23,7 @@ func (d *oauthLoginBeginActionPerformer) Name() string {
 	return "oauth.client.redirect"
 }
 
-func (d *oauthLoginBeginActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *oauthLoginBeginActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	state, err := totp.GenerateCodeCustom(d.otpKey, time.Now(), totp.ValidateOpts{
 		Period:    300,

@@ -100,7 +100,6 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 		return nil, err
 	}
 
-
 	stmt1, err := db.Preparex(sql)
 	if err != nil {
 		log.Errorf("[106] failed to prepare statment: %v", err)
@@ -113,8 +112,6 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 			log.Errorf("failed to close prepared statement: %v", err)
 		}
 	}(stmt1)
-
-
 
 	res, err := stmt1.Queryx(args...)
 	if err != nil {

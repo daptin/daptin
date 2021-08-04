@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/jmoiron/sqlx"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
@@ -23,7 +24,7 @@ func (d *otpGenerateActionPerformer) Name() string {
 	return "otp.generate"
 }
 
-func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	email, emailOk := inFieldMap["email"]
 	mobile, phoneOk := inFieldMap["mobile"]
@@ -98,7 +99,8 @@ func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		}
 
 		req.PlainRequest.Method = "POST"
-		createdOtpProfile, err := d.cruds["user_otp_account"].CreateWithoutFilter(api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile), req)
+		createdOtpProfile, err := d.cruds["user_otp_account"].CreateWithoutFilter(api2go.NewApi2GoModelWithData("user_otp_account",
+			nil, 0, nil, userOtpProfile), req, transaction)
 		if err != nil {
 			return nil, nil, []error{errors.New("failed to create otp profile")}
 		}
@@ -110,7 +112,23 @@ func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		userOtpProfile["mobile_number"] = mobile
 		userOtpProfile["verified"] = 0
 		req.PlainRequest.Method = "PUT"
-		d.cruds["user_otp_account"].UpdateWithoutFilters(api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile), req)
+		transaction, err := d.cruds["user_otp_account"].Connection.Beginx()
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+		_, err = d.cruds["user_otp_account"].UpdateWithoutFilters(
+			api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile), req, transaction)
+		if err != nil {
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr, "failed to rollback")
+			return nil, nil, []error{err}
+		} else {
+			commitErr := transaction.Commit()
+			CheckErr(commitErr, "failed to commmit")
+			if commitErr != nil {
+				return nil, nil, []error{commitErr}
+			}
+		}
 	}
 
 	resp := &api2go.Response{}

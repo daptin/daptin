@@ -9,6 +9,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/ghodss/yaml"
 	"github.com/gobuffalo/flect"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,7 +33,7 @@ func (d *integrationInstallationPerformer) Name() string {
 
 // Perform action and try to make the current user the admin of the system
 // Checks CanBecomeAdmin and then invokes BecomeAdmin if true
-func (d *integrationInstallationPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *integrationInstallationPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	referenceId := inFieldMap["reference_id"].(string)
 	integration, _, err := d.cruds["integration"].GetSingleRowByReferenceId("integration", referenceId, nil)
@@ -227,7 +228,7 @@ func (d *integrationInstallationPerformer) DoAction(request Outcome, inFieldMap 
 
 	err = UpdateActionTable(&CmsConfig{
 		Actions: actions,
-	}, d.cruds["action"].connection)
+	}, d.cruds["action"].Connection)
 
 	return nil, []ActionResponse{}, []error{err}
 }

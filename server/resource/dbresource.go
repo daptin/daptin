@@ -24,7 +24,7 @@ import (
 type DbResource struct {
 	model              *api2go.Api2GoModel
 	db                 sqlx.Ext
-	connection         database.DatabaseConnection
+	Connection         database.DatabaseConnection
 	tableInfo          *TableInfo
 	Cruds              map[string]*DbResource
 	ms                 *MiddlewareSet
@@ -143,7 +143,7 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
 	return &DbResource{
 		model:              model,
 		db:                 db,
-		connection:         db,
+		Connection:         db,
 		ms:                 ms,
 		configStore:        configStore,
 		Cruds:              cruds,
@@ -308,7 +308,7 @@ func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, sto
 		return nil, err
 	}
 
-	stmt1, err := dr.connection.Preparex(query)
+	stmt1, err := dr.Connection.Preparex(query)
 	if err != nil {
 		log.Errorf("[275] failed to prepare statment: %v", err)
 	}
@@ -355,7 +355,7 @@ func (dr *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32
 		return nil, err
 	}
 
-	stmt1, err := dr.connection.Preparex(query)
+	stmt1, err := dr.Connection.Preparex(query)
 	if err != nil {
 		log.Errorf("[322] failed to prepare statment: %v", err)
 	}
@@ -395,7 +395,7 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 		return nil, e4
 	}
 
-	stmt1, err := dr.connection.Preparex(q4)
+	stmt1, err := dr.Connection.Preparex(q4)
 	if err != nil {
 		log.Errorf("[362] failed to prepare statment: %v", err)
 	}
@@ -416,7 +416,7 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 		return nil, e1
 	}
 
-	stmt1, err = dr.connection.Preparex(q1)
+	stmt1, err = dr.Connection.Preparex(q1)
 	if err != nil {
 		log.Errorf("[384] failed to prepare statment: %v", err)
 	}
@@ -437,7 +437,7 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 		return nil, e2
 	}
 
-	stmt1, err = dr.connection.Preparex(q2)
+	stmt1, err = dr.Connection.Preparex(q2)
 	if err != nil {
 		log.Errorf("[405] failed to prepare statment: %v", err)
 	}
@@ -457,7 +457,7 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 		return nil, e3
 	}
 
-	stmt1, err = dr.connection.Preparex(q3)
+	stmt1, err = dr.Connection.Preparex(q3)
 	if err != nil {
 		log.Errorf("[425] failed to prepare statment: %v", err)
 	}
@@ -497,7 +497,7 @@ func (dr *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
 	}
 
 	var id uint32
-	stmt1, err := dr.connection.Preparex(query)
+	stmt1, err := dr.Connection.Preparex(query)
 	if err != nil {
 		log.Errorf("[465] failed to prepare statment: %v", err)
 	}
@@ -576,7 +576,7 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, err
 	}
 
-	stmt1, err := dr.connection.Preparex(selectQuery)
+	stmt1, err := dr.Connection.Preparex(selectQuery)
 	if err != nil {
 		log.Errorf("[544] failed to prepare statment: %v", err)
 	}
@@ -647,7 +647,7 @@ func (dr *DbResource) GetMailboxNextUid(mailBoxId int64) (uint32, error) {
 		return 1, e5
 	}
 
-	stmt1, err := dr.connection.Preparex(q5)
+	stmt1, err := dr.Connection.Preparex(q5)
 	if err != nil {
 		log.Errorf("[615] failed to prepare statment: %v", err)
 		return 0, err

@@ -3,6 +3,7 @@ package resource
 import (
 	"errors"
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 )
 
 type cloudStoreFileListActionPerformer struct {
@@ -13,7 +14,7 @@ func (d *cloudStoreFileListActionPerformer) Name() string {
 	return "site.file.list"
 }
 
-func (d *cloudStoreFileListActionPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *cloudStoreFileListActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 

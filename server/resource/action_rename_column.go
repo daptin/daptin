@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"net/http"
 	"strings"
@@ -16,7 +17,7 @@ func (d *renameWorldColumnPerformer) Name() string {
 	return "world.column.rename"
 }
 
-func (d *renameWorldColumnPerformer) DoAction(request Outcome, inFields map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *renameWorldColumnPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	worldName := inFields["world_name"].(string)
 	columnToRename := inFields["column_name"].(string)
@@ -78,7 +79,7 @@ func (d *renameWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 		"world_schema_json": schemaJson,
 	})
 
-	_, err = d.cruds["world"].UpdateWithoutFilters(tableData, req)
+	_, err = d.cruds["world"].UpdateWithoutFilters(tableData, req, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}

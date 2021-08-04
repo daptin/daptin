@@ -378,7 +378,13 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 	}
 
 	log.Printf("Search query for mail: %v", searchRequest.QueryParams)
-	results, _, _, _, err := dimb.dbResource["mail"].PaginatedFindAllWithoutFilters(searchRequest)
+	transaction, err := dimb.dbResource["mail"].Connection.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	results, _, _, _, err := dimb.dbResource["mail"].PaginatedFindAllWithoutFilters(searchRequest, transaction)
+
+	transaction.Commit()
 
 	if err != nil {
 		return nil, err
@@ -521,7 +527,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		},
 	}
 
-	//tx, err := dimb.dbResource["mail"].connection.Beginx()
+	//tx, err := dimb.dbResource["mail"].Connection.Beginx()
 	//if err != nil {
 	//	return err
 	//}
@@ -642,6 +648,10 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 		return err
 	}
 
+	transaction, err := dimb.dbResource["mail"].Connection.Beginx()
+	if err != nil {
+		return err
+	}
 	req := api2go.Request{
 		PlainRequest: &http.Request{},
 	}
@@ -655,6 +665,8 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 		}
 
 		if err != nil {
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr, "Failed to rollback")
 			return err
 		}
 
@@ -675,10 +687,16 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 
 			_, err = dimb.dbResource["mail"].CreateWithoutFilter(&api2go.Api2GoModel{
 				Data: mail,
-			}, req)
+			}, req, transaction)
+			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "Failed to rollback")
+				return err
+			}
 		}
 
 	}
+	transaction.Commit()
 	return err
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/artpar/go.uuid"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"net/textproto"
 	"os"
@@ -29,7 +30,7 @@ func (d *generatePasswordResetActionPerformer) Name() string {
 	return "password.reset.begin"
 }
 
-func (d *generatePasswordResetActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}) (api2go.Responder, []ActionResponse, []error) {
+func (d *generatePasswordResetActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -52,13 +53,13 @@ func (d *generatePasswordResetActionPerformer) DoAction(request Outcome, inField
 		u, _ := uuid.NewV4()
 		email := existingUser["email"].(string)
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"email":   email,
-			"name":    existingUser["name"],
-			"nbf":     time.Now().Unix(),
-			"exp":     time.Now().Add(30 * time.Minute).Unix(),
-			"iss":     d.jwtTokenIssuer,
-			"iat":     time.Now(),
-			"jti":     u.String(),
+			"email": email,
+			"name":  existingUser["name"],
+			"nbf":   time.Now().Unix(),
+			"exp":   time.Now().Add(30 * time.Minute).Unix(),
+			"iss":   d.jwtTokenIssuer,
+			"iat":   time.Now(),
+			"jti":   u.String(),
 		})
 
 		// Sign and get the complete encoded token as a string using the secret
