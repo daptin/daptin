@@ -12,9 +12,9 @@ import (
 )
 
 // Returns the user account row of a user by looking up on email
-func (d *DbResource) GetUserMailAccountRowByEmail(username string) (map[string]interface{}, error) {
+func (dbResource *DbResource) GetUserMailAccountRowByEmail(username string) (map[string]interface{}, error) {
 
-	mailAccount, _, err := d.Cruds["mail_account"].GetRowsByWhereClause("mail_account",
+	mailAccount, _, err := dbResource.Cruds["mail_account"].GetRowsByWhereClause("mail_account",
 		nil, goqu.Ex{"username": username})
 
 	if len(mailAccount) > 0 {
@@ -27,9 +27,9 @@ func (d *DbResource) GetUserMailAccountRowByEmail(username string) (map[string]i
 }
 
 // Returns the user mail account box row of a user
-func (d *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName string) (map[string]interface{}, error) {
+func (dbResource *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName string) (map[string]interface{}, error) {
 
-	mailAccount, _, err := d.Cruds["mail_box"].GetRowsByWhereClause("mail_box", nil, goqu.Ex{"mail_account_id": mailAccountId}, goqu.Ex{"name": mailBoxName})
+	mailAccount, _, err := dbResource.Cruds["mail_box"].GetRowsByWhereClause("mail_box", nil, goqu.Ex{"mail_account_id": mailAccountId}, goqu.Ex{"name": mailBoxName})
 
 	if len(mailAccount) > 0 {
 
@@ -41,14 +41,14 @@ func (d *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName string) 
 }
 
 // Returns the user mail account box row of a user
-func (d *DbResource) CreateMailAccountBox(mailAccountId string, sessionUser *auth.SessionUser, mailBoxName string) (map[string]interface{}, error) {
+func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string, sessionUser *auth.SessionUser, mailBoxName string) (map[string]interface{}, error) {
 
 	httpRequest := &http.Request{
 		Method: "POST",
 	}
 
 	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
-	resp, err := d.Cruds["mail_box"].Create(&api2go.Api2GoModel{
+	resp, err := dbResource.Cruds["mail_box"].Create(&api2go.Api2GoModel{
 		Data: map[string]interface{}{
 			"name":            mailBoxName,
 			"mail_account_id": mailAccountId,
@@ -68,9 +68,9 @@ func (d *DbResource) CreateMailAccountBox(mailAccountId string, sessionUser *aut
 }
 
 // Returns the user mail account box row of a user
-func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) error {
+func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) error {
 
-	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
+	box, err := dbResource.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
 		goqu.Ex{
 			"mail_account_id": mailAccountId,
 			"name":            mailBoxName,
@@ -85,7 +85,7 @@ func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName strin
 		return err
 	}
 
-	_, err = d.db.Exec(query, args...)
+	_, err = dbResource.db.Exec(query, args...)
 	if err != nil {
 		return err
 	}
@@ -95,16 +95,16 @@ func (d *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName strin
 		return err
 	}
 
-	_, err = d.db.Exec(query, args...)
+	_, err = dbResource.db.Exec(query, args...)
 
 	return err
 
 }
 
 // Returns the user mail account box row of a user
-func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) error {
+func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) error {
 
-	box, err := d.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
+	box, err := dbResource.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
 		goqu.Ex{
 			"mail_account_id": mailAccountId,
 			"name":            oldBoxName,
@@ -122,14 +122,14 @@ func (d *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string
 		return err
 	}
 
-	_, err = d.db.Exec(query, args...)
+	_, err = dbResource.db.Exec(query, args...)
 
 	return err
 
 }
 
 // Returns the user mail account box row of a user
-func (d *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool) error {
+func (dbResource *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool) error {
 
 	query, args, err := statementbuilder.Squirrel.
 		Update("mail_box").
@@ -142,7 +142,7 @@ func (d *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName strin
 		return err
 	}
 
-	_, err = d.db.Exec(query, args...)
+	_, err = dbResource.db.Exec(query, args...)
 
 	return err
 

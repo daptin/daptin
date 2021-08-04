@@ -24,9 +24,9 @@ import (
 	"time"
 )
 
-func (resource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken string, expiresIn int64) error {
+func (dbResource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken string, expiresIn int64) error {
 
-	encryptionSecret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
 	if err != nil {
 		return err
 	}
@@ -47,14 +47,14 @@ func (resource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken str
 		return err
 	}
 
-	_, err = resource.db.Exec(s, v...)
+	_, err = dbResource.db.Exec(s, v...)
 	return err
 
 }
 
-func (resource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId string, accessToken string, expiresIn int64) error {
+func (dbResource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId string, accessToken string, expiresIn int64) error {
 
-	encryptionSecret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (resource *DbResource) UpdateAccessTokenByTokenReferenceId(referenceId stri
 		return err
 	}
 
-	_, err = resource.db.Exec(s, v...)
+	_, err = dbResource.db.Exec(s, v...)
 	return err
 
 }

@@ -189,7 +189,7 @@ func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 		log.Printf("No oauth token set for target store")
 	} else {
 		oauthTokenId := oauthTokenId1.(string)
-		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceIdWithTransaction(oauthTokenId, transaction)
 		CheckErr(err, "Failed to get oauth2 token for store sync")
 	}
 

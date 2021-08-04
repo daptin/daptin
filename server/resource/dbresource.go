@@ -199,22 +199,22 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int6
 
 }
 
-func (dr *DbResource) PutContext(key string, val interface{}) {
-	dr.contextLock.Lock()
-	defer dr.contextLock.Unlock()
+func (dbResource *DbResource) PutContext(key string, val interface{}) {
+	dbResource.contextLock.Lock()
+	defer dbResource.contextLock.Unlock()
 
-	dr.contextCache[key] = val
+	dbResource.contextCache[key] = val
 }
 
-func (dr *DbResource) GetContext(key string) interface{} {
+func (dbResource *DbResource) GetContext(key string) interface{} {
 
-	dr.contextLock.RLock()
-	defer dr.contextLock.RUnlock()
+	dbResource.contextLock.RLock()
+	defer dbResource.contextLock.RUnlock()
 
-	return dr.contextCache[key]
+	return dbResource.contextCache[key]
 }
 
-func (dr *DbResource) GetAdminReferenceId() map[string]bool {
+func (dbResource *DbResource) GetAdminReferenceId() map[string]bool {
 	var err error
 	var cacheValue interface{}
 	adminMap := make(map[string]bool)
@@ -224,7 +224,7 @@ func (dr *DbResource) GetAdminReferenceId() map[string]bool {
 			return cacheValue.(map[string]bool)
 		}
 	}
-	userRefId := dr.GetUserMembersByGroupName("administrators")
+	userRefId := dbResource.GetUserMembersByGroupName("administrators")
 	for _, id := range userRefId {
 		adminMap[id] = true
 	}
@@ -259,7 +259,7 @@ func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[string]bool {
 	return adminMap
 }
 
-func (dr *DbResource) IsAdmin(userReferenceId string) bool {
+func (dbResource *DbResource) IsAdmin(userReferenceId string) bool {
 	start := time.Now()
 	key := "admin." + userReferenceId
 	if OlricCache != nil {
@@ -276,7 +276,7 @@ func (dr *DbResource) IsAdmin(userReferenceId string) bool {
 			}
 		}
 	}
-	admins := dr.GetAdminReferenceId()
+	admins := dbResource.GetAdminReferenceId()
 	_, ok := admins[userReferenceId]
 	if ok {
 		if OlricCache != nil {
@@ -338,22 +338,22 @@ func IsAdminWithTransaction(userReferenceId string, transaction *sqlx.Tx) bool {
 
 }
 
-func (dr *DbResource) TableInfo() *TableInfo {
-	return dr.tableInfo
+func (dbResource *DbResource) TableInfo() *TableInfo {
+	return dbResource.tableInfo
 }
 
-func (dr *DbResource) GetAdminEmailId() string {
-	cacheVal := dr.GetContext("administrator_email_id")
+func (dbResource *DbResource) GetAdminEmailId() string {
+	cacheVal := dbResource.GetContext("administrator_email_id")
 	if cacheVal == nil {
-		userRefId := dr.GetUserEmailIdByUsergroupId(2)
-		dr.PutContext("administrator_email_id", userRefId)
+		userRefId := dbResource.GetUserEmailIdByUsergroupId(2)
+		dbResource.PutContext("administrator_email_id", userRefId)
 		return userRefId
 	} else {
 		return cacheVal.(string)
 	}
 }
 
-func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, stop uint32) ([]map[string]interface{}, error) {
+func (dbResource *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, stop uint32) ([]map[string]interface{}, error) {
 
 	q := statementbuilder.Squirrel.Select("*").From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
@@ -370,7 +370,7 @@ func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, sto
 		return nil, err
 	}
 
-	stmt1, err := dr.Connection.Preparex(query)
+	stmt1, err := dbResource.Connection.Preparex(query)
 	if err != nil {
 		log.Errorf("[275] failed to prepare statment: %v", err)
 	}
@@ -387,14 +387,14 @@ func (dr *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, sto
 		return nil, err
 	}
 
-	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds["mail"].model.GetColumnMap(), nil)
+	m, _, err := dbResource.ResultToArrayOfMap(row, dbResource.Cruds["mail"].model.GetColumnMap(), nil)
 	row.Close()
 
 	return m, err
 
 }
 
-func (dr *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32, stop uint32) ([]map[string]interface{}, error) {
+func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32, stop uint32) ([]map[string]interface{}, error) {
 
 	q := statementbuilder.Squirrel.Select("*").From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
@@ -417,7 +417,7 @@ func (dr *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32
 		return nil, err
 	}
 
-	stmt1, err := dr.Connection.Preparex(query)
+	stmt1, err := dbResource.Connection.Preparex(query)
 	if err != nil {
 		log.Errorf("[322] failed to prepare statment: %v", err)
 	}
@@ -434,14 +434,14 @@ func (dr *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32
 		return nil, err
 	}
 
-	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds["mail"].model.GetColumnMap(), nil)
+	m, _, err := dbResource.ResultToArrayOfMap(row, dbResource.Cruds["mail"].model.GetColumnMap(), nil)
 	row.Close()
 
 	return m, err
 
 }
 
-func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*imap.MailboxStatus, error) {
+func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*imap.MailboxStatus, error) {
 
 	var unseenCount uint32
 	var recentCount uint32
@@ -457,7 +457,7 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 		return nil, e4
 	}
 
-	stmt1, err := dr.Connection.Preparex(q4)
+	stmt1, err := dbResource.Connection.Preparex(q4)
 	if err != nil {
 		log.Errorf("[362] failed to prepare statment: %v", err)
 	}
@@ -478,7 +478,7 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 		return nil, e1
 	}
 
-	stmt1, err = dr.Connection.Preparex(q1)
+	stmt1, err = dbResource.Connection.Preparex(q1)
 	if err != nil {
 		log.Errorf("[384] failed to prepare statment: %v", err)
 	}
@@ -499,7 +499,7 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 		return nil, e2
 	}
 
-	stmt1, err = dr.Connection.Preparex(q2)
+	stmt1, err = dbResource.Connection.Preparex(q2)
 	if err != nil {
 		log.Errorf("[405] failed to prepare statment: %v", err)
 	}
@@ -519,7 +519,7 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 		return nil, e3
 	}
 
-	stmt1, err = dr.Connection.Preparex(q3)
+	stmt1, err = dbResource.Connection.Preparex(q3)
 	if err != nil {
 		log.Errorf("[425] failed to prepare statment: %v", err)
 	}
@@ -531,7 +531,7 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 		log.Errorf("failed to close prepared statement: %v", err)
 	}
 
-	uidNext, _ = dr.GetMailboxNextUid(mailBoxId)
+	uidNext, _ = dbResource.GetMailboxNextUid(mailBoxId)
 
 	st := imap.NewMailboxStatus("", []imap.StatusItem{imap.StatusUnseen, imap.StatusMessages, imap.StatusRecent, imap.StatusUidNext, imap.StatusUidValidity})
 
@@ -546,7 +546,7 @@ func (dr *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*i
 	return st, err
 }
 
-func (dr *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
+func (dbResource *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
 
 	query, args, err := statementbuilder.Squirrel.Select(goqu.L("min(id)")).From("mail").Where(
 		goqu.Ex{
@@ -559,7 +559,7 @@ func (dr *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
 	}
 
 	var id uint32
-	stmt1, err := dr.Connection.Preparex(query)
+	stmt1, err := dbResource.Connection.Preparex(query)
 	if err != nil {
 		log.Errorf("[465] failed to prepare statment: %v", err)
 	}
@@ -578,7 +578,7 @@ func (dr *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
 	return id
 
 }
-func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []string) error {
+func (dbResource *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []string) error {
 
 	//log.Printf("Update mail flags for [%v][%v]: %v", mailBoxId, mailId, newFlags)
 	seen := false
@@ -621,11 +621,11 @@ func (dr *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []
 		return err
 	}
 
-	_, err = dr.db.Exec(query, args...)
+	_, err = dbResource.db.Exec(query, args...)
 	return err
 
 }
-func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
+func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 
 	selectQuery, args, err := statementbuilder.Squirrel.Select("id").From("mail").Where(
 		goqu.Ex{
@@ -638,7 +638,7 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, err
 	}
 
-	stmt1, err := dr.Connection.Preparex(selectQuery)
+	stmt1, err := dbResource.Connection.Preparex(selectQuery)
 	if err != nil {
 		log.Errorf("[544] failed to prepare statment: %v", err)
 	}
@@ -676,7 +676,7 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, err
 	}
 
-	_, err = dr.db.Exec(query, args...)
+	_, err = dbResource.db.Exec(query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -688,7 +688,7 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, err
 	}
 
-	result, err := dr.db.Exec(query, args...)
+	result, err := dbResource.db.Exec(query, args...)
 	if err != nil {
 		log.Printf("Query: %v", query)
 		return 0, err
@@ -698,7 +698,7 @@ func (dr *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 
 }
 
-func (dr *DbResource) GetMailboxNextUid(mailBoxId int64) (uint32, error) {
+func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64) (uint32, error) {
 
 	var uidNext int64
 	q5, v5, e5 := statementbuilder.Squirrel.Select("max(id)").From("mail").Where(goqu.Ex{
@@ -709,7 +709,7 @@ func (dr *DbResource) GetMailboxNextUid(mailBoxId int64) (uint32, error) {
 		return 1, e5
 	}
 
-	stmt1, err := dr.Connection.Preparex(q5)
+	stmt1, err := dbResource.Connection.Preparex(q5)
 	if err != nil {
 		log.Errorf("[615] failed to prepare statment: %v", err)
 		return 0, err

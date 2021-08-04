@@ -109,7 +109,7 @@ func ColumnToInterfaceArray(s []column) []interface{} {
 	return r
 }
 
-func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) {
+func (dbResource *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) {
 
 	sort.Strings(req.GroupBy)
 	projections := req.ProjectColumn
@@ -174,7 +174,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 				rightValParts := strings.Split(rightVal.(string), "@")
 				entityName := rightValParts[0]
 				entityReferenceId := rightValParts[1]
-				entityId, err := dr.GetReferenceIdToId(entityName, entityReferenceId)
+				entityId, err := dbResource.GetReferenceIdToId(entityName, entityReferenceId)
 				if err != nil {
 					return nil, fmt.Errorf("referenced entity in where clause not found - [%v][%v] -%v", entityName, entityReferenceId, err)
 				}
@@ -303,7 +303,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 
 	log.Printf("Aggregation query: %v", sql)
 
-	stmt1, err := dr.Connection.Preparex(sql)
+	stmt1, err := dbResource.Connection.Preparex(sql)
 	if err != nil {
 		log.Errorf("[291] failed to prepare statment: %v", err)
 		return nil, err
@@ -339,13 +339,13 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 			groupedColumn = strings.Split(groupedColumn, ".")[1]
 		}
 
-		if dr.Cruds[req.RootEntity] != nil {
-			columnInfo, ok = dr.Cruds[req.RootEntity].TableInfo().GetColumnByName(groupedColumn)
+		if dbResource.Cruds[req.RootEntity] != nil {
+			columnInfo, ok = dbResource.Cruds[req.RootEntity].TableInfo().GetColumnByName(groupedColumn)
 		}
 
 		if columnInfo == nil {
 			for _, tableName := range joinedTables {
-				columnInfo, ok = dr.Cruds[tableName].TableInfo().GetColumnByName(groupedColumn)
+				columnInfo, ok = dbResource.Cruds[tableName].TableInfo().GetColumnByName(groupedColumn)
 				if !ok {
 					continue
 				} else {
@@ -372,7 +372,7 @@ func (dr *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) 
 			if len(idsToConvert) == 0 {
 				continue
 			}
-			referenceIds, err := dr.Cruds[entityName].GetIdListToReferenceIdList(entityName, idsToConvert)
+			referenceIds, err := dbResource.Cruds[entityName].GetIdListToReferenceIdList(entityName, idsToConvert)
 			if err != nil {
 				return nil, err
 			}

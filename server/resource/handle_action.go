@@ -182,7 +182,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 	}
 }
 
-func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2go.Request) ([]ActionResponse, error) {
+func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2go.Request) ([]ActionResponse, error) {
 
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -194,13 +194,13 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	var subjectInstance *api2go.Api2GoModel
 	var subjectInstanceMap map[string]interface{}
 
-	transaction, err := db.Connection.Beginx()
+	transaction, err := dbResource.Connection.Beginx()
 	if err != nil {
 		return nil, err
 	}
 
 
-	action, err := db.GetActionByName(actionRequest.Type, actionRequest.Action, transaction)
+	action, err := dbResource.GetActionByName(actionRequest.Type, actionRequest.Action, transaction)
 	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
 	if err != nil {
 		log.Warnf("invalid action: %v - %v", actionRequest.Action, actionRequest.Type)
@@ -216,7 +216,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		req.PlainRequest.Method = "GET"
 		req.QueryParams = make(map[string][]string)
 		req.QueryParams["included_relations"] = action.RequestSubjectRelations
-		referencedObject, err := db.FindOneWithTransaction(subjectInstanceReferenceId.(string), req, transaction)
+		referencedObject, err := dbResource.FindOneWithTransaction(subjectInstanceReferenceId.(string), req, transaction)
 		if err != nil {
 			log.Warnf("failed to load subject for action: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
 			rollbackErr := transaction.Rollback()
@@ -235,7 +235,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		}
 
 		subjectInstanceMap["__type"] = subjectInstance.GetName()
-		permission := db.GetRowPermissionWithTransaction(subjectInstanceMap, transaction)
+		permission := dbResource.GetRowPermissionWithTransaction(subjectInstanceMap, transaction)
 
 		if !permission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
 			log.Warnf("user not allowed action on this object: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
@@ -245,7 +245,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		}
 	}
 
-	if !isAdmin && !db.IsUserActionAllowedWithTransaction(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action, transaction) {
+	if !isAdmin && !dbResource.IsUserActionAllowedWithTransaction(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action, transaction) {
 		log.Warnf("user not allowed action: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr,"failed to rollback")
@@ -308,7 +308,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	}
 
 	if sessionUser.UserReferenceId != "" {
-		user, err := db.GetReferenceIdToObjectWithTransaction(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId, transaction)
+		user, err := dbResource.GetReferenceIdToObjectWithTransaction(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId, transaction)
 		if err != nil {
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr,"failed to rollback")
@@ -395,7 +395,7 @@ OutFields:
 			})
 		}
 		request.PlainRequest = request.PlainRequest.WithContext(requestContext)
-		dbResource, _ := db.Cruds[outcome.Type]
+		dbResource, _ := dbResource.Cruds[outcome.Type]
 
 		actionResponses := make([]ActionResponse, 0)
 		//log.Printf("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
@@ -495,7 +495,7 @@ OutFields:
 			//res, err = Cruds[outcome.Type].Create(model, actionRequest)
 
 			actionName := model.GetName()
-			performer, ok := db.ActionHandlerMap[actionName]
+			performer, ok := dbResource.ActionHandlerMap[actionName]
 			if !ok {
 				log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
 				//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
@@ -520,7 +520,7 @@ OutFields:
 			actionResponse = NewActionResponse(model.GetName(), model.Data)
 			actionResponses = append(actionResponses, actionResponse)
 		default:
-			handler, ok := db.ActionHandlerMap[outcome.Type]
+			handler, ok := dbResource.ActionHandlerMap[outcome.Type]
 
 			if !ok {
 				log.Errorf("Unknown method invoked onn %v: %v", outcome.Type, outcome.Method)
