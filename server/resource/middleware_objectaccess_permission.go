@@ -73,7 +73,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 			continue
 		}
 
-		permission := dr.GetRowPermission(result)
+		permission := dr.GetRowPermissionWithTransaction(result, transaction)
 
 		//log.Printf("Row Permission for [%v] for [%v]", permission, result)
 
@@ -123,7 +123,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	if dr.IsAdmin(sessionUser.UserReferenceId) {
+	if IsAdminWithTransaction(sessionUser.UserReferenceId, transaction) {
 		return results, nil
 	}
 
@@ -162,7 +162,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 			"reference_id":          result["reference_id"],
 			"relation_reference_id": result["relation_reference_id"],
 		}
-		permission := dr.GetRowPermission(originalRowReference)
+		permission := dr.GetRowPermissionWithTransaction(originalRowReference, transaction)
 		//log.Printf("[ObjectAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.PermissionInstance)
 		//log.Printf("Row Permission for [%v] for [%v]", permission, result)
 

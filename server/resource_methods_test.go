@@ -148,19 +148,6 @@ func TestGetReferenceIdToObject(t *testing.T) {
 
 }
 
-func TestUserGroupNameToId(t *testing.T) {
-
-	wrapper, dbResource := GetResource()
-	defer wrapper.db.Close()
-	dbResource.UserGroupNameToId("groupname")
-
-	if !wrapper.HasExecuted("SELECT id FROM usergroup WHERE name =") {
-		t.Errorf("Expected query not fired")
-		t.Fail()
-	}
-
-}
-
 func TestStoreToken(t *testing.T) {
 
 	wrapper, dbResource := GetResource()

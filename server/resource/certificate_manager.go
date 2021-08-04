@@ -11,6 +11,7 @@ import (
 	"errors"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"net"
@@ -235,6 +236,133 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 			CheckErr(commitErr, "failed to commit")
 			if commitErr != nil {
 				return nil, nil, nil, nil, nil, commitErr
+			}
+		}
+
+		return tlsConfig, certBytesPEM, privateKeyPem, publicKeyPem, certBytesPEM, nil
+	} else if certMap != nil && err == nil {
+
+		certPEM := certMap["certificate_pem"].(string)
+
+		privatePEM := AsStringOrEmpty(certMap["private_key_pem"])
+
+		publicPEM := AsStringOrEmpty(certMap["public_key_pem"])
+		rootCert := AsStringOrEmpty(certMap["root_certificate"])
+
+		privatePEMDecrypted, err := Decrypt([]byte(cm.encryptionSecret), privatePEM)
+		publicPEMDecrypted := publicPEM
+
+		if err != nil {
+			log.Printf("Failed to load cert: %v", err)
+			return nil, nil, nil, nil, nil, err
+		}
+
+		cert, err := tls.X509KeyPair([]byte(certPEM), []byte(privatePEMDecrypted))
+		rootCaCert := x509.NewCertPool()
+		rootCaCert.AppendCertsFromPEM([]byte(rootCert))
+
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			ServerName:   hostname,
+			RootCAs:      rootCaCert,
+			ClientAuth:   tls.VerifyClientCertIfGiven,
+		}
+
+		return tlsConfig, []byte(certPEM), []byte(privatePEMDecrypted), []byte(publicPEMDecrypted), []byte(rootCert), nil
+
+	}
+	return nil, nil, nil, nil, nil, errors.New("certificate not found")
+}
+
+
+func (cm *CertificateManager) GetTLSConfigWithTransaction(hostname string, createIfNotFound bool, transaction *sqlx.Tx) (*tls.Config, []byte, []byte, []byte, []byte, error) {
+
+	log.Printf("Get certificate for [%v]: %v", hostname, createIfNotFound)
+	hostname = strings.Split(hostname, ":")[0]
+	certMap, err := cm.cruds["certificate"].GetObjectByWhereClauseWithTransaction("certificate", "hostname", hostname, transaction)
+
+	if createIfNotFound && (err != nil || certMap == nil || certMap["certificate_pem"] == nil || certMap["certificate_pem"].(string) == "") {
+
+		publicKeyPem, privateKeyPem, key, err := GetPublicPrivateKeyPEMBytes()
+		if err != nil {
+			log.Printf("Failed to generate key: %v", err)
+			return nil, nil, nil, nil, nil, err
+		}
+
+		certBytesPEM, err := GenerateCertPEMWithKey(hostname, key)
+
+		if err != nil {
+			log.Printf("Failed to load cert bytes pem: %v", err)
+			return nil, nil, nil, nil, nil, err
+		}
+
+		cert, err := tls.X509KeyPair(certBytesPEM, privateKeyPem)
+		if err != nil {
+			log.Printf("Failed to load cert pair: %v", err)
+			return nil, nil, nil, nil, nil, err
+		}
+
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			ServerName:   hostname,
+			ClientAuth:   tls.NoClientCert,
+		}
+
+		adminList := GetAdminReferenceIdWithTransaction(transaction)
+
+		adminUserReferenceId := ""
+		adminId := int64(1)
+
+		if len(adminList) > 0 {
+			for id := range adminList {
+				adminUserReferenceId = id
+				break
+			}
+			adminId, err = GetReferenceIdToIdWithTransaction("user_account", adminUserReferenceId, transaction)
+			if err != nil {
+				log.Printf("Failed to get admin id for user: %v == %v", adminUserReferenceId, err)
+			}
+		}
+
+		newCertificate := map[string]interface{}{
+			"hostname":         hostname,
+			"issuer":           "self",
+			"generated_at":     time.Now().Format(time.RFC3339),
+			"certificate_pem":  string(certBytesPEM),
+			"private_key_pem":  string(privateKeyPem),
+			"root_certificate": string(certBytesPEM),
+			"public_key_pem":   string(publicKeyPem),
+		}
+		request := &http.Request{
+			Method: "PUT",
+		}
+
+		request = request.WithContext(context.WithValue(context.Background(), "user", &auth.SessionUser{
+			UserReferenceId: adminUserReferenceId,
+			UserId:          adminId,
+		}))
+		req := api2go.Request{
+			PlainRequest: request,
+		}
+
+		data := api2go.NewApi2GoModelWithData("certificate", nil, 0, nil, newCertificate)
+
+		if certMap != nil && certMap["reference_id"] != nil {
+			data.Data["reference_id"] = certMap["reference_id"]
+			_, err = cm.cruds["certificate"].UpdateWithoutFilters(data, req, transaction)
+			if err != nil {
+				log.Printf("Failed to store locally generated certificate: %v", err)
+				return nil, nil, nil, nil, nil, err
+			}
+
+		} else {
+			request.Method = "POST"
+
+			_, err = cm.cruds["certificate"].CreateWithoutFilter(data, req, transaction)
+
+			if err != nil {
+				log.Printf("Failed to store locally generated certificate: %v", err)
+				return nil, nil, nil, nil, nil, err
 			}
 		}
 

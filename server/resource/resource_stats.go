@@ -111,6 +111,10 @@ func ColumnToInterfaceArray(s []column) []interface{} {
 
 func (dbResource *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) {
 
+	transaction, err := dbResource.Connection.Beginx()
+	if err != nil {
+		return nil, err
+	}
 	sort.Strings(req.GroupBy)
 	projections := req.ProjectColumn
 
@@ -174,7 +178,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest) (*AggregateData,
 				rightValParts := strings.Split(rightVal.(string), "@")
 				entityName := rightValParts[0]
 				entityReferenceId := rightValParts[1]
-				entityId, err := dbResource.GetReferenceIdToId(entityName, entityReferenceId)
+				entityId, err := GetReferenceIdToIdWithTransaction(entityName, entityReferenceId, transaction)
 				if err != nil {
 					return nil, fmt.Errorf("referenced entity in where clause not found - [%v][%v] -%v", entityName, entityReferenceId, err)
 				}
@@ -303,7 +307,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest) (*AggregateData,
 
 	log.Printf("Aggregation query: %v", sql)
 
-	stmt1, err := dbResource.Connection.Preparex(sql)
+	stmt1, err := transaction.Preparex(sql)
 	if err != nil {
 		log.Errorf("[291] failed to prepare statment: %v", err)
 		return nil, err
@@ -372,7 +376,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest) (*AggregateData,
 			if len(idsToConvert) == 0 {
 				continue
 			}
-			referenceIds, err := dbResource.Cruds[entityName].GetIdListToReferenceIdList(entityName, idsToConvert)
+			referenceIds, err := GetIdListToReferenceIdListWithTransaction(entityName, idsToConvert, transaction)
 			if err != nil {
 				return nil, err
 			}
