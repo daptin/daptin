@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/buraksezer/olric"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"

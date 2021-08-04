@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
