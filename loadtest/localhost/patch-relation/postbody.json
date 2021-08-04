@@ -1,0 +1,14 @@
+{
+  "data": {
+    "type": "conversation",
+    "attributes": {
+      "property_id": [
+        {
+          "type": "property",
+          "id": "9d3c2730-925c-4e7b-bc2e-e22aa43566c7",
+          "property_value": "hey value"
+        }
+      ]
+    }
+  }
+}
