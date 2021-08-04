@@ -89,13 +89,13 @@ func (dr *DbResource) GetTotalCountBySelectBuilder(builder *goqu.SelectDataset) 
 	return count
 }
 
-func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, transaction *sqlx.Tx) uint64 {
+func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, transaction *sqlx.Tx) (uint64, error) {
 
 	s, v, err := builder.ToSQL()
 	//log.Printf("Count query: %v == %v", s, v)
 	if err != nil {
 		log.Errorf("Failed to generate count query: %v", err)
-		return 0
+		return 0, nil
 	}
 
 	var count uint64
@@ -107,6 +107,7 @@ func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, tr
 
 	if err != nil {
 		log.Errorf("[61] failed to prepare statment: %v", err)
+		return 0, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
@@ -122,9 +123,10 @@ func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, tr
 
 	if err != nil {
 		log.Errorf("Failed to execute count query [%v] %v", s, err)
+		return 0, err
 	}
 	//log.Printf("Count: [%v] %v", dr.model.GetTableName(), count)
-	return count
+	return count, nil
 }
 
 type PaginationData struct {
@@ -1077,12 +1079,18 @@ func (dr *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request, transac
 
 		start = time.Now()
 		results, includes, err = dr.ResultToArrayOfMapWithTransaction(rows, dr.model.GetColumnMap(), includedRelations, transaction)
+		if err != nil {
+			return nil, nil, nil, false, err
+		}
 		duration = time.Since(start)
 		log.Infof("FindAll ResultToArray: %v", duration)
 
 	}
 	start = time.Now()
-	total1 = GetTotalCountBySelectBuilderWithTransaction(countQueryBuilder, transaction)
+	total1, err = GetTotalCountBySelectBuilderWithTransaction(countQueryBuilder, transaction)
+	if err != nil {
+		return nil, nil, nil, false, err
+	}
 	duration = time.Since(start)
 	log.Infof("GetTotalCountBySelectBuilder: %v", duration)
 

@@ -194,10 +194,18 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	var subjectInstance *api2go.Api2GoModel
 	var subjectInstanceMap map[string]interface{}
 
-	action, err := db.GetActionByName(actionRequest.Type, actionRequest.Action)
+	transaction, err := db.Connection.Beginx()
+	if err != nil {
+		return nil, err
+	}
+
+
+	action, err := db.GetActionByName(actionRequest.Type, actionRequest.Action, transaction)
 	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
 	if err != nil {
 		log.Warnf("invalid action: %v - %v", actionRequest.Action, actionRequest.Type)
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr,"failed to rollback")
 		return nil, api2go.NewHTTPError(err, "no such action", 400)
 	}
 
@@ -208,9 +216,11 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		req.PlainRequest.Method = "GET"
 		req.QueryParams = make(map[string][]string)
 		req.QueryParams["included_relations"] = action.RequestSubjectRelations
-		referencedObject, err := db.FindOne(subjectInstanceReferenceId.(string), req)
+		referencedObject, err := db.FindOneWithTransaction(subjectInstanceReferenceId.(string), req, transaction)
 		if err != nil {
 			log.Warnf("failed to load subject for action: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr,"failed to rollback")
 			return nil, api2go.NewHTTPError(err, "failed to load subject", 400)
 		}
 		subjectInstance = referencedObject.Result().(*api2go.Api2GoModel)
@@ -219,20 +229,26 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 
 		if subjectInstanceMap == nil {
 			log.Warnf("subject is empty: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr,"failed to rollback")
 			return nil, api2go.NewHTTPError(errors.New("subject not found"), "subject not found", 400)
 		}
 
 		subjectInstanceMap["__type"] = subjectInstance.GetName()
-		permission := db.GetRowPermission(subjectInstanceMap)
+		permission := db.GetRowPermissionWithTransaction(subjectInstanceMap, transaction)
 
 		if !permission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
 			log.Warnf("user not allowed action on this object: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr,"failed to rollback")
 			return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 		}
 	}
 
 	if !isAdmin && !db.IsUserActionAllowed(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action) {
 		log.Warnf("user not allowed action: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr,"failed to rollback")
 		return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 	}
 
@@ -240,6 +256,8 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 
 	if !action.InstanceOptional && (subjectInstanceReferenceId == "" || subjectInstance == nil) {
 		log.Warnf("subject is unidentified: %v - %v", actionRequest.Action, actionRequest.Type)
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr,"failed to rollback")
 		return nil, api2go.NewHTTPError(errors.New("required reference id not provided or incorrect"), "no reference id", 400)
 	}
 
@@ -260,6 +278,8 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 			log.Warnf("validation on input fields failed: %v - %v", actionRequest.Action, actionRequest.Type)
 			validationErrors := errs.(validator.ValidationErrors)
 			firstError := validationErrors[0]
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr,"failed to rollback")
 			return nil, api2go.NewHTTPError(errors.New(fmt.Sprintf("invalid value for %s", validation.ColumnName)), firstError.Tag(), 400)
 		}
 	}
@@ -282,12 +302,16 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	inFieldMap["attributes"] = actionRequest.Attributes
 
 	if err != nil {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr,"failed to rollback")
 		return nil, api2go.NewHTTPError(err, "failed to validate fields", 400)
 	}
 
 	if sessionUser.UserReferenceId != "" {
-		user, err := db.GetReferenceIdToObject(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId)
+		user, err := db.GetReferenceIdToObjectWithTransaction(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId, transaction)
 		if err != nil {
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr,"failed to rollback")
 			return nil, api2go.NewHTTPError(err, "failed to identify user", 401)
 		}
 		inFieldMap["user"] = user
@@ -300,10 +324,6 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 
 	responses := make([]ActionResponse, 0)
 
-	transaction, err := db.Connection.Beginx()
-	if err != nil {
-		return nil, err
-	}
 
 OutFields:
 	for _, outcome := range action.OutFields {
@@ -420,7 +440,8 @@ OutFields:
 
 			referenceId, ok := model.Data["reference_id"]
 			if referenceId == nil || !ok {
-				return nil, api2go.NewHTTPError(err, "no reference id provided for GET_BY_ONE", 400)
+				err = api2go.NewHTTPError(err, "no reference id provided for GET_BY_ONE", 400)
+				break OutFields
 			}
 
 			includedRelations := make(map[string]bool, 0)
@@ -485,6 +506,7 @@ OutFields:
 				actionResponses = append(actionResponses, responses1...)
 				if len(errors1) > 0 {
 					err = errors1[0]
+					break OutFields
 				}
 				if responder != nil {
 					responseObjects = responder.Result().(*api2go.Api2GoModel).Data
