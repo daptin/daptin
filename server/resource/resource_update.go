@@ -753,8 +753,8 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request, 
 				for _, itemInterface := range values {
 					item := itemInterface.(map[string]interface{})
 					//obj := make(map[string]interface{})
-					item[rel.GetObjectName()] = item["id"]
-					item[rel.GetSubjectName()] = updatedResource["reference_id"]
+					item[rel.GetSubjectName()] = item["id"]
+					item[rel.GetObjectName()] = updatedResource["reference_id"]
 					delete(item, "id")
 					delete(item, "meta")
 					delete(item, "type")
@@ -777,13 +777,18 @@ func (dr *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request, 
 					}
 
 					subjectId, err := GetReferenceIdToIdWithTransaction(rel.GetSubject(), item[rel.GetSubjectName()].(string), updateTransaction)
+					if err != nil {
+						return nil, err
+					}
 					objectId, err := GetReferenceIdToIdWithTransaction(rel.GetObject(), item[rel.GetObjectName()].(string), updateTransaction)
+					if err != nil {
+						return nil, err
+					}
 
 					joinReferenceId, err := GetReferenceIdByWhereClauseWithTransaction(rel.GetJoinTableName(), updateTransaction, goqu.Ex{
 						rel.GetObjectName():  objectId,
 						rel.GetSubjectName(): subjectId,
 					})
-					CheckErr(err, "join row not found")
 
 					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, item)
 

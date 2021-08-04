@@ -1,0 +1,4 @@
+PATCH http://localhost:8080/api/property/e9b6c472-3cd4-48a7-8849-ea601b22add1/relationships/conversation_id
+Authorization: Bearer bad
+Cookie: token=bad; io=9PIbio7T_zUIZxt9AAAH
+Content-Type: application/json

@@ -1,0 +1,11 @@
+{
+  "data": [
+    {
+      "type": "conversation",
+      "id": "4abef83a-0baf-4ed8-96be-7bc47d07aab5",
+      "attributes": {
+        "property_value": "hey value 3"
+      }
+    }
+  ]
+}
